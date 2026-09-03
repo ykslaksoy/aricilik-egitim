@@ -13,7 +13,7 @@ const IMPROVE = {
   "Devrilme / eğim": { tip: "—", aksiyon: "Önde 100 — ADXL pitch/roll + köşe füzyon + senaryo R (SH 96 geçildi)" },
   "Hava istasyonu": { tip: "—", aksiyon: "Önde 100 — yağmur+güneş BOM + Open-Meteo + nektar (SH 96 geçildi)" },
   "Kovan kamerası CV": { tip: "—", aksiyon: "Önde 100 — giriş edge YOLO/ONNX + IR çapraz + 500 etiket (SH 98)" },
-  "Çiçek ziyareti sensörü": { tip: "A", aksiyon: "Pollen trap veya giriş ROI kamera (IR proxy yetersiz)" },
+  "Çiçek ziyareti sensörü": { tip: "—", aksiyon: "Önde 100 — giriş ROI polen + IR + nektar + kontrat (SH 88 geçildi)" },
   "Güneş + uzun pil": { tip: "R", aksiyon: "12 ay pil tüketim saha logu" },
   "4G / GSM": { tip: "O+R", aksiyon: "GATE A7670 seri üretim + kırsal kapsama R matrisi" },
   "LoRa / LoRaWAN": { tip: "—", aksiyon: "Önde — koru" },

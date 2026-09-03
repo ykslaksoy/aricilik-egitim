@@ -50,7 +50,7 @@ const { analyzeRobbing } = require("./services/robbingAnalysis");
 const { analyzeVarroaRisk } = require("./services/varroaAnalysis");
 const { analyzeQueenlessFusion } = require("./services/queenlessFusionAnalysis");
 const { analyzeSingleSideScale, deriveSides, pickSingleSide, referenceSingleSideFromConfig } = require("./services/singleSideScaleAnalysis");
-const { analyzeFlowerVisit } = require("./services/flowerVisitAnalysis");
+const { analyzeFlowerVisit, fillReadingPollenLoad } = require("./services/flowerVisitAnalysis");
 const { fuseWeatherStation } = require("./services/weatherStationAnalysis");
 const { analyzeMlFleet, getFleetStats } = require("./services/mlFleetAnalysis");
 const journalService = require("./services/journalService");
@@ -908,6 +908,7 @@ function buildSeries(profile, now) {
   }
   for (let i = 0; i < series.length; i++) {
     fillReadingCameraCounts(series[i], series.slice(0, i + 1));
+    fillReadingPollenLoad(series[i], {});
   }
   return series;
 }
@@ -1023,6 +1024,13 @@ function seed() {
       cameraLabeledFrames: 520,
       cameraScenarioTests: 16,
       cameraCalibratedAt: new Date(now).toISOString(),
+      flowerVisitBom: true,
+      factoryFlowerCert: true,
+      flowerFirmwareProd: true,
+      flowerRoiStandard: true,
+      flowerContractModel: true,
+      flowerScenarioTests: 12,
+      flowerVisitCalibratedAt: new Date(now).toISOString(),
       factoryIrCert: true,
       irMountStandard: true,
       irCalibratedAt: new Date(now).toISOString(),
@@ -1376,6 +1384,12 @@ function hydrateFromDb() {
         cameraYoloOnnx: true,
         cameraLabeledFrames: 520,
         cameraScenarioTests: 16,
+        flowerVisitBom: true,
+        factoryFlowerCert: true,
+        flowerFirmwareProd: true,
+        flowerRoiStandard: true,
+        flowerContractModel: true,
+        flowerScenarioTests: 12,
       });
     }
 
@@ -1533,7 +1547,15 @@ function attachDeepInsights(hiveId, colony, reading, meta, weather) {
   const weatherStation = fuseWeatherStation(reading, weather, cfg);
   const weatherIndices = analyzeWeatherIndices(reading, colony, weather, weatherStation);
   const singleSideScale = analyzeSingleSideScale(reading, colony, cfg);
-  const flowerVisit = analyzeFlowerVisit(series, reading, colony, weatherIndices);
+  const flowerVisit = analyzeFlowerVisit(
+    series,
+    reading,
+    colony,
+    weatherIndices,
+    cfg,
+    weather,
+    meta
+  );
   const robbing = analyzeRobbing(series, reading, colony, meta, acousticMl);
   const varroa = analyzeVarroaRisk(colony, meta, inspectionJournal, acousticMl);
   const queenlessFusion = analyzeQueenlessFusion(series, reading, colony, meta, acousticMl);
@@ -2761,6 +2783,20 @@ app.post("/api/hives/:id/calibrate", (req, res) => {
       cameraLabeledFrames: Math.max(Number(prev.cameraLabeledFrames) || 0, 500),
       cameraScenarioTests: Math.max(Number(prev.cameraScenarioTests) || 0, 12),
     }),
+    ...(b.flowerVisitBom != null && { flowerVisitBom: Boolean(b.flowerVisitBom) }),
+    ...(b.factoryFlowerCert != null && { factoryFlowerCert: Boolean(b.factoryFlowerCert) }),
+    ...(b.flowerFirmwareProd != null && { flowerFirmwareProd: Boolean(b.flowerFirmwareProd) }),
+    ...(b.flowerRoiStandard != null && { flowerRoiStandard: Boolean(b.flowerRoiStandard) }),
+    ...(b.flowerContractModel != null && { flowerContractModel: Boolean(b.flowerContractModel) }),
+    ...(b.flowerScenarioTests != null && { flowerScenarioTests: Number(b.flowerScenarioTests) }),
+    ...(b.autoFlowerVisitCalibrate && {
+      flowerVisitBom: true,
+      factoryFlowerCert: true,
+      flowerFirmwareProd: true,
+      flowerRoiStandard: true,
+      flowerContractModel: true,
+      flowerScenarioTests: Math.max(Number(prev.flowerScenarioTests) || 0, 10),
+    }),
     calibrated: true,
     calibratedAt: new Date().toISOString(),
     cornerCalibratedAt:
@@ -2806,6 +2842,12 @@ app.post("/api/hives/:id/calibrate", (req, res) => {
       b.cameraLabeledFrames != null
         ? new Date().toISOString()
         : prev.cameraCalibratedAt,
+    flowerVisitCalibratedAt:
+      b.autoFlowerVisitCalibrate ||
+      b.factoryFlowerCert != null ||
+      b.flowerScenarioTests != null
+        ? new Date().toISOString()
+        : prev.flowerVisitCalibratedAt,
   };
   hiveConfig.set(id, next);
 
@@ -3238,6 +3280,8 @@ app.get("/api/ingest/spec", (_req, res) => {
       cameraBeeIn: { type: "number", desc: "Kamera giriş sayımı" },
       cameraBeeOut: { type: "number", desc: "Kamera çıkış sayımı" },
       cameraCvMethod: { type: "string", desc: "CV yöntemi (yolo_onnx_v1 | motion_blob_v1)" },
+      pollenLoadPct: { type: "number", desc: "Dönen arılarda polen yükü (%) — kamera ROI veya tuzak" },
+      flowerVisit: { type: "object", desc: "Çiçek ziyareti { pollenLoadPct }" },
       mainCameraPresent: { type: "boolean", desc: "Ana kamera var mı" },
       transportMode: { type: "boolean", desc: "Taşıma modu aktif" },
       fault: { type: "string", desc: "Tek sensör arızası kodu" },
@@ -3310,6 +3354,13 @@ app.get("/api/ingest/spec", (_req, res) => {
         cameraLabeledFrames: "Etiketli kare sayısı (hedef ≥500)",
         cameraScenarioTests: "CV senaryo R sayısı (hedef ≥12)",
         autoCameraCalibrate: "true → kamera fabrika + YOLO + 500 etiket",
+        flowerVisitBom: "Giriş ROI polen (ek tuzak yok)",
+        factoryFlowerCert: "Polen sınıfı fabrika kalibrasyon",
+        flowerFirmwareProd: "Edge firmware polen sepeti",
+        flowerRoiStandard: "Uçuş deliği ROI standart",
+        flowerContractModel: "Pollination ROI bağ",
+        flowerScenarioTests: "Çiçeklenme senaryo R sayısı (hedef ≥10)",
+        autoFlowerVisitCalibrate: "true → ROI polen + senaryo R",
       },
     },
   });
@@ -3401,6 +3452,18 @@ app.post("/api/ingest", (req, res) => {
     cameraPresent: b.cameraPresent != null ? Boolean(b.cameraPresent) : true,
     cameraBeeIn: b.cameraBeeIn != null ? Number(b.cameraBeeIn) : null,
     cameraBeeOut: b.cameraBeeOut != null ? Number(b.cameraBeeOut) : null,
+    pollenLoadPct: b.pollenLoadPct != null ? Number(b.pollenLoadPct) : b.flowerVisit?.pollenLoadPct != null ? Number(b.flowerVisit.pollenLoadPct) : null,
+    flowerVisit:
+      b.flowerVisit && typeof b.flowerVisit === "object"
+        ? {
+            pollenLoadPct:
+              b.flowerVisit.pollenLoadPct != null
+                ? Number(b.flowerVisit.pollenLoadPct)
+                : b.pollenLoadPct != null
+                  ? Number(b.pollenLoadPct)
+                  : null,
+          }
+        : undefined,
     mainCameraPresent: b.mainCameraPresent != null ? Boolean(b.mainCameraPresent) : false,
     transportMode: b.transportMode != null ? Boolean(b.transportMode) : false,
     fault: faults[0] || null,
@@ -3412,6 +3475,7 @@ app.post("/api/ingest", (req, res) => {
   const series = history.get(hiveId) || [];
   const config = hiveConfig.get(hiveId) || {};
   fillReadingCameraCounts(reading, [...series, reading], config);
+  fillReadingPollenLoad(reading, config);
   series.push(reading);
   if (series.length > 200) series.shift();
   history.set(hiveId, series);

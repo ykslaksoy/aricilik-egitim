@@ -24,7 +24,7 @@ const FEATURES = [
   { g: "A", n: "Devrilme / eğim", bh: 0, ar: 0, ap: 0, bw: 96, aHw: 100, k: 96, bom: true },
   { g: "A", n: "Hava istasyonu", bh: 0, ar: 96, ap: 0, bw: 0, aHw: 100, k: 96, bom: true },
   { g: "A", n: "Kovan kamerası CV", bh: 0, ar: 0, ap: 0, bw: 98, aHw: 100, k: 96, bom: "optional" },
-  { g: "A", n: "Çiçek ziyareti sensörü", bh: 88, ar: 0, ap: 0, bw: 0, aHw: 32, k: 58, bom: false },
+  { g: "A", n: "Çiçek ziyareti sensörü", bh: 88, ar: 0, ap: 0, bw: 0, aHw: 100, k: 90, bom: "optional" },
   { g: "A", n: "Güneş + uzun pil", bh: 90, ar: 92, ap: 90, bw: 94, aHw: 93, k: 90, bom: true },
   { g: "A", n: "4G / GSM", bh: 95, ar: 95, ap: 95, bw: 95, aHw: 85, k: 93, bom: "stage2" },
   { g: "A", n: "LoRa / LoRaWAN", bh: 0, ar: 0, ap: 0, bw: 0, aHw: 96, k: 96, bom: true },

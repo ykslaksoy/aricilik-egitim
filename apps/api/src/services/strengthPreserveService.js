@@ -92,6 +92,17 @@ const STRENGTH_ITEMS = [
     iyilestirme: "Giriş edge YOLO/ONNX + IR çapraz + 500 etiket + senaryo R",
     dosya: "services/cameraSensorCalibration.js",
   },
+  {
+    id: "cicek_ziyareti",
+    g: "A",
+    n: "Çiçek ziyareti (giriş ROI polen)",
+    k: 90,
+    aHw: 100,
+    sh: 88,
+    hedef: 100,
+    iyilestirme: "Giriş ROI polen + IR + nektar + yağmur kapısı + pollination ROI",
+    dosya: "services/flowerVisitCalibration.js",
+  },
   // ── B — Zekâ ──
   {
     id: "oglen_kal",

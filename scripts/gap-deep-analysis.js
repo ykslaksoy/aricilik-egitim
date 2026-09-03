@@ -64,7 +64,7 @@ const PLANS = {
   "GPS konum": "HW: opsiyonel kovan/grup/arılık GPS | SW: zincir miras + manuel + taşınma | GPS yokken çalışır · K=100",
   "Kovan kamerası CV": "Önde 100 — giriş kamera+edge BOM + YOLO/ONNX + IR çapraz + 500 etiket + senaryo R",
   "Titreşim / ivme": "HW: ADXL345 fabrika + firmware prod | SW: yağma/kavga/taşıma sınıf + kalite 100 | SAHA: 50+ etiket",
-  "Çiçek ziyareti sensörü": "HW: pollen trap veya giriş ROI kamera | SW: kontrat ROI bağlama | SAHA: çiçeklenme ground-truth",
+  "Çiçek ziyareti sensörü": "Önde 100 — giriş ROI polen (ek tuzak yok) + IR + nektar + yağmur kapısı + pollination ROI + senaryo R",
   "Akustik / mikrofon": "HW: izole MEMS + fabrika sert. | SW: 5 sınıf fusion + kalite 100 | SAHA: 200+ etiket arşivi",
   "Yavru alanı prob (petek)": "HW: DS18B20 BOM | SW: prob+model füzyon kalite 100 | SAHA: referenceBroodTempC + R #24",
   "Güneş + uzun pil": "HW: 6W panel+LiFePO4 test | SW: uyku modu+şarj tahmini | SAHA: 12 ay pil logu",

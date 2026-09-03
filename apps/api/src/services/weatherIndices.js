@@ -57,6 +57,7 @@ function analyzeWeatherIndices(reading, colony, weather = {}, station = null) {
 
   return {
     nektarIndeksi: nektar,
+    nectarIndex: nektar,
     nektarLabel: nektar >= 70 ? "Güçlü" : nektar >= 45 ? "Orta" : "Zayıf",
     ucusPenceresi: ucus,
     ucusLabel,
