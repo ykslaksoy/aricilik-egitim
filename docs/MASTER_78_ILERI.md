@@ -15,32 +15,26 @@ Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
 | Metrik | Değer |
 |--------|------:|
 | Toplam madde | 78 |
-| K=100 (aHw) | **12** (#1–#12) |
-| Sıradaki | **#13 Güneş + uzun pil** (aHw≈93) |
+| **A donanım aHw=100** | **15 / 15** (#1–#15 tamam) |
+| Sıradaki | R/B/C/O — saha + zekâ + ürün + operasyon |
 
 ---
 
-## Tamamlanan (#1–#12)
+## Tamamlanan A (#1–#15)
 
-1. 4 köşe tartı → 100  
-2. Tek taraf → 100  
-3. Yavru prob → 100  
-4. Nem → 100  
-5. Akustik → 100  
-6. Titreşim → 100  
-7. IR → 100  
-8. GPS zinciri → 100  
-9. Devrilme / eğim → 100  
-10. Hava istasyonu → 100  
-11. Kovan kamerası CV → 100  
-12. **Çiçek ziyareti → 100** (giriş ROI polen + IR + nektar + kontrat; SH 88 geçildi)
+1–12. (önceki) → 100  
+13. **Güneş + uzun pil → 100** (panel+LiFePO4 + uyku + şarj; SH 94)  
+14. **4G / GSM → 100** (A7670E + offline buffer + LoRa failover; SH 95)  
+15. **LoRa / LoRaWAN → 100** (NODE+GATE + retry + failover; SH 0 eşsiz)
 
-### #12 ne yapıldı
-- `flowerVisitCalibration.js` — kalite katmanı (ROI BOM + fabrika + firmware + montaj + ingest + IR + nektar + yağmur + kontrat + senaryo ≥10)
-- `flowerVisitAnalysis.js` — kamera polen sepeti (yoksa IR proxy), yağmur kapısı, pollination bağ
-- Seed + ingest: `pollenLoadPct` / `flowerVisit`, `autoFlowerVisitCalibrate`
-- BOM: **ek polen tuzağı yok** — #11 giriş kamerası ROI
-- Skor: aHw **100**, k **90**, bom **optional**
+### #13–#15 ne yapıldı
+- `powerSensorCalibration.js` — güneş/pil kalite
+- `cellularSensorCalibration.js` — 4G GATE kalite
+- `loraSensorCalibration.js` — LoRa kalite
+- `sensorAnalysis.analyzeConnectivity` — üç kalite + solarChargeW / uplink / uyku
+- Seed + ingest: `solarChargeW`, `cellPresent`, `cellularRssi`, `uplink`
+
+**Not:** R (saha) ve O (prod) maddeleri ayrı — 12 ay pil logu / kırsal kapsama / mağaza yayını aHw’ye sayılmaz.
 
 ---
 
@@ -51,6 +45,7 @@ Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
 - IR ×2: aynı uçuş deliğinde yön
 - Eğim: **ADXL345** (titreşim ile paylaşımlı)
 - Hava: **yağmur + güneş** (arılık; 1/15 kovan)
-- Kamera: girişe bakar (opsiyonel) — edge YOLO/ONNX + IR çapraz + **polen ROI**
-- Çiçek ziyareti: giriş ROI (tuzak yok)
+- Kamera: girişe bakar (opsiyonel) — YOLO + polen ROI
+- Güç: **6W panel + LiFePO4 / CN3065**
+- Bağlantı: **LoRa NODE → GATE → 4G A7670E**
 - Refraktometre: yok
