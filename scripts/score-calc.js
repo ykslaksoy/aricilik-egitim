@@ -9,7 +9,7 @@ const features = [
   { cat:'A', name:'GPS konum', bh:90, ar:62, ap:0, bw:94, k:98 },
   { cat:'A', name:'Devrilme / eğim', bh:0, ar:0, ap:0, bw:96, k:96 },
   { cat:'A', name:'Hava istasyonu (yağmur/güneş)', bh:0, ar:96, ap:0, bw:0, k:96 },
-  { cat:'A', name:'Kovan giriş kamerası / CV', bh:0, ar:0, ap:0, bw:98, k:65 },
+  { cat:'A', name:'Kovan giriş kamerası / CV', bh:0, ar:0, ap:0, bw:98, k:96 },
   { cat:'A', name:'Çiçek ziyareti / tarla sensörü', bh:88, ar:0, ap:0, bw:0, k:58 },
   { cat:'A', name:'Güneş + uzun pil', bh:90, ar:92, ap:90, bw:94, k:90 },
   { cat:'A', name:'4G / GSM / NB-IoT', bh:95, ar:95, ap:95, bw:95, k:93 },

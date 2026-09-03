@@ -1015,6 +1015,14 @@ function seed() {
       referenceRainMm: 0,
       referenceSolarW: 520,
       weatherCalibratedAt: new Date(now).toISOString(),
+      cameraBom: true,
+      factoryCameraCert: true,
+      cameraFirmwareProd: true,
+      cameraMountStandard: true,
+      cameraYoloOnnx: true,
+      cameraLabeledFrames: 520,
+      cameraScenarioTests: 16,
+      cameraCalibratedAt: new Date(now).toISOString(),
       factoryIrCert: true,
       irMountStandard: true,
       irCalibratedAt: new Date(now).toISOString(),
@@ -1097,7 +1105,7 @@ function seed() {
   const lowIr = latest.get(13);
   if (lowIr) {
     lowIr.mainCameraPresent = true;
-    fillReadingCameraCounts(lowIr, history.get(13) || []);
+    fillReadingCameraCounts(lowIr, history.get(13) || [], hiveConfig.get(13) || {});
     latest.set(13, lowIr);
     const m13 = hiveMeta.get(13);
     if (m13) {
@@ -1361,6 +1369,13 @@ function hydrateFromDb() {
         combKg: 18,
         referenceBeeCount: 35000,
         middayBeeOutRef: 900,
+        cameraBom: true,
+        factoryCameraCert: true,
+        cameraFirmwareProd: true,
+        cameraMountStandard: true,
+        cameraYoloOnnx: true,
+        cameraLabeledFrames: 520,
+        cameraScenarioTests: 16,
       });
     }
 
@@ -1437,7 +1452,8 @@ function runMlLearningCycle({ proposalsOnly = true } = {}) {
       meta,
       weather,
       history.get(hiveId) || [],
-      health
+      health,
+      hiveConfig.get(hiveId) || {}
     );
     const result = mlLearningService.processHiveLearning(
       hiveId,
@@ -1586,8 +1602,8 @@ function colonyFor(hiveId) {
     ...withTemp,
     sensors: analyzeAllSensors(series, reading, withTemp, weather, meta, cfg, sensorHealth),
   };
-  const hiveCam = analyzeHiveCamera(reading, withSensors, meta, weather, series, sensorHealth);
-  const blended = blendCameraBeeEstimate(withSensors, hiveCam);
+  const hiveCam = analyzeHiveCamera(reading, withSensors, meta, weather, series, sensorHealth, cfg);
+  const blended = blendCameraBeeEstimate({ ...withSensors, hiveCamera: hiveCam }, hiveCam);
   return attachDeepInsights(hiveId, blended, reading, meta, weather);
 }
 
@@ -2336,7 +2352,7 @@ app.get("/api/hives/:id/camera/snapshot", (req, res) => {
   const id = Number(req.params.id);
   const cur = latest.get(id);
   if (!cur?.cameraPresent) return res.status(404).json({ error: "camera_not_present" });
-  fillReadingCameraCounts(cur, history.get(id) || []);
+  fillReadingCameraCounts(cur, history.get(id) || [], hiveConfig.get(id) || {});
   const svg = hiveSnapshotSvg(id, cur.cameraBeeIn ?? 0, cur.cameraBeeOut ?? 0, hiveMeta.get(id)?.label);
   res.redirect(302, svg);
 });
@@ -2432,7 +2448,8 @@ function hivePayload(reading, meta) {
     meta,
     weather,
     history.get(reading.hiveId) || [],
-    colony?.sensorHealth
+    colony?.sensorHealth,
+    hiveConfig.get(reading.hiveId) || {}
   );
   const konumId = meta.konumId || weather.konumId;
   const locHives = hivesAtLocation(konumId);
@@ -2728,6 +2745,22 @@ app.post("/api/hives/:id/calibrate", (req, res) => {
               ? Number(reading.solarW)
               : prev.referenceSolarW ?? 500,
     }),
+    ...(b.cameraBom != null && { cameraBom: Boolean(b.cameraBom) }),
+    ...(b.factoryCameraCert != null && { factoryCameraCert: Boolean(b.factoryCameraCert) }),
+    ...(b.cameraFirmwareProd != null && { cameraFirmwareProd: Boolean(b.cameraFirmwareProd) }),
+    ...(b.cameraMountStandard != null && { cameraMountStandard: Boolean(b.cameraMountStandard) }),
+    ...(b.cameraYoloOnnx != null && { cameraYoloOnnx: Boolean(b.cameraYoloOnnx) }),
+    ...(b.cameraLabeledFrames != null && { cameraLabeledFrames: Number(b.cameraLabeledFrames) }),
+    ...(b.cameraScenarioTests != null && { cameraScenarioTests: Number(b.cameraScenarioTests) }),
+    ...(b.autoCameraCalibrate && {
+      cameraBom: true,
+      factoryCameraCert: true,
+      cameraFirmwareProd: true,
+      cameraMountStandard: true,
+      cameraYoloOnnx: true,
+      cameraLabeledFrames: Math.max(Number(prev.cameraLabeledFrames) || 0, 500),
+      cameraScenarioTests: Math.max(Number(prev.cameraScenarioTests) || 0, 12),
+    }),
     calibrated: true,
     calibratedAt: new Date().toISOString(),
     cornerCalibratedAt:
@@ -2767,6 +2800,12 @@ app.post("/api/hives/:id/calibrate", (req, res) => {
       b.referenceSolarW != null
         ? new Date().toISOString()
         : prev.weatherCalibratedAt,
+    cameraCalibratedAt:
+      b.autoCameraCalibrate ||
+      b.factoryCameraCert != null ||
+      b.cameraLabeledFrames != null
+        ? new Date().toISOString()
+        : prev.cameraCalibratedAt,
   };
   hiveConfig.set(id, next);
 
@@ -3198,6 +3237,7 @@ app.get("/api/ingest/spec", (_req, res) => {
       cameraPresent: { type: "boolean", desc: "Giriş kamerası var mı" },
       cameraBeeIn: { type: "number", desc: "Kamera giriş sayımı" },
       cameraBeeOut: { type: "number", desc: "Kamera çıkış sayımı" },
+      cameraCvMethod: { type: "string", desc: "CV yöntemi (yolo_onnx_v1 | motion_blob_v1)" },
       mainCameraPresent: { type: "boolean", desc: "Ana kamera var mı" },
       transportMode: { type: "boolean", desc: "Taşıma modu aktif" },
       fault: { type: "string", desc: "Tek sensör arızası kodu" },
@@ -3262,6 +3302,14 @@ app.get("/api/ingest/spec", (_req, res) => {
         weatherScenarioTests: "Yağmur/güneş senaryo R sayısı",
         referenceRainMm: "Referans yağış (mm)",
         referenceSolarW: "Referans güneş (W/m²)",
+        cameraBom: "Giriş kamera + edge box BOM (opsiyonel takılır)",
+        factoryCameraCert: "Kamera fabrika lens/odak kalibrasyon",
+        cameraFirmwareProd: "Edge firmware motion+YOLO",
+        cameraMountStandard: "Uçuş deliği standart montaj",
+        cameraYoloOnnx: "YOLO/ONNX arı sayımı",
+        cameraLabeledFrames: "Etiketli kare sayısı (hedef ≥500)",
+        cameraScenarioTests: "CV senaryo R sayısı (hedef ≥12)",
+        autoCameraCalibrate: "true → kamera fabrika + YOLO + 500 etiket",
       },
     },
   });
@@ -3362,7 +3410,8 @@ app.post("/api/ingest", (req, res) => {
     ts: b.ts || new Date().toISOString(),
   };
   const series = history.get(hiveId) || [];
-  fillReadingCameraCounts(reading, [...series, reading]);
+  const config = hiveConfig.get(hiveId) || {};
+  fillReadingCameraCounts(reading, [...series, reading], config);
   series.push(reading);
   if (series.length > 200) series.shift();
   history.set(hiveId, series);
@@ -3376,7 +3425,6 @@ app.post("/api/ingest", (req, res) => {
   syncAllAlerts();
 
   const colony = colonyFor(hiveId);
-  const config = hiveConfig.get(hiveId) || {};
   let scoreTrack = null;
   try {
     scoreTrack = hiveBaselineService.recordSensorRevision(hiveId, reading, colony, config);
@@ -3392,7 +3440,8 @@ app.post("/api/ingest", (req, res) => {
       meta,
       weather,
       series,
-      health
+      health,
+      config
     );
     mlLearningService.processHiveLearning(
       hiveId,

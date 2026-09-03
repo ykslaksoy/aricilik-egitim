@@ -15,12 +15,12 @@ Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
 | Metrik | Değer |
 |--------|------:|
 | Toplam madde | 78 |
-| K=100 (aHw) | **10** (#1–#10) |
-| Sıradaki | **#11 Kovan kamerası CV** (aHw≈68) |
+| K=100 (aHw) | **11** (#1–#11) |
+| Sıradaki | **#12 Çiçek ziyareti sensörü** (aHw≈32) |
 
 ---
 
-## Tamamlanan (#1–#10)
+## Tamamlanan (#1–#11)
 
 1. 4 köşe tartı → 100  
 2. Tek taraf → 100  
@@ -31,15 +31,15 @@ Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
 7. IR → 100  
 8. GPS zinciri → 100  
 9. Devrilme / eğim → 100  
-10. **Hava istasyonu → 100** (yağmur+güneş BOM + Open-Meteo + nektar; SH 96 geçildi)
+10. Hava istasyonu → 100  
+11. **Kovan kamerası CV → 100** (giriş edge YOLO/ONNX + IR çapraz + 500 etiket; SH 98)
 
-### #10 ne yapıldı
-- `weatherStationCalibration.js` — kalite katmanı (BOM + fabrika + firmware + montaj + ingest + rüzgâr + meteo + nektar + senaryo ≥15 + ref)
-- `weatherStationAnalysis.js` — istasyon×konum füzyon, nectarBoost, kalite
-- `weatherIndices.js` — istasyon rain/solar ile nektar indeksi
-- Seed + ingest: `weatherStation` / `rainMm` / `solarW` / `windKmh`
-- BOM: arılık seviyesi 1 istasyon / ~15 kovan
-- Skor: aHw **100**, k **96**, bom **true**
+### #11 ne yapıldı
+- `cameraSensorCalibration.js` — kalite katmanı (BOM + fabrika + firmware + montaj + ingest + IR çapraz + 500 etiket + senaryo ≥12 + YOLO)
+- `cameraAnalysis.js` — `yolo_onnx_v1` edge yolu, kalite skoru, cfg
+- Seed + ingest: `cameraBeeIn/Out`, `autoCameraCalibrate`
+- BOM: giriş kamerası **opsiyonel** (takılmazsa IR+tartı)
+- Skor: aHw **100**, k **96**, bom **optional**
 
 ---
 
@@ -50,5 +50,5 @@ Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
 - IR ×2: aynı uçuş deliğinde yön
 - Eğim: **ADXL345** (titreşim ile paylaşımlı)
 - Hava: **yağmur + güneş** (arılık; 1/15 kovan)
-- Kamera: girişe bakar (opsiyonel)
+- Kamera: girişe bakar (opsiyonel) — edge YOLO/ONNX + IR çapraz
 - Refraktometre: yok

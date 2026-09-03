@@ -62,7 +62,7 @@ const PLANS = {
   "Hava istasyonu": "Önde 100 — yağmur+güneş BOM + firmware ingest + Open-Meteo çapraz + nektar modeli + senaryo R",
   "Devrilme / eğim": "Önde 100 — ADXL pitch/roll + köşe füzyon + taşıma bastırma + senaryo R",
   "GPS konum": "HW: opsiyonel kovan/grup/arılık GPS | SW: zincir miras + manuel + taşınma | GPS yokken çalışır · K=100",
-  "Kovan kamerası CV": "HW: giriş PTZ + edge box | SW: YOLO/ONNX arı sayımı | SAHA: 500+ etiketli kare",
+  "Kovan kamerası CV": "Önde 100 — giriş kamera+edge BOM + YOLO/ONNX + IR çapraz + 500 etiket + senaryo R",
   "Titreşim / ivme": "HW: ADXL345 fabrika + firmware prod | SW: yağma/kavga/taşıma sınıf + kalite 100 | SAHA: 50+ etiket",
   "Çiçek ziyareti sensörü": "HW: pollen trap veya giriş ROI kamera | SW: kontrat ROI bağlama | SAHA: çiçeklenme ground-truth",
   "Akustik / mikrofon": "HW: izole MEMS + fabrika sert. | SW: 5 sınıf fusion + kalite 100 | SAHA: 200+ etiket arşivi",

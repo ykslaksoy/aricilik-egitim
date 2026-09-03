@@ -81,6 +81,17 @@ const STRENGTH_ITEMS = [
     iyilestirme: "Yağmur+güneş BOM + Open-Meteo + nektar modeli + senaryo R",
     dosya: "services/weatherStationCalibration.js",
   },
+  {
+    id: "kovan_kamera_cv",
+    g: "A",
+    n: "Kovan kamerası CV",
+    k: 96,
+    aHw: 100,
+    sh: 98,
+    hedef: 100,
+    iyilestirme: "Giriş edge YOLO/ONNX + IR çapraz + 500 etiket + senaryo R",
+    dosya: "services/cameraSensorCalibration.js",
+  },
   // ── B — Zekâ ──
   {
     id: "oglen_kal",

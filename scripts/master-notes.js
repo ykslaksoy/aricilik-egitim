@@ -12,7 +12,7 @@ const IMPROVE = {
   "GPS konum": { tip: "zincir", aksiyon: "kovan GPS → grup GPS → arılık GPS → manuel; taşınıyor+güzergah; K=100" },
   "Devrilme / eğim": { tip: "—", aksiyon: "Önde 100 — ADXL pitch/roll + köşe füzyon + senaryo R (SH 96 geçildi)" },
   "Hava istasyonu": { tip: "—", aksiyon: "Önde 100 — yağmur+güneş BOM + Open-Meteo + nektar (SH 96 geçildi)" },
-  "Kovan kamerası CV": { tip: "A+R", aksiyon: "Aşama 3 PTZ kamera + 500 etiketli kare R seti" },
+  "Kovan kamerası CV": { tip: "—", aksiyon: "Önde 100 — giriş edge YOLO/ONNX + IR çapraz + 500 etiket (SH 98)" },
   "Çiçek ziyareti sensörü": { tip: "A", aksiyon: "Pollen trap veya giriş ROI kamera (IR proxy yetersiz)" },
   "Güneş + uzun pil": { tip: "R", aksiyon: "12 ay pil tüketim saha logu" },
   "4G / GSM": { tip: "O+R", aksiyon: "GATE A7670 seri üretim + kırsal kapsama R matrisi" },
