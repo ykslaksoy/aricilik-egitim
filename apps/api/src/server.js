@@ -65,6 +65,10 @@ const { getStrengthPreserveReport } = require("./services/strengthPreserveServic
 const { FEATURES: MASTER_FEATURES } = require("../../../scripts/superhero-score-data.js");
 const { getMasterNote, getMasterDurum } = require("../../../scripts/master-notes.js");
 const { analyzeSecurityCameras } = require("./services/securityCameraAnalysis");
+const {
+  LEAGUE_SW_DEFAULTS,
+  attachLeagueSoftQualities,
+} = require("./services/leagueSoftCalibration");
 const pushService = require("./services/pushService");
 const dbService = require("./services/dbService");
 const mlModelService = require("./services/mlModelService");
@@ -1059,6 +1063,7 @@ function seed() {
       factoryIrCert: true,
       irMountStandard: true,
       irCalibratedAt: new Date(now).toISOString(),
+      ...LEAGUE_SW_DEFAULTS,
       calibrated: true,
       ...(profile.broodEmergencePerDay != null && {
         broodEmergencePerDay: profile.broodEmergencePerDay,
@@ -1618,7 +1623,7 @@ function attachDeepInsights(hiveId, colony, reading, meta, weather) {
     winterStore
   );
   const predictive = analyzePredictive(series, reading, partial, meta);
-  return {
+  const enriched = {
     ...colony,
     scoresDeep,
     calibration,
@@ -1642,6 +1647,8 @@ function attachDeepInsights(hiveId, colony, reading, meta, weather) {
     mlFleet,
     healthyHive,
   };
+  attachLeagueSoftQualities(enriched, cfg);
+  return enriched;
 }
 
 function colonyFor(hiveId) {
@@ -2586,6 +2593,8 @@ function hivePayload(reading, meta) {
   payload.hardwareIntegrity = hardwareIntegrityService.evaluateHardwareIntegrity(payload);
   payload.cornerScale = cornerScale;
   payload.hiveConfig = cfg;
+  attachLeagueSoftQualities(payload, cfg);
+  if (payload.colony) attachLeagueSoftQualities(payload.colony, cfg);
   const baseline = hiveBaselineService.getBaseline(reading.hiveId);
   const revision = hiveBaselineService.getRevision(
     reading.hiveId,

@@ -29,19 +29,26 @@ function analyzeWeatherIndices(reading, colony, weather = {}, station = null) {
   nektar = Math.max(0, Math.min(100, Math.round(nektar)));
 
   let ucus = "orta";
+  let flightIndex = 55;
   let ucusLabel = "Orta uçuş penceresi";
   if (precip >= WEATHER.PRECIP_MM || weather?.condition === "yagmur") {
     ucus = "kapali";
+    flightIndex = 15;
     ucusLabel = "Yağmur — uçuş zayıf";
   } else if (outdoor >= 15 && outdoor <= 30 && traffic.beeOut >= 400) {
     ucus = "iyi";
+    flightIndex = 88;
     ucusLabel = "İyi uçuş günü";
   } else if (outdoor <= WEATHER.FROST_TEMP_C) {
     ucus = "don";
+    flightIndex = 5;
     ucusLabel = "Don — uçuş yok";
   } else if (traffic.beeOut < SCORE.TRAFFIC_WEAK) {
     ucus = "zayif";
+    flightIndex = 32;
     ucusLabel = "Zayıf trafik — hava veya koloni";
+  } else if (outdoor >= 12 && outdoor <= 34) {
+    flightIndex = 68;
   }
 
   let stres = 0;
@@ -60,6 +67,7 @@ function analyzeWeatherIndices(reading, colony, weather = {}, station = null) {
     nectarIndex: nektar,
     nektarLabel: nektar >= 70 ? "Güçlü" : nektar >= 45 ? "Orta" : "Zayıf",
     ucusPenceresi: ucus,
+    flightIndex,
     ucusLabel,
     stresIndeksi: stres,
     stresLabel: stres >= 50 ? "Yüksek" : stres >= 25 ? "Orta" : "Düşük",
