@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SüperArı — Yönetici</title>
+  <link rel="stylesheet" href="/panels.css?v=4" />
+</head>
+<body class="panel-body" data-role="yonetici">
+  <header class="panel-header">
+    <div>
+      <h1><span class="brand-mark">SüperArı</span> <span class="role-chip role-yonetici">Yönetici</span></h1>
+      <p class="sub" id="hdr-sub">İşletme yönetimi · filo · ekip</p>
+    </div>
+    <div class="panel-actions">
+      <a class="btn-p" href="/giris.html">← Ana ekran</a>
+      <a class="btn-p" href="/arici.html?org=koloni-demo">Patron</a>
+      <a class="btn-p" href="/isci.html?org=koloni-demo">Çalışan</a>
+      <a class="btn-p" href="/admin.html">ML admin</a>
+      <a class="btn-p" href="/master-78.html">Master 78</a>
+      <button type="button" class="btn-p" id="btn-logout">Çıkış</button>
+    </div>
+  </header>
+
+  <div id="login-view" class="login-card">
+    <h2>Yönetici girişi</h2>
+    <p class="hint">Demo PIN: <strong>1234</strong> · işletme: koloni-demo</p>
+    <label>İşletme
+      <select id="org-select"></select>
+    </label>
+    <label>PIN
+      <input id="pin" type="password" value="1234" />
+    </label>
+    <div class="row-btns">
+      <a class="btn-p" href="/giris.html">← Ana ekran</a>
+      <button type="button" class="btn-p primary" id="btn-login">Giriş</button>
+    </div>
+    <p id="login-err" class="warn-text muted"></p>
+  </div>
+
+  <main id="app-view" class="panel-main hidden">
+    <p class="session-bar" id="session-bar"></p>
+    <div class="grid-2">
+      <section class="card">
+        <h2>İşletme özeti</h2>
+        <div class="kv" id="org-summary">—</div>
+      </section>
+      <section class="card">
+        <h2>Aktif oturumlar</h2>
+        <ul class="list-plain" id="sessions">—</ul>
+      </section>
+    </div>
+    <section class="card">
+      <h2>Ekip</h2>
+      <div class="row-btns" style="margin-bottom:0.75rem">
+        <input id="new-ad" placeholder="Ad" style="flex:1;padding:0.35rem;border:1px solid #d9d2c5;border-radius:5px" />
+        <select id="new-rol">
+          <option value="arici">Arıcı</option>
+          <option value="isci">İşçi</option>
+          <option value="yonetici">Yönetici</option>
+        </select>
+        <input id="new-pin" placeholder="PIN" value="0000" style="width:5rem;padding:0.35rem;border:1px solid #d9d2c5;border-radius:5px" />
+        <button type="button" class="btn-p primary" id="btn-add">Ekle</button>
+      </div>
+      <table class="table-mini">
+        <thead><tr><th>Ad</th><th>Rol</th><th>Panel</th></tr></thead>
+        <tbody id="members"></tbody>
+      </table>
+    </section>
+    <section class="card">
+      <h2>Filo özeti</h2>
+      <div class="kv" id="fleet">—</div>
+    </section>
+    <section class="card">
+      <h2>Panel linkleri (paylaş)</h2>
+      <div class="kv" id="links">—</div>
+    </section>
+  </main>
+
+  <script src="/panels.js"></script>
+  <script>
+    const loginView = document.getElementById("login-view");
+    const appView = document.getElementById("app-view");
+
+    async function fillOrgs() {
+      const { orgs } = await PanelAuth.loadOrgs();
+      const sel = document.getElementById("org-select");
+      sel.innerHTML = orgs.map((o) => `<option value="${o.id}">${o.ad} (${o.id})</option>`).join("");
+      sel.value = PanelAuth.orgFromUrl;
+    }
+
+    async function render() {
+      const sess = PanelAuth.requireSession();
+      if (!sess || sess.rol !== "yonetici") {
+        loginView.classList.remove("hidden");
+        appView.classList.add("hidden");
+        return;
+      }
+      loginView.classList.add("hidden");
+      appView.classList.remove("hidden");
+      document.getElementById("session-bar").textContent =
+        `${sess.ad} · ${sess.orgAd} · ${sess.orgId}`;
+      document.getElementById("hdr-sub").textContent = sess.orgAd;
+
+      const [orgRes, sessRes, hivesRes, linksRes] = await Promise.all([
+        fetch(`/api/orgs/${sess.orgId}`).then((r) => r.json()),
+        fetch(`/api/orgs/${sess.orgId}/sessions`).then((r) => r.json()),
+        fetch("/api/hives").then((r) => r.json()),
+        fetch("/api/orgs/panel-links").then((r) => r.json()),
+      ]);
+      const org = orgRes.org;
+      const hives = hivesRes.hives || [];
+      const alert = hives.filter((h) => ["alert", "fault", "weak"].includes(h.status)).length;
+      document.getElementById("org-summary").innerHTML = `
+        <div><span>İşletme</span><strong>${org.ad}</strong></div>
+        <div><span>Üye</span><strong>${org.uyeler.length}</strong></div>
+        <div><span>Arıcı</span><strong>${org.uyeler.filter((u)=>u.rol==="arici").length}</strong></div>
+        <div><span>İşçi</span><strong>${org.uyeler.filter((u)=>u.rol==="isci").length}</strong></div>`;
+      document.getElementById("sessions").innerHTML = (sessRes.sessions || [])
+        .map((s) => `<li><strong>${s.ad}</strong> · ${PanelLabels.role(s.rol)} <span class="pill">${new Date(s.createdAt).toLocaleTimeString("tr-TR")}</span></li>`)
+        .join("") || "<li class='muted'>Oturum yok</li>";
+      document.getElementById("members").innerHTML = org.uyeler
+        .map((u) => {
+          const href = u.rol === "yonetici" ? `/yonetici.html?org=${org.id}` : u.rol === "arici" ? `/arici.html?org=${org.id}` : `/isci.html?org=${org.id}`;
+          return `<tr><td>${u.ad}</td><td>${PanelLabels.role(u.rol)}</td><td><a href="${href}">aç</a></td></tr>`;
+        })
+        .join("");
+      document.getElementById("fleet").innerHTML = `
+        <div><span>Kovan</span><strong>${hives.length}</strong></div>
+        <div><span>Uyarı/arıza</span><strong>${alert}</strong></div>`;
+      const origin = location.origin;
+      document.getElementById("links").innerHTML = `
+        <div><span>Yönetici</span><a href="${origin}/yonetici.html?org=${org.id}">${origin}/yonetici.html?org=${org.id}</a></div>
+        <div><span>Arıcı</span><a href="${origin}/arici.html?org=${org.id}">${origin}/arici.html?org=${org.id}</a></div>
+        <div><span>İşçi</span><a href="${origin}/isci.html?org=${org.id}">${origin}/isci.html?org=${org.id}</a></div>`;
+    }
+
+    document.getElementById("btn-login").onclick = async () => {
+      try {
+        await PanelAuth.login({
+          orgId: document.getElementById("org-select").value,
+          pin: document.getElementById("pin").value,
+        });
+        await render();
+      } catch (e) {
+        document.getElementById("login-err").textContent = e.message;
+      }
+    };
+    document.getElementById("btn-logout").onclick = () => {
+      PanelAuth.logout();
+      location.href = "/giris.html";
+    };
+    document.getElementById("btn-add").onclick = async () => {
+      const sess = PanelAuth.getSession();
+      await fetch(`/api/orgs/${sess.orgId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ad: document.getElementById("new-ad").value,
+          rol: document.getElementById("new-rol").value,
+          pin: document.getElementById("new-pin").value,
+        }),
+      });
+      await render();
+    };
+
+    fillOrgs().then(render);
+  </script>
+</body>
+</html>
