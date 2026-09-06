@@ -1,0 +1,31 @@
+asama,no,malzeme,adet,birim_tl,satir_tl,nereden
+1,1,LilyGO T-Weigh 868 MHz,1,900,900,lilygo.cc
+1,2,T-U2T programlayici,1,806,806,f1depo.com
+1,3,50kg load cell,4,44,176,robiz.net
+1,4,DHT22,1,114,114,robo90.com
+1,5,IR sensor modul,2,50,100,robotistan.com
+1,6,mikrofon ses sensörü,1,45,45,robotistan.com
+1,7,ADXL345,1,150,150,robotistan.com
+1,8,4.7k direnc,1,6,6,robiz.net
+1,9,gunes paneli 6V 150mA,1,175,175,robotistan.com
+1,10,CN3065,1,86,86,robiz.net
+1,11,1S BMS,1,17,17,robiz.net
+1,12,18650 3200mAh,1,183,183,robotistan.com
+1,13,tekli 18650 yuva,1,26,26,robotistan.com
+1,14,IP65 kutu,1,101,101,robiz.net
+1,15,jumper F-F,1,50,50,robiz.net
+1,16,jumper M-F,1,50,50,robiz.net
+1,17,USB kablo,1,45,45,robotistan.com
+1,18,tartı platformu,1,380,380,yerel
+1,99,kargo asama1,1,350,350,—
+1,100,ASAMA1_TOPLAM,1,3760,3760,—
+2,19,T-Beam LoRa,1,2955,2955,direnc.net
+2,20,A7670E 4G,1,1887,1887,direnc.net
+2,21,gunes 6V 500mA,1,632,632,robotistan.com
+2,22,18650 3200mAh,2,183,366,robotistan.com
+2,23,2S BMS,1,43,43,robiz.net
+2,24,cift pil yuva,1,53,53,robiz.net
+2,25,kutu 150x100x50,1,86,86,robiz.net
+2,99,kargo asama2,1,80,80,—
+2,100,ASAMA2_TOPLAM,1,5102,5102,—
+0,0,DONANIM_TOPLAM_1kovan_1gate,1,8862,8862,—

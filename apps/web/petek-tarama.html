@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1410" />
+  <title>Kovan Petek Tarama — koloni</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/petek-tarama.css" />
+</head>
+<body class="pt-body">
+  <header class="pt-header">
+    <a href="/" class="pt-back">← Panel</a>
+    <div>
+      <h1>Kovan Petek Tarama</h1>
+      <p id="pt-subtitle" class="muted">Telefon ile rehberli kalibrasyon</p>
+    </div>
+  </header>
+
+  <nav class="pt-steps" aria-label="Adımlar">
+    <div class="pt-step active" data-step="1"><span>1</span> Ağırlık</div>
+    <div class="pt-step" data-step="2"><span>2</span> Tarama</div>
+    <div class="pt-step" data-step="3"><span>3</span> Analiz</div>
+    <div class="pt-step" data-step="4"><span>4</span> Onay</div>
+  </nav>
+
+  <!-- Adım 1: Ağırlıklar -->
+  <section id="step-1" class="pt-panel">
+    <h2>Boş ve dolu tartı</h2>
+    <p class="pt-tip">Dolu tartıyı <strong>kapak kapalıyken</strong> alın. Kapağı açtıktan sonra tartı geçersiz olur.</p>
+    <label class="pt-field">
+      <span>Kovan no</span>
+      <input type="number" id="hive-id" min="1" value="1" />
+    </label>
+    <label class="pt-field">
+      <span>Boş ağırlık — tare (kg)</span>
+      <input type="number" id="tare-kg" step="0.1" min="0" value="8" />
+      <small class="muted">Platform + boş kovan (arısız, bir kez kayıt)</small>
+    </label>
+    <label class="pt-field">
+      <span>Dolu tartı — kapak kapalı (kg)</span>
+      <input type="number" id="weight-kg" step="0.1" min="0" value="42" />
+      <small class="muted">Akşam 19–21, rüzgarsız önerilir</small>
+    </label>
+    <button type="button" id="btn-start-session" class="pt-btn primary">Petek taramasına başla</button>
+    <p id="step1-error" class="pt-error hidden"></p>
+  </section>
+
+  <!-- Adım 2: Petek tarama -->
+  <section id="step-2" class="pt-panel hidden">
+    <div class="pt-scan-head">
+      <h2 id="scan-title">Aralık 1 / 10 — sol</h2>
+      <p id="scan-hint">Petek aralığını yeşil çerçeveye hizalayın</p>
+    </div>
+
+    <div class="pt-camera-wrap">
+      <video id="camera" playsinline autoplay muted></video>
+      <canvas id="overlay" aria-hidden="true"></canvas>
+      <div class="pt-target-frame" aria-hidden="true"></div>
+    </div>
+
+    <div class="pt-progress-bar">
+      <div id="progress-fill" class="pt-progress-fill" style="width:0%"></div>
+    </div>
+    <p id="progress-label" class="muted">Petek haritası 0 / 20</p>
+
+    <div id="petek-map" class="petek-map" aria-label="Petek haritası"></div>
+
+    <div class="pt-scan-actions">
+      <button type="button" id="btn-record" class="pt-btn primary">3 sn çek</button>
+      <button type="button" id="btn-skip-retry" class="pt-btn ghost hidden">Tekrar çek</button>
+      <button type="button" id="btn-demo-fill" class="pt-btn ghost">Demo: otomatik doldur</button>
+    </div>
+    <p id="scan-status" class="pt-status muted">Kamera izni gerekir</p>
+    <p id="step2-error" class="pt-error hidden"></p>
+  </section>
+
+  <!-- Adım 3: Analiz -->
+  <section id="step-3" class="pt-panel hidden">
+    <h2>AI analiz</h2>
+    <p>20 segment tamamlandı. Ses kaydı ve görüntüler birleştiriliyor.</p>
+    <button type="button" id="btn-analyze" class="pt-btn primary">Analizi çalıştır</button>
+    <div id="analysis-loading" class="pt-loading hidden">Analiz ediliyor…</div>
+    <div id="analysis-result" class="pt-result hidden"></div>
+    <p id="step3-error" class="pt-error hidden"></p>
+  </section>
+
+  <!-- Adım 4: Onay -->
+  <section id="step-4" class="pt-panel hidden">
+    <h2>Kalibrasyon onayı</h2>
+    <div id="confirm-summary" class="pt-result"></div>
+    <label class="pt-field">
+      <span>Arı sayısı (düzeltme opsiyonel)</span>
+      <input type="number" id="confirm-bees" step="1000" />
+    </label>
+    <label class="pt-field">
+      <span>Petek + bal kg — combKg (düzeltme opsiyonel)</span>
+      <input type="number" id="confirm-comb" step="0.1" />
+    </label>
+    <button type="button" id="btn-confirm" class="pt-btn primary">Kalibrasyonu kaydet</button>
+    <a href="/" class="pt-btn ghost" id="btn-done">Panele dön</a>
+    <p id="step4-error" class="pt-error hidden"></p>
+    <p id="step4-success" class="pt-success hidden"></p>
+  </section>
+
+  <script src="/petek-tarama.js"></script>
+</body>
+</html>

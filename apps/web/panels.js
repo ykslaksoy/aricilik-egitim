@@ -160,7 +160,16 @@ const PanelLabels = (() => {
     return s;
   }
 
-  return { alertType, hiveStatus, fault, role, cleanMessage, setLocale, getLocale, listLocales };
+  return {
+    alertType,
+    hiveStatus,
+    fault,
+    role,
+    cleanMessage,
+    setLocale,
+    getLocale,
+    listLocales,
+  };
 })();
 
 /** Ortak panel oturumu — yönetici / arıcı / işçi */

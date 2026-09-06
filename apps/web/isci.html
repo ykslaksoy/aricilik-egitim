@@ -2,151 +2,202 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>SüperArı — Çalışan</title>
-  <link rel="stylesheet" href="/panels.css?v=4" />
+  <link rel="stylesheet" href="/panels.css?v=6" />
 </head>
 <body class="panel-body" data-role="isci">
   <header class="panel-header">
     <div>
       <h1><span class="brand-mark">SüperArı</span> <span class="role-chip role-isci">Çalışan</span></h1>
-      <p class="sub" id="hdr-sub">Görevler · saha kaydı · basit durum</p>
+      <p class="sub" id="hdr-sub">Özet</p>
     </div>
-    <div class="panel-actions" id="nav-actions">
-      <a class="btn-p" href="/giris.html">← Ana ekran</a>
-      <a class="btn-p" href="/yonetici.html?org=koloni-demo">Yönetici</a>
-      <a class="btn-p" href="/arici.html?org=koloni-demo">Patron</a>
-      <button type="button" class="btn-p" id="btn-back-panel">← Panele dön</button>
-      <button type="button" class="btn-p primary" id="btn-new-session">+ Yeni çalışan</button>
+    <div class="panel-actions">
+      <a class="btn-p ghost" href="/giris.html">Giriş</a>
       <button type="button" class="btn-p" id="btn-logout">Çıkış</button>
     </div>
   </header>
 
   <div id="login-view" class="login-card">
     <h2>Çalışan girişi</h2>
-    <p class="hint">Demo: Hasan PIN <strong>3333</strong> · yeni çalışan için adını yaz</p>
+    <p class="hint">Demo: Çalışan Hasan · PIN <strong>3333</strong></p>
     <label>İşletme
       <select id="org-select"></select>
     </label>
     <label>Adın
-      <input id="ad" type="text" placeholder="Çalışan Hasan" value="Çalışan Hasan" />
+      <input id="ad" type="text" value="Çalışan Hasan" />
     </label>
     <label>PIN
-      <input id="pin" type="password" value="3333" />
+      <input id="pin" type="password" inputmode="numeric" value="3333" />
     </label>
     <div class="row-btns">
-      <button type="button" class="btn-p" id="btn-login-back">← Geri</button>
+      <a class="btn-p" href="/giris.html">← Geri</a>
       <button type="button" class="btn-p primary" id="btn-login">Giriş</button>
-      <a class="btn-p" href="/giris.html">Ana ekran</a>
     </div>
     <p id="login-err" class="warn-text muted"></p>
   </div>
 
   <main id="app-view" class="panel-main hidden">
     <p class="session-bar" id="session-bar"></p>
-    <section class="card">
-      <h2>Bugünkü görevler</h2>
-      <ul class="list-plain" id="tasks">—</ul>
+    <div class="tile-grid" id="tiles">
+      <button type="button" class="tile warn" data-panel="alerts" id="tile-alerts">
+        <span class="tile-label">Uyarılar</span>
+        <span class="tile-value" id="n-alerts">0</span>
+        <span class="tile-hint">öncelikli · dokun</span>
+      </button>
+      <button type="button" class="tile" data-panel="tasks" id="tile-tasks">
+        <span class="tile-label">Görevler</span>
+        <span class="tile-value" id="n-tasks">0</span>
+        <span class="tile-hint">bugün · dokun</span>
+      </button>
+      <button type="button" class="tile" data-panel="hives" id="tile-hives">
+        <span class="tile-label">Kovanlar</span>
+        <span class="tile-value" id="n-hives">0</span>
+        <span class="tile-hint">özet kart · dokun</span>
+      </button>
+    </div>
+    <section class="detail-panel" id="panel-alerts">
+      <h2 class="detail-title">Uyarılar</h2>
+      <ul class="card-list" id="alerts"></ul>
     </section>
-    <section class="card">
-      <h2>Hızlı saha kaydı</h2>
-      <p class="muted">Muayene / besleme / ilaç notu</p>
-      <label class="muted">Kovan
-        <select id="hive-select"></select>
-      </label>
-      <label class="muted">Tip
-        <select id="tip">
-          <option value="muayene">Muayene</option>
-          <option value="besleme">Besleme</option>
-          <option value="ilac">İlaç</option>
-        </select>
-      </label>
-      <label class="muted">Not
-        <input id="not" type="text" maxlength="200" placeholder="Kısa not" style="width:100%;padding:0.4rem;margin-top:0.2rem;border:1px solid #d9d2c5;border-radius:5px" />
-      </label>
-      <div class="row-btns" style="margin-top:0.75rem">
-        <button type="button" class="btn-p primary" id="btn-save">Kaydet</button>
-      </div>
-      <p id="save-status" class="muted"></p>
+    <section class="detail-panel" id="panel-tasks">
+      <h2 class="detail-title">Görevler</h2>
+      <ul class="card-list" id="tasks"></ul>
     </section>
-    <section class="card">
-      <h2>Kritik kovanlar</h2>
-      <ul class="list-plain" id="critical">—</ul>
+    <section class="detail-panel" id="panel-hives">
+      <h2 class="detail-title">Kovanlar</h2>
+      <ul class="card-list" id="hives"></ul>
     </section>
   </main>
 
-  <script src="/panels.js"></script>
+  <script src="/panels.js?v=6"></script>
   <script>
-    const loginView = document.getElementById("login-view");
-    const appView = document.getElementById("app-view");
-    let prevSession = null;
-    let onLoginScreen = false;
-
+    let openPanel = null;
+    function setPanel(name) {
+      openPanel = openPanel === name ? null : name;
+      document.querySelectorAll(".tile").forEach((el) => el.classList.toggle("active", el.dataset.panel === openPanel));
+      ["alerts", "tasks", "hives"].forEach((p) => {
+        document.getElementById("panel-" + p).classList.toggle("open", openPanel === p);
+      });
+    }
+    function pill(status) {
+      const label = PanelLabels.hiveStatus(status);
+      const cls = ["alert", "fault", "offline", "weak"].includes(status) ? "warn"
+        : ["watch", "degraded"].includes(status) ? "watch" : "ok";
+      return '<span class="pill ' + cls + '">' + label + "</span>";
+    }
     async function fillOrgs() {
       const { orgs } = await PanelAuth.loadOrgs();
       const sel = document.getElementById("org-select");
-      sel.innerHTML = orgs.map((o) => `<option value="${o.id}">${o.ad}</option>`).join("");
+      sel.innerHTML = orgs.map((o) => '<option value="' + o.id + '">' + o.ad + "</option>").join("");
       sel.value = PanelAuth.orgFromUrl;
     }
-
-    function showLogin({ keepPrev } = {}) {
-      if (keepPrev) prevSession = PanelAuth.getSession();
-      onLoginScreen = true;
-      loginView.classList.remove("hidden");
-      appView.classList.add("hidden");
+    function openMuayene(hiveId) {
+      setPanel("hives");
+      if (!hiveId) return;
+      const card = document.querySelector('[data-hive-card="' + hiveId + '"]');
+      if (!card) return;
+      card.classList.add("open");
+      const box = card.querySelector(".muayene-box");
+      if (box) {
+        box.classList.remove("hidden");
+        box.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     }
-
-    function showApp() {
-      onLoginScreen = false;
-      loginView.classList.add("hidden");
-      appView.classList.remove("hidden");
+    async function saveMuayene(hiveId, box) {
+      const sess = PanelAuth.getSession();
+      const not = box.querySelector(".m-not").value.trim();
+      const msg = box.querySelector(".m-msg");
+      if (!not) { msg.textContent = "Not yaz"; return; }
+      try {
+        const res = await fetch("/api/hives/" + hiveId + "/journal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tip: "muayene", not: not, arici: sess && sess.ad }),
+        });
+        if (!res.ok) throw new Error("fail");
+        msg.textContent = "Kayıt alındı";
+        box.querySelector(".m-not").value = "";
+      } catch {
+        msg.textContent = "Kayıt başarısız";
+      }
     }
-
     async function render() {
       const sess = PanelAuth.requireSession();
       if (!sess || sess.rol !== "isci") {
-        showLogin();
+        document.getElementById("login-view").classList.remove("hidden");
+        document.getElementById("app-view").classList.add("hidden");
         return;
       }
-      showApp();
-      document.getElementById("session-bar").textContent =
-        `${sess.ad} · ${sess.orgAd} · işçi`;
-      document.getElementById("hdr-sub").textContent = `${sess.orgAd} · saha görevleri`;
+      document.getElementById("login-view").classList.add("hidden");
+      document.getElementById("app-view").classList.remove("hidden");
+      document.getElementById("session-bar").textContent = sess.ad + " · " + sess.orgAd;
+      document.getElementById("hdr-sub").textContent = sess.orgAd;
 
-      const [{ hives }, { tasks }] = await Promise.all([
+      const [{ hives }, { alerts }, tasksRes] = await Promise.all([
         fetch("/api/hives").then((r) => r.json()),
-        fetch("/api/tasks").then((r) => r.json()),
+        fetch("/api/alerts").then((r) => r.json()),
+        fetch("/api/tasks").then((r) => r.json()).catch(() => ({ tasks: [] })),
       ]);
-      document.getElementById("hive-select").innerHTML = hives
-        .map((h) => `<option value="${h.hiveId}">Kovan ${h.hiveId}</option>`)
-        .join("");
-      const p1 = (tasks || []).filter((t) => t.priority <= 2);
-      document.getElementById("tasks").innerHTML = (p1.length ? p1 : tasks || [])
-        .slice(0, 15)
-        .map((t) => `<li><span class="pill">Ö${t.priority ?? "-"}</span> #${t.hiveId ?? "—"} — ${PanelLabels.cleanMessage(t.title || PanelLabels.alertType(t.type))}</li>`)
-        .join("") || "<li class='muted'>Görev yok</li>";
-      document.getElementById("critical").innerHTML = hives
-        .filter((h) => ["alert", "fault", "weak", "offline"].includes(h.status))
-        .slice(0, 10)
-        .map((h) => `<li><span class="pill warn">${PanelLabels.hiveStatus(h.status)}</span> Kovan ${h.hiveId} · ${h.weightKg ?? "—"} kg</li>`)
-        .join("") || "<li class='muted'>Kritik yok</li>";
+      const unread = (alerts || []).filter((a) => !a.read);
+      const tasks = tasksRes.tasks || [];
+      document.getElementById("n-alerts").textContent = String(unread.length);
+      document.getElementById("n-tasks").textContent = String(tasks.length);
+      document.getElementById("n-hives").textContent = String((hives || []).length);
+      document.getElementById("tile-alerts").classList.toggle("warn", unread.length > 0);
+
+      document.getElementById("alerts").innerHTML = unread.length
+        ? unread.slice(0, 20).map((a) =>
+            "<li><div class=\"card-row\" style=\"cursor:default\"><div class=\"meta\"><strong>" +
+            PanelLabels.alertType(a.type) +
+            "</strong><span>Kovan " + (a.hiveId ?? "—") + " · " +
+            PanelLabels.cleanMessage(a.message || a.title) +
+            "</span></div><span class=\"pill warn\">Ö" + (a.priority ?? "—") +
+            "</span></div></li>"
+          ).join("")
+        : '<li class="empty-state">Uyarı yok</li>';
+
+      document.getElementById("tasks").innerHTML = tasks.length
+        ? tasks.slice(0, 20).map((t) =>
+            '<li><button type="button" class="card-row task-open" data-hive="' + (t.hiveId ?? "") +
+            '"><div class="meta"><strong>' +
+            PanelLabels.cleanMessage(t.title || PanelLabels.alertType(t.type)) +
+            "</strong><span>Kovan " + (t.hiveId ?? "—") +
+            " · dokun → muayene</span></div><span class=\"pill\">Ö" + (t.priority ?? "-") +
+            "</span></button></li>"
+          ).join("")
+        : '<li class="empty-state">Görev yok</li>';
+      document.querySelectorAll(".task-open").forEach((btn) => {
+        btn.onclick = () => openMuayene(btn.dataset.hive);
+      });
+
+      document.getElementById("hives").innerHTML = (hives || []).slice(0, 40).map((h) => {
+        const loc = h.konumEtiket || (h.apiaryLocation && h.apiaryLocation.konumEtiket) || "—";
+        return '<li data-hive-card="' + h.hiveId + '">' +
+          '<button type="button" class="card-row hive-toggle"><div class="meta"><strong>#' +
+          h.hiveId + " · " + loc + "</strong><span>" + (h.weightKg ?? "—") + " kg · " +
+          (h.tempC ?? "—") + " °C</span></div>" + pill(h.status) + "</button>" +
+          '<div class="card-extra">' +
+          '<button type="button" class="btn-p primary btn-muayene">Muayene kaydı</button>' +
+          '<div class="muayene-box hidden"><label>Not<textarea class="m-not" rows="2" placeholder="Kısa not…"></textarea></label>' +
+          '<div class="row-btns"><button type="button" class="btn-p primary btn-save-m">Kaydet</button></div>' +
+          '<p class="muted m-msg"></p></div></div></li>';
+      }).join("");
+
+      document.querySelectorAll(".hive-toggle").forEach((btn) => {
+        btn.onclick = () => btn.closest("li").classList.toggle("open");
+      });
+      document.querySelectorAll("[data-hive-card]").forEach((li) => {
+        const hiveId = li.dataset.hiveCard;
+        li.querySelector(".btn-muayene").onclick = () => li.querySelector(".muayene-box").classList.toggle("hidden");
+        li.querySelector(".btn-save-m").onclick = () => saveMuayene(hiveId, li.querySelector(".muayene-box"));
+      });
     }
 
-    function goBackFromLogin() {
-      if (prevSession && prevSession.rol === "isci") {
-        PanelAuth.setSession(prevSession);
-        prevSession = null;
-        render();
-        return;
-      }
-      const cur = PanelAuth.getSession();
-      if (cur && cur.rol === "isci" && onLoginScreen) {
-        render();
-        return;
-      }
-      location.href = "/giris.html";
-    }
-
+    document.getElementById("tiles").addEventListener("click", (ev) => {
+      const tile = ev.target.closest(".tile");
+      if (tile) setPanel(tile.dataset.panel);
+    });
     document.getElementById("btn-login").onclick = async () => {
       try {
         await PanelAuth.login({
@@ -154,40 +205,16 @@
           ad: document.getElementById("ad").value,
           pin: document.getElementById("pin").value,
         });
-        prevSession = null;
-        history.replaceState({}, "", `/isci.html?org=${document.getElementById("org-select").value}`);
+        history.replaceState({}, "", "/isci.html?org=" + document.getElementById("org-select").value);
         await render();
       } catch (e) {
         document.getElementById("login-err").textContent = e.message;
       }
     };
-    document.getElementById("btn-login-back").onclick = () => goBackFromLogin();
-    document.getElementById("btn-back-panel").onclick = () => goBackFromLogin();
     document.getElementById("btn-logout").onclick = () => {
-      PanelAuth.logout();
+      PanelAuth.clearSession();
       location.href = "/giris.html";
     };
-    document.getElementById("btn-new-session").onclick = () => {
-      showLogin({ keepPrev: true });
-      document.getElementById("ad").value = "";
-      document.getElementById("pin").value = "";
-      document.getElementById("login-err").textContent = "";
-    };
-    document.getElementById("btn-save").onclick = async () => {
-      const hiveId = document.getElementById("hive-select").value;
-      const tip = document.getElementById("tip").value;
-      const not = document.getElementById("not").value;
-      const sess = PanelAuth.getSession();
-      const res = await fetch(`/api/hives/${hiveId}/journal`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tip, not: `${not} · ${sess?.ad || "işçi"}` }),
-      });
-      const st = document.getElementById("save-status");
-      st.textContent = res.ok ? "Kaydedildi" : "Kayıt hatası";
-      if (res.ok) document.getElementById("not").value = "";
-    };
-
     fillOrgs().then(render);
   </script>
 </body>

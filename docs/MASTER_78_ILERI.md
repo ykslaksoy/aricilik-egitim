@@ -2,7 +2,7 @@
 
 ## Paylaşılabilir linkler
 
-**Ana ekran (öncelikli):** https://12e9f2fec97d0b.lhr.life/giris.html
+**Ana ekran (öncelikli):** https://3530d5304b350b.lhr.life/giris.html
 
 Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
 

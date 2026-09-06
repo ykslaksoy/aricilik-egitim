@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "koloni ingest",
+  "type": "object",
+  "required": ["hiveId", "weightKg", "ts"],
+  "properties": {
+    "hiveId": { "type": "number", "description": "kovan numarası" },
+    "apiaryId": { "type": "string", "description": "arılık id (opsiyonel)" },
+    "weightKg": { "type": "number", "description": "toplam kg" },
+    "cornerKg": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "4 köşe load cell — dengesizlik/eğim"
+    },
+    "tempC": { "type": "number" },
+    "humidity": { "type": "number" },
+    "beeIn": { "type": "number", "description": "IR giriş sayacı (periyot)" },
+    "beeOut": { "type": "number", "description": "IR çıkış sayacı" },
+    "vibration": { "type": "number", "description": "ADXL345 olay/tepe özeti" },
+    "audioRms": { "type": "number", "description": "mikrofon RMS veya bant enerjisi" },
+    "battery": { "type": "number", "minimum": 0, "maximum": 100 },
+    "rssi": { "type": "number", "description": "LoRa sinyal (GATE'den)" },
+    "transportMode": { "type": "boolean", "description": "gezginci taşıma aktif" },
+    "cameraPresent": {
+      "type": "boolean",
+      "description": "kovan üzeri giriş kamerası takılı mı — yoksa kamerasız mod"
+    },
+    "mainCameraPresent": {
+      "type": "boolean",
+      "description": "arılık ana kamerası takılı mı — var gibi kurgula, yoksa görüntüsüz çalış"
+    },
+    "mainCameraSnapshotUrl": {
+      "type": "string",
+      "description": "ana kamera son kare URL (sadece mainCameraPresent)"
+    },
+    "cameraBeeIn": {
+      "type": "number",
+      "description": "CV giriş sayımı (sadece cameraPresent)"
+    },
+    "cameraBeeOut": {
+      "type": "number",
+      "description": "CV çıkış sayımı (sadece cameraPresent)"
+    },
+    "ts": { "type": "string", "format": "date-time" }
+  }
+}

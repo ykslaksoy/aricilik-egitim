@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>koloni — Master 78 ilerleme</title>
+  <style>
+    :root {
+      --bg: #f4f1ea;
+      --ink: #1a1814;
+      --muted: #6b6560;
+      --line: #d9d2c5;
+      --ok: #2d6a4f;
+      --warn: #9a3412;
+      --mid: #8a6d1a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      background: linear-gradient(160deg, #ebe4d6 0%, #f7f4ee 45%, #e8efe9 100%);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    header {
+      padding: 1.25rem 1.25rem 0.75rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .stats strong { color: var(--ok); }
+    main { padding: 1rem 1.25rem 3rem; max-width: 960px; margin: 0 auto; }
+    .note {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 0.82rem;
+    }
+    th, td {
+      padding: 0.45rem 0.55rem;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f0ebe3;
+      font-weight: 600;
+      position: sticky;
+      top: 5.5rem;
+    }
+    tr.done td:nth-child(4) { color: var(--ok); font-weight: 700; }
+    tr.next { background: #fff8e8; }
+    .k100 { color: var(--ok); font-weight: 700; }
+    .behind { color: var(--warn); }
+    .tie { color: var(--mid); }
+    .g { font-size: 0.7rem; color: var(--muted); }
+    footer {
+      margin-top: 1.25rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    a { color: var(--ok); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>koloni — Master 78 ilerleme</h1>
+    <p class="sub">Kalıcı sayfa · skorlar API’den canlı · her revizyonda otomatik güncellenir</p>
+    <div class="stats" id="stats">yükleniyor…</div>
+  </header>
+  <main>
+    <div class="note" id="focus">
+      <strong>Sıradaki odak:</strong> yükleniyor…
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Kat</th><th>Madde</th><th>K</th><th>SH</th><th>Durum</th><th>Not</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <footer>
+      Kaynak: <code>GET /api/master/score</code> ·
+      Bu sayfa: <code>/master-78.html</code> ·
+      Agent: <a href="https://cursor.com/agents/bc-01a053b9-7387-7806-8b2e-b776740e85ea">cursor.com/agents/…bc-01a053b9…</a>
+      <br />Herkese açık (tunnel): bu URL’yi kopyalayıp paylaş — skorlar canlı güncellenir.
+    </footer>
+  </main>
+  <script>
+    async function load() {
+      const res = await fetch("/api/master/score");
+      const data = await res.json();
+      const items = data.items || [];
+      const k100 = items.filter((i) => i.k === 100).length;
+      const avg = (items.reduce((s, i) => s + i.k, 0) / items.length).toFixed(1);
+      const next = items.find((i) => i.k < 100);
+      document.getElementById("stats").innerHTML =
+        `<span><strong>${k100}/78</strong> K=100</span>` +
+        `<span>ort. K <strong>${avg}</strong></span>` +
+        `<span>güncelleme ${new Date().toLocaleString("tr-TR")}</span>`;
+
+      const focus = document.getElementById("focus");
+      if (next) {
+        focus.innerHTML =
+          `<strong>Sıradaki odak: #${next.no} ${next.n}</strong><br>` +
+          `K=${next.k} · SH=${next.sh} · ${next.durum || "—"}<br>` +
+          `<span style="color:#6b6560">${next.not || ""}</span>`;
+      } else {
+        focus.innerHTML = "<strong>Tüm maddeler K=100</strong>";
+      }
+
+      document.getElementById("rows").innerHTML = items
+        .map((i) => {
+          const done = i.k === 100;
+          const isNext = next && i.no === next.no;
+          const cls = done ? "done" : isNext ? "next" : "";
+          const kCls = done ? "k100" : i.k < i.sh ? "behind" : "tie";
+          return `<tr class="${cls}">
+            <td>${i.no}</td>
+            <td class="g">${i.g}</td>
+            <td>${i.n}</td>
+            <td class="${kCls}">${i.k}</td>
+            <td>${i.sh}</td>
+            <td>${i.durum || "—"}</td>
+            <td>${i.not || ""}</td>
+          </tr>`;
+        })
+        .join("");
+    }
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>

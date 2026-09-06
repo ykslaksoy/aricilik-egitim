@@ -1,0 +1,13 @@
+{
+  "name": "hive-demo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "node apps/api/src/server.js",
+    "dev:api": "node apps/api/src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

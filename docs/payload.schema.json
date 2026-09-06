@@ -1,0 +1,19 @@
+{
+  "hiveId": "number — kovan numarası",
+  "weightKg": "number — toplam ağırlık kg",
+  "tempC": "number — kovan içi °C",
+  "humidity": "number — nem %",
+  "beeIn": "number — son periyottaki giriş (IR sayaç, opsiyonel)",
+  "beeOut": "number — son periyottaki çıkış (IR sayaç; öğlen kalibrasyon)",
+  "battery": "number — pil % 0-100",
+  "ts": "ISO8601 string",
+  "colony": {
+    "score": "0-100 koloni skoru (API hesaplar)",
+    "strengthLabel": "Zayıf | Orta | Güçlü | Çok güçlü",
+    "beeEstimate": "tahmini toplam arı",
+    "beeEstimateMin": "alt sınır",
+    "beeEstimateMax": "üst sınır",
+    "foragersMidday": "öğlen dışarıda tahmini gezen",
+    "care": ["bakım önerisi dizisi"]
+  }
+}

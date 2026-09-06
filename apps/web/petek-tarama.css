@@ -1,0 +1,329 @@
+/* Kovan Petek Tarama sihirbazı */
+
+.pt-body {
+  background: #12100e;
+  color: #e8e0d4;
+  min-height: 100vh;
+  padding-bottom: 2rem;
+}
+
+.pt-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #2a241c;
+}
+
+.pt-header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.pt-back {
+  color: #c9a66b;
+  text-decoration: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  padding-top: 0.2rem;
+}
+
+.pt-steps {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid #2a241c;
+}
+
+.pt-step {
+  flex: 1;
+  min-width: 4.5rem;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #6a6050;
+  padding: 0.35rem 0.25rem;
+  border-radius: 6px;
+}
+
+.pt-step span {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  line-height: 1.5rem;
+  margin: 0 auto 0.25rem;
+  border-radius: 50%;
+  background: #2a241c;
+  font-weight: 600;
+}
+
+.pt-step.active {
+  color: #f4a020;
+}
+
+.pt-step.active span {
+  background: #f4a020;
+  color: #1a1410;
+}
+
+.pt-step.done span {
+  background: #3a5c3a;
+  color: #dfe;
+}
+
+.pt-panel {
+  padding: 1.25rem;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.pt-panel.hidden {
+  display: none;
+}
+
+.pt-tip {
+  background: #1e1a14;
+  border-left: 3px solid #f4a020;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.pt-field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.pt-field span {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+  color: #c9a66b;
+}
+
+.pt-field input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #3a3428;
+  border-radius: 8px;
+  background: #1a1410;
+  color: #e8e0d4;
+  font-size: 1rem;
+}
+
+.pt-field small {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.pt-btn {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin: 0.35rem 0.35rem 0.35rem 0;
+  text-align: center;
+  text-decoration: none;
+}
+
+.pt-btn.primary {
+  background: #f4a020;
+  color: #1a1410;
+  font-weight: 600;
+}
+
+.pt-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pt-btn.ghost {
+  background: transparent;
+  border: 1px solid #4a4030;
+  color: #c9a66b;
+}
+
+.pt-error {
+  color: #f08080;
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.pt-success {
+  color: #8fda8f;
+  font-size: 0.95rem;
+  margin-top: 0.75rem;
+}
+
+.pt-camera-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #0a0806;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.pt-camera-wrap video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pt-camera-wrap canvas {
+  display: none;
+}
+
+.pt-target-frame {
+  position: absolute;
+  inset: 12% 18%;
+  border: 2px solid rgba(244, 160, 32, 0.85);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.pt-target-frame::after {
+  content: "petek aralığı";
+  position: absolute;
+  bottom: -1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #f4a020;
+  white-space: nowrap;
+}
+
+.pt-progress-bar {
+  height: 6px;
+  background: #2a241c;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+}
+
+.pt-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c97820, #f4a020);
+  transition: width 0.3s ease;
+}
+
+.petek-map {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: #1a1410;
+  border-radius: 10px;
+  border: 1px solid #2a241c;
+}
+
+.petek-map-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #8a7355;
+  margin-bottom: 0.5rem;
+}
+
+.petek-map-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+.petek-gap-no {
+  width: 1.25rem;
+  font-size: 0.7rem;
+  color: #6a6050;
+}
+
+.petek-cell {
+  flex: 1;
+  height: 1.75rem;
+  border: 1px solid #3a3428;
+  border-radius: 4px;
+  background: #12100e;
+  color: #6a6050;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.petek-cell.done {
+  background: #2a4a2a;
+  border-color: #4a8a4a;
+  color: #afa;
+}
+
+.petek-cell.retry {
+  background: #4a3020;
+  border-color: #c97820;
+  color: #f4a020;
+}
+
+.petek-cell.active {
+  background: #3a3018;
+  border-color: #f4a020;
+  color: #f4a020;
+}
+
+.pt-scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pt-status {
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.pt-dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+}
+
+.pt-dl dt {
+  color: #8a7355;
+}
+
+.pt-dl dd {
+  margin: 0;
+  text-align: right;
+}
+
+.pt-result {
+  background: #1a1410;
+  border: 1px solid #3a3428;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.pt-tips {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: #b0a890;
+}
+
+.pt-loading {
+  padding: 1rem;
+  color: #f4a020;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (min-width: 600px) {
+  .pt-panel {
+    max-width: 560px;
+  }
+}

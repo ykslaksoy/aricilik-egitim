@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#c9a227" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="/manifest.json" />
+  <title>koloni</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <div>
+        <h1>koloni</h1>
+        <p id="summary">—</p>
+      </div>
+      <div class="push-controls">
+        <button type="button" id="push-enable" class="btn-push">Push aç</button>
+        <span id="push-status" class="push-status muted">Kapalı</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="push-inbox" class="push-inbox hidden"></div>
+
+  <div id="pro-lig-bar" class="pro-lig-bar">
+    <span class="pro-lig-title">Pro lig</span>
+    <strong id="pro-lig-score">—</strong>
+    <span id="pro-lig-band" class="muted">yükleniyor…</span>
+    <span id="offline-status" class="offline-status muted">—</span>
+  </div>
+
+  <div id="ml-bar" class="ml-bar">
+    <span class="ml-bar-title">ML</span>
+    <a class="ml-link" href="/api/export/dataset" target="_blank" rel="noopener">JSON</a>
+    <a class="ml-link" href="/api/export/dataset?format=csv" target="_blank" rel="noopener">CSV</a>
+    <span id="ml-stats" class="ml-stats muted">—</span>
+  </div>
+
+  <div id="alarm" class="alarm hidden" role="alert"></div>
+  <div id="filters" class="filters"></div>
+  <div id="apiary-loc-bar" class="apiary-loc-bar">
+    <span class="apiary-loc-title">Konum zinciri</span>
+    <span id="apiary-loc-summary" class="muted">yükleniyor…</span>
+    <div class="apiary-loc-actions">
+      <select id="bulk-konum-select" aria-label="Toplu konum"></select>
+      <select id="bulk-group-select" aria-label="Grup"></select>
+      <button type="button" id="bulk-konum-btn" class="btn-ml">Seçili → konum</button>
+      <button type="button" id="bulk-group-btn" class="btn-ml">Seçili → grup</button>
+      <button type="button" id="transport-start-btn" class="btn-ml">Taşınıyor</button>
+    </div>
+  </div>
+  <div id="analiz" class="analiz hidden"></div>
+  <div id="tasks" class="tasks"></div>
+  <div id="care" class="care hidden"></div>
+  <div id="sensors" class="sensors hidden"></div>
+
+  <main>
+    <ul id="list" class="list"></ul>
+  </main>
+
+  <details id="master-panel" class="master-panel">
+    <summary>
+      <span class="master-title">Master skor — 78 madde</span>
+      <span id="master-summary" class="muted">yükleniyor…</span>
+    </summary>
+    <div class="master-table-wrap master-scroll">
+      <table class="master-table compact-table">
+        <colgroup>
+          <col class="col-no" /><col class="col-g" /><col class="col-name" />
+          <col class="col-k" /><col class="col-sh" /><col class="col-not" />
+        </colgroup>
+        <thead>
+          <tr><th>#</th><th>Kat</th><th>Madde</th><th>K</th><th>SH</th><th>Not</th></tr>
+        </thead>
+        <tbody id="master-list"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <details id="strength-panel" class="strength-panel">
+    <summary>
+      <span class="strength-title">Korunacak güçlü maddeler</span>
+      <span id="strength-summary" class="muted">yükleniyor…</span>
+    </summary>
+    <div class="master-table-wrap master-scroll">
+      <table class="master-table compact-table">
+        <colgroup>
+          <col class="col-no" /><col class="col-g" /><col class="col-name" />
+          <col class="col-k" /><col class="col-sh" /><col class="col-not" />
+        </colgroup>
+        <thead>
+          <tr><th>#</th><th>Kat</th><th>Madde</th><th>K</th><th>SH</th><th>Not</th></tr>
+        </thead>
+        <tbody id="strength-list"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <script src="/offline-sync.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

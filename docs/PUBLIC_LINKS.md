@@ -1,6 +1,6 @@
 # SüperArı panel — canlı public linkler
 
-Güncellendi: 2026-09-05 23:01:18 UTC
+Güncellendi: 2026-09-06 00:06:48 UTC
 
 Kurtarma (1 komut): `./scripts/panel-recover.sh`
 
@@ -8,18 +8,18 @@ Kurtarma (1 komut): `./scripts/panel-recover.sh`
 
 | Panel | URL |
 |-------|-----|
-| Ana giriş | https://5ba1b789216a97.lhr.life/giris.html |
-| Yönetici | https://5ba1b789216a97.lhr.life/yonetici.html?org=koloni-demo |
-| Patron | https://5ba1b789216a97.lhr.life/arici.html?org=koloni-demo |
-| Çalışan | https://5ba1b789216a97.lhr.life/isci.html?org=koloni-demo |
+| Ana giriş | https://3530d5304b350b.lhr.life/giris.html |
+| Yönetici | https://3530d5304b350b.lhr.life/yonetici.html?org=koloni-demo |
+| Patron | https://3530d5304b350b.lhr.life/arici.html?org=koloni-demo |
+| Çalışan | https://3530d5304b350b.lhr.life/isci.html?org=koloni-demo |
 
 ## Cloudflare (yeniden kuruldu, DNS bekleniyor)
 
 | Panel | URL |
 |-------|-----|
-| Ana giriş | https://word-lol-wendy-operators.trycloudflare.com/giris.html |
-| Yönetici | https://word-lol-wendy-operators.trycloudflare.com/yonetici.html?org=koloni-demo |
-| Patron | https://word-lol-wendy-operators.trycloudflare.com/arici.html?org=koloni-demo |
-| Çalışan | https://word-lol-wendy-operators.trycloudflare.com/isci.html?org=koloni-demo |
+| Ana giriş | https://ratings-residence-velocity-functionality.trycloudflare.com/giris.html |
+| Yönetici | https://ratings-residence-velocity-functionality.trycloudflare.com/yonetici.html?org=koloni-demo |
+| Patron | https://ratings-residence-velocity-functionality.trycloudflare.com/arici.html?org=koloni-demo |
+| Çalışan | https://ratings-residence-velocity-functionality.trycloudflare.com/isci.html?org=koloni-demo |
 
 Demo PIN: Patron `1111` · Yönetici `1234` · Çalışan `3333`

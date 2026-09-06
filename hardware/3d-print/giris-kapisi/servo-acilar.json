@@ -1,0 +1,14 @@
+{
+  "description": "entranceGate.hedef → SG90/MG90S açı (derece). Kalibrasyonda ayarla.",
+  "servo": "SG90",
+  "minPulseUs": 500,
+  "maxPulseUs": 2400,
+  "positions": {
+    "kapali": { "angle": 20, "openMm": 2, "label": "Kapalı (minimal)" },
+    "dar": { "angle": 60, "openMm": 12, "label": "Dar (koruma)" },
+    "orta": { "angle": 120, "openMm": 26, "label": "Orta" },
+    "acik": { "angle": 170, "openMm": 39, "label": "Açık (geniş)" }
+  },
+  "moveMsPerStep": 80,
+  "notes": "Açı ters çalışırsa 180-angle kullan veya servo kolunu 180° döndür."
+}

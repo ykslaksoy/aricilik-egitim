@@ -4,99 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>SüperArı — Giriş</title>
-  <link rel="stylesheet" href="/panels.css?v=4" />
-  <style>
-    .hub {
-      max-width: 420px;
-      margin: 2.2rem auto 0;
-      padding: 0 1rem 3rem;
-    }
-    .hub-brand {
-      font-family: "Fraunces", "IBM Plex Serif", Georgia, serif;
-      font-size: 2.15rem;
-      font-weight: 700;
-      letter-spacing: -0.04em;
-      margin: 0 0 0.25rem;
-      color: #1a3d2e;
-    }
-    .hub .lead {
-      color: var(--muted);
-      font-size: 0.92rem;
-      margin: 0 0 1.35rem;
-      line-height: 1.45;
-    }
-    .hub-btn {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 1.1rem 1.15rem;
-      margin: 0 0 0.7rem;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      background: #fff;
-      text-decoration: none;
-      color: var(--ink);
-      box-shadow: 0 1px 0 rgba(0,0,0,0.03);
-      transition: transform 0.14s ease, border-color 0.14s ease;
-    }
-    .hub-btn:active { transform: scale(0.985); }
-    .hub-btn strong {
-      display: block;
-      font-size: 1.1rem;
-      margin-bottom: 0.22rem;
-    }
-    .hub-btn span {
-      font-size: 0.8rem;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-    .hub-btn .pin-hint {
-      display: block;
-      margin-top: 0.45rem;
-      font-size: 0.72rem;
-      color: #4a6356;
-      font-weight: 600;
-    }
-    .hub-btn.patron { border-left: 5px solid #1a3d2e; }
-    .hub-btn.yonetici { border-left: 5px solid #1a2332; }
-    .hub-btn.calisan { border-left: 5px solid #8a6d1a; }
-    .hub-foot {
-      margin-top: 1.5rem;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-    .hub-foot a { color: var(--ok); }
-  </style>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/panels.css?v=6" />
 </head>
 <body class="panel-body">
   <div class="hub">
     <p class="hub-brand">SüperArı</p>
-    <p class="lead">Kim olarak giriyorsun? Tek kullanıcı / PIN — takım rolleri net.</p>
+    <p class="hub-lead">Rolünü seç · PIN ile gir</p>
 
     <a class="hub-btn patron" href="/arici.html?org=koloni-demo">
       <strong>Patron</strong>
-      <span>Kovan listesi · uyarılar · muayene kaydı</span>
-      <span class="pin-hint">Demo PIN 1111</span>
+      <span>Uyarılar · görevler · kovanlar</span>
+      <span class="pin-hint">PIN 1111</span>
     </a>
     <a class="hub-btn yonetici" href="/yonetici.html?org=koloni-demo">
       <strong>Yönetici</strong>
-      <span>Ekip, filo, panel linkleri</span>
-      <span class="pin-hint">Demo PIN 1234</span>
+      <span>Uyarılar · görevler · kovanlar</span>
+      <span class="pin-hint">PIN 1234</span>
     </a>
     <a class="hub-btn calisan" href="/isci.html?org=koloni-demo">
       <strong>Çalışan</strong>
-      <span>Saha görevi ve kayıt</span>
-      <span class="pin-hint">Demo PIN 3333</span>
+      <span>Uyarılar · görevler · kovanlar</span>
+      <span class="pin-hint">PIN 3333</span>
     </a>
-
-    <p class="hub-foot">
-      SMS/WA yoksa uyarılar uygulama içi. Kurtarma:
-      <code>./scripts/panel-recover.sh</code>
-      · <a href="/master-78.html">Master 78</a>
-    </p>
   </div>
 </body>
 </html>

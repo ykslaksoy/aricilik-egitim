@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>koloni — Yönetici</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <div>
+      <h1>koloni · Yönetici</h1>
+      <p id="admin-subtitle" class="muted">ML öğrenme · donanım bütünlüğü · sensör gereklilik</p>
+    </div>
+    <div class="admin-header-actions">
+      <span id="learning-badge" class="learning-badge">—</span>
+      <button type="button" id="btn-refresh" class="btn-admin">Yenile</button>
+      <a href="/" class="btn-admin-link">← Kovan paneli</a>
+    </div>
+  </header>
+
+  <div id="admin-auth" class="admin-auth hidden">
+    <label>Anahtar <input type="password" id="admin-key" placeholder="koloni-admin" /></label>
+    <button type="button" id="btn-auth" class="btn-admin">Giriş</button>
+  </div>
+
+  <main id="admin-main" class="admin-main hidden">
+    <section class="admin-card approval-queue" id="approval-section">
+      <div class="approval-head">
+        <h2>ML onay kuyruğu</h2>
+        <span id="pending-badge" class="pending-badge">0 bekliyor</span>
+      </div>
+      <p class="muted tip-inline">Referans ve donanım etkisi güncellemeleri onayınız olmadan uygulanmaz.</p>
+      <div id="approval-list" class="approval-list">—</div>
+    </section>
+
+    <section class="admin-grid">
+      <div class="admin-card span2">
+        <h2>Sürekli ML öğrenme</h2>
+        <div id="learning-status" class="admin-kv">—</div>
+        <div id="training-queue" class="admin-sub">—</div>
+      </div>
+      <div class="admin-card">
+        <h2>Veri kalitesi</h2>
+        <div id="data-quality" class="admin-kv">—</div>
+      </div>
+      <div class="admin-card">
+        <h2>Model durumu</h2>
+        <div id="model-status" class="admin-kv">—</div>
+      </div>
+    </section>
+
+    <section class="admin-card">
+      <h2>Sensör gereklilik skorları (anlık)</h2>
+      <p class="muted tip-inline">0–100 · operasyonel ihtiyaç + ML katkısı · kamera kararı aşağıda</p>
+      <div id="necessity-table" class="admin-table-wrap">—</div>
+    </section>
+
+    <section class="admin-card">
+      <h2>Kamera karar analizi</h2>
+      <div id="camera-decision" class="camera-decision">—</div>
+    </section>
+
+    <section class="admin-card">
+      <h2>Donanım bütünlüğü (filod)</h2>
+      <p class="muted tip-inline">Tam donanım beklentisi · sensör durumu · hangi analiz düşer</p>
+      <div id="fleet-integrity" class="admin-kv">—</div>
+      <div id="integrity-matrix" class="admin-table-wrap">—</div>
+    </section>
+
+    <section class="admin-card">
+      <h2>Donanımın analizlerdeki etkisi (ML)</h2>
+      <div id="hardware-impact" class="admin-table-wrap">—</div>
+    </section>
+
+    <section class="admin-card">
+      <h2>ML referans kayıtlar</h2>
+      <p class="muted tip-inline">Her okuma/analiz → alan bazlı kayıt (yöntem + kod + sensör + etiket)</p>
+      <div class="admin-filter-row">
+        <select id="ref-domain">
+          <option value="">Tüm alanlar</option>
+        </select>
+        <button type="button" id="btn-ref-load" class="btn-admin-sm">Filtrele</button>
+      </div>
+      <div id="reference-records" class="admin-table-wrap">—</div>
+    </section>
+
+    <section class="admin-grid">
+      <div class="admin-card">
+        <h2>Etiket kapsamı</h2>
+        <div id="label-coverage" class="admin-kv">—</div>
+      </div>
+      <div class="admin-card span2">
+        <h2>Öğrenme günlüğü</h2>
+        <div id="learning-log" class="admin-log">—</div>
+      </div>
+    </section>
+
+    <section class="admin-card muted-card">
+      <h2>Ek yönetici metrikleri</h2>
+      <ul id="extra-metrics" class="admin-list"></ul>
+    </section>
+  </main>
+
+  <script src="/admin.js"></script>
+</body>
+</html>
