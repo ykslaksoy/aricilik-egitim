@@ -65,19 +65,24 @@
 
   function hiveArt(icon) {
     return `
-      <div class="hive-art" aria-hidden="true">
-        <div class="hive-lid"></div>
-        <div class="hive-face">
-          <div class="hive-box hive-box-top"></div>
-          <div class="hive-box hive-box-bot"></div>
-          <span class="hive-icon" data-icon="${icon}">
-            <svg viewBox="0 0 24 24">${ICONS[icon] || ""}</svg>
-          </span>
-        </div>
-        <div class="hive-floor">
-          <span class="hive-leg"></span>
-          <span class="hive-entrance"></span>
-          <span class="hive-leg"></span>
+      <div class="hive-slot">
+        <div class="hive-art" aria-hidden="true">
+          <div class="hive-lid"></div>
+          <div class="hive-face">
+            <div class="hive-box hive-box-top"></div>
+            <div class="hive-box hive-box-bot"></div>
+            <span class="hive-icon hive-icon-burn" data-icon="${icon}">
+              <svg viewBox="0 0 24 24">
+                <circle class="burn-ring" cx="12" cy="12" r="10.2"/>
+                ${ICONS[icon] || ""}
+              </svg>
+            </span>
+          </div>
+          <div class="hive-floor">
+            <span class="hive-leg"></span>
+            <span class="hive-entrance"></span>
+            <span class="hive-leg"></span>
+          </div>
         </div>
       </div>`;
   }

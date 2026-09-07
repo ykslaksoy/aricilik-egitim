@@ -165,6 +165,7 @@ html, body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
+  align-items: stretch;
 }
 
 .ana-card {
@@ -172,21 +173,34 @@ html, body {
   border: 0;
   background: var(--ana-card);
   border-radius: 16px;
-  padding: 0.55rem 0.28rem 0.55rem;
+  padding: 0.45rem 0.28rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   cursor: pointer;
   font-family: inherit;
   color: inherit;
   box-shadow: 0 1px 2px rgba(40, 24, 10, 0.06);
   min-height: 0;
+  height: 100%;
 }
 
 .ana-card:active { transform: scale(0.98); }
 
+/* Kovan: label/badge üstündeki alanda yatay+dikey orta */
+.hive-slot {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .ana-card-label {
-  margin-top: 0.28rem;
+  margin-top: 0.12rem;
+  flex: 0 0 auto;
   font-size: 0.92rem;
   font-weight: 750;
   letter-spacing: -0.02em;
@@ -196,6 +210,7 @@ html, body {
 
 .ana-card-chip {
   margin-top: 0.22rem;
+  flex: 0 0 auto;
   padding: 0.14rem 0.48rem;
   border-radius: 999px;
   font-size: 0.68rem;
@@ -211,15 +226,18 @@ html, body {
 
 /* Kovan şablonu — tek siluet, 9 kart */
 .hive-art {
-  width: 78%;
-  max-width: 92px;
+  width: 72%;
+  max-width: 86px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .hive-lid {
-  width: calc(100% + 5px);
+  width: calc(100% + 6px);
+  margin-inline: -3px;
   height: 8px;
   border-radius: 2px 2px 1px 1px;
   background: linear-gradient(180deg, #f4f5f7 0%, #c8ccd2 48%, #9aa1aa 100%);
@@ -271,34 +289,41 @@ html, body {
 .hive-box::before { left: 0; }
 .hive-box::after { right: 0; }
 
-/* Simge: kovan YÜZÜNÜN tam ortası (iki katın dikişi) */
-.hive-icon {
+/* Simge: kovan YÜZÜNÜN tam ortası — yakma damga (doldurulmuş rozet değil) */
+.hive-icon,
+.hive-icon-burn {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: var(--ana-brown);
+  background: radial-gradient(circle, rgba(28, 14, 6, 0.16) 38%, transparent 74%);
   display: grid;
   place-items: center;
-  box-shadow: 0 0 0 1.5px #2a180c, inset 0 1px 0 rgba(255, 230, 190, 0.12);
+  box-shadow: none;
   z-index: 2;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hive-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 100%;
+  height: 100%;
   fill: none;
-  stroke: #f4e4c8;
-  stroke-width: 1.55;
+  stroke: #1a0c06;
+  stroke-width: 1.35;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.hive-icon .fill-soft { fill: #f4e4c8; stroke: none; }
+.hive-icon .burn-ring {
+  fill: none;
+  stroke: #160a05;
+  stroke-width: 1.55;
+}
+
+.hive-icon .fill-soft { fill: none; stroke: #1a0c06; }
 
 .hive-floor {
   width: 100%;
@@ -325,12 +350,12 @@ html, body {
 }
 
 /* Kart içinde metin / watermark yok */
-.hive-art,
 .hive-face,
 .hive-box {
   overflow: hidden;
 }
 
+.hive-art,
 .hive-face {
   overflow: visible;
 }

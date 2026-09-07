@@ -44,9 +44,14 @@ assert.ok(/data-ia="Tartı,Sağlık,Oğul,Kovanlar,Koloni,Arılıklar,Görevler,
 assert.ok(js.includes('icon: "bees-3"') && js.includes('label: "Koloni"'), "Koloni 3 arı");
 assert.ok(js.includes('icon: "bee-1"') && js.includes('label: "Oğul"'), "Oğul 1 arı");
 assert.ok(js.includes("hive-box-top") && js.includes("hive-box-bot"), "iki kat şablon");
+assert.ok(js.includes("hive-slot") && js.includes("burn-ring"), "orta slot + yakma halkası");
 assert.ok(!/Hardal Arıcılık/.test(js.split("hiveArt")[1]?.split("function weatherIco")[0] || ""), "kovan SVG içinde işletme yok");
 
 assert.ok(css.includes("translate(-50%, -50%)"), "simge tam orta");
+assert.ok(css.includes(".hive-slot") && css.includes("justify-content: center"), "kovan kartta ortalı");
+assert.ok(css.includes("hive-icon-burn") && css.includes(".burn-ring"), "yakma damga stili");
+assert.ok(!/stroke:\s*#f4e4c8/.test(css), "flat açık çizgi ikon yok");
+assert.ok(!/background:\s*var\(--ana-brown\)/.test(css), "dolu kahve rozet yok");
 assert.ok(/\.hive-box-top|\.hive-box\s*\{[\s\S]*height:\s*30px/.test(css), "eşit kat yüksekliği");
 assert.ok(css.includes("width: 100%") && css.includes(".hive-box"), "katlar aynı genişlik");
 assert.ok(!/object-fit:\s*cover/.test(css), "object-fit:cover yok (crop kayması)");
