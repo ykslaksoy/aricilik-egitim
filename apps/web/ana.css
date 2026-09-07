@@ -331,6 +331,7 @@ html, body {
   stroke-linejoin: round;
   filter: none;
   background: none;
+  mix-blend-mode: multiply;
 }
 
 .hive-icon .burn-ring {
