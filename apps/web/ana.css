@@ -252,7 +252,7 @@ html, body {
 }
 
 .hive-box-top { border-bottom-width: 0; }
-.hive-box-bot { border-top-color: #a07238; }
+.hive-box-bot { border-top-color: var(--wood-edge); }
 
 .hive-box::before,
 .hive-box::after {
