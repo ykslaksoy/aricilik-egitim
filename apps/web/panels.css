@@ -159,6 +159,13 @@ body.panel-body {
   margin: 0 0 1.35rem;
   line-height: 1.4;
 }
+.hub-ana-link {
+  margin-top: 1.2rem;
+}
+.hub-ana-link a {
+  color: inherit;
+  font-weight: 650;
+}
 .hub-btn {
   display: block;
   width: 100%;

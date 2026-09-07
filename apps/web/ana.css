@@ -1,0 +1,446 @@
+/* SüperArı Ana — kilitli 3×3 kovan şablonu
+   Geometri kilidi: üst/alt kat eşit yükseklik + aynı genişlik (flush).
+   Simge: .hive-face içinde left/top 50% + translate(-50%,-50%) → 0 px kayma.
+   Raster kovan / object-fit YOK — crop kaymasını önlemek için. */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  --ana-bg: #efe7d8;
+  --ana-paper: #f7f3ea;
+  --ana-card: #ffffff;
+  --ana-ink: #1d140c;
+  --ana-muted: #6a5744;
+  --ana-brown: #3b2412;
+  --ana-line: #e4d6c2;
+  --ana-nav: #fffdf8;
+  --ana-active: #e56f1c;
+  --chip-ok: #1f7a45;
+  --chip-ok-bg: #d8f0df;
+  --chip-tan: #6b4e2a;
+  --chip-tan-bg: #ead7b6;
+  --chip-blue: #1f4f8a;
+  --chip-blue-bg: #d7e6f6;
+  --chip-red: #a32020;
+  --chip-red-bg: #f6d4d0;
+  --chip-purple: #5c3d8a;
+  --chip-purple-bg: #e6daf4;
+  --wood-1: #e8c48e;
+  --wood-2: #c99755;
+  --wood-edge: #8a6030;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+}
+
+.ana-body {
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  color: var(--ana-ink);
+  background:
+    radial-gradient(720px 280px at 50% -8%, rgba(229, 111, 28, 0.08), transparent 55%),
+    linear-gradient(180deg, #d9cbb3 0%, #cbb89a 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.ana-phone {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  background: var(--ana-paper);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 0 1px rgba(60, 36, 18, 0.08), 0 18px 50px rgba(40, 24, 10, 0.18);
+}
+
+/* —— İnce işletme şeridi (kartlarda watermark YOK) —— */
+.brand-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: calc(0.38rem + var(--safe-t)) 0.9rem 0.38rem;
+  background: linear-gradient(180deg, #fbf6ec, #f0e6d4);
+  border-bottom: 1px solid #dfd0b8;
+  min-height: 1.7rem;
+}
+
+.brand-product {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ana-muted);
+}
+
+.brand-org {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ana-brown);
+  letter-spacing: 0.01em;
+}
+
+/* —— Hava şeridi —— */
+.weather-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem 0.6rem;
+  background: #fffaf1;
+  border-bottom: 1px solid var(--ana-line);
+}
+
+.weather-now {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 6.4rem;
+}
+
+.weather-now-text { line-height: 1.05; }
+.weather-place {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ana-muted);
+}
+.weather-temp {
+  margin: 0.05rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.weather-week {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.18rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.weather-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 1.85rem;
+  font-size: 0.55rem;
+  color: var(--ana-muted);
+  font-weight: 600;
+}
+
+.weather-day b {
+  font-size: 0.58rem;
+  color: var(--ana-ink);
+  font-weight: 700;
+}
+
+.weather-day .hi-lo {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* —— 3×3 —— */
+.ana-main {
+  flex: 1;
+  padding: 0.65rem 0.65rem 0.2rem;
+  overflow: auto;
+}
+
+.ana-view[hidden] { display: none !important; }
+.ana-view.is-active { display: block; }
+
+.ana-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.ana-card {
+  appearance: none;
+  border: 0;
+  background: var(--ana-card);
+  border-radius: 16px;
+  padding: 0.55rem 0.28rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  box-shadow: 0 1px 2px rgba(40, 24, 10, 0.06);
+  min-height: 0;
+}
+
+.ana-card:active { transform: scale(0.98); }
+
+.ana-card-label {
+  margin-top: 0.28rem;
+  font-size: 0.92rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--ana-ink);
+  line-height: 1.1;
+}
+
+.ana-card-chip {
+  margin-top: 0.22rem;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.chip-ok { background: var(--chip-ok-bg); color: var(--chip-ok); }
+.chip-tan { background: var(--chip-tan-bg); color: var(--chip-tan); }
+.chip-blue { background: var(--chip-blue-bg); color: var(--chip-blue); }
+.chip-red { background: var(--chip-red-bg); color: var(--chip-red); }
+.chip-purple { background: var(--chip-purple-bg); color: var(--chip-purple); }
+
+/* Kovan şablonu — tek siluet, 9 kart */
+.hive-art {
+  width: 78%;
+  max-width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hive-lid {
+  width: calc(100% + 5px);
+  height: 8px;
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(180deg, #f4f5f7 0%, #c8ccd2 48%, #9aa1aa 100%);
+  box-shadow: 0 1px 0 #7c828a;
+  flex: 0 0 auto;
+}
+
+/* Yüz: iki eşit kat, aynı genişlik → kenarlar flush */
+.hive-face {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.hive-box {
+  width: 100%;
+  height: 30px;
+  position: relative;
+  background-color: var(--wood-1);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 52, 16, 0.07) 0 1px,
+      transparent 1px 6px
+    ),
+    linear-gradient(180deg, rgba(255, 248, 230, 0.35), transparent 42%, rgba(90, 50, 14, 0.16));
+  border: 1px solid var(--wood-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.hive-box-top { border-bottom-width: 0; }
+.hive-box-bot { border-top-color: #a07238; }
+
+.hive-box::before,
+.hive-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: repeating-linear-gradient(
+    180deg,
+    #7a5224 0 3px,
+    #e0b87a 3px 7px
+  );
+  pointer-events: none;
+}
+.hive-box::before { left: 0; }
+.hive-box::after { right: 0; }
+
+/* Simge: kovan YÜZÜNÜN tam ortası (iki katın dikişi) */
+.hive-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--ana-brown);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 1.5px #2a180c, inset 0 1px 0 rgba(255, 230, 190, 0.12);
+  z-index: 2;
+}
+
+.hive-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #f4e4c8;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hive-icon .fill-soft { fill: #f4e4c8; stroke: none; }
+
+.hive-floor {
+  width: 100%;
+  height: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 6px;
+}
+
+.hive-leg {
+  width: 7px;
+  height: 8px;
+  background: linear-gradient(180deg, var(--wood-2), #8d5e2c);
+  border-radius: 0 0 1px 1px;
+}
+
+.hive-entrance {
+  width: 16px;
+  height: 5px;
+  background: #2a1a0e;
+  border-radius: 1px 1px 0 0;
+  align-self: flex-end;
+}
+
+/* Kart içinde metin / watermark yok */
+.hive-art,
+.hive-face,
+.hive-box {
+  overflow: hidden;
+}
+
+.hive-face {
+  overflow: visible;
+}
+
+.ana-card .brand-org,
+.ana-card [data-watermark] {
+  display: none !important;
+}
+
+/* —— Alt görünümler (detay IA’sına girmez) —— */
+.view-title {
+  margin: 0.15rem 0 0.65rem;
+  font-size: 1.05rem;
+}
+
+.view-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.view-list li {
+  background: #fff;
+  border: 1px solid var(--ana-line);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 0.45rem;
+}
+
+.view-list strong { display: block; font-size: 0.88rem; }
+.view-list span { display: block; margin-top: 0.15rem; font-size: 0.75rem; color: var(--ana-muted); }
+
+.settings-dl {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--ana-line);
+  border-radius: 12px;
+  padding: 0.3rem 0.9rem;
+}
+
+.settings-dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--ana-line);
+}
+
+.settings-dl > div:last-child { border-bottom: 0; }
+.settings-dl dt { color: var(--ana-muted); font-size: 0.78rem; }
+.settings-dl dd { margin: 0; font-weight: 650; font-size: 0.84rem; }
+
+.settings-link {
+  display: inline-block;
+  margin-top: 0.85rem;
+  color: var(--ana-brown);
+  font-weight: 650;
+  font-size: 0.84rem;
+}
+
+.settings-note {
+  color: var(--ana-muted);
+  font-size: 0.72rem;
+  margin: 0.7rem 0 0;
+}
+
+.empty-row { color: var(--ana-muted); font-size: 0.82rem; }
+
+/* —— Alt menü —— */
+.ana-nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--ana-nav);
+  border-top: 1px solid var(--ana-line);
+  padding: 0.28rem 0.15rem calc(0.28rem + var(--safe-b));
+}
+
+.nav-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #8a7764;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  padding: 0.2rem 0.1rem;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.nav-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-btn.is-active { color: var(--ana-active); }
+
+@media (min-width: 480px) {
+  .ana-body { padding: 1.2rem 0; align-items: center; }
+  .ana-phone {
+    min-height: 780px;
+    height: min(844px, calc(100vh - 2.4rem));
+    border-radius: 28px;
+    overflow: hidden;
+  }
+}

@@ -108,6 +108,7 @@ health_check() {
   local base="$1"
   local paths=(
     "/giris.html"
+    "/ana.html"
     "/arici.html?org=koloni-demo"
     "/yonetici.html?org=koloni-demo"
     "/isci.html?org=koloni-demo"

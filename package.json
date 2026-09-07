@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "node apps/api/src/server.js",
-    "dev:api": "node apps/api/src/server.js"
+    "dev:api": "node apps/api/src/server.js",
+    "check:ana": "node scripts/check-ana-ia.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
