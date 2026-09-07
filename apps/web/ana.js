@@ -150,12 +150,8 @@
       const hives = hivesR?.hives || [];
       const alerts = (alertsR?.alerts || []).filter((a) => !a.read);
       const tasks = tasksR?.tasks || [];
-      const locs = locR?.locations || [];
-
-      setChip("kovanlar", String(hives.length || 100));
-      setChip("uyarilar", String(alerts.length || 2));
-      setChip("gorevler", String(tasks.length || 5));
-      if (locs.length) setChip("ariliklar", String(locs.length));
+      /* Ana 3×3 rozetleri kilitli demo (100 / 12 grup / 3 / 5 / 2).
+         Canlı sayılar yalnızca alt liste görünümlerinde. */
 
       const hiveList = document.getElementById("list-kovanlar");
       hiveList.innerHTML = hives.length

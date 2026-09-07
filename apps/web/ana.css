@@ -285,6 +285,7 @@ html, body {
   place-items: center;
   box-shadow: 0 0 0 1.5px #2a180c, inset 0 1px 0 rgba(255, 230, 190, 0.12);
   z-index: 2;
+  overflow: hidden;
 }
 
 .hive-icon svg {
