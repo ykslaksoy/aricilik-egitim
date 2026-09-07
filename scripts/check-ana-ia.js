@@ -50,6 +50,7 @@ assert.ok(!/Hardal Arıcılık/.test(js.split("hiveArt")[1]?.split("function wea
 assert.ok(css.includes("translate(-50%, -50%)"), "simge tam orta");
 assert.ok(css.includes(".hive-slot") && css.includes("justify-content: center"), "kovan kartta ortalı");
 assert.ok(css.includes("hive-icon-burn") && css.includes(".burn-ring"), "yakma damga stili");
+assert.ok(!/\.hive-icon[\s\S]{0,280}radial-gradient/.test(css), "simge halo/radial yok");
 assert.ok(!/stroke:\s*#f4e4c8/.test(css), "flat açık çizgi ikon yok");
 assert.ok(!/background:\s*var\(--ana-brown\)/.test(css), "dolu kahve rozet yok");
 assert.ok(/\.hive-box-top|\.hive-box\s*\{[\s\S]*height:\s*30px/.test(css), "eşit kat yüksekliği");
