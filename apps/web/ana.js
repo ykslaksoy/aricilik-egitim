@@ -205,19 +205,12 @@
   document.getElementById("settings-org").textContent = IA.org;
   document.getElementById("weather-place").textContent = IA.weatherLabel;
 
+  /* Grok kilit: tam 4 adım — şerit, hava, 3×3 kovan, alt menü. */
   const TOUR_STEPS = [
-    { sel: "#brand-strip", text: "İşletme adı burada: Hardal Arıcılık solda, üst şeritte. Kartlara yazılmaz." },
-    { sel: "#weather-strip", text: "Hava: Arılık Kuzey ve 7 günlük tahmin. Sıcaklık sağda." },
-    { sel: '[data-card="tarti"]', text: "Tartı — kovan ağırlığı. Yakma simge terazidir." },
-    { sel: '[data-card="saglik"]', text: "Sağlık — koloni durumu. Simge kalp." },
-    { sel: '[data-card="ogul"]', text: "Oğul — tek arı. Risk düşükse yeşil rozet." },
-    { sel: '[data-card="kovanlar"]', text: "Kovanlar — filodaki kutu sayısı." },
-    { sel: '[data-card="koloni"]', text: "Koloni — üç arı. Grup sayısı burada." },
-    { sel: '[data-card="ariliklar"]', text: "Arılıklar — konumlar. İşletme adı kartta yok." },
-    { sel: '[data-card="gorevler"]', text: "Görevler — saha işleri." },
-    { sel: '[data-card="uyarilar"]', text: "Uyarılar — açık alarmlar kırmızı rozette." },
-    { sel: '[data-card="raporlar"]', text: "Raporlar — özet. Bu kilit 3×3 değişmez." },
-    { sel: ".ana-nav", text: "Alt menü: Ana, Kovanlar, Uyarılar, Görevler, Ayarlar. Turu bitirince buradayız." },
+    { sel: "#brand-strip", text: "Hardal Arıcılık üst şeritte, solda. İşletme adı kartlara yazılmaz." },
+    { sel: "#weather-strip", text: "Hava: Arılık Kuzey ve 7 gün. Sıcaklık sağda." },
+    { sel: "#ana-grid", text: "Dokuz eşit kovan. Yakma simge, halo yok; kovan kartın ortasında. Koloni = 3 arı." },
+    { sel: ".ana-nav", text: "Alt menü: Ana, Kovanlar, Uyarılar, Görevler, Ayarlar." },
   ];
 
   const tourEl = document.getElementById("bee-tour");

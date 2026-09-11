@@ -39,6 +39,7 @@ assert.eq(IA.hardalRail, "left", "hardal sol şerit");
 assert.eq(IA.koloniIcon, "bees-3", "Koloni simgesi");
 assert.eq(IA.ogulIcon, "bee-1", "Oğul simgesi");
 assert.eq(IA.beeTour, true, "bee tour kilidi");
+assert.eq(IA.beeTourSteps, 4, "bee tour 4 adım kilidi");
 
 assert.ok(html.includes('id="brand-strip"'), "marka şeridi");
 assert.ok(html.includes('id="weather-strip"'), "hava şeridi");
@@ -53,6 +54,9 @@ assert.ok(js.includes('icon: "bee-1"') && js.includes('label: "Oğul"'), "Oğul 
 assert.ok(js.includes("hive-box-top") && js.includes("hive-box-bot"), "iki kat şablon");
 assert.ok(js.includes("hive-slot") && js.includes("burn-ring"), "orta slot + yakma halkası");
 assert.ok(js.includes("TOUR_STEPS") && js.includes("bee-mascot"), "arı turu adımları");
+const tourBlock = js.match(/const TOUR_STEPS = \[([\s\S]*?)\];/);
+assert.ok(tourBlock, "TOUR_STEPS bloğu");
+assert.eq((tourBlock[1].match(/sel:/g) || []).length, 4, "bee tour tam 4 adım");
 assert.ok(!/Hardal Arıcılık/.test(js.split("hiveArt")[1]?.split("function weatherIco")[0] || ""), "kovan SVG içinde işletme yok");
 
 assert.ok(css.includes("translate(-50%, -50%)"), "simge tam orta");
