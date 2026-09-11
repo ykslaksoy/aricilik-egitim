@@ -1,7 +1,8 @@
 /**
  * SüperArı Ana — kilitli IA + tek kovan şablonu.
  * Koloni kartı diğer 8 ile aynı siluet; simge bees-3 (Oğul bee-1).
- * Hardal Arıcılık yalnız #brand-strip içinde.
+ * Hardal Arıcılık yalnız #brand-strip içinde (solda).
+ * Bee mascot turu IA kabuğunu değiştirmez.
  */
 (function () {
   const IA = JSON.parse(document.getElementById("ana-ia-lock").textContent);
@@ -20,13 +21,15 @@
 
   const WEEK = [
     { d: "Pzt", ico: "sun", hi: 24, lo: 12 },
-    { d: "Sal", ico: "cloud", hi: 22, lo: 11 },
-    { d: "Çar", ico: "sun", hi: 23, lo: 12 },
-    { d: "Per", ico: "rain", hi: 18, lo: 10 },
-    { d: "Cum", ico: "cloud", hi: 20, lo: 11 },
-    { d: "Cmt", ico: "sun", hi: 22, lo: 12 },
-    { d: "Paz", ico: "sun", hi: 24, lo: 13 },
+    { d: "Sal", ico: "sun", hi: 22, lo: 11 },
+    { d: "Çar", ico: "cloud", hi: 19, lo: 10 },
+    { d: "Per", ico: "rain", hi: 17, lo: 8 },
+    { d: "Cum", ico: "rain", hi: 18, lo: 7 },
+    { d: "Cmt", ico: "cloud", hi: 21, lo: 9 },
+    { d: "Paz", ico: "sun", hi: 23, lo: 11 },
   ];
+
+  const TOUR_KEY = "superari-ana-tour-v1";
 
   const ICONS = {
     scale:
@@ -102,7 +105,8 @@
       (d) => `<li class="weather-day">
         <span>${d.d}</span>
         ${weatherIco(d.ico)}
-        <span class="hi-lo"><b>${d.hi}°</b>/${d.lo}°</span>
+        <b>${d.hi}°</b>
+        <span class="lo">${d.lo}°</span>
       </li>`
     ).join("");
   }
@@ -201,7 +205,117 @@
   document.getElementById("settings-org").textContent = IA.org;
   document.getElementById("weather-place").textContent = IA.weatherLabel;
 
+  const TOUR_STEPS = [
+    { sel: "#brand-strip", text: "İşletme adı burada: Hardal Arıcılık solda, üst şeritte. Kartlara yazılmaz." },
+    { sel: "#weather-strip", text: "Hava: Arılık Kuzey ve 7 günlük tahmin. Sıcaklık sağda." },
+    { sel: '[data-card="tarti"]', text: "Tartı — kovan ağırlığı. Yakma simge terazidir." },
+    { sel: '[data-card="saglik"]', text: "Sağlık — koloni durumu. Simge kalp." },
+    { sel: '[data-card="ogul"]', text: "Oğul — tek arı. Risk düşükse yeşil rozet." },
+    { sel: '[data-card="kovanlar"]', text: "Kovanlar — filodaki kutu sayısı." },
+    { sel: '[data-card="koloni"]', text: "Koloni — üç arı. Grup sayısı burada." },
+    { sel: '[data-card="ariliklar"]', text: "Arılıklar — konumlar. İşletme adı kartta yok." },
+    { sel: '[data-card="gorevler"]', text: "Görevler — saha işleri." },
+    { sel: '[data-card="uyarilar"]', text: "Uyarılar — açık alarmlar kırmızı rozette." },
+    { sel: '[data-card="raporlar"]', text: "Raporlar — özet. Bu kilit 3×3 değişmez." },
+    { sel: ".ana-nav", text: "Alt menü: Ana, Kovanlar, Uyarılar, Görevler, Ayarlar. Turu bitirince buradayız." },
+  ];
+
+  const tourEl = document.getElementById("bee-tour");
+  const spotEl = document.getElementById("bee-tour-spot");
+  const mascotEl = document.getElementById("bee-mascot");
+  const bubbleEl = document.getElementById("bee-bubble");
+  const bubbleText = document.getElementById("bee-bubble-text");
+  let tourIndex = 0;
+
+  function clearTourTargets() {
+    document.querySelectorAll(".is-tour-target").forEach((el) => el.classList.remove("is-tour-target"));
+  }
+
+  function placeTour(step) {
+    const target = document.querySelector(step.sel);
+    if (!target) return;
+    clearTourTargets();
+    target.classList.add("is-tour-target");
+    const phone = document.getElementById("ana-app").getBoundingClientRect();
+    const box = target.getBoundingClientRect();
+    const pad = 6;
+    spotEl.style.top = `${box.top - phone.top - pad}px`;
+    spotEl.style.left = `${box.left - phone.left - pad}px`;
+    spotEl.style.width = `${box.width + pad * 2}px`;
+    spotEl.style.height = `${box.height + pad * 2}px`;
+
+    const mascotTop = Math.max(8, box.top - phone.top - 52);
+    const mascotLeft = Math.min(
+      phone.width - 72,
+      Math.max(10, box.left - phone.left + box.width - 20)
+    );
+    mascotEl.style.top = `${mascotTop}px`;
+    mascotEl.style.left = `${mascotLeft}px`;
+
+    const bubbleW = Math.min(250, phone.width - 32);
+    let bubbleLeft = box.left - phone.left;
+    bubbleLeft = Math.max(16, Math.min(bubbleLeft, phone.width - bubbleW - 16));
+    let bubbleTop = box.bottom - phone.top + 14;
+    if (bubbleTop + 120 > phone.height) {
+      bubbleTop = Math.max(12, box.top - phone.top - 118);
+    }
+    bubbleEl.style.top = `${bubbleTop}px`;
+    bubbleEl.style.left = `${bubbleLeft}px`;
+    bubbleText.textContent = step.text;
+    document.getElementById("bee-tour-next").textContent =
+      tourIndex >= TOUR_STEPS.length - 1 ? "Bitir" : "İleri";
+  }
+
+  function closeTour(markSeen) {
+    tourEl.hidden = true;
+    document.getElementById("ana-app").classList.remove("is-touring");
+    clearTourTargets();
+    if (markSeen) {
+      try {
+        localStorage.setItem(TOUR_KEY, "seen");
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  function openTour(startAt) {
+    showView("ana");
+    tourIndex = startAt || 0;
+    tourEl.hidden = false;
+    document.getElementById("ana-app").classList.add("is-touring");
+    requestAnimationFrame(() => placeTour(TOUR_STEPS[tourIndex]));
+  }
+
+  function nextTour() {
+    if (tourIndex >= TOUR_STEPS.length - 1) {
+      closeTour(true);
+      return;
+    }
+    tourIndex += 1;
+    placeTour(TOUR_STEPS[tourIndex]);
+  }
+
+  document.getElementById("bee-tour-next").addEventListener("click", nextTour);
+  document.getElementById("bee-tour-skip").addEventListener("click", () => closeTour(true));
+  document.getElementById("bee-tour-dim").addEventListener("click", () => closeTour(true));
+  document.getElementById("bee-tour-replay").addEventListener("click", () => openTour(0));
+  document.getElementById("bee-tour-settings").addEventListener("click", () => openTour(0));
+  window.addEventListener("resize", () => {
+    if (!tourEl.hidden) placeTour(TOUR_STEPS[tourIndex]);
+  });
+
   renderWeek();
   renderCards();
   hydrate();
+
+  let seen = false;
+  try {
+    seen = localStorage.getItem(TOUR_KEY) === "seen";
+  } catch {
+    seen = false;
+  }
+  if (IA.beeTour && !seen) {
+    setTimeout(() => openTour(0), 420);
+  }
 })();

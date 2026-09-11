@@ -28,6 +28,8 @@
   --wood-1: #e8c48e;
   --wood-2: #c99755;
   --wood-edge: #8a6030;
+  --hardal: #d4a017;
+  --hardal-soft: #f4e3b0;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
 }
@@ -52,6 +54,7 @@ html, body {
 }
 
 .ana-phone {
+  position: relative;
   width: 100%;
   max-width: 430px;
   min-height: 100vh;
@@ -61,63 +64,103 @@ html, body {
   box-shadow: 0 0 0 1px rgba(60, 36, 18, 0.08), 0 18px 50px rgba(40, 24, 10, 0.18);
 }
 
-/* —— İnce işletme şeridi (kartlarda watermark YOK) —— */
-.brand-strip {
+.hardal-rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #f0c43a, var(--hardal) 40%, #b8860b);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.ios-status {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  padding: calc(0.38rem + var(--safe-t)) 0.9rem 0.38rem;
-  background: linear-gradient(180deg, #fbf6ec, #f0e6d4);
-  border-bottom: 1px solid #dfd0b8;
-  min-height: 1.7rem;
+  padding: calc(0.28rem + var(--safe-t)) 1.15rem 0.1rem 1.05rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ana-ink);
+  letter-spacing: -0.02em;
 }
 
-.brand-product {
+.ios-status-right {
   font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 650;
   color: var(--ana-muted);
 }
 
-.brand-org {
-  font-size: 0.78rem;
-  font-weight: 650;
-  color: var(--ana-brown);
-  letter-spacing: 0.01em;
-}
-
-/* —— Hava şeridi —— */
-.weather-strip {
+/* —— İnce işletme şeridi: Hardal solda (kartlarda watermark YOK) —— */
+.brand-strip {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
-  padding: 0.55rem 0.7rem 0.6rem;
-  background: #fffaf1;
-  border-bottom: 1px solid var(--ana-line);
+  justify-content: flex-start;
+  gap: 0.55rem;
+  padding: 0.22rem 0.9rem 0.42rem 1.05rem;
+  background: transparent;
+  min-height: 1.7rem;
+}
+
+.brand-org {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #6b5340;
+  letter-spacing: 0.01em;
+  padding: 0.28rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fbf6ec, #f0e4cc);
+  border: 1px solid #e6d7bf;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.brand-product {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b5a28c;
+}
+
+/* —— Hava şeridi (LOCKED-FINAL: yer sol / ° sağ / 7 gün altta) —— */
+.weather-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.35rem 0.95rem 0.7rem;
+  background: transparent;
 }
 
 .weather-now {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  min-width: 6.4rem;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
 }
 
-.weather-now-text { line-height: 1.05; }
+.weather-now-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
 .weather-place {
   margin: 0;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--ana-muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #6d655c;
 }
 .weather-temp {
-  margin: 0.05rem 0 0;
-  font-size: 1.45rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  margin: 0;
+  font-size: 2.15rem;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  color: var(--ana-ink);
+  line-height: 1;
 }
 
 .weather-week {
@@ -125,30 +168,33 @@ html, body {
   margin: 0;
   padding: 0;
   display: flex;
-  gap: 0.18rem;
-  flex: 1;
-  justify-content: flex-end;
+  gap: 0.15rem;
+  width: 100%;
+  justify-content: space-between;
 }
 
 .weather-day {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 1.85rem;
-  font-size: 0.55rem;
-  color: var(--ana-muted);
+  gap: 0.12rem;
+  min-width: 2.15rem;
+  flex: 1;
+  font-size: 0.62rem;
+  color: #7a7268;
   font-weight: 600;
 }
 
 .weather-day b {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   color: var(--ana-ink);
-  font-weight: 700;
+  font-weight: 650;
 }
 
-.weather-day .hi-lo {
+.weather-day .lo {
   font-weight: 500;
-  letter-spacing: -0.02em;
+  font-size: 0.62rem;
+  color: #9a9288;
 }
 
 /* —— 3×3 —— */
@@ -477,6 +523,145 @@ html, body {
 }
 
 .nav-btn.is-active { color: var(--ana-active); }
+
+.settings-link {
+  display: block;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.settings-link { margin-top: 0.45rem; }
+
+/* —— Bee mascot turu —— */
+.bee-tour[hidden] { display: none !important; }
+
+.bee-tour {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.bee-tour-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 18, 8, 0.38);
+  pointer-events: auto;
+}
+
+.bee-tour-spot {
+  position: absolute;
+  border-radius: 18px;
+  box-shadow: 0 0 0 999px rgba(28, 18, 8, 0.38);
+  outline: 2px solid rgba(240, 196, 58, 0.85);
+  outline-offset: 3px;
+  pointer-events: none;
+  transition: top 0.28s ease, left 0.28s ease, width 0.28s ease, height 0.28s ease;
+}
+
+.bee-mascot {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  z-index: 22;
+  filter: drop-shadow(0 6px 10px rgba(40, 24, 10, 0.28));
+  animation: bee-hover 1.4s ease-in-out infinite;
+  transition: top 0.32s ease, left 0.32s ease;
+  pointer-events: none;
+}
+
+@keyframes bee-hover {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-6px) rotate(5deg); }
+}
+
+.bee-bubble {
+  position: absolute;
+  z-index: 23;
+  width: min(250px, calc(100% - 2rem));
+  background: #fffdf8;
+  border: 1px solid #e6d7bf;
+  border-radius: 16px;
+  padding: 0.7rem 0.75rem 0.65rem;
+  box-shadow: 0 10px 28px rgba(40, 24, 10, 0.18);
+  pointer-events: auto;
+  transition: top 0.28s ease, left 0.28s ease;
+}
+
+.bee-bubble p {
+  margin: 0 0 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 550;
+  color: var(--ana-brown);
+}
+
+.bee-tour-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.bee-tour-actions button {
+  appearance: none;
+  border: 0;
+  background: #efe6d4;
+  color: var(--ana-brown);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.bee-tour-actions button.is-primary {
+  background: var(--hardal);
+  color: #2a1a08;
+}
+
+.bee-tour-replay {
+  position: absolute;
+  right: 0.7rem;
+  bottom: calc(3.4rem + var(--safe-b));
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff8ea;
+  box-shadow: 0 4px 14px rgba(40, 24, 10, 0.16);
+  cursor: pointer;
+  z-index: 8;
+  padding: 0;
+}
+
+.bee-tour-replay-ico {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
+  background:
+    radial-gradient(circle at 50% 55%, #f0c43a 0 46%, transparent 47%),
+    radial-gradient(circle at 32% 38%, #fff 0 10%, transparent 11%),
+    radial-gradient(circle at 68% 38%, #fff 0 10%, transparent 11%);
+  box-shadow: inset 0 0 0 2px #1a1208;
+  border-radius: 50%;
+}
+
+.ana-phone.is-touring .bee-tour-replay { display: none; }
+
+.ana-card.is-tour-target,
+.brand-strip.is-tour-target,
+.weather-strip.is-tour-target,
+.ana-nav.is-tour-target {
+  position: relative;
+  z-index: 21;
+}
 
 @media (min-width: 480px) {
   .ana-body { padding: 1.2rem 0; align-items: center; }
