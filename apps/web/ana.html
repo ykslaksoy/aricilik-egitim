@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f4ee" />
+  <title>SüperArı — Ana</title>
+  <link rel="stylesheet" href="/ana.css?v=6" />
+</head>
+<body class="ana-body">
+  <!--
+    Ana IA KİLİT (LOCKED-FINAL) — sıra ve kabuk değişmez:
+    Hardal solda + üst şerit (kartlarda YOK).
+    şerit: işletme (Hardal Arıcılık) → hava (Arılık Kuzey + 7 gün)
+    3×3: Tartı·Sağlık·Oğul / Kovanlar·Koloni·Arılıklar / Görevler·Uyarılar·Raporlar
+    alt: Ana·Kovanlar·Uyarılar·Görevler·Ayarlar
+    Kovan gövdesi CSS şablon (eşit kat, flush kenar, simge 50%/50%, yakma damga).
+    Koloni = 3 arı; Oğul = 1 arı. Bee mascot turu 4 adım; kabuğu bozmaz.
+  -->
+  <script type="application/json" id="ana-ia-lock">
+  {
+    "lock": "LOCKED-FINAL",
+    "cards": ["Tartı", "Sağlık", "Oğul", "Kovanlar", "Koloni", "Arılıklar", "Görevler", "Uyarılar", "Raporlar"],
+    "nav": ["Ana", "Kovanlar", "Uyarılar", "Görevler", "Ayarlar"],
+    "org": "Hardal Arıcılık",
+    "orgPlacement": "brand-strip",
+    "orgAlign": "left",
+    "hardalRail": "left",
+    "weatherLabel": "Arılık Kuzey",
+    "koloniIcon": "bees-3",
+    "ogulIcon": "bee-1",
+    "beeTour": true,
+    "beeTourSteps": 4
+  }
+  </script>
+
+  <div class="ana-phone" id="ana-app">
+    <div class="hardal-rail" aria-hidden="true"></div>
+    <div class="ios-status" aria-hidden="true">
+      <span>9:41</span>
+      <span class="ios-status-right">Wi-Fi</span>
+    </div>
+    <header class="brand-strip" id="brand-strip" data-org-align="left">
+      <span class="brand-org" id="brand-org">Hardal Arıcılık</span>
+      <span class="brand-product">SüperArı</span>
+    </header>
+
+    <section class="weather-strip" id="weather-strip" aria-label="Hava">
+      <div class="weather-now">
+        <div class="weather-now-left">
+          <span class="weather-ico" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="26" height="26">
+              <circle cx="12" cy="12" r="5.2" fill="#f0b429" />
+              <path d="M8 21.5h13.2a5 5 0 0 0 .4-10 6.4 6.4 0 0 0-12.2 1.6A4.4 4.4 0 0 0 8 21.5z" fill="#d9e3ea" stroke="#7f93a3" stroke-width="1"/>
+            </svg>
+          </span>
+          <p class="weather-place" id="weather-place">Arılık Kuzey</p>
+        </div>
+        <p class="weather-temp" id="weather-temp">22°</p>
+      </div>
+      <ol class="weather-week" id="weather-week"></ol>
+    </section>
+
+    <main class="ana-main">
+      <section class="ana-view is-active" id="view-ana" data-view="ana">
+        <div
+          class="ana-grid"
+          id="ana-grid"
+          data-ia="Tartı,Sağlık,Oğul,Kovanlar,Koloni,Arılıklar,Görevler,Uyarılar,Raporlar"
+        ></div>
+      </section>
+
+      <section class="ana-view" id="view-kovanlar" data-view="kovanlar" hidden>
+        <h2 class="view-title">Kovanlar</h2>
+        <ul class="view-list" id="list-kovanlar"></ul>
+      </section>
+
+      <section class="ana-view" id="view-uyarilar" data-view="uyarilar" hidden>
+        <h2 class="view-title">Uyarılar</h2>
+        <ul class="view-list" id="list-uyarilar"></ul>
+      </section>
+
+      <section class="ana-view" id="view-gorevler" data-view="gorevler" hidden>
+        <h2 class="view-title">Görevler</h2>
+        <ul class="view-list" id="list-gorevler"></ul>
+      </section>
+
+      <section class="ana-view" id="view-ayarlar" data-view="ayarlar" hidden>
+        <h2 class="view-title">Ayarlar</h2>
+        <dl class="settings-dl">
+          <div><dt>İşletme</dt><dd id="settings-org">Hardal Arıcılık</dd></div>
+          <div><dt>Dil</dt><dd>Türkçe</dd></div>
+          <div><dt>Uygulama</dt><dd>SüperArı</dd></div>
+        </dl>
+        <a class="settings-link" href="/giris.html">Giriş / rol değiştir</a>
+        <button type="button" class="settings-link" id="bee-tour-settings">Arı turunu yeniden başlat</button>
+        <p class="settings-note">Kovan detay IA’sı bu ekranda açılmaz — mevcut panel korunur.</p>
+      </section>
+    </main>
+
+    <nav class="ana-nav" aria-label="Ana menü">
+      <button type="button" class="nav-btn is-active" data-nav="ana">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>
+        <span>Ana</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav="kovanlar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="5" rx="1"/><rect x="6" y="11" width="12" height="5" rx="1"/><rect x="8" y="17" width="8" height="2.2" rx="0.6"/></svg>
+        <span>Kovanlar</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav="uyarilar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a6 6 0 0 1 6 6c0 4 1.2 5.2 1.8 6H4.2C4.8 15.2 6 14 6 10a6 6 0 0 1 6-6zm-2.4 15a2.4 2.4 0 0 0 4.8 0"/></svg>
+        <span>Uyarılar</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav="gorevler">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 9h6M9 12.5h6M9 16h4"/></svg>
+        <span>Görevler</span>
+      </button>
+      <button type="button" class="nav-btn" data-nav="ayarlar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>
+        <span>Ayarlar</span>
+      </button>
+    </nav>
+
+    <button type="button" class="bee-tour-replay" id="bee-tour-replay" aria-label="Arı turunu aç">
+      <span class="bee-tour-replay-ico" aria-hidden="true"></span>
+    </button>
+
+    <div class="bee-tour" id="bee-tour" hidden>
+      <div class="bee-tour-dim" id="bee-tour-dim"></div>
+      <div class="bee-tour-spot" id="bee-tour-spot"></div>
+      <div class="bee-mascot" id="bee-mascot" aria-hidden="true">
+        <svg viewBox="0 0 72 72" width="56" height="56">
+          <ellipse cx="22" cy="28" rx="13" ry="8" fill="#f4f7fb" stroke="#c5d0dc" stroke-width="1.2" transform="rotate(-28 22 28)"/>
+          <ellipse cx="50" cy="28" rx="13" ry="8" fill="#f4f7fb" stroke="#c5d0dc" stroke-width="1.2" transform="rotate(28 50 28)"/>
+          <ellipse cx="36" cy="40" rx="16" ry="20" fill="#f0c43a"/>
+          <path d="M22 32h28M21 40h30M23 48h26" stroke="#1a1208" stroke-width="3.2" stroke-linecap="round"/>
+          <circle cx="30" cy="30" r="2.2" fill="#1a1208"/>
+          <circle cx="42" cy="30" r="2.2" fill="#1a1208"/>
+          <path d="M30 36c2 2.2 10 2.2 12 0" fill="none" stroke="#1a1208" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M28 18c-1-8 4-12 8-8M44 18c1-8-4-12-8-8" fill="none" stroke="#1a1208" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="28" cy="10" r="2.1" fill="#1a1208"/>
+          <circle cx="44" cy="10" r="2.1" fill="#1a1208"/>
+        </svg>
+      </div>
+      <div class="bee-bubble" id="bee-bubble" role="dialog" aria-live="polite" aria-labelledby="bee-bubble-text">
+        <p id="bee-bubble-text"></p>
+        <div class="bee-tour-actions">
+          <button type="button" id="bee-tour-skip">Atla</button>
+          <button type="button" class="is-primary" id="bee-tour-next">İleri</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/ana.js?v=5"></script>
+</body>
+</html>

@@ -3672,6 +3672,7 @@ setInterval(() => refreshWeatherCache().catch(() => {}), 30 * 60 * 1000);
 app.listen(PORT, () => {
   const stats = dbService.getStats();
   console.log(`Hive demo → http://localhost:${PORT}`);
+  console.log(`Ana:      http://localhost:${PORT}/ana.html`);
   console.log(
     `DB: ${dbService.DB_PATH} (${stats.readings?.total ?? 0} okuma, ${stats.labels?.total ?? 0} etiket)`
   );

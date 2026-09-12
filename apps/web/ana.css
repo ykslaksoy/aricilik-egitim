@@ -1,0 +1,674 @@
+/* SüperArı Ana — kilitli 3×3 kovan şablonu
+   Geometri kilidi: üst/alt kat eşit yükseklik + aynı genişlik (flush).
+   Simge: .hive-face içinde left/top 50% + translate(-50%,-50%) → 0 px kayma.
+   Raster kovan / object-fit YOK — crop kaymasını önlemek için. */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  --ana-bg: #efe7d8;
+  --ana-paper: #f7f3ea;
+  --ana-card: #ffffff;
+  --ana-ink: #1d140c;
+  --ana-muted: #6a5744;
+  --ana-brown: #3b2412;
+  --ana-line: #e4d6c2;
+  --ana-nav: #fffdf8;
+  --ana-active: #e56f1c;
+  --chip-ok: #1f7a45;
+  --chip-ok-bg: #d8f0df;
+  --chip-tan: #6b4e2a;
+  --chip-tan-bg: #ead7b6;
+  --chip-blue: #1f4f8a;
+  --chip-blue-bg: #d7e6f6;
+  --chip-red: #a32020;
+  --chip-red-bg: #f6d4d0;
+  --chip-purple: #5c3d8a;
+  --chip-purple-bg: #e6daf4;
+  --wood-1: #e8c48e;
+  --wood-2: #c99755;
+  --wood-edge: #8a6030;
+  --hardal: #d4a017;
+  --hardal-soft: #f4e3b0;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+}
+
+.ana-body {
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  color: var(--ana-ink);
+  background:
+    radial-gradient(720px 280px at 50% -8%, rgba(229, 111, 28, 0.08), transparent 55%),
+    linear-gradient(180deg, #d9cbb3 0%, #cbb89a 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.ana-phone {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  background: var(--ana-paper);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 0 1px rgba(60, 36, 18, 0.08), 0 18px 50px rgba(40, 24, 10, 0.18);
+}
+
+.hardal-rail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #f0c43a, var(--hardal) 40%, #b8860b);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.ios-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(0.28rem + var(--safe-t)) 1.15rem 0.1rem 1.05rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ana-ink);
+  letter-spacing: -0.02em;
+}
+
+.ios-status-right {
+  font-size: 0.68rem;
+  font-weight: 650;
+  color: var(--ana-muted);
+}
+
+/* —— İnce işletme şeridi: Hardal solda (kartlarda watermark YOK) —— */
+.brand-strip {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  padding: 0.22rem 0.9rem 0.42rem 1.05rem;
+  background: transparent;
+  min-height: 1.7rem;
+}
+
+.brand-org {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #6b5340;
+  letter-spacing: 0.01em;
+  padding: 0.28rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fbf6ec, #f0e4cc);
+  border: 1px solid #e6d7bf;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.brand-product {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b5a28c;
+}
+
+/* —— Hava şeridi (LOCKED-FINAL: yer sol / ° sağ / 7 gün altta) —— */
+.weather-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.35rem 0.95rem 0.7rem;
+  background: transparent;
+}
+
+.weather-now {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.weather-now-left {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.weather-place {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #6d655c;
+}
+.weather-temp {
+  margin: 0;
+  font-size: 2.15rem;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  color: var(--ana-ink);
+  line-height: 1;
+}
+
+.weather-week {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.15rem;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.weather-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  min-width: 2.15rem;
+  flex: 1;
+  font-size: 0.62rem;
+  color: #7a7268;
+  font-weight: 600;
+}
+
+.weather-day b {
+  font-size: 0.7rem;
+  color: var(--ana-ink);
+  font-weight: 650;
+}
+
+.weather-day .lo {
+  font-weight: 500;
+  font-size: 0.62rem;
+  color: #9a9288;
+}
+
+/* —— 3×3 —— */
+.ana-main {
+  flex: 1;
+  padding: 0.65rem 0.65rem 0.2rem;
+  overflow: auto;
+}
+
+.ana-view[hidden] { display: none !important; }
+.ana-view.is-active { display: block; }
+
+.ana-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.ana-card {
+  appearance: none;
+  border: 0;
+  background: var(--ana-card);
+  border-radius: 16px;
+  padding: 0.45rem 0.28rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  box-shadow: 0 1px 2px rgba(40, 24, 10, 0.06);
+  min-height: 0;
+  height: 100%;
+}
+
+.ana-card:active { transform: scale(0.98); }
+
+/* Kovan: label/badge üstündeki alanda yatay+dikey orta */
+.hive-slot {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ana-card-label {
+  margin-top: 0.12rem;
+  flex: 0 0 auto;
+  font-size: 0.92rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--ana-ink);
+  line-height: 1.1;
+}
+
+.ana-card-chip {
+  margin-top: 0.22rem;
+  flex: 0 0 auto;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.chip-ok { background: var(--chip-ok-bg); color: var(--chip-ok); }
+.chip-tan { background: var(--chip-tan-bg); color: var(--chip-tan); }
+.chip-blue { background: var(--chip-blue-bg); color: var(--chip-blue); }
+.chip-red { background: var(--chip-red-bg); color: var(--chip-red); }
+.chip-purple { background: var(--chip-purple-bg); color: var(--chip-purple); }
+
+/* Kovan şablonu — tek siluet, 9 kart */
+.hive-art {
+  width: 72%;
+  max-width: 86px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hive-lid {
+  width: calc(100% + 6px);
+  margin-inline: -3px;
+  height: 8px;
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(180deg, #f4f5f7 0%, #c8ccd2 48%, #9aa1aa 100%);
+  box-shadow: 0 1px 0 #7c828a;
+  flex: 0 0 auto;
+}
+
+/* Yüz: iki eşit kat, aynı genişlik → kenarlar flush */
+.hive-face {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.hive-box {
+  width: 100%;
+  height: 30px;
+  position: relative;
+  background-color: var(--wood-1);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(90, 52, 16, 0.07) 0 1px,
+      transparent 1px 6px
+    ),
+    linear-gradient(180deg, rgba(255, 248, 230, 0.35), transparent 42%, rgba(90, 50, 14, 0.16));
+  border: 1px solid var(--wood-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.hive-box-top { border-bottom-width: 0; }
+.hive-box-bot { border-top-color: var(--wood-edge); }
+
+.hive-box::before,
+.hive-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: repeating-linear-gradient(
+    180deg,
+    #7a5224 0 3px,
+    #e0b87a 3px 7px
+  );
+  pointer-events: none;
+}
+.hive-box::before { left: 0; }
+.hive-box::after { right: 0; }
+
+/* Simge: tek yakma damga — halo / ikinci daire / eski rozet yok */
+.hive-icon,
+.hive-icon-burn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: none;
+  box-shadow: none;
+  filter: none;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  overflow: visible;
+}
+
+.hive-icon::before,
+.hive-icon::after,
+.hive-icon-burn::before,
+.hive-icon-burn::after {
+  content: none;
+  display: none;
+}
+
+.hive-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: none;
+  stroke: #1a0c06;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: none;
+  background: none;
+  mix-blend-mode: multiply;
+}
+
+.hive-icon .burn-ring {
+  fill: none;
+  stroke: #160a05;
+  stroke-width: 1.55;
+}
+
+.hive-icon .fill-soft { fill: none; stroke: #1a0c06; }
+
+.hive-floor {
+  width: 100%;
+  height: 10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 6px;
+}
+
+.hive-leg {
+  width: 7px;
+  height: 8px;
+  background: linear-gradient(180deg, var(--wood-2), #8d5e2c);
+  border-radius: 0 0 1px 1px;
+}
+
+.hive-entrance {
+  width: 16px;
+  height: 5px;
+  background: #2a1a0e;
+  border-radius: 1px 1px 0 0;
+  align-self: flex-end;
+}
+
+/* Kart içinde metin / watermark yok */
+.hive-face,
+.hive-box {
+  overflow: hidden;
+}
+
+.hive-art,
+.hive-face {
+  overflow: visible;
+}
+
+.ana-card .brand-org,
+.ana-card [data-watermark] {
+  display: none !important;
+}
+
+/* —— Alt görünümler (detay IA’sına girmez) —— */
+.view-title {
+  margin: 0.15rem 0 0.65rem;
+  font-size: 1.05rem;
+}
+
+.view-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.view-list li {
+  background: #fff;
+  border: 1px solid var(--ana-line);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 0.45rem;
+}
+
+.view-list strong { display: block; font-size: 0.88rem; }
+.view-list span { display: block; margin-top: 0.15rem; font-size: 0.75rem; color: var(--ana-muted); }
+
+.settings-dl {
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--ana-line);
+  border-radius: 12px;
+  padding: 0.3rem 0.9rem;
+}
+
+.settings-dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--ana-line);
+}
+
+.settings-dl > div:last-child { border-bottom: 0; }
+.settings-dl dt { color: var(--ana-muted); font-size: 0.78rem; }
+.settings-dl dd { margin: 0; font-weight: 650; font-size: 0.84rem; }
+
+.settings-link {
+  display: inline-block;
+  margin-top: 0.85rem;
+  color: var(--ana-brown);
+  font-weight: 650;
+  font-size: 0.84rem;
+}
+
+.settings-note {
+  color: var(--ana-muted);
+  font-size: 0.72rem;
+  margin: 0.7rem 0 0;
+}
+
+.empty-row { color: var(--ana-muted); font-size: 0.82rem; }
+
+/* —— Alt menü —— */
+.ana-nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--ana-nav);
+  border-top: 1px solid var(--ana-line);
+  padding: 0.28rem 0.15rem calc(0.28rem + var(--safe-b));
+}
+
+.nav-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #8a7764;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  padding: 0.2rem 0.1rem;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.nav-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-btn.is-active { color: var(--ana-active); }
+
+.settings-link {
+  display: block;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.settings-link { margin-top: 0.45rem; }
+
+/* —— Bee mascot turu —— */
+.bee-tour[hidden] { display: none !important; }
+
+.bee-tour {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.bee-tour-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 18, 8, 0.38);
+  pointer-events: auto;
+}
+
+.bee-tour-spot {
+  position: absolute;
+  border-radius: 18px;
+  box-shadow: 0 0 0 999px rgba(28, 18, 8, 0.38);
+  outline: 2px solid rgba(240, 196, 58, 0.85);
+  outline-offset: 3px;
+  pointer-events: none;
+  transition: top 0.28s ease, left 0.28s ease, width 0.28s ease, height 0.28s ease;
+}
+
+.bee-mascot {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  z-index: 22;
+  filter: drop-shadow(0 6px 10px rgba(40, 24, 10, 0.28));
+  animation: bee-hover 1.4s ease-in-out infinite;
+  transition: top 0.32s ease, left 0.32s ease;
+  pointer-events: none;
+}
+
+@keyframes bee-hover {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-6px) rotate(5deg); }
+}
+
+.bee-bubble {
+  position: absolute;
+  z-index: 23;
+  width: min(250px, calc(100% - 2rem));
+  background: #fffdf8;
+  border: 1px solid #e6d7bf;
+  border-radius: 16px;
+  padding: 0.7rem 0.75rem 0.65rem;
+  box-shadow: 0 10px 28px rgba(40, 24, 10, 0.18);
+  pointer-events: auto;
+  transition: top 0.28s ease, left 0.28s ease;
+}
+
+.bee-bubble p {
+  margin: 0 0 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  font-weight: 550;
+  color: var(--ana-brown);
+}
+
+.bee-tour-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.bee-tour-actions button {
+  appearance: none;
+  border: 0;
+  background: #efe6d4;
+  color: var(--ana-brown);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.bee-tour-actions button.is-primary {
+  background: var(--hardal);
+  color: #2a1a08;
+}
+
+.bee-tour-replay {
+  position: absolute;
+  right: 0.7rem;
+  bottom: calc(3.4rem + var(--safe-b));
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff8ea;
+  box-shadow: 0 4px 14px rgba(40, 24, 10, 0.16);
+  cursor: pointer;
+  z-index: 8;
+  padding: 0;
+}
+
+.bee-tour-replay-ico {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
+  background:
+    radial-gradient(circle at 50% 55%, #f0c43a 0 46%, transparent 47%),
+    radial-gradient(circle at 32% 38%, #fff 0 10%, transparent 11%),
+    radial-gradient(circle at 68% 38%, #fff 0 10%, transparent 11%);
+  box-shadow: inset 0 0 0 2px #1a1208;
+  border-radius: 50%;
+}
+
+.ana-phone.is-touring .bee-tour-replay { display: none; }
+
+.ana-card.is-tour-target,
+.brand-strip.is-tour-target,
+.weather-strip.is-tour-target,
+.ana-nav.is-tour-target {
+  position: relative;
+  z-index: 21;
+}
+
+@media (min-width: 480px) {
+  .ana-body { padding: 1.2rem 0; align-items: center; }
+  .ana-phone {
+    min-height: 780px;
+    height: min(844px, calc(100vh - 2.4rem));
+    border-radius: 28px;
+    overflow: hidden;
+  }
+}
