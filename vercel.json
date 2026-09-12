@@ -1,0 +1,6 @@
+{
+  "cleanUrls": false,
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/apps/web/$1" }
+  ]
+}
