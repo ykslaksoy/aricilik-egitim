@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>SüperArı — Patron</title>
-  <link rel="stylesheet" href="/panels.css?v=6" />
+  <link rel="stylesheet" href="/panels.css?v=8" />
 </head>
 <body class="panel-body" data-role="arici">
   <header class="panel-header">
@@ -74,7 +74,7 @@
     </section>
   </main>
 
-  <script src="/panels.js?v=6"></script>
+  <script src="/panels.js?v=8"></script>
   <script>
     const loginView = document.getElementById("login-view");
     const appView = document.getElementById("app-view");
@@ -253,16 +253,10 @@
       }
     }
 
-    async function render() {
-      const sess = PanelAuth.requireSession();
-      if (!sess || sess.rol !== "arici") {
-        showLogin();
-        return;
-      }
+    async function loadOzet(sessionLabel, subLabel) {
       showApp();
-      document.getElementById("session-bar").textContent = `${sess.ad} · ${sess.orgAd}`;
-      document.getElementById("hdr-sub").textContent = sess.orgAd;
-
+      document.getElementById("session-bar").textContent = sessionLabel;
+      document.getElementById("hdr-sub").textContent = subLabel;
       const [{ hives }, { alerts }, tasksRes] = await Promise.all([
         fetch("/api/hives").then((r) => r.json()),
         fetch("/api/alerts").then((r) => r.json()),
@@ -272,6 +266,22 @@
       renderAlerts(cache.alerts);
       renderTasks(cache.tasks);
       renderHives(cache.hives);
+    }
+
+    async function render() {
+      /* E-posta girişi → mevcut Patron özeti. ana.html main’de yok; buraya yönlendirme yok. */
+      const member = await Membership.me();
+      if (member?.ok) {
+        const ad = member.user?.ad || member.user?.email || "Patron";
+        await loadOzet(`${ad} · Patron`, "Özet");
+        return;
+      }
+      const sess = PanelAuth.requireSession();
+      if (!sess || sess.rol !== "arici") {
+        showLogin();
+        return;
+      }
+      await loadOzet(`${sess.ad} · ${sess.orgAd}`, sess.orgAd);
     }
 
     document.getElementById("tiles").addEventListener("click", (ev) => {
@@ -292,7 +302,8 @@
         document.getElementById("login-err").textContent = e.message;
       }
     };
-    document.getElementById("btn-logout").onclick = () => {
+    document.getElementById("btn-logout").onclick = async () => {
+      await Membership.logout();
       PanelAuth.clearSession();
       location.href = "/giris.html";
     };
