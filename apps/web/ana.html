@@ -1,157 +1,595 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f7f4ee" />
-  <title>SüperArı — Ana</title>
-  <link rel="stylesheet" href="/ana.css?v=6" />
-</head>
-<body class="ana-body">
-  <!--
-    Ana IA KİLİT (LOCKED-FINAL) — sıra ve kabuk değişmez:
-    Hardal solda + üst şerit (kartlarda YOK).
-    şerit: işletme (Hardal Arıcılık) → hava (Arılık Kuzey + 7 gün)
-    3×3: Tartı·Sağlık·Oğul / Kovanlar·Koloni·Arılıklar / Görevler·Uyarılar·Raporlar
-    alt: Ana·Kovanlar·Uyarılar·Görevler·Ayarlar
-    Kovan gövdesi CSS şablon (eşit kat, flush kenar, simge 50%/50%, yakma damga).
-    Koloni = 3 arı; Oğul = 1 arı. Bee mascot turu 4 adım; kabuğu bozmaz.
-  -->
-  <script type="application/json" id="ana-ia-lock">
-  {
-    "lock": "LOCKED-FINAL",
-    "cards": ["Tartı", "Sağlık", "Oğul", "Kovanlar", "Koloni", "Arılıklar", "Görevler", "Uyarılar", "Raporlar"],
-    "nav": ["Ana", "Kovanlar", "Uyarılar", "Görevler", "Ayarlar"],
-    "org": "Hardal Arıcılık",
-    "orgPlacement": "brand-strip",
-    "orgAlign": "left",
-    "hardalRail": "left",
-    "weatherLabel": "Arılık Kuzey",
-    "koloniIcon": "bees-3",
-    "ogulIcon": "bee-1",
-    "beeTour": true,
-    "beeTourSteps": 4
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Ana</title>
+<style>
+  :root {
+    --bg: #f0f1f3;
+    --card: #f4f5f7;
+    --card-border: #e4e6ea;
+    --brown: #4a2f1a;
+    --brown-mid: #5c3a1f;
+    --text: #2c241c;
+    --muted: #6b635a;
+    --phone-w: 390px;
+    --phone-h: 844px;
+    --green: #2f9e44;
+    --green-bg: #d8f3dc;
+    --tan-bg: #efe2cb;
+    --tan-fg: #7a5a32;
+    --blue: #1c7ed6;
+    --blue-bg: #d0ebff;
+    --red: #e03131;
+    --red-bg: #ffe3e3;
+    --purple: #7048e8;
+    --purple-bg: #e5dbff;
+    --orange: #f08c00;
+    --wood: #d7ae78;
+    --wood-hi: #e8c9a0;
+    --wood-lo: #c9965a;
+    --wood-edge: #a8743f;
   }
-  </script>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
 
-  <div class="ana-phone" id="ana-app">
-    <div class="hardal-rail" aria-hidden="true"></div>
-    <div class="ios-status" aria-hidden="true">
-      <span>9:41</span>
-      <span class="ios-status-right">Wi-Fi</span>
-    </div>
-    <header class="brand-strip" id="brand-strip" data-org-align="left">
-      <span class="brand-org" id="brand-org">Hardal Arıcılık</span>
-      <span class="brand-product">SüperArı</span>
-    </header>
+  .phone {
+    width: var(--phone-w); height: var(--phone-h);
+    background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+  }
+  .phone-notch {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 28px; background: #111; border-radius: 18px; z-index: 50;
+  }
+  .status-bar {
+    height: 48px; padding: 16px 22px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa;
+  }
+  .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .02em; }
 
-    <section class="weather-strip" id="weather-strip" aria-label="Hava">
-      <div class="weather-now">
-        <div class="weather-now-left">
-          <span class="weather-ico" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="26" height="26">
-              <circle cx="12" cy="12" r="5.2" fill="#f0b429" />
-              <path d="M8 21.5h13.2a5 5 0 0 0 .4-10 6.4 6.4 0 0 0-12.2 1.6A4.4 4.4 0 0 0 8 21.5z" fill="#d9e3ea" stroke="#7f93a3" stroke-width="1"/>
-            </svg>
-          </span>
-          <p class="weather-place" id="weather-place">Arılık Kuzey</p>
-        </div>
-        <p class="weather-temp" id="weather-temp">22°</p>
-      </div>
-      <ol class="weather-week" id="weather-week"></ol>
-    </section>
+  .screen {
+    height: calc(var(--phone-h) - 48px - 72px);
+    overflow: hidden; display: flex; flex-direction: column; background: var(--bg);
+    padding: 0 12px 8px;
+   position: relative;
+  }
 
-    <main class="ana-main">
-      <section class="ana-view is-active" id="view-ana" data-view="ana">
-        <div
-          class="ana-grid"
-          id="ana-grid"
-          data-ia="Tartı,Sağlık,Oğul,Kovanlar,Koloni,Arılıklar,Görevler,Uyarılar,Raporlar"
-        ></div>
-      </section>
+  .brand-strip {
+    flex: 0 0 auto; min-height: 28px; display: flex; align-items: center; justify-content: flex-start;
+    padding: 4px 12px; margin-bottom: 8px;
+    background: linear-gradient(180deg, #fff8ee 0%, #f5ead8 100%);
+    border: 1px solid #e8dcc8; border-radius: 10px;
+    color: var(--brown-mid); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  }
+  .brand-strip .brand-name { text-align: left; line-height: 1.2; }
 
-      <section class="ana-view" id="view-kovanlar" data-view="kovanlar" hidden>
-        <h2 class="view-title">Kovanlar</h2>
-        <ul class="view-list" id="list-kovanlar"></ul>
-      </section>
+  /* Center podium: name first, then bee — avoid weather 22 on the right */
+  .bee-podium {
+    position: absolute; top: 58px; left: 50%; margin-left: -44px; transform: none; z-index: 9;
+    width: 88px; height: 78px;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    pointer-events: none;
+  }
+  .bee-podium .podium-name {
+    font-size: 9px; font-weight: 800; color: var(--brown-mid);
+    background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
+    border-radius: 999px; padding: 1px 8px; line-height: 1.35;
+    opacity: 0; transform: translateY(4px);
+    transition: opacity .35s ease, transform .35s ease;
+    margin-bottom: 2px; white-space: nowrap;
+  }
+  .bee-podium .podium-name.is-on {
+    opacity: 1; transform: translateY(0);
+  }
+  .bee-podium .podium-stage {
+    width: 54px; height: 10px; border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(90,60,30,.22) 0%, rgba(90,60,30,.06) 55%, transparent 70%);
+    opacity: 0; transition: opacity .3s ease;
+  }
+  .bee-podium.is-ready .podium-stage { opacity: 1; }
 
-      <section class="ana-view" id="view-uyarilar" data-view="uyarilar" hidden>
-        <h2 class="view-title">Uyarılar</h2>
-        <ul class="view-list" id="list-uyarilar"></ul>
-      </section>
+  .weather {
+    flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 16px;
+    padding: 10px 12px 12px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .weather-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
+  .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); }
+  .weather-temp { margin-left: auto; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .forecast { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .day-name { font-size: 10px; font-weight: 600; color: var(--muted); }
+  .day-ico { width: 18px; height: 18px; }
+  .day-hi { font-size: 11px; font-weight: 700; color: var(--text); }
+  .day-lo { font-size: 10px; color: #8a8278; }
 
-      <section class="ana-view" id="view-gorevler" data-view="gorevler" hidden>
-        <h2 class="view-title">Görevler</h2>
-        <ul class="view-list" id="list-gorevler"></ul>
-      </section>
+  .grid {
+    flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr); gap: 8px; min-height: 0;
+  }
+  .tile {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
+    position: relative; overflow: hidden; min-height: 0; height: 100%;
+    /* footer reserved for label+badge; hive fills the rest and centers */
+    padding: 0 0 38px;
+  }
+  .hive-area {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 38px;
+    display: flex; align-items: center; justify-content: center;
+    /* optical nudge: visual hive mass sits high inside .hive box */
+    padding-top: 34px;
+  }
 
-      <section class="ana-view" id="view-ayarlar" data-view="ayarlar" hidden>
-        <h2 class="view-title">Ayarlar</h2>
-        <dl class="settings-dl">
-          <div><dt>İşletme</dt><dd id="settings-org">Hardal Arıcılık</dd></div>
-          <div><dt>Dil</dt><dd>Türkçe</dd></div>
-          <div><dt>Uygulama</dt><dd>SüperArı</dd></div>
-        </dl>
-        <a class="settings-link" href="/giris.html">Giriş / rol değiştir</a>
-        <button type="button" class="settings-link" id="bee-tour-settings">Arı turunu yeniden başlat</button>
-        <p class="settings-note">Kovan detay IA’sı bu ekranda açılmaz — mevcut panel korunur.</p>
-      </section>
-    </main>
+  /* ===== Shared hive: EQUAL tiers, FLUSH sides ===== */
+  .hive {
+    width: 72px; height: 68px; position: relative; flex: 0 0 auto; margin-top: 0;
+  }
+  .hive-stack {
+    position: absolute; left: 50%; top: 2px; transform: translateX(-50%);
+    width: 56px; display: flex; flex-direction: column; align-items: stretch;
+  }
+  .hive-lid {
+    width: 64px; height: 8px; margin-left: -4px; margin-bottom: 0;
+    background: linear-gradient(180deg, #d5d5da 0%, #9a9aa3 100%);
+    border-radius: 2px 2px 1px 1px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.12);
+    position: relative; z-index: 1;
+  }
+  .hive-lid::after {
+    content: ""; position: absolute; left: 50%; top: 2.5px; transform: translateX(-50%);
+    width: 18px; height: 2px; border-radius: 1px; background: rgba(60,60,70,.45);
+  }
+  /* Two boxes: IDENTICAL height & width → equal + flush */
+  .hive-box {
+    height: 24px; /* EQUAL */
+    width: 100%;
+    background:
+      repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(160,110,60,.12) 3px, rgba(160,110,60,.12) 4px),
+      linear-gradient(180deg, var(--wood-hi) 0%, var(--wood) 55%, var(--wood-lo) 100%);
+    border-left: 1px solid var(--wood-edge);
+    border-right: 1px solid var(--wood-edge);
+    position: relative;
+    box-sizing: border-box;
+  }
+  .hive-box.top {
+    border-top: 1px solid var(--wood-edge);
+  }
+  .hive-box.bottom {
+    border-bottom: 1px solid var(--wood-edge);
+    border-top: 1px solid #8a6238; /* seam */
+  }
+  /* finger joints INSIDE edges so outer sides stay flush */
+  .hive-box::before,
+  .hive-box::after {
+    content: ""; position: absolute; top: 3px; bottom: 3px; width: 3px;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        var(--wood-edge) 0 4px,
+        transparent 4px 7px
+      );
+    opacity: .85;
+    pointer-events: none;
+  }
+  .hive-box::before { left: 1px; }
+  .hive-box::after { right: 1px; }
+  .hive-entrance {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 12px; height: 3px; background: #2a1a0c; border-radius: 0 0 1px 1px; z-index: 1;
+  }
+  .hive-feet {
+    display: flex; justify-content: space-between; padding: 0 2px; margin-top: 2px;
+  }
+  .hive-feet span {
+    width: 9px; height: 5px; background: var(--wood-lo); border-radius: 1px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .hive-shadow {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 48px; height: 4px; background: radial-gradient(ellipse, rgba(0,0,0,.12), transparent 70%);
+  }
 
-    <nav class="ana-nav" aria-label="Ana menü">
-      <button type="button" class="nav-btn is-active" data-nav="ana">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>
-        <span>Ana</span>
-      </button>
-      <button type="button" class="nav-btn" data-nav="kovanlar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="5" rx="1"/><rect x="6" y="11" width="12" height="5" rx="1"/><rect x="8" y="17" width="8" height="2.2" rx="0.6"/></svg>
-        <span>Kovanlar</span>
-      </button>
-      <button type="button" class="nav-btn" data-nav="uyarilar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a6 6 0 0 1 6 6c0 4 1.2 5.2 1.8 6H4.2C4.8 15.2 6 14 6 10a6 6 0 0 1 6-6zm-2.4 15a2.4 2.4 0 0 0 4.8 0"/></svg>
-        <span>Uyarılar</span>
-      </button>
-      <button type="button" class="nav-btn" data-nav="gorevler">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 9h6M9 12.5h6M9 16h4"/></svg>
-        <span>Görevler</span>
-      </button>
-      <button type="button" class="nav-btn" data-nav="ayarlar">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>
-        <span>Ayarlar</span>
-      </button>
-    </nav>
+  /* Burned (yakma) emblem — branded into wood, not flat dark disc */
+  .hive-icon {
+    position: absolute;
+    left: 50%;
+    top: 34px; /* lid(8)+half of equal boxes(24) from stack top+2 */
+    transform: translate(-50%, -50%);
+    width: 32px; height: 32px; border-radius: 50%;
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: none;
+    overflow: hidden; /* clip fringe; PNG stamps are transparent circles */
+    z-index: 3;
+    pointer-events: none;
+  }
+  .hive-icon img {
+    width: 100%; height: 100%; display: block; border-radius: 50%;
+    object-fit: contain; /* keep circular stamp geometry */
+    /* multiply so wood grain reads through — burned branding look */
+    mix-blend-mode: multiply;
+    background: transparent;
+  }
+  .hive-icon svg { width: 18px; height: 18px; display: block; }
 
-    <button type="button" class="bee-tour-replay" id="bee-tour-replay" aria-label="Arı turunu aç">
-      <span class="bee-tour-replay-ico" aria-hidden="true"></span>
-    </button>
+  .tile-label {
+    position: absolute; left: 0; right: 0; bottom: 20px;
+    font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
+    text-align: center;
+  }
+  .badge {
+    position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%);
+    padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; line-height: 1.35; white-space: nowrap;
+  }
+  .badge.green { background: var(--green-bg); color: var(--green); }
+  .badge.tan { background: var(--tan-bg); color: var(--tan-fg); }
+  .badge.blue { background: var(--blue-bg); color: var(--blue); }
+  .badge.red { background: var(--red-bg); color: var(--red); }
+  .badge.purple { background: var(--purple-bg); color: var(--purple); }
 
-    <div class="bee-tour" id="bee-tour" hidden>
-      <div class="bee-tour-dim" id="bee-tour-dim"></div>
-      <div class="bee-tour-spot" id="bee-tour-spot"></div>
-      <div class="bee-mascot" id="bee-mascot" aria-hidden="true">
-        <svg viewBox="0 0 72 72" width="56" height="56">
-          <ellipse cx="22" cy="28" rx="13" ry="8" fill="#f4f7fb" stroke="#c5d0dc" stroke-width="1.2" transform="rotate(-28 22 28)"/>
-          <ellipse cx="50" cy="28" rx="13" ry="8" fill="#f4f7fb" stroke="#c5d0dc" stroke-width="1.2" transform="rotate(28 50 28)"/>
-          <ellipse cx="36" cy="40" rx="16" ry="20" fill="#f0c43a"/>
-          <path d="M22 32h28M21 40h30M23 48h26" stroke="#1a1208" stroke-width="3.2" stroke-linecap="round"/>
-          <circle cx="30" cy="30" r="2.2" fill="#1a1208"/>
-          <circle cx="42" cy="30" r="2.2" fill="#1a1208"/>
-          <path d="M30 36c2 2.2 10 2.2 12 0" fill="none" stroke="#1a1208" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M28 18c-1-8 4-12 8-8M44 18c1-8-4-12-8-8" fill="none" stroke="#1a1208" stroke-width="1.8" stroke-linecap="round"/>
-          <circle cx="28" cy="10" r="2.1" fill="#1a1208"/>
-          <circle cx="44" cy="10" r="2.1" fill="#1a1208"/>
-        </svg>
-      </div>
-      <div class="bee-bubble" id="bee-bubble" role="dialog" aria-live="polite" aria-labelledby="bee-bubble-text">
-        <p id="bee-bubble-text"></p>
-        <div class="bee-tour-actions">
-          <button type="button" id="bee-tour-skip">Atla</button>
-          <button type="button" class="is-primary" id="bee-tour-next">İleri</button>
-        </div>
-      </div>
-    </div>
+  .tabbar {
+    height: 72px; background: #fff; border-top: 1px solid #e6e8ec;
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    padding: 0 4px 10px;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: #8b8680; font-size: 10px; font-weight: 600;
+  }
+  .tab.active { color: var(--orange); }
+  .tab svg { width: 22px; height: 22px; }
+  .home-indicator {
+    position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 4px; background: #222; border-radius: 4px; z-index: 60;
+  }
+
+  body.shot, html.shot { background: #f7f8fa !important; width: 390px; height: 844px; overflow: hidden; }
+  body.shot { display: block; margin: 0; }
+  body.shot .phone { box-shadow: none !important; border-radius: 0 !important; width: 390px; height: 844px; }
+  body.shot .phone-notch, body.shot .home-indicator { display: none !important; }
+
+  .screen { position: relative; }
+  .mascot-bee {
+    position: absolute; z-index: 10;
+    left: 0; top: 0;
+    width: 48px; height: 48px; pointer-events: none;
+    transform: translate(-50%, -50%) scale(.55);
+    opacity: 0;
+    transition:
+      left 1.45s cubic-bezier(.4,.05,.2,1),
+      top 1.45s cubic-bezier(.4,.05,.2,1),
+      transform .55s cubic-bezier(.34,1.4,.64,1),
+      opacity .4s ease;
+    will-change: left, top, transform, opacity;
+  }
+  .mascot-bee.is-shown {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .mascot-bee.is-flying {
+    transform: translate(-50%, -50%) scale(.85);
+  }
+  .mascot-bee.is-entering {
+    transform: translate(-50%, -50%) scale(.35);
+    opacity: 0;
+    transition:
+      left 1.1s cubic-bezier(.4,.05,.2,1),
+      top 1.1s cubic-bezier(.4,.05,.2,1),
+      transform .9s ease,
+      opacity .7s ease .25s;
+  }
+  .mascot-bee img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; opacity: 0;
+    transition: opacity .35s ease;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.18));
+    animation: bee-wiggle 2.4s ease-in-out infinite;
+  }
+  .mascot-bee img.is-on { opacity: 1; }
+  @keyframes bee-wiggle {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-3px) rotate(4deg); }
+  }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <div>9:41</div>
+    <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
   </div>
 
-  <script src="/ana.js?v=5"></script>
+  <div class="screen">
+    <div class="brand-strip">
+      <span class="brand-name">Hardal Arıcılık</span>
+    </div>
+    <div class="bee-podium" id="beePodium" aria-hidden="true">
+      <span class="podium-name" id="podiumName"></span>
+      <div class="podium-stage"></div>
+    </div>
+    <div class="mascot-bee" id="mascotBee" aria-hidden="true">
+      <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
+      <img src="assets/bees/karniyol.png" alt="" data-breed="Karniyol">
+      <img src="assets/bees/kafkas.png" alt="" data-breed="Kafkas">
+    </div>
+
+    <section class="weather">
+      <div class="weather-top">
+        <svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="12" cy="12" r="6" fill="#f7b731"/>
+          <path d="M18 18c0-2.5 2-4.5 4.5-4.5 1.4 0 2.6.6 3.4 1.6A5 5 0 0 1 27 24H10a4.5 4.5 0 0 1 0-9c.5 0 1 .1 1.5.2" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/>
+        </svg>
+        <div class="weather-loc">Arılık Kuzey</div>
+        <div class="weather-temp">22°</div>
+      </div>
+      <div class="forecast">
+        <div class="day"><div class="day-name">Pzt</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">24°</div><div class="day-lo">12°</div></div>
+        <div class="day"><div class="day-name">Sal</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">22°</div><div class="day-lo">11°</div></div>
+        <div class="day"><div class="day-name">Çar</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">19°</div><div class="day-lo">10°</div></div>
+        <div class="day"><div class="day-name">Per</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="6" ry="3.5" fill="#9aadc2"/><path d="M7 14l1 3M10 14l1 3M13 14l1 3" stroke="#5b8def" stroke-width="1.2"/></svg><div class="day-hi">17°</div><div class="day-lo">8°</div></div>
+        <div class="day"><div class="day-name">Cum</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">18°</div><div class="day-lo">7°</div></div>
+        <div class="day"><div class="day-name">Cmt</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
+        <div class="day"><div class="day-name">Paz</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
+      </div>
+    </section>
+
+    <section class="grid" id="grid" aria-label="Ana paneller"></section>
+  </div>
+
+  <nav class="tabbar" aria-label="Alt menü">
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/></svg>
+      Ana
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="5" rx="1"/><rect x="5" y="10" width="14" height="5" rx="1"/><rect x="5" y="16" width="14" height="4" rx="1"/></svg>
+      Kovanlar
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 7-6 7-6 12"/><path d="M10 21h4"/></svg>
+      Uyarılar
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+      Görevler
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      Ayarlar
+    </div>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+
+<script>
+(function () {
+  if (location.search.indexOf('shot=1') !== -1) {
+    document.documentElement.classList.add('shot');
+    document.body.classList.add('shot');
+  }
+
+  var ICONS = {
+    tarti: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3e2c8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="M7 7h10"/><path d="M7 7l-3 6h6L7 7z"/><path d="M17 7l-3 6h6l-3-6z"/><path d="M9 21h6"/></svg>',
+    saglik: '<svg viewBox="0 0 24 24" fill="#f3e2c8"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg>',
+    ogul: '<svg viewBox="0 0 24 24" fill="#f3e2c8"><ellipse cx="12" cy="13.5" rx="4.2" ry="5.5"/><circle cx="12" cy="7.2" r="2.4"/><path d="M10.6 5.2 L9.2 3.6 M13.4 5.2 L14.8 3.6" stroke="#f3e2c8" stroke-width="1.3" fill="none"/><path d="M8 11 C4 8 3 13 7 14" fill="none" stroke="#f3e2c8" stroke-width="1.4"/><path d="M16 11 C20 8 21 13 17 14" fill="none" stroke="#f3e2c8" stroke-width="1.4"/><path d="M9.5 12.5h5 M9.5 15h5" stroke="#3d2616" stroke-width="1.2"/></svg>',
+    kovanlar: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3e2c8" stroke-width="1.7"><rect x="5" y="5" width="14" height="4" rx="1"/><rect x="5" y="10" width="14" height="4" rx="1"/><rect x="5" y="15" width="14" height="4" rx="1"/></svg>',
+    koloni: '<svg viewBox="0 0 24 24" fill="#f3e2c8"><g transform="translate(12,4.8) scale(0.48)"><ellipse cx="0" cy="4" rx="3.2" ry="4.2"/><circle cx="0" cy="-1.2" r="1.8"/><path d="M-2.5 1 C-6 -1 -6.5 4 -2 4.5" fill="none" stroke="#f3e2c8" stroke-width="1.5"/><path d="M2.5 1 C6 -1 6.5 4 2 4.5" fill="none" stroke="#f3e2c8" stroke-width="1.5"/><path d="M-2 3h4 M-2 5.2h4" stroke="#3d2616" stroke-width="1.1"/></g><g transform="translate(7,14) scale(0.48)"><ellipse cx="0" cy="4" rx="3.2" ry="4.2"/><circle cx="0" cy="-1.2" r="1.8"/><path d="M-2.5 1 C-6 -1 -6.5 4 -2 4.5" fill="none" stroke="#f3e2c8" stroke-width="1.5"/><path d="M2.5 1 C6 -1 6.5 4 2 4.5" fill="none" stroke="#f3e2c8" stroke-width="1.5"/><path d="M-2 3h4 M-2 5.2h4" stroke="#3d2616" stroke-width="1.1"/></g><g transform="translate(17,14) scale(0.48)"><ellipse cx="0" cy="4" rx="3.2" ry="4.2"/><circle cx="0" cy="-1.2" r="1.8"/><path d="M-2.5 1 C-6 -1 -6.5 4 -2 4.5" fill="none" stroke="#f3e2c8" stroke-width="1.5"/><path d="M2.5 1 C6 -1 6.5 4 2 4.5" fill="none" stroke="#f3e2c8" stroke-width="1.5"/><path d="M-2 3h4 M-2 5.2h4" stroke="#3d2616" stroke-width="1.1"/></g></svg>',
+    ariliklar: '<svg viewBox="0 0 24 24" fill="#f3e2c8"><path d="M12 2C8.7 2 6 4.9 6 8.4c0 4.6 6 11.6 6 11.6s6-7 6-11.6C18 4.9 15.3 2 12 2zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>',
+    gorevler: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3e2c8" stroke-width="1.7"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+    uyarilar: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3e2c8" stroke-width="1.7"><path d="M6 9a6 6 0 0 1 12 0c0 7-6 7-6 12"/><path d="M10 21h4"/><circle cx="18" cy="6" r="2" fill="#f3e2c8" stroke="none"/></svg>',
+    raporlar: '<svg viewBox="0 0 24 24" fill="#f3e2c8"><rect x="4" y="13" width="4" height="7" rx="0.5"/><rect x="10" y="8" width="4" height="12" rx="0.5"/><rect x="16" y="4" width="4" height="16" rx="0.5"/></svg>'
+  };
+
+  var tiles = [
+    { key: 'tarti', label: 'Tartı', badge: '+1.2kg', tone: 'green' },
+    { key: 'saglik', label: 'Sağlık', badge: 'İyi', tone: 'green' },
+    { key: 'ogul', label: 'Oğul', badge: 'Düşük', tone: 'green' },
+    { key: 'kovanlar', label: 'Kovanlar', badge: '100', tone: 'tan' },
+    { key: 'koloni', label: 'Koloni', badge: '12 grup', tone: 'tan' },
+    { key: 'ariliklar', label: 'Arılıklar', badge: '3', tone: 'tan' },
+    { key: 'gorevler', label: 'Görevler', badge: '5', tone: 'blue' },
+    { key: 'uyarilar', label: 'Uyarılar', badge: '2', tone: 'red' },
+    { key: 'raporlar', label: 'Raporlar', badge: '—', tone: 'purple' }
+  ];
+
+  function hiveHTML(key) {
+    var emblem = 'assets/emblems/' + key + '.png';
+    return (
+      '<div class="hive-area">' +
+        '<div class="hive">' +
+          '<div class="hive-stack">' +
+            '<div class="hive-lid"></div>' +
+            '<div class="hive-box top"></div>' +
+            '<div class="hive-box bottom"><div class="hive-entrance"></div></div>' +
+            '<div class="hive-feet"><span></span><span></span></div>' +
+          '</div>' +
+          '<div class="hive-shadow"></div>' +
+          '<div class="hive-icon" aria-hidden="true">' +
+            '<img src="' + emblem + '" alt="" width="32" height="32" />' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  var grid = document.getElementById('grid');
+  grid.innerHTML = tiles.map(function (t) {
+    return (
+      '<article class="tile" data-key="' + t.key + '">' +
+        hiveHTML(t.key) +
+        '<div class="tile-label">' + t.label + '</div>' +
+        '<div class="badge ' + t.tone + '">' + t.badge + '</div>' +
+      '</article>'
+    );
+  }).join('');
+
+  // Announcement → podium → tour tiles → enter one hive
+  var beeRoot = document.getElementById('mascotBee');
+  var podium = document.getElementById('beePodium');
+  var podiumName = document.getElementById('podiumName');
+  var screenEl = document.querySelector('.screen');
+  var gridEl = document.getElementById('grid');
+  if (beeRoot && podium && screenEl && gridEl) {
+    var beeImgs = beeRoot.querySelectorAll('img');
+    var beeIdx = 0;
+    var timers = [];
+    var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
+    var tileParam = (location.search.match(/[?&]tile=(\d+)/) || [])[1];
+    var beeMap = { italyan: 0, karniyol: 1, kafkas: 2 };
+    if (beeParam && beeMap[beeParam] != null) beeIdx = beeMap[beeParam];
+    var freeze = location.search.indexOf('shot=1') !== -1;
+
+    function clearTimers() {
+      timers.forEach(function (t) { clearTimeout(t); });
+      timers = [];
+    }
+    function later(fn, ms) {
+      timers.push(setTimeout(fn, ms));
+    }
+
+    function setBreed(i) {
+      beeIdx = ((i % beeImgs.length) + beeImgs.length) % beeImgs.length;
+      beeImgs.forEach(function (img, j) { img.classList.toggle('is-on', j === beeIdx); });
+      return beeImgs[beeIdx].getAttribute('data-breed') || '';
+    }
+
+    function podiumPoint() {
+      var s = screenEl.getBoundingClientRect();
+      var p = podium.getBoundingClientRect();
+      return {
+        x: p.left - s.left + p.width / 2,
+        y: p.top - s.top + p.height - 18
+      };
+    }
+
+    function hivePoint(tileIndex, entrance) {
+      var tiles = gridEl.querySelectorAll('.tile');
+      if (!tiles.length) return podiumPoint();
+      var i = ((tileIndex % tiles.length) + tiles.length) % tiles.length;
+      var tile = tiles[i];
+      var el = entrance
+        ? (tile.querySelector('.hive-entrance') || tile.querySelector('.hive') || tile)
+        : (tile.querySelector('.hive-icon') || tile.querySelector('.hive') || tile);
+      var s = screenEl.getBoundingClientRect();
+      var b = el.getBoundingClientRect();
+      return {
+        x: b.left - s.left + b.width / 2,
+        y: b.top - s.top + b.height / 2,
+        index: i
+      };
+    }
+
+    function placeAt(pt) {
+      beeRoot.style.left = pt.x + 'px';
+      beeRoot.style.top = pt.y + 'px';
+    }
+
+    function resetVisual() {
+      beeRoot.classList.remove('is-shown', 'is-flying', 'is-entering');
+      podium.classList.remove('is-ready');
+      if (podiumName) {
+        podiumName.classList.remove('is-on');
+        podiumName.textContent = '';
+      }
+    }
+
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    function runCycle(startBreed) {
+      clearTimers();
+      resetVisual();
+      var name = setBreed(startBreed == null ? beeIdx : startBreed);
+
+      // visit 4–5 hives while touring, then enter a different one
+      var order = shuffle([0,1,2,3,4,5,6,7,8]);
+      var tourStops = order.slice(0, 5);
+      var enterTile = tileParam != null
+        ? (parseInt(tileParam, 10) || 0)
+        : order[5];
+
+      var t = 0;
+      // 1) announcement (name only)
+      later(function () {
+        if (podiumName) {
+          podiumName.textContent = name;
+          podiumName.classList.add('is-on');
+        }
+        podium.classList.add('is-ready');
+      }, t);
+      t += 900;
+
+      // 2) bee appears on podium
+      later(function () {
+        var pt = podiumPoint();
+        beeRoot.style.transition = 'none';
+        placeAt(pt);
+        beeRoot.classList.remove('is-flying', 'is-entering');
+        void beeRoot.offsetWidth;
+        beeRoot.style.transition = '';
+        beeRoot.classList.add('is-shown');
+      }, t);
+      t += 1100;
+
+      // 3) wander across hive tiles
+      tourStops.forEach(function (tileI, n) {
+        later(function () {
+          beeRoot.classList.add('is-flying');
+          beeRoot.classList.remove('is-entering');
+          placeAt(hivePoint(tileI, false));
+        }, t);
+        t += (n === 0 ? 1600 : 1400);
+      });
+
+      // 4) fly to chosen hive entrance + shrink in
+      later(function () {
+        beeRoot.classList.add('is-flying');
+        placeAt(hivePoint(enterTile, true));
+      }, t);
+      t += 1300;
+
+      later(function () {
+        beeRoot.classList.remove('is-flying');
+        beeRoot.classList.add('is-entering');
+      }, t);
+      t += 1100;
+
+      // 5) next breed
+      if (!freeze) {
+        later(function () {
+          runCycle((beeIdx + 1) % beeImgs.length);
+        }, t);
+      }
+    }
+
+    function boot() { runCycle(beeIdx); }
+    requestAnimationFrame(function () { requestAnimationFrame(boot); });
+    later(boot, 100);
+
+    window.addEventListener('resize', function () {
+      if (beeRoot.classList.contains('is-shown') && !beeRoot.classList.contains('is-entering') && !beeRoot.classList.contains('is-flying')) {
+        placeAt(podiumPoint());
+      }
+    });
+  }
+
+})();
+</script>
 </body>
 </html>
