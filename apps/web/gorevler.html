@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Görevler · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="arici.html">← Geri</a>
+      <a class="chip" href="index.html">Ana sayfa</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>Görevler</p></div>
+    </div>
+
+    <section class="card stack">
+      <h2 style="margin:0;">Görevler</h2>
+      <p class="muted" id="summary">Demo görev listesi…</p>
+      <div class="list" id="task-list"></div>
+      <div class="note">Statik demo görevler. Canlı veriler bağlandığında burada listelenir.</div>
+    </section>
+  </main>
+  <script src="demo-data.js"></script>
+  <script>
+    (function () {
+      var D = window.SuperAriDemo;
+      var listEl = document.getElementById("task-list");
+      document.getElementById("summary").textContent =
+        D.tasks.length + " açık görev · önceliğe göre sıralı";
+
+      var sorted = D.tasks.slice().sort(function (a, b) { return a.priority - b.priority; });
+
+      listEl.innerHTML = sorted.map(function (t) {
+        var hive = D.hiveById(t.hiveId);
+        var hiveName = hive ? hive.name : ("Kovan " + t.hiveId);
+        var badgeClass = "priority-" + t.priority;
+        return (
+          '<article class="item-card">' +
+            '<div class="row">' +
+              '<h3>' + t.title + '</h3>' +
+              '<span class="badge ' + badgeClass + '">Öncelik ' + t.priority + '</span>' +
+            '</div>' +
+            '<div class="meta">' + hiveName +
+              ' · <a href="kovanlar.html?id=' + t.hiveId + '">Kovana git</a></div>' +
+          '</article>'
+        );
+      }).join("");
+    })();
+  </script>
+</body>
+</html>

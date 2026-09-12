@@ -2,34 +2,40 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SüperArı — Giriş</title>
-  <link rel="stylesheet" href="/panels.css?v=7" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Giriş · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
 </head>
-<body class="panel-body">
-  <div class="hub">
-    <p class="hub-brand">SüperArı</p>
-    <p class="hub-lead">Rolünü seç · PIN ile gir</p>
-
-    <a class="hub-btn patron" href="/arici.html?org=koloni-demo">
-      <strong>Patron</strong>
-      <span>Uyarılar · görevler · kovanlar</span>
-      <span class="pin-hint">PIN 1111</span>
-    </a>
-    <a class="hub-btn yonetici" href="/yonetici.html?org=koloni-demo">
-      <strong>Yönetici</strong>
-      <span>Uyarılar · görevler · kovanlar</span>
-      <span class="pin-hint">PIN 1234</span>
-    </a>
-    <a class="hub-btn calisan" href="/isci.html?org=koloni-demo">
-      <strong>Çalışan</strong>
-      <span>Uyarılar · görevler · kovanlar</span>
-      <span class="pin-hint">PIN 3333</span>
-    </a>
-
-    <p class="hub-lead hub-ana-link">
-      <a href="/ana.html">Ana ekran (LOCKED-FINAL · arı turu)</a>
-    </p>
-  </div>
+<body>
+  <main class="wrap">
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div>
+        <h1>SüperArı</h1>
+        <p>Arıcılık yönetim paneli</p>
+      </div>
+    </div>
+    <section class="card stack" style="max-width:460px;margin:0 auto;">
+      <h2 style="margin:0;">Giriş yap</h2>
+      <p class="muted">E-posta ve şifrenizle devam edin.</p>
+      <form class="stack" data-demo="arici.html">
+        <label>E-posta
+          <input type="email" name="email" autocomplete="username" placeholder="ornek@mail.com" required />
+        </label>
+        <label>Şifre
+          <div class="field-row">
+            <input id="password" type="password" name="password" autocomplete="current-password" placeholder="••••••••" required />
+            <button type="button" class="toggle" data-toggle-password="password">Göster</button>
+          </div>
+        </label>
+        <button class="btn" type="submit">Giriş Yap</button>
+      </form>
+      <div class="links">
+        <a href="kayit.html">Hesap oluştur</a>
+        <a href="kurulum.html">Kurulum</a>
+      </div>
+    </section>
+  </main>
+  <script src="panels.js"></script>
 </body>
 </html>
