@@ -324,3 +324,39 @@ body.panel-body {
   padding-top: 0.75rem;
   border-top: 1px dashed var(--line);
 }
+
+.auth-wrap {
+  max-width: 420px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+}
+.auth-wrap .hub-brand {
+  margin-bottom: 0.75rem;
+}
+.pw-wrap {
+  position: relative;
+  display: block;
+}
+.pw-wrap input {
+  width: 100%;
+  padding-right: 4.6rem;
+}
+.pw-toggle {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #3f6352;
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.3rem 0.45rem;
+}
+.pw-toggle:focus-visible {
+  outline: 2px solid var(--ok);
+  outline-offset: 1px;
+  border-radius: 6px;
+}

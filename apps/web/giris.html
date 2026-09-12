@@ -4,28 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>SüperArı — Giriş</title>
-  <link rel="stylesheet" href="/panels.css?v=6" />
+  <link rel="stylesheet" href="/panels.css?v=8" />
 </head>
 <body class="panel-body">
-  <div class="hub">
+  <div class="auth-wrap">
     <p class="hub-brand">SüperArı</p>
-    <p class="hub-lead">Rolünü seç · PIN ile gir</p>
-
-    <a class="hub-btn patron" href="/arici.html?org=koloni-demo">
-      <strong>Patron</strong>
-      <span>Uyarılar · görevler · kovanlar</span>
-      <span class="pin-hint">PIN 1111</span>
-    </a>
-    <a class="hub-btn yonetici" href="/yonetici.html?org=koloni-demo">
-      <strong>Yönetici</strong>
-      <span>Uyarılar · görevler · kovanlar</span>
-      <span class="pin-hint">PIN 1234</span>
-    </a>
-    <a class="hub-btn calisan" href="/isci.html?org=koloni-demo">
-      <strong>Çalışan</strong>
-      <span>Uyarılar · görevler · kovanlar</span>
-      <span class="pin-hint">PIN 3333</span>
-    </a>
+    <div class="login-card">
+      <h2>Giriş</h2>
+      <p class="hint">Demo: demo@superari.com / demo1234</p>
+      <form id="login-form" novalidate>
+        <label>E-posta
+          <input id="email" type="email" autocomplete="username" />
+        </label>
+        <label>Şifre
+          <span class="pw-wrap">
+            <input id="password" type="password" autocomplete="current-password" />
+            <button type="button" class="pw-toggle" id="btn-pw" aria-label="Şifreyi göster" aria-pressed="false">Göster</button>
+          </span>
+        </label>
+        <div class="row-btns">
+          <button type="submit" class="btn-p primary" id="btn-login">Giriş yap</button>
+        </div>
+      </form>
+      <p id="err" class="warn-text muted" role="alert"></p>
+      <p class="muted"><a href="/kayit.html">Kayıt</a> · <a href="/onay.html">Onay</a></p>
+    </div>
   </div>
+  <script src="/panels.js?v=8"></script>
+  <script>
+    (async () => {
+      const me = await Membership.me();
+      if (me?.ok) {
+        location.href = me.panel || "/arici.html";
+      }
+    })();
+
+    const form = document.getElementById("login-form");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const errEl = document.getElementById("err");
+    const pwBtn = document.getElementById("btn-pw");
+
+    pwBtn.addEventListener("click", () => {
+      const show = passwordEl.type === "password";
+      passwordEl.type = show ? "text" : "password";
+      pwBtn.textContent = show ? "Gizle" : "Göster";
+      pwBtn.setAttribute("aria-label", show ? "Şifreyi gizle" : "Şifreyi göster");
+      pwBtn.setAttribute("aria-pressed", show ? "true" : "false");
+    });
+
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      errEl.textContent = "";
+      try {
+        const data = await Membership.login({
+          email: emailEl.value.trim(),
+          password: passwordEl.value,
+        });
+        if (!data.ok) {
+          errEl.textContent = Membership.errorText(data.error);
+          return;
+        }
+        location.href = data.panel || "/arici.html";
+      } catch (e) {
+        errEl.textContent = Membership.errorText(e && e.message);
+      }
+    });
+  </script>
 </body>
 </html>

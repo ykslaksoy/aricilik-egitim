@@ -172,6 +172,91 @@ const PanelLabels = (() => {
   };
 })();
 
+/** E-posta girişi — ham API kodlarını kullanıcıya gösterme */
+const Membership = (() => {
+  const K = "superari.membership";
+  const ERRORS = {
+    invalid_credentials: "E-posta veya şifre hatalı",
+    no_session: "Oturum bulunamadı",
+    method_not_allowed: "İstek geçersiz",
+    login_failed: "Giriş yapılamadı",
+    not_found: "Sunucuya ulaşılamadı",
+  };
+
+  function errorText(code) {
+    if (!code) return "Giriş yapılamadı";
+    const key = String(code);
+    if (ERRORS[key]) return ERRORS[key];
+    if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(key)) return "Giriş yapılamadı";
+    return "Giriş yapılamadı";
+  }
+
+  function get() {
+    try {
+      return JSON.parse(localStorage.getItem(K) || "null");
+    } catch {
+      return null;
+    }
+  }
+  function set(d) {
+    localStorage.setItem(K, JSON.stringify(d));
+  }
+  function clear() {
+    localStorage.removeItem(K);
+  }
+  function token() {
+    return get()?.token || null;
+  }
+
+  async function login({ email, password }) {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error("login_failed");
+    }
+    if (data.ok && data.session) {
+      set({
+        token: data.session.token,
+        email: data.user.email,
+        ad: data.user.ad,
+        mode: data.user.mode,
+      });
+    }
+    return data;
+  }
+
+  async function me() {
+    const t = token();
+    if (!t) return null;
+    const res = await fetch("/api/auth/me", { headers: { "X-Session-Token": t } });
+    if (!res.ok) {
+      clear();
+      return null;
+    }
+    return res.json();
+  }
+
+  async function logout() {
+    const t = token();
+    if (t) {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Session-Token": t },
+        body: JSON.stringify({ token: t }),
+      }).catch(() => {});
+    }
+    clear();
+  }
+
+  return { get, set, clear, token, login, me, logout, errorText };
+})();
+
 /** Ortak panel oturumu — yönetici / arıcı / işçi */
 const PanelAuth = (() => {
   const ROLE = document.body.dataset.role;

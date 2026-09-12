@@ -56,6 +56,7 @@ const { analyzeMlFleet, getFleetStats } = require("./services/mlFleetAnalysis");
 const journalService = require("./services/journalService");
 const teamService = require("./services/teamService");
 const orgPanelService = require("./services/orgPanelService");
+const membershipAuth = require("./services/membershipAuth");
 const offlineSyncService = require("./services/offlineSyncService");
 const subscriptionService = require("./services/subscriptionService");
 const slaService = require("./services/slaService");
@@ -3217,6 +3218,21 @@ app.post("/api/orgs/login", (req, res) => {
   res.json(result);
 });
 
+app.post("/api/auth/login", (req, res) => {
+  res.json(membershipAuth.login(req.body || {}));
+});
+
+app.get("/api/auth/me", (req, res) => {
+  const token = req.headers["x-session-token"] || "";
+  const data = membershipAuth.me(token);
+  if (!data.ok) return res.status(401).json(data);
+  res.json(data);
+});
+
+app.post("/api/auth/logout", (_req, res) => {
+  res.json(membershipAuth.logout());
+});
+
 app.get("/api/orgs/:id/sessions", (req, res) => {
   res.json({ sessions: orgPanelService.listSessions(req.params.id) });
 });
@@ -3662,6 +3678,12 @@ app.post("/api/ingest", (req, res) => {
   res.json({ ok: true, reading, colony, db: saved, scoreRevision: scoreTrack?.revision || null });
 });
 
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/") && /\.js$/i.test(req.path)) {
+    return res.status(404).json({ error: "not_found", path: req.path });
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, "../../web")));
 
 const PORT = process.env.PORT || 3847;
