@@ -19,4 +19,7 @@ Kontrol: `npm run check:ana`
 - Proje: `superari` (takım `yuksel2`)
 - Önizleme örneği: `https://superari-git-cursor-ana-hive-visual-32f5-yuksel2.vercel.app/ana.html`
 
-Bu ortamda Vercel MCP takım listesi boş / 403 döndü; Git bağlantısını dashboard’dan doğrulayın. Root Directory **`apps/web`** olmalı (veya Express build). Canlı `https://superari.vercel.app/arici.html` 200; `/ana.html` şu an 404 çünkü `main`’de Ana yok. Bu PR merge edilince aynı static kökten `/ana.html` gelmeli. Preview SSO korumalı olabilir.
+Bu ortamda Vercel MCP takım listesi boş / 403 döndü; Git bağlantısını dashboard’dan doğrulayın. Root Directory **`apps/web`** olmalı (veya Express build). Vercel proje kökü repo root. Statik dosyalar `apps/web/` altında; kök `vercel.json` bunları `/ana.html`, `/arici.html` olarak yazar.
+
+- Ana: `https://superari.vercel.app/ana.html` ve `/`
+- Patron: `https://superari.vercel.app/arici.html`
