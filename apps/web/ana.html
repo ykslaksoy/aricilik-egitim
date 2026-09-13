@@ -88,7 +88,7 @@
     justify-content: flex-start;
     gap: 8px;
     padding: 7px 12px 7px 10px;
-    margin-bottom: 8px;
+    margin-bottom: 0; /* bee-band below provides the gap before weather */
     background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
     border: 1px solid #e0c56a;
     border-radius: 10px;
@@ -113,34 +113,56 @@
     color: var(--brown);
   }
 
-  /* Center podium: name first, then bee — avoid weather 22 on the right */
-  .bee-podium {
-    position: absolute; top: 58px; left: 50%; margin-left: -44px; transform: none; z-index: 9;
-    width: 88px; height: 78px;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  /* Bee emergence band: empty gap between Hardal strip and weather/calendar */
+  .bee-band {
+    flex: 0 0 56px;
+    position: relative;
+    z-index: 9;
     pointer-events: none;
   }
+  /* Bee + name side-by-side, horizontally centered in the band above calendar */
+  .bee-podium {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 9;
+    pointer-events: none;
+  }
+  .bee-podium .podium-stage {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center bottom, rgba(90,60,30,.22) 0%, rgba(90,60,30,.06) 45%, transparent 70%);
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .bee-podium.is-ready .podium-stage { opacity: 1; }
   .bee-podium .podium-name {
     font-size: 9px; font-weight: 800; color: var(--brown-mid);
     background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
     border-radius: 999px; padding: 1px 8px; line-height: 1.35;
-    opacity: 0; transform: translateY(4px);
+    opacity: 0; transform: translateX(-4px);
     transition: opacity .35s ease, transform .35s ease;
-    margin-bottom: 2px; white-space: nowrap;
+    margin: 0; white-space: nowrap;
   }
   .bee-podium .podium-name.is-on {
-    opacity: 1; transform: translateY(0);
+    opacity: 1; transform: translateX(0);
   }
-  .bee-podium .podium-stage {
-    width: 54px; height: 10px; border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(90,60,30,.22) 0%, rgba(90,60,30,.06) 55%, transparent 70%);
-    opacity: 0; transition: opacity .3s ease;
-  }
-  .bee-podium.is-ready .podium-stage { opacity: 1; }
 
   .weather {
     flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 16px;
-    padding: 10px 12px 12px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    padding: 10px 12px 12px; margin-top: 0; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
   }
   .weather-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
@@ -161,13 +183,13 @@
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
     position: relative; overflow: hidden; min-height: 0; height: 100%;
     /* footer reserved for label+badge; hive fills the rest and centers */
-    padding: 0 0 38px;
+    padding: 0 0 46px;
   }
   .hive-area {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 38px;
+    position: absolute; left: 0; right: 0; top: 0; bottom: 46px;
     display: flex; align-items: center; justify-content: center;
     /* optical nudge: visual hive mass sits high inside .hive box */
-    padding-top: 34px;
+    padding-top: 28px;
   }
 
   /* ===== Shared hive: EQUAL tiers, FLUSH sides ===== */
@@ -263,7 +285,7 @@
   .hive-icon svg { width: 18px; height: 18px; display: block; }
 
   .tile-label {
-    position: absolute; left: 0; right: 0; bottom: 20px;
+    position: absolute; left: 0; right: 0; bottom: 26px;
     font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
     text-align: center;
   }
@@ -355,9 +377,11 @@
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
     </header>
-    <div class="bee-podium" id="beePodium" aria-hidden="true">
-      <span class="podium-name" id="podiumName"></span>
-      <div class="podium-stage"></div>
+    <div class="bee-band" aria-hidden="true">
+      <div class="bee-podium" id="beePodium">
+        <div class="podium-stage" id="podiumStage"></div>
+        <span class="podium-name" id="podiumName"></span>
+      </div>
     </div>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
@@ -507,10 +531,11 @@
 
     function podiumPoint() {
       var s = screenEl.getBoundingClientRect();
-      var p = podium.getBoundingClientRect();
+      var stage = document.getElementById('podiumStage') || podium;
+      var p = stage.getBoundingClientRect();
       return {
         x: p.left - s.left + p.width / 2,
-        y: p.top - s.top + p.height - 18
+        y: p.top - s.top + p.height / 2
       };
     }
 
