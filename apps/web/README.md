@@ -1,12 +1,11 @@
-# koloni web panel
+# SüperArı — web panel (demo)
 
-sade panel → ayrı sayfalar (`pages/`).
+**Kalıcı demo URL:** https://superari.vercel.app/arici.html
 
-| dosya | ekran |
-|-------|--------|
-| `ana.html` + `ana.css` + `ana.js` | ✓ LOCKED-FINAL Ana 3×3 + arı turu |
-| `index.html` + `app.js` | ✓ kovan listesi |
-| `pages/hive-detail.js` | detay + grafik |
-| `pages/calibrate.js` | öğlen kalibrasyon |
-| `pages/transport.js` | gezginci taşıma |
-| `pages/alerts.js` | alarm listesi |
+- Giriş: https://superari.vercel.app/giris.html
+- Kovanlar (100, genetik/grup/konum filtre): https://superari.vercel.app/kovanlar.html
+- Uyarılar: https://superari.vercel.app/uyarilar.html
+- Görevler: https://superari.vercel.app/gorevler.html
+
+Hosting: Vercel proje `superari` (tünel yok).  
+Kaynak senkron: `ykslaksoy/aricilik-egitim` (GitHub App erişimi açılınca).

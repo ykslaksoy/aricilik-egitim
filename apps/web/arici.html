@@ -2,302 +2,53 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SüperArı — Patron</title>
-  <link rel="stylesheet" href="/panels.css?v=6" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arıcı · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
 </head>
-<body class="panel-body" data-role="arici">
-  <header class="panel-header">
-    <div>
-      <h1><span class="brand-mark">SüperArı</span> <span class="role-chip role-arici">Patron</span></h1>
-      <p class="sub" id="hdr-sub">Özet</p>
+<body>
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="giris.html">← Geri</a>
+      <a class="chip" href="index.html">Ana sayfa</a>
+      <a class="chip" href="ayarlar.html">Ayarlar</a>
     </div>
-    <div class="panel-actions">
-      <a class="btn-p ghost" href="/giris.html">Giriş</a>
-      <button type="button" class="btn-p" id="btn-logout">Çıkış</button>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div>
+        <h1>SüperArı</h1>
+        <p>Arıcı paneli</p>
+      </div>
     </div>
-  </header>
-
-  <div id="login-view" class="login-card">
-    <h2>Patron girişi</h2>
-    <p class="hint">Demo: Arıcı Ayşe · PIN <strong>1111</strong></p>
-    <label>İşletme
-      <select id="org-select"></select>
-    </label>
-    <label>Adın
-      <input id="ad" type="text" value="Arıcı Ayşe" />
-    </label>
-    <label>PIN
-      <input id="pin" type="password" inputmode="numeric" maxlength="8" value="1111" />
-    </label>
-    <div class="row-btns">
-      <a class="btn-p" href="/giris.html">← Geri</a>
-      <button type="button" class="btn-p primary" id="btn-login">Giriş</button>
-    </div>
-    <p id="login-err" class="warn-text muted"></p>
-  </div>
-
-  <main id="app-view" class="panel-main hidden">
-    <p class="session-bar" id="session-bar"></p>
-
-    <div class="tile-grid" id="tiles">
-      <button type="button" class="tile warn" data-panel="alerts" id="tile-alerts">
-        <span class="tile-label">Uyarılar</span>
-        <span class="tile-value" id="n-alerts">0</span>
-        <span class="tile-hint">öncelikli · dokun</span>
-      </button>
-      <button type="button" class="tile" data-panel="tasks" id="tile-tasks">
-        <span class="tile-label">Görevler</span>
-        <span class="tile-value" id="n-tasks">0</span>
-        <span class="tile-hint">bugün · dokun</span>
-      </button>
-      <button type="button" class="tile" data-panel="hives" id="tile-hives">
-        <span class="tile-label">Kovanlar</span>
-        <span class="tile-value" id="n-hives">0</span>
-        <span class="tile-hint">özet kart · dokun</span>
-      </button>
-    </div>
-
-    <section class="detail-panel" id="panel-alerts">
-      <h2 class="detail-title">Uyarılar</h2>
-      <ul class="card-list" id="alerts"></ul>
-    </section>
-
-    <section class="detail-panel" id="panel-tasks">
-      <h2 class="detail-title">Görevler</h2>
-      <ul class="card-list" id="tasks"></ul>
-    </section>
-
-    <section class="detail-panel" id="panel-hives">
-      <h2 class="detail-title">Kovanlar</h2>
-      <ul class="card-list" id="hives"></ul>
+    <section class="grid-3">
+      <a class="card action-card" href="uyarilar.html">
+        <div class="icon">⚠️</div>
+        <h3>Uyarılar</h3>
+        <p>Kritik bildirimler ve acil durumlar</p>
+        <div class="count-pill" id="count-alerts">—</div>
+      </a>
+      <a class="card action-card" href="gorevler.html">
+        <div class="icon">✅</div>
+        <h3>Görevler</h3>
+        <p>Günlük ve haftalık iş listesi</p>
+        <div class="count-pill" id="count-tasks">—</div>
+      </a>
+      <a class="card action-card" href="kovanlar.html">
+        <div class="icon">🍯</div>
+        <h3>Kovanlar</h3>
+        <p>Kovan durumu ve kayıtlar</p>
+        <div class="count-pill" id="count-hives">—</div>
+      </a>
     </section>
   </main>
-
-  <script src="/panels.js?v=6"></script>
+  <script src="demo-data.js"></script>
   <script>
-    const loginView = document.getElementById("login-view");
-    const appView = document.getElementById("app-view");
-    let openPanel = null;
-    let cache = { hives: [], alerts: [], tasks: [] };
-
-    function pill(status) {
-      const label = PanelLabels.hiveStatus(status);
-      const cls =
-        ["alert", "fault", "offline", "weak"].includes(status)
-          ? "warn"
-          : ["watch", "degraded"].includes(status)
-            ? "watch"
-            : "ok";
-      return `<span class="pill ${cls}">${label}</span>`;
-    }
-
-    function setPanel(name) {
-      openPanel = openPanel === name ? null : name;
-      document.querySelectorAll(".tile").forEach((el) => {
-        el.classList.toggle("active", el.dataset.panel === openPanel);
-      });
-      ["alerts", "tasks", "hives"].forEach((p) => {
-        document.getElementById(`panel-${p}`).classList.toggle("open", openPanel === p);
-      });
-    }
-
-    function showLogin() {
-      loginView.classList.remove("hidden");
-      appView.classList.add("hidden");
-    }
-    function showApp() {
-      loginView.classList.add("hidden");
-      appView.classList.remove("hidden");
-    }
-
-    async function fillOrgs() {
-      const { orgs } = await PanelAuth.loadOrgs();
-      const sel = document.getElementById("org-select");
-      sel.innerHTML = orgs.map((o) => `<option value="${o.id}">${o.ad}</option>`).join("");
-      sel.value = PanelAuth.orgFromUrl;
-    }
-
-    function renderAlerts(alerts) {
-      const unread = (alerts || []).filter((a) => !a.read);
-      document.getElementById("n-alerts").textContent = String(unread.length);
-      document.getElementById("tile-alerts").classList.toggle("warn", unread.length > 0);
-      document.getElementById("alerts").innerHTML = unread.length
-        ? unread
-            .slice(0, 20)
-            .map(
-              (a) => `<li>
-                <div class="card-row" style="cursor:default">
-                  <div class="meta">
-                    <strong>${PanelLabels.alertType(a.type)}</strong>
-                    <span>Kovan ${a.hiveId ?? "—"} · ${PanelLabels.cleanMessage(a.message || a.title)}</span>
-                  </div>
-                  <span class="pill warn">Ö${a.priority ?? "—"}</span>
-                </div>
-              </li>`
-            )
-            .join("")
-        : `<li class="empty-state">Uyarı yok</li>`;
-    }
-
-    function renderTasks(tasks) {
-      const list = tasks || [];
-      document.getElementById("n-tasks").textContent = String(list.length);
-      document.getElementById("tasks").innerHTML = list.length
-        ? list
-            .slice(0, 20)
-            .map((t) => {
-              const hiveId = t.hiveId ?? "";
-              return `<li>
-                <button type="button" class="card-row task-open" data-hive="${hiveId}">
-                  <div class="meta">
-                    <strong>${PanelLabels.cleanMessage(t.title || PanelLabels.alertType(t.type))}</strong>
-                    <span>Kovan ${hiveId || "—"} · dokun → muayene</span>
-                  </div>
-                  <span class="pill">Ö${t.priority ?? "-"}</span>
-                </button>
-              </li>`;
-            })
-            .join("")
-        : `<li class="empty-state">Görev yok</li>`;
-
-      document.querySelectorAll(".task-open").forEach((btn) => {
-        btn.onclick = () => openMuayene(btn.dataset.hive);
-      });
-    }
-
-    function renderHives(hives) {
-      document.getElementById("n-hives").textContent = String(hives.length);
-      document.getElementById("hives").innerHTML = hives
-        .slice(0, 40)
-        .map((h) => {
-          const loc = h.konumEtiket || h.apiaryLocation?.konumEtiket || "—";
-          const c = h.colony || {};
-          const temp = h.tempC ?? c.temperature?.tempC ?? "—";
-          return `<li class="hive-card" data-id="${h.hiveId}">
-            <button type="button" class="card-row hive-toggle">
-              <div class="meta">
-                <strong>#${h.hiveId} · ${loc}</strong>
-                <span><b>${h.weightKg ?? "—"}</b> kg · <b>${temp}</b> °C · skor ${c.score ?? "—"}</span>
-              </div>
-              ${pill(h.status)}
-            </button>
-            <div class="card-extra">
-              <dl>
-                <dt>Durum</dt><dd>${PanelLabels.hiveStatus(h.status)}</dd>
-                <dt>Ağırlık</dt><dd>${h.weightKg ?? "—"} kg</dd>
-                <dt>Sıcaklık</dt><dd>${temp} °C</dd>
-                <dt>Skor</dt><dd>${c.score ?? "—"}</dd>
-              </dl>
-              <button type="button" class="btn-p primary btn-muayene" data-hive="${h.hiveId}">Muayene kaydı</button>
-              <div class="muayene-box hidden" id="muayene-${h.hiveId}">
-                <label>Not
-                  <textarea class="m-not" rows="2" placeholder="Kısa not…"></textarea>
-                </label>
-                <div class="row-btns">
-                  <button type="button" class="btn-p primary btn-save-m" data-hive="${h.hiveId}">Kaydet</button>
-                </div>
-                <p class="muted m-msg"></p>
-              </div>
-            </div>
-          </li>`;
-        })
-        .join("");
-
-      document.querySelectorAll(".hive-toggle").forEach((btn) => {
-        btn.onclick = () => btn.closest("li").classList.toggle("open");
-      });
-      document.querySelectorAll(".btn-muayene").forEach((btn) => {
-        btn.onclick = () => {
-          const box = document.getElementById(`muayene-${btn.dataset.hive}`);
-          box.classList.toggle("hidden");
-        };
-      });
-      document.querySelectorAll(".btn-save-m").forEach((btn) => {
-        btn.onclick = () => saveMuayene(btn.dataset.hive, btn.closest(".muayene-box"));
-      });
-    }
-
-    function openMuayene(hiveId) {
-      setPanel("hives");
-      if (!hiveId) return;
-      const card = document.querySelector(`.hive-card[data-id="${hiveId}"]`);
-      if (!card) return;
-      card.classList.add("open");
-      const box = document.getElementById(`muayene-${hiveId}`);
-      if (box) {
-        box.classList.remove("hidden");
-        box.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
-
-    async function saveMuayene(hiveId, box) {
-      const sess = PanelAuth.getSession();
-      const not = box.querySelector(".m-not").value.trim();
-      const msg = box.querySelector(".m-msg");
-      if (!not) {
-        msg.textContent = "Not yaz";
-        return;
-      }
-      try {
-        const res = await fetch(`/api/hives/${hiveId}/journal`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tip: "muayene", not, arici: sess?.ad || null }),
-        });
-        if (!res.ok) throw new Error("fail");
-        msg.textContent = "Kayıt alındı";
-        box.querySelector(".m-not").value = "";
-      } catch {
-        msg.textContent = "Kayıt başarısız";
-      }
-    }
-
-    async function render() {
-      const sess = PanelAuth.requireSession();
-      if (!sess || sess.rol !== "arici") {
-        showLogin();
-        return;
-      }
-      showApp();
-      document.getElementById("session-bar").textContent = `${sess.ad} · ${sess.orgAd}`;
-      document.getElementById("hdr-sub").textContent = sess.orgAd;
-
-      const [{ hives }, { alerts }, tasksRes] = await Promise.all([
-        fetch("/api/hives").then((r) => r.json()),
-        fetch("/api/alerts").then((r) => r.json()),
-        fetch("/api/tasks").then((r) => r.json()).catch(() => ({ tasks: [] })),
-      ]);
-      cache = { hives: hives || [], alerts: alerts || [], tasks: tasksRes.tasks || [] };
-      renderAlerts(cache.alerts);
-      renderTasks(cache.tasks);
-      renderHives(cache.hives);
-    }
-
-    document.getElementById("tiles").addEventListener("click", (ev) => {
-      const tile = ev.target.closest(".tile");
-      if (tile) setPanel(tile.dataset.panel);
-    });
-
-    document.getElementById("btn-login").onclick = async () => {
-      try {
-        await PanelAuth.login({
-          orgId: document.getElementById("org-select").value,
-          ad: document.getElementById("ad").value,
-          pin: document.getElementById("pin").value,
-        });
-        history.replaceState({}, "", `/arici.html?org=${document.getElementById("org-select").value}`);
-        await render();
-      } catch (e) {
-        document.getElementById("login-err").textContent = e.message;
-      }
-    };
-    document.getElementById("btn-logout").onclick = () => {
-      PanelAuth.clearSession();
-      location.href = "/giris.html";
-    };
-
-    fillOrgs().then(render);
+    (function () {
+      var D = window.SuperAriDemo;
+      document.getElementById("count-alerts").textContent = D.counts.alerts;
+      document.getElementById("count-tasks").textContent = D.counts.tasks;
+      document.getElementById("count-hives").textContent = D.counts.hives;
+    })();
   </script>
 </body>
 </html>

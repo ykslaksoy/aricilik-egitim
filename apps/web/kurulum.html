@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kurulum · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="onay.html">← Geri</a>
+      <a class="chip" href="index.html">Ana sayfa</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>İlk kurulum</p></div>
+    </div>
+    <section class="card stack" style="max-width:560px;">
+      <h2 style="margin:0;">Arılık bilgileri</h2>
+      <form class="stack" data-demo="arici.html">
+        <label>Arılık adı
+          <input name="apiary" placeholder="Örn. Yayla Arılığı" required />
+        </label>
+        <label>Konum
+          <input name="location" placeholder="İl / İlçe" required />
+        </label>
+        <label>Kovan sayısı
+          <input type="number" min="1" name="hives" placeholder="12" required />
+        </label>
+        <button class="btn" type="submit">Kurulumu bitir</button>
+      </form>
+      <div class="note">Kurulum sonrası rol paneline yönlendirilirsiniz.</div>
+    </section>
+  </main>
+  <script src="panels.js"></script>
+</body>
+</html>

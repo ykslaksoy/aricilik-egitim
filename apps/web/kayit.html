@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kayıt · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="giris.html">← Geri</a>
+      <a class="chip" href="index.html">Ana sayfa</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>Yeni hesap</p></div>
+    </div>
+    <section class="card stack" style="max-width:520px;">
+      <h2 style="margin:0;">Kayıt ol</h2>
+      <form class="stack" data-demo="onay.html">
+        <label>Ad Soyad
+          <input name="name" required placeholder="Adınız Soyadınız" />
+        </label>
+        <label>E-posta
+          <input type="email" name="email" required placeholder="ornek@mail.com" />
+        </label>
+        <label>Şifre
+          <div class="field-row">
+            <input id="reg-password" type="password" name="password" required />
+            <button type="button" class="toggle" data-toggle-password="reg-password">Göster</button>
+          </div>
+        </label>
+        <label>Rol
+          <input name="role" list="roles" placeholder="Arıcı / Yönetici / İşçi" required />
+          <datalist id="roles">
+            <option value="Arıcı"></option>
+            <option value="Yönetici"></option>
+            <option value="İşçi"></option>
+          </datalist>
+        </label>
+        <button class="btn" type="submit">Devam et</button>
+      </form>
+    </section>
+  </main>
+  <script src="panels.js"></script>
+</body>
+</html>

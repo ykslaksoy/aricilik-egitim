@@ -59,42 +59,14 @@
     height: calc(var(--phone-h) - 48px - 72px);
     overflow: hidden; display: flex; flex-direction: column; background: var(--bg);
     padding: 0 12px 8px;
-   position: relative;
   }
 
   .brand-strip {
-    flex: 0 0 auto; min-height: 28px; display: flex; align-items: center; justify-content: flex-start;
-    padding: 4px 12px; margin-bottom: 8px;
+    flex: 0 0 auto; height: 28px; display: flex; align-items: center; justify-content: center;
     background: linear-gradient(180deg, #fff8ee 0%, #f5ead8 100%);
-    border: 1px solid #e8dcc8; border-radius: 10px;
+    border: 1px solid #e8dcc8; border-radius: 10px; margin-bottom: 8px;
     color: var(--brown-mid); font-size: 12px; font-weight: 700; letter-spacing: .04em;
   }
-  .brand-strip .brand-name { text-align: left; line-height: 1.2; }
-
-  /* Center podium: name first, then bee — avoid weather 22 on the right */
-  .bee-podium {
-    position: absolute; top: 58px; left: 50%; margin-left: -44px; transform: none; z-index: 9;
-    width: 88px; height: 78px;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-    pointer-events: none;
-  }
-  .bee-podium .podium-name {
-    font-size: 9px; font-weight: 800; color: var(--brown-mid);
-    background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
-    border-radius: 999px; padding: 1px 8px; line-height: 1.35;
-    opacity: 0; transform: translateY(4px);
-    transition: opacity .35s ease, transform .35s ease;
-    margin-bottom: 2px; white-space: nowrap;
-  }
-  .bee-podium .podium-name.is-on {
-    opacity: 1; transform: translateY(0);
-  }
-  .bee-podium .podium-stage {
-    width: 54px; height: 10px; border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(90,60,30,.22) 0%, rgba(90,60,30,.06) 55%, transparent 70%);
-    opacity: 0; transition: opacity .3s ease;
-  }
-  .bee-podium.is-ready .podium-stage { opacity: 1; }
 
   .weather {
     flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 16px;
@@ -256,49 +228,6 @@
   body.shot { display: block; margin: 0; }
   body.shot .phone { box-shadow: none !important; border-radius: 0 !important; width: 390px; height: 844px; }
   body.shot .phone-notch, body.shot .home-indicator { display: none !important; }
-
-  .screen { position: relative; }
-  .mascot-bee {
-    position: absolute; z-index: 10;
-    left: 0; top: 0;
-    width: 48px; height: 48px; pointer-events: none;
-    transform: translate(-50%, -50%) scale(.55);
-    opacity: 0;
-    transition:
-      left 1.45s cubic-bezier(.4,.05,.2,1),
-      top 1.45s cubic-bezier(.4,.05,.2,1),
-      transform .55s cubic-bezier(.34,1.4,.64,1),
-      opacity .4s ease;
-    will-change: left, top, transform, opacity;
-  }
-  .mascot-bee.is-shown {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  .mascot-bee.is-flying {
-    transform: translate(-50%, -50%) scale(.85);
-  }
-  .mascot-bee.is-entering {
-    transform: translate(-50%, -50%) scale(.35);
-    opacity: 0;
-    transition:
-      left 1.1s cubic-bezier(.4,.05,.2,1),
-      top 1.1s cubic-bezier(.4,.05,.2,1),
-      transform .9s ease,
-      opacity .7s ease .25s;
-  }
-  .mascot-bee img {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: contain; opacity: 0;
-    transition: opacity .35s ease;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,.18));
-    animation: bee-wiggle 2.4s ease-in-out infinite;
-  }
-  .mascot-bee img.is-on { opacity: 1; }
-  @keyframes bee-wiggle {
-    0%, 100% { transform: translateY(0) rotate(-4deg); }
-    50% { transform: translateY(-3px) rotate(4deg); }
-  }
 </style>
 </head>
 <body>
@@ -310,18 +239,7 @@
   </div>
 
   <div class="screen">
-    <div class="brand-strip">
-      <span class="brand-name">Hardal Arıcılık</span>
-    </div>
-    <div class="bee-podium" id="beePodium" aria-hidden="true">
-      <span class="podium-name" id="podiumName"></span>
-      <div class="podium-stage"></div>
-    </div>
-    <div class="mascot-bee" id="mascotBee" aria-hidden="true">
-      <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
-      <img src="assets/bees/karniyol.png" alt="" data-breed="Karniyol">
-      <img src="assets/bees/kafkas.png" alt="" data-breed="Kafkas">
-    </div>
+    <div class="brand-strip">Hardal Arıcılık</div>
 
     <section class="weather">
       <div class="weather-top">
@@ -432,163 +350,6 @@
       '</article>'
     );
   }).join('');
-
-  // Announcement → podium → tour tiles → enter one hive
-  var beeRoot = document.getElementById('mascotBee');
-  var podium = document.getElementById('beePodium');
-  var podiumName = document.getElementById('podiumName');
-  var screenEl = document.querySelector('.screen');
-  var gridEl = document.getElementById('grid');
-  if (beeRoot && podium && screenEl && gridEl) {
-    var beeImgs = beeRoot.querySelectorAll('img');
-    var beeIdx = 0;
-    var timers = [];
-    var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
-    var tileParam = (location.search.match(/[?&]tile=(\d+)/) || [])[1];
-    var beeMap = { italyan: 0, karniyol: 1, kafkas: 2 };
-    if (beeParam && beeMap[beeParam] != null) beeIdx = beeMap[beeParam];
-    var freeze = location.search.indexOf('shot=1') !== -1;
-
-    function clearTimers() {
-      timers.forEach(function (t) { clearTimeout(t); });
-      timers = [];
-    }
-    function later(fn, ms) {
-      timers.push(setTimeout(fn, ms));
-    }
-
-    function setBreed(i) {
-      beeIdx = ((i % beeImgs.length) + beeImgs.length) % beeImgs.length;
-      beeImgs.forEach(function (img, j) { img.classList.toggle('is-on', j === beeIdx); });
-      return beeImgs[beeIdx].getAttribute('data-breed') || '';
-    }
-
-    function podiumPoint() {
-      var s = screenEl.getBoundingClientRect();
-      var p = podium.getBoundingClientRect();
-      return {
-        x: p.left - s.left + p.width / 2,
-        y: p.top - s.top + p.height - 18
-      };
-    }
-
-    function hivePoint(tileIndex, entrance) {
-      var tiles = gridEl.querySelectorAll('.tile');
-      if (!tiles.length) return podiumPoint();
-      var i = ((tileIndex % tiles.length) + tiles.length) % tiles.length;
-      var tile = tiles[i];
-      var el = entrance
-        ? (tile.querySelector('.hive-entrance') || tile.querySelector('.hive') || tile)
-        : (tile.querySelector('.hive-icon') || tile.querySelector('.hive') || tile);
-      var s = screenEl.getBoundingClientRect();
-      var b = el.getBoundingClientRect();
-      return {
-        x: b.left - s.left + b.width / 2,
-        y: b.top - s.top + b.height / 2,
-        index: i
-      };
-    }
-
-    function placeAt(pt) {
-      beeRoot.style.left = pt.x + 'px';
-      beeRoot.style.top = pt.y + 'px';
-    }
-
-    function resetVisual() {
-      beeRoot.classList.remove('is-shown', 'is-flying', 'is-entering');
-      podium.classList.remove('is-ready');
-      if (podiumName) {
-        podiumName.classList.remove('is-on');
-        podiumName.textContent = '';
-      }
-    }
-
-    function shuffle(arr) {
-      var a = arr.slice();
-      for (var i = a.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var t = a[i]; a[i] = a[j]; a[j] = t;
-      }
-      return a;
-    }
-
-    function runCycle(startBreed) {
-      clearTimers();
-      resetVisual();
-      var name = setBreed(startBreed == null ? beeIdx : startBreed);
-
-      // visit 4–5 hives while touring, then enter a different one
-      var order = shuffle([0,1,2,3,4,5,6,7,8]);
-      var tourStops = order.slice(0, 5);
-      var enterTile = tileParam != null
-        ? (parseInt(tileParam, 10) || 0)
-        : order[5];
-
-      var t = 0;
-      // 1) announcement (name only)
-      later(function () {
-        if (podiumName) {
-          podiumName.textContent = name;
-          podiumName.classList.add('is-on');
-        }
-        podium.classList.add('is-ready');
-      }, t);
-      t += 900;
-
-      // 2) bee appears on podium
-      later(function () {
-        var pt = podiumPoint();
-        beeRoot.style.transition = 'none';
-        placeAt(pt);
-        beeRoot.classList.remove('is-flying', 'is-entering');
-        void beeRoot.offsetWidth;
-        beeRoot.style.transition = '';
-        beeRoot.classList.add('is-shown');
-      }, t);
-      t += 1100;
-
-      // 3) wander across hive tiles
-      tourStops.forEach(function (tileI, n) {
-        later(function () {
-          beeRoot.classList.add('is-flying');
-          beeRoot.classList.remove('is-entering');
-          placeAt(hivePoint(tileI, false));
-        }, t);
-        t += (n === 0 ? 1600 : 1400);
-      });
-
-      // 4) fly to chosen hive entrance + shrink in
-      later(function () {
-        beeRoot.classList.add('is-flying');
-        placeAt(hivePoint(enterTile, true));
-      }, t);
-      t += 1300;
-
-      later(function () {
-        beeRoot.classList.remove('is-flying');
-        beeRoot.classList.add('is-entering');
-      }, t);
-      t += 1100;
-
-      // 5) next breed
-      if (!freeze) {
-        later(function () {
-          runCycle((beeIdx + 1) % beeImgs.length);
-        }, t);
-      }
-    }
-
-    function boot() { runCycle(beeIdx); }
-    requestAnimationFrame(function () { requestAnimationFrame(boot); });
-    later(boot, 100);
-
-    window.addEventListener('resize', function () {
-      if (beeRoot.classList.contains('is-shown') && !beeRoot.classList.contains('is-entering') && !beeRoot.classList.contains('is-flying')) {
-        placeAt(podiumPoint());
-      }
-    });
-  }
-
 })();
 </script>
 </body>
