@@ -30,15 +30,30 @@
     --wood-hi: #e8c9a0;
     --wood-lo: #c9965a;
     --wood-edge: #a8743f;
+    --hardal: #d4a017;
+    --hardal-hi: #f0c43a;
+    --hardal-lo: #b8860b;
+    --hardal-soft: #f4e3b0;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    width: 100%; height: 100%;
+    width: 100%;
+    min-height: 100%;
     background: #1a1a1a;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  /* Top-align phone so Hardal brand strip stays on-screen when viewport < 844px
+     (center alignment previously clipped the strip to a mustard sliver). */
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px 0 28px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 
   .phone {
     width: var(--phone-w); height: var(--phone-h);
@@ -62,14 +77,41 @@
    position: relative;
   }
 
+  /* Hardal işletme şeridi — mustard brand signal, left-aligned, always above weather */
   .brand-strip {
-    flex: 0 0 auto; min-height: 28px; display: flex; align-items: center; justify-content: flex-start;
-    padding: 4px 12px; margin-bottom: 8px;
-    background: linear-gradient(180deg, #fff8ee 0%, #f5ead8 100%);
-    border: 1px solid #e8dcc8; border-radius: 10px;
-    color: var(--brown-mid); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    position: relative;
+    z-index: 12;
+    flex: 0 0 auto;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 7px 12px 7px 10px;
+    margin-bottom: 8px;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
+    border: 1px solid #e0c56a;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    color: var(--brown);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    overflow: hidden;
   }
-  .brand-strip .brand-name { text-align: left; line-height: 1.2; }
+  .brand-strip::before {
+    content: "";
+    flex: 0 0 4px;
+    align-self: stretch;
+    margin: -2px 0;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--hardal-hi), var(--hardal) 40%, var(--hardal-lo));
+  }
+  .brand-strip .brand-name {
+    text-align: left;
+    line-height: 1.2;
+    color: var(--brown);
+  }
 
   /* Center podium: name first, then bee — avoid weather 22 on the right */
   .bee-podium {
@@ -253,7 +295,7 @@
   }
 
   body.shot, html.shot { background: #f7f8fa !important; width: 390px; height: 844px; overflow: hidden; }
-  body.shot { display: block; margin: 0; }
+  body.shot { display: block; margin: 0; padding: 0; }
   body.shot .phone { box-shadow: none !important; border-radius: 0 !important; width: 390px; height: 844px; }
   body.shot .phone-notch, body.shot .home-indicator { display: none !important; }
 
@@ -310,9 +352,9 @@
   </div>
 
   <div class="screen">
-    <div class="brand-strip">
+    <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
-    </div>
+    </header>
     <div class="bee-podium" id="beePodium" aria-hidden="true">
       <span class="podium-name" id="podiumName"></span>
       <div class="podium-stage"></div>
