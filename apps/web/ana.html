@@ -77,7 +77,7 @@
    position: relative;
   }
 
-  /* Hardal işletme şeridi — mustard brand signal, left-aligned, always above weather */
+  /* Hardal işletme şeridi — mustard brand signal; left brand, right live location */
   .brand-strip {
     position: relative;
     z-index: 12;
@@ -108,9 +108,24 @@
     background: linear-gradient(180deg, var(--hardal-hi), var(--hardal) 40%, var(--hardal-lo));
   }
   .brand-strip .brand-name {
+    flex: 0 1 auto;
     text-align: left;
     line-height: 1.2;
     color: var(--brown);
+  }
+  .brand-strip .brand-loc {
+    margin-left: auto;
+    flex: 0 1 auto;
+    max-width: 46%;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--brown-mid, #6b4f2a);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Bee + name: high in the mid-gap — exit aligns under right of Arılık Kuzey */
@@ -183,7 +198,7 @@
   .weather-top { display: flex; align-items: center; gap: 8px; margin-bottom: 0; }
   .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
   .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); }
-  /* Locked display temp — JS must not overwrite (see lockWeatherTemp) */
+  /* Live °C from Open-Meteo (see liveWeather) */
   .weather-temp { margin-left: auto; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
   .forecast { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
   .day { display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -412,6 +427,7 @@
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
+      <span class="brand-loc" id="brandLoc" title="Konum">Erzurum</span>
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
@@ -426,7 +442,7 @@
           <path d="M18 18c0-2.5 2-4.5 4.5-4.5 1.4 0 2.6.6 3.4 1.6A5 5 0 0 1 27 24H10a4.5 4.5 0 0 1 0-9c.5 0 1 .1 1.5.2" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/>
         </svg>
         <div class="weather-loc" id="weatherLoc">Arılık Kuzey<span class="bee-exit" id="beeExit" aria-hidden="true"></span></div>
-        <div class="weather-temp" id="weatherTemp" data-locked="1" data-temp="22°">22°</div>
+        <div class="weather-temp" id="weatherTemp">—°</div>
       </div>
       <div class="bee-gap" aria-hidden="true">
         <div class="bee-podium" id="beePodium">
@@ -481,7 +497,6 @@
   }
 
   // Weekday strip: live Mon–Sun dates for the current calendar week
-  // Does NOT touch .weather-temp — header temperature is locked separately.
   (function fillForecastDates() {
     var root = document.getElementById('forecast');
     if (!root) return;
@@ -510,16 +525,130 @@
     void labels;
   })();
 
-  // Lock Ana header temperature to the live production value (22°).
-  // fillForecastDates above only updates weekday dates — never this node.
-  (function lockWeatherTemp() {
-    var el = document.getElementById('weatherTemp');
-    if (!el) return;
-    var LOCKED = el.getAttribute('data-temp') || el.textContent.trim() || '22°';
-    if (LOCKED.indexOf('°') === -1) LOCKED = LOCKED + '°';
-    el.setAttribute('data-temp', LOCKED);
-    el.setAttribute('data-locked', '1');
-    el.textContent = LOCKED;
+  // Live place (band right) + live °C (weather card). Keeps “Arılık Kuzey” + bee-exit.
+  // Source: Open-Meteo (same as apps/api openMeteoService). Default Ev lat/lon (Erzurum).
+  (function liveWeather() {
+    var DEFAULT = { lat: 39.92, lon: 41.27, place: 'Erzurum' };
+    var REFRESH_MS = 15 * 60 * 1000;
+    var tempEl = document.getElementById('weatherTemp');
+    var brandLoc = document.getElementById('brandLoc');
+    if (tempEl) {
+      tempEl.removeAttribute('data-locked');
+      tempEl.removeAttribute('data-temp');
+    }
+    if (brandLoc && !brandLoc.textContent.trim()) brandLoc.textContent = DEFAULT.place;
+
+    function roundC(v) {
+      var n = Math.round(Number(v));
+      return isFinite(n) ? n : null;
+    }
+
+    function setTemp(c) {
+      if (!tempEl) return;
+      var n = roundC(c);
+      if (n == null) return;
+      tempEl.textContent = n + '°';
+    }
+
+    function setPlace(name) {
+      if (!brandLoc || !name) return;
+      brandLoc.textContent = name;
+      brandLoc.setAttribute('title', name);
+    }
+
+    function updateForecastDaily(daily) {
+      if (!daily || !daily.time) return;
+      var root = document.getElementById('forecast');
+      if (!root) return;
+      var days = root.querySelectorAll('.day');
+      var now = new Date();
+      var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var dow = monday.getDay();
+      monday.setDate(monday.getDate() + (dow === 0 ? -6 : 1 - dow));
+      var byDate = {};
+      for (var i = 0; i < daily.time.length; i++) {
+        byDate[daily.time[i]] = {
+          hi: roundC(daily.temperature_2m_max && daily.temperature_2m_max[i]),
+          lo: roundC(daily.temperature_2m_min && daily.temperature_2m_min[i])
+        };
+      }
+      for (var d = 0; d < days.length && d < 7; d++) {
+        var dt = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + d);
+        var key =
+          dt.getFullYear() + '-' +
+          String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+          String(dt.getDate()).padStart(2, '0');
+        var row = byDate[key];
+        if (!row) continue;
+        var hiEl = days[d].querySelector('.day-hi');
+        var loEl = days[d].querySelector('.day-lo');
+        if (hiEl && row.hi != null) hiEl.textContent = row.hi + '°';
+        if (loEl && row.lo != null) loEl.textContent = row.lo + '°';
+      }
+    }
+
+    function reversePlace(lat, lon) {
+      var url =
+        'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' +
+        encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lon) +
+        '&localityLanguage=tr';
+      return fetch(url)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j) return null;
+          return j.locality || j.city || j.principalSubdivision || null;
+        })
+        .catch(function () { return null; });
+    }
+
+    function fetchMeteo(lat, lon) {
+      var url =
+        'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
+        '&longitude=' + lon +
+        '&current=temperature_2m,weather_code' +
+        '&daily=temperature_2m_max,temperature_2m_min' +
+        '&timezone=auto&forecast_days=7';
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error('meteo_' + r.status);
+        return r.json();
+      });
+    }
+
+    function applyCoords(lat, lon, fallbackPlace) {
+      return Promise.all([fetchMeteo(lat, lon), reversePlace(lat, lon)])
+        .then(function (pair) {
+          var meteo = pair[0];
+          var place = pair[1] || fallbackPlace;
+          if (meteo && meteo.current && meteo.current.temperature_2m != null) {
+            setTemp(meteo.current.temperature_2m);
+          }
+          if (place) setPlace(place);
+          if (meteo && meteo.daily) updateForecastDaily(meteo.daily);
+        })
+        .catch(function () {
+          if (fallbackPlace) setPlace(fallbackPlace);
+        });
+    }
+
+    function refresh() {
+      if (!navigator.geolocation) {
+        applyCoords(DEFAULT.lat, DEFAULT.lon, DEFAULT.place);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          applyCoords(pos.coords.latitude, pos.coords.longitude, DEFAULT.place);
+        },
+        function () {
+          applyCoords(DEFAULT.lat, DEFAULT.lon, DEFAULT.place);
+        },
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 10 * 60 * 1000 }
+      );
+    }
+
+    setPlace(DEFAULT.place);
+    refresh();
+    setInterval(refresh, REFRESH_MS);
   })();
 
   var ICONS = {
