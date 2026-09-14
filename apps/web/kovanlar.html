@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kovanlar · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="ana.html">← Ana</a>
+      <a class="chip" href="arici.html">Arıcı</a>
+      <a class="chip" href="ayarlar.html">Ayarlar</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div>
+        <h1>SüperArı</h1>
+        <p id="pageSub">Kovanlar</p>
+      </div>
+    </div>
+
+    <section class="card stack">
+      <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
+      <p class="muted" id="summary">Demo kovan listesi…</p>
+      <div class="list" id="hive-list"></div>
+      <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
+    </section>
+  </main>
+  <script src="demo-data.js"></script>
+  <script>
+    (function () {
+      var D = window.SuperAriDemo;
+      if (!D) return;
+      var params = new URLSearchParams(location.search);
+      var view = (params.get('view') || '').toLowerCase();
+      var focusId = params.get('id');
+      var listEl = document.getElementById('hive-list');
+      var titleEl = document.getElementById('pageTitle');
+      var subEl = document.getElementById('pageSub');
+      var summaryEl = document.getElementById('summary');
+      var noteEl = document.getElementById('pageNote');
+
+      var titles = {
+        tarti: 'Tartı',
+        saglik: 'Sağlık',
+        koloni: 'Koloni',
+        ariliklar: 'Arılıklar',
+        '': 'Kovanlar'
+      };
+      var label = titles[view] != null ? titles[view] : 'Kovanlar';
+      titleEl.textContent = label;
+      subEl.textContent = label;
+
+      if (view === 'ariliklar') {
+        summaryEl.textContent = D.apiaries.length + ' arılık · kovan dağılımı';
+        noteEl.textContent = 'Arılık özeti. Tek tek kovanlar için Kovanlar listesine dönün.';
+        listEl.innerHTML = D.apiaries.map(function (a) {
+          return (
+            '<article class="item-card">' +
+              '<div class="row">' +
+                '<h3>' + a.name + '</h3>' +
+                '<span class="badge priority-2">' + a.hiveCount + ' kovan</span>' +
+              '</div>' +
+              '<div class="meta">' + a.place +
+                ' · <a href="kovanlar.html?view=arilik&amp;apiary=' + a.id + '">Kovanları gör</a></div>' +
+            '</article>'
+          );
+        }).join('');
+        return;
+      }
+
+      var hives = D.hives.slice();
+      var apiaryFilter = params.get('apiary');
+      if (apiaryFilter) {
+        hives = hives.filter(function (h) { return h.apiaryId === apiaryFilter; });
+      }
+      if (focusId) {
+        var one = D.hiveById(focusId);
+        if (one) hives = [one];
+      }
+
+      if (view === 'tarti') {
+        summaryEl.textContent = hives.length + ' kovan · tartı / ağırlık değişimi';
+        noteEl.textContent = 'Tartı odaklı görünüm (delta kg).';
+      } else if (view === 'saglik') {
+        summaryEl.textContent = hives.length + ' kovan · sağlık skoru';
+        noteEl.textContent = 'Sağlık odaklı görünüm.';
+      } else if (view === 'koloni') {
+        summaryEl.textContent = hives.length + ' kovan · koloni skoru';
+        noteEl.textContent = 'Koloni gücü odaklı görünüm.';
+      } else {
+        summaryEl.textContent = hives.length + ' demo kovan · canlı filoda ~' + D.counts.hives;
+      }
+
+      listEl.innerHTML = hives.map(function (h) {
+        var ap = D.apiaryById(h.apiaryId);
+        var place = ap ? ap.name : '—';
+        var badge;
+        var meta;
+        if (view === 'tarti') {
+          var sign = h.deltaKg > 0 ? '+' : '';
+          badge = sign + h.deltaKg.toFixed(1) + ' kg';
+          meta = h.weightKg.toFixed(1) + ' kg · ' + place;
+        } else if (view === 'saglik') {
+          badge = h.health;
+          meta = 'Skor ' + h.healthScore + ' · ' + place;
+        } else if (view === 'koloni') {
+          badge = String(h.colonyScore);
+          meta = 'Koloni · ' + place;
+        } else {
+          badge = h.weightKg.toFixed(1) + ' kg';
+          meta = place + ' · sağlık ' + h.health + ' · oğul ' + h.swarmRisk;
+        }
+        var tone = h.healthScore < 50 ? 'priority-1' : (h.healthScore < 70 ? 'priority-2' : 'priority-3');
+        return (
+          '<article class="item-card" id="hive-' + h.id + '">' +
+            '<div class="row">' +
+              '<h3>' + h.name + '</h3>' +
+              '<span class="badge ' + tone + '">' + badge + '</span>' +
+            '</div>' +
+            '<div class="meta">' + meta +
+              ' · <a href="petek-tarama.html?hiveId=' + h.id + '">Petek tarama</a></div>' +
+          '</article>'
+        );
+      }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
+    })();
+  </script>
+</body>
+</html>
