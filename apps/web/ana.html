@@ -30,15 +30,30 @@
     --wood-hi: #e8c9a0;
     --wood-lo: #c9965a;
     --wood-edge: #a8743f;
+    --hardal: #d4a017;
+    --hardal-hi: #f0c43a;
+    --hardal-lo: #b8860b;
+    --hardal-soft: #f4e3b0;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    width: 100%; height: 100%;
+    width: 100%;
+    min-height: 100%;
     background: #1a1a1a;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  /* Top-align phone so Hardal brand strip stays on-screen when viewport < 844px
+     (center alignment previously clipped the strip to a mustard sliver). */
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px 0 28px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 
   .phone {
     width: var(--phone-w); height: var(--phone-h);
@@ -62,51 +77,104 @@
    position: relative;
   }
 
+  /* Hardal işletme şeridi — mustard brand signal, left-aligned, always above weather */
   .brand-strip {
-    flex: 0 0 auto; min-height: 28px; display: flex; align-items: center; justify-content: flex-start;
-    padding: 4px 12px; margin-bottom: 8px;
-    background: linear-gradient(180deg, #fff8ee 0%, #f5ead8 100%);
-    border: 1px solid #e8dcc8; border-radius: 10px;
-    color: var(--brown-mid); font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    position: relative;
+    z-index: 12;
+    flex: 0 0 auto;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 7px 12px 7px 10px;
+    margin-bottom: 8px;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
+    border: 1px solid #e0c56a;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    color: var(--brown);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    overflow: hidden;
   }
-  .brand-strip .brand-name { text-align: left; line-height: 1.2; }
+  .brand-strip::before {
+    content: "";
+    flex: 0 0 4px;
+    align-self: stretch;
+    margin: -2px 0;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--hardal-hi), var(--hardal) 40%, var(--hardal-lo));
+  }
+  .brand-strip .brand-name {
+    text-align: left;
+    line-height: 1.2;
+    color: var(--brown);
+  }
 
-  /* Center podium: name first, then bee — avoid weather 22 on the right */
-  .bee-podium {
-    position: absolute; top: 58px; left: 50%; margin-left: -44px; transform: none; z-index: 9;
-    width: 88px; height: 78px;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  /* Bee + name: high in the mid-gap — near Arılık Kuzey, clear of weekdays */
+  .bee-gap {
+    position: relative;
+    z-index: 9;
+    height: 56px;
+    margin: 0 0 12px; /* keep weekdays well below the bee */
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 4px; /* slight air under header; bee still in upper half of gap */
     pointer-events: none;
   }
+  .bee-podium {
+    position: relative;
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    z-index: 9;
+    pointer-events: none;
+  }
+  .bee-podium .podium-stage {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center bottom, rgba(90,60,30,.22) 0%, rgba(90,60,30,.06) 45%, transparent 70%);
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .bee-podium.is-ready .podium-stage { opacity: 1; }
   .bee-podium .podium-name {
     font-size: 9px; font-weight: 800; color: var(--brown-mid);
     background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
     border-radius: 999px; padding: 1px 8px; line-height: 1.35;
-    opacity: 0; transform: translateY(4px);
+    opacity: 0; transform: translateX(-4px);
     transition: opacity .35s ease, transform .35s ease;
-    margin-bottom: 2px; white-space: nowrap;
+    margin: 0; white-space: nowrap;
   }
   .bee-podium .podium-name.is-on {
-    opacity: 1; transform: translateY(0);
+    opacity: 1; transform: translateX(0);
   }
-  .bee-podium .podium-stage {
-    width: 54px; height: 10px; border-radius: 50%;
-    background: radial-gradient(ellipse at center, rgba(90,60,30,.22) 0%, rgba(90,60,30,.06) 55%, transparent 70%);
-    opacity: 0; transition: opacity .3s ease;
-  }
-  .bee-podium.is-ready .podium-stage { opacity: 1; }
 
   .weather {
     flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 16px;
-    padding: 10px 12px 12px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    /* tighter top padding — no empty white band above Arılık Kuzey */
+    padding: 6px 12px 10px; margin-top: 0; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
   }
-  .weather-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .weather-top { display: flex; align-items: center; gap: 8px; margin-bottom: 0; }
   .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
   .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); }
   .weather-temp { margin-left: auto; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
   .forecast { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
-  .day { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .day-name { font-size: 10px; font-weight: 600; color: var(--muted); }
+  .day-date { font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .day.is-today .day-name,
+  .day.is-today .day-date { color: var(--hardal-lo, #b8860b); }
   .day-ico { width: 18px; height: 18px; }
   .day-hi { font-size: 11px; font-weight: 700; color: var(--text); }
   .day-lo { font-size: 10px; color: #8a8278; }
@@ -119,13 +187,13 @@
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
     position: relative; overflow: hidden; min-height: 0; height: 100%;
     /* footer reserved for label+badge; hive fills the rest and centers */
-    padding: 0 0 38px;
+    padding: 0 0 46px;
   }
   .hive-area {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 38px;
+    position: absolute; left: 0; right: 0; top: 0; bottom: 46px;
     display: flex; align-items: center; justify-content: center;
     /* optical nudge: visual hive mass sits high inside .hive box */
-    padding-top: 34px;
+    padding-top: 28px;
   }
 
   /* ===== Shared hive: EQUAL tiers, FLUSH sides ===== */
@@ -221,7 +289,7 @@
   .hive-icon svg { width: 18px; height: 18px; display: block; }
 
   .tile-label {
-    position: absolute; left: 0; right: 0; bottom: 20px;
+    position: absolute; left: 0; right: 0; bottom: 26px;
     font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
     text-align: center;
   }
@@ -253,7 +321,7 @@
   }
 
   body.shot, html.shot { background: #f7f8fa !important; width: 390px; height: 844px; overflow: hidden; }
-  body.shot { display: block; margin: 0; }
+  body.shot { display: block; margin: 0; padding: 0; }
   body.shot .phone { box-shadow: none !important; border-radius: 0 !important; width: 390px; height: 844px; }
   body.shot .phone-notch, body.shot .home-indicator { display: none !important; }
 
@@ -310,13 +378,9 @@
   </div>
 
   <div class="screen">
-    <div class="brand-strip">
+    <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
-    </div>
-    <div class="bee-podium" id="beePodium" aria-hidden="true">
-      <span class="podium-name" id="podiumName"></span>
-      <div class="podium-stage"></div>
-    </div>
+    </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
       <img src="assets/bees/karniyol.png" alt="" data-breed="Karniyol">
@@ -332,14 +396,20 @@
         <div class="weather-loc">Arılık Kuzey</div>
         <div class="weather-temp">22°</div>
       </div>
-      <div class="forecast">
-        <div class="day"><div class="day-name">Pzt</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">24°</div><div class="day-lo">12°</div></div>
-        <div class="day"><div class="day-name">Sal</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">22°</div><div class="day-lo">11°</div></div>
-        <div class="day"><div class="day-name">Çar</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">19°</div><div class="day-lo">10°</div></div>
-        <div class="day"><div class="day-name">Per</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="6" ry="3.5" fill="#9aadc2"/><path d="M7 14l1 3M10 14l1 3M13 14l1 3" stroke="#5b8def" stroke-width="1.2"/></svg><div class="day-hi">17°</div><div class="day-lo">8°</div></div>
-        <div class="day"><div class="day-name">Cum</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">18°</div><div class="day-lo">7°</div></div>
-        <div class="day"><div class="day-name">Cmt</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
-        <div class="day"><div class="day-name">Paz</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
+      <div class="bee-gap" aria-hidden="true">
+        <div class="bee-podium" id="beePodium">
+          <div class="podium-stage" id="podiumStage"></div>
+          <span class="podium-name" id="podiumName"></span>
+        </div>
+      </div>
+      <div class="forecast" id="forecast">
+        <div class="day"><div class="day-name">Pzt</div><div class="day-date">7</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">24°</div><div class="day-lo">12°</div></div>
+        <div class="day"><div class="day-name">Sal</div><div class="day-date">8</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">22°</div><div class="day-lo">11°</div></div>
+        <div class="day"><div class="day-name">Çar</div><div class="day-date">9</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">19°</div><div class="day-lo">10°</div></div>
+        <div class="day"><div class="day-name">Per</div><div class="day-date">10</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="6" ry="3.5" fill="#9aadc2"/><path d="M7 14l1 3M10 14l1 3M13 14l1 3" stroke="#5b8def" stroke-width="1.2"/></svg><div class="day-hi">17°</div><div class="day-lo">8°</div></div>
+        <div class="day"><div class="day-name">Cum</div><div class="day-date">11</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">18°</div><div class="day-lo">7°</div></div>
+        <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
+        <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
       </div>
     </section>
 
@@ -377,6 +447,35 @@
     document.documentElement.classList.add('shot');
     document.body.classList.add('shot');
   }
+
+  // Weekday strip: live Mon–Sun dates for the current calendar week
+  (function fillForecastDates() {
+    var root = document.getElementById('forecast');
+    if (!root) return;
+    var days = root.querySelectorAll('.day');
+    if (!days.length) return;
+    var labels = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']; // JS getDay() order
+    var trShort = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']; // Mon→Sun display
+    var now = new Date();
+    var todayY = now.getFullYear(), todayM = now.getMonth(), todayD = now.getDate();
+    // Monday of this week (Mon=0 … Sun=6 in trShort)
+    var monday = new Date(todayY, todayM, todayD);
+    var dow = monday.getDay(); // 0 Sun … 6 Sat
+    var offsetToMon = dow === 0 ? -6 : 1 - dow;
+    monday.setDate(monday.getDate() + offsetToMon);
+    for (var i = 0; i < days.length && i < 7; i++) {
+      var d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      var nameEl = days[i].querySelector('.day-name');
+      var dateEl = days[i].querySelector('.day-date');
+      if (nameEl) nameEl.textContent = trShort[i];
+      if (dateEl) dateEl.textContent = String(d.getDate());
+      var isToday = d.getFullYear() === todayY && d.getMonth() === todayM && d.getDate() === todayD;
+      days[i].classList.toggle('is-today', isToday);
+      days[i].setAttribute('aria-label', trShort[i] + ' ' + d.getDate());
+    }
+    // silence unused (kept for clarity of JS day index)
+    void labels;
+  })();
 
   var ICONS = {
     tarti: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3e2c8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="M7 7h10"/><path d="M7 7l-3 6h6L7 7z"/><path d="M17 7l-3 6h6l-3-6z"/><path d="M9 21h6"/></svg>',
@@ -465,10 +564,11 @@
 
     function podiumPoint() {
       var s = screenEl.getBoundingClientRect();
-      var p = podium.getBoundingClientRect();
+      var stage = document.getElementById('podiumStage') || podium;
+      var p = stage.getBoundingClientRect();
       return {
         x: p.left - s.left + p.width / 2,
-        y: p.top - s.top + p.height - 18
+        y: p.top - s.top + p.height / 2
       };
     }
 
