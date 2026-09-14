@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Uyarılar · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="ana.html">← Ana</a>
+      <a class="chip" href="arici.html">Arıcı</a>
+      <a class="chip" href="ayarlar.html">Ayarlar</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div>
+        <h1>SüperArı</h1>
+        <p id="pageSub">Uyarılar</p>
+      </div>
+    </div>
+
+    <section class="card stack">
+      <h2 style="margin:0;" id="pageTitle">Uyarılar</h2>
+      <p class="muted" id="summary">Demo uyarı listesi…</p>
+      <div class="list" id="alert-list"></div>
+      <div class="note">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
+    </section>
+  </main>
+  <script src="demo-data.js"></script>
+  <script>
+    (function () {
+      var D = window.SuperAriDemo;
+      if (!D) return;
+      var params = new URLSearchParams(location.search);
+      var view = (params.get('view') || '').toLowerCase();
+      var listEl = document.getElementById('alert-list');
+      var titleEl = document.getElementById('pageTitle');
+      var subEl = document.getElementById('pageSub');
+      var summaryEl = document.getElementById('summary');
+
+      var alerts = D.alerts.slice();
+      if (view === 'ogul') {
+        alerts = alerts.filter(function (a) { return a.type === 'ogul'; });
+        titleEl.textContent = 'Oğul uyarıları';
+        subEl.textContent = 'Oğul';
+      }
+
+      summaryEl.textContent = alerts.length + ' açık uyarı' + (view === 'ogul' ? ' · oğul' : '');
+
+      listEl.innerHTML = alerts.map(function (a) {
+        var hive = D.hiveById(a.hiveId);
+        var hiveName = hive ? hive.name : ('Kovan ' + a.hiveId);
+        var pri = a.severity === 'high' ? 1 : (a.severity === 'medium' ? 2 : 3);
+        return (
+          '<article class="item-card">' +
+            '<div class="row">' +
+              '<h3>' + a.title + '</h3>' +
+              '<span class="badge priority-' + pri + '">' + (a.type || 'uyarı') + '</span>' +
+            '</div>' +
+            '<div class="meta">' + hiveName +
+              ' · <a href="kovanlar.html?id=' + a.hiveId + '">Kovana git</a></div>' +
+          '</article>'
+        );
+      }).join('') || '<p class="muted">Açık uyarı yok.</p>';
+    })();
+  </script>
+</body>
+</html>
