@@ -202,11 +202,11 @@
   .tile {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
     position: relative; overflow: hidden; min-height: 0; height: 100%;
-    /* footer reserved for label+badge; hive fills the rest and centers */
-    padding: 0 0 46px;
+    /* footer: label ~0.5cm above badge so titles (Tartı/Sağlık/…) clear status */
+    padding: 0 0 65px;
   }
   .hive-area {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 46px;
+    position: absolute; left: 0; right: 0; top: 0; bottom: 65px;
     display: flex; align-items: center; justify-content: center;
     /* optical nudge: visual hive mass sits high inside .hive box */
     padding-top: 28px;
@@ -305,7 +305,8 @@
   .hive-icon svg { width: 18px; height: 18px; display: block; }
 
   .tile-label {
-    position: absolute; left: 0; right: 0; bottom: 26px;
+    /* ~0.5cm (19px) higher than prior 26px — clears badge (+1.2kg, İyi, …) */
+    position: absolute; left: 0; right: 0; bottom: 45px;
     font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
     text-align: center;
   }
