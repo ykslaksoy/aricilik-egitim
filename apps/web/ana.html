@@ -117,13 +117,28 @@
     margin-left: auto;
     flex: 0 1 auto;
     max-width: 46%;
-    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: .02em;
     color: var(--brown-mid, #6b4f2a);
     line-height: 1.2;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .brand-strip .brand-loc-pin {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    display: block;
+    color: var(--brown, #3d2616);
+  }
+  .brand-strip .brand-loc-text {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -427,7 +442,12 @@
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
-      <span class="brand-loc" id="brandLoc" title="Konum">Erzurum</span>
+      <span class="brand-loc" id="brandLoc" title="Konum">
+        <svg class="brand-loc-pin" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
+        </svg>
+        <span class="brand-loc-text" id="brandLocText">Erzurum</span>
+      </span>
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
@@ -532,11 +552,12 @@
     var REFRESH_MS = 15 * 60 * 1000;
     var tempEl = document.getElementById('weatherTemp');
     var brandLoc = document.getElementById('brandLoc');
+    var brandLocText = document.getElementById('brandLocText');
     if (tempEl) {
       tempEl.removeAttribute('data-locked');
       tempEl.removeAttribute('data-temp');
     }
-    if (brandLoc && !brandLoc.textContent.trim()) brandLoc.textContent = DEFAULT.place;
+    if (brandLocText && !brandLocText.textContent.trim()) brandLocText.textContent = DEFAULT.place;
 
     function roundC(v) {
       var n = Math.round(Number(v));
@@ -551,9 +572,10 @@
     }
 
     function setPlace(name) {
-      if (!brandLoc || !name) return;
-      brandLoc.textContent = name;
-      brandLoc.setAttribute('title', name);
+      if (!name) return;
+      if (brandLocText) brandLocText.textContent = name;
+      else if (brandLoc) brandLoc.textContent = name;
+      if (brandLoc) brandLoc.setAttribute('title', name);
     }
 
     function updateForecastDaily(daily) {
