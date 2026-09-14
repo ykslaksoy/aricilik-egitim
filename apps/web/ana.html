@@ -205,11 +205,11 @@
   }
   .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
   .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); }
-  /* Live °C from Open-Meteo (see liveWeather) */
-  .weather-temp { margin-left: auto; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  /* Live °C from Open-Meteo (see liveWeather) — far right of weather-top */
+  .weather-temp { margin-left: 6px; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto; }
   .bee-toggle {
     flex: 0 0 auto;
-    margin-left: 6px;
+    margin-left: auto;
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -551,7 +551,6 @@
             <span class="podium-name" id="podiumName"></span>
           </div>
         </div>
-        <div class="weather-temp" id="weatherTemp">—°</div>
         <button type="button" class="bee-toggle" id="beeToggle" aria-pressed="true" aria-label="Arıları kapat" title="Arıları aç/kapat">
           <svg class="bee-toggle-ico" viewBox="0 0 24 24" aria-hidden="true">
             <ellipse cx="12" cy="14" rx="3.2" ry="4.2" fill="currentColor"/>
@@ -560,6 +559,7 @@
           </svg>
           <span class="bee-toggle-text">Arılar</span>
         </button>
+        <div class="weather-temp" id="weatherTemp">—°</div>
       </div>
       <div class="forecast" id="forecast">
         <div class="day"><div class="day-name">Pzt</div><div class="day-date">7</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">24°</div><div class="day-lo">12°</div></div>
