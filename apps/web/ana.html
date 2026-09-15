@@ -78,7 +78,7 @@
    position: relative;
   }
 
-  /* Hardal işletme şeridi — brand left + lock text only; location lives in weather card below */
+  /* Hardal işletme şeridi — 3D bee logo + brand + lock; location lives in weather card below */
   .brand-strip {
     position: relative;
     z-index: 12;
@@ -88,7 +88,7 @@
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
-    padding: 7px 12px 7px 10px;
+    padding: 7px 12px 7px 8px;
     margin-bottom: 8px;
     background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
     border: 1px solid #e0c56a;
@@ -100,13 +100,36 @@
     letter-spacing: .03em;
     overflow: hidden;
   }
-  .brand-strip::before {
-    content: "";
-    flex: 0 0 4px;
-    align-self: stretch;
-    margin: -2px 0;
-    border-radius: 3px;
-    background: linear-gradient(180deg, var(--hardal-hi), var(--hardal) 40%, var(--hardal-lo));
+  .brand-logo-btn {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transform-style: preserve-3d;
+    transition: transform .18s ease;
+  }
+  .brand-logo-btn:active { transform: scale(0.92) rotateY(12deg); }
+  .brand-logo-btn:focus-visible {
+    outline: 2px solid rgba(212, 160, 23, 0.55);
+    outline-offset: 2px;
+  }
+  .brand-logo-btn .bee-3d {
+    width: 26px;
+    height: 26px;
+    display: block;
+    filter:
+      drop-shadow(0 1px 0 rgba(255, 248, 220, 0.9))
+      drop-shadow(0 2px 3px rgba(74, 47, 26, 0.28))
+      drop-shadow(0 4px 6px rgba(74, 47, 26, 0.12));
+    transform: perspective(80px) rotateX(8deg) rotateY(-6deg);
   }
   .brand-strip .brand-name {
     flex: 0 1 auto;
@@ -294,7 +317,15 @@
     color: var(--text);
   }
   /* Live °C from Open-Meteo (see liveWeather) — far right of weather-top */
-  .weather-temp { margin-left: 6px; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto; }
+  .weather-temp {
+    margin-left: 6px; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .weather-temp:focus-visible {
+    outline: 2px solid rgba(212, 160, 23, 0.55);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
   .bee-toggle {
     flex: 0 0 auto;
     margin-left: auto;
@@ -343,8 +374,29 @@
     margin-top: 8px; padding: 8px 10px; border-radius: 10px;
     background: #fff8df; border: 1px solid #e0c56a;
     color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.35;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .muayene-hint[hidden] { display: none !important; }
+  .muayene-hint-text { flex: 1 1 auto; min-width: 0; }
+  .muayene-hint-ok {
+    flex: 0 0 auto;
+    min-height: 28px;
+    padding: 4px 11px;
+    border: 1px solid rgba(176, 140, 60, 0.45);
+    border-radius: 8px;
+    background: rgba(255, 252, 244, 0.95);
+    color: var(--brown, #4a2f1a);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .01em;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .muayene-hint-ok:active {
+    background: rgba(240, 196, 58, 0.28);
+  }
 
   .grid {
     flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
@@ -693,6 +745,7 @@
 
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
+      <button type="button" class="brand-logo-btn" id="brandLogoBtn" aria-label="Logo değiştir" title="Dokunarak logo değiştir"></button>
       <span class="brand-name">Hardal Arıcılık</span>
       <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Otomatik konum döngüsünü durdur">Konumu sabitle</button>
     </header>
@@ -732,7 +785,7 @@
           </svg>
           <span class="bee-toggle-text">Arılar</span>
         </button>
-        <div class="weather-temp" id="weatherTemp">—°</div>
+        <div class="weather-temp" id="weatherTemp" role="link" tabindex="0" title="Arılık hava geçmişi" aria-label="Arılık hava geçmişini aç">—°</div>
       </div>
       <div class="forecast" id="forecast">
         <div class="day"><div class="day-name">Pzt</div><div class="day-date">7</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">24°</div><div class="day-lo">12°</div></div>
@@ -743,7 +796,10 @@
         <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
         <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
       </div>
-      <div class="muayene-hint" id="muayeneHint" hidden></div>
+      <div class="muayene-hint" id="muayeneHint" hidden role="status">
+        <span class="muayene-hint-text" id="muayeneHintText"></span>
+        <button type="button" class="muayene-hint-ok" id="muayeneHintOk">Tamam</button>
+      </div>
     </section>
 
     <section class="grid" id="grid" aria-label="Ana paneller"></section>
@@ -832,6 +888,95 @@
     void labels;
   })();
 
+  // Hardal brand: tappable 3D bee logo (cycles + localStorage)
+  (function brandLogoCycle() {
+    var KEY = 'superari.ana.brandLogo';
+    var btn = document.getElementById('brandLogoBtn');
+    if (!btn) return;
+
+    var LOGOS = [
+      /* 0 — klasik önden arı, yumuşak 3D gradient */
+      '<svg class="bee-3d" viewBox="0 0 32 32" aria-hidden="true">' +
+        '<defs>' +
+          '<linearGradient id="b0body" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe566"/><stop offset="45%" stop-color="#f0c43a"/><stop offset="100%" stop-color="#b8860b"/></linearGradient>' +
+          '<linearGradient id="b0wing" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fffef8" stop-opacity=".95"/><stop offset="100%" stop-color="#d9e2ef" stop-opacity=".75"/></linearGradient>' +
+          '<radialGradient id="b0hi" cx="35%" cy="30%" r="55%"><stop offset="0%" stop-color="#fff8d0" stop-opacity=".7"/><stop offset="100%" stop-color="#fff8d0" stop-opacity="0"/></radialGradient>' +
+        '</defs>' +
+        '<ellipse cx="10" cy="12" rx="6.2" ry="4.2" fill="url(#b0wing)" stroke="#c5d0de" stroke-width=".6" transform="rotate(-28 10 12)"/>' +
+        '<ellipse cx="22" cy="12" rx="6.2" ry="4.2" fill="url(#b0wing)" stroke="#c5d0de" stroke-width=".6" transform="rotate(28 22 12)"/>' +
+        '<ellipse cx="16" cy="18.5" rx="7.2" ry="8.4" fill="url(#b0body)"/>' +
+        '<ellipse cx="16" cy="18.5" rx="7.2" ry="8.4" fill="url(#b0hi)"/>' +
+        '<path d="M9.2 14.8h13.6M9.2 18.5h13.6M9.8 22.2h12.4" stroke="#3d2616" stroke-width="1.35" stroke-linecap="round" opacity=".88"/>' +
+        '<circle cx="16" cy="8.2" r="3.1" fill="url(#b0body)"/>' +
+        '<circle cx="16" cy="8.2" r="3.1" fill="url(#b0hi)"/>' +
+        '<circle cx="14.7" cy="7.7" r=".55" fill="#2a1a10"/><circle cx="17.3" cy="7.7" r=".55" fill="#2a1a10"/>' +
+        '<path d="M13.6 5.4L12.2 3.4M18.4 5.4L19.8 3.4" stroke="#3d2616" stroke-width="1.1" stroke-linecap="round"/>' +
+      '</svg>',
+      /* 1 — yan profil arı */
+      '<svg class="bee-3d" viewBox="0 0 32 32" aria-hidden="true">' +
+        '<defs>' +
+          '<linearGradient id="b1body" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffe066"/><stop offset="55%" stop-color="#d4a017"/><stop offset="100%" stop-color="#8a6508"/></linearGradient>' +
+          '<linearGradient id="b1wing" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#c8d4e4" stop-opacity=".55"/><stop offset="100%" stop-color="#ffffff" stop-opacity=".92"/></linearGradient>' +
+        '</defs>' +
+        '<ellipse cx="17" cy="10" rx="7" ry="4.5" fill="url(#b1wing)" stroke="#b8c4d4" stroke-width=".55" transform="rotate(-18 17 10)"/>' +
+        '<ellipse cx="18" cy="19" rx="9" ry="6.2" fill="url(#b1body)"/>' +
+        '<path d="M11 16.2h14M10.5 19h15M11.5 21.8h13" stroke="#2f1c10" stroke-width="1.3" stroke-linecap="round"/>' +
+        '<circle cx="9.2" cy="17.2" r="3.4" fill="url(#b1body)"/>' +
+        '<circle cx="8.2" cy="16.4" r=".6" fill="#1f140c"/>' +
+        '<path d="M7.2 14.2L5.4 11.8" stroke="#3d2616" stroke-width="1.15" stroke-linecap="round"/>' +
+        '<path d="M26.2 19.2l2.4.4" stroke="#3d2616" stroke-width="1.2" stroke-linecap="round"/>' +
+      '</svg>',
+      /* 2 — altıgen rozet içinde arı */
+      '<svg class="bee-3d" viewBox="0 0 32 32" aria-hidden="true">' +
+        '<defs>' +
+          '<linearGradient id="b2hex" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff1c2"/><stop offset="100%" stop-color="#d4a017"/></linearGradient>' +
+          '<linearGradient id="b2body" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffe566"/><stop offset="100%" stop-color="#a67c00"/></linearGradient>' +
+        '</defs>' +
+        '<path d="M16 2.5 L26.5 8.5 V19.5 L16 25.5 L5.5 19.5 V8.5 Z" fill="url(#b2hex)" stroke="#b8860b" stroke-width="1.2"/>' +
+        '<ellipse cx="11.5" cy="13" rx="4.2" ry="2.8" fill="#eef3f9" stroke="#b8c4d4" stroke-width=".5" opacity=".9" transform="rotate(-24 11.5 13)"/>' +
+        '<ellipse cx="20.5" cy="13" rx="4.2" ry="2.8" fill="#eef3f9" stroke="#b8c4d4" stroke-width=".5" opacity=".9" transform="rotate(24 20.5 13)"/>' +
+        '<ellipse cx="16" cy="17.5" rx="5.4" ry="6.2" fill="url(#b2body)"/>' +
+        '<path d="M11.2 14.8h9.6M11.2 17.5h9.6M11.6 20.2h8.8" stroke="#3d2616" stroke-width="1.15" stroke-linecap="round"/>' +
+        '<circle cx="16" cy="10.2" r="2.4" fill="url(#b2body)"/>' +
+        '<circle cx="15" cy="9.8" r=".45" fill="#2a1a10"/><circle cx="17" cy="9.8" r=".45" fill="#2a1a10"/>' +
+      '</svg>',
+      /* 3 — tombul uçan arı */
+      '<svg class="bee-3d" viewBox="0 0 32 32" aria-hidden="true">' +
+        '<defs>' +
+          '<radialGradient id="b3body" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#fff0a8"/><stop offset="55%" stop-color="#f0c43a"/><stop offset="100%" stop-color="#9a7209"/></radialGradient>' +
+          '<linearGradient id="b3wing" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#cfd8e6"/></linearGradient>' +
+        '</defs>' +
+        '<ellipse cx="9" cy="11" rx="7" ry="5" fill="url(#b3wing)" opacity=".88" transform="rotate(-35 9 11)"/>' +
+        '<ellipse cx="23" cy="11" rx="7" ry="5" fill="url(#b3wing)" opacity=".88" transform="rotate(35 23 11)"/>' +
+        '<ellipse cx="16" cy="19" rx="8.4" ry="7.2" fill="url(#b3body)"/>' +
+        '<path d="M8.4 16h15.2M8 19.2h16M9 22.2h14" stroke="#3d2616" stroke-width="1.4" stroke-linecap="round" opacity=".9"/>' +
+        '<circle cx="16" cy="9.5" r="3.4" fill="url(#b3body)"/>' +
+        '<circle cx="14.6" cy="9" r=".6" fill="#2a1a10"/><circle cx="17.4" cy="9" r=".6" fill="#2a1a10"/>' +
+        '<path d="M13.8 6.4L12.2 4.2M18.2 6.4L19.8 4.2" stroke="#3d2616" stroke-width="1.15" stroke-linecap="round"/>' +
+        '<ellipse cx="16" cy="11.2" rx="1.1" ry=".7" fill="#5c3a1f" opacity=".35"/>' +
+      '</svg>'
+    ];
+
+    var idx = 0;
+    try {
+      var saved = parseInt(localStorage.getItem(KEY), 10);
+      if (isFinite(saved) && saved >= 0 && saved < LOGOS.length) idx = saved;
+    } catch (e) { /* ignore */ }
+
+    function paint() {
+      btn.innerHTML = LOGOS[idx];
+      btn.setAttribute('data-logo', String(idx));
+      btn.setAttribute('aria-label', 'Logo ' + (idx + 1) + '/' + LOGOS.length + ' — değiştirmek için dokun');
+    }
+
+    paint();
+    btn.addEventListener('click', function () {
+      idx = (idx + 1) % LOGOS.length;
+      try { localStorage.setItem(KEY, String(idx)); } catch (e) { /* ignore */ }
+      paint();
+    });
+  })();
+
   // Weather-card title = active arılık (10s cycle). °C/forecast follow lat/lon.
   // Lock pauses auto-cycle only; prev/next arrows always change location (and update lock target).
   // Hardal band: brand + lock text only (no pin/location).
@@ -844,16 +989,22 @@
     var WEATHER_REFRESH_MS = 15 * 60 * 1000;
     var CYCLE_MS = 10000;
     var LOCK_KEY = 'superari.ana.arilikLock';
+    var SELECTED_KEY = 'superari.ana.selectedApiary';
+    var MUAYENE_DISMISS_KEY = 'superari.ana.muayeneHintDismiss';
     var tempEl = document.getElementById('weatherTemp');
     var weatherLocLabel = document.getElementById('weatherLocLabel');
     var lockBtn = document.getElementById('arilikLockBtn');
     var prevBtn = document.getElementById('arilikPrev');
     var nextBtn = document.getElementById('arilikNext');
+    var muayeneEl = document.getElementById('muayeneHint');
+    var muayeneText = document.getElementById('muayeneHintText');
+    var muayeneOk = document.getElementById('muayeneHintOk');
     var apiaries = DEMO_APIARIES.slice();
     var idx = 0;
     var cycleTimer = null;
     var weatherCache = {};
     var locked = false;
+    var activeMuayeneTipDate = null;
 
     if (tempEl) {
       tempEl.removeAttribute('data-locked');
@@ -897,24 +1048,25 @@
       var dow = monday.getDay();
       monday.setDate(monday.getDate() + (dow === 0 ? -6 : 1 - dow));
       var byDate = {};
-      for (var i = 0; i < daily.time.length; i++) {
-        byDate[daily.time[i]] = {
-          hi: roundC(daily.temperature_2m_max && daily.temperature_2m_max[i]),
-          lo: roundC(daily.temperature_2m_min && daily.temperature_2m_min[i])
-        };
+      for (var di = 0; di < daily.time.length; di++) {
+        byDate[daily.time[di]] = di;
       }
-      for (var d = 0; d < days.length && d < 7; d++) {
-        var dt = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + d);
+      for (var i = 0; i < days.length && i < 7; i++) {
+        var d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
         var key =
-          dt.getFullYear() + '-' +
-          String(dt.getMonth() + 1).padStart(2, '0') + '-' +
-          String(dt.getDate()).padStart(2, '0');
-        var row = byDate[key];
-        if (!row) continue;
-        var hiEl = days[d].querySelector('.day-hi');
-        var loEl = days[d].querySelector('.day-lo');
-        if (hiEl && row.hi != null) hiEl.textContent = row.hi + '°';
-        if (loEl && row.lo != null) loEl.textContent = row.lo + '°';
+          d.getFullYear() +
+          '-' +
+          String(d.getMonth() + 1).padStart(2, '0') +
+          '-' +
+          String(d.getDate()).padStart(2, '0');
+        var mi = byDate[key];
+        if (mi == null) continue;
+        var hiEl = days[i].querySelector('.day-hi');
+        var loEl = days[i].querySelector('.day-lo');
+        var hi = roundC(daily.temperature_2m_max && daily.temperature_2m_max[mi]);
+        var lo = roundC(daily.temperature_2m_min && daily.temperature_2m_min[mi]);
+        if (hiEl && hi != null) hiEl.textContent = hi + '°';
+        if (loEl && lo != null) loEl.textContent = lo + '°';
       }
     }
 
@@ -944,22 +1096,107 @@
       } catch (e) { /* ignore storage errors */ }
     }
 
+    function readMuayeneDismiss() {
+      try {
+        var raw = localStorage.getItem(MUAYENE_DISMISS_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function isMuayeneDismissed(tipDate) {
+      if (!tipDate) return false;
+      var d = readMuayeneDismiss();
+      if (!d) return false;
+      /* Hide until the tip date changes (next relevant tip) */
+      return d.tipDate === tipDate;
+    }
+
+    function dismissMuayeneHint() {
+      if (!muayeneEl) return;
+      muayeneEl.hidden = true;
+      if (!activeMuayeneTipDate) return;
+      try {
+        localStorage.setItem(
+          MUAYENE_DISMISS_KEY,
+          JSON.stringify({
+            tipDate: activeMuayeneTipDate,
+            dismissedAt: new Date().toISOString()
+          })
+        );
+      } catch (e) { /* ignore */ }
+    }
+
     function updateMuayeneHint(daily) {
-      var el = document.getElementById('muayeneHint');
-      if (!el) return;
+      if (!muayeneEl) return;
       if (!window.SuperAriHava || !daily) {
-        el.hidden = true;
-        el.textContent = '';
+        muayeneEl.hidden = true;
+        activeMuayeneTipDate = null;
+        if (muayeneText) muayeneText.textContent = '';
         return;
       }
       var best = window.SuperAriHava.bestInspectionDay(daily);
       if (!best) {
-        el.hidden = true;
-        el.textContent = '';
+        muayeneEl.hidden = true;
+        activeMuayeneTipDate = null;
+        if (muayeneText) muayeneText.textContent = '';
         return;
       }
-      el.hidden = false;
-      el.textContent = 'Uygun muayene: ' + best.dayLabel + ' — ' + best.reason;
+      activeMuayeneTipDate = best.date;
+      if (isMuayeneDismissed(best.date)) {
+        muayeneEl.hidden = true;
+        return;
+      }
+      muayeneEl.hidden = false;
+      if (muayeneText) {
+        muayeneText.textContent = 'Uygun muayene: ' + best.dayLabel + ' — ' + best.reason;
+      } else {
+        muayeneEl.textContent = 'Uygun muayene: ' + best.dayLabel + ' — ' + best.reason;
+      }
+    }
+
+    if (muayeneOk) {
+      muayeneOk.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dismissMuayeneHint();
+      });
+    }
+    if (muayeneEl) {
+      muayeneEl.addEventListener('click', function (e) {
+        if (e.target === muayeneOk) return;
+        dismissMuayeneHint();
+      });
+    }
+
+    function writeSelectedApiary() {
+      var a = currentApiary();
+      if (!a) return;
+      try {
+        localStorage.setItem(
+          SELECTED_KEY,
+          JSON.stringify({ id: a.id, label: a.label, at: Date.now() })
+        );
+      } catch (e) { /* ignore */ }
+    }
+
+    function openHavaRaporu() {
+      var a = currentApiary();
+      writeSelectedApiary();
+      var q = a && a.id ? ('?apiary=' + encodeURIComponent(a.id)) : '';
+      window.location.href = 'hava-raporu.html' + q;
+    }
+
+    if (tempEl) {
+      tempEl.addEventListener('click', openHavaRaporu);
+      tempEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openHavaRaporu();
+        }
+      });
     }
 
     function currentApiary() {
@@ -1064,6 +1301,7 @@
       idx = ((i % apiaries.length) + apiaries.length) % apiaries.length;
       var a = currentApiary();
       setPlace(a.label, withFade);
+      writeSelectedApiary();
       refreshWeather(false);
       if (locked) writeLock();
     }
