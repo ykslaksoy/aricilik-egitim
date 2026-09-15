@@ -3,7 +3,7 @@
  * Replaces missing SuperAriDemo dependency so list pages render without API.
  */
 (function (global) {
-  /* Arılık location labels for band cycle + panel lists (distinct place names). */
+  /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var apiaries = [
     { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 39.92, lon: 41.27, hiveCount: 42 },
     { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.61, lon: 41.66, hiveCount: 35 },
