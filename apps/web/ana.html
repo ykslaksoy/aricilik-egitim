@@ -781,6 +781,7 @@
   <div class="home-indicator"></div>
 </div>
 
+<script src="demo-data.js"></script>
 <script src="hava-kayit.js"></script>
 <script>
 (function () {
@@ -1138,31 +1139,50 @@
       return out.length ? out : null;
     }
 
-    function fromDemoGlobal() {
+    function fromLocalStore() {
       var D = window.SuperAriDemo;
-      if (!D || !D.apiaries || !D.apiaries.length) return null;
-      return normalizeList(D.apiaries.map(function (a) {
+      if (!D || typeof D.loadApiaries !== 'function') return null;
+      var list = D.loadApiaries();
+      if (!list || !list.length) return null;
+      return normalizeList(list.map(function (a) {
         return {
           id: a.id,
           place: a.place,
           label: a.place || a.name,
+          name: a.name,
           lat: a.lat,
           lon: a.lon
         };
       }));
     }
 
+    /**
+     * Same source as Arılıklar list: localStorage via SuperAriDemo.
+     * Do not prefer /api/locations — that is a 3-item server seed and
+     * hides user-added apiaries (e.g. Balığındüzü).
+     */
     function loadApiaries() {
-      return fetch('/api/locations')
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) {
-          var fromApi = normalizeList(j && (j.locations || j.apiaries));
-          if (fromApi) return fromApi;
-          return fromDemoGlobal() || DEMO_APIARIES.slice();
-        })
-        .catch(function () {
-          return fromDemoGlobal() || DEMO_APIARIES.slice();
-        });
+      var fromStore = fromLocalStore();
+      if (fromStore && fromStore.length) {
+        return Promise.resolve(fromStore);
+      }
+      return Promise.resolve(DEMO_APIARIES.slice());
+    }
+
+    function applyApiaryList(list, keepIndex) {
+      var prevId = currentApiary() && currentApiary().id;
+      apiaries = list && list.length ? list : DEMO_APIARIES.slice();
+      if (keepIndex && prevId) {
+        for (var i = 0; i < apiaries.length; i++) {
+          if (apiaries[i].id === prevId) {
+            idx = i;
+            break;
+          }
+        }
+      }
+      syncNavBtns();
+      if (locked) restoreLockIndex();
+      startCycle(true);
     }
 
     if (lockBtn) {
@@ -1177,6 +1197,20 @@
       nextBtn.addEventListener('click', function () { stepApiary(1); });
     }
 
+    var bootDone = false;
+
+    /* Refresh when returning from Arılıklar after add/edit */
+    window.addEventListener('pageshow', function () {
+      if (!bootDone) return;
+      loadApiaries().then(function (list) { applyApiaryList(list, true); });
+    });
+    window.addEventListener('storage', function (e) {
+      var key = window.SuperAriDemo && window.SuperAriDemo.STORAGE_KEY;
+      if (key && e && e.key === key) {
+        loadApiaries().then(function (list) { applyApiaryList(list, true); });
+      }
+    });
+
     loadApiaries().then(function (list) {
       apiaries = list && list.length ? list : DEMO_APIARIES.slice();
       if (window.SuperAriHava) {
@@ -1186,6 +1220,7 @@
       syncLockBtn();
       syncNavBtns();
       startCycle();
+      bootDone = true;
       setInterval(function () { refreshWeather(true); }, WEATHER_REFRESH_MS);
     });
   })();

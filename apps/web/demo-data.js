@@ -357,6 +357,89 @@
     return loadHives().filter(function (h) { return h.apiaryId === key; });
   }
 
+  /** Yandex Maps deep link (no API key). Note: pt= is lon,lat. */
+  function yandexMapsUrl(lat, lon, zoom) {
+    var la = Number(lat);
+    var lo = Number(lon);
+    var z = zoom || 15;
+    if (!isFinite(la) || !isFinite(lo)) {
+      return 'https://yandex.com/maps/?z=' + z + '&l=map';
+    }
+    return (
+      'https://yandex.com/maps/?pt=' + lo + ',' + la +
+      '&z=' + z + '&l=map'
+    );
+  }
+
+  /** Open-Meteo geocoder (no API key) — place/address search for map picker. */
+  function geocodeSearch(query) {
+    var q = String(query || '').trim();
+    if (!q) return Promise.resolve([]);
+    var url =
+      'https://geocoding-api.open-meteo.com/v1/search?name=' +
+      encodeURIComponent(q) +
+      '&count=6&language=tr&format=json';
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('geocode_' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        return (j && j.results ? j.results : []).map(function (row) {
+          var parts = [row.name, row.admin1, row.country].filter(Boolean);
+          return {
+            name: String(row.name || '').trim(),
+            label: parts.join(', '),
+            lat: Number(row.latitude),
+            lon: Number(row.longitude)
+          };
+        }).filter(function (row) {
+          return row.name && isFinite(row.lat) && isFinite(row.lon);
+        });
+      });
+  }
+
+  /** Yandex Maps search deep link (no API key). */
+  function yandexSearchUrl(query) {
+    var q = String(query || '').trim();
+    if (!q) return 'https://yandex.com/maps/';
+    return 'https://yandex.com/maps/?text=' + encodeURIComponent(q);
+  }
+
+  /**
+   * Parse lat/lon from a Yandex Maps URL or plain "lat, lon" / "lat lon" text.
+   * Yandex ll= and pt= are lon,lat; plain pairs are treated as lat,lon (Turkey range).
+   */
+  function parseCoordsFromText(text) {
+    var s = String(text || '').trim();
+    if (!s) return null;
+    var m;
+    m = s.match(/[?&#](?:pt|ll)=(-?\d+(?:\.\d+)?)%2C(-?\d+(?:\.\d+)?)/i);
+    if (!m) m = s.match(/[?&#](?:pt|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i);
+    if (m) {
+      var lonY = Number(m[1]);
+      var latY = Number(m[2]);
+      if (isFinite(latY) && isFinite(lonY)) return { lat: latY, lon: lonY, source: 'yandex' };
+    }
+    m = s.match(/whatshere\[point\]=(-?\d+(?:\.\d+)?)%2C(-?\d+(?:\.\d+)?)/i);
+    if (!m) m = s.match(/whatshere\[point\]=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i);
+    if (m) {
+      var lonW = Number(m[1]);
+      var latW = Number(m[2]);
+      if (isFinite(latW) && isFinite(lonW)) return { lat: latW, lon: lonW, source: 'yandex' };
+    }
+    m = s.match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/);
+    if (m) {
+      var a = Number(m[1]);
+      var b = Number(m[2]);
+      if (!isFinite(a) || !isFinite(b)) return null;
+      /* Heuristic: Turkey lat ~36–42, lon ~26–45 — if first looks like lon, swap */
+      if (Math.abs(a) > 50 && Math.abs(b) <= 90) return { lat: b, lon: a, source: 'text' };
+      return { lat: a, lon: b, source: 'text' };
+    }
+    return null;
+  }
+
   Object.defineProperty(global, 'SuperAriDemo', {
     configurable: true,
     enumerable: true,
@@ -385,7 +468,11 @@
       loadHives: loadHives,
       saveHives: saveHives,
       addApiary: addApiary,
-      updateApiary: updateApiary
+      updateApiary: updateApiary,
+      yandexMapsUrl: yandexMapsUrl,
+      yandexSearchUrl: yandexSearchUrl,
+      geocodeSearch: geocodeSearch,
+      parseCoordsFromText: parseCoordsFromText
     }
   });
 })(window);

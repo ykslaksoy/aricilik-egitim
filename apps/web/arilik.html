@@ -124,8 +124,40 @@
     font-size: 14px; font-weight: 800; color: var(--text);
     margin: 0 2px 10px;
   }
+  .map-search-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-bottom: 6px;
+  }
+  .map-search-row input {
+    width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--text);
+    background: #f7f8fa; font-family: inherit;
+  }
+  .map-search-row .btn-ara {
+    min-height: 42px; min-width: 64px; padding: 0 12px;
+    border: 0; border-radius: 12px; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 800;
+    background: linear-gradient(145deg, var(--hardal-hi), var(--hardal));
+    color: #3b2b00;
+  }
+  .map-search-results {
+    list-style: none; margin: 0 0 8px; padding: 0;
+    max-height: 132px; overflow-y: auto;
+    border: 1px solid var(--card-border); border-radius: 12px;
+    background: #fff; display: none;
+  }
+  .map-search-results.is-on { display: block; }
+  .map-search-results li button {
+    width: 100%; text-align: left; border: 0; border-bottom: 1px solid #f0f1f3;
+    background: #fff; padding: 10px 12px; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 650; color: var(--text); line-height: 1.3;
+  }
+  .map-search-results li:last-child button { border-bottom: 0; }
+  .map-search-results li button:active { background: #fff8df; }
+  .map-search-results .meta {
+    display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted);
+  }
   #detailMap {
-    height: 180px; border-radius: 14px; overflow: hidden;
+    height: 200px; border-radius: 14px; overflow: hidden;
     border: 1px solid var(--card-border); background: #e8ece8;
   }
   .map-missing {
@@ -133,7 +165,13 @@
     background: #fff8df; border: 1px dashed #e0c56a;
     color: var(--muted); font-size: 13px; line-height: 1.4; margin-bottom: 10px;
   }
+  .map-hint-inline {
+    margin: 6px 0 0; font-size: 11px; color: var(--muted); line-height: 1.35;
+  }
   .map-actions { display: grid; gap: 8px; margin-top: 10px; }
+  .map-tool-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;
+  }
   .map-btn {
     min-height: 42px; border-radius: 12px; border: 0; cursor: pointer;
     font-size: 13px; font-weight: 800; font-family: inherit;
@@ -161,6 +199,16 @@
   }
   .map-btn.ghost {
     background: #fff; border: 1px solid #e0c56a; color: var(--brown);
+  }
+  .map-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .map-paste {
+    margin-top: 8px; display: grid; gap: 5px;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+  }
+  .map-paste input {
+    width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
+    background: #f7f8fa; font-family: inherit;
   }
   .sheet {
     position: absolute; inset: 0; z-index: 80;
@@ -404,11 +452,13 @@
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="demo-data.js"></script>
+<script src="forage-analysis.js"></script>
 <script src="gider-store.js?v=gider-arilik-2"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
   var G = window.SuperAriGider;
+  var F = window.SuperAriForage;
   if (!D) return;
 
   var DEFAULT_CENTER = [39.92, 41.27];
@@ -430,6 +480,11 @@
   var detailMarker = null;
   var pickMode = false;
   var activeApiary = null;
+  var radar = null;
+  var analyzeTimer = null;
+  var pendingSearchName = '';
+  var searchResultsCache = [];
+  var forageRadiusKm = (F && F.DEFAULT_RADIUS_KM) || 3;
 
   function escapeHtml(s) {
     return String(s)
@@ -552,10 +607,12 @@
   function shareText(a) {
     var lat = Number(a.lat);
     var lon = Number(a.lon);
+    var yUrl = D.yandexMapsUrl ? D.yandexMapsUrl(lat, lon, 15) :
+      ('https://yandex.com/maps/?pt=' + lon + ',' + lat + '&z=15&l=map');
     return (
       mapsLabel(a) + ' — Hardal Arıcılık\n' +
       lat.toFixed(5) + ', ' + lon.toFixed(5) + '\n' +
-      'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon
+      yUrl
     );
   }
 
@@ -565,20 +622,21 @@
     var q = encodeURIComponent(mapsLabel(a));
     return [
       {
+        label: 'Yandex Haritalar',
+        url: D.yandexMapsUrl ? D.yandexMapsUrl(lat, lon, 15) :
+          ('https://yandex.com/maps/?pt=' + lon + ',' + lat + '&z=15&l=map')
+      },
+      {
+        label: 'Yandex Navigasyon',
+        url: 'yandexnavi://build_route_on_map?lat_to=' + lat + '&lon_to=' + lon
+      },
+      {
         label: 'Google Maps',
         url: 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lon + '&travelmode=driving'
       },
       {
         label: 'Apple Haritalar',
         url: 'https://maps.apple.com/?daddr=' + lat + ',' + lon + '&q=' + q
-      },
-      {
-        label: 'Yandex Haritalar',
-        url: 'https://yandex.com/maps/?rtext=~' + lat + ',' + lon + '&rtt=auto'
-      },
-      {
-        label: 'Yandex Navigasyon',
-        url: 'yandexnavi://build_route_on_map?lat_to=' + lat + '&lon_to=' + lon
       },
       {
         label: 'OsmAnd',
@@ -620,7 +678,8 @@
     var text = shareText(a);
     var lat = Number(a.lat);
     var lon = Number(a.lon);
-    var url = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
+    var url = D.yandexMapsUrl ? D.yandexMapsUrl(lat, lon, 15) :
+      ('https://yandex.com/maps/?pt=' + lon + ',' + lat + '&z=15&l=map');
     closeLocSheet();
     if (navigator.share) {
       navigator.share({ title: mapsLabel(a), text: text, url: url }).catch(function () {});
@@ -662,10 +721,169 @@
     if (e.target === locSheet) closeLocSheet();
   });
 
+  function placeDetailMarker(latlng, name) {
+    if (!detailMap) return;
+    if (detailMarker) {
+      detailMarker.setLatLng(latlng);
+    } else {
+      detailMarker = L.marker(latlng, { draggable: !!pickMode, autoPan: true }).addTo(detailMap);
+    }
+    if (detailMarker.dragging) {
+      if (pickMode) detailMarker.dragging.enable();
+      else detailMarker.dragging.disable();
+    }
+    detailMarker.off('drag');
+    detailMarker.off('dragend');
+    detailMarker.on('drag', function () {
+      if (!pickMode || !radar) return;
+      var p = detailMarker.getLatLng();
+      radar.setCenter(p.lat, p.lng);
+    });
+    detailMarker.on('dragend', function () {
+      if (!pickMode) return;
+      var p = detailMarker.getLatLng();
+      var line = document.getElementById('pickCoords');
+      if (line) line.textContent = p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) + ' (sürükle · kaydet)';
+      var saveBtn = document.getElementById('btnSaveLoc');
+      if (saveBtn) saveBtn.hidden = false;
+      updateRadarAndAnalyze(p.lat, p.lng);
+    });
+    detailMarker.off('click');
+    detailMarker.on('click', function () {
+      if (!pickMode && activeApiary && hasCoords(activeApiary)) openLocMenu();
+    });
+    var line = document.getElementById('pickCoords');
+    if (line) {
+      line.textContent = latlng.lat.toFixed(4) + ', ' + latlng.lng.toFixed(4) +
+        (pickMode ? ' (sürükle · kaydet)' : '');
+    }
+    if (name) pendingSearchName = name;
+    updateRadarAndAnalyze(latlng.lat, latlng.lng);
+  }
+
+  function updateRadarAndAnalyze(lat, lon) {
+    if (radar && isFinite(lat) && isFinite(lon)) {
+      radar.setRadiusKm(forageRadiusKm);
+      radar.setCenter(lat, lon);
+    }
+    var host = document.getElementById('forageHost');
+    if (!F || !host || !isFinite(lat) || !isFinite(lon)) return;
+    if (analyzeTimer) clearTimeout(analyzeTimer);
+    host.innerHTML = '<div class="forage-panel"><p class="forage-sub">Yer analizi güncelleniyor…</p></div>';
+    analyzeTimer = setTimeout(function () {
+      F.analyze(lat, lon, forageRadiusKm)
+        .then(function (a) {
+          host.innerHTML = F.renderPanelHtml(a, escapeHtml);
+        })
+        .catch(function () {
+          host.innerHTML =
+            '<div class="forage-panel is-empty"><p>Analiz alınamadı — konum yine kaydedilebilir.</p></div>';
+        });
+    }, 280);
+  }
+
+  function hideSearchResults() {
+    var el = document.getElementById('mapSearchResults');
+    if (!el) return;
+    el.classList.remove('is-on');
+    el.hidden = true;
+    el.innerHTML = '';
+  }
+
+  function showSearchResults(items) {
+    var el = document.getElementById('mapSearchResults');
+    if (!el) return;
+    searchResultsCache = items || [];
+    if (!items || !items.length) {
+      el.innerHTML = '<li><button type="button" disabled>Sonuç yok — Yandex’te aç veya haritaya dokun</button></li>';
+      el.hidden = false;
+      el.classList.add('is-on');
+      return;
+    }
+    el.innerHTML = items.map(function (it, i) {
+      return (
+        '<li><button type="button" data-idx="' + i + '">' +
+          escapeHtml(it.name) +
+          (it.label && it.label !== it.name
+            ? '<span class="meta">' + escapeHtml(it.label) + '</span>'
+            : '') +
+        '</button></li>'
+      );
+    }).join('');
+    el.hidden = false;
+    el.classList.add('is-on');
+    el.querySelectorAll('button[data-idx]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = Number(btn.getAttribute('data-idx'));
+        var hit = searchResultsCache[idx];
+        if (!hit || !detailMap) return;
+        pickMode = true;
+        var latlng = L.latLng(hit.lat, hit.lon);
+        placeDetailMarker(latlng, hit.name);
+        detailMap.setView(latlng, 13);
+        var saveBtn = document.getElementById('btnSaveLoc');
+        var pickBtn = document.getElementById('btnPickLoc');
+        if (saveBtn) {
+          saveBtn.hidden = false;
+          saveBtn.textContent = 'Bu konumu kaydet';
+        }
+        if (pickBtn) pickBtn.hidden = true;
+        hideSearchResults();
+      });
+    });
+  }
+
+  function runDetailSearch() {
+    var input = document.getElementById('mapSearch');
+    var btn = document.getElementById('mapSearchBtn');
+    if (!input || !D.geocodeSearch) return;
+    var q = String(input.value || '').trim();
+    if (!q) {
+      alert('Aramak için yer adı yazın.');
+      return;
+    }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
+    D.geocodeSearch(q)
+      .then(function (items) {
+        showSearchResults(items);
+        if (items.length === 1 && detailMap) {
+          pickMode = true;
+          var hit = items[0];
+          var latlng = L.latLng(hit.lat, hit.lon);
+          placeDetailMarker(latlng, hit.name);
+          detailMap.setView(latlng, 13);
+          var saveBtn = document.getElementById('btnSaveLoc');
+          var pickBtn = document.getElementById('btnPickLoc');
+          if (saveBtn) {
+            saveBtn.hidden = false;
+            saveBtn.textContent = 'Bu konumu kaydet';
+          }
+          if (pickBtn) pickBtn.hidden = true;
+        }
+      })
+      .catch(function () {
+        alert('Arama başarısız. Yandex’te açıp link yapıştırabilirsiniz.');
+        hideSearchResults();
+      })
+      .then(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Ara';
+        }
+      });
+  }
+
   function mountMap(apiary) {
     if (typeof L === 'undefined') return;
     var el = document.getElementById('detailMap');
     if (!el) return;
+    if (radar) {
+      radar.clear();
+      radar = null;
+    }
     if (detailMap) {
       detailMap.remove();
       detailMap = null;
@@ -678,21 +896,21 @@
       maxZoom: 18,
       attribution: '&copy; OpenStreetMap'
     }).addTo(detailMap);
+    if (F) radar = F.attachRadar(L, detailMap, { radiusKm: forageRadiusKm });
     if (hasCoords(apiary)) {
-      detailMarker = L.marker(center, { draggable: false }).addTo(detailMap);
-      detailMarker.on('click', function () {
-        if (!pickMode) openLocMenu();
-      });
+      placeDetailMarker(L.latLng(Number(apiary.lat), Number(apiary.lon)));
     }
     detailMap.on('click', function (e) {
       if (pickMode) {
-        if (detailMarker) detailMarker.setLatLng(e.latlng);
-        else detailMarker = L.marker(e.latlng, { draggable: true }).addTo(detailMap);
-        if (detailMarker.dragging) detailMarker.dragging.enable();
-        var line = document.getElementById('pickCoords');
-        if (line) line.textContent = e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+        var z = detailMap.getZoom();
+        if (z < 14) detailMap.setView(e.latlng, Math.min(16, z + 2));
+        placeDetailMarker(e.latlng, pendingSearchName);
+        var saveBtn = document.getElementById('btnSaveLoc');
+        if (saveBtn) saveBtn.hidden = false;
         return;
       }
+      var z2 = detailMap.getZoom();
+      if (z2 < 15) detailMap.setView(e.latlng, Math.min(16, z2 + 2));
       if (hasCoords(apiary)) openLocMenu();
     });
     setTimeout(function () { detailMap.invalidateSize(); }, 60);
@@ -772,10 +990,15 @@
 
     var mapBlock =
       '<section class="map-card">' +
-        '<h2>Konum</h2>' +
+        '<h2>Konumu Yandex haritadan seç</h2>' +
         (coordsOk
           ? ''
-          : '<p class="map-missing">Konum henüz seçilmemiş. Haritaya dokunup kaydedin.</p>') +
+          : '<p class="map-missing">Konum henüz seçilmemiş. Ara veya haritaya dokunup iğneyi kaydırın.</p>') +
+        '<div class="map-search-row">' +
+          '<input type="search" id="mapSearch" maxlength="80" placeholder="Yer ara — örn. Balığındüzü" autocomplete="off" />' +
+          '<button type="button" class="btn-ara" id="mapSearchBtn">Ara</button>' +
+        '</div>' +
+        '<ul class="map-search-results" id="mapSearchResults" hidden></ul>' +
         '<div id="detailMap" role="application" aria-label="Arılık konumu"></div>' +
         (coordsOk
           ? '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Konum işlemleri">' +
@@ -783,12 +1006,25 @@
             '</button>'
           : '<div class="map-coords-line" id="pickCoords">Konum seçilmedi</div>') +
         locButtons +
-        '<div class="map-actions">' +
+        '<div class="map-tool-row">' +
+          '<button type="button" class="map-btn ghost" id="btnYandexOpen">Yandex’te aç</button>' +
           '<button type="button" class="map-btn ghost" id="btnPickLoc">' +
-            (coordsOk ? 'Konumu değiştir' : 'Haritadan konum seç') +
+            (coordsOk ? 'Konumu değiştir' : 'Haritadan seç') +
           '</button>' +
-          '<button type="button" class="map-btn" id="btnSaveLoc" hidden>Konumu kaydet</button>' +
         '</div>' +
+        '<div class="map-actions">' +
+          '<button type="button" class="map-btn" id="btnSaveLoc" hidden>Bu konumu kaydet</button>' +
+        '</div>' +
+        '<div class="forage-radius">' +
+          '<label for="forageRadius">Foraj</label>' +
+          '<input type="range" id="forageRadius" min="1" max="5" step="0.5" value="' + forageRadiusKm + '" />' +
+          '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
+        '</div>' +
+        '<label class="map-paste">Yandex link / enlem,boylam' +
+          '<input type="text" id="mapPaste" maxlength="240" placeholder="Yandex paylaşım linki veya 40.12, 41.45" />' +
+        '</label>' +
+        '<p class="map-hint-inline">Ara → iğne · dokunarak zoom · sürükle · kaydet. Sarı çember = foraj yarıçapı.</p>' +
+        '<div id="forageHost"></div>' +
       '</section>';
 
     content.innerHTML =
@@ -865,7 +1101,7 @@
       if (!coordsOk) {
         btnPick.hidden = true;
         btnSave.hidden = false;
-        btnSave.textContent = 'Konumu kaydet';
+        btnSave.textContent = 'Bu konumu kaydet';
       }
       btnPick.addEventListener('click', function () {
         pickMode = true;
@@ -877,7 +1113,7 @@
       });
       btnSave.addEventListener('click', function () {
         if (!detailMarker) {
-          alert('Önce haritaya dokunarak konum seçin.');
+          alert('Önce ara veya haritaya dokunarak konum seçin.');
           return;
         }
         var p = detailMarker.getLatLng();
@@ -885,6 +1121,60 @@
         pickMode = false;
         render();
       });
+    }
+
+    var searchBtn = document.getElementById('mapSearchBtn');
+    var searchInput = document.getElementById('mapSearch');
+    var btnYandex = document.getElementById('btnYandexOpen');
+    var radiusInput = document.getElementById('forageRadius');
+    var radiusVal = document.getElementById('forageRadiusVal');
+    var pasteInput = document.getElementById('mapPaste');
+    if (searchBtn) searchBtn.addEventListener('click', runDetailSearch);
+    if (searchInput) {
+      searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          runDetailSearch();
+        }
+      });
+    }
+    if (btnYandex) {
+      btnYandex.addEventListener('click', function () {
+        var q = String((searchInput && searchInput.value) || apiary.place || apiary.name || '').trim();
+        var lat = detailMarker ? detailMarker.getLatLng().lat : Number(apiary.lat);
+        var lon = detailMarker ? detailMarker.getLatLng().lng : Number(apiary.lon);
+        var url;
+        if (isFinite(lat) && isFinite(lon) && D.yandexMapsUrl) url = D.yandexMapsUrl(lat, lon, 14);
+        else if (D.yandexSearchUrl) url = D.yandexSearchUrl(q || 'Erzurum');
+        else url = 'https://yandex.com/maps/?text=' + encodeURIComponent(q || 'Erzurum');
+        window.open(url, '_blank', 'noopener');
+      });
+    }
+    if (radiusInput) {
+      radiusInput.addEventListener('input', function () {
+        forageRadiusKm = F ? F.clampRadius(radiusInput.value) : Number(radiusInput.value) || 3;
+        if (radiusVal) radiusVal.textContent = forageRadiusKm + ' km';
+        if (detailMarker) {
+          var p = detailMarker.getLatLng();
+          updateRadarAndAnalyze(p.lat, p.lng);
+        }
+      });
+    }
+    if (pasteInput && D.parseCoordsFromText) {
+      function applyPaste() {
+        var parsed = D.parseCoordsFromText(pasteInput.value);
+        if (!parsed || !detailMap) return;
+        pickMode = true;
+        placeDetailMarker(L.latLng(parsed.lat, parsed.lon), pendingSearchName);
+        detailMap.setView([parsed.lat, parsed.lon], 14);
+        if (btnSave) {
+          btnSave.hidden = false;
+          btnSave.textContent = 'Bu konumu kaydet';
+        }
+        if (btnPick) btnPick.hidden = true;
+      }
+      pasteInput.addEventListener('change', applyPaste);
+      pasteInput.addEventListener('paste', function () { setTimeout(applyPaste, 0); });
     }
   }
 
