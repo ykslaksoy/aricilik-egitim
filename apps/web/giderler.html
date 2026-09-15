@@ -209,6 +209,7 @@
   }
   .swatch {
     width: 12px; height: 12px; border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(74,47,26,.1), 0 0 0 1px rgba(255,255,255,.55);
   }
   .legend-name { font-weight: 700; color: var(--text); }
   .legend-amt { font-weight: 700; color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
@@ -235,7 +236,10 @@
     -webkit-tap-highlight-color: transparent;
   }
   .exp-item:active { transform: scale(.99); background: #fffdf6; }
-  .exp-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; opacity: .9; box-shadow: inset 0 0 0 1px rgba(74,47,26,.1); }
+  .exp-dot {
+    width: 10px; height: 10px; border-radius: 50%; margin-top: 4px;
+    opacity: 1; box-shadow: inset 0 0 0 1px rgba(74,47,26,.08), 0 0 0 1px rgba(255,255,255,.5);
+  }
   .exp-item h3 { font-size: 13px; font-weight: 750; color: var(--text); line-height: 1.3; }
   .exp-item .meta { margin-top: 2px; font-size: 11px; color: var(--muted); }
   .exp-item .amt {
@@ -370,6 +374,54 @@
   .material-hint {
     margin: 0 0 2px; font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.35;
   }
+  .distribute-field {
+    margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+    background: #f7faf7; border: 1px solid #d5e2d4;
+  }
+  .distribute-field[hidden] { display: none; }
+  .distribute-check {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px; font-weight: 750; color: var(--text); cursor: pointer;
+  }
+  .distribute-check input {
+    width: 18px; height: 18px; margin-top: 1px; flex: 0 0 auto; accent-color: #8f9b72;
+  }
+  .distribute-check .dist-body { flex: 1; min-width: 0; }
+  .distribute-check .dist-title { display: block; line-height: 1.3; }
+  .distribute-check .dist-sub {
+    display: block; margin-top: 3px; font-size: 11px; font-weight: 600;
+    color: var(--muted); line-height: 1.35;
+  }
+  .gap-block {
+    background: #fff; border: 1px solid #e0c56a; border-radius: 18px;
+    padding: 12px 12px 10px; margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(40, 30, 10, .05);
+  }
+  .gap-block[hidden] { display: none; }
+  .gap-block .panel-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    letter-spacing: .02em; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .gap-hint {
+    margin: 0 0 10px; font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.35;
+  }
+  .gap-list { display: grid; gap: 8px; }
+  .gap-card {
+    padding: 10px 10px; border-radius: 12px;
+    border: 1px solid var(--card-border); background: #fafbfc;
+  }
+  .gap-card .gap-title { font-size: 13px; font-weight: 800; color: var(--text); }
+  .gap-card .gap-meta {
+    margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.4;
+  }
+  .gap-card .gap-actions { margin-top: 8px; display: flex; gap: 6px; }
+  .btn-gap {
+    min-height: 34px; padding: 0 12px; border-radius: 10px; cursor: pointer;
+    font-size: 12px; font-weight: 800; font-family: inherit;
+    border: 1px solid #e0c56a;
+    background: linear-gradient(145deg, #fff6df, var(--hardal-soft));
+    color: var(--brown);
+  }
   .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
   .sheet-actions.with-delete { grid-template-columns: 1fr 1fr; }
   .btn {
@@ -459,7 +511,7 @@
 
     <section class="view-panel" id="panelAriliklar" role="tabpanel" aria-labelledby="tabAriliklar" hidden>
       <h2 class="panel-title">Arılık bazında özet</h2>
-      <p class="summary-hint">Bir arılığa dokun — o arılığın gider listesi ve alt toplamı açılır.</p>
+      <p class="summary-hint">Her satırda kovan sayısı görünür (Balığındüzü dahil). Dokunun — gider listesi açılır.</p>
       <div class="apiary-totals" id="apiaryTotals"></div>
     </section>
 
@@ -468,12 +520,19 @@
       <div class="detail-body">
         <div class="eyebrow">Arılık detayı</div>
         <h2 id="detailTitle">—</h2>
+        <p class="summary-hint" id="detailHiveNote" style="margin:0 0 8px;">—</p>
         <div class="subtotal-row">
           <span class="label" id="detailCountLabel">Alt toplam</span>
           <span class="amount" id="detailSubtotal">₺0</span>
         </div>
       </div>
     </div>
+
+    <section class="gap-block" id="gapBlock" hidden aria-label="Eksik malzeme önerileri">
+      <h2 class="panel-title">Eksik malzeme · kovan oranı</h2>
+      <p class="gap-hint">Bazı arılıklarda olan malzeme diğerlerinde yok. Kovan sayısına orantılı kayıt önerilir.</p>
+      <div class="gap-list" id="gapList"></div>
+    </section>
 
     <section class="chart-block" id="chartBlock" aria-label="Kategori özeti">
       <h2 class="panel-title">Kategoriler</h2>
@@ -527,6 +586,15 @@
             <option value="">— Arılık seç —</option>
           </select>
         </label>
+        <div class="distribute-field" id="distributeField">
+          <label class="distribute-check">
+            <input type="checkbox" id="distributeByHive" />
+            <span class="dist-body">
+              <span class="dist-title">Kovan oranına dağıt</span>
+              <span class="dist-sub" id="distributeHint">Toplam tutar tüm arılıklara kovan sayısına göre bölünür.</span>
+            </span>
+          </label>
+        </div>
         <label id="catLabel">Kategori
           <select name="category" required></select>
         </label>
@@ -573,7 +641,7 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
-<script src="gider-store.js?v=gider-malzeme-1"></script>
+<script src="gider-store.js?v=kovan-oran-1"></script>
 <script>
 (function () {
   var G = window.SuperAriGider;
@@ -660,6 +728,19 @@
     ];
   }
 
+  function apiaryHiveCount(a) {
+    if (!a) return 0;
+    if (window.SuperAriGider && window.SuperAriGider.hiveCountOf) {
+      return window.SuperAriGider.hiveCountOf(a);
+    }
+    return Math.max(0, Number(a.hiveCount) || 0);
+  }
+
+  function hiveNote(a) {
+    var n = apiaryHiveCount(a);
+    return n + ' kovan';
+  }
+
   function apiaryShort(a) {
     if (!a) return '—';
     return (a.place && a.place !== '—') ? a.place : a.name;
@@ -667,7 +748,8 @@
 
   function apiaryLabel(a) {
     if (!a) return '—';
-    return (a.place && a.place !== '—') ? (a.place + ' · ' + a.name) : a.name;
+    var base = (a.place && a.place !== '—') ? (a.place + ' · ' + a.name) : a.name;
+    return base + ' · ' + hiveNote(a);
   }
 
   function findApiary(id) {
@@ -686,6 +768,9 @@
   var detailTitle = document.getElementById('detailTitle');
   var detailSubtotal = document.getElementById('detailSubtotal');
   var detailCountLabel = document.getElementById('detailCountLabel');
+  var detailHiveNote = document.getElementById('detailHiveNote');
+  var gapBlock = document.getElementById('gapBlock');
+  var gapList = document.getElementById('gapList');
   var sheet = document.getElementById('addSheet');
   var form = document.getElementById('addForm');
   var sheetTitle = document.getElementById('sheetTitle');
@@ -703,6 +788,9 @@
   var newMaterialRow = document.getElementById('newMaterialRow');
   var newMaterialInput = document.getElementById('newMaterialInput');
   var saveNewMaterialBtn = document.getElementById('saveNewMaterial');
+  var distributeField = document.getElementById('distributeField');
+  var distributeByHive = document.getElementById('distributeByHive');
+  var distributeHint = document.getElementById('distributeHint');
   var selectedMaterial = '';
 
   CATEGORIES.forEach(function (c) {
@@ -798,6 +886,33 @@
       apiarySelect.appendChild(opt);
     });
     if (selected) apiarySelect.value = selected;
+    updateDistributeHint();
+  }
+
+  function updateDistributeHint() {
+    if (!distributeHint) return;
+    var list = loadApiaries();
+    var withHives = list.filter(function (a) { return apiaryHiveCount(a) > 0; });
+    var totalH = withHives.reduce(function (s, a) { return s + apiaryHiveCount(a); }, 0);
+    if (withHives.length < 2) {
+      distributeHint.textContent = 'Dağıtım için en az iki arılık (kovanlı) gerekir.';
+      return;
+    }
+    var parts = withHives.map(function (a) {
+      return apiaryShort(a) + ' ' + apiaryHiveCount(a);
+    });
+    distributeHint.textContent =
+      'Toplam tutar ' + withHives.length + ' arılığa bölünür · ' +
+      totalH + ' kovan · ' + parts.join(', ');
+  }
+
+  function syncDistributeVisibility() {
+    var mode = modeInput.value;
+    var transport = mode === 'nakliye' || mode === 'kendi_arac';
+    var show = !editingId && !transport;
+    if (distributeField) distributeField.hidden = !show;
+    if (!show && distributeByHive) distributeByHive.checked = false;
+    if (show) updateDistributeHint();
   }
 
   function setView(view, opts) {
@@ -853,9 +968,12 @@
       amountLabelText.textContent = 'Nakliye ücreti (₺)';
       newMaterialInput.placeholder = 'Örn. Yayla nakliye';
     } else {
-      amountLabelText.textContent = 'Tutar (₺)';
+      amountLabelText.textContent = distributeByHive && distributeByHive.checked
+        ? 'Toplam tutar (₺) — kovan oranına'
+        : 'Tutar (₺)';
       newMaterialInput.placeholder = 'Örn. Şeker şurubu';
     }
+    syncDistributeVisibility();
   }
 
   document.querySelectorAll('.mode-chip').forEach(function (btn) {
@@ -893,9 +1011,16 @@
   }
 
   function selectedApiaryName() {
+    if (apiarySelect.value) {
+      var ap = findApiary(apiarySelect.value);
+      if (ap) return ap.name || apiaryShort(ap);
+    }
     if (apiarySelect.selectedOptions && apiarySelect.selectedOptions[0] && apiarySelect.value) {
       var text = apiarySelect.selectedOptions[0].textContent || '';
       var parts = text.split(' · ');
+      /* place · name · N kovan  OR  name · N kovan */
+      if (parts.length >= 3) return parts.slice(1, -1).join(' · ').trim() || parts[0];
+      if (parts.length === 2 && /kovan/i.test(parts[1])) return parts[0];
       return parts.length > 1 ? parts.slice(1).join(' · ') : text;
     }
     return '';
@@ -929,6 +1054,7 @@
       rows.push({
         apiaryId: id,
         label: apiaryShort(a) + ' · ' + a.name,
+        hiveCount: apiaryHiveCount(a),
         amount: t ? t.amount : 0,
         count: t ? t.count : 0
       });
@@ -940,6 +1066,7 @@
       rows.push({
         apiaryId: row.apiaryId,
         label: row.apiaryName || row.apiaryId,
+        hiveCount: 0,
         amount: row.amount,
         count: row.count
       });
@@ -955,12 +1082,13 @@
       return;
     }
     apiaryTotalsEl.innerHTML = rows.map(function (row) {
+      var hiveBit = row.hiveCount + ' kovan';
       var sub = row.count
-        ? (row.count + ' kayıt · detay için dokun')
-        : 'Gider yok · detay için dokun';
+        ? (hiveBit + ' · ' + row.count + ' kayıt · detay için dokun')
+        : (hiveBit + ' · gider yok · detay için dokun');
       return (
         '<button type="button" class="apiary-total-row" data-id="' + escapeHtml(row.apiaryId) + '" aria-label="' +
-          escapeHtml(row.label) + ' gider detayı">' +
+          escapeHtml(row.label) + ', ' + escapeHtml(hiveBit) + ' gider detayı">' +
           '<div>' +
             '<span class="name">' + escapeHtml(row.label) + '</span>' +
             '<span class="sub">' + escapeHtml(sub) + '</span>' +
@@ -970,6 +1098,50 @@
         '</button>'
       );
     }).join('');
+  }
+
+  function shortApiaryNames(items) {
+    return (items || []).map(function (x) {
+      var ap = findApiary(x.apiaryId);
+      var label = ap ? apiaryShort(ap) : (x.apiaryName || x.apiaryId);
+      return label + ' (' + (x.hiveCount || 0) + ' kovan)';
+    }).join(', ');
+  }
+
+  function renderMissingGaps() {
+    if (!gapBlock || !gapList) return;
+    var isDetail = filterApiary && filterApiary !== 'all';
+    var show = !isDetail && activeView === 'toplam';
+    if (!show) {
+      gapBlock.hidden = true;
+      return;
+    }
+    var gaps = G.findMissingMaterialGaps(loadApiaries());
+    if (!gaps.length) {
+      gapBlock.hidden = true;
+      gapList.innerHTML = '';
+      return;
+    }
+    gapBlock.hidden = false;
+    gapList.innerHTML = gaps.map(function (gap, idx) {
+      var src = gap.sourceExpense || {};
+      var srcAp = findApiary(src.apiaryId);
+      var srcH = srcAp ? apiaryHiveCount(srcAp) : (gap.present[0] && gap.present[0].hiveCount) || 0;
+      return (
+        '<div class="gap-card" data-gap="' + idx + '">' +
+          '<div class="gap-title">' + escapeHtml(gap.title) + '</div>' +
+          '<div class="gap-meta">' +
+            'Var: ' + escapeHtml(shortApiaryNames(gap.present)) +
+            '<br>Eksik: ' + escapeHtml(shortApiaryNames(gap.missing)) +
+            '<br>Kaynak ' + formatTRY(src.amount) + ' · ' + srcH + ' kovan' +
+          '</div>' +
+          '<div class="gap-actions">' +
+            '<button type="button" class="btn-gap" data-fill="' + idx + '">Kovan oranına ekle</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+    gapList._gaps = gaps;
   }
 
   function syncViewChrome(list) {
@@ -994,19 +1166,26 @@
 
     if (isDetail) {
       var ap = findApiary(filterApiary);
-      var title = ap ? apiaryLabel(ap) : (list[0] && list[0].apiaryName) || filterApiary;
+      var title = ap
+        ? ((ap.place && ap.place !== '—') ? (ap.place + ' · ' + ap.name) : ap.name)
+        : (list[0] && list[0].apiaryName) || filterApiary;
       var sub = 0;
       list.forEach(function (e) { sub += Number(e.amount) || 0; });
       detailTitle.textContent = title;
+      if (detailHiveNote) {
+        detailHiveNote.textContent = ap
+          ? (hiveNote(ap) + ' · masraflar kovan oranına göre dağıtılabilir')
+          : 'Kovan sayısı bilinmiyor';
+      }
       detailSubtotal.textContent = formatTRY(sub);
       detailCountLabel.textContent = list.length + ' kayıt · alt toplam';
-      if (pageSub) pageSub.textContent = apiaryShort(ap) || 'Arılık detayı';
+      if (pageSub) pageSub.textContent = (ap ? apiaryShort(ap) + ' · ' + hiveNote(ap) : 'Arılık detayı');
       return;
     }
     if (pageSub) {
       pageSub.textContent = activeView === 'ariliklar'
-        ? 'Arılık bazında özet'
-        : 'Toplam giderler';
+        ? 'Arılık bazında özet · kovan sayıları'
+        : 'Toplam giderler · kovan oranına dağıt';
     }
   }
 
@@ -1096,6 +1275,7 @@
     renderGrandTotal(all);
     renderApiarySummary(all);
     syncViewChrome(list);
+    renderMissingGaps();
     if (!listEl.hidden) {
       renderCategorySummary(list);
       renderList(list);
@@ -1109,6 +1289,7 @@
     sheetDelete.hidden = !editingId;
     sheet.hidden = false;
     form.reset();
+    if (distributeByHive) distributeByHive.checked = false;
     hideNewMaterialForm();
     fillApiaries(expense && expense.apiaryId);
     form.elements.date.value = (expense && expense.date) || G.todayIso();
@@ -1126,6 +1307,7 @@
     if (filterApiary !== 'all' && !expense) {
       apiarySelect.value = filterApiary;
     }
+    syncDistributeVisibility();
     requestAnimationFrame(function () { sheet.classList.add('is-open'); });
     setTimeout(function () {
       if (selectedMaterial) return;
@@ -1175,6 +1357,7 @@
     var note = String(form.elements.note.value || '').trim();
     var apiaryId = String(form.elements.apiaryId.value || '');
     var apiaryName = selectedApiaryName();
+    var doDistribute = !!(distributeByHive && distributeByHive.checked && !editingId && !mode);
     if (!title) {
       alert('Malzeme / başlık seçilmeli.');
       var onChip = materialChips.querySelector('.material-chip');
@@ -1182,7 +1365,7 @@
       else showNewMaterialForm();
       return;
     }
-    if (!apiaryId) {
+    if (!doDistribute && !apiaryId) {
       alert('Arılık seçilmeli.');
       apiarySelect.focus();
       return;
@@ -1204,8 +1387,21 @@
       transportMode: mode || undefined
     };
     try {
-      if (editingId) G.updateExpense(editingId, payload);
-      else G.addExpense(payload);
+      if (editingId) {
+        G.updateExpense(editingId, payload);
+      } else if (doDistribute) {
+        var targets = loadApiaries().filter(function (a) {
+          return apiaryHiveCount(a) > 0;
+        });
+        if (targets.length < 2) {
+          alert('Kovan oranına dağıtmak için en az iki arılık gerekir.');
+          return;
+        }
+        var created = G.addDistributedExpense(payload, targets);
+        alert(created.length + ' arılığa kovan oranına dağıtıldı.');
+      } else {
+        G.addExpense(payload);
+      }
       G.ensureMaterial(title);
     } catch (err) {
       alert((err && err.message) || 'Kayıt başarısız.');
@@ -1214,6 +1410,45 @@
     closeSheet();
     render();
   });
+
+  if (distributeByHive) {
+    distributeByHive.addEventListener('change', function () {
+      if (!modeInput.value) {
+        amountLabelText.textContent = distributeByHive.checked
+          ? 'Toplam tutar (₺) — kovan oranına'
+          : 'Tutar (₺)';
+      }
+      if (distributeByHive.checked) {
+        apiarySelect.removeAttribute('required');
+      } else {
+        apiarySelect.setAttribute('required', 'required');
+      }
+      updateDistributeHint();
+    });
+  }
+
+  if (gapList) {
+    gapList.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-fill]');
+      if (!btn) return;
+      var idx = Number(btn.getAttribute('data-fill'));
+      var gaps = gapList._gaps || [];
+      var gap = gaps[idx];
+      if (!gap) return;
+      var msg =
+        '"' + gap.title + '" eksik arılıklara kovan oranına eklensin mi?\n' +
+        shortApiaryNames(gap.missing);
+      if (!confirm(msg)) return;
+      try {
+        var made = G.fillMissingMaterialShares(gap, loadApiaries());
+        alert(made.length ? (made.length + ' kayıt eklendi.') : 'Eklenecek kayıt yok.');
+      } catch (err) {
+        alert((err && err.message) || 'Eklenemedi.');
+        return;
+      }
+      render();
+    });
+  }
 
   window.addEventListener('popstate', function () {
     var s = readStateFromUrl();
