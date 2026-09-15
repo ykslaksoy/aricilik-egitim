@@ -6,13 +6,14 @@
   var STORAGE_KEY = 'superari.giderler.v1';
   var TRANSPORT_KEY = 'superari.tasimalar.v1';
 
+  /* Soft Hardal-warm palette — muted (no loud green/red/purple). */
   var CATEGORIES = [
-    { id: 'yem', label: 'Yem', color: '#d4a017' },
-    { id: 'ilac', label: 'İlaç', color: '#e03131' },
-    { id: 'ekipman', label: 'Ekipman', color: '#1c7ed6' },
-    { id: 'nakliye', label: 'Nakliye', color: '#2f9e44' },
-    { id: 'yakit', label: 'Yakıt', color: '#e8590c' },
-    { id: 'diger', label: 'Diğer', color: '#7048e8' }
+    { id: 'yem', label: 'Yem', color: '#c9a84a' },
+    { id: 'ilac', label: 'İlaç', color: '#c4887a' },
+    { id: 'ekipman', label: 'Ekipman', color: '#8a97a8' },
+    { id: 'nakliye', label: 'Nakliye', color: '#8f9b72' },
+    { id: 'yakit', label: 'Yakıt', color: '#c48a55' },
+    { id: 'diger', label: 'Diğer', color: '#9a8b7a' }
   ];
 
   var SEED_EXPENSES = [
@@ -125,10 +126,43 @@
     };
   }
 
+  /** Old seeds lacked Yakıt — inject demo yakıt once so category/row is visible. */
+  function ensureYakitVisible(list) {
+    var hasYakit = list.some(function (e) {
+      return e && e.category === 'yakit';
+    });
+    if (hasYakit) return list;
+    var seedYakit = null;
+    for (var i = 0; i < SEED_EXPENSES.length; i++) {
+      if (SEED_EXPENSES[i].category === 'yakit') {
+        seedYakit = normalizeExpense(SEED_EXPENSES[i]);
+        break;
+      }
+    }
+    if (!seedYakit) return list;
+    list = list.concat([seedYakit]);
+    writeJson(STORAGE_KEY, list);
+    var transports = readJson(TRANSPORT_KEY);
+    if (!Array.isArray(transports)) transports = [];
+    var hasT = transports.some(function (t) {
+      return t && (t.id === 't-seed-2' || t.giderId === seedYakit.id);
+    });
+    if (!hasT) {
+      for (var j = 0; j < SEED_TRANSPORTS.length; j++) {
+        if (SEED_TRANSPORTS[j].id === 't-seed-2') {
+          transports = transports.concat([SEED_TRANSPORTS[j]]);
+          break;
+        }
+      }
+      writeJson(TRANSPORT_KEY, transports);
+    }
+    return list;
+  }
+
   function loadExpenses() {
     var parsed = readJson(STORAGE_KEY);
     if (Array.isArray(parsed) && parsed.length) {
-      return parsed.map(normalizeExpense).filter(Boolean);
+      return ensureYakitVisible(parsed.map(normalizeExpense).filter(Boolean));
     }
     writeJson(STORAGE_KEY, SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);
