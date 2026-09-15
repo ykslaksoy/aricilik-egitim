@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Arılık</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <style>
   :root {
     --bg: #f0f1f3;
@@ -114,6 +115,87 @@
   a.stat-link:active { transform: scale(.98); }
   a.stat-link .v { color: var(--brown); }
   a.stat-link .k::after { content: " ›"; color: #b0aaa3; font-weight: 800; }
+  .map-card {
+    background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 12px; margin-bottom: 14px;
+    box-shadow: 0 4px 14px rgba(40, 30, 10, .05);
+  }
+  .map-card h2 {
+    font-size: 14px; font-weight: 800; color: var(--text);
+    margin: 0 2px 10px;
+  }
+  #detailMap {
+    height: 180px; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--card-border); background: #e8ece8;
+  }
+  .map-missing {
+    padding: 12px; border-radius: 14px;
+    background: #fff8df; border: 1px dashed #e0c56a;
+    color: var(--muted); font-size: 13px; line-height: 1.4; margin-bottom: 10px;
+  }
+  .map-actions { display: grid; gap: 8px; margin-top: 10px; }
+  .map-btn {
+    min-height: 42px; border-radius: 12px; border: 0; cursor: pointer;
+    font-size: 13px; font-weight: 800; font-family: inherit;
+    background: linear-gradient(145deg, var(--hardal-hi), var(--hardal));
+    color: #3b2b00;
+  }
+  .map-coords-line {
+    margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--brown);
+    font-variant-numeric: tabular-nums;
+  }
+  button.map-coords-line {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 0; padding: 8px 2px; cursor: pointer;
+    font-family: inherit; -webkit-tap-highlight-color: transparent;
+  }
+  button.map-coords-line:active { opacity: .75; }
+  button.stat-tap {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    font-family: inherit; -webkit-tap-highlight-color: transparent;
+  }
+  button.stat-tap:active { transform: scale(.98); }
+  button.stat-tap .k::after { content: " ›"; color: #b0aaa3; font-weight: 800; }
+  .loc-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
+  }
+  .map-btn.ghost {
+    background: #fff; border: 1px solid #e0c56a; color: var(--brown);
+  }
+  .sheet {
+    position: absolute; inset: 0; z-index: 80;
+    background: rgba(20, 16, 10, .45);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  }
+  .sheet.is-open { opacity: 1; pointer-events: auto; }
+  .sheet-card {
+    width: 100%; background: #fff; border-radius: 22px 22px 0 0;
+    padding: 16px 14px 26px;
+    transform: translateY(24px); transition: transform .22s ease;
+    max-height: 78%; overflow-y: auto;
+  }
+  .sheet.is-open .sheet-card { transform: translateY(0); }
+  .sheet-card h2 { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .sheet-card .sheet-sub {
+    font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 12px;
+  }
+  .sheet-list { display: grid; gap: 8px; }
+  .sheet-item {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 48px; padding: 12px 14px; border-radius: 14px;
+    border: 1px solid var(--card-border); background: #f7f8fa;
+    color: var(--text); font-size: 14px; font-weight: 750;
+    text-decoration: none; cursor: pointer; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sheet-item:active { transform: scale(.98); }
+  .sheet-item .chev { color: #b0aaa3; font-size: 18px; }
+  .sheet-cancel {
+    margin-top: 10px; width: 100%; min-height: 46px; border-radius: 12px;
+    border: 0; background: #f0f1f3; color: var(--text);
+    font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
+  }
   .section-title {
     font-size: 14px; font-weight: 800; color: var(--text);
     margin: 4px 2px 10px;
@@ -220,18 +302,37 @@
     </a>
   </nav>
   <div class="home-indicator"></div>
+
+  <div class="sheet" id="locSheet" hidden>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="locSheetTitle">
+      <h2 id="locSheetTitle">Konum</h2>
+      <p class="sheet-sub" id="locSheetSub"></p>
+      <div class="sheet-list" id="locSheetList"></div>
+      <button type="button" class="sheet-cancel" id="locSheetCancel">Vazgeç</button>
+    </div>
+  </div>
 </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="demo-data.js"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
   if (!D) return;
 
+  var DEFAULT_CENTER = [39.92, 41.27];
   var params = new URLSearchParams(location.search);
   var id = params.get('id') || params.get('apiary') || '';
   var content = document.getElementById('content');
   var titleEl = document.getElementById('pageTitle');
   var subEl = document.getElementById('pageSub');
+  var locSheet = document.getElementById('locSheet');
+  var locSheetTitle = document.getElementById('locSheetTitle');
+  var locSheetSub = document.getElementById('locSheetSub');
+  var locSheetList = document.getElementById('locSheetList');
+  var detailMap = null;
+  var detailMarker = null;
+  var pickMode = false;
+  var activeApiary = null;
 
   function escapeHtml(s) {
     return String(s)
@@ -243,20 +344,201 @@
 
   function fmtCoord(n) {
     if (n == null || !isFinite(n)) return '—';
-    return Number(n).toFixed(2);
+    return Number(n).toFixed(4);
   }
 
-  var apiary = id ? D.apiaryById(id) : null;
-  if (!apiary) {
-    titleEl.textContent = 'Arılık bulunamadı';
-    subEl.textContent = 'Kayıt yok';
-    content.innerHTML =
-      '<div class="missing">' +
-        '<h2>Bu arılık yok</h2>' +
-        '<p>Listeye dönüp bir arılık seçin veya yeni ekleyin.</p>' +
-        '<a class="back-chip" href="ariliklar.html">← Arılıklar</a>' +
-      '</div>';
-  } else {
+  function hasCoords(a) {
+    return a && isFinite(Number(a.lat)) && isFinite(Number(a.lon));
+  }
+
+  function closeLocSheet() {
+    locSheet.classList.remove('is-open');
+    setTimeout(function () { locSheet.hidden = true; }, 220);
+  }
+
+  function openLocSheet(title, sub, items) {
+    locSheetTitle.textContent = title;
+    locSheetSub.textContent = sub || '';
+    locSheetList.innerHTML = items.map(function (it) {
+      return (
+        '<button type="button" class="sheet-item" data-action="' + escapeHtml(it.action) + '">' +
+          '<span>' + escapeHtml(it.label) + '</span>' +
+          '<span class="chev" aria-hidden="true">›</span>' +
+        '</button>'
+      );
+    }).join('');
+    locSheet.hidden = false;
+    requestAnimationFrame(function () { locSheet.classList.add('is-open'); });
+  }
+
+  function mapsLabel(a) {
+    return (a.place || a.name || 'Arılık') + '';
+  }
+
+  function shareText(a) {
+    var lat = Number(a.lat);
+    var lon = Number(a.lon);
+    return (
+      mapsLabel(a) + ' — Hardal Arıcılık\n' +
+      lat.toFixed(5) + ', ' + lon.toFixed(5) + '\n' +
+      'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon
+    );
+  }
+
+  function navApps(a) {
+    var lat = Number(a.lat);
+    var lon = Number(a.lon);
+    var q = encodeURIComponent(mapsLabel(a));
+    return [
+      {
+        label: 'Google Maps',
+        url: 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lon + '&travelmode=driving'
+      },
+      {
+        label: 'Apple Haritalar',
+        url: 'https://maps.apple.com/?daddr=' + lat + ',' + lon + '&q=' + q
+      },
+      {
+        label: 'Yandex Haritalar',
+        url: 'https://yandex.com/maps/?rtext=~' + lat + ',' + lon + '&rtt=auto'
+      },
+      {
+        label: 'Yandex Navigasyon',
+        url: 'yandexnavi://build_route_on_map?lat_to=' + lat + '&lon_to=' + lon
+      },
+      {
+        label: 'OsmAnd',
+        url: 'https://osmand.net/map?pin=' + lat + ',' + lon + '#15/' + lat + '/' + lon
+      },
+      {
+        label: 'geo: (sistem)',
+        url: 'geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '(' + q + ')'
+      }
+    ];
+  }
+
+  function openNavChooser() {
+    if (!activeApiary || !hasCoords(activeApiary)) return;
+    var a = activeApiary;
+    var apps = navApps(a);
+    openLocSheet(
+      'Navigasyon uygulaması',
+      mapsLabel(a) + ' · ' + fmtCoord(a.lat) + ', ' + fmtCoord(a.lon),
+      apps.map(function (app, i) {
+        return { label: app.label, action: 'nav:' + i };
+      })
+    );
+    locSheetList.querySelectorAll('.sheet-item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var act = btn.getAttribute('data-action') || '';
+        var idx = Number(act.replace('nav:', ''));
+        var app = apps[idx];
+        if (!app) return;
+        closeLocSheet();
+        window.open(app.url, '_blank', 'noopener');
+      });
+    });
+  }
+
+  function shareLocation() {
+    if (!activeApiary || !hasCoords(activeApiary)) return;
+    var a = activeApiary;
+    var text = shareText(a);
+    var lat = Number(a.lat);
+    var lon = Number(a.lon);
+    var url = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
+    closeLocSheet();
+    if (navigator.share) {
+      navigator.share({ title: mapsLabel(a), text: text, url: url }).catch(function () {});
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        alert('Konum panoya kopyalandı.');
+      }).catch(function () {
+        prompt('Konumu kopyalayın:', text);
+      });
+      return;
+    }
+    prompt('Konumu kopyalayın:', text);
+  }
+
+  function openLocMenu() {
+    if (!activeApiary || !hasCoords(activeApiary)) return;
+    var a = activeApiary;
+    openLocSheet(
+      'Konum işlemleri',
+      mapsLabel(a) + ' · ' + fmtCoord(a.lat) + ', ' + fmtCoord(a.lon),
+      [
+        { label: 'Konuma git (yol tarifi)', action: 'goto' },
+        { label: 'Konumu gönder', action: 'share' }
+      ]
+    );
+    locSheetList.querySelectorAll('.sheet-item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var act = btn.getAttribute('data-action');
+        if (act === 'goto') openNavChooser();
+        else if (act === 'share') shareLocation();
+      });
+    });
+  }
+
+  document.getElementById('locSheetCancel').addEventListener('click', closeLocSheet);
+  locSheet.addEventListener('click', function (e) {
+    if (e.target === locSheet) closeLocSheet();
+  });
+
+  function mountMap(apiary) {
+    if (typeof L === 'undefined') return;
+    var el = document.getElementById('detailMap');
+    if (!el) return;
+    if (detailMap) {
+      detailMap.remove();
+      detailMap = null;
+      detailMarker = null;
+    }
+    var center = hasCoords(apiary) ? [Number(apiary.lat), Number(apiary.lon)] : DEFAULT_CENTER;
+    var zoom = hasCoords(apiary) ? 12 : 9;
+    detailMap = L.map(el, { zoomControl: true }).setView(center, zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(detailMap);
+    if (hasCoords(apiary)) {
+      detailMarker = L.marker(center, { draggable: false }).addTo(detailMap);
+      detailMarker.on('click', function () {
+        if (!pickMode) openLocMenu();
+      });
+    }
+    detailMap.on('click', function (e) {
+      if (pickMode) {
+        if (detailMarker) detailMarker.setLatLng(e.latlng);
+        else detailMarker = L.marker(e.latlng, { draggable: true }).addTo(detailMap);
+        if (detailMarker.dragging) detailMarker.dragging.enable();
+        var line = document.getElementById('pickCoords');
+        if (line) line.textContent = e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+        return;
+      }
+      if (hasCoords(apiary)) openLocMenu();
+    });
+    setTimeout(function () { detailMap.invalidateSize(); }, 60);
+  }
+
+  function render() {
+    var apiary = id ? D.apiaryById(id) : null;
+    activeApiary = apiary;
+    if (!apiary) {
+      titleEl.textContent = 'Arılık bulunamadı';
+      subEl.textContent = 'Kayıt yok';
+      content.innerHTML =
+        '<div class="missing">' +
+          '<h2>Bu arılık yok</h2>' +
+          '<p>Listeye dönüp bir arılık seçin veya yeni ekleyin.</p>' +
+          '<a class="back-chip" href="ariliklar.html">← Arılıklar</a>' +
+        '</div>';
+      return;
+    }
+
     document.title = 'SüperArı · ' + apiary.name;
     titleEl.textContent = apiary.place || apiary.name;
     subEl.textContent = 'Arılık detayı';
@@ -275,6 +557,37 @@
       );
     }).join('');
 
+    var coordsOk = hasCoords(apiary);
+    var locButtons = coordsOk
+      ? (
+          '<div class="loc-actions">' +
+            '<button type="button" class="map-btn" id="btnGoLoc">Konuma git</button>' +
+            '<button type="button" class="map-btn ghost" id="btnShareLoc">Konumu gönder</button>' +
+          '</div>'
+        )
+      : '';
+
+    var mapBlock =
+      '<section class="map-card">' +
+        '<h2>Konum</h2>' +
+        (coordsOk
+          ? ''
+          : '<p class="map-missing">Konum henüz seçilmemiş. Haritaya dokunup kaydedin.</p>') +
+        '<div id="detailMap" role="application" aria-label="Arılık konumu"></div>' +
+        (coordsOk
+          ? '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Konum işlemleri">' +
+              fmtCoord(apiary.lat) + ', ' + fmtCoord(apiary.lon) +
+            '</button>'
+          : '<div class="map-coords-line" id="pickCoords">Konum seçilmedi</div>') +
+        locButtons +
+        '<div class="map-actions">' +
+          '<button type="button" class="map-btn ghost" id="btnPickLoc">' +
+            (coordsOk ? 'Konumu değiştir' : 'Haritadan konum seç') +
+          '</button>' +
+          '<button type="button" class="map-btn" id="btnSaveLoc" hidden>Konumu kaydet</button>' +
+        '</div>' +
+      '</section>';
+
     content.innerHTML =
       '<section class="hero-card">' +
         '<div class="hero-top">' +
@@ -291,10 +604,22 @@
             '<div class="k">Kovan</div><div class="v">' + hiveN + '</div>' +
           '</a>' +
           '<div class="stat"><div class="k">Konum</div><div class="v">' + escapeHtml(apiary.place) + '</div></div>' +
-          '<div class="stat"><div class="k">Enlem</div><div class="v">' + fmtCoord(apiary.lat) + '</div></div>' +
-          '<div class="stat"><div class="k">Boylam</div><div class="v">' + fmtCoord(apiary.lon) + '</div></div>' +
+          (coordsOk
+            ? (
+                '<button type="button" class="stat stat-tap" id="statLat">' +
+                  '<div class="k">Enlem</div><div class="v">' + fmtCoord(apiary.lat) + '</div>' +
+                '</button>' +
+                '<button type="button" class="stat stat-tap" id="statLon">' +
+                  '<div class="k">Boylam</div><div class="v">' + fmtCoord(apiary.lon) + '</div>' +
+                '</button>'
+              )
+            : (
+                '<div class="stat"><div class="k">Enlem</div><div class="v">—</div></div>' +
+                '<div class="stat"><div class="k">Boylam</div><div class="v">—</div></div>'
+              )) +
         '</div>' +
       '</section>' +
+      mapBlock +
       '<div class="action-row">' +
         '<a class="action-link" href="' + filterHref + '">' +
           hiveN + ' kovanı gör <span aria-hidden="true">›</span>' +
@@ -304,7 +629,54 @@
       (hiveRows
         ? '<div class="hive-list">' + hiveRows + '</div>'
         : '<p class="empty">Bu arılıkta henüz kovan yok. Arılık eklerken kovan sayısı girerseniz burada listelenir.</p>');
+
+    pickMode = !coordsOk;
+    mountMap(apiary);
+
+    var btnGo = document.getElementById('btnGoLoc');
+    var btnShare = document.getElementById('btnShareLoc');
+    var btnPick = document.getElementById('btnPickLoc');
+    var btnSave = document.getElementById('btnSaveLoc');
+    var coordsBtn = document.getElementById('pickCoords');
+    var statLat = document.getElementById('statLat');
+    var statLon = document.getElementById('statLon');
+
+    if (btnGo) btnGo.addEventListener('click', openNavChooser);
+    if (btnShare) btnShare.addEventListener('click', shareLocation);
+    if (coordsBtn && coordsBtn.tagName === 'BUTTON') {
+      coordsBtn.addEventListener('click', openLocMenu);
+    }
+    if (statLat) statLat.addEventListener('click', openLocMenu);
+    if (statLon) statLon.addEventListener('click', openLocMenu);
+
+    if (btnPick && btnSave) {
+      if (!coordsOk) {
+        btnPick.hidden = true;
+        btnSave.hidden = false;
+        btnSave.textContent = 'Konumu kaydet';
+      }
+      btnPick.addEventListener('click', function () {
+        pickMode = true;
+        btnSave.hidden = false;
+        btnPick.hidden = true;
+        if (btnGo) btnGo.hidden = true;
+        if (btnShare) btnShare.hidden = true;
+        if (detailMarker && detailMarker.dragging) detailMarker.dragging.enable();
+      });
+      btnSave.addEventListener('click', function () {
+        if (!detailMarker) {
+          alert('Önce haritaya dokunarak konum seçin.');
+          return;
+        }
+        var p = detailMarker.getLatLng();
+        D.updateApiary(apiary.id, { lat: p.lat, lon: p.lng });
+        pickMode = false;
+        render();
+      });
+    }
   }
+
+  render();
 
   var clock = document.getElementById('clock');
   function tick() {

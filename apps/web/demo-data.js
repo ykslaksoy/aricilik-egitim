@@ -272,14 +272,17 @@
     if (!name) name = place ? (place + ' Arılığı') : 'Yeni Arılık';
     if (!place) place = '—';
     var hiveCount = Math.max(0, Number(input && input.hiveCount) || 0);
-    var lat = input && input.lat != null && input.lat !== '' ? Number(input.lat) : null;
-    var lon = input && input.lon != null && input.lon !== '' ? Number(input.lon) : null;
+    var lat = input && input.lat != null && input.lat !== '' ? Number(input.lat) : NaN;
+    var lon = input && input.lon != null && input.lon !== '' ? Number(input.lon) : NaN;
+    if (!isFinite(lat) || !isFinite(lon)) {
+      throw new Error('Arılık için haritadan konum seçilmeli (enlem/boylam).');
+    }
     var item = {
       id: 'a' + Date.now(),
       name: name,
       place: place,
-      lat: isFinite(lat) ? lat : null,
-      lon: isFinite(lon) ? lon : null,
+      lat: lat,
+      lon: lon,
       hiveCount: hiveCount
     };
     list.push(item);
@@ -293,6 +296,41 @@
     saveApiaries(list);
     saveHives(hives);
     return item;
+  }
+
+  /** Patch fields on an existing apiary (e.g. map-picked lat/lon). */
+  function updateApiary(id, patch) {
+    loadHives();
+    var list = loadApiaries();
+    var key = String(id);
+    var found = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id !== key) continue;
+      var a = list[i];
+      if (patch) {
+        if (patch.name != null) a.name = String(patch.name).trim() || a.name;
+        if (patch.place != null) a.place = String(patch.place).trim() || a.place;
+        if (patch.lat != null && patch.lat !== '') {
+          var la = Number(patch.lat);
+          if (isFinite(la)) a.lat = la;
+        }
+        if (patch.lon != null && patch.lon !== '') {
+          var lo = Number(patch.lon);
+          if (isFinite(lo)) a.lon = lo;
+        }
+        if (patch.hiveCount != null && patch.hiveCount !== '') {
+          a.hiveCount = Math.max(0, Number(patch.hiveCount) || 0);
+        }
+      }
+      list[i] = a;
+      found = a;
+      break;
+    }
+    if (!found) return null;
+    saveApiaries(list);
+    /* Reconcile hive fleet if hiveCount changed */
+    if (patch && patch.hiveCount != null) loadHives();
+    return apiaryById(key);
   }
 
   function hiveById(id) {
@@ -346,7 +384,8 @@
       saveApiaries: saveApiaries,
       loadHives: loadHives,
       saveHives: saveHives,
-      addApiary: addApiary
+      addApiary: addApiary,
+      updateApiary: updateApiary
     }
   });
 })(window);
