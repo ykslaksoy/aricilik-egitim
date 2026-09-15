@@ -141,6 +141,10 @@
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: opacity 0.35s ease;
+  }
+  .brand-strip .brand-loc-text.is-fading {
+    opacity: 0;
   }
 
   .weather-loc {
@@ -256,6 +260,7 @@
     flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr); gap: 8px; min-height: 0;
   }
+  /* LOCKED: centered hive+text (PR #16) — do not regress */
   .tile {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
     position: relative; overflow: hidden; min-height: 0; height: 100%;
@@ -532,7 +537,7 @@
         <svg class="brand-loc-pin" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path fill="currentColor" d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
         </svg>
-        <span class="brand-loc-text" id="brandLocText">Erzurum</span>
+        <span class="brand-loc-text" id="brandLocText">Kayaköy Ana Arılık</span>
       </span>
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
@@ -647,19 +652,28 @@
     void labels;
   })();
 
-  // Live place (band right) + live °C (weather card). Keeps “Arılık Kuzey” + bee-exit.
-  // Source: Open-Meteo (same as apps/api openMeteoService). Default Ev lat/lon (Erzurum).
+  // Band right = arılık konumu (cycle). Weather °C = Open-Meteo for active arılık.
+  // Keeps weather-card “Arılık Kuzey” + bee-exit / toggle untouched.
   (function liveWeather() {
-    var DEFAULT = { lat: 39.92, lon: 41.27, place: 'Erzurum' };
-    var REFRESH_MS = 15 * 60 * 1000;
+    var DEMO_APIARIES = [
+      { id: 'a1', label: 'Kayaköy Ana Arılık', lat: 39.92, lon: 41.27 },
+      { id: 'a2', label: 'Tortum Yayla Arılığı', lat: 40.61, lon: 41.66 },
+      { id: 'a3', label: 'Palandöken Yayla Arılığı', lat: 40.45, lon: 41.4 }
+    ];
+    var WEATHER_REFRESH_MS = 15 * 60 * 1000;
+    var CYCLE_MS = 6000;
     var tempEl = document.getElementById('weatherTemp');
     var brandLoc = document.getElementById('brandLoc');
     var brandLocText = document.getElementById('brandLocText');
+    var apiaries = DEMO_APIARIES.slice();
+    var idx = 0;
+    var cycleTimer = null;
+    var weatherCache = {};
+
     if (tempEl) {
       tempEl.removeAttribute('data-locked');
       tempEl.removeAttribute('data-temp');
     }
-    if (brandLocText && !brandLocText.textContent.trim()) brandLocText.textContent = DEFAULT.place;
 
     function roundC(v) {
       var n = Math.round(Number(v));
@@ -673,11 +687,20 @@
       tempEl.textContent = n + '°';
     }
 
-    function setPlace(name) {
+    function setPlace(name, withFade) {
       if (!name) return;
-      if (brandLocText) brandLocText.textContent = name;
-      else if (brandLoc) brandLoc.textContent = name;
-      if (brandLoc) brandLoc.setAttribute('title', name);
+      function apply() {
+        if (brandLocText) brandLocText.textContent = name;
+        else if (brandLoc) brandLoc.textContent = name;
+        if (brandLoc) brandLoc.setAttribute('title', name);
+        if (brandLocText) brandLocText.classList.remove('is-fading');
+      }
+      if (withFade && brandLocText) {
+        brandLocText.classList.add('is-fading');
+        setTimeout(apply, 320);
+      } else {
+        apply();
+      }
     }
 
     function updateForecastDaily(daily) {
@@ -711,20 +734,6 @@
       }
     }
 
-    function reversePlace(lat, lon) {
-      var url =
-        'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=' +
-        encodeURIComponent(lat) + '&longitude=' + encodeURIComponent(lon) +
-        '&localityLanguage=tr';
-      return fetch(url)
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (j) {
-          if (!j) return null;
-          return j.locality || j.city || j.principalSubdivision || null;
-        })
-        .catch(function () { return null; });
-    }
-
     function fetchMeteo(lat, lon) {
       var url =
         'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
@@ -738,41 +747,105 @@
       });
     }
 
-    function applyCoords(lat, lon, fallbackPlace) {
-      return Promise.all([fetchMeteo(lat, lon), reversePlace(lat, lon)])
-        .then(function (pair) {
-          var meteo = pair[0];
-          var place = pair[1] || fallbackPlace;
-          if (meteo && meteo.current && meteo.current.temperature_2m != null) {
-            setTemp(meteo.current.temperature_2m);
-          }
-          if (place) setPlace(place);
+    function currentApiary() {
+      return apiaries[idx] || apiaries[0] || DEMO_APIARIES[0];
+    }
+
+    function refreshWeather(force) {
+      var a = currentApiary();
+      if (!a) return;
+      var cached = weatherCache[a.id];
+      if (!force && cached && Date.now() - cached.at < WEATHER_REFRESH_MS) {
+        if (cached.temp != null) setTemp(cached.temp);
+        if (cached.daily) updateForecastDaily(cached.daily);
+        return;
+      }
+      fetchMeteo(a.lat, a.lon)
+        .then(function (meteo) {
+          var temp =
+            meteo && meteo.current && meteo.current.temperature_2m != null
+              ? meteo.current.temperature_2m
+              : null;
+          weatherCache[a.id] = {
+            at: Date.now(),
+            temp: temp,
+            daily: meteo && meteo.daily ? meteo.daily : null
+          };
+          if (temp != null) setTemp(temp);
           if (meteo && meteo.daily) updateForecastDaily(meteo.daily);
         })
+        .catch(function () { /* keep last °C */ });
+    }
+
+    function showApiary(i, withFade) {
+      if (!apiaries.length) return;
+      idx = ((i % apiaries.length) + apiaries.length) % apiaries.length;
+      var a = currentApiary();
+      setPlace(a.label, withFade);
+      refreshWeather(false);
+    }
+
+    function startCycle() {
+      if (cycleTimer) clearInterval(cycleTimer);
+      showApiary(0, false);
+      if (apiaries.length < 2) return;
+      cycleTimer = setInterval(function () {
+        showApiary(idx + 1, true);
+      }, CYCLE_MS);
+    }
+
+    function normalizeList(list) {
+      if (!list || !list.length) return null;
+      var out = [];
+      for (var i = 0; i < list.length; i++) {
+        var row = list[i];
+        if (!row) continue;
+        var label =
+          row.label || row.etiket || row.name || row.konumEtiket || row.place || null;
+        if (!label) continue;
+        var lat = Number(row.lat != null ? row.lat : row.latitude);
+        var lon = Number(row.lon != null ? row.lon : row.longitude);
+        out.push({
+          id: row.id || ('a' + (i + 1)),
+          label: String(label),
+          lat: isFinite(lat) ? lat : DEMO_APIARIES[i % DEMO_APIARIES.length].lat,
+          lon: isFinite(lon) ? lon : DEMO_APIARIES[i % DEMO_APIARIES.length].lon
+        });
+      }
+      return out.length ? out : null;
+    }
+
+    function fromDemoGlobal() {
+      var D = window.SuperAriDemo;
+      if (!D || !D.apiaries || !D.apiaries.length) return null;
+      return normalizeList(D.apiaries.map(function (a) {
+        return {
+          id: a.id,
+          label: a.name || a.place,
+          lat: a.lat,
+          lon: a.lon
+        };
+      }));
+    }
+
+    function loadApiaries() {
+      return fetch('/api/locations')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          var fromApi = normalizeList(j && (j.locations || j.apiaries));
+          if (fromApi) return fromApi;
+          return fromDemoGlobal() || DEMO_APIARIES.slice();
+        })
         .catch(function () {
-          if (fallbackPlace) setPlace(fallbackPlace);
+          return fromDemoGlobal() || DEMO_APIARIES.slice();
         });
     }
 
-    function refresh() {
-      if (!navigator.geolocation) {
-        applyCoords(DEFAULT.lat, DEFAULT.lon, DEFAULT.place);
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        function (pos) {
-          applyCoords(pos.coords.latitude, pos.coords.longitude, DEFAULT.place);
-        },
-        function () {
-          applyCoords(DEFAULT.lat, DEFAULT.lon, DEFAULT.place);
-        },
-        { enableHighAccuracy: false, timeout: 6000, maximumAge: 10 * 60 * 1000 }
-      );
-    }
-
-    setPlace(DEFAULT.place);
-    refresh();
-    setInterval(refresh, REFRESH_MS);
+    loadApiaries().then(function (list) {
+      apiaries = list && list.length ? list : DEMO_APIARIES.slice();
+      startCycle();
+      setInterval(function () { refreshWeather(true); }, WEATHER_REFRESH_MS);
+    });
   })();
 
   var ICONS = {

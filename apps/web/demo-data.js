@@ -3,10 +3,11 @@
  * Replaces missing SuperAriDemo dependency so list pages render without API.
  */
 (function (global) {
+  /* Arılık location labels for band cycle + panel lists (distinct place names). */
   var apiaries = [
-    { id: 'a1', name: 'Arılık Kuzey', place: 'Erzurum', hiveCount: 42 },
-    { id: 'a2', name: 'Arılık Güney', place: 'Erzurum', hiveCount: 35 },
-    { id: 'a3', name: 'Yayla', place: 'Palandöken', hiveCount: 23 }
+    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 39.92, lon: 41.27, hiveCount: 42 },
+    { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.61, lon: 41.66, hiveCount: 35 },
+    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 40.45, lon: 41.4, hiveCount: 23 }
   ];
 
   var hives = [
