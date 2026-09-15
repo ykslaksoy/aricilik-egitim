@@ -254,23 +254,30 @@
     color: var(--hardal-lo); letter-spacing: .02em;
   }
 
+  /* Ice-blue glass FAB — translucent buz mavisi (not hardal/mustard) */
   .fab {
     position: absolute; right: 18px; bottom: 88px; z-index: 40;
     display: inline-flex; align-items: center; gap: 6px;
     min-height: 48px; padding: 0 18px 0 14px;
-    border: 1px solid rgba(150, 200, 230, .65);
+    border: 1px solid rgba(170, 215, 240, .55);
     border-radius: 999px; cursor: pointer;
-    background: linear-gradient(165deg, rgba(236, 246, 255, .45) 0%, rgba(186, 220, 242, .32) 50%, rgba(150, 200, 230, .28) 100%);
-    backdrop-filter: blur(16px) saturate(1.35);
-    -webkit-backdrop-filter: blur(16px) saturate(1.35);
-    color: #143952; font-size: 14px; font-weight: 800;
-    text-shadow: 0 1px 0 rgba(255,255,255,.7);
+    background: linear-gradient(165deg,
+      rgba(210, 232, 248, .42) 0%,
+      rgba(186, 220, 242, .28) 48%,
+      rgba(150, 200, 230, .22) 100%);
+    backdrop-filter: blur(18px) saturate(1.45);
+    -webkit-backdrop-filter: blur(18px) saturate(1.45);
+    color: #0f3a58; font-size: 14px; font-weight: 800;
+    text-shadow: 0 1px 0 rgba(255,255,255,.75);
     box-shadow:
-      0 10px 24px rgba(90, 140, 180, .18),
-      inset 0 1px 0 rgba(255,255,255,.85),
-      inset 0 -1px 0 rgba(120, 170, 210, .18);
+      0 8px 22px rgba(70, 130, 175, .16),
+      inset 0 1px 0 rgba(255,255,255,.9),
+      inset 0 -1px 0 rgba(120, 175, 215, .2);
   }
-  .fab:active { transform: scale(.97); background: linear-gradient(165deg, rgba(210, 232, 248, .55), rgba(160, 205, 232, .4)); }
+  .fab:active {
+    transform: scale(.97);
+    background: linear-gradient(165deg, rgba(210, 232, 248, .55), rgba(160, 205, 232, .38));
+  }
   .fab-plus { font-size: 20px; line-height: 1; font-weight: 700; color: #0f3a58; }
 
   .sheet {
@@ -516,7 +523,7 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
-<script src="gider-store.js?v=gider-sekme-3"></script>
+<script src="gider-store.js?v=gider-fab-arilik-4"></script>
 <script>
 (function () {
   var G = window.SuperAriGider;
@@ -795,23 +802,57 @@
 
   function renderApiarySummary(all) {
     var byApiary = G.totalsByApiary(all);
-    var apiaries = loadApiaries();
-    var nameById = {};
-    apiaries.forEach(function (a) {
-      nameById[a.id] = apiaryShort(a) + ' · ' + a.name;
+    var totalsMap = {};
+    byApiary.forEach(function (row) {
+      totalsMap[row.apiaryId] = row;
     });
-    if (!byApiary.length) {
-      apiaryTotalsEl.innerHTML = '<p style="color:var(--muted);font-size:12px;padding:4px 0;">Henüz gider yok.</p>';
+    var apiaries = loadApiaries();
+    var rows = [];
+    var seen = {};
+
+    /* Every store apiary (incl. Balığındüzü / zero-expense) gets its own total row. */
+    apiaries.forEach(function (a) {
+      var id = a.id;
+      seen[id] = true;
+      var t = totalsMap[id];
+      rows.push({
+        apiaryId: id,
+        label: apiaryShort(a) + ' · ' + a.name,
+        amount: t ? t.amount : 0,
+        count: t ? t.count : 0
+      });
+    });
+
+    /* Orphan expense apiaries not in store still show separately. */
+    byApiary.forEach(function (row) {
+      if (seen[row.apiaryId]) return;
+      rows.push({
+        apiaryId: row.apiaryId,
+        label: row.apiaryName || row.apiaryId,
+        amount: row.amount,
+        count: row.count
+      });
+    });
+
+    rows.sort(function (a, b) {
+      if (b.amount !== a.amount) return b.amount - a.amount;
+      return String(a.label).localeCompare(String(b.label), 'tr');
+    });
+
+    if (!rows.length) {
+      apiaryTotalsEl.innerHTML = '<p style="color:var(--muted);font-size:12px;padding:4px 0;">Henüz arılık yok.</p>';
       return;
     }
-    apiaryTotalsEl.innerHTML = byApiary.map(function (row) {
-      var label = nameById[row.apiaryId] || row.apiaryName || row.apiaryId;
+    apiaryTotalsEl.innerHTML = rows.map(function (row) {
+      var sub = row.count
+        ? (row.count + ' kayıt · detay için dokun')
+        : 'Gider yok · detay için dokun';
       return (
         '<button type="button" class="apiary-total-row" data-id="' + escapeHtml(row.apiaryId) + '" aria-label="' +
-          escapeHtml(label) + ' gider detayı">' +
+          escapeHtml(row.label) + ' gider detayı">' +
           '<div>' +
-            '<span class="name">' + escapeHtml(label) + '</span>' +
-            '<span class="sub">' + row.count + ' kayıt · detay için dokun</span>' +
+            '<span class="name">' + escapeHtml(row.label) + '</span>' +
+            '<span class="sub">' + escapeHtml(sub) + '</span>' +
           '</div>' +
           '<span class="amt">' + formatTRY(row.amount) + '</span>' +
           '<span class="chev" aria-hidden="true">›</span>' +
