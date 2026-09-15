@@ -77,7 +77,7 @@
    position: relative;
   }
 
-  /* Hardal işletme şeridi — mustard brand signal; left brand, right live location */
+  /* Hardal işletme şeridi — brand left, Sabit lock; location lives in weather card below */
   .brand-strip {
     position: relative;
     z-index: 12;
@@ -143,39 +143,6 @@
     border-color: var(--hardal-lo, #b8860b);
     color: #2a1a0c;
   }
-  .brand-strip .brand-loc {
-    margin-left: 0;
-    flex: 0 1 auto;
-    max-width: 42%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .02em;
-    color: var(--brown-mid, #6b4f2a);
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .brand-strip .brand-loc-pin {
-    flex: 0 0 auto;
-    width: 12px;
-    height: 12px;
-    display: block;
-    color: var(--brown, #3d2616);
-  }
-  .brand-strip .brand-loc-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: opacity 0.35s ease;
-  }
-  .brand-strip .brand-loc-text.is-fading {
-    opacity: 0;
-  }
   .weather-loc-label.is-fading {
     opacity: 0;
   }
@@ -186,18 +153,18 @@
   .weather-loc {
     position: relative;
   }
-  /* Invisible exit marker: bees emerge on the Arılık Kuzey ↔ °C row */
+  /* Invisible exit marker: bees emerge just right of the arılık label (pre-flex stretch) */
   .bee-exit {
     position: absolute;
     left: 100%;
     top: 50%;
     width: 4px;
     height: 4px;
-    margin-left: 8px;
+    margin-left: 10px;
     transform: translateY(-50%);
     pointer-events: none;
   }
-  /* Breed name on the Arılık Kuzey ↔ °C row (right of exit marker) */
+  /* Breed name on the label ↔ °C row (right of exit marker) */
   .bee-podium {
     position: absolute;
     left: 100%;
@@ -244,7 +211,8 @@
     min-height: 32px;
   }
   .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
-  .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); min-width: 0; flex: 1 1 auto; }
+  /* Content-sized (not flex:1) so #beeExit stays at end of short label — restores d6cf379 exit */
+  .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); flex: 0 1 auto; max-width: 42%; }
   .weather-loc-label {
     display: block;
     max-width: 100%;
@@ -577,12 +545,6 @@
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
       <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Konum ve sıcaklığı sabitle">Sabit</button>
-      <span class="brand-loc" id="brandLoc" title="Konum">
-        <svg class="brand-loc-pin" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
-        </svg>
-        <span class="brand-loc-text" id="brandLocText">Kayaköy Ana Arılık</span>
-      </span>
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
@@ -597,7 +559,7 @@
           <path d="M18 18c0-2.5 2-4.5 4.5-4.5 1.4 0 2.6.6 3.4 1.6A5 5 0 0 1 27 24H10a4.5 4.5 0 0 1 0-9c.5 0 1 .1 1.5.2" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/>
         </svg>
         <div class="weather-loc" id="weatherLoc">
-          <span class="weather-loc-label" id="weatherLocLabel">Kayaköy Ana Arılık</span>
+          <span class="weather-loc-label" id="weatherLocLabel">Kayaköy</span>
           <span class="bee-exit" id="beeExit" aria-hidden="true"></span>
           <div class="bee-podium" id="beePodium">
             <div class="podium-stage" id="podiumStage"></div>
@@ -709,20 +671,18 @@
     void labels;
   })();
 
-  // Band right + weather-card title = active arılık (cycle). °C/forecast follow lat/lon.
-  // Sabit button locks name + temps + cycle; unlock resumes 10s cycle. Bee toggle/door untouched.
+  // Weather-card title = active arılık (10s cycle). °C/forecast follow lat/lon.
+  // Sabit locks name + temps + cycle; unlock resumes. Band shows brand + Sabit only (no pin/location).
   (function liveWeather() {
     var DEMO_APIARIES = [
-      { id: 'a1', label: 'Kayaköy Ana Arılık', lat: 39.92, lon: 41.27 },
-      { id: 'a2', label: 'Tortum Yayla Arılığı', lat: 40.61, lon: 41.66 },
-      { id: 'a3', label: 'Palandöken Yayla Arılığı', lat: 40.45, lon: 41.4 }
+      { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
+      { id: 'a2', label: 'Tortum', lat: 40.61, lon: 41.66 },
+      { id: 'a3', label: 'Palandöken', lat: 40.45, lon: 41.4 }
     ];
     var WEATHER_REFRESH_MS = 15 * 60 * 1000;
     var CYCLE_MS = 10000;
     var LOCK_KEY = 'superari.ana.arilikLock';
     var tempEl = document.getElementById('weatherTemp');
-    var brandLoc = document.getElementById('brandLoc');
-    var brandLocText = document.getElementById('brandLocText');
     var weatherLocLabel = document.getElementById('weatherLocLabel');
     var lockBtn = document.getElementById('arilikLockBtn');
     var apiaries = DEMO_APIARIES.slice();
@@ -749,21 +709,14 @@
     }
 
     function setPlace(name, withFade) {
-      if (!name) return;
+      if (!name || !weatherLocLabel) return;
       function apply() {
-        if (brandLocText) brandLocText.textContent = name;
-        else if (brandLoc) brandLoc.textContent = name;
-        if (brandLoc) brandLoc.setAttribute('title', name);
-        if (brandLocText) brandLocText.classList.remove('is-fading');
-        if (weatherLocLabel) {
-          weatherLocLabel.textContent = name;
-          weatherLocLabel.setAttribute('title', name);
-          weatherLocLabel.classList.remove('is-fading');
-        }
+        weatherLocLabel.textContent = name;
+        weatherLocLabel.setAttribute('title', name);
+        weatherLocLabel.classList.remove('is-fading');
       }
-      if (withFade && (brandLocText || weatherLocLabel)) {
-        if (brandLocText) brandLocText.classList.add('is-fading');
-        if (weatherLocLabel) weatherLocLabel.classList.add('is-fading');
+      if (withFade) {
+        weatherLocLabel.classList.add('is-fading');
         setTimeout(apply, 320);
       } else {
         apply();
@@ -947,8 +900,9 @@
       for (var i = 0; i < list.length; i++) {
         var row = list[i];
         if (!row) continue;
+        /* Prefer short place names so weather-row label + bee-exit stay compact */
         var label =
-          row.label || row.etiket || row.name || row.konumEtiket || row.place || null;
+          row.place || row.shortLabel || row.label || row.etiket || row.name || row.konumEtiket || null;
         if (!label) continue;
         var lat = Number(row.lat != null ? row.lat : row.latitude);
         var lon = Number(row.lon != null ? row.lon : row.longitude);
@@ -968,7 +922,8 @@
       return normalizeList(D.apiaries.map(function (a) {
         return {
           id: a.id,
-          label: a.name || a.place,
+          place: a.place,
+          label: a.place || a.name,
           lat: a.lat,
           lon: a.lon
         };
@@ -1157,7 +1112,7 @@
     }
 
     function exitPoint() {
-      // Same horizontal row as Arılık Kuzey ↔ temperature
+      // Emerge just right of the short arılık label (restored pre-flex-stretch exit)
       var s = screenEl.getBoundingClientRect();
       var exitEl = document.getElementById('beeExit');
       var loc = document.getElementById('weatherLoc') || document.querySelector('.weather-loc');
