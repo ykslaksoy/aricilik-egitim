@@ -69,10 +69,14 @@
         return;
       }
 
-      var hives = D.hives.slice();
+      var hives = D.loadHives ? D.loadHives().slice() : D.hives.slice();
       var apiaryFilter = params.get('apiary');
+      var filterApiary = null;
       if (apiaryFilter) {
         hives = hives.filter(function (h) { return h.apiaryId === apiaryFilter; });
+        filterApiary = D.apiaryById(apiaryFilter);
+        titleEl.textContent = filterApiary ? (filterApiary.place || filterApiary.name) : 'Arılık kovanları';
+        subEl.textContent = 'Kovanlar';
       }
       if (focusId) {
         var one = D.hiveById(focusId);
@@ -88,8 +92,14 @@
       } else if (view === 'koloni') {
         summaryEl.textContent = hives.length + ' kovan · koloni skoru';
         noteEl.textContent = 'Koloni gücü odaklı görünüm.';
+      } else if (apiaryFilter) {
+        var apName = filterApiary ? filterApiary.name : apiaryFilter;
+        summaryEl.textContent = hives.length + ' kovan · ' + apName;
+        noteEl.innerHTML = '<a href="arilik.html?id=' + encodeURIComponent(apiaryFilter) + '">← Arılık detayı</a>' +
+          ' · <a href="ariliklar.html">Tüm arılıklar</a>';
       } else {
-        summaryEl.textContent = hives.length + ' demo kovan · canlı filoda ~' + D.counts.hives;
+        summaryEl.textContent = hives.length + ' kovan';
+        noteEl.textContent = 'Kayıtlı kovanlar. Arılık detayından süzebilirsiniz.';
       }
 
       listEl.innerHTML = hives.map(function (h) {
