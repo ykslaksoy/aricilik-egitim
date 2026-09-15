@@ -1,6 +1,7 @@
 /**
  * Shared Giderler + taşıma kaydı (localStorage).
  * Nakliye = üçüncü taraf; Kendi araç = zorunlu Yakıt gideri.
+ * Her gider bir arılığa bağlıdır (apiaryId).
  */
 (function (global) {
   var STORAGE_KEY = 'superari.giderler.v1';
@@ -20,18 +21,69 @@
   ];
 
   var SEED_EXPENSES = [
-    { id: 'g1', title: 'Şeker şurubu (25 kg)', category: 'yem', amount: 2800, date: '2026-09-02' },
-    { id: 'g2', title: 'Polen ikamesi', category: 'yem', amount: 1400, date: '2026-08-28' },
-    { id: 'g3', title: 'Varroa damlatma', category: 'ilac', amount: 1680, date: '2026-09-05' },
-    { id: 'g4', title: 'Organik asit seti', category: 'ilac', amount: 1200, date: '2026-08-20' },
-    { id: 'g5', title: 'Çerçeve teli + mum', category: 'ekipman', amount: 1450, date: '2026-09-01' },
-    { id: 'g6', title: 'Maske / eldiven', category: 'ekipman', amount: 950, date: '2026-08-15' },
+    {
+      id: 'g1',
+      title: 'Şeker şurubu (25 kg)',
+      category: 'yem',
+      amount: 2800,
+      date: '2026-09-02',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık',
+      note: 'Sonbahar besleme'
+    },
+    {
+      id: 'g2',
+      title: 'Polen ikamesi',
+      category: 'yem',
+      amount: 1400,
+      date: '2026-08-28',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık'
+    },
+    {
+      id: 'g3',
+      title: 'Varroa damlatma',
+      category: 'ilac',
+      amount: 1680,
+      date: '2026-09-05',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık'
+    },
+    {
+      id: 'g4',
+      title: 'Organik asit seti',
+      category: 'ilac',
+      amount: 1200,
+      date: '2026-08-20',
+      apiaryId: 'a3',
+      apiaryName: 'Palandöken Yayla Arılığı'
+    },
+    {
+      id: 'g5',
+      title: 'Çerçeve teli + mum',
+      category: 'ekipman',
+      amount: 1450,
+      date: '2026-09-01',
+      apiaryId: 'a3',
+      apiaryName: 'Palandöken Yayla Arılığı'
+    },
+    {
+      id: 'g6',
+      title: 'Maske / eldiven',
+      category: 'ekipman',
+      amount: 950,
+      date: '2026-08-15',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık'
+    },
     {
       id: 'g10',
       title: 'Yevmiye — yardımcı',
       category: 'iscilik',
       amount: 1500,
       date: '2026-09-03',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık',
       note: 'Günlük işçilik'
     },
     {
@@ -40,6 +92,8 @@
       category: 'ambalaj',
       amount: 820,
       date: '2026-08-30',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık',
       note: 'Paketleme'
     },
     {
@@ -50,6 +104,8 @@
       date: '2026-08-10',
       transportMode: 'nakliye',
       transportId: 't-seed-1',
+      apiaryId: 'a2',
+      apiaryName: 'Tortum Yayla Arılığı',
       note: 'Üçüncü taraf nakliye'
     },
     {
@@ -74,7 +130,15 @@
       apiaryName: 'Tortum Yayla Arılığı',
       note: 'Yayla / kira'
     },
-    { id: 'g8', title: 'Arılık bakım malzemesi', category: 'diger', amount: 960, date: '2026-09-08' }
+    {
+      id: 'g8',
+      title: 'Arılık bakım malzemesi',
+      category: 'diger',
+      amount: 960,
+      date: '2026-09-08',
+      apiaryId: 'a3',
+      apiaryName: 'Palandöken Yayla Arılığı'
+    }
   ];
 
   var SEED_TRANSPORTS = [
@@ -84,6 +148,8 @@
       date: '2026-08-10',
       amount: 1560,
       giderId: 'g7',
+      apiaryId: 'a2',
+      apiaryName: 'Tortum Yayla Arılığı',
       title: 'Yayla taşıma (nakliye)',
       note: 'Üçüncü taraf nakliye'
     },
@@ -99,6 +165,11 @@
       note: 'Kendi araç'
     }
   ];
+
+  var SEED_APIARY_BY_ID = {};
+  SEED_EXPENSES.forEach(function (e) {
+    if (e.apiaryId) SEED_APIARY_BY_ID[e.id] = { id: e.apiaryId, name: e.apiaryName || '' };
+  });
 
   function catById(id) {
     for (var i = 0; i < CATEGORIES.length; i++) {
@@ -134,7 +205,6 @@
     } catch (e) { /* ignore */ }
   }
 
-  /** Ensure Yakıt category works even if older seed lacked g9. */
   function normalizeExpense(e) {
     if (!e || typeof e !== 'object') return null;
     var cat = String(e.category || 'diger');
@@ -204,10 +274,29 @@
     return list;
   }
 
+  /** Backfill apiaryId on known demo rows that predate per-arılık linking. */
+  function ensureApiaryLinks(list) {
+    var changed = false;
+    list = list.map(function (e) {
+      if (!e) return e;
+      if (e.apiaryId) return e;
+      var hint = SEED_APIARY_BY_ID[e.id];
+      if (!hint) return e;
+      changed = true;
+      e.apiaryId = hint.id;
+      e.apiaryName = hint.name || e.apiaryName || '';
+      return e;
+    });
+    if (changed) writeJson(STORAGE_KEY, list);
+    return list;
+  }
+
   function loadExpenses() {
     var parsed = readJson(STORAGE_KEY);
     if (Array.isArray(parsed) && parsed.length) {
-      return ensureDemoCategoriesVisible(parsed.map(normalizeExpense).filter(Boolean));
+      return ensureApiaryLinks(
+        ensureDemoCategoriesVisible(parsed.map(normalizeExpense).filter(Boolean))
+      );
     }
     writeJson(STORAGE_KEY, SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);
@@ -223,7 +312,6 @@
     if (Array.isArray(parsed) && parsed.length) {
       return parsed;
     }
-    /* Seed transports only when gider seed is also fresh / linked */
     var expenses = readJson(STORAGE_KEY);
     if (!expenses || !Array.isArray(expenses) || !expenses.length) {
       writeJson(TRANSPORT_KEY, SEED_TRANSPORTS);
@@ -243,6 +331,37 @@
   function saveTransports(list) {
     if (!Array.isArray(list)) return;
     writeJson(TRANSPORT_KEY, list);
+  }
+
+  function syncLinkedTransport(gider) {
+    if (!gider || !gider.transportId) return;
+    var transports = loadTransports();
+    var found = false;
+    transports = transports.map(function (t) {
+      if (!t || String(t.id) !== String(gider.transportId)) return t;
+      found = true;
+      return {
+        id: t.id,
+        mode: gider.transportMode || t.mode,
+        date: gider.date,
+        amount: gider.amount,
+        giderId: gider.id,
+        apiaryId: gider.apiaryId,
+        apiaryName: gider.apiaryName,
+        title: gider.title,
+        note: gider.note
+      };
+    });
+    if (found) saveTransports(transports);
+  }
+
+  function removeLinkedTransport(gider) {
+    if (!gider || !gider.transportId) return;
+    var tid = String(gider.transportId);
+    var transports = loadTransports().filter(function (t) {
+      return t && String(t.id) !== tid && String(t.giderId) !== String(gider.id);
+    });
+    saveTransports(transports);
   }
 
   /**
@@ -265,6 +384,9 @@
     var note = String((input && input.note) || '').trim();
     var apiaryId = input && input.apiaryId != null ? String(input.apiaryId) : '';
     var apiaryName = input && input.apiaryName != null ? String(input.apiaryName) : '';
+    if (!apiaryId) {
+      throw new Error('Arılık seçilmeli.');
+    }
     var title = String((input && input.title) || '').trim();
     if (!title) {
       title =
@@ -313,6 +435,15 @@
     return { gider: gider, transport: transport };
   }
 
+  function resolveApiary(input) {
+    var apiaryId = input && input.apiaryId != null ? String(input.apiaryId) : '';
+    var apiaryName = input && input.apiaryName != null ? String(input.apiaryName) : '';
+    if (!apiaryId) {
+      throw new Error('Arılık seçilmeli.');
+    }
+    return { apiaryId: apiaryId, apiaryName: apiaryName };
+  }
+
   function addExpense(input) {
     var mode = input && input.transportMode;
     if (mode === 'nakliye' || mode === 'kendi_arac') {
@@ -326,6 +457,7 @@
         title: input.title
       }).gider;
     }
+    var ap = resolveApiary(input);
     var expenses = loadExpenses();
     var gider = normalizeExpense({
       id: 'g' + Date.now(),
@@ -334,8 +466,8 @@
       amount: input && input.amount,
       date: input && input.date,
       note: input && input.note,
-      apiaryId: input && input.apiaryId,
-      apiaryName: input && input.apiaryName
+      apiaryId: ap.apiaryId,
+      apiaryName: ap.apiaryName
     });
     if (!(gider.amount > 0) || !gider.title) {
       throw new Error('Başlık ve tutar gerekli.');
@@ -343,6 +475,125 @@
     expenses.push(gider);
     saveExpenses(expenses);
     return gider;
+  }
+
+  function updateExpense(id, input) {
+    var key = String(id || '');
+    if (!key) throw new Error('Gider bulunamadı.');
+    var expenses = loadExpenses();
+    var idx = -1;
+    for (var i = 0; i < expenses.length; i++) {
+      if (expenses[i] && expenses[i].id === key) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) throw new Error('Gider bulunamadı.');
+
+    var prev = expenses[idx];
+    var mode = input && input.transportMode;
+    if (mode !== 'nakliye' && mode !== 'kendi_arac') mode = '';
+    var ap = resolveApiary(input);
+    var category = input && input.category;
+    if (mode === 'kendi_arac') category = 'yakit';
+    else if (mode === 'nakliye') category = 'nakliye';
+
+    var gider = normalizeExpense({
+      id: prev.id,
+      title: input && input.title,
+      category: category || prev.category,
+      amount: input && input.amount,
+      date: input && input.date,
+      note: input && input.note,
+      apiaryId: ap.apiaryId,
+      apiaryName: ap.apiaryName,
+      transportMode: mode,
+      transportId: prev.transportId || ''
+    });
+    if (!(gider.amount > 0) || !gider.title) {
+      throw new Error('Başlık ve tutar gerekli.');
+    }
+
+    if (mode && !gider.transportId) {
+      gider.transportId = 't' + Date.now();
+      var transports = loadTransports();
+      transports.push({
+        id: gider.transportId,
+        mode: mode,
+        date: gider.date,
+        amount: gider.amount,
+        giderId: gider.id,
+        apiaryId: gider.apiaryId,
+        apiaryName: gider.apiaryName,
+        title: gider.title,
+        note: gider.note
+      });
+      saveTransports(transports);
+    } else if (!mode && prev.transportId) {
+      removeLinkedTransport(prev);
+      gider.transportId = '';
+    } else if (mode && gider.transportId) {
+      syncLinkedTransport(gider);
+    }
+
+    expenses[idx] = gider;
+    saveExpenses(expenses);
+    return gider;
+  }
+
+  function deleteExpense(id) {
+    var key = String(id || '');
+    if (!key) return false;
+    var expenses = loadExpenses();
+    var removed = null;
+    var next = expenses.filter(function (e) {
+      if (e && e.id === key) {
+        removed = e;
+        return false;
+      }
+      return true;
+    });
+    if (!removed) return false;
+    removeLinkedTransport(removed);
+    saveExpenses(next);
+    return true;
+  }
+
+  function expensesForApiary(apiaryId) {
+    var key = String(apiaryId || '');
+    return loadExpenses()
+      .filter(function (e) {
+        if (!key || key === 'all') return true;
+        if (key === 'none') return !e.apiaryId;
+        return String(e.apiaryId) === key;
+      })
+      .sort(function (a, b) {
+        return String(b.date).localeCompare(String(a.date));
+      });
+  }
+
+  function totalsByApiary(list) {
+    var rows = list || loadExpenses();
+    var map = {};
+    rows.forEach(function (e) {
+      var id = e.apiaryId || 'none';
+      if (!map[id]) {
+        map[id] = {
+          apiaryId: id,
+          apiaryName: e.apiaryName || (id === 'none' ? 'Atanmamış' : id),
+          amount: 0,
+          count: 0
+        };
+      }
+      if (e.apiaryName && id !== 'none') map[id].apiaryName = e.apiaryName;
+      map[id].amount += Number(e.amount) || 0;
+      map[id].count += 1;
+    });
+    return Object.keys(map)
+      .map(function (k) { return map[k]; })
+      .sort(function (a, b) {
+        return b.amount - a.amount;
+      });
   }
 
   function transportsForApiary(apiaryId) {
@@ -372,6 +623,10 @@
       saveTransports: saveTransports,
       recordTransport: recordTransport,
       addExpense: addExpense,
+      updateExpense: updateExpense,
+      deleteExpense: deleteExpense,
+      expensesForApiary: expensesForApiary,
+      totalsByApiary: totalsByApiary,
       transportsForApiary: transportsForApiary
     }
   });

@@ -79,13 +79,53 @@
     background: #fff; border: 1px solid var(--card-border);
     color: var(--text); font-size: 12px; font-weight: 700; text-decoration: none;
   }
-  .total-row {
-    display: flex; align-items: baseline; justify-content: space-between;
-    margin-bottom: 14px; padding: 0 2px;
+
+  .summary-block {
+    background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 14px 14px 10px; margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(40, 30, 10, .05);
   }
-  .total-row .label { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .total-row .amount {
+  .summary-block h2 {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    letter-spacing: .02em; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .summary-total {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px; padding-bottom: 10px;
+    border-bottom: 1px solid #f0f1f3;
+  }
+  .summary-total .label { font-size: 14px; font-weight: 750; color: var(--text); }
+  .summary-total .amount {
     font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .apiary-totals { display: grid; gap: 6px; }
+  .apiary-total-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+    align-items: baseline; padding: 4px 0;
+    font-size: 13px;
+  }
+  .apiary-total-row .name { font-weight: 700; color: var(--text); }
+  .apiary-total-row .sub { display: block; margin-top: 1px; font-size: 11px; color: var(--muted); font-weight: 600; }
+  .apiary-total-row .amt {
+    font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+
+  .filter-row {
+    display: flex; gap: 6px; overflow-x: auto; padding: 0 0 12px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex: 0 0 auto; min-height: 34px; padding: 0 12px; border-radius: 999px;
+    border: 1px solid var(--card-border); background: #fff;
+    color: var(--text); font-size: 12px; font-weight: 750; font-family: inherit;
+    cursor: pointer;
+  }
+  .filter-chip.is-on {
+    border-color: #e0c56a;
+    background: linear-gradient(145deg, #fff6df, var(--hardal-soft));
+    color: var(--brown);
   }
 
   .chart-block {
@@ -121,19 +161,33 @@
     font-size: 14px; font-weight: 800; color: var(--text);
     margin: 4px 2px 10px;
   }
+  .section-title .hint {
+    display: block; margin-top: 2px; font-weight: 600; color: var(--muted); font-size: 11px;
+  }
+  .group-head {
+    font-size: 12px; font-weight: 800; color: var(--brown);
+    margin: 10px 2px 6px; letter-spacing: .01em;
+  }
   .exp-list { display: grid; gap: 8px; }
   .exp-item {
     display: grid; grid-template-columns: 10px 1fr auto;
     gap: 10px; align-items: start;
     padding: 12px 12px; border-radius: 14px;
     background: #fff; border: 1px solid var(--card-border);
+    cursor: pointer; text-align: left; width: 100%; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
   }
+  .exp-item:active { transform: scale(.99); background: #fffdf6; }
   .exp-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; opacity: .9; box-shadow: inset 0 0 0 1px rgba(74,47,26,.1); }
   .exp-item h3 { font-size: 13px; font-weight: 750; color: var(--text); line-height: 1.3; }
   .exp-item .meta { margin-top: 2px; font-size: 11px; color: var(--muted); }
   .exp-item .amt {
     font-size: 13px; font-weight: 800; color: var(--text);
     font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .exp-item .edit-hint {
+    display: block; margin-top: 6px; font-size: 10px; font-weight: 700;
+    color: var(--hardal-lo); letter-spacing: .02em;
   }
 
   .fab {
@@ -159,7 +213,7 @@
     width: 100%; background: #fff; border-radius: 22px 22px 0 0;
     padding: 18px 16px 28px;
     transform: translateY(24px); transition: transform .22s ease;
-    max-height: 78%; overflow-y: auto;
+    max-height: 82%; overflow-y: auto;
   }
   .sheet.is-open .sheet-card { transform: translateY(0); }
   .sheet-card h2 { font-size: 18px; font-weight: 800; margin-bottom: 14px; color: var(--text); }
@@ -195,6 +249,7 @@
     color: var(--muted); font-size: 12px; line-height: 1.4; font-weight: 600;
   }
   .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+  .sheet-actions.with-delete { grid-template-columns: 1fr 1fr; }
   .btn {
     min-height: 44px; border-radius: 12px; border: 0; cursor: pointer;
     font-size: 14px; font-weight: 800; font-family: inherit;
@@ -204,6 +259,11 @@
     background: linear-gradient(145deg, var(--hardal-hi), var(--hardal));
     color: #3b2b00;
   }
+  .btn.delete {
+    width: 100%; margin-top: 10px;
+    background: #f6ece8; color: #8a4b3a;
+  }
+  .btn.delete[hidden] { display: none; }
 
   .tabbar {
     height: 72px; background: #fff; border-top: 1px solid #e6e8ec;
@@ -242,7 +302,7 @@
     <div class="page-head">
       <div>
         <h1>Giderler</h1>
-        <p>Kategori dağılımı</p>
+        <p>Arılık bazlı kayıtlar</p>
       </div>
       <div class="nav-chips">
         <a class="back-chip" href="raporlar.html">← Raporlar</a>
@@ -250,10 +310,16 @@
       </div>
     </div>
 
-    <div class="total-row">
-      <span class="label">Bu dönem toplam</span>
-      <span class="amount" id="totalAmount">₺0</span>
-    </div>
+    <section class="summary-block" aria-label="Toplam giderler">
+      <h2>Toplam giderler</h2>
+      <div class="summary-total">
+        <span class="label">Genel toplam</span>
+        <span class="amount" id="totalAmount">₺0</span>
+      </div>
+      <div class="apiary-totals" id="apiaryTotals"></div>
+    </section>
+
+    <div class="filter-row" id="filterRow" role="tablist" aria-label="Arılık filtresi"></div>
 
     <section class="chart-block" aria-label="Kategori pasta grafiği">
       <div class="chart-wrap">
@@ -262,7 +328,10 @@
       <div class="legend" id="legend"></div>
     </section>
 
-    <h2 class="section-title">Kayıtlar <span style="font-weight:600;color:var(--muted);font-size:12px">(Yem · İlaç · Ekipman · Nakliye · Yakıt · Diğer)</span></h2>
+    <h2 class="section-title">
+      Kayıtlar
+      <span class="hint">Karta dokunarak düzenle · Yem · İlaç · Ekipman · İşçilik · Ambalaj · Nakliye · Yakıt · Yayla/kira · Diğer</span>
+    </h2>
     <div class="exp-list" id="expList"></div>
   </div>
 
@@ -274,6 +343,7 @@
     <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
       <h2 id="sheetTitle">Yeni gider</h2>
       <form id="addForm">
+        <input type="hidden" name="editId" id="editId" value="" />
         <div class="mode-field">
           <span class="mode-label" id="modeLabel">Taşıma şekli</span>
           <div class="mode-chips" role="group" aria-labelledby="modeLabel">
@@ -292,6 +362,11 @@
         <label>Başlık
           <input name="title" required maxlength="80" placeholder="Örn. Şeker şurubu" />
         </label>
+        <label>Arılık
+          <select name="apiaryId" id="apiarySelect" required>
+            <option value="">— Arılık seç —</option>
+          </select>
+        </label>
         <label id="catLabel">Kategori
           <select name="category" required></select>
         </label>
@@ -301,18 +376,14 @@
         <label>Tarih
           <input name="date" type="date" required />
         </label>
-        <label id="apiaryLabel" hidden>Arılık
-          <select name="apiaryId" id="apiarySelect">
-            <option value="">— Seçilmedi —</option>
-          </select>
-        </label>
-        <label id="noteLabel" hidden>Not
-          <textarea name="note" maxlength="160" placeholder="Örn. Tortum’a taşıma"></textarea>
+        <label>Not
+          <textarea name="note" maxlength="160" placeholder="İsteğe bağlı not"></textarea>
         </label>
         <div class="sheet-actions">
           <button type="button" class="btn cancel" id="sheetCancel">Vazgeç</button>
-          <button type="submit" class="btn save">Kaydet</button>
+          <button type="submit" class="btn save" id="sheetSave">Kaydet</button>
         </div>
+        <button type="button" class="btn delete" id="sheetDelete" hidden>Sil</button>
       </form>
     </div>
   </div>
@@ -341,389 +412,8 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<!-- gider-store inline (also apps/web/gider-store.js) — ensures Yakıt works even if external JS lags on CDN -->
-<script>
-/**
- * Shared Giderler + taşıma kaydı (localStorage).
- * Nakliye = üçüncü taraf; Kendi araç = zorunlu Yakıt gideri.
- */
-(function (global) {
-  var STORAGE_KEY = 'superari.giderler.v1';
-  var TRANSPORT_KEY = 'superari.tasimalar.v1';
-
-  /* Soft Hardal-warm palette — muted (no loud green/red/purple). */
-  var CATEGORIES = [
-    { id: 'yem', label: 'Yem', color: '#c9a84a' },
-    { id: 'ilac', label: 'İlaç', color: '#c4887a' },
-    { id: 'ekipman', label: 'Ekipman', color: '#8a97a8' },
-    { id: 'iscilik', label: 'İşçilik', color: '#b8957a' },
-    { id: 'ambalaj', label: 'Ambalaj', color: '#8a9e96' },
-    { id: 'nakliye', label: 'Nakliye', color: '#8f9b72' },
-    { id: 'yakit', label: 'Yakıt', color: '#c48a55' },
-    { id: 'yayla_kira', label: 'Yayla/kira', color: '#8a9eab' },
-    { id: 'diger', label: 'Diğer', color: '#9a8b7a' }
-  ];
-
-  var SEED_EXPENSES = [
-    { id: 'g1', title: 'Şeker şurubu (25 kg)', category: 'yem', amount: 2800, date: '2026-09-02' },
-    { id: 'g2', title: 'Polen ikamesi', category: 'yem', amount: 1400, date: '2026-08-28' },
-    { id: 'g3', title: 'Varroa damlatma', category: 'ilac', amount: 1680, date: '2026-09-05' },
-    { id: 'g4', title: 'Organik asit seti', category: 'ilac', amount: 1200, date: '2026-08-20' },
-    { id: 'g5', title: 'Çerçeve teli + mum', category: 'ekipman', amount: 1450, date: '2026-09-01' },
-    { id: 'g6', title: 'Maske / eldiven', category: 'ekipman', amount: 950, date: '2026-08-15' },
-    {
-      id: 'g10',
-      title: 'Yevmiye — yardımcı',
-      category: 'iscilik',
-      amount: 1500,
-      date: '2026-09-03',
-      note: 'Günlük işçilik'
-    },
-    {
-      id: 'g11',
-      title: 'Kavanoz + etiket seti',
-      category: 'ambalaj',
-      amount: 820,
-      date: '2026-08-30',
-      note: 'Paketleme'
-    },
-    {
-      id: 'g7',
-      title: 'Yayla taşıma (nakliye)',
-      category: 'nakliye',
-      amount: 1560,
-      date: '2026-08-10',
-      transportMode: 'nakliye',
-      transportId: 't-seed-1',
-      note: 'Üçüncü taraf nakliye'
-    },
-    {
-      id: 'g9',
-      title: 'Yakıt — Tortum taşıma',
-      category: 'yakit',
-      amount: 1850,
-      date: '2026-08-22',
-      transportMode: 'kendi_arac',
-      transportId: 't-seed-2',
-      apiaryId: 'a2',
-      apiaryName: 'Tortum Yayla Arılığı',
-      note: 'Kendi araç'
-    },
-    {
-      id: 'g12',
-      title: 'Arılık yeri ücreti',
-      category: 'yayla_kira',
-      amount: 2500,
-      date: '2026-08-05',
-      apiaryId: 'a2',
-      apiaryName: 'Tortum Yayla Arılığı',
-      note: 'Yayla / kira'
-    },
-    { id: 'g8', title: 'Arılık bakım malzemesi', category: 'diger', amount: 960, date: '2026-09-08' }
-  ];
-
-  var SEED_TRANSPORTS = [
-    {
-      id: 't-seed-1',
-      mode: 'nakliye',
-      date: '2026-08-10',
-      amount: 1560,
-      giderId: 'g7',
-      title: 'Yayla taşıma (nakliye)',
-      note: 'Üçüncü taraf nakliye'
-    },
-    {
-      id: 't-seed-2',
-      mode: 'kendi_arac',
-      date: '2026-08-22',
-      amount: 1850,
-      giderId: 'g9',
-      apiaryId: 'a2',
-      apiaryName: 'Tortum Yayla Arılığı',
-      title: 'Yakıt — Tortum taşıma',
-      note: 'Kendi araç'
-    }
-  ];
-
-  function catById(id) {
-    for (var i = 0; i < CATEGORIES.length; i++) {
-      if (CATEGORIES[i].id === id) return CATEGORIES[i];
-    }
-    return CATEGORIES[CATEGORIES.length - 1];
-  }
-
-  function todayIso() {
-    var d = new Date();
-    return (
-      d.getFullYear() +
-      '-' +
-      String(d.getMonth() + 1).padStart(2, '0') +
-      '-' +
-      String(d.getDate()).padStart(2, '0')
-    );
-  }
-
-  function readJson(key) {
-    try {
-      var raw = localStorage.getItem(key);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function writeJson(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) { /* ignore */ }
-  }
-
-  /** Ensure Yakıt category works even if older seed lacked g9. */
-  function normalizeExpense(e) {
-    if (!e || typeof e !== 'object') return null;
-    var cat = String(e.category || 'diger');
-    if (cat === 'fuel') cat = 'yakit';
-    return {
-      id: String(e.id || ('g' + Date.now())),
-      title: String(e.title || '').trim() || 'Gider',
-      category: cat,
-      amount: Math.max(0, Number(e.amount) || 0),
-      date: String(e.date || todayIso()),
-      note: e.note != null ? String(e.note) : '',
-      apiaryId: e.apiaryId != null ? String(e.apiaryId) : '',
-      apiaryName: e.apiaryName != null ? String(e.apiaryName) : '',
-      transportMode: e.transportMode === 'nakliye' || e.transportMode === 'kendi_arac'
-        ? e.transportMode
-        : '',
-      transportId: e.transportId != null ? String(e.transportId) : ''
-    };
-  }
-
-  /** Old seeds may lack newer categories — inject one demo row each. */
-  var ENSURE_DEMO_CATS = ['yakit', 'iscilik', 'ambalaj', 'yayla_kira'];
-
-  function seedExpenseForCategory(catId) {
-    for (var i = 0; i < SEED_EXPENSES.length; i++) {
-      if (SEED_EXPENSES[i].category === catId) {
-        return normalizeExpense(SEED_EXPENSES[i]);
-      }
-    }
-    return null;
-  }
-
-  function ensureDemoCategoriesVisible(list) {
-    var added = [];
-    ENSURE_DEMO_CATS.forEach(function (catId) {
-      var has = list.some(function (e) {
-        return e && e.category === catId;
-      });
-      if (has) return;
-      var seed = seedExpenseForCategory(catId);
-      if (seed) added.push(seed);
-    });
-    if (!added.length) return list;
-    list = list.concat(added);
-    writeJson(STORAGE_KEY, list);
-
-    var needYakitTransport = added.some(function (e) {
-      return e.category === 'yakit';
-    });
-    if (needYakitTransport) {
-      var transports = readJson(TRANSPORT_KEY);
-      if (!Array.isArray(transports)) transports = [];
-      var seedYakit = seedExpenseForCategory('yakit');
-      var hasT = transports.some(function (t) {
-        return t && (t.id === 't-seed-2' || (seedYakit && t.giderId === seedYakit.id));
-      });
-      if (!hasT) {
-        for (var j = 0; j < SEED_TRANSPORTS.length; j++) {
-          if (SEED_TRANSPORTS[j].id === 't-seed-2') {
-            transports = transports.concat([SEED_TRANSPORTS[j]]);
-            break;
-          }
-        }
-        writeJson(TRANSPORT_KEY, transports);
-      }
-    }
-    return list;
-  }
-
-  function loadExpenses() {
-    var parsed = readJson(STORAGE_KEY);
-    if (Array.isArray(parsed) && parsed.length) {
-      return ensureDemoCategoriesVisible(parsed.map(normalizeExpense).filter(Boolean));
-    }
-    writeJson(STORAGE_KEY, SEED_EXPENSES);
-    return SEED_EXPENSES.map(normalizeExpense);
-  }
-
-  function saveExpenses(list) {
-    if (!Array.isArray(list)) return;
-    writeJson(STORAGE_KEY, list.map(normalizeExpense).filter(Boolean));
-  }
-
-  function loadTransports() {
-    var parsed = readJson(TRANSPORT_KEY);
-    if (Array.isArray(parsed) && parsed.length) {
-      return parsed;
-    }
-    /* Seed transports only when gider seed is also fresh / linked */
-    var expenses = readJson(STORAGE_KEY);
-    if (!expenses || !Array.isArray(expenses) || !expenses.length) {
-      writeJson(TRANSPORT_KEY, SEED_TRANSPORTS);
-      return SEED_TRANSPORTS.slice();
-    }
-    var hasSeedLink = expenses.some(function (e) {
-      return e && (e.id === 'g7' || e.id === 'g9') && e.transportId;
-    });
-    if (hasSeedLink || !expenses.length) {
-      writeJson(TRANSPORT_KEY, SEED_TRANSPORTS);
-      return SEED_TRANSPORTS.slice();
-    }
-    writeJson(TRANSPORT_KEY, []);
-    return [];
-  }
-
-  function saveTransports(list) {
-    if (!Array.isArray(list)) return;
-    writeJson(TRANSPORT_KEY, list);
-  }
-
-  /**
-   * Record a taşıma event and linked gider.
-   * mode: 'nakliye' | 'kendi_arac'
-   * kendi_arac → category Yakıt (zorunlu tutar)
-   * nakliye → category Nakliye
-   */
-  function recordTransport(input) {
-    var mode = input && input.mode === 'kendi_arac' ? 'kendi_arac' : 'nakliye';
-    var amount = Number(input && input.amount);
-    if (!(amount > 0)) {
-      throw new Error(
-        mode === 'kendi_arac'
-          ? 'Kendi araçta yakıt tutarı zorunludur.'
-          : 'Nakliye tutarı girilmeli.'
-      );
-    }
-    var date = String((input && input.date) || todayIso());
-    var note = String((input && input.note) || '').trim();
-    var apiaryId = input && input.apiaryId != null ? String(input.apiaryId) : '';
-    var apiaryName = input && input.apiaryName != null ? String(input.apiaryName) : '';
-    var title = String((input && input.title) || '').trim();
-    if (!title) {
-      title =
-        mode === 'kendi_arac'
-          ? (apiaryName ? 'Yakıt — ' + apiaryName : 'Yakıt masrafı (kendi araç)')
-          : (apiaryName ? 'Nakliye — ' + apiaryName : 'Nakliye');
-    }
-
-    var transportId = 't' + Date.now();
-    var giderId = 'g' + Date.now();
-    var category = mode === 'kendi_arac' ? 'yakit' : 'nakliye';
-
-    var gider = normalizeExpense({
-      id: giderId,
-      title: title,
-      category: category,
-      amount: amount,
-      date: date,
-      note: note || (mode === 'kendi_arac' ? 'Kendi araç yakıt' : 'Nakliye'),
-      apiaryId: apiaryId,
-      apiaryName: apiaryName,
-      transportMode: mode,
-      transportId: transportId
-    });
-
-    var transport = {
-      id: transportId,
-      mode: mode,
-      date: date,
-      amount: amount,
-      giderId: giderId,
-      apiaryId: apiaryId,
-      apiaryName: apiaryName,
-      title: title,
-      note: note
-    };
-
-    var expenses = loadExpenses();
-    expenses.push(gider);
-    saveExpenses(expenses);
-
-    var transports = loadTransports();
-    transports.push(transport);
-    saveTransports(transports);
-
-    return { gider: gider, transport: transport };
-  }
-
-  function addExpense(input) {
-    var mode = input && input.transportMode;
-    if (mode === 'nakliye' || mode === 'kendi_arac') {
-      return recordTransport({
-        mode: mode,
-        amount: input.amount,
-        date: input.date,
-        note: input.note,
-        apiaryId: input.apiaryId,
-        apiaryName: input.apiaryName,
-        title: input.title
-      }).gider;
-    }
-    var expenses = loadExpenses();
-    var gider = normalizeExpense({
-      id: 'g' + Date.now(),
-      title: input && input.title,
-      category: input && input.category,
-      amount: input && input.amount,
-      date: input && input.date,
-      note: input && input.note,
-      apiaryId: input && input.apiaryId,
-      apiaryName: input && input.apiaryName
-    });
-    if (!(gider.amount > 0) || !gider.title) {
-      throw new Error('Başlık ve tutar gerekli.');
-    }
-    expenses.push(gider);
-    saveExpenses(expenses);
-    return gider;
-  }
-
-  function transportsForApiary(apiaryId) {
-    var key = String(apiaryId || '');
-    return loadTransports()
-      .filter(function (t) {
-        return !key || String(t.apiaryId) === key;
-      })
-      .sort(function (a, b) {
-        return String(b.date).localeCompare(String(a.date));
-      });
-  }
-
-  Object.defineProperty(global, 'SuperAriGider', {
-    configurable: true,
-    enumerable: true,
-    value: {
-      STORAGE_KEY: STORAGE_KEY,
-      TRANSPORT_KEY: TRANSPORT_KEY,
-      CATEGORIES: CATEGORIES,
-      SEED_EXPENSES: SEED_EXPENSES,
-      catById: catById,
-      todayIso: todayIso,
-      loadExpenses: loadExpenses,
-      saveExpenses: saveExpenses,
-      loadTransports: loadTransports,
-      saveTransports: saveTransports,
-      recordTransport: recordTransport,
-      addExpense: addExpense,
-      transportsForApiary: transportsForApiary
-    }
-  });
-})(window);
-
-</script>
 <script src="demo-data.js"></script>
+<script src="gider-store.js?v=gider-edit-1"></script>
 <script>
 (function () {
   var G = window.SuperAriGider;
@@ -734,6 +424,8 @@
   }
   var CATEGORIES = G.CATEGORIES;
   var catById = G.catById;
+  var filterApiary = 'all';
+  var editingId = null;
 
   function formatTRY(n) {
     var v = Math.round(Number(n) || 0);
@@ -777,20 +469,43 @@
     ].join(' ');
   }
 
-  var expenses = G.loadExpenses();
+  function loadApiaries() {
+    if (window.SuperAriDemo && window.SuperAriDemo.loadApiaries) {
+      return window.SuperAriDemo.loadApiaries() || [];
+    }
+    return [
+      { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy' },
+      { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum' },
+      { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken' }
+    ];
+  }
+
+  function apiaryShort(a) {
+    if (!a) return '—';
+    return (a.place && a.place !== '—') ? a.place : a.name;
+  }
+
+  function apiaryLabel(a) {
+    if (!a) return '—';
+    return (a.place && a.place !== '—') ? (a.place + ' · ' + a.name) : a.name;
+  }
+
   var pieSvg = document.getElementById('pieSvg');
   var legendEl = document.getElementById('legend');
   var listEl = document.getElementById('expList');
   var totalEl = document.getElementById('totalAmount');
+  var apiaryTotalsEl = document.getElementById('apiaryTotals');
+  var filterRow = document.getElementById('filterRow');
   var sheet = document.getElementById('addSheet');
   var form = document.getElementById('addForm');
+  var sheetTitle = document.getElementById('sheetTitle');
+  var sheetDelete = document.getElementById('sheetDelete');
+  var editIdInput = document.getElementById('editId');
   var catSelect = form.elements.category;
   var modeInput = document.getElementById('transportMode');
   var fuelHint = document.getElementById('fuelHint');
   var nakliyeHint = document.getElementById('nakliyeHint');
   var amountLabelText = document.getElementById('amountLabelText');
-  var apiaryLabel = document.getElementById('apiaryLabel');
-  var noteLabel = document.getElementById('noteLabel');
   var apiarySelect = document.getElementById('apiarySelect');
 
   CATEGORIES.forEach(function (c) {
@@ -800,20 +515,35 @@
     catSelect.appendChild(opt);
   });
 
-  function fillApiaries() {
-    var keep = apiarySelect.value;
-    apiarySelect.innerHTML = '<option value="">— Seçilmedi —</option>';
-    var list = (window.SuperAriDemo && window.SuperAriDemo.loadApiaries)
-      ? window.SuperAriDemo.loadApiaries()
-      : [];
+  function fillApiaries(selected) {
+    var list = loadApiaries();
+    apiarySelect.innerHTML = '<option value="">— Arılık seç —</option>';
     list.forEach(function (a) {
       var opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = (a.place && a.place !== '—') ? (a.place + ' · ' + a.name) : a.name;
+      opt.textContent = apiaryLabel(a);
       apiarySelect.appendChild(opt);
     });
-    if (keep) apiarySelect.value = keep;
+    if (selected) apiarySelect.value = selected;
   }
+
+  function fillFilters() {
+    var list = loadApiaries();
+    var html = '<button type="button" class="filter-chip' + (filterApiary === 'all' ? ' is-on' : '') + '" data-id="all">Tümü</button>';
+    list.forEach(function (a) {
+      html +=
+        '<button type="button" class="filter-chip' + (filterApiary === a.id ? ' is-on' : '') + '" data-id="' +
+        escapeHtml(a.id) + '">' + escapeHtml(apiaryShort(a)) + '</button>';
+    });
+    filterRow.innerHTML = html;
+  }
+
+  filterRow.addEventListener('click', function (e) {
+    var btn = e.target.closest('.filter-chip');
+    if (!btn) return;
+    filterApiary = btn.getAttribute('data-id') || 'all';
+    render();
+  });
 
   function setTransportMode(mode) {
     mode = mode === 'nakliye' || mode === 'kendi_arac' ? mode : '';
@@ -825,8 +555,6 @@
     fuelHint.hidden = mode !== 'kendi_arac';
     nakliyeHint.hidden = mode !== 'nakliye';
     var transport = mode === 'nakliye' || mode === 'kendi_arac';
-    apiaryLabel.hidden = !transport;
-    noteLabel.hidden = !transport;
     catSelect.disabled = transport;
     if (mode === 'kendi_arac') {
       catSelect.value = 'yakit';
@@ -875,12 +603,101 @@
     return parts.join(' · ');
   }
 
-  function render() {
-    expenses = G.loadExpenses();
-    var byCat = totalsByCategory(expenses);
+  function selectedApiaryName() {
+    if (apiarySelect.selectedOptions && apiarySelect.selectedOptions[0] && apiarySelect.value) {
+      var text = apiarySelect.selectedOptions[0].textContent || '';
+      var parts = text.split(' · ');
+      return parts.length > 1 ? parts.slice(1).join(' · ') : text;
+    }
+    return '';
+  }
+
+  function filteredExpenses() {
+    return G.expensesForApiary(filterApiary);
+  }
+
+  function renderSummary(all) {
+    var total = 0;
+    all.forEach(function (e) { total += Number(e.amount) || 0; });
+    totalEl.textContent = formatTRY(total);
+
+    var byApiary = G.totalsByApiary(all);
+    var apiaries = loadApiaries();
+    var nameById = {};
+    apiaries.forEach(function (a) {
+      nameById[a.id] = apiaryShort(a) + ' · ' + a.name;
+    });
+    if (!byApiary.length) {
+      apiaryTotalsEl.innerHTML = '<p style="color:var(--muted);font-size:12px;padding:4px 0;">Henüz gider yok.</p>';
+      return;
+    }
+    apiaryTotalsEl.innerHTML = byApiary.map(function (row) {
+      var label = nameById[row.apiaryId] || row.apiaryName || row.apiaryId;
+      return (
+        '<div class="apiary-total-row">' +
+          '<div>' +
+            '<span class="name">' + escapeHtml(label) + '</span>' +
+            '<span class="sub">' + row.count + ' kayıt</span>' +
+          '</div>' +
+          '<span class="amt">' + formatTRY(row.amount) + '</span>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function renderList(list) {
+    if (!list.length) {
+      listEl.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 2px;">Bu arılıkta henüz gider yok.</p>';
+      return;
+    }
+
+    if (filterApiary !== 'all') {
+      listEl.innerHTML = list.map(expenseCard).join('');
+      return;
+    }
+
+    var groups = {};
+    var order = [];
+    list.forEach(function (e) {
+      var key = e.apiaryId || 'none';
+      if (!groups[key]) {
+        groups[key] = {
+          title: e.apiaryName || (key === 'none' ? 'Atanmamış' : key),
+          items: []
+        };
+        order.push(key);
+      }
+      groups[key].items.push(e);
+    });
+
+    var html = '';
+    order.forEach(function (key) {
+      var g = groups[key];
+      html += '<div class="group-head">' + escapeHtml(g.title) + '</div>';
+      html += g.items.map(expenseCard).join('');
+    });
+    listEl.innerHTML = html;
+  }
+
+  function expenseCard(e) {
+    var cat = catById(e.category);
+    return (
+      '<button type="button" class="exp-item" data-id="' + escapeHtml(e.id) + '" aria-label="Düzenle: ' + escapeHtml(e.title) + '">' +
+        '<span class="exp-dot" style="background:' + cat.color + '"></span>' +
+        '<div>' +
+          '<h3>' + escapeHtml(e.title) + '</h3>' +
+          '<div class="meta">' + escapeHtml(metaLine(e)) + '</div>' +
+          '<span class="edit-hint">Düzenle</span>' +
+        '</div>' +
+        '<div class="amt">' + formatTRY(e.amount) + '</div>' +
+      '</button>'
+    );
+  }
+
+  function renderChart(list) {
+    var byCat = totalsByCategory(list);
     var total = 0;
     CATEGORIES.forEach(function (c) { total += byCat[c.id]; });
-    totalEl.textContent = formatTRY(total);
 
     var cx = 60, cy = 60, r = 48, ir = 28;
     var angle = 0;
@@ -914,46 +731,72 @@
         '</div>'
       );
     }).join('');
-
-    var sorted = expenses.slice().sort(function (a, b) {
-      return String(b.date).localeCompare(String(a.date));
-    });
-    listEl.innerHTML = sorted.map(function (e) {
-      var cat = catById(e.category);
-      return (
-        '<article class="exp-item">' +
-          '<span class="exp-dot" style="background:' + cat.color + '"></span>' +
-          '<div>' +
-            '<h3>' + escapeHtml(e.title) + '</h3>' +
-            '<div class="meta">' + escapeHtml(metaLine(e)) + '</div>' +
-          '</div>' +
-          '<div class="amt">' + formatTRY(e.amount) + '</div>' +
-        '</article>'
-      );
-    }).join('') || '<p style="color:var(--muted);font-size:13px;padding:8px 2px;">Henüz gider yok.</p>';
   }
 
-  function openSheet() {
+  function render() {
+    fillFilters();
+    var all = G.loadExpenses();
+    var list = filteredExpenses();
+    renderSummary(all);
+    renderChart(list);
+    renderList(list);
+  }
+
+  function openSheet(expense) {
+    editingId = expense ? expense.id : null;
+    editIdInput.value = editingId || '';
+    sheetTitle.textContent = editingId ? 'Gideri düzenle' : 'Yeni gider';
+    sheetDelete.hidden = !editingId;
     sheet.hidden = false;
     form.reset();
-    fillApiaries();
-    form.elements.date.value = G.todayIso();
-    form.elements.category.value = 'yem';
+    fillApiaries(expense && expense.apiaryId);
+    form.elements.date.value = (expense && expense.date) || G.todayIso();
+    form.elements.title.value = (expense && expense.title) || '';
+    form.elements.amount.value = expense ? expense.amount : '';
+    form.elements.note.value = (expense && expense.note) || '';
+    form.elements.category.value = (expense && expense.category) || 'yem';
     catSelect.disabled = false;
-    setTransportMode('');
+    setTransportMode((expense && expense.transportMode) || '');
+    if (expense && expense.category && !expense.transportMode) {
+      form.elements.category.value = expense.category;
+    }
+    if (filterApiary !== 'all' && !expense) {
+      apiarySelect.value = filterApiary;
+    }
     requestAnimationFrame(function () { sheet.classList.add('is-open'); });
     setTimeout(function () { form.elements.title.focus(); }, 220);
   }
+
   function closeSheet() {
     sheet.classList.remove('is-open');
+    editingId = null;
     setTimeout(function () { sheet.hidden = true; }, 220);
   }
 
-  document.getElementById('fabAdd').addEventListener('click', openSheet);
+  document.getElementById('fabAdd').addEventListener('click', function () {
+    openSheet(null);
+  });
   document.getElementById('sheetCancel').addEventListener('click', closeSheet);
   sheet.addEventListener('click', function (e) {
     if (e.target === sheet) closeSheet();
   });
+
+  listEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.exp-item');
+    if (!btn) return;
+    var id = btn.getAttribute('data-id');
+    var found = G.loadExpenses().filter(function (x) { return x.id === id; })[0];
+    if (found) openSheet(found);
+  });
+
+  sheetDelete.addEventListener('click', function () {
+    if (!editingId) return;
+    if (!confirm('Bu gider silinsin mi?')) return;
+    G.deleteExpense(editingId);
+    closeSheet();
+    render();
+  });
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var title = String(form.elements.title.value || '').trim();
@@ -963,9 +806,11 @@
     var mode = modeInput.value;
     var note = String(form.elements.note.value || '').trim();
     var apiaryId = String(form.elements.apiaryId.value || '');
-    var apiaryName = '';
-    if (apiaryId && apiarySelect.selectedOptions && apiarySelect.selectedOptions[0]) {
-      apiaryName = apiarySelect.selectedOptions[0].textContent || '';
+    var apiaryName = selectedApiaryName();
+    if (!apiaryId) {
+      alert('Arılık seçilmeli.');
+      apiarySelect.focus();
+      return;
     }
     if (mode === 'kendi_arac' && !(amount > 0)) {
       alert('Kendi araçta yakıt tutarı zorunludur.');
@@ -973,17 +818,19 @@
       return;
     }
     if (!title || !(amount > 0) || !date) return;
+    var payload = {
+      title: title,
+      category: category,
+      amount: amount,
+      date: date,
+      note: note,
+      apiaryId: apiaryId,
+      apiaryName: apiaryName,
+      transportMode: mode || undefined
+    };
     try {
-      G.addExpense({
-        title: title,
-        category: category,
-        amount: amount,
-        date: date,
-        note: note,
-        apiaryId: apiaryId,
-        apiaryName: apiaryName,
-        transportMode: mode || undefined
-      });
+      if (editingId) G.updateExpense(editingId, payload);
+      else G.addExpense(payload);
     } catch (err) {
       alert((err && err.message) || 'Kayıt başarısız.');
       return;
