@@ -339,6 +339,12 @@
   .day-ico { width: 18px; height: 18px; }
   .day-hi { font-size: 11px; font-weight: 700; color: var(--text); }
   .day-lo { font-size: 10px; color: #8a8278; }
+  .muayene-hint {
+    margin-top: 8px; padding: 8px 10px; border-radius: 10px;
+    background: #fff8df; border: 1px solid #e0c56a;
+    color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.35;
+  }
+  .muayene-hint[hidden] { display: none !important; }
 
   .grid {
     flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
@@ -737,6 +743,7 @@
         <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
         <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
       </div>
+      <div class="muayene-hint" id="muayeneHint" hidden></div>
     </section>
 
     <section class="grid" id="grid" aria-label="Ana paneller"></section>
@@ -774,6 +781,7 @@
   <div class="home-indicator"></div>
 </div>
 
+<script src="hava-kayit.js"></script>
 <script>
 (function () {
   if (location.search.indexOf('shot=1') !== -1) {
@@ -914,12 +922,43 @@
         'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
         '&longitude=' + lon +
         '&current=temperature_2m,weather_code' +
-        '&daily=temperature_2m_max,temperature_2m_min' +
+        '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum' +
         '&timezone=auto&forecast_days=7';
       return fetch(url).then(function (r) {
         if (!r.ok) throw new Error('meteo_' + r.status);
         return r.json();
       });
+    }
+
+    function persistWeatherSnapshot(a, meteo) {
+      if (!a || !meteo || !window.SuperAriHava) return;
+      try {
+        window.SuperAriHava.recordFromMeteo({
+          apiaryId: a.id,
+          label: a.label,
+          lat: a.lat,
+          lon: a.lon,
+          meteo: meteo
+        });
+      } catch (e) { /* ignore storage errors */ }
+    }
+
+    function updateMuayeneHint(daily) {
+      var el = document.getElementById('muayeneHint');
+      if (!el) return;
+      if (!window.SuperAriHava || !daily) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      var best = window.SuperAriHava.bestInspectionDay(daily);
+      if (!best) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      el.hidden = false;
+      el.textContent = 'Uygun muayene: ' + best.dayLabel + ' — ' + best.reason;
     }
 
     function currentApiary() {
@@ -987,7 +1026,11 @@
       var cached = weatherCache[a.id];
       if (!force && cached && Date.now() - cached.at < WEATHER_REFRESH_MS) {
         if (cached.temp != null) setTemp(cached.temp);
-        if (cached.daily) updateForecastDaily(cached.daily);
+        if (cached.daily) {
+          updateForecastDaily(cached.daily);
+          updateMuayeneHint(cached.daily);
+        }
+        if (cached.meteo) persistWeatherSnapshot(a, cached.meteo);
         return;
       }
       var reqId = a.id;
@@ -1002,10 +1045,15 @@
           weatherCache[reqId] = {
             at: Date.now(),
             temp: temp,
-            daily: meteo && meteo.daily ? meteo.daily : null
+            daily: meteo && meteo.daily ? meteo.daily : null,
+            meteo: meteo || null
           };
           if (temp != null) setTemp(temp);
-          if (meteo && meteo.daily) updateForecastDaily(meteo.daily);
+          if (meteo && meteo.daily) {
+            updateForecastDaily(meteo.daily);
+            updateMuayeneHint(meteo.daily);
+          }
+          persistWeatherSnapshot(a, meteo);
         })
         .catch(function () { /* keep last °C */ });
     }
@@ -1131,6 +1179,9 @@
 
     loadApiaries().then(function (list) {
       apiaries = list && list.length ? list : DEMO_APIARIES.slice();
+      if (window.SuperAriHava) {
+        try { window.SuperAriHava.ensureSeed(); } catch (e) { /* ignore */ }
+      }
       restoreLockIndex();
       syncLockBtn();
       syncNavBtns();
