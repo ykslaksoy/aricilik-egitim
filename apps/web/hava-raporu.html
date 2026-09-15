@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Hava raporu</title>
+<style>
+  :root {
+    --bg: #f0f1f3;
+    --card-border: #e4e6ea;
+    --brown: #4a2f1a;
+    --text: #2c241c;
+    --muted: #6b635a;
+    --phone-w: 390px;
+    --phone-h: 844px;
+    --orange: #f08c00;
+    --hardal: #d4a017;
+    --hardal-hi: #f0c43a;
+    --hardal-lo: #b8860b;
+    --hardal-soft: #f4e3b0;
+    --sky: #1c7ed6;
+    --rain: #4c6ef5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; min-height: 100%;
+    background: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    display: flex; align-items: flex-start; justify-content: center;
+    min-height: 100vh; padding: 20px 0 28px;
+    overflow-x: hidden; overflow-y: auto;
+  }
+  .phone {
+    width: var(--phone-w); height: var(--phone-h);
+    background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+  }
+  .phone-notch {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 28px; background: #111; border-radius: 18px; z-index: 50;
+  }
+  .status-bar {
+    height: 48px; padding: 16px 22px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa;
+  }
+  .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; }
+  .screen {
+    height: calc(var(--phone-h) - 48px - 72px);
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; background: var(--bg);
+    padding: 0 14px 16px; position: relative;
+  }
+  .brand-strip {
+    flex: 0 0 auto; min-height: 36px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px 7px 10px; margin-bottom: 10px;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
+    border: 1px solid #e0c56a; border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+    color: var(--brown); font-size: 13px; font-weight: 800; letter-spacing: .03em;
+  }
+  .brand-strip::before {
+    content: ""; flex: 0 0 4px; align-self: stretch; margin: -2px 0; border-radius: 3px;
+    background: linear-gradient(180deg, var(--hardal-hi), var(--hardal) 40%, var(--hardal-lo));
+  }
+  .page-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 12px;
+  }
+  .page-head h1 {
+    font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.02em;
+  }
+  .page-head p { margin-top: 2px; font-size: 13px; color: var(--muted); font-weight: 500; }
+  .nav-chips { display: flex; gap: 6px; flex-shrink: 0; }
+  .back-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 8px 11px; border-radius: 10px;
+    background: #fff; border: 1px solid var(--card-border);
+    color: var(--text); font-size: 12px; font-weight: 700; text-decoration: none;
+  }
+  .filters {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .filters.full { grid-template-columns: 1fr; }
+  .filters label {
+    display: grid; gap: 4px;
+    font-size: 11px; font-weight: 700; color: var(--muted);
+  }
+  .filters select, .filters input {
+    width: 100%; border: 1px solid var(--card-border); border-radius: 10px;
+    padding: 9px 10px; font-size: 13px; font-weight: 600; color: var(--text);
+    background: #fff; font-family: inherit;
+  }
+  .stats {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat {
+    background: #fff; border: 1px solid var(--card-border); border-radius: 14px;
+    padding: 12px 12px 10px;
+  }
+  .stat .k { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .stat .v {
+    margin-top: 4px; font-size: 20px; font-weight: 800; color: var(--text);
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  }
+  .chart-block {
+    background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
+    padding: 14px 12px 12px; margin-bottom: 14px;
+    box-shadow: 0 4px 14px rgba(40, 30, 10, .05);
+  }
+  .chart-block h2 {
+    font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 10px;
+  }
+  .bars {
+    display: flex; align-items: flex-end; gap: 4px;
+    height: 120px; padding: 0 2px;
+  }
+  .bar-col {
+    flex: 1; min-width: 0; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    gap: 4px;
+  }
+  .bar {
+    width: 100%; max-width: 18px; border-radius: 5px 5px 2px 2px;
+    background: linear-gradient(180deg, var(--hardal-hi), var(--hardal) 55%, var(--hardal-lo));
+    min-height: 4px;
+  }
+  .bar.is-rain {
+    background: linear-gradient(180deg, #74c0fc, var(--sky) 55%, var(--rain));
+  }
+  .bar-lab {
+    font-size: 9px; font-weight: 700; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: clip;
+  }
+  .section-title {
+    font-size: 14px; font-weight: 800; color: var(--text);
+    margin: 2px 2px 10px;
+  }
+  .hist-list { display: grid; gap: 8px; }
+  .hist-item {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px;
+    padding: 12px; border-radius: 14px;
+    background: #fff; border: 1px solid var(--card-border);
+  }
+  .hist-item h3 { font-size: 13px; font-weight: 750; color: var(--text); }
+  .hist-item .meta { margin-top: 2px; font-size: 11px; color: var(--muted); line-height: 1.35; }
+  .hist-temps {
+    text-align: right; font-variant-numeric: tabular-nums;
+    font-size: 13px; font-weight: 800; color: var(--text);
+  }
+  .hist-temps .range {
+    display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted);
+  }
+  .empty {
+    padding: 18px 14px; border-radius: 14px;
+    background: #fff8df; border: 1px dashed #e0c56a;
+    color: var(--muted); font-size: 13px; line-height: 1.4; text-align: center;
+  }
+  .hint {
+    margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+    background: #fff8df; border: 1px dashed #e0c56a;
+    color: var(--muted); font-size: 12px; line-height: 1.4;
+  }
+  .tabbar {
+    height: 72px; background: #fff; border-top: 1px solid #e6e8ec;
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    padding: 0 4px 10px;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: #8b8680; font-size: 10px; font-weight: 600;
+    text-decoration: none; -webkit-tap-highlight-color: transparent;
+  }
+  .tab.active { color: var(--orange); }
+  .tab svg { width: 22px; height: 22px; }
+  .home-indicator {
+    position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 4px; background: #222; border-radius: 4px; z-index: 60;
+  }
+  @media (max-width: 420px) {
+    body { padding: 0; background: #f7f8fa; }
+    .phone { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
+    .phone-notch, .home-indicator { display: none; }
+    .screen { height: calc(100dvh - 48px - 72px); }
+  }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen">
+    <div class="brand-strip">Hardal Arıcılık</div>
+    <div class="page-head">
+      <div>
+        <h1>Hava raporu</h1>
+        <p>Kayıtlı sıcaklık geçmişi</p>
+      </div>
+      <div class="nav-chips">
+        <a class="back-chip" href="raporlar.html">← Raporlar</a>
+        <a class="back-chip" href="ana.html">Ana</a>
+      </div>
+    </div>
+
+    <div class="filters">
+      <label>Arılık
+        <select id="filterApiary"></select>
+      </label>
+      <label>Aralık
+        <select id="filterRange">
+          <option value="7">Son 7 gün</option>
+          <option value="14" selected>Son 14 gün</option>
+          <option value="30">Son 30 gün</option>
+          <option value="all">Tümü</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="stats" id="stats" aria-label="Özet"></div>
+
+    <section class="chart-block" aria-label="Sıcaklık grafiği">
+      <h2>Ortalama sıcaklık (°C)</h2>
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <h2 class="section-title">Kayıtlar</h2>
+    <div class="hist-list" id="histList"></div>
+    <p class="hint">Ana ekranda Open-Meteo çekildiğinde her arılık için günde bir anlık kayıt tutulur. Rapor bu kayıtlardan üretilir.</p>
+  </div>
+
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/></svg>
+      Ana
+    </a>
+    <a class="tab" href="kovanlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="5" rx="1"/><rect x="5" y="10" width="14" height="5" rx="1"/><rect x="5" y="16" width="14" height="4" rx="1"/></svg>
+      Kovanlar
+    </a>
+    <a class="tab" href="uyarilar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 7-6 7-6 12"/><path d="M10 21h4"/></svg>
+      Uyarılar
+    </a>
+    <a class="tab" href="gorevler.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+      Görevler
+    </a>
+    <a class="tab" href="ayarlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4"/></svg>
+      Ayarlar
+    </a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+<script src="hava-kayit.js"></script>
+<script>
+(function () {
+  var H = window.SuperAriHava;
+  if (!H) return;
+
+  var apiarySel = document.getElementById('filterApiary');
+  var rangeSel = document.getElementById('filterRange');
+  var statsEl = document.getElementById('stats');
+  var barsEl = document.getElementById('bars');
+  var listEl = document.getElementById('histList');
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    var p = iso.split('-');
+    if (p.length !== 3) return iso;
+    return Number(p[2]) + '.' + Number(p[1]) + '.' + p[0];
+  }
+
+  function rangeFrom() {
+    var v = rangeSel.value;
+    if (v === 'all') return null;
+    var days = Number(v) || 14;
+    var d = new Date();
+    d.setDate(d.getDate() - (days - 1));
+    return H.localDateKey(d);
+  }
+
+  function fillApiaries() {
+    var opts = H.apiaryOptions();
+    apiarySel.innerHTML = '<option value="all">Tüm arılıklar</option>';
+    for (var i = 0; i < opts.length; i++) {
+      var o = opts[i];
+      var el = document.createElement('option');
+      el.value = o.id;
+      el.textContent = o.label;
+      apiarySel.appendChild(el);
+    }
+  }
+
+  function dailySeries(records) {
+    var byDate = {};
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i];
+      if (!byDate[r.date]) byDate[r.date] = { sum: 0, n: 0, rain: false };
+      var t = r.temp != null ? r.temp : r.high;
+      if (t != null) {
+        byDate[r.date].sum += t;
+        byDate[r.date].n++;
+      }
+      if (r.condition === 'yagmur' || r.condition === 'kar' || r.condition === 'firtina' || (r.precipMm || 0) >= 1) {
+        byDate[r.date].rain = true;
+      }
+    }
+    return Object.keys(byDate)
+      .sort()
+      .map(function (date) {
+        var row = byDate[date];
+        return {
+          date: date,
+          avg: row.n ? Math.round((row.sum / row.n) * 10) / 10 : null,
+          rain: row.rain
+        };
+      });
+  }
+
+  function renderStats(summary) {
+    function cell(k, v) {
+      return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
+    }
+    statsEl.innerHTML =
+      cell('Ort. sıcaklık', summary.avgTemp != null ? summary.avgTemp + '°' : '—') +
+      cell('En düşük / yüksek', (summary.minTemp != null ? summary.minTemp + '°' : '—') + ' / ' + (summary.maxTemp != null ? summary.maxTemp + '°' : '—')) +
+      cell('Yağışlı gün', String(summary.rainyDays)) +
+      cell('Kayıt sayısı', String(summary.count));
+  }
+
+  function renderBars(series) {
+    if (!series.length) {
+      barsEl.innerHTML = '<div class="empty" style="width:100%;align-self:center">Grafik için kayıt yok</div>';
+      return;
+    }
+    var max = 1;
+    for (var i = 0; i < series.length; i++) {
+      if (series[i].avg != null && series[i].avg > max) max = series[i].avg;
+    }
+    /* Cap display window for readability */
+    var slice = series.slice(-14);
+    var html = '';
+    for (var j = 0; j < slice.length; j++) {
+      var s = slice[j];
+      var h = s.avg != null ? Math.max(6, Math.round((s.avg / max) * 96)) : 6;
+      var day = s.date.split('-')[2];
+      html +=
+        '<div class="bar-col" title="' + formatDate(s.date) + (s.avg != null ? ': ' + s.avg + '°' : '') + '">' +
+        '<div class="bar' + (s.rain ? ' is-rain' : '') + '" style="height:' + h + 'px"></div>' +
+        '<div class="bar-lab">' + Number(day) + '</div>' +
+        '</div>';
+    }
+    barsEl.innerHTML = html;
+  }
+
+  function renderList(records) {
+    if (!records.length) {
+      listEl.innerHTML = '<div class="empty">Seçilen aralıkta kayıt yok. Ana ekranı açınca bugünün havası kaydedilir.</div>';
+      return;
+    }
+    var sorted = records.slice().sort(function (a, b) {
+      if (a.date === b.date) return String(a.label).localeCompare(String(b.label), 'tr');
+      return a.date < b.date ? 1 : -1;
+    });
+    var html = '';
+    for (var i = 0; i < sorted.length; i++) {
+      var r = sorted[i];
+      html +=
+        '<article class="hist-item">' +
+        '<div><h3>' + (r.label || r.apiaryId) + '</h3>' +
+        '<div class="meta">' + formatDate(r.date) + ' · ' + (r.conditions || '—') +
+        (r.precipMm ? ' · yağış ' + r.precipMm + ' mm' : '') +
+        '</div></div>' +
+        '<div class="hist-temps">' + (r.temp != null ? r.temp + '°' : '—') +
+        '<span class="range">' +
+        (r.low != null ? r.low + '°' : '—') + ' / ' + (r.high != null ? r.high + '°' : '—') +
+        '</span></div></article>';
+    }
+    listEl.innerHTML = html;
+  }
+
+  function refresh() {
+    var records = H.filterRecords({
+      apiaryId: apiarySel.value,
+      from: rangeFrom(),
+      to: H.localDateKey()
+    });
+    renderStats(H.summarize(records));
+    renderBars(dailySeries(records));
+    renderList(records);
+  }
+
+  fillApiaries();
+  H.ensureSeed();
+  apiarySel.addEventListener('change', refresh);
+  rangeSel.addEventListener('change', refresh);
+  refresh();
+
+  var clock = document.getElementById('clock');
+  if (clock) {
+    function tick() {
+      var d = new Date();
+      clock.textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+    tick();
+    setInterval(tick, 30000);
+  }
+})();
+</script>
+</body>
+</html>
