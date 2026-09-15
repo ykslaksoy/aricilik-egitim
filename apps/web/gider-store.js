@@ -11,8 +11,11 @@
     { id: 'yem', label: 'Yem', color: '#c9a84a' },
     { id: 'ilac', label: 'İlaç', color: '#c4887a' },
     { id: 'ekipman', label: 'Ekipman', color: '#8a97a8' },
+    { id: 'iscilik', label: 'İşçilik', color: '#b8957a' },
+    { id: 'ambalaj', label: 'Ambalaj', color: '#8a9e96' },
     { id: 'nakliye', label: 'Nakliye', color: '#8f9b72' },
     { id: 'yakit', label: 'Yakıt', color: '#c48a55' },
+    { id: 'yayla_kira', label: 'Yayla/kira', color: '#8a9eab' },
     { id: 'diger', label: 'Diğer', color: '#9a8b7a' }
   ];
 
@@ -23,6 +26,22 @@
     { id: 'g4', title: 'Organik asit seti', category: 'ilac', amount: 1200, date: '2026-08-20' },
     { id: 'g5', title: 'Çerçeve teli + mum', category: 'ekipman', amount: 1450, date: '2026-09-01' },
     { id: 'g6', title: 'Maske / eldiven', category: 'ekipman', amount: 950, date: '2026-08-15' },
+    {
+      id: 'g10',
+      title: 'Yevmiye — yardımcı',
+      category: 'iscilik',
+      amount: 1500,
+      date: '2026-09-03',
+      note: 'Günlük işçilik'
+    },
+    {
+      id: 'g11',
+      title: 'Kavanoz + etiket seti',
+      category: 'ambalaj',
+      amount: 820,
+      date: '2026-08-30',
+      note: 'Paketleme'
+    },
     {
       id: 'g7',
       title: 'Yayla taşıma (nakliye)',
@@ -44,6 +63,16 @@
       apiaryId: 'a2',
       apiaryName: 'Tortum Yayla Arılığı',
       note: 'Kendi araç'
+    },
+    {
+      id: 'g12',
+      title: 'Arılık yeri ücreti',
+      category: 'yayla_kira',
+      amount: 2500,
+      date: '2026-08-05',
+      apiaryId: 'a2',
+      apiaryName: 'Tortum Yayla Arılığı',
+      note: 'Yayla / kira'
     },
     { id: 'g8', title: 'Arılık bakım malzemesi', category: 'diger', amount: 960, date: '2026-09-08' }
   ];
@@ -126,35 +155,51 @@
     };
   }
 
-  /** Old seeds lacked Yakıt — inject demo yakıt once so category/row is visible. */
-  function ensureYakitVisible(list) {
-    var hasYakit = list.some(function (e) {
-      return e && e.category === 'yakit';
-    });
-    if (hasYakit) return list;
-    var seedYakit = null;
+  /** Old seeds may lack newer categories — inject one demo row each. */
+  var ENSURE_DEMO_CATS = ['yakit', 'iscilik', 'ambalaj', 'yayla_kira'];
+
+  function seedExpenseForCategory(catId) {
     for (var i = 0; i < SEED_EXPENSES.length; i++) {
-      if (SEED_EXPENSES[i].category === 'yakit') {
-        seedYakit = normalizeExpense(SEED_EXPENSES[i]);
-        break;
+      if (SEED_EXPENSES[i].category === catId) {
+        return normalizeExpense(SEED_EXPENSES[i]);
       }
     }
-    if (!seedYakit) return list;
-    list = list.concat([seedYakit]);
-    writeJson(STORAGE_KEY, list);
-    var transports = readJson(TRANSPORT_KEY);
-    if (!Array.isArray(transports)) transports = [];
-    var hasT = transports.some(function (t) {
-      return t && (t.id === 't-seed-2' || t.giderId === seedYakit.id);
+    return null;
+  }
+
+  function ensureDemoCategoriesVisible(list) {
+    var added = [];
+    ENSURE_DEMO_CATS.forEach(function (catId) {
+      var has = list.some(function (e) {
+        return e && e.category === catId;
+      });
+      if (has) return;
+      var seed = seedExpenseForCategory(catId);
+      if (seed) added.push(seed);
     });
-    if (!hasT) {
-      for (var j = 0; j < SEED_TRANSPORTS.length; j++) {
-        if (SEED_TRANSPORTS[j].id === 't-seed-2') {
-          transports = transports.concat([SEED_TRANSPORTS[j]]);
-          break;
+    if (!added.length) return list;
+    list = list.concat(added);
+    writeJson(STORAGE_KEY, list);
+
+    var needYakitTransport = added.some(function (e) {
+      return e.category === 'yakit';
+    });
+    if (needYakitTransport) {
+      var transports = readJson(TRANSPORT_KEY);
+      if (!Array.isArray(transports)) transports = [];
+      var seedYakit = seedExpenseForCategory('yakit');
+      var hasT = transports.some(function (t) {
+        return t && (t.id === 't-seed-2' || (seedYakit && t.giderId === seedYakit.id));
+      });
+      if (!hasT) {
+        for (var j = 0; j < SEED_TRANSPORTS.length; j++) {
+          if (SEED_TRANSPORTS[j].id === 't-seed-2') {
+            transports = transports.concat([SEED_TRANSPORTS[j]]);
+            break;
+          }
         }
+        writeJson(TRANSPORT_KEY, transports);
       }
-      writeJson(TRANSPORT_KEY, transports);
     }
     return list;
   }
@@ -162,7 +207,7 @@
   function loadExpenses() {
     var parsed = readJson(STORAGE_KEY);
     if (Array.isArray(parsed) && parsed.length) {
-      return ensureYakitVisible(parsed.map(normalizeExpense).filter(Boolean));
+      return ensureDemoCategoriesVisible(parsed.map(normalizeExpense).filter(Boolean));
     }
     writeJson(STORAGE_KEY, SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);
