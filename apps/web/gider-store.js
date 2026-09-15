@@ -8,17 +8,17 @@
   var TRANSPORT_KEY = 'superari.tasimalar.v1';
   var MATERIALS_KEY = 'superari.malzemeler.v1';
 
-  /* Soft Hardal-warm palette — muted (no loud green/red/purple). */
+  /* Soft pastel-vivid Hardal-friendly — light but lively (not muddy, not neon). */
   var CATEGORIES = [
-    { id: 'yem', label: 'Yem', color: '#c9a84a' },
-    { id: 'ilac', label: 'İlaç', color: '#c4887a' },
-    { id: 'ekipman', label: 'Ekipman', color: '#8a97a8' },
-    { id: 'iscilik', label: 'İşçilik', color: '#b8957a' },
-    { id: 'ambalaj', label: 'Ambalaj', color: '#8a9e96' },
-    { id: 'nakliye', label: 'Nakliye', color: '#8f9b72' },
-    { id: 'yakit', label: 'Yakıt', color: '#c48a55' },
-    { id: 'yayla_kira', label: 'Yayla/kira', color: '#8a9eab' },
-    { id: 'diger', label: 'Diğer', color: '#9a8b7a' }
+    { id: 'yem', label: 'Yem', color: '#f0c43a' },
+    { id: 'ilac', label: 'İlaç', color: '#f08a8a' },
+    { id: 'ekipman', label: 'Ekipman', color: '#7eb8e8' },
+    { id: 'iscilik', label: 'İşçilik', color: '#e8a878' },
+    { id: 'ambalaj', label: 'Ambalaj', color: '#7ec8b0' },
+    { id: 'nakliye', label: 'Nakliye', color: '#9bc46a' },
+    { id: 'yakit', label: 'Yakıt', color: '#f0a04a' },
+    { id: 'yayla_kira', label: 'Yayla/kira', color: '#8eb8d8' },
+    { id: 'diger', label: 'Diğer', color: '#c4b09a' }
   ];
 
   var SEED_EXPENSES = [
@@ -719,6 +719,274 @@
       });
   }
 
+  function hiveCountOf(apiary) {
+    return Math.max(0, Number(apiary && apiary.hiveCount) || 0);
+  }
+
+  function apiaryDisplayName(apiary) {
+    if (!apiary) return '';
+    return String(apiary.name || apiary.place || apiary.id || '').trim();
+  }
+
+  /**
+   * Split total ₺ by hive counts (largest-remainder so parts sum to total).
+   * Apiaries with 0 kovan are skipped. If all zero, equal split among all given.
+   */
+  function allocateByHiveCounts(totalAmount, apiaries) {
+    var total = Math.max(0, Math.round(Number(totalAmount) || 0));
+    var list = Array.isArray(apiaries) ? apiaries.filter(Boolean) : [];
+    if (!list.length || !(total > 0)) return [];
+
+    var weights = list.map(function (a) {
+      return { apiary: a, hives: hiveCountOf(a) };
+    });
+    var hiveSum = weights.reduce(function (s, w) { return s + w.hives; }, 0);
+    if (hiveSum <= 0) {
+      weights.forEach(function (w) { w.hives = 1; });
+      hiveSum = weights.length;
+    }
+
+    var parts = weights.map(function (w) {
+      var exact = (total * w.hives) / hiveSum;
+      var floor = Math.floor(exact);
+      return {
+        apiaryId: String(w.apiary.id),
+        apiaryName: apiaryDisplayName(w.apiary),
+        hiveCount: hiveCountOf(w.apiary),
+        weight: w.hives,
+        amount: floor,
+        frac: exact - floor
+      };
+    });
+
+    var used = parts.reduce(function (s, p) { return s + p.amount; }, 0);
+    var rem = total - used;
+    parts
+      .slice()
+      .sort(function (a, b) {
+        if (b.frac !== a.frac) return b.frac - a.frac;
+        return String(a.apiaryId).localeCompare(String(b.apiaryId));
+      })
+      .forEach(function (p, i) {
+        if (i < rem) p.amount += 1;
+      });
+
+    return parts
+      .filter(function (p) { return p.amount > 0; })
+      .map(function (p) {
+        return {
+          apiaryId: p.apiaryId,
+          apiaryName: p.apiaryName,
+          hiveCount: p.hiveCount,
+          amount: p.amount,
+          share: p.weight + '/' + hiveSum
+        };
+      });
+  }
+
+  function expensesForMaterial(title, list) {
+    var key = materialKey(title);
+    if (!key) return [];
+    return (list || loadExpenses()).filter(function (e) {
+      return e && materialKey(e.title) === key;
+    });
+  }
+
+  /**
+   * Materials present on some arılıklar but missing on others (with hiveCount).
+   * Uses latest/largest expense as source for proportional fill.
+   */
+  function findMissingMaterialGaps(apiaries) {
+    var list = Array.isArray(apiaries) ? apiaries.filter(Boolean) : [];
+    if (list.length < 2) return [];
+    var expenses = loadExpenses();
+    var byMaterial = {};
+    expenses.forEach(function (e) {
+      if (!e || !e.title || e.transportMode) return;
+      var key = materialKey(e.title);
+      if (!key) return;
+      if (!byMaterial[key]) {
+        byMaterial[key] = { title: normalizeMaterialName(e.title), items: [] };
+      }
+      byMaterial[key].items.push(e);
+    });
+
+    var gaps = [];
+    Object.keys(byMaterial).forEach(function (key) {
+      var pack = byMaterial[key];
+      var presentIds = {};
+      pack.items.forEach(function (e) {
+        if (e.apiaryId) presentIds[String(e.apiaryId)] = true;
+      });
+      var present = list.filter(function (a) { return presentIds[String(a.id)]; });
+      var missing = list.filter(function (a) {
+        return !presentIds[String(a.id)] && hiveCountOf(a) > 0;
+      });
+      if (!present.length || !missing.length) return;
+
+      var source = pack.items.slice().sort(function (a, b) {
+        var amt = (Number(b.amount) || 0) - (Number(a.amount) || 0);
+        if (amt) return amt;
+        return String(b.date).localeCompare(String(a.date));
+      })[0];
+
+      gaps.push({
+        title: pack.title,
+        category: source.category || 'diger',
+        sourceExpense: source,
+        present: present.map(function (a) {
+          return {
+            apiaryId: String(a.id),
+            apiaryName: apiaryDisplayName(a),
+            hiveCount: hiveCountOf(a)
+          };
+        }),
+        missing: missing.map(function (a) {
+          return {
+            apiaryId: String(a.id),
+            apiaryName: apiaryDisplayName(a),
+            hiveCount: hiveCountOf(a)
+          };
+        })
+      });
+    });
+
+    gaps.sort(function (a, b) {
+      return a.title.localeCompare(b.title, 'tr');
+    });
+    return gaps;
+  }
+
+  function proportionalAmountFromSource(sourceAmount, sourceHives, targetHives) {
+    var srcAmt = Math.max(0, Number(sourceAmount) || 0);
+    var srcH = Math.max(0, Number(sourceHives) || 0);
+    var tgtH = Math.max(0, Number(targetHives) || 0);
+    if (!(srcAmt > 0) || !(tgtH > 0)) return 0;
+    if (srcH <= 0) return Math.max(1, Math.round(srcAmt));
+    return Math.max(1, Math.round((srcAmt * tgtH) / srcH));
+  }
+
+  /**
+   * Add one shared material as proportional gider rows across apiaries.
+   * `amount` is the TOTAL; split by hive counts.
+   */
+  function addDistributedExpense(input, apiaries) {
+    var mode = input && input.transportMode;
+    if (mode === 'nakliye' || mode === 'kendi_arac') {
+      throw new Error('Taşıma gideri kovan oranına dağıtılamaz.');
+    }
+    var title = normalizeMaterialName(input && input.title);
+    var amount = Number(input && input.amount);
+    if (!title || !(amount > 0)) {
+      throw new Error('Başlık ve tutar gerekli.');
+    }
+    var targets = Array.isArray(apiaries) ? apiaries.filter(Boolean) : [];
+    if (targets.length < 2) {
+      throw new Error('Dağıtım için en az iki arılık gerekir.');
+    }
+    var parts = allocateByHiveCounts(amount, targets);
+    if (!parts.length) {
+      throw new Error('Dağıtılacak arılık / kovan bulunamadı.');
+    }
+
+    var date = String((input && input.date) || todayIso());
+    var category = (input && input.category) || 'diger';
+    var baseNote = String((input && input.note) || '').trim();
+    var expenses = loadExpenses();
+    var created = [];
+    var stamp = Date.now();
+
+    parts.forEach(function (part, i) {
+      var noteParts = [];
+      if (baseNote) noteParts.push(baseNote);
+      noteParts.push(
+        'Kovan oranına dağıtıldı (' +
+          part.hiveCount +
+          ' kovan · pay ' +
+          part.share +
+          ')'
+      );
+      var gider = normalizeExpense({
+        id: 'g' + stamp + '-' + i,
+        title: title,
+        category: category,
+        amount: part.amount,
+        date: date,
+        note: noteParts.join(' · '),
+        apiaryId: part.apiaryId,
+        apiaryName: part.apiaryName
+      });
+      expenses.push(gider);
+      created.push(gider);
+    });
+
+    saveExpenses(expenses);
+    ensureMaterial(title);
+    return created;
+  }
+
+  /**
+   * Create proportional records for apiaries missing a material that others have.
+   */
+  function fillMissingMaterialShares(gap, apiaries) {
+    if (!gap || !gap.sourceExpense || !gap.missing || !gap.missing.length) {
+      return [];
+    }
+    var source = gap.sourceExpense;
+    var apiaryMap = {};
+    (apiaries || []).forEach(function (a) {
+      if (a && a.id) apiaryMap[String(a.id)] = a;
+    });
+    var sourceAp = apiaryMap[String(source.apiaryId)] || null;
+    var sourceHives = sourceAp ? hiveCountOf(sourceAp) : 0;
+    if (sourceHives <= 0 && gap.present && gap.present[0]) {
+      sourceHives = Number(gap.present[0].hiveCount) || 0;
+    }
+
+    var expenses = loadExpenses();
+    var existingKeys = {};
+    expenses.forEach(function (e) {
+      if (!e) return;
+      existingKeys[materialKey(e.title) + '::' + String(e.apiaryId || '')] = true;
+    });
+
+    var created = [];
+    var stamp = Date.now();
+    gap.missing.forEach(function (miss, i) {
+      var id = String(miss.apiaryId);
+      var key = materialKey(gap.title) + '::' + id;
+      if (existingKeys[key]) return;
+      var ap = apiaryMap[id];
+      var hives = ap ? hiveCountOf(ap) : Number(miss.hiveCount) || 0;
+      var amt = proportionalAmountFromSource(source.amount, sourceHives, hives);
+      if (!(amt > 0)) return;
+      var gider = normalizeExpense({
+        id: 'g' + stamp + '-m' + i,
+        title: normalizeMaterialName(gap.title || source.title),
+        category: gap.category || source.category || 'diger',
+        amount: amt,
+        date: source.date || todayIso(),
+        note:
+          'Eksik malzeme · kovan oranına eklendi (' +
+          hives +
+          ' kovan, kaynak ' +
+          (source.apiaryName || source.apiaryId || '') +
+          ')',
+        apiaryId: id,
+        apiaryName: (ap && apiaryDisplayName(ap)) || miss.apiaryName || id
+      });
+      expenses.push(gider);
+      existingKeys[key] = true;
+      created.push(gider);
+    });
+
+    if (created.length) {
+      saveExpenses(expenses);
+      ensureMaterial(gap.title || source.title);
+    }
+    return created;
+  }
+
   Object.defineProperty(global, 'SuperAriGider', {
     configurable: true,
     enumerable: true,
@@ -745,7 +1013,13 @@
       deleteExpense: deleteExpense,
       expensesForApiary: expensesForApiary,
       totalsByApiary: totalsByApiary,
-      transportsForApiary: transportsForApiary
+      transportsForApiary: transportsForApiary,
+      hiveCountOf: hiveCountOf,
+      allocateByHiveCounts: allocateByHiveCounts,
+      expensesForMaterial: expensesForMaterial,
+      findMissingMaterialGaps: findMissingMaterialGaps,
+      addDistributedExpense: addDistributedExpense,
+      fillMissingMaterialShares: fillMissingMaterialShares
     }
   });
 })(window);
