@@ -259,14 +259,15 @@
   .tile {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
     position: relative; overflow: hidden; min-height: 0; height: 100%;
-    /* footer: compact so Tartı/Sağlık/… + badge sit nearer hive */
-    padding: 0 0 36px;
+    /* Center hive + label + badge as one group in the button */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 6px 4px;
+    box-sizing: border-box;
   }
   .hive-area {
-    position: absolute; left: 0; right: 0; top: 0; bottom: 36px;
+    position: relative; flex: 0 0 auto; width: 100%;
     display: flex; align-items: center; justify-content: center;
-    /* optical nudge: drop hive toward label/badge block */
-    padding-top: 40px;
+    padding-top: 0;
   }
 
   /* ===== Shared hive: EQUAL tiers, FLUSH sides ===== */
@@ -367,13 +368,16 @@
   .hive-icon svg { width: 18px; height: 18px; display: block; }
 
   .tile-label {
-    /* Slightly above badge (+1.2kg, İyi, …); nearer hive via compact footer */
-    position: absolute; left: 0; right: 0; bottom: 28px;
+    /* Flow under hive; centered with the tile group */
+    position: relative; left: auto; right: auto; bottom: auto;
+    flex: 0 0 auto; width: 100%; margin-top: 2px;
     font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
     text-align: center;
   }
   .badge {
-    position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%);
+    /* Keep prior label↔badge gap (~4px): was bottom 28px vs 5px + badge height */
+    position: relative; left: auto; bottom: auto; transform: none;
+    flex: 0 0 auto; margin-top: 4px;
     padding: 2px 9px; border-radius: 999px;
     font-size: 11px; font-weight: 700; line-height: 1.35; white-space: nowrap;
   }
