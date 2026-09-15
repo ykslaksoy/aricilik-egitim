@@ -54,20 +54,18 @@
       subEl.textContent = label;
 
       if (view === 'ariliklar') {
-        summaryEl.textContent = D.apiaries.length + ' arılık · kovan dağılımı';
-        noteEl.textContent = 'Arılık özeti. Tek tek kovanlar için Kovanlar listesine dönün.';
-        listEl.innerHTML = D.apiaries.map(function (a) {
-          return (
-            '<article class="item-card">' +
-              '<div class="row">' +
-                '<h3>' + a.name + '</h3>' +
-                '<span class="badge priority-2">' + a.hiveCount + ' kovan</span>' +
-              '</div>' +
-              '<div class="meta">' + a.place +
-                ' · <a href="kovanlar.html?view=arilik&amp;apiary=' + a.id + '">Kovanları gör</a></div>' +
-            '</article>'
-          );
-        }).join('');
+        /* Ana tile + legacy link → Hardal list (FAB Arılık ekle + detay) */
+        location.replace('ariliklar.html');
+        return;
+      }
+
+      if (view === 'arilik') {
+        var focusApiary = params.get('apiary');
+        if (focusApiary) {
+          location.replace('arilik.html?id=' + encodeURIComponent(focusApiary));
+          return;
+        }
+        location.replace('ariliklar.html');
         return;
       }
 
