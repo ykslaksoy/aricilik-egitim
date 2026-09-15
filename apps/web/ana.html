@@ -113,10 +113,40 @@
     line-height: 1.2;
     color: var(--brown);
   }
-  .brand-strip .brand-loc {
+  .brand-strip .brand-lock-btn {
     margin-left: auto;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid #d4b85a;
+    border-radius: 8px;
+    background: #fff8e6;
+    color: var(--brown, #3d2616);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    line-height: 1.2;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .brand-strip .brand-lock-btn:hover { background: #fff1cc; }
+  .brand-strip .brand-lock-btn:focus-visible {
+    outline: 2px solid var(--hardal);
+    outline-offset: 2px;
+  }
+  .brand-strip .brand-lock-btn[aria-pressed="true"] {
+    background: var(--hardal, #e6b422);
+    border-color: var(--hardal-lo, #b8860b);
+    color: #2a1a0c;
+  }
+  .brand-strip .brand-loc {
+    margin-left: 0;
     flex: 0 1 auto;
-    max-width: 46%;
+    max-width: 42%;
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
@@ -145,6 +175,12 @@
   }
   .brand-strip .brand-loc-text.is-fading {
     opacity: 0;
+  }
+  .weather-loc-label.is-fading {
+    opacity: 0;
+  }
+  .weather-loc-label {
+    transition: opacity 0.35s ease;
   }
 
   .weather-loc {
@@ -208,7 +244,14 @@
     min-height: 32px;
   }
   .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
-  .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); }
+  .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); min-width: 0; flex: 1 1 auto; }
+  .weather-loc-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   /* Live °C from Open-Meteo (see liveWeather) — far right of weather-top */
   .weather-temp { margin-left: 6px; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto; }
   .bee-toggle {
@@ -526,13 +569,14 @@
 <div class="phone" id="phone">
   <div class="phone-notch"></div>
   <div class="status-bar">
-    <div>9:41</div>
+    <div id="statusClock" aria-live="polite">9:41</div>
     <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
   </div>
 
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <span class="brand-name">Hardal Arıcılık</span>
+      <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Konum ve sıcaklığı sabitle">Sabit</button>
       <span class="brand-loc" id="brandLoc" title="Konum">
         <svg class="brand-loc-pin" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path fill="currentColor" d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/>
@@ -553,7 +597,7 @@
           <path d="M18 18c0-2.5 2-4.5 4.5-4.5 1.4 0 2.6.6 3.4 1.6A5 5 0 0 1 27 24H10a4.5 4.5 0 0 1 0-9c.5 0 1 .1 1.5.2" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/>
         </svg>
         <div class="weather-loc" id="weatherLoc">
-          Arılık Kuzey
+          <span class="weather-loc-label" id="weatherLocLabel">Kayaköy Ana Arılık</span>
           <span class="bee-exit" id="beeExit" aria-hidden="true"></span>
           <div class="bee-podium" id="beePodium">
             <div class="podium-stage" id="podiumStage"></div>
@@ -623,6 +667,19 @@
     document.body.classList.add('shot');
   }
 
+  // Status-bar clock: live local HH:MM (updates every second)
+  (function liveStatusClock() {
+    var el = document.getElementById('statusClock');
+    if (!el) return;
+    function pad2(n) { return n < 10 ? '0' + n : String(n); }
+    function tick() {
+      var now = new Date();
+      el.textContent = now.getHours() + ':' + pad2(now.getMinutes());
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+
   // Weekday strip: live Mon–Sun dates for the current calendar week
   (function fillForecastDates() {
     var root = document.getElementById('forecast');
@@ -652,8 +709,8 @@
     void labels;
   })();
 
-  // Band right = arılık konumu (cycle). Weather °C = Open-Meteo for active arılık.
-  // Keeps weather-card “Arılık Kuzey” + bee-exit / toggle untouched.
+  // Band right + weather-card title = active arılık (cycle). °C/forecast follow lat/lon.
+  // Sabit button locks name + temps + cycle; unlock resumes 10s cycle. Bee toggle/door untouched.
   (function liveWeather() {
     var DEMO_APIARIES = [
       { id: 'a1', label: 'Kayaköy Ana Arılık', lat: 39.92, lon: 41.27 },
@@ -661,14 +718,18 @@
       { id: 'a3', label: 'Palandöken Yayla Arılığı', lat: 40.45, lon: 41.4 }
     ];
     var WEATHER_REFRESH_MS = 15 * 60 * 1000;
-    var CYCLE_MS = 6000;
+    var CYCLE_MS = 10000;
+    var LOCK_KEY = 'superari.ana.arilikLock';
     var tempEl = document.getElementById('weatherTemp');
     var brandLoc = document.getElementById('brandLoc');
     var brandLocText = document.getElementById('brandLocText');
+    var weatherLocLabel = document.getElementById('weatherLocLabel');
+    var lockBtn = document.getElementById('arilikLockBtn');
     var apiaries = DEMO_APIARIES.slice();
     var idx = 0;
     var cycleTimer = null;
     var weatherCache = {};
+    var locked = false;
 
     if (tempEl) {
       tempEl.removeAttribute('data-locked');
@@ -694,9 +755,15 @@
         else if (brandLoc) brandLoc.textContent = name;
         if (brandLoc) brandLoc.setAttribute('title', name);
         if (brandLocText) brandLocText.classList.remove('is-fading');
+        if (weatherLocLabel) {
+          weatherLocLabel.textContent = name;
+          weatherLocLabel.setAttribute('title', name);
+          weatherLocLabel.classList.remove('is-fading');
+        }
       }
-      if (withFade && brandLocText) {
-        brandLocText.classList.add('is-fading');
+      if (withFade && (brandLocText || weatherLocLabel)) {
+        if (brandLocText) brandLocText.classList.add('is-fading');
+        if (weatherLocLabel) weatherLocLabel.classList.add('is-fading');
         setTimeout(apply, 320);
       } else {
         apply();
@@ -751,6 +818,53 @@
       return apiaries[idx] || apiaries[0] || DEMO_APIARIES[0];
     }
 
+    function readLock() {
+      try {
+        var raw = localStorage.getItem(LOCK_KEY);
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        return parsed && parsed.locked ? parsed : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeLock() {
+      try {
+        if (!locked) {
+          localStorage.removeItem(LOCK_KEY);
+          return;
+        }
+        var a = currentApiary();
+        localStorage.setItem(LOCK_KEY, JSON.stringify({
+          locked: true,
+          id: a && a.id ? a.id : null,
+          idx: idx
+        }));
+      } catch (e) { /* ignore */ }
+    }
+
+    function syncLockBtn() {
+      if (!lockBtn) return;
+      lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+      lockBtn.textContent = locked ? 'Sabit ✓' : 'Sabit';
+      lockBtn.setAttribute(
+        'aria-label',
+        locked ? 'Sabitlemeyi kaldır' : 'Konumu sabitle'
+      );
+      lockBtn.setAttribute(
+        'title',
+        locked ? 'Sabit — dokununca döngü devam eder' : 'Sabit — konum ve sıcaklığı kilitle'
+      );
+    }
+
+    function stopCycle() {
+      if (cycleTimer) {
+        clearInterval(cycleTimer);
+        cycleTimer = null;
+      }
+    }
+
     function refreshWeather(force) {
       var a = currentApiary();
       if (!a) return;
@@ -760,13 +874,16 @@
         if (cached.daily) updateForecastDaily(cached.daily);
         return;
       }
+      var reqId = a.id;
       fetchMeteo(a.lat, a.lon)
         .then(function (meteo) {
+          // Ignore stale responses if user rotated / locked onto another arılık
+          if (currentApiary() && currentApiary().id !== reqId) return;
           var temp =
             meteo && meteo.current && meteo.current.temperature_2m != null
               ? meteo.current.temperature_2m
               : null;
-          weatherCache[a.id] = {
+          weatherCache[reqId] = {
             at: Date.now(),
             temp: temp,
             daily: meteo && meteo.daily ? meteo.daily : null
@@ -783,15 +900,45 @@
       var a = currentApiary();
       setPlace(a.label, withFade);
       refreshWeather(false);
+      if (locked) writeLock();
     }
 
     function startCycle() {
-      if (cycleTimer) clearInterval(cycleTimer);
-      showApiary(0, false);
-      if (apiaries.length < 2) return;
+      stopCycle();
+      showApiary(idx, false);
+      if (locked || apiaries.length < 2) return;
       cycleTimer = setInterval(function () {
+        if (locked) return;
         showApiary(idx + 1, true);
       }, CYCLE_MS);
+    }
+
+    function setLocked(on) {
+      locked = !!on;
+      syncLockBtn();
+      writeLock();
+      if (locked) {
+        stopCycle();
+      } else {
+        startCycle();
+      }
+    }
+
+    function restoreLockIndex() {
+      var saved = readLock();
+      if (!saved) return;
+      locked = true;
+      if (saved.id) {
+        for (var i = 0; i < apiaries.length; i++) {
+          if (apiaries[i].id === saved.id) {
+            idx = i;
+            return;
+          }
+        }
+      }
+      if (typeof saved.idx === 'number' && saved.idx >= 0) {
+        idx = saved.idx % Math.max(apiaries.length, 1);
+      }
     }
 
     function normalizeList(list) {
@@ -841,8 +988,16 @@
         });
     }
 
+    if (lockBtn) {
+      lockBtn.addEventListener('click', function () {
+        setLocked(!locked);
+      });
+    }
+
     loadApiaries().then(function (list) {
       apiaries = list && list.length ? list : DEMO_APIARIES.slice();
+      restoreLockIndex();
+      syncLockBtn();
       startCycle();
       setInterval(function () { refreshWeather(true); }, WEATHER_REFRESH_MS);
     });
