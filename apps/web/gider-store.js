@@ -6,6 +6,7 @@
 (function (global) {
   var STORAGE_KEY = 'superari.giderler.v1';
   var TRANSPORT_KEY = 'superari.tasimalar.v1';
+  var MATERIALS_KEY = 'superari.malzemeler.v1';
 
   /* Soft Hardal-warm palette — muted (no loud green/red/purple). */
   var CATEGORIES = [
@@ -170,6 +171,114 @@
   SEED_EXPENSES.forEach(function (e) {
     if (e.apiaryId) SEED_APIARY_BY_ID[e.id] = { id: e.apiaryId, name: e.apiaryName || '' };
   });
+
+  /* Common beekeeping materials + prior gider titles (Turkish). */
+  var SEED_MATERIALS = [
+    'Şeker şurubu',
+    'Polen ikamesi',
+    'Varroa damlatma',
+    'Organik asit seti',
+    'Çerçeve teli + mum',
+    'Maske / eldiven',
+    'Kavanoz + etiket seti',
+    'Yevmiye — yardımcı',
+    'Yayla taşıma (nakliye)',
+    'Yakıt',
+    'Arılık yeri ücreti',
+    'Arılık bakım malzemesi',
+    'Fondan',
+    'Petek temeli',
+    'Kovan boyası'
+  ];
+
+  function normalizeMaterialName(name) {
+    return String(name || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function materialKey(name) {
+    return normalizeMaterialName(name).toLocaleLowerCase('tr');
+  }
+
+  function mergeMaterialNames(lists) {
+    var seen = {};
+    var out = [];
+    lists.forEach(function (list) {
+      if (!list || !list.length) return;
+      list.forEach(function (raw) {
+        var name = normalizeMaterialName(raw);
+        if (!name) return;
+        var key = materialKey(name);
+        if (seen[key]) return;
+        seen[key] = true;
+        out.push(name);
+      });
+    });
+    out.sort(function (a, b) {
+      return a.localeCompare(b, 'tr');
+    });
+    return out;
+  }
+
+  function titlesFromExpenses(list) {
+    return (list || []).map(function (e) {
+      return e && e.title;
+    });
+  }
+
+  function loadMaterials() {
+    var stored = readJson(MATERIALS_KEY);
+    var custom = Array.isArray(stored) ? stored : [];
+    var expenseTitles = titlesFromExpenses(loadExpenses());
+    return mergeMaterialNames([SEED_MATERIALS, expenseTitles, custom]);
+  }
+
+  function saveMaterials(list) {
+    if (!Array.isArray(list)) return loadMaterials();
+    var cleaned = mergeMaterialNames([list]);
+    /* Persist only names beyond seed defaults (custom + user-added). */
+    var seedKeys = {};
+    SEED_MATERIALS.forEach(function (n) {
+      seedKeys[materialKey(n)] = true;
+    });
+    var custom = cleaned.filter(function (n) {
+      return !seedKeys[materialKey(n)];
+    });
+    writeJson(MATERIALS_KEY, custom);
+    return loadMaterials();
+  }
+
+  function addMaterial(name) {
+    var clean = normalizeMaterialName(name);
+    if (!clean) throw new Error('Malzeme adı gerekli.');
+    if (clean.length > 80) clean = clean.slice(0, 80);
+    var stored = readJson(MATERIALS_KEY);
+    var custom = Array.isArray(stored) ? stored.slice() : [];
+    var key = materialKey(clean);
+    var exists = custom.some(function (n) {
+      return materialKey(n) === key;
+    });
+    if (!exists) {
+      var inSeed = SEED_MATERIALS.some(function (n) {
+        return materialKey(n) === key;
+      });
+      var inExpenses = titlesFromExpenses(loadExpenses()).some(function (n) {
+        return materialKey(n) === key;
+      });
+      if (!inSeed && !inExpenses) custom.push(clean);
+      writeJson(MATERIALS_KEY, custom);
+    }
+    return loadMaterials();
+  }
+
+  function ensureMaterial(name) {
+    try {
+      return addMaterial(name);
+    } catch (e) {
+      return loadMaterials();
+    }
+  }
 
   function catById(id) {
     for (var i = 0; i < CATEGORIES.length; i++) {
@@ -427,6 +536,7 @@
     var expenses = loadExpenses();
     expenses.push(gider);
     saveExpenses(expenses);
+    ensureMaterial(gider.title);
 
     var transports = loadTransports();
     transports.push(transport);
@@ -474,6 +584,7 @@
     }
     expenses.push(gider);
     saveExpenses(expenses);
+    ensureMaterial(gider.title);
     return gider;
   }
 
@@ -513,6 +624,7 @@
     if (!(gider.amount > 0) || !gider.title) {
       throw new Error('Başlık ve tutar gerekli.');
     }
+    ensureMaterial(gider.title);
 
     if (mode && !gider.transportId) {
       gider.transportId = 't' + Date.now();
@@ -613,14 +725,20 @@
     value: {
       STORAGE_KEY: STORAGE_KEY,
       TRANSPORT_KEY: TRANSPORT_KEY,
+      MATERIALS_KEY: MATERIALS_KEY,
       CATEGORIES: CATEGORIES,
       SEED_EXPENSES: SEED_EXPENSES,
+      SEED_MATERIALS: SEED_MATERIALS,
       catById: catById,
       todayIso: todayIso,
       loadExpenses: loadExpenses,
       saveExpenses: saveExpenses,
       loadTransports: loadTransports,
       saveTransports: saveTransports,
+      loadMaterials: loadMaterials,
+      saveMaterials: saveMaterials,
+      addMaterial: addMaterial,
+      ensureMaterial: ensureMaterial,
       recordTransport: recordTransport,
       addExpense: addExpense,
       updateExpense: updateExpense,

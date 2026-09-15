@@ -194,19 +194,12 @@
 
   .chart-block {
     background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
-    padding: 18px 14px 14px; margin-bottom: 14px;
+    padding: 14px 14px 12px; margin-bottom: 14px;
     box-shadow: 0 4px 14px rgba(40, 30, 10, .05);
   }
-  .chart-wrap {
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 16px;
-  }
-  .pie-svg { width: 168px; height: 168px; }
-  .pie-center-label {
-    font-size: 11px; font-weight: 600; fill: var(--muted);
-  }
-  .pie-center-value {
-    font-size: 15px; font-weight: 800; fill: var(--text);
+  .chart-block .panel-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    letter-spacing: .02em; text-transform: uppercase; margin-bottom: 10px;
   }
   .legend { display: grid; gap: 8px; }
   .legend-row {
@@ -326,6 +319,57 @@
     background: #fff8df; border: 1px dashed #e0c56a;
     color: var(--muted); font-size: 12px; line-height: 1.4; font-weight: 600;
   }
+  .material-field { margin-bottom: 12px; }
+  .material-field .mode-label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px;
+  }
+  .material-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    max-height: 118px; overflow-y: auto;
+    padding: 2px 1px 4px; margin-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .material-chip {
+    flex: 0 0 auto; max-width: 100%;
+    min-height: 34px; padding: 6px 11px; border-radius: 999px;
+    border: 1px solid var(--card-border); background: #f7f8fa;
+    color: var(--text); font-size: 12px; font-weight: 700; font-family: inherit;
+    cursor: pointer; text-align: left; line-height: 1.25;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .material-chip.is-on {
+    border-color: #e0c56a;
+    background: linear-gradient(145deg, #fff6df, var(--hardal-soft));
+    color: var(--brown);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+  }
+  .material-add-row {
+    display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
+  }
+  .material-add-row[hidden] { display: none; }
+  .material-add-row input {
+    width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--text);
+    background: #f7f8fa; font-family: inherit;
+  }
+  .btn-material-toggle,
+  .btn-material-save {
+    min-height: 40px; padding: 0 12px; border-radius: 12px; cursor: pointer;
+    font-size: 12px; font-weight: 800; font-family: inherit; border: 1px solid #e0c56a;
+  }
+  .btn-material-toggle {
+    width: 100%; margin-bottom: 8px;
+    background: linear-gradient(145deg, #fffaf0, #fff3d6);
+    color: var(--brown);
+  }
+  .btn-material-toggle[hidden] { display: none; }
+  .btn-material-save {
+    background: linear-gradient(145deg, var(--hardal-hi), var(--hardal));
+    color: #3b2b00; border-color: transparent; white-space: nowrap;
+  }
+  .material-hint {
+    margin: 0 0 2px; font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.35;
+  }
   .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
   .sheet-actions.with-delete { grid-template-columns: 1fr 1fr; }
   .btn {
@@ -431,16 +475,14 @@
       </div>
     </div>
 
-    <section class="chart-block" id="chartBlock" aria-label="Kategori pasta grafiği">
-      <div class="chart-wrap">
-        <svg class="pie-svg" id="pieSvg" viewBox="0 0 120 120" aria-hidden="true"></svg>
-      </div>
+    <section class="chart-block" id="chartBlock" aria-label="Kategori özeti">
+      <h2 class="panel-title">Kategoriler</h2>
       <div class="legend" id="legend"></div>
     </section>
 
     <h2 class="section-title">
       Kayıtlar
-      <span class="hint">Karta dokunarak düzenle · Yem · İlaç · Ekipman · İşçilik · Ambalaj · Nakliye · Yakıt · Yayla/kira · Diğer</span>
+      <span class="hint">Malzemeye göre · satırda kategori ve arılık · aynı malzeme birden fazla arılıkta kullanılabilir</span>
     </h2>
     <div class="exp-list" id="expList"></div>
   </div>
@@ -464,14 +506,22 @@
           <input type="hidden" name="transportMode" id="transportMode" value="" />
         </div>
         <p class="fuel-hint" id="fuelHint" hidden>
-          Kendi araç seçildi — yakıt tutarı zorunlu. Kayıt listede ve pasta diliminde «Yakıt» olarak görünür.
+          Kendi araç seçildi — yakıt tutarı zorunlu. Kayıt listede ve kategori özetinde «Yakıt» olarak görünür.
         </p>
         <p class="fuel-hint" id="nakliyeHint" hidden>
           Üçüncü taraf nakliye ücreti Nakliye kategorisine kaydedilir.
         </p>
-        <label>Başlık
-          <input name="title" required maxlength="80" placeholder="Örn. Şeker şurubu" />
-        </label>
+        <div class="material-field">
+          <span class="mode-label" id="titleLabel">Başlık</span>
+          <p class="material-hint">Kayıtlı malzemelerden seçin veya bir kez ekleyip tekrar kullanın.</p>
+          <div class="material-chips" id="materialChips" role="listbox" aria-labelledby="titleLabel"></div>
+          <button type="button" class="btn-material-toggle" id="showNewMaterial">+ Yeni malzeme ekle</button>
+          <div class="material-add-row" id="newMaterialRow" hidden>
+            <input type="text" id="newMaterialInput" maxlength="80" placeholder="Örn. Şeker şurubu" autocomplete="off" />
+            <button type="button" class="btn-material-save" id="saveNewMaterial">Ekle</button>
+          </div>
+          <input type="hidden" name="title" id="titleInput" value="" />
+        </div>
         <label>Arılık
           <select name="apiaryId" id="apiarySelect" required>
             <option value="">— Arılık seç —</option>
@@ -523,7 +573,7 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
-<script src="gider-store.js?v=gider-fab-arilik-4"></script>
+<script src="gider-store.js?v=gider-malzeme-1"></script>
 <script>
 (function () {
   var G = window.SuperAriGider;
@@ -599,28 +649,6 @@
       .replace(/"/g, '&quot;');
   }
 
-  function polar(cx, cy, r, angleDeg) {
-    var rad = (angleDeg - 90) * Math.PI / 180;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-  }
-
-  function describeArc(cx, cy, r, startAngle, endAngle) {
-    if (endAngle - startAngle >= 359.99) {
-      return 'M ' + cx + ' ' + (cy - r) +
-        ' A ' + r + ' ' + r + ' 0 1 1 ' + (cx - 0.01) + ' ' + (cy - r) +
-        ' A ' + r + ' ' + r + ' 0 1 1 ' + cx + ' ' + (cy - r) + ' Z';
-    }
-    var start = polar(cx, cy, r, endAngle);
-    var end = polar(cx, cy, r, startAngle);
-    var large = endAngle - startAngle > 180 ? 1 : 0;
-    return [
-      'M', cx, cy,
-      'L', end.x, end.y,
-      'A', r, r, 0, large, 1, start.x, start.y,
-      'Z'
-    ].join(' ');
-  }
-
   function loadApiaries() {
     if (window.SuperAriDemo && window.SuperAriDemo.loadApiaries) {
       return window.SuperAriDemo.loadApiaries() || [];
@@ -650,7 +678,6 @@
     return null;
   }
 
-  var pieSvg = document.getElementById('pieSvg');
   var legendEl = document.getElementById('legend');
   var listEl = document.getElementById('expList');
   var totalEl = document.getElementById('totalAmount');
@@ -670,12 +697,95 @@
   var nakliyeHint = document.getElementById('nakliyeHint');
   var amountLabelText = document.getElementById('amountLabelText');
   var apiarySelect = document.getElementById('apiarySelect');
+  var titleInput = document.getElementById('titleInput');
+  var materialChips = document.getElementById('materialChips');
+  var showNewMaterialBtn = document.getElementById('showNewMaterial');
+  var newMaterialRow = document.getElementById('newMaterialRow');
+  var newMaterialInput = document.getElementById('newMaterialInput');
+  var saveNewMaterialBtn = document.getElementById('saveNewMaterial');
+  var selectedMaterial = '';
 
   CATEGORIES.forEach(function (c) {
     var opt = document.createElement('option');
     opt.value = c.id;
     opt.textContent = c.label;
     catSelect.appendChild(opt);
+  });
+
+  function materialKey(name) {
+    return String(name || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
+  }
+
+  function setSelectedMaterial(name) {
+    selectedMaterial = String(name || '').trim();
+    titleInput.value = selectedMaterial;
+    materialChips.querySelectorAll('.material-chip').forEach(function (btn) {
+      var n = btn.getAttribute('data-name') || '';
+      btn.classList.toggle('is-on', materialKey(n) === materialKey(selectedMaterial));
+      btn.setAttribute('aria-selected', materialKey(n) === materialKey(selectedMaterial) ? 'true' : 'false');
+    });
+  }
+
+  function renderMaterialChips(preferred) {
+    var list = G.loadMaterials();
+    materialChips.innerHTML = list.map(function (name) {
+      return (
+        '<button type="button" class="material-chip" role="option" data-name="' +
+        String(name).replace(/"/g, '&quot;') +
+        '" aria-selected="false">' +
+        String(name).replace(/</g, '&lt;') +
+        '</button>'
+      );
+    }).join('');
+    if (!list.length) {
+      materialChips.innerHTML = '<p class="material-hint">Henüz malzeme yok — aşağıdan ekleyin.</p>';
+    }
+    setSelectedMaterial(preferred || selectedMaterial || '');
+  }
+
+  function hideNewMaterialForm() {
+    newMaterialRow.hidden = true;
+    showNewMaterialBtn.hidden = false;
+    newMaterialInput.value = '';
+  }
+
+  function showNewMaterialForm() {
+    newMaterialRow.hidden = false;
+    showNewMaterialBtn.hidden = true;
+    setTimeout(function () { newMaterialInput.focus(); }, 40);
+  }
+
+  materialChips.addEventListener('click', function (e) {
+    var btn = e.target.closest('.material-chip');
+    if (!btn) return;
+    setSelectedMaterial(btn.getAttribute('data-name') || '');
+    hideNewMaterialForm();
+  });
+
+  showNewMaterialBtn.addEventListener('click', showNewMaterialForm);
+
+  saveNewMaterialBtn.addEventListener('click', function () {
+    var name = String(newMaterialInput.value || '').trim();
+    if (!name) {
+      alert('Malzeme adı yazın.');
+      newMaterialInput.focus();
+      return;
+    }
+    try {
+      G.addMaterial(name);
+    } catch (err) {
+      alert((err && err.message) || 'Malzeme eklenemedi.');
+      return;
+    }
+    hideNewMaterialForm();
+    renderMaterialChips(name);
+  });
+
+  newMaterialInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveNewMaterialBtn.click();
+    }
   });
 
   function fillApiaries(selected) {
@@ -737,14 +847,14 @@
     if (mode === 'kendi_arac') {
       catSelect.value = 'yakit';
       amountLabelText.textContent = 'Yakıt tutarı (₺)';
-      form.elements.title.placeholder = 'Örn. Yakıt — Tortum taşıma';
+      newMaterialInput.placeholder = 'Örn. Yakıt — Tortum taşıma';
     } else if (mode === 'nakliye') {
       catSelect.value = 'nakliye';
       amountLabelText.textContent = 'Nakliye ücreti (₺)';
-      form.elements.title.placeholder = 'Örn. Yayla nakliye';
+      newMaterialInput.placeholder = 'Örn. Yayla nakliye';
     } else {
       amountLabelText.textContent = 'Tutar (₺)';
-      form.elements.title.placeholder = 'Örn. Şeker şurubu';
+      newMaterialInput.placeholder = 'Örn. Şeker şurubu';
     }
   }
 
@@ -777,6 +887,7 @@
     if (e.transportMode === 'kendi_arac') parts.push('Kendi araç');
     else if (e.transportMode === 'nakliye') parts.push('Nakliye');
     if (e.apiaryName) parts.push(e.apiaryName);
+    else if (e.apiaryId) parts.push(e.apiaryId);
     else if (e.note) parts.push(e.note);
     return parts.join(' · ');
   }
@@ -875,7 +986,7 @@
     if (panelToplam) panelToplam.hidden = isDetail || activeView !== 'toplam';
     if (panelAriliklar) panelAriliklar.hidden = isDetail || activeView !== 'ariliklar';
 
-    /* Toplam: chart+list. Arılıklar (özet): sadece özet. Detay: chart+list. */
+    /* Toplam + arılık detay: kategori özeti + kayıtlar. Arılıklar özeti: sadece özet. */
     var showRecords = isDetail || activeView === 'toplam';
     if (chartBlock) chartBlock.hidden = !showRecords;
     if (listTitle) listTitle.hidden = !showRecords;
@@ -905,28 +1016,40 @@
       return;
     }
 
+    /* Per-apiary detail: flat chronological list (arılık already in banner). */
     if (filterApiary !== 'all') {
       listEl.innerHTML = list.map(expenseCard).join('');
       return;
     }
 
+    /*
+     * Toplam: group by malzeme (başlık) — not by arılık.
+     * Same material may appear for multiple arılıklar as separate gider rows.
+     */
     var groups = {};
     var order = [];
     list.forEach(function (e) {
-      var key = e.apiaryId || 'none';
+      var title = String(e.title || 'Gider').trim() || 'Gider';
+      var key = title.toLocaleLowerCase('tr');
       if (!groups[key]) {
-        groups[key] = {
-          title: e.apiaryName || (key === 'none' ? 'Atanmamış' : key),
-          items: []
-        };
+        groups[key] = { title: title, items: [] };
         order.push(key);
       }
       groups[key].items.push(e);
     });
 
+    order.sort(function (a, b) {
+      return groups[a].title.localeCompare(groups[b].title, 'tr');
+    });
+
     var html = '';
     order.forEach(function (key) {
       var g = groups[key];
+      g.items.sort(function (a, b) {
+        var t = String(b.date).localeCompare(String(a.date));
+        if (t) return t;
+        return String(a.apiaryName || '').localeCompare(String(b.apiaryName || ''), 'tr');
+      });
       html += '<div class="group-head">' + escapeHtml(g.title) + '</div>';
       html += g.items.map(expenseCard).join('');
     });
@@ -948,30 +1071,10 @@
     );
   }
 
-  function renderChart(list) {
+  function renderCategorySummary(list) {
     var byCat = totalsByCategory(list);
     var total = 0;
     CATEGORIES.forEach(function (c) { total += byCat[c.id]; });
-
-    var cx = 60, cy = 60, r = 48, ir = 28;
-    var angle = 0;
-    var slices = '';
-    CATEGORIES.forEach(function (c) {
-      var amt = byCat[c.id];
-      if (!amt || total <= 0) return;
-      var sweep = (amt / total) * 360;
-      var end = angle + sweep;
-      slices += '<path d="' + describeArc(cx, cy, r, angle, end) + '" fill="' + c.color + '"/>';
-      angle = end;
-    });
-    if (!slices) {
-      slices = '<circle cx="60" cy="60" r="48" fill="#e4e6ea"/>';
-    }
-    pieSvg.innerHTML =
-      slices +
-      '<circle cx="60" cy="60" r="' + ir + '" fill="#fff"/>' +
-      '<text class="pie-center-label" x="60" y="56" text-anchor="middle">Toplam</text>' +
-      '<text class="pie-center-value" x="60" y="72" text-anchor="middle">' + formatTRY(total) + '</text>';
 
     legendEl.innerHTML = CATEGORIES.map(function (c) {
       var amt = byCat[c.id];
@@ -994,7 +1097,7 @@
     renderApiarySummary(all);
     syncViewChrome(list);
     if (!listEl.hidden) {
-      renderChart(list);
+      renderCategorySummary(list);
       renderList(list);
     }
   }
@@ -1006,13 +1109,16 @@
     sheetDelete.hidden = !editingId;
     sheet.hidden = false;
     form.reset();
+    hideNewMaterialForm();
     fillApiaries(expense && expense.apiaryId);
     form.elements.date.value = (expense && expense.date) || G.todayIso();
-    form.elements.title.value = (expense && expense.title) || '';
     form.elements.amount.value = expense ? expense.amount : '';
     form.elements.note.value = (expense && expense.note) || '';
     form.elements.category.value = (expense && expense.category) || 'yem';
     catSelect.disabled = false;
+    var title = (expense && expense.title) || '';
+    if (title) G.ensureMaterial(title);
+    renderMaterialChips(title);
     setTransportMode((expense && expense.transportMode) || '');
     if (expense && expense.category && !expense.transportMode) {
       form.elements.category.value = expense.category;
@@ -1021,7 +1127,12 @@
       apiarySelect.value = filterApiary;
     }
     requestAnimationFrame(function () { sheet.classList.add('is-open'); });
-    setTimeout(function () { form.elements.title.focus(); }, 220);
+    setTimeout(function () {
+      if (selectedMaterial) return;
+      var firstChip = materialChips.querySelector('.material-chip');
+      if (firstChip) firstChip.focus();
+      else showNewMaterialForm();
+    }, 220);
   }
 
   function closeSheet() {
@@ -1056,7 +1167,7 @@
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    var title = String(form.elements.title.value || '').trim();
+    var title = String(titleInput.value || selectedMaterial || '').trim();
     var category = form.elements.category.value;
     var amount = Number(form.elements.amount.value);
     var date = form.elements.date.value;
@@ -1064,6 +1175,13 @@
     var note = String(form.elements.note.value || '').trim();
     var apiaryId = String(form.elements.apiaryId.value || '');
     var apiaryName = selectedApiaryName();
+    if (!title) {
+      alert('Malzeme / başlık seçilmeli.');
+      var onChip = materialChips.querySelector('.material-chip');
+      if (onChip) onChip.focus();
+      else showNewMaterialForm();
+      return;
+    }
     if (!apiaryId) {
       alert('Arılık seçilmeli.');
       apiarySelect.focus();
@@ -1074,7 +1192,7 @@
       form.elements.amount.focus();
       return;
     }
-    if (!title || !(amount > 0) || !date) return;
+    if (!(amount > 0) || !date) return;
     var payload = {
       title: title,
       category: category,
@@ -1088,6 +1206,7 @@
     try {
       if (editingId) G.updateExpense(editingId, payload);
       else G.addExpense(payload);
+      G.ensureMaterial(title);
     } catch (err) {
       alert((err && err.message) || 'Kayıt başarısız.');
       return;
