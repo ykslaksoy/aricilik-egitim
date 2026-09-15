@@ -212,7 +212,7 @@
     </div>
 
     <div class="apiary-list" id="apiaryList"></div>
-    <p class="hint">Bir arılığa dokunun; detay sayfası açılır. Yeni arılık eklemek için alttaki düğmeyi kullanın.</p>
+    <p class="hint">Bir arılığa dokunun; kovan sayısı kadar gerçek kovan listelenir. Yeni arılık eklerken girdiğiniz kovan adedi kayda yazılır.</p>
   </div>
 
   <button type="button" class="fab" id="fabAdd" aria-label="Arılık ekle">
@@ -288,17 +288,20 @@
   }
 
   function render() {
+    /* loadHives reconciles so badge count == real hive records */
+    if (D.loadHives) D.loadHives();
     var apiaries = D.loadApiaries();
     countEl.textContent = String(apiaries.length);
     listEl.innerHTML = apiaries.map(function (a) {
+      var n = D.hivesForApiary(a.id).length;
       return (
-        '<a class="apiary-card" href="arilik.html?id=' + encodeURIComponent(a.id) + '" aria-label="' + escapeHtml(a.name) + ' detayı">' +
+        '<a class="apiary-card" href="arilik.html?id=' + encodeURIComponent(a.id) + '" aria-label="' + escapeHtml(a.name) + ', ' + n + ' kovan">' +
           '<div class="apiary-ico">' + pinSvg + '</div>' +
           '<div class="apiary-body">' +
             '<h2>' + escapeHtml(a.name) + '</h2>' +
             '<p>' + escapeHtml(a.place) + '</p>' +
           '</div>' +
-          '<span class="apiary-badge">' + a.hiveCount + ' kovan</span>' +
+          '<span class="apiary-badge">' + n + ' kovan</span>' +
           '<span class="apiary-chev" aria-hidden="true">›</span>' +
         '</a>'
       );

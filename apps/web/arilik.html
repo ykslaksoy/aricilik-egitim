@@ -106,6 +106,14 @@
   }
   .stat .k { font-size: 11px; font-weight: 700; color: var(--muted); }
   .stat .v { margin-top: 4px; font-size: 16px; font-weight: 800; color: var(--text); }
+  a.stat-link {
+    display: block; text-decoration: none; color: inherit;
+    transition: transform .12s ease, border-color .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a.stat-link:active { transform: scale(.98); }
+  a.stat-link .v { color: var(--brown); }
+  a.stat-link .k::after { content: " ›"; color: #b0aaa3; font-weight: 800; }
   .section-title {
     font-size: 14px; font-weight: 800; color: var(--text);
     margin: 4px 2px 10px;
@@ -253,9 +261,11 @@
     titleEl.textContent = apiary.place || apiary.name;
     subEl.textContent = 'Arılık detayı';
     var linked = D.hivesForApiary(apiary.id);
+    var hiveN = linked.length;
+    var filterHref = 'kovanlar.html?apiary=' + encodeURIComponent(apiary.id);
     var hiveRows = linked.map(function (h) {
       return (
-        '<a class="hive-item" href="kovanlar.html?id=' + encodeURIComponent(h.id) + '">' +
+        '<a class="hive-item" href="kovanlar.html?id=' + encodeURIComponent(h.id) + '&amp;apiary=' + encodeURIComponent(apiary.id) + '">' +
           '<div>' +
             '<h3>' + escapeHtml(h.name) + '</h3>' +
             '<div class="meta">' + escapeHtml(h.health) + ' · ' + h.weightKg.toFixed(1) + ' kg · oğul ' + escapeHtml(h.swarmRisk) + '</div>' +
@@ -277,21 +287,23 @@
           '</div>' +
         '</div>' +
         '<div class="stat-grid">' +
-          '<div class="stat"><div class="k">Kovan</div><div class="v">' + apiary.hiveCount + '</div></div>' +
-          '<div class="stat"><div class="k">Demo kayıt</div><div class="v">' + linked.length + '</div></div>' +
+          '<a class="stat stat-link" href="' + filterHref + '" aria-label="' + hiveN + ' kovanı listele">' +
+            '<div class="k">Kovan</div><div class="v">' + hiveN + '</div>' +
+          '</a>' +
+          '<div class="stat"><div class="k">Konum</div><div class="v">' + escapeHtml(apiary.place) + '</div></div>' +
           '<div class="stat"><div class="k">Enlem</div><div class="v">' + fmtCoord(apiary.lat) + '</div></div>' +
           '<div class="stat"><div class="k">Boylam</div><div class="v">' + fmtCoord(apiary.lon) + '</div></div>' +
         '</div>' +
       '</section>' +
       '<div class="action-row">' +
-        '<a class="action-link" href="kovanlar.html?apiary=' + encodeURIComponent(apiary.id) + '">' +
-          'Bu arılığın kovanları <span aria-hidden="true">›</span>' +
+        '<a class="action-link" href="' + filterHref + '">' +
+          hiveN + ' kovanı gör <span aria-hidden="true">›</span>' +
         '</a>' +
       '</div>' +
-      '<h2 class="section-title">Bağlı kovanlar</h2>' +
+      '<h2 class="section-title" id="kovanlar">Kovanlar (' + hiveN + ')</h2>' +
       (hiveRows
         ? '<div class="hive-list">' + hiveRows + '</div>'
-        : '<p class="empty">Bu arılığa bağlı demo kovan yok. Kovan sayısı kaydı: ' + apiary.hiveCount + '.</p>');
+        : '<p class="empty">Bu arılıkta henüz kovan yok. Arılık eklerken kovan sayısı girerseniz burada listelenir.</p>');
   }
 
   var clock = document.getElementById('clock');
