@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Arılıklar</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <style>
   :root {
     --bg: #f0f1f3;
@@ -141,7 +142,7 @@
     width: 100%; background: #fff; border-radius: 22px 22px 0 0;
     padding: 18px 16px 28px;
     transform: translateY(24px); transition: transform .22s ease;
-    max-height: 78%; overflow-y: auto;
+    max-height: 88%; overflow-y: auto;
   }
   .sheet.is-open .sheet-card { transform: translateY(0); }
   .sheet-card h2 { font-size: 18px; font-weight: 800; margin-bottom: 14px; color: var(--text); }
@@ -154,6 +155,30 @@
     padding: 11px 12px; font-size: 15px; font-weight: 600; color: var(--text);
     background: #f7f8fa; font-family: inherit;
   }
+  .map-field { margin-bottom: 12px; }
+  .map-field .map-label {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px;
+  }
+  .map-field .map-coords {
+    font-size: 11px; font-weight: 700; color: var(--brown);
+    font-variant-numeric: tabular-nums;
+  }
+  .map-field .map-coords.is-empty { color: #b5451b; }
+  #pickerMap {
+    height: 168px; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--card-border);
+    background: #e8ece8;
+  }
+  .map-hint {
+    margin-top: 6px; font-size: 11px; color: var(--muted); line-height: 1.35;
+  }
+  .form-error {
+    display: none; margin: 0 0 10px; padding: 10px 12px; border-radius: 10px;
+    background: #fff1ee; border: 1px solid #f0b4a8;
+    color: #8a2e1c; font-size: 12px; font-weight: 700;
+  }
+  .form-error.is-on { display: block; }
   .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
   .btn {
     min-height: 44px; border-radius: 12px; border: 0; cursor: pointer;
@@ -232,6 +257,17 @@
         <label>Kovan sayısı
           <input name="hiveCount" type="number" inputmode="numeric" min="0" step="1" value="0" />
         </label>
+        <div class="map-field">
+          <div class="map-label">
+            <span>Haritadan konum *</span>
+            <span class="map-coords is-empty" id="mapCoords">Konum seçilmedi</span>
+          </div>
+          <div id="pickerMap" role="application" aria-label="Arılık konumu seç"></div>
+          <p class="map-hint">Haritaya dokunarak iğneyi koyun. Enlem/boylam kayda yazılır.</p>
+          <input type="hidden" name="lat" id="latInput" value="" />
+          <input type="hidden" name="lon" id="lonInput" value="" />
+        </div>
+        <p class="form-error" id="formError" role="alert"></p>
         <div class="sheet-actions">
           <button type="button" class="btn cancel" id="sheetCancel">Vazgeç</button>
           <button type="submit" class="btn save">Kaydet</button>
@@ -264,16 +300,26 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="demo-data.js"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
   if (!D) return;
 
+  var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Kayaköy bölgesi */
+  var DEFAULT_ZOOM = 9;
+
   var listEl = document.getElementById('apiaryList');
   var countEl = document.getElementById('apiaryCount');
   var sheet = document.getElementById('addSheet');
   var form = document.getElementById('addForm');
+  var latInput = document.getElementById('latInput');
+  var lonInput = document.getElementById('lonInput');
+  var coordsEl = document.getElementById('mapCoords');
+  var errEl = document.getElementById('formError');
+  var map = null;
+  var marker = null;
   var pinSvg =
     '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
       '<path d="M12 2C8.7 2 6 4.9 6 8.4c0 4.6 6 11.6 6 11.6s6-7 6-11.6C18 4.9 15.3 2 12 2zm0 8.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>' +
@@ -285,6 +331,69 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  function setCoords(lat, lon) {
+    if (lat == null || lon == null || !isFinite(lat) || !isFinite(lon)) {
+      latInput.value = '';
+      lonInput.value = '';
+      coordsEl.textContent = 'Konum seçilmedi';
+      coordsEl.classList.add('is-empty');
+      return;
+    }
+    latInput.value = String(lat);
+    lonInput.value = String(lon);
+    coordsEl.textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
+    coordsEl.classList.remove('is-empty');
+  }
+
+  function placeMarker(latlng) {
+    if (!map) return;
+    if (marker) {
+      marker.setLatLng(latlng);
+    } else {
+      marker = L.marker(latlng, { draggable: true }).addTo(map);
+      marker.on('dragend', function () {
+        var p = marker.getLatLng();
+        setCoords(p.lat, p.lng);
+      });
+    }
+    setCoords(latlng.lat, latlng.lng);
+  }
+
+  function ensureMap() {
+    if (map || typeof L === 'undefined') return;
+    map = L.map('pickerMap', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    map.on('click', function (e) {
+      placeMarker(e.latlng);
+      clearError();
+    });
+  }
+
+  function refreshMap() {
+    ensureMap();
+    if (!map) return;
+    setTimeout(function () {
+      map.invalidateSize();
+      if (marker) map.setView(marker.getLatLng(), Math.max(map.getZoom(), 11));
+      else map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    }, 80);
+  }
+
+  function clearError() {
+    errEl.textContent = '';
+    errEl.classList.remove('is-on');
+  }
+  function showError(msg) {
+    errEl.textContent = msg;
+    errEl.classList.add('is-on');
   }
 
   function render() {
@@ -312,7 +421,16 @@
     sheet.hidden = false;
     form.reset();
     form.elements.hiveCount.value = '0';
-    requestAnimationFrame(function () { sheet.classList.add('is-open'); });
+    setCoords(null, null);
+    clearError();
+    if (marker && map) {
+      map.removeLayer(marker);
+      marker = null;
+    }
+    requestAnimationFrame(function () {
+      sheet.classList.add('is-open');
+      refreshMap();
+    });
     setTimeout(function () { form.elements.name.focus(); }, 220);
   }
   function closeSheet() {
@@ -327,16 +445,29 @@
   });
   form.addEventListener('submit', function (e) {
     e.preventDefault();
+    clearError();
     var name = String(form.elements.name.value || '').trim();
     var place = String(form.elements.place.value || '').trim();
     var hiveCount = Number(form.elements.hiveCount.value);
-    if (!name || !place) return;
-    var created = D.addApiary({ name: name, place: place, hiveCount: hiveCount });
+    var lat = Number(latInput.value);
+    var lon = Number(lonInput.value);
+    if (!name || !place) {
+      showError('Ad ve konum adı gerekli.');
+      return;
+    }
+    if (!isFinite(lat) || !isFinite(lon)) {
+      showError('Haritaya dokunup konum seçin (enlem/boylam zorunlu).');
+      refreshMap();
+      return;
+    }
+    try {
+      D.addApiary({ name: name, place: place, hiveCount: hiveCount, lat: lat, lon: lon });
+    } catch (err) {
+      showError(err && err.message ? err.message : 'Kayıt başarısız.');
+      return;
+    }
     closeSheet();
     render();
-    if (created && created.id) {
-      /* Keep user on list; detail is one tap away */
-    }
   });
 
   render();
