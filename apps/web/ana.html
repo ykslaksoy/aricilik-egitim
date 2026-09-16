@@ -125,10 +125,12 @@
     outline: 2px solid rgba(212, 160, 23, 0.55);
     outline-offset: 2px;
   }
-  .brand-logo-btn .bee-3d {
+  .brand-logo-btn .bee-3d,
+  .brand-logo-btn .bee-logo-img {
     width: 30px;
     height: 30px;
     display: block;
+    object-fit: contain;
     filter:
       drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85))
       drop-shadow(0 2px 2px rgba(61, 38, 22, 0.35));
@@ -757,7 +759,9 @@
 
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
-      <button type="button" class="brand-logo-btn" id="brandLogoBtn" aria-label="Logo değiştir" title="Dokunarak logo değiştir"></button>
+      <button type="button" class="brand-logo-btn" id="brandLogoBtn" aria-label="Hardal Arıcılık logosu" title="Hardal Arıcılık">
+        <img class="bee-logo-img" src="assets/logos/hardal-italyan-bee.png" alt="" width="30" height="30" decoding="async" aria-hidden="true">
+      </button>
       <span class="brand-name">Hardal Arıcılık</span>
       <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Otomatik konum döngüsünü durdur">Konumu sabitle</button>
     </header>
@@ -899,35 +903,6 @@
     }
     // silence unused (kept for clarity of JS day index)
     void labels;
-  })();
-
-  // Hardal brand: tappable 3D bee logo (cycles + localStorage) — 10 seçenek, varsayılan #1
-  (function brandLogoCycle() {
-    var KEY = 'superari.ana.brandLogo';
-    var btn = document.getElementById('brandLogoBtn');
-    if (!btn) return;
-
-    var LOGOS = window.HARDAL_BEE_LOGOS;
-    if (!LOGOS || !LOGOS.length) return;
-
-    var idx = 0;
-    try {
-      var saved = parseInt(localStorage.getItem(KEY), 10);
-      if (isFinite(saved) && saved >= 0 && saved < LOGOS.length) idx = saved;
-    } catch (e) { /* ignore */ }
-
-    function paint() {
-      btn.innerHTML = LOGOS[idx];
-      btn.setAttribute('data-logo', String(idx));
-      btn.setAttribute('aria-label', 'Logo ' + (idx + 1) + '/' + LOGOS.length + ' — değiştirmek için dokun');
-    }
-
-    paint();
-    btn.addEventListener('click', function () {
-      idx = (idx + 1) % LOGOS.length;
-      try { localStorage.setItem(KEY, String(idx)); } catch (e) { /* ignore */ }
-      paint();
-    });
   })();
 
   // Weather-card title = active arılık (10s cycle). °C/forecast follow lat/lon.
