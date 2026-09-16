@@ -102,39 +102,34 @@
   }
   .brand-logo-btn {
     flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
+    width: auto;
+    height: auto;
     padding: 0;
-    border: 1px solid rgba(184, 134, 11, 0.35);
-    border-radius: 11px;
-    background: linear-gradient(165deg, #fffdf6 0%, #fff4cc 48%, #f0d478 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      0 2px 4px rgba(74, 47, 26, 0.16);
-    cursor: pointer;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: default;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    transform-style: preserve-3d;
-    transition: transform .18s ease, box-shadow .18s ease;
     overflow: visible;
   }
-  .brand-logo-btn:active { transform: scale(0.92) rotateY(10deg); }
   .brand-logo-btn:focus-visible {
-    outline: 2px solid rgba(212, 160, 23, 0.55);
+    outline: 2px solid rgba(212, 160, 23, 0.45);
     outline-offset: 2px;
+    border-radius: 4px;
   }
   .brand-logo-btn .bee-3d,
   .brand-logo-btn .bee-logo-img {
-    width: 30px;
-    height: 30px;
+    width: 52px;
+    height: auto;
+    max-height: 40px;
     display: block;
     object-fit: contain;
-    filter:
-      drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85))
-      drop-shadow(0 2px 2px rgba(61, 38, 22, 0.35));
-    transform: perspective(120px) rotateX(6deg) rotateY(-4deg);
+    filter: drop-shadow(0 1px 2px rgba(61, 38, 22, 0.22));
+    transform: none;
   }
   .brand-logo-btn .bee-emoji {
     font-size: 22px;
@@ -760,7 +755,7 @@
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <button type="button" class="brand-logo-btn" id="brandLogoBtn" aria-label="Hardal Arıcılık logosu" title="Hardal Arıcılık">
-        <img class="bee-logo-img" src="assets/logos/hardal-italyan-bee.png" alt="" width="30" height="30" decoding="async" aria-hidden="true">
+        <img class="bee-logo-img" src="assets/logos/hardal-italyan-bee.png" alt="" width="52" height="39" decoding="async" aria-hidden="true">
       </button>
       <span class="brand-name">Hardal Arıcılık</span>
       <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Otomatik konum döngüsünü durdur">Konumu sabitle</button>
