@@ -1142,8 +1142,8 @@
     var hintVisible = false;
     var tipRotateTimer = null;
     var tipHideTimer = null;
-    var TIP_SHOW_MS = 12000;
-    var TIP_GAP_MS = 48000;
+    var TIP_SHOW_MS = 8000;
+    var TIP_GAP_MS = 90000;
     var tipPool = [
       'Varroa kontrolünü bu hafta unutma.',
       'Su kaynağı dolu mu? Sıcak günde kritik.',
@@ -1233,7 +1233,7 @@
           var tip = nextRotatingTip();
           if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
         }
-      }, 16000);
+      }, 45000);
     }
 
     function updateMuayeneHint(daily) {
@@ -1781,7 +1781,7 @@
         if (!beesEnabled) return;
         beeWing = (beeWing + 1) % BEE_WINGS;
         drawBeeFrame();
-      }, 55);
+      }, 95);
     }
     function stopWingLoop() {
       if (wingTimer) { clearInterval(wingTimer); wingTimer = null; }
@@ -1811,7 +1811,8 @@
         if (v === '0' || v === 'off' || v === 'false') return false;
         if (v === '1' || v === 'on' || v === 'true') return true;
       } catch (e) { /* ignore */ }
-      return true;
+      /* Varsayılan: sessiz — rahatsız etmesin */
+      return false;
     }
     function writeSoundOn(on) {
       try { localStorage.setItem(SOUND_PREF_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
@@ -1830,7 +1831,7 @@
         var a = new Audio('assets/bees/' + key + '-buzz.wav');
         a.loop = true;
         a.preload = 'auto';
-        a.volume = key === 'karniyol' ? 0.72 : (key === 'italyan' ? 0.85 : 0.8);
+        a.volume = key === 'karniyol' ? 0.22 : (key === 'italyan' ? 0.28 : 0.25);
         buzzPlayers[key] = a;
       }
       return buzzPlayers;
@@ -1963,15 +1964,16 @@
     }
 
     function setBeeScale(s) {
-      var v = Math.max(0.18, Math.min(1.45, s));
+      /* Dar aralık: fark edilir ama göze batmaz */
+      var v = Math.max(0.72, Math.min(1.08, s));
       beeRoot.style.setProperty('--bee-scale', v.toFixed(3));
     }
 
-    /* Lower on screen = nearer = larger (fake depth) */
+    /* Lower on screen = nearer = slightly larger */
     function depthScaleFromY(y) {
       var h = screenEl.clientHeight || 600;
       var t = Math.max(0, Math.min(1, y / Math.max(h, 1)));
-      return 0.52 + t * 0.78;
+      return 0.78 + t * 0.22;
     }
 
     function placeAt(pt, scaleOpt) {
@@ -1996,14 +1998,12 @@
       var midScale = depthScaleFromY(mid.y);
       var destScale = opts.scale != null ? opts.scale : depthScaleFromY(dest.y);
       if (opts.approach) {
-        /* approaching camera / target: grow */
-        midScale = Math.max(midScale, fromScale) * 1.12;
-        destScale = Math.max(destScale, midScale) * 1.06;
+        midScale = Math.max(midScale, fromScale) * 1.04;
+        destScale = Math.max(destScale, midScale) * 1.03;
       }
       if (opts.away) {
-        /* flying away / into hive: shrink */
-        midScale = Math.min(midScale, fromScale) * 0.88;
-        destScale = opts.scale != null ? opts.scale : Math.min(destScale, midScale) * 0.72;
+        midScale = Math.min(midScale, fromScale) * 0.96;
+        destScale = opts.scale != null ? opts.scale : Math.min(destScale, midScale) * 0.88;
       }
       faceToward(from, dest);
       placeAt(mid, midScale);
@@ -2151,10 +2151,10 @@
       var name = setBreed(startBreed == null ? beeIdx : startBreed);
 
       var order = shuffle([0,1,2,3,4,5,6,7,8]);
-      var tourStops = order.slice(0, 5);
+      var tourStops = order.slice(0, 3);
       var enterTile = tileParam != null
         ? (parseInt(tileParam, 10) || 0)
-        : order[5];
+        : order[3];
 
       var t = 0;
       later(function () {
@@ -2172,13 +2172,13 @@
         if (!beesEnabled) return;
         var pt = exitPoint();
         beeRoot.style.transition = 'none';
-        placeAt(pt, 0.32);
+        placeAt(pt, 0.76);
         beeRoot.classList.remove('is-flying', 'is-entering');
         void beeRoot.offsetWidth;
         beeRoot.style.transition = '';
         beeRoot.classList.add('is-shown');
         /* emerge: grow toward camera */
-        setBeeScale(depthScaleFromY(pt.y) * 1.05);
+        setBeeScale(depthScaleFromY(pt.y));
         startWingLoop();
         drawBeeFrame();
       }, t);
@@ -2203,7 +2203,7 @@
         if (!beesEnabled) return;
         beeRoot.classList.add('is-flying');
         setBuzz(true);
-        flyTo(hivePoint(enterTile, 'door'), 1300, { flat: true, away: true, scale: 0.38 });
+        flyTo(hivePoint(enterTile, 'door'), 1300, { flat: true, away: true, scale: 0.74 });
       }, t);
       t += 1300;
 
@@ -2214,9 +2214,9 @@
         stopWingLoop();
         setBuzz(false);
         var door = hivePoint(enterTile, 'door');
-        placeAt({ x: door.x, y: door.y - 5 }, 0.2);
+        placeAt({ x: door.x, y: door.y - 5 }, 0.68);
       }, t);
-      t += 1100;
+      t += 1800;
 
       if (!freeze) {
         later(function () {
