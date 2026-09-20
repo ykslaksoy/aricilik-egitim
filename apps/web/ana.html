@@ -766,7 +766,7 @@
       <img src="assets/bees/kafkas.png" alt="" data-breed="Kafkas">
     </div>
 
-    <section class="weather">
+    <section class="weather" id="weatherStrip" style="display:block">
       <div class="weather-top">
         <svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true">
           <circle cx="12" cy="12" r="6" fill="#f7b731"/>
@@ -1377,13 +1377,41 @@
       if (window.SuperAriHava) {
         try { window.SuperAriHava.ensureSeed(); } catch (e) { /* ignore */ }
       }
-      restoreLockIndex();
+      /* Her açılışta konum açık: sabitleme yok, otomatik döngü çalışır */
+      try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* ignore */ }
+      locked = false;
       syncLockBtn();
       syncNavBtns();
       startCycle();
       bootDone = true;
       setInterval(function () { refreshWeather(true); }, WEATHER_REFRESH_MS);
+      tryDeviceLocation();
     });
+
+    function tryDeviceLocation() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          if (!pos || !pos.coords) return;
+          var lat = pos.coords.latitude;
+          var lon = pos.coords.longitude;
+          var best = 0;
+          var bestD = Infinity;
+          for (var i = 0; i < apiaries.length; i++) {
+            var a = apiaries[i];
+            var dlat = (a.lat - lat);
+            var dlon = (a.lon - lon);
+            var d = dlat * dlat + dlon * dlon;
+            if (d < bestD) { bestD = d; best = i; }
+          }
+          idx = best;
+          showApiary(idx, false);
+          refreshWeather(true);
+        },
+        function () { /* izin yok / hata — mevcut arılık döngüsü devam */ },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+      );
+    }
   })();
 
   /* Yakma Tartı scale paths from 17d44cf ana.js ICONS.scale (burn-ring added in hiveHTML) */
@@ -1523,11 +1551,7 @@
   var BEE_PREF_KEY = 'superari.ana.bees';
 
   function readBeesOn() {
-    try {
-      var v = localStorage.getItem(BEE_PREF_KEY);
-      if (v === '0' || v === 'off' || v === 'false') return false;
-      if (v === '1' || v === 'on' || v === 'true') return true;
-    } catch (e) { /* ignore */ }
+    /* Her açılışta arılar açık (önceki kapalı tercihi yok sayılır) */
     return true;
   }
   function writeBeesOn(on) {
