@@ -1788,8 +1788,9 @@
       drawBeeFrame();
     }
 
-    function setBeeDirFromAngle(deg) {
-      deg = ((deg % 360) + 360) % 360;
+    function setBeeDirFromAngle(headingCwFromUp) {
+      /* Sprite sheet: col 0 = up, columns increase clockwise (baked -d×22.5°) */
+      var deg = ((headingCwFromUp % 360) + 360) % 360;
       beeDir = Math.round(deg / (360 / BEE_DIRS)) % BEE_DIRS;
       drawBeeFrame();
     }
@@ -1942,9 +1943,22 @@
       var dx = to.x - from.x;
       var dy = to.y - from.y;
       if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) return;
-      /* 0° = up (dir 0); sheet columns cover 16 headings */
-      var deg = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-      setBeeDirFromAngle(deg);
+      /*
+       * Screen y grows downward. atan2(dx, -dy): 0° = up, 90° = right,
+       * 180° = down, 270° = left — matches sheet columns (CW from up).
+       * Side-view art: avoid upside-down frames (lower half) by mirroring.
+       */
+      var heading = Math.atan2(dx, -dy) * 180 / Math.PI;
+      heading = ((heading % 360) + 360) % 360;
+      var flipX = false;
+      if (heading > 95 && heading < 265) {
+        heading = (heading + 180) % 360;
+        flipX = true;
+      }
+      if (beeCanvas) {
+        beeCanvas.style.transform = flipX ? 'scaleX(-1)' : '';
+      }
+      setBeeDirFromAngle(heading);
     }
 
     function placeAt(pt) {
