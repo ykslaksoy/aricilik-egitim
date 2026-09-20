@@ -1945,22 +1945,17 @@
       var dx = to.x - from.x;
       var dy = to.y - from.y;
       if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) return;
-      /*
-       * Screen y grows downward. atan2(dx, -dy): 0° = up, 90° = right,
-       * 180° = down, 270° = left — matches sheet columns (CW from up).
-       * Side-view art: avoid upside-down frames (lower half) by mirroring.
-       */
+      /* 0° = up, 90° = right, 180° = down, 270° = left (screen, y↓) */
       var heading = Math.atan2(dx, -dy) * 180 / Math.PI;
       heading = ((heading % 360) + 360) % 360;
-      var flipX = false;
-      if (heading > 95 && heading < 265) {
-        heading = (heading + 180) % 360;
-        flipX = true;
-      }
-      if (beeCanvas) {
-        beeCanvas.style.transform = flipX ? 'scaleX(-1)' : '';
-      }
-      setBeeDirFromAngle(heading);
+      /*
+       * Sheet was baked with PIL rotate(-d×22.5°) → CW; col d=4 faces LEFT.
+       * Invert index so nose points along travel (d=4 → right).
+       */
+      var idx = Math.round(heading / (360 / BEE_DIRS)) % BEE_DIRS;
+      beeDir = (BEE_DIRS - idx) % BEE_DIRS;
+      if (beeCanvas) beeCanvas.style.transform = '';
+      drawBeeFrame();
     }
 
     function setBeeScale(s) {
@@ -2005,7 +2000,7 @@
         midScale = Math.min(midScale, fromScale) * 0.96;
         destScale = opts.scale != null ? opts.scale : Math.min(destScale, midScale) * 0.88;
       }
-      faceToward(from, dest);
+      faceToward(from, mid);
       placeAt(mid, midScale);
       later(function () {
         faceToward(mid, dest);
