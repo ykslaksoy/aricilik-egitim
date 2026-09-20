@@ -733,8 +733,7 @@
     position: absolute; z-index: 10;
     left: 0; top: 0;
     width: 48px; height: 48px; pointer-events: none;
-    --bee-rot: 0deg;
-    transform: translate(-50%, -50%) scale(.55) rotate(var(--bee-rot));
+    transform: translate(-50%, -50%) scale(.55);
     opacity: 0;
     transition:
       left 1.45s cubic-bezier(.45,.05,.25,1),
@@ -750,13 +749,13 @@
   }
   .mascot-bee.is-shown {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1) rotate(var(--bee-rot));
+    transform: translate(-50%, -50%) scale(1);
   }
   .mascot-bee.is-flying {
-    transform: translate(-50%, -50%) scale(.85) rotate(var(--bee-rot));
+    transform: translate(-50%, -50%) scale(.85);
   }
   .mascot-bee.is-entering {
-    transform: translate(-50%, -50%) scale(.35) rotate(var(--bee-rot));
+    transform: translate(-50%, -50%) scale(.35);
     opacity: 0;
     transition:
       left 1.1s cubic-bezier(.4,.05,.2,1),
@@ -764,29 +763,19 @@
       transform .9s ease,
       opacity .7s ease .25s;
   }
-  .mascot-bee img {
+  .mascot-bee canvas {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: contain; opacity: 0;
-    transition: opacity .35s ease;
+    object-fit: contain;
     filter: drop-shadow(0 2px 3px rgba(0,0,0,.18));
-    /* Hover: small vertical bob (not side sway) */
     animation: bee-hover 0.55s ease-in-out infinite;
   }
-  .mascot-bee img.is-on { opacity: 1; }
-  /* Flight: rapid wing buzz (scaleY + tiny bob) */
-  .mascot-bee.is-flying img.is-on {
-    animation: bee-buzz 0.08s linear infinite;
+  .mascot-bee.is-flying canvas {
+    animation: bee-hover 0.28s ease-in-out infinite;
   }
-  .mascot-bee.is-entering img.is-on {
-    animation: bee-buzz 0.07s linear infinite;
-  }
+  .mascot-bee img.bee-sheet { display: none !important; }
   @keyframes bee-hover {
     0%, 100% { transform: translate(0, 0); }
     50% { transform: translate(0, -2.5px); }
-  }
-  @keyframes bee-buzz {
-    0%, 100% { transform: translate(0, 0) scaleY(1); }
-    50% { transform: translate(0, -1.2px) scaleY(0.9); }
   }
 </style>
 </head>
@@ -807,9 +796,11 @@
       <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Otomatik konum döngüsünü durdur">Konumu sabitle</button>
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
-      <img src="assets/bees/italyan.png" alt="" data-breed="İtalyan">
-      <img src="assets/bees/karniyol.png" alt="" data-breed="Karniyol">
-      <img src="assets/bees/kafkas.png" alt="" data-breed="Kafkas">
+      <canvas id="mascotBeeCanvas" width="96" height="96" aria-hidden="true"></canvas>
+      <!-- fallback stills (sprite sheets: 16 dir × 3 wing) -->
+      <img class="bee-sheet" data-breed-key="italyan" data-breed="İtalyan" src="assets/bees/italyan-sheet.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-breed="Karniyol" src="assets/bees/karniyol-sheet.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-breed="Kafkas" src="assets/bees/kafkas-sheet.png" alt="" hidden>
     </div>
 
     <section class="weather" id="weatherStrip" style="display:block">
@@ -1618,8 +1609,54 @@
   }
 
   if (beeRoot && podium && screenEl && gridEl) {
-    var beeImgs = beeRoot.querySelectorAll('img');
+    var beeCanvas = document.getElementById('mascotBeeCanvas');
+    var beeCtx = beeCanvas ? beeCanvas.getContext('2d') : null;
+    var beeSheets = {
+      italyan: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"]'),
+      karniyol: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"]'),
+      kafkas: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"]')
+    };
+    var BEE_DIRS = 16;
+    var BEE_WINGS = 3;
+    var BEE_CELL = 96;
     var beeIdx = 0;
+    var beeDir = 0;
+    var beeWing = 0;
+    var wingTimer = null;
+    var breedKeys = ['italyan', 'karniyol', 'kafkas'];
+    var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas'];
+
+    function drawBeeFrame() {
+      if (!beeCtx || !beeCanvas) return;
+      var key = breedKeys[beeIdx] || 'italyan';
+      var sheet = beeSheets[key];
+      beeCtx.clearRect(0, 0, beeCanvas.width, beeCanvas.height);
+      if (!sheet || !sheet.complete || !sheet.naturalWidth) return;
+      var sx = beeDir * BEE_CELL;
+      var sy = beeWing * BEE_CELL;
+      beeCtx.drawImage(sheet, sx, sy, BEE_CELL, BEE_CELL, 0, 0, beeCanvas.width, beeCanvas.height);
+    }
+
+    function startWingLoop() {
+      stopWingLoop();
+      wingTimer = setInterval(function () {
+        if (!beesEnabled) return;
+        beeWing = (beeWing + 1) % BEE_WINGS;
+        drawBeeFrame();
+      }, 55);
+    }
+    function stopWingLoop() {
+      if (wingTimer) { clearInterval(wingTimer); wingTimer = null; }
+      beeWing = 1;
+      drawBeeFrame();
+    }
+
+    function setBeeDirFromAngle(deg) {
+      deg = ((deg % 360) + 360) % 360;
+      beeDir = Math.round(deg / (360 / BEE_DIRS)) % BEE_DIRS;
+      drawBeeFrame();
+    }
+
     var timers = [];
     var closedHintTimer = null;
     var beesEnabled = readBeesOn();
@@ -1732,10 +1769,10 @@
     }
 
     function setBreed(i) {
-      beeIdx = ((i % beeImgs.length) + beeImgs.length) % beeImgs.length;
-      beeImgs.forEach(function (img, j) { img.classList.toggle('is-on', j === beeIdx); });
+      beeIdx = ((i % breedKeys.length) + breedKeys.length) % breedKeys.length;
+      drawBeeFrame();
       if (buzzWanted && soundEnabled) setBuzz(true);
-      return beeImgs[beeIdx].getAttribute('data-breed') || '';
+      return breedLabels[beeIdx] || '';
     }
 
     function exitPoint() {
@@ -1768,9 +1805,9 @@
       var dx = to.x - from.x;
       var dy = to.y - from.y;
       if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) return;
-      /* PNG head is toward top of image → +90 so nose points along travel */
+      /* 0° = up (dir 0); sheet columns cover 16 headings */
       var deg = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-      beeRoot.style.setProperty('--bee-rot', deg.toFixed(1) + 'deg');
+      setBeeDirFromAngle(deg);
     }
 
     function placeAt(pt) {
@@ -1845,6 +1882,7 @@
 
     function stopBees() {
       clearTimers();
+      stopWingLoop();
       setBuzz(false);
       resetVisual();
       beeRoot.classList.add('is-off');
@@ -1936,6 +1974,8 @@
         void beeRoot.offsetWidth;
         beeRoot.style.transition = '';
         beeRoot.classList.add('is-shown');
+        startWingLoop();
+        drawBeeFrame();
       }, t);
       t += 1100;
 
@@ -1946,6 +1986,7 @@
           if (!beesEnabled) return;
           beeRoot.classList.add('is-flying');
           beeRoot.classList.remove('is-entering');
+          startWingLoop();
           setBuzz(true);
           flyTo(hivePoint(tileI, 'hover'), hop);
         }, t);
@@ -1965,6 +2006,7 @@
         if (!beesEnabled) return;
         beeRoot.classList.remove('is-flying');
         beeRoot.classList.add('is-entering');
+        stopWingLoop();
         setBuzz(false);
         // Nudge into the entrance opening while shrinking
         var door = hivePoint(enterTile, 'door');
@@ -1975,7 +2017,7 @@
       if (!freeze) {
         later(function () {
           if (!beesEnabled) return;
-          runCycle((beeIdx + 1) % beeImgs.length);
+          runCycle((beeIdx + 1) % breedKeys.length);
         }, t);
       }
     }
@@ -2020,9 +2062,16 @@
     syncSoundUi();
 
     function boot() {
+      drawBeeFrame();
       if (beesEnabled) runCycle(beeIdx);
       else stopBees();
     }
+    Object.keys(beeSheets).forEach(function (k) {
+      var im = beeSheets[k];
+      if (!im) return;
+      if (im.complete) drawBeeFrame();
+      else im.addEventListener('load', function () { drawBeeFrame(); });
+    });
     requestAnimationFrame(function () { requestAnimationFrame(boot); });
     later(boot, 100);
 
