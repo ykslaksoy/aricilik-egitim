@@ -123,12 +123,17 @@
   }
   .brand-logo-btn .bee-3d,
   .brand-logo-btn .bee-logo-img {
-    width: 52px;
+    width: 40px;
     height: auto;
-    max-height: 40px;
+    max-height: 30px;
     display: block;
     object-fit: contain;
-    filter: drop-shadow(0 1px 2px rgba(61, 38, 22, 0.22));
+    /* Daha çizim: kenar vurgusu + kontrast */
+    filter:
+      contrast(1.12) saturate(1.08)
+      drop-shadow(0 0 0.4px #3d2616)
+      drop-shadow(0 0 0.4px #3d2616)
+      drop-shadow(0 1px 1.5px rgba(61, 38, 22, 0.28));
     transform: none;
   }
   .brand-logo-btn .bee-emoji {
@@ -370,6 +375,49 @@
     display: block;
     flex: 0 0 auto;
   }
+  .bee-sound-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 4px;
+    padding: 4px 7px;
+    border: 1px solid #e0d6c8;
+    border-radius: 8px;
+    background: #faf7f2;
+    color: var(--brown-mid);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 11;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bee-sound-toggle:hover { background: #f3ebe0; }
+  .bee-sound-toggle:focus-visible {
+    outline: 2px solid var(--hardal);
+    outline-offset: 2px;
+  }
+  .bee-sound-toggle[aria-pressed="false"] {
+    color: var(--muted);
+    background: #f3f4f6;
+    border-color: #e4e6ea;
+  }
+  .bee-sound-toggle-ico {
+    width: 13px;
+    height: 13px;
+    display: block;
+    flex: 0 0 auto;
+  }
+  .bee-controls {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .bee-controls .bee-toggle { margin-left: 0; }
   .forecast { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
   .day { display: flex; flex-direction: column; align-items: center; gap: 1px; }
   .day-name { font-size: 10px; font-weight: 600; color: var(--muted); }
@@ -732,12 +780,12 @@
     animation: bee-buzz 0.07s linear infinite;
   }
   @keyframes bee-hover {
-    0%, 100% { transform: translate(0, 0) rotate(-2deg); }
-    50% { transform: translate(0, -3px) rotate(2deg); }
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(0, -2.5px); }
   }
   @keyframes bee-buzz {
-    0%, 100% { transform: translate(0, 0) scaleY(1) rotate(-2deg); }
-    50% { transform: translate(0, -1.5px) scaleY(0.88) rotate(2deg); }
+    0%, 100% { transform: translate(0, 0) scaleY(1); }
+    50% { transform: translate(0, -1.2px) scaleY(0.9); }
   }
 </style>
 </head>
@@ -752,7 +800,7 @@
   <div class="screen">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <button type="button" class="brand-logo-btn" id="brandLogoBtn" aria-label="Hardal Arıcılık logosu" title="Hardal Arıcılık">
-        <img class="bee-logo-img" src="assets/logos/hardal-italyan-bee.png" alt="" width="52" height="39" decoding="async" aria-hidden="true">
+        <img class="bee-logo-img" src="assets/logos/hardal-italyan-bee.png" alt="" width="40" height="30" decoding="async" aria-hidden="true">
       </button>
       <span class="brand-name">Hardal Arıcılık</span>
       <button type="button" class="brand-lock-btn" id="arilikLockBtn" aria-pressed="false" aria-label="Konumu sabitle" title="Otomatik konum döngüsünü durdur">Konumu sabitle</button>
@@ -785,6 +833,7 @@
             <span class="podium-name" id="podiumName"></span>
           </div>
         </div>
+        <div class="bee-controls">
         <button type="button" class="bee-toggle" id="beeToggle" aria-pressed="true" aria-label="Arıları kapat" title="Arıları aç/kapat">
           <svg class="bee-toggle-ico" viewBox="0 0 24 24" aria-hidden="true">
             <ellipse cx="12" cy="14" rx="3.2" ry="4.2" fill="currentColor"/>
@@ -793,6 +842,14 @@
           </svg>
           <span class="bee-toggle-text">Arılar</span>
         </button>
+        <button type="button" class="bee-sound-toggle" id="beeSoundToggle" aria-pressed="true" aria-label="Arı sesini kapat" title="Arı sesi açık/kapalı">
+          <svg class="bee-sound-toggle-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path class="sound-waves" d="M15.5 8.5a4 4 0 0 1 0 7M18.5 5.5a7.5 7.5 0 0 1 0 13"/>
+          </svg>
+          <span class="bee-sound-text">Ses</span>
+        </button>
+        </div>
         <div class="weather-temp" id="weatherTemp" role="link" tabindex="0" title="Arılık hava geçmişi" aria-label="Arılık hava geçmişini aç">—°</div>
       </div>
       <div class="forecast" id="forecast">
@@ -1565,8 +1622,24 @@
     var timers = [];
     var closedHintTimer = null;
     var beesEnabled = readBeesOn();
+    var SOUND_PREF_KEY = 'superari.ana.beeSound';
+    var beeSoundToggle = document.getElementById('beeSoundToggle');
     var buzzAudio = null;
     var buzzNodes = null;
+    var buzzWanted = false;
+
+    function readSoundOn() {
+      try {
+        var v = localStorage.getItem(SOUND_PREF_KEY);
+        if (v === '0' || v === 'off' || v === 'false') return false;
+        if (v === '1' || v === 'on' || v === 'true') return true;
+      } catch (e) { /* ignore */ }
+      return true;
+    }
+    function writeSoundOn(on) {
+      try { localStorage.setItem(SOUND_PREF_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
+    }
+    var soundEnabled = readSoundOn();
 
     function ensureBuzz() {
       if (buzzAudio) return buzzAudio;
@@ -1574,46 +1647,109 @@
         var AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return null;
         buzzAudio = new AC();
-        var osc = buzzAudio.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.value = 220;
-        var osc2 = buzzAudio.createOscillator();
-        osc2.type = 'triangle';
-        osc2.frequency.value = 440;
+        var sr = buzzAudio.sampleRate;
+        var len = Math.floor(sr * 0.35);
+        var buf = buzzAudio.createBuffer(1, len, sr);
+        var data = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) {
+          var t = i / sr;
+          var env = 0.55 + 0.45 * Math.sin(2 * Math.PI * 85 * t);
+          data[i] = (Math.random() * 2 - 1) * env;
+        }
+        var src = buzzAudio.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
         var filter = buzzAudio.createBiquadFilter();
         filter.type = 'bandpass';
-        filter.frequency.value = 900;
-        filter.Q.value = 4;
+        filter.frequency.value = 780;
+        filter.Q.value = 2.2;
+        var lfo = buzzAudio.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 32;
+        var lfoGain = buzzAudio.createGain();
+        lfoGain.gain.value = 180;
+        var filterMod = buzzAudio.createBiquadFilter();
+        filterMod.type = 'bandpass';
+        filterMod.frequency.value = 1200;
+        filterMod.Q.value = 1.4;
         var gain = buzzAudio.createGain();
         gain.gain.value = 0;
-        osc.connect(filter);
-        osc2.connect(filter);
-        filter.connect(gain);
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+        src.connect(filter);
+        filter.connect(filterMod);
+        filterMod.connect(gain);
         gain.connect(buzzAudio.destination);
-        osc.start();
-        osc2.start();
-        buzzNodes = { osc: osc, osc2: osc2, filter: filter, gain: gain };
+        src.start();
+        lfo.start();
+        buzzNodes = { src: src, filter: filter, gain: gain, lfo: lfo };
         return buzzAudio;
       } catch (e) {
+        buzzAudio = null;
+        buzzNodes = null;
         return null;
       }
     }
 
     function setBuzz(on) {
+      buzzWanted = !!on;
+      if (!soundEnabled || !on) {
+        if (buzzNodes && buzzAudio) {
+          try {
+            var g0 = buzzNodes.gain.gain;
+            var n0 = buzzAudio.currentTime;
+            g0.cancelScheduledValues(n0);
+            g0.setValueAtTime(g0.value, n0);
+            g0.linearRampToValueAtTime(0, n0 + 0.08);
+          } catch (e) { /* ignore */ }
+        }
+        return;
+      }
       var ctx = ensureBuzz();
       if (!ctx || !buzzNodes) return;
-      if (ctx.state === 'suspended') {
-        try { ctx.resume(); } catch (e) { /* need gesture */ }
-      }
-      var g = buzzNodes.gain.gain;
-      var now = ctx.currentTime;
-      g.cancelScheduledValues(now);
-      if (on) {
-        g.setValueAtTime(g.value, now);
-        g.linearRampToValueAtTime(0.035, now + 0.08);
+      var resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+      Promise.resolve(resume).then(function () {
+        if (!buzzWanted || !soundEnabled || !buzzNodes) return;
+        var g = buzzNodes.gain.gain;
+        var now = ctx.currentTime;
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(Math.max(g.value, 0.001), now);
+        g.linearRampToValueAtTime(0.22, now + 0.06);
+      }).catch(function () { /* ignore */ });
+    }
+
+    function syncSoundUi() {
+      if (!beeSoundToggle) return;
+      beeSoundToggle.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
+      beeSoundToggle.setAttribute(
+        'aria-label',
+        soundEnabled ? 'Arı sesini kapat' : 'Arı sesini aç'
+      );
+      beeSoundToggle.setAttribute(
+        'title',
+        soundEnabled ? 'Ses açık — dokununca kapat' : 'Ses kapalı — dokununca aç'
+      );
+      var st = beeSoundToggle.querySelector('.bee-sound-text');
+      if (st) st.textContent = soundEnabled ? 'Ses' : 'Sessiz';
+    }
+
+    function setSoundEnabled(on) {
+      soundEnabled = !!on;
+      writeSoundOn(soundEnabled);
+      syncSoundUi();
+      if (soundEnabled) {
+        ensureBuzz();
+        if (buzzAudio && buzzAudio.state === 'suspended') {
+          try { buzzAudio.resume(); } catch (e) { /* ignore */ }
+        }
+        if (buzzWanted) setBuzz(true);
+        else {
+          /* kısa test buzz — ayar açılınca duyulsun */
+          setBuzz(true);
+          later(function () { if (!buzzWanted) setBuzz(false); }, 380);
+        }
       } else {
-        g.setValueAtTime(g.value, now);
-        g.linearRampToValueAtTime(0, now + 0.12);
+        setBuzz(false);
       }
     }
     var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
@@ -1669,18 +1805,13 @@
       beeRoot.style.top = pt.y + 'px';
     }
 
-    /** Bee-like hop: short uplift + slight zig, not big side sway */
+    /** Straight flight with small vertical lift (no side zig) */
     function flyTo(dest, durationMs, opts) {
       opts = opts || {};
       var from = { x: beePos.x, y: beePos.y };
-      var bob = opts.flat
-        ? (6 + Math.random() * 5)
-        : (10 + Math.random() * 8);
-      var zig = opts.flat
-        ? ((Math.random() * 6) - 3)
-        : ((Math.random() * 10) - 5);
+      var bob = opts.flat ? 4 : 7;
       var mid = {
-        x: (from.x + dest.x) / 2 + zig,
+        x: (from.x + dest.x) / 2,
         y: Math.min(from.y, dest.y) - bob
       };
       placeAt(mid);
@@ -1883,9 +2014,7 @@
       if (ctx && ctx.state === 'suspended') {
         try { ctx.resume(); } catch (e) { /* ignore */ }
       }
-      document.removeEventListener('pointerdown', unlockAudioOnce, true);
     }
-    document.addEventListener('pointerdown', unlockAudioOnce, true);
 
     if (beeToggle) {
       beeToggle.addEventListener('click', function () {
@@ -1893,7 +2022,14 @@
         setBeesEnabled(!beesEnabled);
       });
     }
+    if (beeSoundToggle) {
+      beeSoundToggle.addEventListener('click', function () {
+        unlockAudioOnce();
+        setSoundEnabled(!soundEnabled);
+      });
+    }
     syncToggleUi();
+    syncSoundUi();
 
     function boot() {
       if (beesEnabled) runCycle(beeIdx);
