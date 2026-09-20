@@ -853,10 +853,13 @@
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <canvas id="mascotBeeCanvas" width="96" height="96" aria-hidden="true"></canvas>
-      <!-- Breed stills face LEFT; CSS --bee-rot points head along travel -->
-      <img class="bee-sheet" data-breed-key="italyan" data-breed="İtalyan" src="assets/bees/italyan.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="karniyol" data-breed="Karniyol" src="assets/bees/karniyol.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="kafkas" data-breed="Kafkas" src="assets/bees/kafkas.png" alt="" hidden>
+      <!-- Side stills face LEFT; front stills face camera -->
+      <img class="bee-sheet" data-breed-key="italyan" data-view="side" data-breed="İtalyan" src="assets/bees/italyan.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="side" data-breed="Karniyol" src="assets/bees/karniyol.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="side" data-breed="Kafkas" src="assets/bees/kafkas.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="italyan" data-view="front" data-breed="İtalyan" src="assets/bees/italyan-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="front" data-breed="Karniyol" src="assets/bees/karniyol-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="front" data-breed="Kafkas" src="assets/bees/kafkas-front.png" alt="" hidden>
     </div>
 
     <section class="weather" id="weatherStrip" style="display:block">
@@ -1751,22 +1754,33 @@
         var beeCanvas = document.getElementById('mascotBeeCanvas');
     var beeCtx = beeCanvas ? beeCanvas.getContext('2d') : null;
     var beeSheets = {
-      italyan: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"]'),
-      karniyol: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"]'),
-      kafkas: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"]')
+      italyan: {
+        side: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"][data-view="side"]'),
+        front: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"][data-view="front"]')
+      },
+      karniyol: {
+        side: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"][data-view="side"]'),
+        front: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"][data-view="front"]')
+      },
+      kafkas: {
+        side: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"][data-view="side"]'),
+        front: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"][data-view="front"]')
+      }
     };
     var beeIdx = 0;
+    var beeView = 'side'; /* side | front */
     var wingTimer = null;
     var wingPulse = 0;
     var breedKeys = ['italyan', 'karniyol', 'kafkas'];
     var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas'];
-    /* Source PNG faces LEFT (= 270° when 0°=up, CW). */
+    /* Side PNG faces LEFT (= 270° when 0°=up, CW). Front faces camera. */
     var ART_FACE_DEG = 270;
 
     function drawBeeFrame() {
       if (!beeCtx || !beeCanvas) return;
       var key = breedKeys[beeIdx] || 'italyan';
-      var sheet = beeSheets[key];
+      var pack = beeSheets[key] || {};
+      var sheet = (beeView === 'front' && pack.front) ? pack.front : pack.side;
       beeCtx.clearRect(0, 0, beeCanvas.width, beeCanvas.height);
       if (!sheet || !sheet.complete || !sheet.naturalWidth) return;
       var pulse = 1 + (wingPulse % 3 === 0 ? 0.04 : (wingPulse % 3 === 1 ? 0 : -0.03));
@@ -1944,9 +1958,18 @@
       /* Travel heading: 0°=up, 90°=right, 180°=down, 270°=left */
       var heading = Math.atan2(dx, -dy) * 180 / Math.PI;
       heading = ((heading % 360) + 360) % 360;
-      /* Rotate art so LEFT-facing nose aligns with travel */
-      var rot = heading - ART_FACE_DEG;
-      beeRoot.style.setProperty('--bee-rot', rot.toFixed(1) + 'deg');
+      /*
+       * Flying toward bottom of screen ≈ toward viewer → front view.
+       * Otherwise side view + rotate so left-facing art tracks travel.
+       */
+      var towardCamera = (heading > 120 && heading < 240);
+      beeView = towardCamera ? 'front' : 'side';
+      if (beeView === 'front') {
+        beeRoot.style.setProperty('--bee-rot', '0deg');
+      } else {
+        var rot = heading - ART_FACE_DEG;
+        beeRoot.style.setProperty('--bee-rot', rot.toFixed(1) + 'deg');
+      }
       if (beeCanvas) beeCanvas.style.transform = '';
       drawBeeFrame();
     }
@@ -2259,10 +2282,14 @@
       else stopBees();
     }
     Object.keys(beeSheets).forEach(function (k) {
-      var im = beeSheets[k];
-      if (!im) return;
-      if (im.complete) drawBeeFrame();
-      else im.addEventListener('load', function () { drawBeeFrame(); });
+      var pack = beeSheets[k];
+      if (!pack) return;
+      ['side', 'front'].forEach(function (v) {
+        var im = pack[v];
+        if (!im) return;
+        if (im.complete) drawBeeFrame();
+        else im.addEventListener('load', function () { drawBeeFrame(); });
+      });
     });
     requestAnimationFrame(function () { requestAnimationFrame(boot); });
     later(boot, 100);
