@@ -733,12 +733,13 @@
     position: absolute; z-index: 10;
     left: 0; top: 0;
     width: 48px; height: 48px; pointer-events: none;
-    transform: translate(-50%, -50%) scale(.55);
+    --bee-rot: 0deg;
+    transform: translate(-50%, -50%) scale(.55) rotate(var(--bee-rot));
     opacity: 0;
     transition:
       left 1.45s cubic-bezier(.45,.05,.25,1),
       top 1.45s cubic-bezier(.35,.8,.25,1),
-      transform .55s cubic-bezier(.34,1.4,.64,1),
+      transform .4s ease,
       opacity .4s ease;
     will-change: left, top, transform, opacity;
   }
@@ -749,13 +750,13 @@
   }
   .mascot-bee.is-shown {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1) rotate(var(--bee-rot));
   }
   .mascot-bee.is-flying {
-    transform: translate(-50%, -50%) scale(.85);
+    transform: translate(-50%, -50%) scale(.85) rotate(var(--bee-rot));
   }
   .mascot-bee.is-entering {
-    transform: translate(-50%, -50%) scale(.35);
+    transform: translate(-50%, -50%) scale(.35) rotate(var(--bee-rot));
     opacity: 0;
     transition:
       left 1.1s cubic-bezier(.4,.05,.2,1),
@@ -1624,9 +1625,9 @@
     var beesEnabled = readBeesOn();
     var SOUND_PREF_KEY = 'superari.ana.beeSound';
     var beeSoundToggle = document.getElementById('beeSoundToggle');
-    var buzzAudio = null;
-    var buzzNodes = null;
     var buzzWanted = false;
+    var buzzPlayers = null;
+    var buzzKeys = ['italyan', 'karniyol', 'kafkas'];
 
     function readSoundOn() {
       try {
@@ -1641,81 +1642,49 @@
     }
     var soundEnabled = readSoundOn();
 
-    function ensureBuzz() {
-      if (buzzAudio) return buzzAudio;
-      try {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        buzzAudio = new AC();
-        var sr = buzzAudio.sampleRate;
-        var len = Math.floor(sr * 0.35);
-        var buf = buzzAudio.createBuffer(1, len, sr);
-        var data = buf.getChannelData(0);
-        for (var i = 0; i < len; i++) {
-          var t = i / sr;
-          var env = 0.55 + 0.45 * Math.sin(2 * Math.PI * 85 * t);
-          data[i] = (Math.random() * 2 - 1) * env;
-        }
-        var src = buzzAudio.createBufferSource();
-        src.buffer = buf;
-        src.loop = true;
-        var filter = buzzAudio.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 780;
-        filter.Q.value = 2.2;
-        var lfo = buzzAudio.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.value = 32;
-        var lfoGain = buzzAudio.createGain();
-        lfoGain.gain.value = 180;
-        var filterMod = buzzAudio.createBiquadFilter();
-        filterMod.type = 'bandpass';
-        filterMod.frequency.value = 1200;
-        filterMod.Q.value = 1.4;
-        var gain = buzzAudio.createGain();
-        gain.gain.value = 0;
-        lfo.connect(lfoGain);
-        lfoGain.connect(filter.frequency);
-        src.connect(filter);
-        filter.connect(filterMod);
-        filterMod.connect(gain);
-        gain.connect(buzzAudio.destination);
-        src.start();
-        lfo.start();
-        buzzNodes = { src: src, filter: filter, gain: gain, lfo: lfo };
-        return buzzAudio;
-      } catch (e) {
-        buzzAudio = null;
-        buzzNodes = null;
-        return null;
+    function breedKeyFromIdx(i) {
+      return buzzKeys[((i % buzzKeys.length) + buzzKeys.length) % buzzKeys.length];
+    }
+
+    function ensureBuzzPlayers() {
+      if (buzzPlayers) return buzzPlayers;
+      buzzPlayers = {};
+      for (var k = 0; k < buzzKeys.length; k++) {
+        var key = buzzKeys[k];
+        var a = new Audio('assets/bees/' + key + '-buzz.wav');
+        a.loop = true;
+        a.preload = 'auto';
+        a.volume = key === 'karniyol' ? 0.72 : (key === 'italyan' ? 0.85 : 0.8);
+        buzzPlayers[key] = a;
       }
+      return buzzPlayers;
+    }
+
+    function stopAllBuzz() {
+      if (!buzzPlayers) return;
+      buzzKeys.forEach(function (key) {
+        var a = buzzPlayers[key];
+        if (!a) return;
+        try {
+          a.pause();
+          a.currentTime = 0;
+        } catch (e) { /* ignore */ }
+      });
     }
 
     function setBuzz(on) {
       buzzWanted = !!on;
+      ensureBuzzPlayers();
       if (!soundEnabled || !on) {
-        if (buzzNodes && buzzAudio) {
-          try {
-            var g0 = buzzNodes.gain.gain;
-            var n0 = buzzAudio.currentTime;
-            g0.cancelScheduledValues(n0);
-            g0.setValueAtTime(g0.value, n0);
-            g0.linearRampToValueAtTime(0, n0 + 0.08);
-          } catch (e) { /* ignore */ }
-        }
+        stopAllBuzz();
         return;
       }
-      var ctx = ensureBuzz();
-      if (!ctx || !buzzNodes) return;
-      var resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
-      Promise.resolve(resume).then(function () {
-        if (!buzzWanted || !soundEnabled || !buzzNodes) return;
-        var g = buzzNodes.gain.gain;
-        var now = ctx.currentTime;
-        g.cancelScheduledValues(now);
-        g.setValueAtTime(Math.max(g.value, 0.001), now);
-        g.linearRampToValueAtTime(0.22, now + 0.06);
-      }).catch(function () { /* ignore */ });
+      var key = breedKeyFromIdx(beeIdx);
+      stopAllBuzz();
+      var a = buzzPlayers[key];
+      if (!a) return;
+      var play = a.play();
+      if (play && play.catch) play.catch(function () { /* gesture needed */ });
     }
 
     function syncSoundUi() {
@@ -1737,16 +1706,12 @@
       soundEnabled = !!on;
       writeSoundOn(soundEnabled);
       syncSoundUi();
+      ensureBuzzPlayers();
       if (soundEnabled) {
-        ensureBuzz();
-        if (buzzAudio && buzzAudio.state === 'suspended') {
-          try { buzzAudio.resume(); } catch (e) { /* ignore */ }
-        }
         if (buzzWanted) setBuzz(true);
         else {
-          /* kısa test buzz — ayar açılınca duyulsun */
           setBuzz(true);
-          later(function () { if (!buzzWanted) setBuzz(false); }, 380);
+          later(function () { if (!buzzWanted) setBuzz(false); }, 500);
         }
       } else {
         setBuzz(false);
@@ -1769,6 +1734,7 @@
     function setBreed(i) {
       beeIdx = ((i % beeImgs.length) + beeImgs.length) % beeImgs.length;
       beeImgs.forEach(function (img, j) { img.classList.toggle('is-on', j === beeIdx); });
+      if (buzzWanted && soundEnabled) setBuzz(true);
       return beeImgs[beeIdx].getAttribute('data-breed') || '';
     }
 
@@ -1798,6 +1764,15 @@
 
     var beePos = { x: 0, y: 0 };
 
+    function faceToward(from, to) {
+      var dx = to.x - from.x;
+      var dy = to.y - from.y;
+      if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) return;
+      /* PNG head is toward top of image → +90 so nose points along travel */
+      var deg = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+      beeRoot.style.setProperty('--bee-rot', deg.toFixed(1) + 'deg');
+    }
+
     function placeAt(pt) {
       beePos.x = pt.x;
       beePos.y = pt.y;
@@ -1805,7 +1780,7 @@
       beeRoot.style.top = pt.y + 'px';
     }
 
-    /** Straight flight with small vertical lift (no side zig) */
+    /** Straight flight; bee always faces destination */
     function flyTo(dest, durationMs, opts) {
       opts = opts || {};
       var from = { x: beePos.x, y: beePos.y };
@@ -1814,8 +1789,12 @@
         x: (from.x + dest.x) / 2,
         y: Math.min(from.y, dest.y) - bob
       };
+      faceToward(from, dest);
       placeAt(mid);
-      later(function () { placeAt(dest); }, Math.max(280, Math.floor((durationMs || 1400) * 0.48)));
+      later(function () {
+        faceToward(mid, dest);
+        placeAt(dest);
+      }, Math.max(280, Math.floor((durationMs || 1400) * 0.48)));
     }
 
     function hivePoint(tileIndex, mode) {
@@ -2010,10 +1989,19 @@
     }
 
     function unlockAudioOnce() {
-      var ctx = ensureBuzz();
-      if (ctx && ctx.state === 'suspended') {
-        try { ctx.resume(); } catch (e) { /* ignore */ }
-      }
+      ensureBuzzPlayers();
+      /* iOS/Safari: start+pause each sample once under a user gesture */
+      if (!buzzPlayers) return;
+      buzzKeys.forEach(function (key) {
+        var a = buzzPlayers[key];
+        if (!a) return;
+        var p = a.play();
+        if (p && p.then) {
+          p.then(function () { a.pause(); a.currentTime = 0; }).catch(function () {});
+        } else {
+          try { a.pause(); a.currentTime = 0; } catch (e) {}
+        }
+      });
     }
 
     if (beeToggle) {
