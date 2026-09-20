@@ -206,27 +206,27 @@
     transform: translateY(-50%);
     pointer-events: none;
   }
-  /* Breed name on the label ↔ °C row (right of exit marker) */
+  /* Breed name under bee exit point */
   .bee-podium {
     position: absolute;
     left: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    margin-left: 16px;
+    top: calc(50% + 10px);
+    transform: translateY(0);
+    margin-left: 4px;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
     z-index: 9;
     pointer-events: none;
   }
   .bee-podium.is-hidden { display: none; }
   .bee-podium .podium-stage {
-    flex: 0 0 28px;
-    width: 28px;
-    height: 28px;
+    flex: 0 0 10px;
+    width: 22px;
+    height: 6px;
     border-radius: 50%;
-    background: radial-gradient(ellipse at center bottom, rgba(90,60,30,.18) 0%, rgba(90,60,30,.05) 45%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(90,60,30,.22) 0%, transparent 70%);
     opacity: 0;
     transition: opacity .3s ease;
   }
@@ -235,12 +235,12 @@
     font-size: 9px; font-weight: 800; color: var(--brown-mid);
     background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
     border-radius: 999px; padding: 1px 7px; line-height: 1.35;
-    opacity: 0; transform: translateX(-4px);
+    opacity: 0; transform: translateY(-4px);
     transition: opacity .35s ease, transform .35s ease;
     margin: 0; white-space: nowrap;
   }
   .bee-podium .podium-name.is-on {
-    opacity: 1; transform: translateX(0);
+    opacity: 1; transform: translateY(0);
   }
 
   .weather {
@@ -720,27 +720,24 @@
     object-fit: contain; opacity: 0;
     transition: opacity .35s ease;
     filter: drop-shadow(0 2px 3px rgba(0,0,0,.18));
-    /* Idle hover: gentle bob + tilt */
-    animation: bee-hover 1.6s ease-in-out infinite;
+    /* Hover: small vertical bob (not side sway) */
+    animation: bee-hover 0.55s ease-in-out infinite;
   }
   .mascot-bee img.is-on { opacity: 1; }
-  /* In flight: faster buzz + wing-like tilt */
+  /* Flight: rapid wing buzz (scaleY + tiny bob) */
   .mascot-bee.is-flying img.is-on {
-    animation: bee-buzz 0.22s ease-in-out infinite;
+    animation: bee-buzz 0.08s linear infinite;
   }
   .mascot-bee.is-entering img.is-on {
-    animation: bee-buzz 0.16s linear infinite;
+    animation: bee-buzz 0.07s linear infinite;
   }
   @keyframes bee-hover {
-    0%, 100% { transform: translate(0, 0) rotate(-5deg); }
-    35% { transform: translate(1px, -4px) rotate(4deg); }
-    70% { transform: translate(-1px, -2px) rotate(-3deg); }
+    0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+    50% { transform: translate(0, -3px) rotate(2deg); }
   }
   @keyframes bee-buzz {
-    0%, 100% { transform: translate(0, 0) rotate(-10deg) scale(1); }
-    25% { transform: translate(1.5px, -3px) rotate(8deg) scale(1.03); }
-    50% { transform: translate(-1px, 1px) rotate(-6deg) scale(0.98); }
-    75% { transform: translate(1px, -2px) rotate(9deg) scale(1.02); }
+    0%, 100% { transform: translate(0, 0) scaleY(1) rotate(-2deg); }
+    50% { transform: translate(0, -1.5px) scaleY(0.88) rotate(2deg); }
   }
 </style>
 </head>
@@ -1551,7 +1548,11 @@
   var BEE_PREF_KEY = 'superari.ana.bees';
 
   function readBeesOn() {
-    /* Her açılışta arılar açık (önceki kapalı tercihi yok sayılır) */
+    try {
+      var v = localStorage.getItem(BEE_PREF_KEY);
+      if (v === '0' || v === 'off' || v === 'false') return false;
+      if (v === '1' || v === 'on' || v === 'true') return true;
+    } catch (e) { /* ignore */ }
     return true;
   }
   function writeBeesOn(on) {
@@ -1562,7 +1563,59 @@
     var beeImgs = beeRoot.querySelectorAll('img');
     var beeIdx = 0;
     var timers = [];
+    var closedHintTimer = null;
     var beesEnabled = readBeesOn();
+    var buzzAudio = null;
+    var buzzNodes = null;
+
+    function ensureBuzz() {
+      if (buzzAudio) return buzzAudio;
+      try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        buzzAudio = new AC();
+        var osc = buzzAudio.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = 220;
+        var osc2 = buzzAudio.createOscillator();
+        osc2.type = 'triangle';
+        osc2.frequency.value = 440;
+        var filter = buzzAudio.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 900;
+        filter.Q.value = 4;
+        var gain = buzzAudio.createGain();
+        gain.gain.value = 0;
+        osc.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(buzzAudio.destination);
+        osc.start();
+        osc2.start();
+        buzzNodes = { osc: osc, osc2: osc2, filter: filter, gain: gain };
+        return buzzAudio;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function setBuzz(on) {
+      var ctx = ensureBuzz();
+      if (!ctx || !buzzNodes) return;
+      if (ctx.state === 'suspended') {
+        try { ctx.resume(); } catch (e) { /* need gesture */ }
+      }
+      var g = buzzNodes.gain.gain;
+      var now = ctx.currentTime;
+      g.cancelScheduledValues(now);
+      if (on) {
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(0.035, now + 0.08);
+      } else {
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(0, now + 0.12);
+      }
+    }
     var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
     var tileParam = (location.search.match(/[?&]tile=(\d+)/) || [])[1];
     var beeMap = { italyan: 0, karniyol: 1, kafkas: 2 };
@@ -1584,7 +1637,7 @@
     }
 
     function exitPoint() {
-      // Emerge just right of the short arılık label (restored pre-flex-stretch exit)
+      // Emerge above the arılık label / exit marker (breed name sits below)
       var s = screenEl.getBoundingClientRect();
       var exitEl = document.getElementById('beeExit');
       var loc = document.getElementById('weatherLoc') || document.querySelector('.weather-loc');
@@ -1593,7 +1646,7 @@
       var b = el.getBoundingClientRect();
       return {
         x: b.left - s.left + b.width / 2,
-        y: b.top - s.top + b.height / 2
+        y: b.top - s.top + b.height / 2 - 18
       };
     }
 
@@ -1616,18 +1669,18 @@
       beeRoot.style.top = pt.y + 'px';
     }
 
-    /** Curved hop; door approaches use a flatter path into the kapı */
+    /** Bee-like hop: short uplift + slight zig, not big side sway */
     function flyTo(dest, durationMs, opts) {
       opts = opts || {};
       var from = { x: beePos.x, y: beePos.y };
       var bob = opts.flat
-        ? (4 + Math.random() * 6)
-        : (14 + Math.random() * 16);
-      var sway = opts.flat
-        ? ((Math.random() * 12) - 6)
-        : ((Math.random() * 36) - 18);
+        ? (6 + Math.random() * 5)
+        : (10 + Math.random() * 8);
+      var zig = opts.flat
+        ? ((Math.random() * 6) - 3)
+        : ((Math.random() * 10) - 5);
       var mid = {
-        x: (from.x + dest.x) / 2 + sway,
+        x: (from.x + dest.x) / 2 + zig,
         y: Math.min(from.y, dest.y) - bob
       };
       placeAt(mid);
@@ -1682,18 +1735,48 @@
 
     function stopBees() {
       clearTimers();
+      setBuzz(false);
       resetVisual();
       beeRoot.classList.add('is-off');
       beeRoot.classList.remove('is-shown', 'is-flying', 'is-entering');
       podium.classList.add('is-hidden');
     }
 
+    function clearClosedHint() {
+      if (closedHintTimer) {
+        clearTimeout(closedHintTimer);
+        closedHintTimer = null;
+      }
+    }
+
+    function scheduleClosedHint() {
+      clearClosedHint();
+      if (!beeToggle || beesEnabled) return;
+      closedHintTimer = setTimeout(function () {
+        if (beesEnabled) return;
+        var txt = beeToggle.querySelector('.bee-toggle-text');
+        if (txt) txt.textContent = 'Kapıyı aç';
+        beeToggle.setAttribute('aria-label', 'Arıları dışarı çıkarmak için kapıyı aç');
+        beeToggle.setAttribute('title', 'Kapıyı aç — arıları dışarı çıkar');
+      }, 4500);
+    }
+
     function syncToggleUi() {
       if (!beeToggle) return;
+      clearClosedHint();
       beeToggle.setAttribute('aria-pressed', beesEnabled ? 'true' : 'false');
-      beeToggle.setAttribute('aria-label', beesEnabled ? 'Arıları kapat' : 'Arıları aç');
-      var txt = beeToggle.querySelector('.bee-toggle-text');
-      if (txt) txt.textContent = beesEnabled ? 'Arılar' : 'Kapalı';
+      if (beesEnabled) {
+        beeToggle.setAttribute('aria-label', 'Arıları kapat');
+        beeToggle.setAttribute('title', 'Arıları aç/kapat');
+        var txtOn = beeToggle.querySelector('.bee-toggle-text');
+        if (txtOn) txtOn.textContent = 'Arılar';
+      } else {
+        beeToggle.setAttribute('aria-label', 'Arılar kapalı');
+        beeToggle.setAttribute('title', 'Arılar kapalı');
+        var txtOff = beeToggle.querySelector('.bee-toggle-text');
+        if (txtOff) txtOff.textContent = 'Kapalı';
+        scheduleClosedHint();
+      }
     }
 
     function shuffle(arr) {
@@ -1753,6 +1836,7 @@
           if (!beesEnabled) return;
           beeRoot.classList.add('is-flying');
           beeRoot.classList.remove('is-entering');
+          setBuzz(true);
           flyTo(hivePoint(tileI, 'hover'), hop);
         }, t);
         t += hop;
@@ -1762,6 +1846,7 @@
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.add('is-flying');
+        setBuzz(true);
         flyTo(hivePoint(enterTile, 'door'), 1300, { flat: true });
       }, t);
       t += 1300;
@@ -1770,6 +1855,7 @@
         if (!beesEnabled) return;
         beeRoot.classList.remove('is-flying');
         beeRoot.classList.add('is-entering');
+        setBuzz(false);
         // Nudge into the entrance opening while shrinking
         var door = hivePoint(enterTile, 'door');
         placeAt({ x: door.x, y: door.y - 5 });
@@ -1792,8 +1878,18 @@
       else stopBees();
     }
 
+    function unlockAudioOnce() {
+      var ctx = ensureBuzz();
+      if (ctx && ctx.state === 'suspended') {
+        try { ctx.resume(); } catch (e) { /* ignore */ }
+      }
+      document.removeEventListener('pointerdown', unlockAudioOnce, true);
+    }
+    document.addEventListener('pointerdown', unlockAudioOnce, true);
+
     if (beeToggle) {
       beeToggle.addEventListener('click', function () {
+        unlockAudioOnce();
         setBeesEnabled(!beesEnabled);
       });
     }
