@@ -428,13 +428,28 @@
   .day-hi { font-size: 11px; font-weight: 700; color: var(--text); }
   .day-lo { font-size: 10px; color: #8a8278; }
   .muayene-hint {
+    position: relative;
     margin-top: 8px; padding: 8px 10px; border-radius: 10px;
     background: #fff8df; border: 1px solid #e0c56a;
     color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.35;
     display: flex; align-items: center; gap: 8px;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
+    min-height: 34px;
+    box-sizing: border-box;
   }
-  .muayene-hint[hidden] { display: none !important; }
+  /* Idle = bee dock under forecast; active = reminder text */
+  .muayene-hint.is-idle {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+    justify-content: center;
+    padding: 6px 8px;
+    min-height: 36px;
+  }
+  .muayene-hint.is-idle .muayene-hint-text,
+  .muayene-hint.is-idle .muayene-hint-ok { display: none !important; }
+  .muayene-hint.is-active .bee-exit,
+  .muayene-hint.is-active .bee-podium { display: none !important; }
   .muayene-hint-text { flex: 1 1 auto; min-width: 0; }
   .muayene-hint-ok {
     flex: 0 0 auto;
@@ -453,6 +468,24 @@
   }
   .muayene-hint-ok:active {
     background: rgba(240, 196, 58, 0.28);
+  }
+  /* Exit + breed label live inside the hint dock */
+  .muayene-hint .bee-exit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .muayene-hint .bee-podium {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 14px);
+    transform: translateX(-50%);
+    margin: 0;
   }
 
   .grid {
@@ -819,11 +852,6 @@
               <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg>
             </button>
           </div>
-          <span class="bee-exit" id="beeExit" aria-hidden="true"></span>
-          <div class="bee-podium" id="beePodium">
-            <div class="podium-stage" id="podiumStage"></div>
-            <span class="podium-name" id="podiumName"></span>
-          </div>
         </div>
         <div class="bee-controls">
         <button type="button" class="bee-toggle" id="beeToggle" aria-pressed="true" aria-label="Arıları kapat" title="Arıları aç/kapat">
@@ -853,9 +881,14 @@
         <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
         <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
       </div>
-      <div class="muayene-hint" id="muayeneHint" hidden role="status">
+      <div class="muayene-hint is-idle" id="muayeneHint" role="status" aria-live="polite">
+        <span class="bee-exit" id="beeExit" aria-hidden="true"></span>
+        <div class="bee-podium is-hidden" id="beePodium">
+          <div class="podium-stage" id="podiumStage"></div>
+          <span class="podium-name" id="podiumName"></span>
+        </div>
         <span class="muayene-hint-text" id="muayeneHintText"></span>
-        <button type="button" class="muayene-hint-ok" id="muayeneHintOk">Tamam</button>
+        <button type="button" class="muayene-hint-ok" id="muayeneHintOk" hidden>Tamam</button>
       </div>
     </section>
 
@@ -1083,46 +1116,125 @@
       return d.tipDate === tipDate;
     }
 
+    var pendingMuayeneTip = null;
+    var hintVisible = false;
+    var tipRotateTimer = null;
+    var tipHideTimer = null;
+    var TIP_SHOW_MS = 12000;
+    var TIP_GAP_MS = 48000;
+    var tipPool = [
+      'Varroa kontrolünü bu hafta unutma.',
+      'Su kaynağı dolu mu? Sıcak günde kritik.',
+      'Ballık eklemeden önce kuluçka alanını kontrol et.',
+      'Rüzgarlı günde kovan girişini daraltmayı dene.',
+      'Ana kontrolü: yumurta ve larva var mı?'
+    ];
+    var tipPoolIdx = 0;
+
+    function emitHintState(show) {
+      hintVisible = !!show;
+      try {
+        window.dispatchEvent(new CustomEvent('superari:hint', { detail: { show: hintVisible } }));
+      } catch (e) { /* ignore */ }
+    }
+
+    function setHintDock() {
+      if (!muayeneEl) return;
+      muayeneEl.classList.add('is-idle');
+      muayeneEl.classList.remove('is-active');
+      muayeneEl.removeAttribute('hidden');
+      if (muayeneText) muayeneText.textContent = '';
+      if (muayeneOk) muayeneOk.hidden = true;
+      emitHintState(false);
+    }
+
+    function showHintMessage(msg, opts) {
+      opts = opts || {};
+      if (!muayeneEl || !msg) return;
+      muayeneEl.classList.remove('is-idle');
+      muayeneEl.classList.add('is-active');
+      muayeneEl.removeAttribute('hidden');
+      if (muayeneText) muayeneText.textContent = msg;
+      if (muayeneOk) muayeneOk.hidden = false;
+      emitHintState(true);
+      if (tipHideTimer) clearTimeout(tipHideTimer);
+      if (!opts.sticky) {
+        tipHideTimer = setTimeout(function () {
+          setHintDock();
+        }, TIP_SHOW_MS);
+      }
+    }
+
     function dismissMuayeneHint() {
       if (!muayeneEl) return;
-      muayeneEl.hidden = true;
-      if (!activeMuayeneTipDate) return;
-      try {
-        localStorage.setItem(
-          MUAYENE_DISMISS_KEY,
-          JSON.stringify({
-            tipDate: activeMuayeneTipDate,
-            dismissedAt: new Date().toISOString()
-          })
-        );
-      } catch (e) { /* ignore */ }
+      if (activeMuayeneTipDate) {
+        try {
+          localStorage.setItem(
+            MUAYENE_DISMISS_KEY,
+            JSON.stringify({
+              tipDate: activeMuayeneTipDate,
+              dismissedAt: new Date().toISOString()
+            })
+          );
+        } catch (e) { /* ignore */ }
+      }
+      pendingMuayeneTip = null;
+      if (tipHideTimer) clearTimeout(tipHideTimer);
+      setHintDock();
+    }
+
+    function nextRotatingTip() {
+      if (pendingMuayeneTip && !isMuayeneDismissed(pendingMuayeneTip.date)) {
+        activeMuayeneTipDate = pendingMuayeneTip.date;
+        return {
+          text: 'Uygun muayene: ' + pendingMuayeneTip.dayLabel + ' — ' + pendingMuayeneTip.reason,
+          sticky: false,
+          fromMuayene: true
+        };
+      }
+      var t = tipPool[tipPoolIdx % tipPool.length];
+      tipPoolIdx += 1;
+      activeMuayeneTipDate = null;
+      return { text: t, sticky: false, fromMuayene: false };
+    }
+
+    function startTipRotation() {
+      if (tipRotateTimer) clearInterval(tipRotateTimer);
+      tipRotateTimer = setInterval(function () {
+        if (hintVisible) return;
+        var tip = nextRotatingTip();
+        if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
+      }, TIP_GAP_MS);
+      /* first tip after a short delay so bees can emerge first */
+      setTimeout(function () {
+        if (!hintVisible) {
+          var tip = nextRotatingTip();
+          if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
+        }
+      }, 16000);
     }
 
     function updateMuayeneHint(daily) {
       if (!muayeneEl) return;
+      pendingMuayeneTip = null;
       if (!window.SuperAriHava || !daily) {
-        muayeneEl.hidden = true;
-        activeMuayeneTipDate = null;
-        if (muayeneText) muayeneText.textContent = '';
+        if (!hintVisible) setHintDock();
         return;
       }
       var best = window.SuperAriHava.bestInspectionDay(daily);
       if (!best) {
-        muayeneEl.hidden = true;
-        activeMuayeneTipDate = null;
-        if (muayeneText) muayeneText.textContent = '';
+        if (!hintVisible) setHintDock();
         return;
       }
-      activeMuayeneTipDate = best.date;
       if (isMuayeneDismissed(best.date)) {
-        muayeneEl.hidden = true;
+        if (!hintVisible) setHintDock();
         return;
       }
-      muayeneEl.hidden = false;
-      if (muayeneText) {
-        muayeneText.textContent = 'Uygun muayene: ' + best.dayLabel + ' — ' + best.reason;
-      } else {
-        muayeneEl.textContent = 'Uygun muayene: ' + best.dayLabel + ' — ' + best.reason;
+      pendingMuayeneTip = best;
+      /* Show inspection tip soon if dock is free */
+      if (!hintVisible) {
+        activeMuayeneTipDate = best.date;
+        showHintMessage('Uygun muayene: ' + best.dayLabel + ' — ' + best.reason, { sticky: false });
       }
     }
 
@@ -1135,9 +1247,12 @@
     }
     if (muayeneEl) {
       muayeneEl.addEventListener('click', function (e) {
+        if (!muayeneEl.classList.contains('is-active')) return;
         if (e.target === muayeneOk) return;
         dismissMuayeneHint();
       });
+      setHintDock();
+      startTipRotation();
     }
 
     function writeSelectedApiary() {
@@ -1776,16 +1891,16 @@
     }
 
     function exitPoint() {
-      // Emerge above the arılık label / exit marker (breed name sits below)
+      // Emerge from reminder dock under the temperature / forecast strip
       var s = screenEl.getBoundingClientRect();
       var exitEl = document.getElementById('beeExit');
-      var loc = document.getElementById('weatherLoc') || document.querySelector('.weather-loc');
-      var el = exitEl || loc;
+      var dock = document.getElementById('muayeneHint');
+      var el = exitEl || dock;
       if (!el) return podiumPoint();
       var b = el.getBoundingClientRect();
       return {
         x: b.left - s.left + b.width / 2,
-        y: b.top - s.top + b.height / 2 - 18
+        y: b.top - s.top + b.height / 2 - 10
       };
     }
 
@@ -1936,8 +2051,32 @@
       return a;
     }
 
+    var hintBlockingBees = false;
+
+    function pauseBeesForHint() {
+      hintBlockingBees = true;
+      clearTimers();
+      stopWingLoop();
+      setBuzz(false);
+      resetVisual();
+      beeRoot.classList.add('is-off');
+      beeRoot.classList.remove('is-shown', 'is-flying', 'is-entering');
+      if (podium) podium.classList.add('is-hidden');
+    }
+
+    function resumeBeesAfterHint() {
+      hintBlockingBees = false;
+      if (beesEnabled) runCycle(beeIdx);
+    }
+
+    window.addEventListener('superari:hint', function (e) {
+      var show = e && e.detail && e.detail.show;
+      if (show) pauseBeesForHint();
+      else if (beesEnabled) resumeBeesAfterHint();
+    });
+
     function runCycle(startBreed) {
-      if (!beesEnabled) {
+      if (!beesEnabled || hintBlockingBees) {
         stopBees();
         return;
       }
