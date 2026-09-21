@@ -788,7 +788,7 @@
     left: 0; top: 0;
     width: 48px; height: 48px; pointer-events: none;
     --bee-scale: 0.55;
-    --bee-rot: -90deg; /* art faces LEFT; -90 ≈ head up at rest */
+    --bee-rot: 0deg; /* 6-frame sheet picks facing; no upside-down CSS yaw */
     transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
     opacity: 0;
     transition:
@@ -853,16 +853,25 @@
     </header>
     <div class="mascot-bee" id="mascotBee" aria-hidden="true">
       <canvas id="mascotBeeCanvas" width="96" height="96" aria-hidden="true"></canvas>
-      <!-- Views: side (LEFT), front (camera), top45 (üstten 45°) -->
+      <!-- 6 frames/breed: early 3 views + FLIP_LEFT_RIGHT mirrors only -->
       <img class="bee-sheet" data-breed-key="italyan" data-view="side" data-breed="İtalyan" src="assets/bees/italyan.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="karniyol" data-view="side" data-breed="Karniyol" src="assets/bees/karniyol.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="kafkas" data-view="side" data-breed="Kafkas" src="assets/bees/kafkas.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="italyan" data-view="side-flip" data-breed="İtalyan" src="assets/bees/italyan-flip.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="italyan" data-view="front" data-breed="İtalyan" src="assets/bees/italyan-front.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="karniyol" data-view="front" data-breed="Karniyol" src="assets/bees/karniyol-front.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="kafkas" data-view="front" data-breed="Kafkas" src="assets/bees/kafkas-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="italyan" data-view="front-flip" data-breed="İtalyan" src="assets/bees/italyan-front-flip.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="italyan" data-view="top45" data-breed="İtalyan" src="assets/bees/italyan-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="italyan" data-view="top45-flip" data-breed="İtalyan" src="assets/bees/italyan-top45-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="side" data-breed="Karniyol" src="assets/bees/karniyol.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="side-flip" data-breed="Karniyol" src="assets/bees/karniyol-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="front" data-breed="Karniyol" src="assets/bees/karniyol-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="front-flip" data-breed="Karniyol" src="assets/bees/karniyol-front-flip.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="karniyol" data-view="top45" data-breed="Karniyol" src="assets/bees/karniyol-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol" data-view="top45-flip" data-breed="Karniyol" src="assets/bees/karniyol-top45-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="side" data-breed="Kafkas" src="assets/bees/kafkas.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="side-flip" data-breed="Kafkas" src="assets/bees/kafkas-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="front" data-breed="Kafkas" src="assets/bees/kafkas-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="front-flip" data-breed="Kafkas" src="assets/bees/kafkas-front-flip.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="kafkas" data-view="top45" data-breed="Kafkas" src="assets/bees/kafkas-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas" data-view="top45-flip" data-breed="Kafkas" src="assets/bees/kafkas-top45-flip.png" alt="" hidden>
     </div>
 
     <section class="weather" id="weatherStrip" style="display:block">
@@ -1756,38 +1765,34 @@
   if (beeRoot && podium && screenEl && gridEl) {
     var beeCanvas = document.getElementById('mascotBeeCanvas');
     var beeCtx = beeCanvas ? beeCanvas.getContext('2d') : null;
+    var VIEW_KEYS = ['side', 'side-flip', 'front', 'front-flip', 'top45', 'top45-flip'];
+    function sheetFor(breed, view) {
+      return beeRoot.querySelector('img.bee-sheet[data-breed-key="' + breed + '"][data-view="' + view + '"]');
+    }
     var beeSheets = {
-      italyan: {
-        side: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"][data-view="side"]'),
-        front: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"][data-view="front"]'),
-        top45: beeRoot.querySelector('img.bee-sheet[data-breed-key="italyan"][data-view="top45"]')
-      },
-      karniyol: {
-        side: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"][data-view="side"]'),
-        front: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"][data-view="front"]'),
-        top45: beeRoot.querySelector('img.bee-sheet[data-breed-key="karniyol"][data-view="top45"]')
-      },
-      kafkas: {
-        side: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"][data-view="side"]'),
-        front: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"][data-view="front"]'),
-        top45: beeRoot.querySelector('img.bee-sheet[data-breed-key="kafkas"][data-view="top45"]')
-      }
+      italyan: {},
+      karniyol: {},
+      kafkas: {}
     };
+    ['italyan', 'karniyol', 'kafkas'].forEach(function (bk) {
+      VIEW_KEYS.forEach(function (vk) {
+        beeSheets[bk][vk] = sheetFor(bk, vk);
+      });
+    });
     var beeIdx = 0;
-    var beeView = 'side';
+    var beeView = 'front';
     var wingTimer = null;
     var wingPulse = 0;
     var breedKeys = ['italyan', 'karniyol', 'kafkas'];
     var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas'];
-    /* Side PNG faces LEFT (= 270° when 0°=up, CW). */
-    var ART_FACE_DEG = 270;
+    /* Side PNG faces LEFT (= 270° when 0°=up, CW). Flip faces RIGHT (= 90°). */
 
     function drawBeeFrame() {
       if (!beeCtx || !beeCanvas) return;
       var key = breedKeys[beeIdx] || 'italyan';
       var pack = beeSheets[key] || {};
-      var sheet = pack[beeView] || pack.side;
-      if (!sheet || !sheet.naturalWidth) sheet = pack.side;
+      var sheet = pack[beeView] || pack.front || pack.side;
+      if (!sheet || !sheet.naturalWidth) sheet = pack.front || pack.side;
       beeCtx.clearRect(0, 0, beeCanvas.width, beeCanvas.height);
       if (!sheet || !sheet.complete || !sheet.naturalWidth) return;
       var pulse = 1 + (wingPulse % 3 === 0 ? 0.04 : (wingPulse % 3 === 1 ? 0 : -0.03));
@@ -1958,25 +1963,39 @@
 
     var beePos = { x: 0, y: 0 };
 
+    /**
+     * Heading: 0°=up, 90°=right, 180°=down, 270°=left (atan2(dx,-dy)).
+     * Pick one of 6 dedicated frames — never CSS-rotate a single side sprite.
+     * Mapping (45° sectors, 8-way → 6 assets):
+     *   N  (337.5–22.5)  → front-flip
+     *   NE (22.5–67.5)   → top45-flip
+     *   E  (67.5–112.5)  → side-flip    (RIGHT)
+     *   SE (112.5–157.5) → top45-flip
+     *   S  (157.5–202.5) → front
+     *   SW (202.5–247.5) → top45
+     *   W  (247.5–292.5) → side         (LEFT)
+     *   NW (292.5–337.5) → top45
+     */
+    function viewFromHeading(heading) {
+      var h = ((heading % 360) + 360) % 360;
+      if (h >= 337.5 || h < 22.5) return 'front-flip';
+      if (h < 67.5) return 'top45-flip';
+      if (h < 112.5) return 'side-flip';
+      if (h < 157.5) return 'top45-flip';
+      if (h < 202.5) return 'front';
+      if (h < 247.5) return 'top45';
+      if (h < 292.5) return 'side';
+      return 'top45';
+    }
+
     function faceToward(from, to) {
       var dx = to.x - from.x;
       var dy = to.y - from.y;
       if (Math.abs(dx) < 0.4 && Math.abs(dy) < 0.4) return;
       var heading = Math.atan2(dx, -dy) * 180 / Math.PI;
       heading = ((heading % 360) + 360) % 360;
-      /* down≈front; diagonal≈top45; left/right/up≈side */
-      if (heading > 150 && heading < 210) beeView = 'front';
-      else if ((heading > 30 && heading < 150) || (heading > 210 && heading < 330)) beeView = 'top45';
-      else beeView = 'side';
-      if (beeView === 'front') {
-        beeRoot.style.setProperty('--bee-rot', '0deg');
-      } else if (beeView === 'top45') {
-        var rot45 = heading - 225;
-        beeRoot.style.setProperty('--bee-rot', rot45.toFixed(1) + 'deg');
-      } else {
-        var rot = heading - ART_FACE_DEG;
-        beeRoot.style.setProperty('--bee-rot', rot.toFixed(1) + 'deg');
-      }
+      beeView = viewFromHeading(heading);
+      beeRoot.style.setProperty('--bee-rot', '0deg');
       if (beeCanvas) beeCanvas.style.transform = '';
       drawBeeFrame();
     }
@@ -2291,7 +2310,7 @@
     Object.keys(beeSheets).forEach(function (k) {
       var pack = beeSheets[k];
       if (!pack) return;
-      ['side', 'front', 'top45'].forEach(function (v) {
+      VIEW_KEYS.forEach(function (v) {
         var im = pack[v];
         if (!im) return;
         if (im.complete) drawBeeFrame();
