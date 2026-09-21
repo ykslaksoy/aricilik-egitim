@@ -2,12 +2,13 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Ayarlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
 </head>
-<body>
-  <main class="wrap">
+<body class="auth-body">
+  <div class="auth-phone">
+    <div class="hardal-rail" aria-hidden="true"></div>
     <div class="nav">
       <a class="chip" href="ana.html" id="nav-ana">← Ana</a>
       <a class="chip" href="arici.html">Arıcı</a>
@@ -16,29 +17,46 @@
     </div>
     <div class="brand">
       <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p>Ayarlar</p></div>
+      <div>
+        <h1>SüperArı</h1>
+        <p>Hesap ayarları</p>
+      </div>
     </div>
-    <section class="card stack" style="max-width:560px;">
-      <h2 style="margin:0;">Hesap ayarları</h2>
-      <label>Bildirim e-postası
-        <input type="email" id="notif-email" placeholder="ornek@mail.com" />
-      </label>
-      <label>Dil
-        <input value="Türkçe" readonly />
-      </label>
-      <label>Hesap tipi
-        <select id="hesap-tipi" name="hesapTipi">
-          <option value="arici">Arıcı</option>
-          <option value="yonetici">Yönetici</option>
-          <option value="bakici">Bakıcı</option>
-        </select>
-      </label>
-      <p class="hint-inline" id="hesap-hint">
-        Uygulama seçilen hesaba göre açılır. Demo: Yönetici seçilebilir; gerçek kimlik doğrulama sonra kilitleyecek.
-      </p>
-      <a class="btn secondary" href="giris.html" id="btn-logout">Çıkış yap</a>
+
+    <section class="auth-card">
+      <div class="settings-head">
+        <div>
+          <h2>Hesap ayarları</h2>
+          <p class="sub" id="account-summary">Profil bilgilerinizi güncelleyin.</p>
+        </div>
+        <span class="verified-badge wait" id="verify-badge">Doğrulanmadı</span>
+      </div>
+
+      <form class="stack" id="ayarlar-form">
+        <label>Bildirim e-postası
+          <input type="email" id="notif-email" name="notifEmail" placeholder="ornek@mail.com" />
+        </label>
+        <label>Dil
+          <input value="Türkçe" readonly />
+        </label>
+        <label>Hesap tipi
+          <select id="hesap-tipi" name="hesapTipi">
+            <option value="arici">Arıcı</option>
+            <option value="yonetici">Yönetici</option>
+            <option value="bakici">Bakıcı</option>
+          </select>
+        </label>
+        <label>Arıcılık adı
+          <input id="aricilik-adi" name="aricilikAdi" placeholder="Örn. Hardal Arıcılık" />
+        </label>
+        <p class="hint-inline" id="hesap-hint">
+          Uygulama seçilen hesaba göre açılır. Demo: Yönetici seçilebilir; gerçek kimlik doğrulama sonra kilitleyecek.
+        </p>
+        <button class="btn" type="submit">Kaydet</button>
+        <a class="btn secondary" href="giris.html" id="btn-logout">Çıkış yap</a>
+      </form>
     </section>
-  </main>
+  </div>
   <script src="panels.js"></script>
   <script>
     (function () {
@@ -46,9 +64,40 @@
       if (!H) return;
       var sel = document.getElementById('hesap-tipi');
       var navAna = document.getElementById('nav-ana');
-      var current = H.get();
-      sel.value = current;
-      if (navAna) navAna.href = H.homeFor(current);
+      var notif = document.getElementById('notif-email');
+      var arilik = document.getElementById('aricilik-adi');
+      var badge = document.getElementById('verify-badge');
+      var summary = document.getElementById('account-summary');
+      var form = document.getElementById('ayarlar-form');
+      var logout = document.getElementById('btn-logout');
+
+      function refresh() {
+        var current = H.get();
+        sel.value = current;
+        if (navAna) navAna.href = H.homeFor(current);
+        var acc = H.getAccount() || {};
+        if (notif) notif.value = acc.notifEmail || acc.email || '';
+        if (arilik) arilik.value = acc.aricilikAdi || '';
+        if (badge) {
+          if (acc.verified) {
+            badge.textContent = '✓ Doğrulandı';
+            badge.className = 'verified-badge';
+          } else {
+            badge.textContent = 'Doğrulanmadı';
+            badge.className = 'verified-badge wait';
+          }
+        }
+        if (summary) {
+          var parts = [];
+          if (acc.name) parts.push(acc.name);
+          if (acc.email) parts.push(acc.email);
+          summary.textContent = parts.length
+            ? parts.join(' · ')
+            : 'Profil bilgilerinizi güncelleyin.';
+        }
+      }
+
+      refresh();
 
       sel.addEventListener('change', function () {
         var next = H.normalize(sel.value);
@@ -64,7 +113,6 @@
           }
         }
         H.set(next);
-        current = next;
         if (navAna) navAna.href = H.homeFor(next);
         var home = H.homeFor(next);
         var label = H.labelFor(next);
@@ -74,6 +122,32 @@
         );
         if (reopen) H.goHome(next);
       });
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        H.updateAccount({
+          notifEmail: (notif && notif.value) || '',
+          aricilikAdi: (arilik && arilik.value) || '',
+          hesapTipi: sel.value
+        });
+        refresh();
+        try {
+          var tip = document.createElement('p');
+          tip.className = 'form-alert';
+          tip.textContent = 'Ayarlar kaydedildi.';
+          tip.setAttribute('data-form-error', '1');
+          var old = form.querySelector('[data-form-error]');
+          if (old) old.remove();
+          form.insertBefore(tip, form.firstChild);
+          setTimeout(function () { if (tip.parentNode) tip.remove(); }, 2200);
+        } catch (err) { /* ignore */ }
+      });
+
+      if (logout) {
+        logout.addEventListener('click', function () {
+          H.logout();
+        });
+      }
     })();
   </script>
 </body>

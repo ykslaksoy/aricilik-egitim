@@ -2,23 +2,26 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Giriş · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
 </head>
-<body>
-  <main class="wrap">
-    <div class="brand">
+<body class="auth-body">
+  <div class="auth-phone">
+    <div class="hardal-rail" aria-hidden="true"></div>
+    <div class="brand" style="margin-top:1.35rem;">
       <div class="brand-badge">🐝</div>
       <div>
         <h1>SüperArı</h1>
         <p>Arıcılık yönetim paneli</p>
       </div>
     </div>
-    <section class="card stack" style="max-width:460px;margin:0 auto;">
-      <h2 style="margin:0;">Giriş yap</h2>
-      <p class="muted">E-posta ve şifrenizle devam edin.</p>
-      <form class="stack" data-login="1" data-demo="ana.html">
+
+    <section class="auth-card">
+      <h2>Giriş yap</h2>
+      <p class="auth-lead">E-posta ve şifrenizle devam edin. Doğrulanmış hesap varsa ona göre yönlendirilirsiniz.</p>
+
+      <form class="stack" data-login="1" data-demo="ana.html" id="giris-form">
         <label>E-posta
           <input type="email" name="email" autocomplete="username" placeholder="ornek@mail.com" required />
         </label>
@@ -30,12 +33,23 @@
         </label>
         <button class="btn" type="submit">Giriş Yap</button>
       </form>
-      <div class="links">
+      <div class="auth-footer-links">
         <a href="kayit.html">Hesap oluştur</a>
         <a href="kurulum.html">Kurulum</a>
       </div>
     </section>
-  </main>
+  </div>
   <script src="panels.js"></script>
+  <script>
+    (function () {
+      var H = window.SuperAriHesap;
+      if (!H) return;
+      var acc = H.getAccount();
+      if (acc && acc.email) {
+        var em = document.querySelector('input[name="email"]');
+        if (em && !em.value) em.value = acc.email;
+      }
+    })();
+  </script>
 </body>
 </html>

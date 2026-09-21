@@ -3,6 +3,8 @@
 **Kalıcı demo URL:** https://superari.vercel.app/arici.html
 
 - Giriş: https://superari.vercel.app/giris.html
+- Kayıt / doğrulama: https://superari.vercel.app/kayit.html · https://superari.vercel.app/onay.html
+- Ayarlar (Arıcılık adı): https://superari.vercel.app/ayarlar.html
 - Arılıklar (Yandex harita seçici): https://superari.vercel.app/ariliklar.html
 - Kovanlar: https://superari.vercel.app/kovanlar.html
 - Uyarılar / Görevler: ilgili `.html` sayfalar

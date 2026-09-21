@@ -40,6 +40,8 @@
       id: id,
       name: user.name || user.ad || '',
       email: user.email || '',
+      phone: user.phone || user.telefon || '',
+      aricilikAdi: user.aricilikAdi || user.businessName || '',
       role: user.role || user.rol || '',
       status: user.status || 'active',
       source: user.source || 'demo',

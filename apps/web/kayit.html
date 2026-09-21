@@ -2,48 +2,86 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Kayıt · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
 </head>
-<body>
-  <main class="wrap">
+<body class="auth-body">
+  <div class="auth-phone">
+    <div class="hardal-rail" aria-hidden="true"></div>
     <div class="nav">
-      <a class="chip" href="giris.html">← Geri</a>
-      <a class="chip" href="index.html">Ana sayfa</a>
+      <a class="chip" href="giris.html">← Giriş</a>
+      <a class="chip" href="index.html">Ana</a>
     </div>
     <div class="brand">
       <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p>Yeni hesap</p></div>
+      <div>
+        <h1>SüperArı</h1>
+        <p>Yeni hesap oluştur</p>
+      </div>
     </div>
-    <section class="card stack" style="max-width:520px;">
-      <h2 style="margin:0;">Kayıt ol</h2>
-      <form class="stack" data-demo="onay.html">
+
+    <section class="auth-card">
+      <div class="stepper" aria-hidden="true">
+        <span class="on"></span>
+        <span></span>
+      </div>
+      <h2>Kayıt ol</h2>
+      <p class="auth-lead">Bilgilerinizi girin; ardından e-posta / SMS ile 6 haneli doğrulama kodu gelecek (demo).</p>
+
+      <form class="stack" data-signup="1" data-demo="onay.html" id="kayit-form">
         <label>Ad Soyad
-          <input name="name" required placeholder="Adınız Soyadınız" />
+          <input name="name" required autocomplete="name" placeholder="Adınız Soyadınız" />
         </label>
         <label>E-posta
-          <input type="email" name="email" required placeholder="ornek@mail.com" />
+          <input type="email" name="email" required autocomplete="email" placeholder="ornek@mail.com" />
         </label>
+        <label>Telefon <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
+          <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="05xx xxx xx xx" />
+        </label>
+        <label>Arıcılık adı
+          <input name="aricilikAdi" required placeholder="Örn. Hardal Arıcılık" />
+        </label>
+        <fieldset style="border:0;margin:0;padding:0;">
+          <legend style="font-size:.88rem;font-weight:600;margin-bottom:.45rem;">Hesap tipi</legend>
+          <div class="role-pills">
+            <label><input type="radio" name="hesapTipi" value="arici" checked /> Arıcı</label>
+            <label><input type="radio" name="hesapTipi" value="yonetici" /> Yönetici</label>
+            <label><input type="radio" name="hesapTipi" value="bakici" /> Bakıcı</label>
+          </div>
+        </fieldset>
         <label>Şifre
           <div class="field-row">
-            <input id="reg-password" type="password" name="password" required />
+            <input id="reg-password" type="password" name="password" required minlength="4" autocomplete="new-password" placeholder="En az 4 karakter" />
             <button type="button" class="toggle" data-toggle-password="reg-password">Göster</button>
           </div>
         </label>
-        <label>Rol
-          <input name="role" list="roles" placeholder="Arıcı / Yönetici / Bakıcı" required />
-          <datalist id="roles">
-            <option value="Arıcı"></option>
-            <option value="Yönetici"></option>
-            <option value="Bakıcı"></option>
-          </datalist>
-        </label>
-        <button class="btn" type="submit">Devam et</button>
+        <button class="btn" type="submit">Devam · Doğrulama</button>
       </form>
+      <div class="auth-footer-links">
+        <a href="giris.html">Zaten hesabım var</a>
+        <a href="kurulum.html">Kurulum</a>
+      </div>
     </section>
-  </main>
+  </div>
   <script src="admin-notify.js"></script>
   <script src="panels.js"></script>
+  <script>
+    (function () {
+      /* Fallback for browsers without :has() */
+      var pills = document.querySelectorAll('.role-pills label');
+      function sync() {
+        pills.forEach(function (lab) {
+          var on = lab.querySelector('input') && lab.querySelector('input').checked;
+          lab.style.borderColor = on ? '#d4a017' : '';
+          lab.style.background = on ? 'linear-gradient(145deg, #fff6d6, #ffe7a3)' : '';
+        });
+      }
+      pills.forEach(function (lab) {
+        lab.addEventListener('change', sync);
+      });
+      sync();
+    })();
+  </script>
 </body>
 </html>

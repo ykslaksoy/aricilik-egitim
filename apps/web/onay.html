@@ -2,32 +2,78 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Onay · SüperArı</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Doğrulama · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
 </head>
-<body>
-  <main class="wrap">
+<body class="auth-body">
+  <div class="auth-phone">
+    <div class="hardal-rail" aria-hidden="true"></div>
     <div class="nav">
-      <a class="chip" href="kayit.html">← Geri</a>
-      <a class="chip" href="index.html">Ana sayfa</a>
+      <a class="chip" href="kayit.html">← Kayıt</a>
+      <a class="chip" href="giris.html">Giriş</a>
     </div>
     <div class="brand">
       <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p>E-posta onayı</p></div>
+      <div>
+        <h1>SüperArı</h1>
+        <p>Hesap doğrulama</p>
+      </div>
     </div>
-    <section class="card stack" style="max-width:520px;">
-      <h2 style="margin:0;">Onay kodu</h2>
-      <p class="muted">E-postanıza gelen 6 haneli kodu girin.</p>
-      <form class="stack" data-demo="kurulum.html">
-        <label>Onay kodu
-          <input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required />
+
+    <section class="auth-card">
+      <div class="stepper" aria-hidden="true">
+        <span class="on"></span>
+        <span class="on"></span>
+      </div>
+      <h2>Doğrulama kodu</h2>
+      <p class="auth-lead" id="verify-lead">E-posta veya SMS ile gelen 6 haneli kodu girin.</p>
+
+      <div class="demo-code-box" id="demo-box" hidden>
+        <div class="label">Demo kod</div>
+        <div class="code" id="demo-code">————</div>
+        <p class="hint">Gerçek e-posta / SMS gönderimi yok — bu kodu kullanın. (Mailer sonra bağlanacak.)</p>
+      </div>
+
+      <form class="stack" data-verify="1" data-demo="ana.html" id="verify-form">
+        <label>6 haneli kod
+          <input class="otp-input" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autocomplete="one-time-code" />
         </label>
-        <button class="btn" type="submit">Onayla</button>
-        <a class="btn secondary" href="giris.html">Girişe dön</a>
+        <button class="btn" type="submit">Hesabı doğrula</button>
+        <a class="btn secondary" href="kayit.html">Kayıda dön</a>
       </form>
     </section>
-  </main>
+  </div>
+  <script src="admin-notify.js"></script>
   <script src="panels.js"></script>
+  <script>
+    (function () {
+      var H = window.SuperAriHesap;
+      if (!H) return;
+      var pending = H.getPending();
+      var box = document.getElementById('demo-box');
+      var codeEl = document.getElementById('demo-code');
+      var lead = document.getElementById('verify-lead');
+      var flash = null;
+      try { flash = sessionStorage.getItem('superari.demoCodeFlash'); } catch (e) { /* ignore */ }
+
+      if (!pending) {
+        if (lead) lead.textContent = 'Bekleyen kayıt bulunamadı. Lütfen önce kayıt olun.';
+        return;
+      }
+      var channel = pending.channel === 'sms' ? 'SMS' : 'e-posta';
+      var dest = pending.channel === 'sms'
+        ? (pending.phone || 'telefonunuza')
+        : (pending.email || 'e-postanıza');
+      if (lead) {
+        lead.textContent = channel + ' ile ' + dest + ' adresine 6 haneli kod gönderildi (demo).';
+      }
+      if (box && codeEl) {
+        codeEl.textContent = pending.demoCode || flash || '————';
+        box.hidden = false;
+      }
+      try { sessionStorage.removeItem('superari.demoCodeFlash'); } catch (e2) { /* ignore */ }
+    })();
+  </script>
 </body>
 </html>
