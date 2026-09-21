@@ -90,8 +90,13 @@
     background: #fff; border: 1px solid var(--card-border);
     color: var(--text); font-size: 12px; font-weight: 700; text-decoration: none;
   }
+
   .filters {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    display: grid; grid-template-columns: 1fr; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .filters.row2 {
+    grid-template-columns: 1fr 1fr;
     margin-bottom: 12px;
   }
   .filters label {
@@ -103,6 +108,30 @@
     padding: 9px 10px; font-size: 13px; font-weight: 600; color: var(--text);
     background: #fff; font-family: inherit;
   }
+  .filters input[type="date"] {
+    min-height: 38px;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .range-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: -2px 0 12px;
+  }
+  .range-chip {
+    display: inline-flex; align-items: center;
+    padding: 7px 11px; border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: #fff; color: var(--text);
+    font-size: 11px; font-weight: 750; font-family: inherit;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .range-chip.active {
+    border-color: #e0c56a;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
+    color: var(--brown);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+  }
+
   .section-title {
     font-size: 14px; font-weight: 800; color: var(--text);
     margin: 2px 2px 10px;
@@ -182,13 +211,19 @@
       <label>Arılık
         <select id="filterApiary"></select>
       </label>
-      <label>Aralık
-        <select id="filterRange">
-          <option value="7">Son 7 gün</option>
-          <option value="14" selected>Son 14 gün</option>
-          <option value="30">Son 30 gün</option>
-          <option value="all">Tümü</option>
-        </select>
+    </div>
+    <div class="range-chips" id="rangeChips" role="group" aria-label="Hızlı aralık">
+      <button type="button" class="range-chip" data-preset="bal">Bal sezonu</button>
+      <button type="button" class="range-chip" data-preset="30">Son 30 gün</button>
+      <button type="button" class="range-chip" data-preset="90">Son 90 gün</button>
+      <button type="button" class="range-chip" data-preset="custom">Özel</button>
+    </div>
+    <div class="filters row2">
+      <label>Başlangıç
+        <input type="date" id="rangeFrom" />
+      </label>
+      <label>Bitiş
+        <input type="date" id="rangeTo" />
       </label>
     </div>
 
@@ -229,11 +264,14 @@
 
   var SELECTED_KEY = 'superari.ana.selectedApiary';
   var apiarySel = document.getElementById('filterApiary');
-  var rangeSel = document.getElementById('filterRange');
+  var rangeFromEl = document.getElementById('rangeFrom');
+  var rangeToEl = document.getElementById('rangeTo');
+  var chipsEl = document.getElementById('rangeChips');
   var listEl = document.getElementById('histList');
   var bannerEl = document.getElementById('apiaryBanner');
   var pageSub = document.getElementById('pageSub');
   var backRapor = document.getElementById('backRapor');
+  var currentRange = H.loadRange();
 
   function formatDate(iso) {
     if (!iso) return '—';
@@ -242,13 +280,43 @@
     return Number(p[2]) + '.' + Number(p[1]) + '.' + p[0];
   }
 
-  function rangeFrom() {
-    var v = rangeSel.value;
-    if (v === 'all') return null;
-    var days = Number(v) || 14;
-    var d = new Date();
-    d.setDate(d.getDate() - (days - 1));
-    return H.localDateKey(d);
+  function syncRangeInputs() {
+    if (rangeFromEl) rangeFromEl.value = currentRange.from || '';
+    if (rangeToEl) rangeToEl.value = currentRange.to || '';
+    if (chipsEl) {
+      var chips = chipsEl.querySelectorAll('.range-chip');
+      for (var i = 0; i < chips.length; i++) {
+        var p = chips[i].getAttribute('data-preset');
+        chips[i].classList.toggle('active', p === currentRange.preset);
+      }
+    }
+  }
+
+  function persistAndRefresh(triggerBackfill) {
+    currentRange = H.saveRange(currentRange);
+    syncRangeInputs();
+    refresh();
+    if (triggerBackfill && typeof H.ensureHistory === 'function') {
+      H.ensureHistory({ from: currentRange.from, to: currentRange.to, force: true })
+        .then(function () {
+          fillApiaries();
+          refresh();
+        })
+        .catch(function () { refresh(); });
+    }
+  }
+
+  function applyPreset(preset) {
+    if (preset === 'custom') {
+      currentRange = H.clampRange({
+        from: rangeFromEl.value || currentRange.from,
+        to: rangeToEl.value || currentRange.to,
+        preset: 'custom'
+      });
+    } else {
+      currentRange = H.rangeFromPreset(preset);
+    }
+    persistAndRefresh(true);
   }
 
   function queryApiary() {
@@ -313,10 +381,14 @@
       }
     }
     if (pageSub) {
+      var rangeLab =
+        currentRange.preset === 'bal'
+          ? 'Bal sezonu (1 Haz – 30 Eyl)'
+          : formatDate(currentRange.from) + ' – ' + formatDate(currentRange.to);
       pageSub.textContent =
         id && id !== 'all'
-          ? label + ' — günlük sıcaklık kayıtları'
-          : 'Günlük sıcaklık kayıtları';
+          ? label + ' · ' + rangeLab
+          : 'Günlük sıcaklık · ' + rangeLab;
     }
     try {
       if (id && id !== 'all') {
@@ -372,33 +444,40 @@
     syncBanner();
     var records = H.filterRecords({
       apiaryId: apiarySel.value,
-      from: rangeFrom(),
-      to: H.localDateKey()
+      from: currentRange.from,
+      to: currentRange.to
     });
     renderList(records);
   }
 
   fillApiaries();
   H.ensureSeed();
+  syncRangeInputs();
   apiarySel.addEventListener('change', refresh);
-  rangeSel.addEventListener('change', function () {
-    refresh();
-    var daysWanted = Number(rangeSel.value) || 30;
-    if (rangeSel.value === 'all') daysWanted = 90;
-    if (typeof H.ensureHistory === 'function') {
-      H.ensureHistory({ days: Math.max(daysWanted, 30) }).then(function () {
-        fillApiaries();
-        refresh();
-      }).catch(function () { /* ignore */ });
-    }
-  });
+
+  if (chipsEl) {
+    chipsEl.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('.range-chip') : null;
+      if (!btn) return;
+      applyPreset(btn.getAttribute('data-preset'));
+    });
+  }
+
+  function onDateChange() {
+    currentRange = H.clampRange({
+      from: rangeFromEl.value,
+      to: rangeToEl.value,
+      preset: 'custom'
+    });
+    persistAndRefresh(true);
+  }
+  if (rangeFromEl) rangeFromEl.addEventListener('change', onDateChange);
+  if (rangeToEl) rangeToEl.addEventListener('change', onDateChange);
+
   refresh();
 
-  /* Eksik günleri Open-Meteo arşiv/past ile doldur; bitince listeyi yenile (hint kalıcı) */
-  var daysWanted = Number(rangeSel.value) || 30;
-  if (rangeSel.value === 'all') daysWanted = 90;
   if (typeof H.ensureHistory === 'function') {
-    H.ensureHistory({ days: Math.max(daysWanted, 30) }).then(function () {
+    H.ensureHistory({ from: currentRange.from, to: currentRange.to }).then(function () {
       fillApiaries();
       refresh();
     }).catch(function () {
@@ -416,6 +495,6 @@
     setInterval(tick, 30000);
   }
 })();
-</script>
+</script></script>
 </body>
 </html>

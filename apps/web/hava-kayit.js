@@ -7,7 +7,8 @@
 (function (global) {
   var STORAGE_KEY = 'superari.hava.kayit.v1';
   var BACKFILL_META_KEY = 'superari.hava.backfill.v1';
-  var MAX_DAYS = 90;
+  var RANGE_KEY = 'superari.hava.range.v1';
+  var MAX_DAYS = 200;
   var DEFAULT_BACKFILL_DAYS = 30;
   var DEFAULT_APIARIES = [
     { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
@@ -67,12 +68,89 @@
     if (!fromKey || !toKey || fromKey > toKey) return out;
     var cur = fromKey;
     var guard = 0;
-    while (cur <= toKey && guard < 400) {
+    while (cur <= toKey && guard < 500) {
       out.push(cur);
       cur = addDaysKey(cur, 1);
       guard++;
     }
     return out;
+  }
+
+  function balSeasonBounds(year) {
+    var y = year != null ? Number(year) : new Date().getFullYear();
+    return { from: y + '-06-01', to: y + '-09-30', preset: 'bal' };
+  }
+
+  function lastNDaysBounds(n) {
+    var days = Math.max(1, Number(n) || 30);
+    var to = localDateKey();
+    return { from: addDaysKey(to, -(days - 1)), to: to, preset: String(days) };
+  }
+
+  /** Default: current-year Bal sezonu (1 Haz – 30 Eyl), to capped at today. */
+  function defaultRange() {
+    var bal = balSeasonBounds();
+    var today = localDateKey();
+    var to = bal.to > today ? today : bal.to;
+    return { from: bal.from, to: to, preset: 'bal' };
+  }
+
+  function clampRange(range) {
+    var today = localDateKey();
+    var from = range && range.from ? String(range.from) : null;
+    var to = range && range.to ? String(range.to) : null;
+    var preset = range && range.preset ? String(range.preset) : 'custom';
+    if (!from || !to) return defaultRange();
+    if (to > today) to = today;
+    if (from > to) {
+      var tmp = from;
+      from = to;
+      to = tmp;
+    }
+    return { from: from, to: to, preset: preset };
+  }
+
+  function loadRange() {
+    try {
+      var raw = localStorage.getItem(RANGE_KEY);
+      if (!raw) return defaultRange();
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.from || !parsed.to) return defaultRange();
+      return clampRange(parsed);
+    } catch (e) {
+      return defaultRange();
+    }
+  }
+
+  function saveRange(range) {
+    var r = clampRange(range || defaultRange());
+    try {
+      localStorage.setItem(
+        RANGE_KEY,
+        JSON.stringify({ from: r.from, to: r.to, preset: r.preset || 'custom', at: Date.now() })
+      );
+    } catch (e) {
+      /* ignore */
+    }
+    return r;
+  }
+
+  function rangeFromPreset(preset) {
+    var p = String(preset || '');
+    if (p === 'bal') {
+      var bal = balSeasonBounds();
+      var today = localDateKey();
+      return clampRange({ from: bal.from, to: bal.to > today ? today : bal.to, preset: 'bal' });
+    }
+    if (p === '30' || p === 'son30') return lastNDaysBounds(30);
+    if (p === '90' || p === 'son90') return lastNDaysBounds(90);
+    /* custom: keep current stored dates, mark custom */
+    var cur = loadRange();
+    return clampRange({ from: cur.from, to: cur.to, preset: 'custom' });
+  }
+
+  function daysBetweenKeys(fromKey, toKey) {
+    return dateKeysInclusive(fromKey, toKey).length;
   }
 
   function loadRecords() {
@@ -163,13 +241,15 @@
 
   function ensureSeed() {
     var list = loadRecords();
+    var range = loadRange();
+    var bfOpts = { from: range.from, to: range.to };
     if (list.length) {
-      scheduleBackfill();
+      scheduleBackfill(bfOpts);
       return list;
     }
     list = seedDemo();
     saveRecords(list);
-    scheduleBackfill();
+    scheduleBackfill(bfOpts);
     return list;
   }
 
@@ -457,21 +537,32 @@
    */
   function backfillMissing(opts) {
     opts = opts || {};
-    var days = Number(opts.days) || DEFAULT_BACKFILL_DAYS;
+    var today = localDateKey();
+    var fromKey;
+    var toKey = today;
+    var days;
+    if (opts.from && opts.to) {
+      var clamped = clampRange({ from: opts.from, to: opts.to, preset: opts.preset || 'custom' });
+      fromKey = clamped.from;
+      toKey = clamped.to;
+      days = daysBetweenKeys(fromKey, toKey) || DEFAULT_BACKFILL_DAYS;
+    } else {
+      days = Number(opts.days) || DEFAULT_BACKFILL_DAYS;
+      if (days > MAX_DAYS) days = MAX_DAYS;
+      fromKey = addDaysKey(today, -(days - 1));
+      toKey = today;
+    }
     if (days > MAX_DAYS) days = MAX_DAYS;
     var apiaries = resolveApiaries(opts.apiaries);
     if (!apiaries.length) {
       return Promise.resolve({ filled: 0, apiaries: 0 });
     }
 
-    if (!opts.force && !needsBackfill(apiaries, days)) {
+    if (!opts.force && !opts.from && !needsBackfill(apiaries, days)) {
       return Promise.resolve({ filled: 0, apiaries: apiaries.length, skipped: true });
     }
 
     if (backfillInFlight && !opts.force) return backfillInFlight;
-
-    var today = localDateKey();
-    var fromKey = addDaysKey(today, -(days - 1));
 
     backfillInFlight = Promise.resolve()
       .then(function () {
@@ -481,7 +572,7 @@
         apiaries.forEach(function (apiary) {
           chain = chain.then(function (filledSoFar) {
             var list = prune(loadRecords());
-            var missing = missingDatesForApiary(apiary.id, fromKey, today, list);
+            var missing = missingDatesForApiary(apiary.id, fromKey, toKey, list);
             /* Meta bugün değilse seed'leri de yenilemek için tüm aralığı iste */
             if (!missing.length && meta[apiary.id] === today) {
               return filledSoFar;
@@ -491,19 +582,21 @@
               for (var m = 0; m < missing.length; m++) wantSet[missing[m]] = true;
             } else {
               /* İlk günlük pass: seed'leri gerçek veri ile değiştir */
-              var allKeys = dateKeysInclusive(fromKey, today);
+              var allKeys = dateKeysInclusive(fromKey, toKey);
               for (var k = 0; k < allKeys.length; k++) wantSet[allKeys[k]] = true;
             }
 
-            var usePast = days <= 92;
+            /* past_days max ~92; older / bal season → archive API */
+            var recentCutoff = addDaysKey(today, -91);
+            var usePast = fromKey >= recentCutoff && days <= 92;
             var fetchP = usePast
-              ? fetchForecastPast(apiary, days)
-              : fetchArchiveRange(apiary, fromKey, today);
+              ? fetchForecastPast(apiary, Math.max(days, daysBetweenKeys(fromKey, today)))
+              : fetchArchiveRange(apiary, fromKey, toKey);
 
             return fetchP
               .catch(function () {
                 /* Forecast past başarısızsa archive dene */
-                return fetchArchiveRange(apiary, fromKey, today);
+                return fetchArchiveRange(apiary, fromKey, toKey);
               })
               .then(function (meteo) {
                 var daily = meteo && meteo.daily;
@@ -689,10 +782,19 @@
 
   global.SuperAriHava = {
     STORAGE_KEY: STORAGE_KEY,
+    RANGE_KEY: RANGE_KEY,
     MAX_DAYS: MAX_DAYS,
     conditionFromCode: conditionFromCode,
     labelFromCondition: labelFromCondition,
     localDateKey: localDateKey,
+    addDaysKey: addDaysKey,
+    balSeasonBounds: balSeasonBounds,
+    lastNDaysBounds: lastNDaysBounds,
+    defaultRange: defaultRange,
+    loadRange: loadRange,
+    saveRange: saveRange,
+    rangeFromPreset: rangeFromPreset,
+    clampRange: clampRange,
     loadRecords: loadRecords,
     saveRecords: saveRecords,
     ensureSeed: ensureSeed,
