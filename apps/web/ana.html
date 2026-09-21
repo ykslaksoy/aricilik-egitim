@@ -809,11 +809,11 @@
   }
   .mascot-bee.is-flying {
     transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
-    /* Longer scale easing so door-approach shrink reads as continuous */
+    /* Flight: position eases fully; scale stays near depth until door-mouth enter */
     transition:
       left 1.45s cubic-bezier(.45,.05,.25,1),
       top 1.45s cubic-bezier(.35,.8,.25,1),
-      transform 1.15s cubic-bezier(.35,.2,.2,1),
+      transform .85s cubic-bezier(.35,.2,.2,1),
       opacity .4s ease;
   }
   .mascot-bee.is-entering {
@@ -2048,14 +2048,9 @@
         destScale = Math.max(destScale, midScale) * 1.03;
       }
       if (opts.away) {
+        /* Mild depth retreat only — do NOT shrink for door entry during flight. */
         midScale = Math.min(midScale, fromScale) * 0.96;
         destScale = opts.scale != null ? opts.scale : Math.min(destScale, midScale) * 0.88;
-        /* Door approach: shrink continuously toward the slit (not only after landing). */
-        if (allowTiny && opts.scale != null) {
-          midScale = fromScale * 0.58 + opts.scale * 0.42;
-          midScale = Math.min(midScale, fromScale * 0.70);
-          destScale = opts.scale;
-        }
       }
       faceToward(from, mid);
       placeAt(mid, midScale, allowTiny);
@@ -2250,17 +2245,15 @@
         t += hop;
       });
 
-      // Final: approach door while shrinking, then slip fully into the slit.
+      // Final: fly to door mouth at near-normal size; shrink ONLY after arrival.
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.add('is-flying');
         setBuzz(true);
-        /* Progressive scale-down as bee nears the hole (allowTiny during approach). */
+        /* Keep depth-scale (no allowTiny / no early shrink) until at the door lip. */
         flyTo(hivePoint(enterTile, 'door'), 1500, {
           flat: true,
-          away: true,
-          scale: 0.18,
-          allowTiny: true
+          approach: true
         });
       }, t);
       t += 1500;
@@ -2272,7 +2265,7 @@
         stopWingLoop();
         setBuzz(false);
         var door = hivePoint(enterTile, 'door');
-        /* Continue contracting into the entrance opening. */
+        /* Dibine gelince: shrink into the entrance opening, then vanish. */
         placeAt({ x: door.x, y: door.y }, 0.06, true);
         later(function () {
           if (!beesEnabled) return;
