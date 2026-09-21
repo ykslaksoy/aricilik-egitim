@@ -244,7 +244,7 @@
 
     <h2 class="section-title">Kayıtlar</h2>
     <div class="hist-list" id="histList"></div>
-    <p class="hint">Ana’da bir arılık seçilince sıcaklık o arılığa kaydedilir. Burada arılık seçerek yalnızca o arılığın kayıtlı sıcaklıklarını görürsünüz. Ana’daki °C’ye dokununca da bu sayfa açılır.</p>
+    <p class="hint" id="havaHint">Eksik günler Open-Meteo geçmiş verisiyle otomatik doldurulur; uygulama o gün açılmasa bile kayıtlar süreklidir. Burada arılık seçerek yalnızca o arılığın sıcaklık geçmişini görürsünüz. Ana’daki °C’ye dokununca da bu sayfa açılır.</p>
   </div>
 
   <nav class="tabbar" aria-label="Alt menü">
@@ -450,7 +450,7 @@
 
   function renderList(records) {
     if (!records.length) {
-      listEl.innerHTML = '<div class="empty">Seçilen aralıkta kayıt yok. Ana ekranı açınca bugünün havası kaydedilir.</div>';
+      listEl.innerHTML = '<div class="empty">Seçilen aralıkta kayıt yok. Eksik günler Open-Meteo’dan dolduruluyor…</div>';
       return;
     }
     var single = apiarySel.value && apiarySel.value !== 'all';
@@ -492,8 +492,35 @@
   fillApiaries();
   H.ensureSeed();
   apiarySel.addEventListener('change', refresh);
-  rangeSel.addEventListener('change', refresh);
+  rangeSel.addEventListener('change', function () {
+    refresh();
+    var daysWanted = Number(rangeSel.value) || 30;
+    if (rangeSel.value === 'all') daysWanted = 90;
+    if (typeof H.ensureHistory === 'function') {
+      H.ensureHistory({ days: Math.max(daysWanted, 30) }).then(function () {
+        fillApiaries();
+        refresh();
+      }).catch(function () { /* ignore */ });
+    }
+  });
   refresh();
+
+  /* Eksik günleri Open-Meteo arşiv/past ile doldur; bitince listeyi yenile */
+  var hintEl = document.getElementById('havaHint');
+  var daysWanted = Number(rangeSel.value) || 30;
+  if (rangeSel.value === 'all') daysWanted = 90;
+  if (typeof H.ensureHistory === 'function') {
+    H.ensureHistory({ days: Math.max(daysWanted, 30) }).then(function (res) {
+      fillApiaries();
+      refresh();
+      if (hintEl && res && res.filled > 0) {
+        hintEl.textContent =
+          'Eksik ' + res.filled + ' günlük kayıt Open-Meteo ile tamamlandı. Uygulama kapalı olsa bile geçmiş sıcaklıklar görünür.';
+      }
+    }).catch(function () {
+      refresh();
+    });
+  }
 
   var clock = document.getElementById('clock');
   if (clock) {
