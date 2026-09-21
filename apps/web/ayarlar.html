@@ -33,8 +33,17 @@
       </div>
 
       <form class="stack" id="ayarlar-form">
+        <label>Arıcılık adı
+          <input id="aricilik-adi" name="aricilikAdi" placeholder="Örn. Hardal Arıcılık" />
+        </label>
+        <label>Ad soyadı
+          <input id="account-name" name="name" autocomplete="name" placeholder="Adınız Soyadınız" />
+        </label>
         <label>Bildirim e-postası
           <input type="email" id="notif-email" name="notifEmail" placeholder="ornek@mail.com" />
+        </label>
+        <label>Telefon <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
+          <input type="tel" id="account-phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="05xx xxx xx xx" />
         </label>
         <label>Dil
           <input value="Türkçe" readonly />
@@ -45,9 +54,6 @@
             <option value="yonetici">Yönetici</option>
             <option value="bakici">Bakıcı</option>
           </select>
-        </label>
-        <label>Arıcılık adı
-          <input id="aricilik-adi" name="aricilikAdi" placeholder="Örn. Hardal Arıcılık" />
         </label>
         <p class="hint-inline" id="hesap-hint">
           Uygulama seçilen hesaba göre açılır. Demo: Yönetici seçilebilir; gerçek kimlik doğrulama sonra kilitleyecek.
@@ -66,6 +72,8 @@
       var navAna = document.getElementById('nav-ana');
       var notif = document.getElementById('notif-email');
       var arilik = document.getElementById('aricilik-adi');
+      var nameEl = document.getElementById('account-name');
+      var phoneEl = document.getElementById('account-phone');
       var badge = document.getElementById('verify-badge');
       var summary = document.getElementById('account-summary');
       var form = document.getElementById('ayarlar-form');
@@ -78,6 +86,8 @@
         var acc = H.getAccount() || {};
         if (notif) notif.value = acc.notifEmail || acc.email || '';
         if (arilik) arilik.value = acc.aricilikAdi || '';
+        if (nameEl) nameEl.value = acc.name || '';
+        if (phoneEl) phoneEl.value = acc.phone || '';
         if (badge) {
           if (acc.verified) {
             badge.textContent = '✓ Doğrulandı';
@@ -126,6 +136,8 @@
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         H.updateAccount({
+          name: (nameEl && nameEl.value) || '',
+          phone: (phoneEl && phoneEl.value) || '',
           notifEmail: (notif && notif.value) || '',
           aricilikAdi: (arilik && arilik.value) || '',
           hesapTipi: sel.value
