@@ -926,7 +926,7 @@
           <span class="muayene-hint-text" id="muayeneHintText"></span>
           <button type="button" class="muayene-hint-ok" id="muayeneHintOk" hidden>Tamam</button>
         </div>
-        <button type="button" class="bee-sound-toggle" id="beeSoundToggle" aria-pressed="true" aria-label="Arı sesini kapat" title="Arı sesi açık/kapalı">
+        <button type="button" class="bee-sound-toggle" id="beeSoundToggle" aria-pressed="false" aria-label="Sesi aç" title="Sesi aç">
           <svg class="bee-sound-toggle-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
             <path class="sound-waves" d="M15.5 8.5a4 4 0 0 1 0 7M18.5 5.5a7.5 7.5 0 0 1 0 13"/>
@@ -2015,14 +2015,15 @@
       beeSoundToggle.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
       beeSoundToggle.setAttribute(
         'aria-label',
-        soundEnabled ? 'Arı sesini kapat' : 'Arı sesini aç'
+        soundEnabled ? 'Sesi kapat' : 'Sesi aç'
       );
       beeSoundToggle.setAttribute(
         'title',
-        soundEnabled ? 'Ses açık — dokununca kapat' : 'Ses kapalı — dokununca aç'
+        soundEnabled ? 'Sesi kapat' : 'Sesi aç'
       );
       var st = beeSoundToggle.querySelector('.bee-sound-text');
-      if (st) st.textContent = soundEnabled ? 'Ses' : 'Sessiz';
+      /* ON → Sessiz (press to mute); OFF → Ses (press to enable) */
+      if (st) st.textContent = soundEnabled ? 'Sessiz' : 'Ses';
     }
 
     function setSoundEnabled(on) {
@@ -2037,7 +2038,8 @@
           later(function () { if (!buzzWanted) setBuzz(false); }, 500);
         }
       } else {
-        setBuzz(false);
+        /* Mute: cut Web Audio buzz immediately; keep buzzWanted so unmute can resume */
+        stopBuzzSource(true);
       }
     }
     var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
