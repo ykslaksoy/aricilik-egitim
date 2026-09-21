@@ -250,7 +250,11 @@
     margin-top: 6px; font-size: 11px; color: var(--muted); line-height: 1.35;
   }
   .map-paste {
-    margin-top: 8px;
+    margin-top: 8px; display: grid; gap: 5px;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+  }
+  .map-paste .map-paste-row {
+    margin-bottom: 0;
   }
   .map-paste input {
     font-size: 13px; font-weight: 560;
@@ -356,10 +360,13 @@
             <button type="button" class="btn-tool primary" id="btnAddLoc" disabled>Bu konumu ekle</button>
           </div>
           <div id="mapBookmarks" class="ymap-bookmarks" hidden></div>
-          <label class="map-paste">Yandex link / enlem,boylam
-            <input type="text" id="mapPaste" maxlength="240" placeholder="Yandex paylaşım linki veya 40.12, 41.45" />
+          <label class="map-paste">Koordinat — tek satır (enlem, boylam)
+            <div class="map-search-row map-paste-row">
+              <input type="text" id="mapPaste" maxlength="240" placeholder="39.92, 41.27  ·  39.92 41.27  ·  Yandex linki" autocomplete="off" inputmode="decimal" />
+              <button type="button" class="btn-ara" id="mapPasteBtn">Uygula</button>
+            </div>
           </label>
-          <p class="map-hint">Yandex haritasında ara / iğne koy / sürükle → <strong>Bu konumu ekle</strong>. Küçük haritaya dokununca tam ekran (Geri). Uygulama kayıtlı arılıklar aşağıda; Yandex hesap yerleri için giriş sonra. İstersen Google / Apple / OSM / Bing ile de aç.</p>
+          <p class="map-hint">Tek satıra yazıp <strong>Enter</strong> veya <strong>Uygula</strong>: pin + enlem/boylam dolar, Kaydet açılır. Haritada da ara / iğne / sürükle → <strong>Bu konumu ekle</strong>. Küçük haritaya dokununca tam ekran (Geri). Google / Apple / OSM / Bing ile de açılabilir.</p>
           <div class="forage-radius">
             <label for="forageRadius">Foraj</label>
             <input type="range" id="forageRadius" min="0.5" max="10" step="0.5" value="3" />
@@ -736,13 +743,33 @@
   }
 
   function applyPaste() {
-    var parsed = D.parseCoordsFromText(pasteInput.value);
-    if (!parsed) return;
-    ensureMap().then(function () {
-      placeMarker(parsed.lat, parsed.lon, pending && pending.name);
-      if (mapCtrl) mapCtrl.setView(parsed.lat, parsed.lon, 14);
-      clearError();
-    });
+    var raw = pasteInput ? pasteInput.value : '';
+    if (!D || typeof D.parseCoordsFromText !== 'function') {
+      showError('Koordinat çözümleyici yüklenemedi.');
+      return;
+    }
+    var parsed = D.parseCoordsFromText(raw);
+    if (!parsed) {
+      if (String(raw || '').trim()) {
+        showError('Geçersiz koordinat. Tek satır: 39.92, 41.27 veya 39.92 41.27 veya Yandex linki.');
+      }
+      return;
+    }
+    /* Map opsiyonel: pin gelsin; lat/lon hemen dolsun ki Kaydet çalışsın */
+    setPending(parsed.lat, parsed.lon, pending && pending.name);
+    setCoords(parsed.lat, parsed.lon);
+    coordsEl.textContent = 'Eklendi: ' + parsed.lat.toFixed(4) + ', ' + parsed.lon.toFixed(4);
+    clearError();
+    ensureMap()
+      .then(function () {
+        placeMarker(parsed.lat, parsed.lon, pending && pending.name);
+        setCoords(parsed.lat, parsed.lon);
+        coordsEl.textContent = 'Eklendi: ' + parsed.lat.toFixed(4) + ', ' + parsed.lon.toFixed(4);
+        if (mapCtrl) mapCtrl.setView(parsed.lat, parsed.lon, 14);
+      })
+      .catch(function () {
+        /* Harita yoksa bile kayıt için lat/lon hazır */
+      });
   }
 
   function clearError() {
@@ -884,6 +911,14 @@
     }
     coordsEl.textContent = 'Eklendi: ' + pending.lat.toFixed(4) + ', ' + pending.lon.toFixed(4);
     clearError();
+  });
+  var pasteBtn = document.getElementById('mapPasteBtn');
+  if (pasteBtn) pasteBtn.addEventListener('click', applyPaste);
+  pasteInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyPaste();
+    }
   });
   pasteInput.addEventListener('change', applyPaste);
   pasteInput.addEventListener('paste', function () {

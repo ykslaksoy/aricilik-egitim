@@ -236,6 +236,7 @@
     margin-top: 8px; display: grid; gap: 5px;
     font-size: 12px; font-weight: 700; color: var(--muted);
   }
+  .map-paste .map-paste-row { margin-bottom: 0; }
   .map-paste input {
     width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
     padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
@@ -1157,10 +1158,13 @@
           '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
         '</div>' +
         '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
-        '<label class="map-paste">Yandex link / enlem,boylam' +
-          '<input type="text" id="mapPaste" maxlength="240" placeholder="Yandex paylaşım linki veya 40.12, 41.45" />' +
+        '<label class="map-paste">Koordinat — tek satır (enlem, boylam)' +
+          '<div class="map-search-row map-paste-row">' +
+            '<input type="text" id="mapPaste" maxlength="240" placeholder="39.92, 41.27  ·  39.92 41.27  ·  Yandex linki" autocomplete="off" inputmode="decimal" />' +
+            '<button type="button" class="btn-ara" id="mapPasteBtn">Uygula</button>' +
+          '</div>' +
         '</label>' +
-        '<p class="map-hint-inline">Yandex haritasında ara / iğne / sürükle · kaydet (tam ekran Geri). Google · Apple · OSM · Bing ile de açılabilir. Sarı çember = foraj.</p>' +
+        '<p class="map-hint-inline">Tek satır + Enter/Uygula: pin koyar, kaydı açar. Haritada da ara / iğne / sürükle · kaydet (tam ekran Geri). Google · Apple · OSM · Bing. Sarı çember = foraj.</p>' +
         '<div id="forageHost"></div>' +
       '</section>';
 
@@ -1325,17 +1329,42 @@
     }
     if (pasteInput && D.parseCoordsFromText) {
       function applyPaste() {
-        var parsed = D.parseCoordsFromText(pasteInput.value);
-        if (!parsed || !detailMapCtrl) return;
-        pickMode = true;
-        placeDetailMarker(parsed.lat, parsed.lon, pendingSearchName);
-        detailMapCtrl.setView(parsed.lat, parsed.lon, 14);
-        if (btnSave) {
-          btnSave.hidden = false;
-          btnSave.textContent = 'Bu konumu kaydet';
+        var raw = pasteInput.value;
+        var parsed = D.parseCoordsFromText(raw);
+        if (!parsed) {
+          if (String(raw || '').trim()) {
+            alert('Geçersiz koordinat. Tek satır: 39.92, 41.27 veya 39.92 41.27 veya Yandex linki.');
+          }
+          return;
         }
-        if (btnPick) btnPick.hidden = true;
+        pickMode = true;
+        function afterMap() {
+          placeDetailMarker(parsed.lat, parsed.lon, pendingSearchName);
+          if (detailMapCtrl) detailMapCtrl.setView(parsed.lat, parsed.lon, 14);
+          if (btnSave) {
+            btnSave.hidden = false;
+            btnSave.textContent = 'Bu konumu kaydet';
+          }
+          if (btnPick) btnPick.hidden = true;
+        }
+        if (detailMapCtrl) {
+          afterMap();
+        } else if (detailMapReady) {
+          detailMapReady.then(afterMap).catch(function () {
+            alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
+          });
+        } else {
+          alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
+        }
       }
+      var pasteBtn = document.getElementById('mapPasteBtn');
+      if (pasteBtn) pasteBtn.addEventListener('click', applyPaste);
+      pasteInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyPaste();
+        }
+      });
       pasteInput.addEventListener('change', applyPaste);
       pasteInput.addEventListener('paste', function () { setTimeout(applyPaste, 0); });
     }
