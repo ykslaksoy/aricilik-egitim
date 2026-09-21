@@ -1663,7 +1663,7 @@
     { key: 'ariliklar', label: 'Arılıklar', badge: '3', tone: 'tan', href: 'kovanlar.html?view=ariliklar' },
     { key: 'gorevler', label: 'Görevler', badge: '5', tone: 'blue', href: 'gorevler.html' },
     { key: 'uyarilar', label: 'Uyarılar', badge: '2', tone: 'red', href: 'uyarilar.html' },
-    { key: 'raporlar', label: 'Raporlar', badge: '—', tone: 'purple', href: 'raporlar.html' }
+    { key: 'raporlar', label: 'Raporlar', badge: '2', tone: 'purple', href: 'raporlar.html' }
   ];
 
   function hiveHTML(key) {
@@ -1705,11 +1705,13 @@
 
   var grid = document.getElementById('grid');
   grid.innerHTML = tiles.map(function (t) {
+    var badge = t.badge;
+    var showBadge = badge && badge !== '—' && badge !== '–';
     return (
       '<article class="tile" data-key="' + t.key + '" data-href="' + (t.href || '') + '" role="link" tabindex="0" aria-label="' + t.label + '">' +
         hiveHTML(t.key) +
         '<div class="tile-label">' + t.label + '</div>' +
-        '<div class="badge ' + t.tone + '">' + t.badge + '</div>' +
+        (showBadge ? '<div class="badge ' + t.tone + '">' + badge + '</div>' : '') +
       '</article>'
     );
   }).join('');
