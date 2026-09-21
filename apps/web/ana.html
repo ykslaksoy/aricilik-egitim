@@ -809,6 +809,12 @@
   }
   .mascot-bee.is-flying {
     transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
+    /* Longer scale easing so door-approach shrink reads as continuous */
+    transition:
+      left 1.45s cubic-bezier(.45,.05,.25,1),
+      top 1.45s cubic-bezier(.35,.8,.25,1),
+      transform 1.15s cubic-bezier(.35,.2,.2,1),
+      opacity .4s ease;
   }
   .mascot-bee.is-entering {
     transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
@@ -1853,7 +1859,7 @@
         var a = new Audio('assets/bees/' + key + '-buzz.wav');
         a.loop = true;
         a.preload = 'auto';
-        a.volume = key === 'karniyol' ? 0.22 : (key === 'italyan' ? 0.28 : 0.25);
+        a.volume = key === 'karniyol' ? 0.16 : (key === 'italyan' ? 0.20 : 0.17);
         buzzPlayers[key] = a;
       }
       return buzzPlayers;
@@ -2026,8 +2032,10 @@
     /** Straight flight; faces dest; scale grows on approach / shrinks when leaving */
     function flyTo(dest, durationMs, opts) {
       opts = opts || {};
+      var allowTiny = !!opts.allowTiny;
       var from = { x: beePos.x, y: beePos.y };
-      var fromScale = depthScaleFromY(from.y);
+      var curScale = parseFloat(getComputedStyle(beeRoot).getPropertyValue('--bee-scale')) || depthScaleFromY(from.y);
+      var fromScale = curScale;
       var bob = opts.flat ? 4 : 7;
       var mid = {
         x: (from.x + dest.x) / 2,
@@ -2042,12 +2050,18 @@
       if (opts.away) {
         midScale = Math.min(midScale, fromScale) * 0.96;
         destScale = opts.scale != null ? opts.scale : Math.min(destScale, midScale) * 0.88;
+        /* Door approach: shrink continuously toward the slit (not only after landing). */
+        if (allowTiny && opts.scale != null) {
+          midScale = fromScale * 0.58 + opts.scale * 0.42;
+          midScale = Math.min(midScale, fromScale * 0.70);
+          destScale = opts.scale;
+        }
       }
       faceToward(from, mid);
-      placeAt(mid, midScale);
+      placeAt(mid, midScale, allowTiny);
       later(function () {
         faceToward(mid, dest);
-        placeAt(dest, destScale);
+        placeAt(dest, destScale, allowTiny);
       }, Math.max(280, Math.floor((durationMs || 1400) * 0.48)));
     }
 
@@ -2236,14 +2250,20 @@
         t += hop;
       });
 
-      // Final: fly into the hive door, then visibly shrink into the slit.
+      // Final: approach door while shrinking, then slip fully into the slit.
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.add('is-flying');
         setBuzz(true);
-        flyTo(hivePoint(enterTile, 'door'), 1300, { flat: true, away: true, scale: 0.72 });
+        /* Progressive scale-down as bee nears the hole (allowTiny during approach). */
+        flyTo(hivePoint(enterTile, 'door'), 1500, {
+          flat: true,
+          away: true,
+          scale: 0.18,
+          allowTiny: true
+        });
       }, t);
-      t += 1300;
+      t += 1500;
 
       later(function () {
         if (!beesEnabled) return;
@@ -2252,12 +2272,12 @@
         stopWingLoop();
         setBuzz(false);
         var door = hivePoint(enterTile, 'door');
-        /* Stay centered on the entrance while the bee contracts into it. */
-        placeAt({ x: door.x, y: door.y }, 0.12, true);
+        /* Continue contracting into the entrance opening. */
+        placeAt({ x: door.x, y: door.y }, 0.06, true);
         later(function () {
           if (!beesEnabled) return;
-          setBeeScale(0.025, true);
-        }, 80);
+          setBeeScale(0.02, true);
+        }, 90);
         /* Remove it from the visual layer before the next breed cycle. */
         later(function () {
           if (!beesEnabled) return;
