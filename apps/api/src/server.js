@@ -56,6 +56,7 @@ const { analyzeMlFleet, getFleetStats } = require("./services/mlFleetAnalysis");
 const journalService = require("./services/journalService");
 const teamService = require("./services/teamService");
 const orgPanelService = require("./services/orgPanelService");
+const adminNotifyService = require("./services/adminNotifyService");
 const offlineSyncService = require("./services/offlineSyncService");
 const subscriptionService = require("./services/subscriptionService");
 const slaService = require("./services/slaService");
@@ -3199,15 +3200,85 @@ app.get("/api/orgs/:id", (req, res) => {
   res.json({ org: orgPanelService.publicOrg(org) });
 });
 
+
+app.post("/api/users/register", async (req, res) => {
+  const result = adminNotifyService.registerUser(req.body || {});
+  if (result.error === "capacity") {
+    await adminNotifyService.notifyUserAddFailure({
+      name: req.body?.name || req.body?.ad,
+      email: req.body?.email,
+      reason: "capacity",
+      source: "users_register",
+    });
+    return res.status(429).json(result);
+  }
+  if (result.error) {
+    await adminNotifyService.notifyUserAddFailure({
+      name: req.body?.name || req.body?.ad,
+      email: req.body?.email,
+      reason: result.error,
+      source: "users_register",
+    });
+    return res.status(400).json({
+      ...result,
+      userMessage: adminNotifyService.USER_MSG,
+    });
+  }
+  res.status(201).json(result);
+});
+
+app.post("/api/admin/notify-user-add-failure", async (req, res) => {
+  const out = await adminNotifyService.notifyUserAddFailure(req.body || {});
+  res.json(out);
+});
+
+app.get("/api/admin/notifications", (_req, res) => {
+  res.json({ notifications: adminNotifyService.listNotifications() });
+});
+
+app.get("/api/admin/users", (_req, res) => {
+  res.json({ users: adminNotifyService.listUsers() });
+});
+
 app.post("/api/orgs", (req, res) => {
   const result = orgPanelService.createOrg(req.body || {});
   if (result.error) return res.status(400).json(result);
   res.status(201).json(result);
 });
 
-app.post("/api/orgs/:id/members", (req, res) => {
-  const result = orgPanelService.addMember(req.params.id, req.body || {});
-  if (result.error) return res.status(400).json(result);
+app.post("/api/orgs/:id/members", async (req, res) => {
+  const body = req.body || {};
+  if (!adminNotifyService.canAddUser()) {
+    await adminNotifyService.notifyUserAddFailure({
+      name: body.ad || body.name,
+      email: body.email,
+      reason: "capacity",
+      source: "orgs_members",
+    });
+    return res.status(429).json({
+      error: "capacity",
+      userMessage: adminNotifyService.USER_MSG,
+    });
+  }
+  const result = orgPanelService.addMember(req.params.id, body);
+  if (result.error) {
+    await adminNotifyService.notifyUserAddFailure({
+      name: body.ad || body.name,
+      email: body.email,
+      reason: result.error,
+      source: "orgs_members",
+    });
+    return res.status(400).json({
+      ...result,
+      userMessage: adminNotifyService.USER_MSG,
+    });
+  }
+  adminNotifyService.upsertUser({
+    name: result.member?.ad,
+    role: result.member?.rol,
+    status: "active",
+    source: "orgs_members",
+  });
   res.json(result);
 });
 
@@ -3228,11 +3299,33 @@ app.post("/api/teams", (req, res) => {
   res.json({ ok: true, team });
 });
 
-app.post("/api/teams/:id/members", (req, res) => {
+app.post("/api/teams/:id/members", async (req, res) => {
   const { email, role } = req.body || {};
   if (!email) return res.status(400).json({ error: "email_required" });
+  if (!adminNotifyService.canAddUser()) {
+    await adminNotifyService.notifyUserAddFailure({
+      email,
+      reason: "capacity",
+      source: "teams_members",
+    });
+    return res.status(429).json({
+      error: "capacity",
+      userMessage: adminNotifyService.USER_MSG,
+    });
+  }
   const team = teamService.addMember(req.params.id, email, role);
-  if (!team) return res.status(404).json({ error: "team_not_found" });
+  if (!team) {
+    await adminNotifyService.notifyUserAddFailure({
+      email,
+      reason: "team_not_found",
+      source: "teams_members",
+    });
+    return res.status(404).json({
+      error: "team_not_found",
+      userMessage: adminNotifyService.USER_MSG,
+    });
+  }
+  adminNotifyService.upsertUser({ email, role: role || "arici", status: "active", source: "teams_members" });
   res.json({ ok: true, team });
 });
 

@@ -52,6 +52,53 @@
     return !!resolveApiKey();
   }
 
+  var USER_BUSY_MSG = 'Talep yoğunluğundan dolayı lütfen yarın deneyiniz.';
+
+  function isBusyOrQuotaError(err) {
+    if (global.SuperAriAdminNotify && global.SuperAriAdminNotify.isBusyOrQuotaError) {
+      return global.SuperAriAdminNotify.isBusyOrQuotaError(err);
+    }
+    if (!err) return false;
+    var s = String(err && err.message != null ? err.message : err).toLowerCase();
+    return (
+      s.indexOf('quota') >= 0 ||
+      s.indexOf('rate') >= 0 ||
+      s.indexOf('limit') >= 0 ||
+      s.indexOf('429') >= 0 ||
+      s.indexOf('capacity') >= 0 ||
+      s.indexOf('busy') >= 0 ||
+      s.indexOf('exceed') >= 0 ||
+      s.indexOf('ymaps_script_error') >= 0 ||
+      s.indexOf('ymaps_timeout') >= 0
+    );
+  }
+
+  function notifyAdminsBusy(meta) {
+    meta = meta || {};
+    meta.source = meta.source || 'yandex-map';
+    if (global.SuperAriAdminNotify && global.SuperAriAdminNotify.notifyAdminsBusy) {
+      return global.SuperAriAdminNotify.notifyAdminsBusy(meta);
+    }
+    return null;
+  }
+
+  /** Show user busy/quota message and always notify admins («bize»). */
+  function showBusyMessage(containerEl, meta) {
+    notifyAdminsBusy(Object.assign({ reason: 'map_quota_or_busy' }, meta || {}));
+    var el =
+      typeof containerEl === 'string'
+        ? document.getElementById(containerEl) || document.querySelector(containerEl)
+        : containerEl;
+    if (el) {
+      el.innerHTML =
+        '<div class="ymap-key-needed ymap-busy" role="alert">' +
+          '<strong>' + USER_BUSY_MSG + '</strong>' +
+          '<p>Harita kotası veya talep yoğunluğu nedeniyle işlem şimdilik yapılamıyor. Yarın tekrar deneyin.</p>' +
+        '</div>';
+    }
+    return USER_BUSY_MSG;
+  }
+
   function showKeyRequired(containerEl) {
     var el =
       typeof containerEl === 'string'
@@ -119,7 +166,7 @@
       };
       s.onerror = function () {
         ymapsLoadPromise = null;
-        reject(new Error('ymaps_script_error'));
+        reject(new Error('yandex_quota_or_busy'));
       };
       document.head.appendChild(s);
     });
@@ -199,6 +246,12 @@
           } catch (e2) { /* ignore */ }
         }
       };
+    }).catch(function (err) {
+      if (isBusyOrQuotaError(err) || (err && String(err.message || '').indexOf('yandex_quota') >= 0)) {
+        showBusyMessage(node, { reason: String(err && err.message || 'map_load'), source: 'createMap' });
+        return Promise.reject(new Error('yandex_quota_or_busy'));
+      }
+      return Promise.reject(err);
     });
   }
 
@@ -265,8 +318,24 @@
   function searchPlaces(query) {
     var q = trim(query);
     if (!q) return Promise.resolve([]);
+    function failBusy(err) {
+      var e = err || new Error('yandex_quota_or_busy');
+      if (!isBusyOrQuotaError(e)) {
+        e = new Error('yandex_quota_or_busy');
+        e.cause = err;
+      }
+      notifyAdminsBusy({ reason: String((err && err.message) || 'search_quota'), source: 'searchPlaces', query: q });
+      return Promise.reject(e);
+    }
+    function lookBusy(err) {
+      return isBusyOrQuotaError(err) || (err && /quota|429|rate|limit|exceed|capacity/i.test(String(err.message || err || '')));
+    }
     return loadYmaps().then(function (ymaps) {
-      return new Promise(function (resolve) {
+      return new Promise(function (resolve, reject) {
+        function onGeocodeFail(err) {
+          if (lookBusy(err)) reject(Object.assign(new Error('yandex_quota_or_busy'), { cause: err }));
+          else resolve([]);
+        }
         ymaps.suggest(q, { results: 8 }).then(
           function (items) {
             items = items || [];
@@ -275,7 +344,7 @@
                 function (res) {
                   resolve(geoResultToList(res));
                 },
-                function () { resolve([]); }
+                onGeocodeFail
               );
               return;
             }
@@ -293,25 +362,43 @@
                     lon: c[1]
                   };
                 },
-                function () { return null; }
+                function (err) {
+                  if (lookBusy(err)) throw Object.assign(new Error('yandex_quota_or_busy'), { cause: err });
+                  return null;
+                }
               );
             });
-            Promise.all(pending).then(function (rows) {
-              resolve(
-                rows.filter(function (r) {
-                  return r && isFinite(r.lat) && isFinite(r.lon);
-                })
-              );
-            });
+            Promise.all(pending).then(
+              function (rows) {
+                resolve(
+                  rows.filter(function (r) {
+                    return r && isFinite(r.lat) && isFinite(r.lon);
+                  })
+                );
+              },
+              function (err) {
+                if (lookBusy(err)) reject(Object.assign(new Error('yandex_quota_or_busy'), { cause: err }));
+                else resolve([]);
+              }
+            );
           },
-          function () {
+          function (err) {
+            if (lookBusy(err)) {
+              reject(Object.assign(new Error('yandex_quota_or_busy'), { cause: err }));
+              return;
+            }
             ymaps.geocode(q, { results: 6 }).then(
               function (res) { resolve(geoResultToList(res)); },
-              function () { resolve([]); }
+              onGeocodeFail
             );
           }
         );
       });
+    }).catch(function (err) {
+      if (lookBusy(err) || (err && String(err.message || '').indexOf('yandex_quota') >= 0)) {
+        return failBusy(err);
+      }
+      return Promise.reject(err);
     });
   }
 
@@ -787,8 +874,12 @@
 
   global.SuperAriYandexMap = {
     KEY_HELP: KEY_HELP,
+    USER_BUSY_MSG: USER_BUSY_MSG,
     resolveApiKey: resolveApiKey,
     hasApiKey: hasApiKey,
+    isBusyOrQuotaError: isBusyOrQuotaError,
+    showBusyMessage: showBusyMessage,
+    notifyAdminsBusy: notifyAdminsBusy,
     showKeyRequired: showKeyRequired,
     loadYmaps: loadYmaps,
     createMap: createMap,

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kullanıcılar · SüperArı Yönetim</title>
+  <link rel="stylesheet" href="admin.css" />
+  <style>
+    .users-shell { min-height: 100vh; background: #f0f2f5; padding-bottom: 72px; }
+    .users-header { background: #1a2332; color: #e8ecf0; padding: 1rem 1.25rem; border-bottom: 3px solid #3d7a57; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
+    .users-header h1 { margin: 0; font-size: 1.15rem; color: #fff; }
+    .users-header .muted { color: #9aa8b8; margin: 0.25rem 0 0; font-size: 0.8rem; }
+    .users-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .users-main { max-width: 960px; margin: 0 auto; padding: 1rem; }
+    .users-panel[hidden] { display: none !important; }
+    .users-bottom-nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      background: #1a2332; border-top: 2px solid #3d7a57;
+      padding: 0.35rem 0.25rem calc(0.35rem + env(safe-area-inset-bottom));
+    }
+    .users-bottom-nav a {
+      color: #9aa8b8; text-decoration: none; text-align: center;
+      font-size: 0.68rem; font-weight: 700; padding: 0.35rem 0.2rem;
+      border-radius: 8px;
+    }
+    .users-bottom-nav a .ico { display: block; font-size: 1.1rem; line-height: 1.2; }
+    .users-bottom-nav a.is-active { color: #9fd4b0; background: rgba(61,122,87,.25); }
+    .badge-dot {
+      display: inline-block; min-width: 1.1rem; padding: 0 0.25rem; margin-left: 0.25rem;
+      border-radius: 999px; background: #c45c26; color: #fff; font-size: 0.65rem; font-weight: 800;
+    }
+    .user-row { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; padding: 0.65rem 0; border-bottom: 1px solid #eee; }
+    .user-row:last-child { border-bottom: 0; }
+    .status-pill { font-size: 0.65rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px; background: #e8f5ee; color: #2d6a4f; }
+    .status-pill.pending { background: #fff6e8; color: #8a5a12; }
+    .status-pill.failed { background: #fdecea; color: #8a1f11; }
+    .notif-item { padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+    .notif-item.unread { background: #fffaf0; margin: 0 -0.5rem; padding-left: 0.5rem; padding-right: 0.5rem; border-radius: 8px; }
+    .add-form { display: grid; gap: 0.55rem; max-width: 420px; }
+    .add-form label { font-size: 0.78rem; display: grid; gap: 0.25rem; }
+    .add-form input, .add-form select { padding: 0.45rem 0.55rem; border: 1px solid #ccc; border-radius: 6px; font: inherit; }
+    .hint-box { font-size: 0.78rem; color: #555; background: #f7f9fb; border: 1px dashed #c5d0db; border-radius: 8px; padding: 0.75rem; margin-top: 0.75rem; }
+  </style>
+</head>
+<body class="admin-body users-shell">
+  <header class="users-header">
+    <div>
+      <h1>SüperArı · Kullanıcı yönetimi</h1>
+      <p class="muted">Tüm kullanıcılar · ayrı yönetim navigasyonu (son kullanıcı sekmesinden bağımsız)</p>
+    </div>
+    <div class="users-header-actions">
+      <a href="admin.html" class="btn-admin-link">← ML Yönetici</a>
+      <a href="yonetici.html" class="btn-admin-link">Yönetici paneli</a>
+      <button type="button" id="btn-refresh" class="btn-admin">Yenile</button>
+    </div>
+  </header>
+
+  <main class="users-main">
+    <section id="panel-users" class="admin-card users-panel">
+      <h2>Kullanıcılar</h2>
+      <p class="muted tip-inline">Kayıtlı / bekleyen kullanıcı listesi. Harici araçlardan gelen hesaplar da buraya işlenebilir.</p>
+      <div id="users-list">—</div>
+    </section>
+
+    <section id="panel-pending" class="admin-card users-panel" hidden>
+      <h2>Bekleyen</h2>
+      <p class="muted tip-inline">Onay veya tamamlanmamış kayıtlar.</p>
+      <div id="pending-list">—</div>
+    </section>
+
+    <section id="panel-notifs" class="admin-card users-panel" hidden>
+      <h2>Bildirimler <span id="notif-badge" class="badge-dot" hidden>0</span></h2>
+      <p class="muted tip-inline">Yoğunluk / kota nedeniyle eklenemeyen kullanıcılar — «bize» bildirimleri.</p>
+      <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+        <button type="button" id="btn-mark-all" class="btn-admin-sm">Tümünü okundu say</button>
+        <button type="button" id="btn-clear-notifs" class="btn-admin-sm" style="background:#666;">Temizle</button>
+      </div>
+      <div id="notif-list">—</div>
+    </section>
+
+    <section id="panel-settings" class="admin-card users-panel" hidden>
+      <h2>Ayarlar</h2>
+      <p class="muted tip-inline">Manuel kullanıcı ekleme (demo). Kota / yoğunlukta kullanıcıya: «Talep yoğunluğundan dolayı lütfen yarın deneyiniz.» — size: «Kullanıcı yoğunluktan dolayı ekleme yapılamadı».</p>
+      <form id="add-user-form" class="add-form">
+        <label>Ad Soyad <input name="name" required placeholder="Ad Soyad" /></label>
+        <label>E-posta <input name="email" type="email" required placeholder="ornek@mail.com" /></label>
+        <label>Rol
+          <select name="role">
+            <option value="arici">Arıcı</option>
+            <option value="yonetici">Yönetici</option>
+            <option value="isci">İşçi</option>
+          </select>
+        </label>
+        <label style="flex-direction:row;align-items:center;gap:0.4rem;display:flex;">
+          <input type="checkbox" name="simulateBusy" /> Yoğunluk simülasyonu (başarısız ekleme)
+        </label>
+        <button type="submit" class="btn-admin">Kullanıcı ekle</button>
+        <p id="add-user-msg" role="alert" hidden></p>
+      </form>
+      <div class="hint-box">
+        <strong>Not:</strong> Bu kabuk yalnızca yönetim içindir; Ana · Kovanlar · Uyarılar · Görevler · Ayarlar son-kullanıcı navigasyonuna karışmaz.
+        Harici kimlik / CRM araçları kullanıcıları API veya içe aktarma ile besleyebilir — sunucu push için <code>/api/admin/notify-user-add-failure</code> ve <code>/api/users/register</code> yolları hazır.
+      </div>
+    </section>
+  </main>
+
+  <nav class="users-bottom-nav" aria-label="Kullanıcı yönetimi">
+    <a href="#users" data-panel="users" class="is-active"><span class="ico">👥</span>Kullanıcılar</a>
+    <a href="#pending" data-panel="pending"><span class="ico">⏳</span>Bekleyen</a>
+    <a href="#notifs" data-panel="notifs"><span class="ico">🔔</span>Bildirimler<span id="nav-notif-count" class="badge-dot" hidden>0</span></a>
+    <a href="#settings" data-panel="settings"><span class="ico">⚙️</span>Ayarlar</a>
+  </nav>
+
+  <script src="admin-notify.js"></script>
+  <script src="kullanicilar.js"></script>
+</body>
+</html>

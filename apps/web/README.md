@@ -36,3 +36,12 @@ Anahtar yoksa sayfa Türkçe uyarı gösterir; Leaflet’e sessizce düşmez.
 **Canlı (static):** anahtar `apps/web/yandex-config.js` içinde deploy edilir (JS API anahtarları domain kısıtlıdır). Yandex Developer Console’da HTTP Referrer / izin verilen domain olarak `https://superari.vercel.app/*` ve `http://localhost:*` ekleyin.
 
 **Not:** Yandex hesabındaki “kayıtlı yerler” için OAuth gerekir (sonra). Şimdilik Yandex arama + harita iğnesi + link yapıştırma + uygulamada kayıtlı arılık yer işaretleri var. İstersen pin Google / Apple / OSM / Bing’te de açılır.
+
+
+## Kullanıcı yönetimi (ayrı navigasyon)
+
+- Panel: https://superari.vercel.app/kullanicilar.html
+- Kendi alt navigasyonu: Kullanıcılar · Bekleyen · Bildirimler · Ayarlar
+- Son kullanıcı sekmelerine (Ana · Kovanlar · Uyarılar · Görevler · Ayarlar) karışmaz.
+- Yoğunluk / kota: kullanıcıya «Talep yoğunluğundan dolayı lütfen yarın deneyiniz.» — yöneticiye «Kullanıcı yoğunluktan dolayı ekleme yapılamadı».
+- Bildirimler localStorage + isteğe bağlı `/api/admin/notify-user-add-failure` (sunucu push).

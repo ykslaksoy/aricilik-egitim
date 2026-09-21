@@ -481,6 +481,7 @@
     </div>
   </div>
 </div>
+<script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
@@ -906,7 +907,13 @@
     }
     var searchPromise =
       Y && Y.hasApiKey()
-        ? Y.searchPlaces(q).catch(function () {
+        ? Y.searchPlaces(q).catch(function (err) {
+            if (
+              (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+              (err && String(err.message || '').indexOf('yandex_quota') >= 0)
+            ) {
+              return Promise.reject(err);
+            }
             return D.geocodeSearch ? D.geocodeSearch(q) : [];
           })
         : D.geocodeSearch
@@ -929,8 +936,25 @@
           if (pickBtn) pickBtn.hidden = true;
         }
       })
-      .catch(function () {
-        alert('Arama başarısız. Yandex’te açıp link yapıştırabilirsiniz.');
+      .catch(function (err) {
+        if (
+          (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+          (err && String(err.message || '').indexOf('yandex_quota') >= 0) ||
+          (window.SuperAriAdminNotify && SuperAriAdminNotify.isBusyOrQuotaError(err))
+        ) {
+          var msg =
+            (Y && Y.USER_BUSY_MSG) ||
+            (window.SuperAriAdminNotify && SuperAriAdminNotify.USER_MSG) ||
+            'Talep yoğunluğundan dolayı lütfen yarın deneyiniz.';
+          if (window.SuperAriAdminNotify) {
+            SuperAriAdminNotify.warnUserBusyAndNotify({ source: 'arilik_search', reason: String(err && err.message || 'search') });
+          } else if (Y && Y.notifyAdminsBusy) {
+            Y.notifyAdminsBusy({ source: 'arilik_search' });
+          }
+          alert(msg);
+        } else {
+          alert('Arama başarısız. Yandex’te açıp link yapıştırabilirsiniz.');
+        }
         hideSearchResults();
       })
       .then(function () {
@@ -1006,6 +1030,16 @@
       detailMapReady = null;
       if (err && String(err.message || '').indexOf('yandex_api_key') >= 0) {
         Y.showKeyRequired(el);
+      } else if (
+        (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+        (err && String(err.message || '').indexOf('yandex_quota') >= 0)
+      ) {
+        if (Y && Y.showBusyMessage) Y.showBusyMessage(el, { source: 'arilik_detailMap' });
+        else {
+          var msg = (Y && Y.USER_BUSY_MSG) || 'Talep yoğunluğundan dolayı lütfen yarın deneyiniz.';
+          if (window.SuperAriAdminNotify) SuperAriAdminNotify.warnUserBusyAndNotify({ source: 'arilik_detailMap' });
+          el.innerHTML = '<div class="ymap-key-needed" role="alert"><strong>' + msg + '</strong></div>';
+        }
       } else {
         el.innerHTML = '<div class="ymap-key-needed"><strong>Yandex harita yüklenemedi</strong><p>API anahtarını kontrol edin.</p></div>';
       }

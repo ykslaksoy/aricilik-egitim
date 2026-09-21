@@ -403,6 +403,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
+<script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
@@ -596,6 +597,14 @@
       mapReady = null;
       if (err && err.message === 'yandex_api_key_missing') {
         Y.showKeyRequired('pickerMap');
+      } else if (
+        (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+        (err && String(err.message || '').indexOf('yandex_quota') >= 0)
+      ) {
+        var msg = (Y && Y.USER_BUSY_MSG) || 'Talep yoğunluğundan dolayı lütfen yarın deneyiniz.';
+        if (Y && Y.showBusyMessage) Y.showBusyMessage('pickerMap', { source: 'ariliklar_ensureMap' });
+        else if (window.SuperAriAdminNotify) SuperAriAdminNotify.warnUserBusyAndNotify({ source: 'ariliklar_ensureMap' });
+        showError(msg);
       } else {
         showError('Yandex harita yüklenemedi. API anahtarını kontrol edin.');
       }
@@ -676,7 +685,13 @@
     searchBtn.textContent = '…';
     var searchPromise =
       Y && Y.hasApiKey()
-        ? Y.searchPlaces(q).catch(function () {
+        ? Y.searchPlaces(q).catch(function (err) {
+            if (
+              (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+              (err && String(err.message || '').indexOf('yandex_quota') >= 0)
+            ) {
+              return Promise.reject(err);
+            }
             return D.geocodeSearch ? D.geocodeSearch(q) : [];
           })
         : D.geocodeSearch
@@ -693,8 +708,25 @@
           });
         }
       })
-      .catch(function () {
-        showError('Arama başarısız. Yandex’te açıp link yapıştırabilirsin.');
+      .catch(function (err) {
+        if (
+          (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+          (err && String(err.message || '').indexOf('yandex_quota') >= 0) ||
+          (window.SuperAriAdminNotify && SuperAriAdminNotify.isBusyOrQuotaError(err))
+        ) {
+          var msg =
+            (Y && Y.USER_BUSY_MSG) ||
+            (window.SuperAriAdminNotify && SuperAriAdminNotify.USER_MSG) ||
+            'Talep yoğunluğundan dolayı lütfen yarın deneyiniz.';
+          if (window.SuperAriAdminNotify) {
+            SuperAriAdminNotify.warnUserBusyAndNotify({ source: 'ariliklar_search', reason: String(err && err.message || 'search') });
+          } else if (Y && Y.notifyAdminsBusy) {
+            Y.notifyAdminsBusy({ source: 'ariliklar_search' });
+          }
+          showError(msg);
+        } else {
+          showError('Arama başarısız. Yandex’te açıp link yapıştırabilirsin.');
+        }
         hideResults();
       })
       .then(function () {
