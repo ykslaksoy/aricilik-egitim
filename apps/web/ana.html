@@ -819,11 +819,12 @@
   .mascot-bee.is-entering {
     transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
     opacity: 0;
+    /* Slow ease-in into the hole — avoid snap/throw feel */
     transition:
-      left 1.1s cubic-bezier(.4,.05,.2,1),
-      top 1.1s cubic-bezier(.4,.05,.2,1),
-      transform 1.05s cubic-bezier(.2,.75,.25,1),
-      opacity .85s ease .22s;
+      left 1.8s cubic-bezier(.45,.05,.25,1),
+      top 1.8s cubic-bezier(.45,.05,.25,1),
+      transform 2.4s cubic-bezier(.55,.02,.35,1),
+      opacity 1.5s ease .55s;
   }
   .mascot-bee canvas {
     position: absolute; inset: 0; width: 100%; height: 100%;
@@ -2365,10 +2366,11 @@
         t += hop;
       });
 
-      // Final: fly to door mouth at near-normal size; shrink ONLY after arrival.
+      // Final: fly to door mouth at near-normal size; shrink ONLY after lip linger.
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.add('is-flying');
+        beeRoot.classList.remove('is-entering');
         setBuzz(true);
         /* Keep depth-scale (no allowTiny / no early shrink) until at the door lip. */
         flyTo(hivePoint(enterTile, 'door'), 1500, {
@@ -2378,6 +2380,17 @@
       }, t);
       t += 1500;
 
+      // Linger briefly at the lip at near-normal size (reads as arriving, not thrown).
+      later(function () {
+        if (!beesEnabled) return;
+        var lip = hivePoint(enterTile, 'door');
+        beeRoot.classList.add('is-flying');
+        beeRoot.classList.remove('is-entering');
+        placeAt(lip, depthScaleFromY(lip.y));
+      }, t);
+      t += 480;
+
+      // Then slowly shrink into the hole (multi-step) — not a snap/throw.
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.remove('is-flying');
@@ -2385,19 +2398,29 @@
         stopWingLoop();
         setBuzz(false);
         var door = hivePoint(enterTile, 'door');
-        /* Dibine gelince: shrink into the entrance opening, then vanish. */
-        placeAt({ x: door.x, y: door.y }, 0.06, true);
+        /* Step slightly into the slit while starting a gentle shrink. */
+        placeAt({ x: door.x, y: door.y + 1 }, 0.42, true);
+        later(function () {
+          if (!beesEnabled) return;
+          setBeeScale(0.18, true);
+          placeAt({ x: door.x, y: door.y + 2 }, 0.18, true);
+        }, 550);
+        later(function () {
+          if (!beesEnabled) return;
+          setBeeScale(0.06, true);
+          placeAt({ x: door.x, y: door.y + 3 }, 0.06, true);
+        }, 1200);
         later(function () {
           if (!beesEnabled) return;
           setBeeScale(0.02, true);
-        }, 90);
-        /* Remove it from the visual layer before the next breed cycle. */
+        }, 1850);
+        /* Remove after the slow enter finishes. */
         later(function () {
           if (!beesEnabled) return;
           beeRoot.classList.add('is-off');
-        }, 1100);
+        }, 2600);
       }, t);
-      t += 1800;
+      t += 3000;
 
       if (!freeze) {
         later(function () {
