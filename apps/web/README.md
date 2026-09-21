@@ -33,4 +33,6 @@ echo "window.__YANDEX_MAPS_CONFIG__={apiKey:\"$YANDEX_MAPS_API_KEY\"};" > apps/w
 
 Anahtar yoksa sayfa Türkçe uyarı gösterir; Leaflet’e sessizce düşmez.
 
+**Canlı (static):** anahtar `apps/web/yandex-config.js` içinde deploy edilir (JS API anahtarları domain kısıtlıdır). Yandex Developer Console’da HTTP Referrer / izin verilen domain olarak `https://superari.vercel.app/*` ve `http://localhost:*` ekleyin.
+
 **Not:** Yandex hesabındaki “kayıtlı yerler” için OAuth gerekir (sonra). Şimdilik Yandex arama + harita iğnesi + link yapıştırma + uygulamada kayıtlı arılık yer işaretleri var. İstersen pin Google / Apple / OSM / Bing’te de açılır.
