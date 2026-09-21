@@ -1830,8 +1830,18 @@
     var SOUND_PREF_KEY = 'superari.ana.beeSound';
     var beeSoundToggle = document.getElementById('beeSoundToggle');
     var buzzWanted = false;
-    var buzzPlayers = null;
     var buzzKeys = ['italyan', 'karniyol', 'kafkas'];
+    /* Web Audio: one continuous BufferSource loop while flying — never restart on hop. */
+    var buzzCtx = null;
+    var buzzMaster = null;
+    var buzzBuffers = null;      /* { breed: AudioBuffer } */
+    var buzzLoadPromise = null;
+    var buzzActiveKey = null;
+    var buzzSource = null;       /* current looping BufferSource */
+    var buzzGain = null;         /* gain for current source */
+    var buzzFadeTimer = null;
+    var BUZZ_LEVEL = { italyan: 0.20, karniyol: 0.16, kafkas: 0.17 };
+    var BUZZ_XFADE_MS = 180;
 
     function readSoundOn() {
       try {
@@ -1851,45 +1861,153 @@
       return buzzKeys[((i % buzzKeys.length) + buzzKeys.length) % buzzKeys.length];
     }
 
-    function ensureBuzzPlayers() {
-      if (buzzPlayers) return buzzPlayers;
-      buzzPlayers = {};
-      for (var k = 0; k < buzzKeys.length; k++) {
-        var key = buzzKeys[k];
-        var a = new Audio('assets/bees/' + key + '-buzz.wav');
-        a.loop = true;
-        a.preload = 'auto';
-        a.volume = key === 'karniyol' ? 0.16 : (key === 'italyan' ? 0.20 : 0.17);
-        buzzPlayers[key] = a;
+    function ensureBuzzCtx() {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      if (!buzzCtx) {
+        buzzCtx = new AC();
+        buzzMaster = buzzCtx.createGain();
+        buzzMaster.gain.value = 1;
+        buzzMaster.connect(buzzCtx.destination);
       }
-      return buzzPlayers;
+      if (buzzCtx.state === 'suspended') {
+        try { buzzCtx.resume(); } catch (e) { /* ignore */ }
+      }
+      return buzzCtx;
+    }
+
+    function loadBuzzBuffers() {
+      if (buzzBuffers) return Promise.resolve(buzzBuffers);
+      if (buzzLoadPromise) return buzzLoadPromise;
+      var ctx = ensureBuzzCtx();
+      if (!ctx) return Promise.resolve(null);
+      buzzLoadPromise = Promise.all(buzzKeys.map(function (key) {
+        return fetch('assets/bees/' + key + '-buzz.wav')
+          .then(function (r) { return r.arrayBuffer(); })
+          .then(function (ab) { return ctx.decodeAudioData(ab.slice(0)); })
+          .then(function (buf) { return { key: key, buf: buf }; });
+      })).then(function (rows) {
+        buzzBuffers = {};
+        rows.forEach(function (row) { buzzBuffers[row.key] = row.buf; });
+        return buzzBuffers;
+      }).catch(function () {
+        buzzLoadPromise = null;
+        return null;
+      });
+      return buzzLoadPromise;
+    }
+
+    function clearBuzzFade() {
+      if (buzzFadeTimer) {
+        clearTimeout(buzzFadeTimer);
+        buzzFadeTimer = null;
+      }
+    }
+
+    function stopBuzzSource(immediate) {
+      clearBuzzFade();
+      var src = buzzSource;
+      var g = buzzGain;
+      buzzSource = null;
+      buzzGain = null;
+      buzzActiveKey = null;
+      if (!src) return;
+      try {
+        if (immediate || !buzzCtx || !g) {
+          src.onended = null;
+          src.stop(0);
+          src.disconnect();
+          if (g) g.disconnect();
+        } else {
+          var now = buzzCtx.currentTime;
+          g.gain.cancelScheduledValues(now);
+          g.gain.setValueAtTime(g.gain.value, now);
+          g.gain.linearRampToValueAtTime(0.0001, now + BUZZ_XFADE_MS / 1000);
+          buzzFadeTimer = setTimeout(function () {
+            try { src.onended = null; src.stop(0); src.disconnect(); g.disconnect(); } catch (e) {}
+          }, BUZZ_XFADE_MS + 40);
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    function startBuzzSource(key) {
+      if (!buzzCtx || !buzzBuffers || !buzzBuffers[key] || !buzzMaster) return;
+      var level = BUZZ_LEVEL[key] != null ? BUZZ_LEVEL[key] : 0.18;
+      var g = buzzCtx.createGain();
+      g.gain.value = 0.0001;
+      g.connect(buzzMaster);
+      var src = buzzCtx.createBufferSource();
+      src.buffer = buzzBuffers[key];
+      src.loop = true;
+      /* BufferSource.loop is sample-accurate — no HTMLAudio seam restart gaps */
+      src.connect(g);
+      try { src.start(0); } catch (e) { return; }
+      var now = buzzCtx.currentTime;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.linearRampToValueAtTime(level, now + BUZZ_XFADE_MS / 1000);
+      buzzSource = src;
+      buzzGain = g;
+      buzzActiveKey = key;
+    }
+
+    function crossfadeBuzzTo(key) {
+      if (!buzzCtx || !buzzBuffers || !buzzBuffers[key]) return;
+      if (buzzActiveKey === key && buzzSource) return; /* already continuous */
+      var oldSrc = buzzSource;
+      var oldGain = buzzGain;
+      clearBuzzFade();
+      buzzSource = null;
+      buzzGain = null;
+      buzzActiveKey = null;
+      startBuzzSource(key);
+      if (oldSrc && oldGain) {
+        try {
+          var now = buzzCtx.currentTime;
+          oldGain.gain.cancelScheduledValues(now);
+          oldGain.gain.setValueAtTime(Math.max(0.0001, oldGain.gain.value), now);
+          oldGain.gain.linearRampToValueAtTime(0.0001, now + BUZZ_XFADE_MS / 1000);
+          setTimeout(function () {
+            try { oldSrc.onended = null; oldSrc.stop(0); oldSrc.disconnect(); oldGain.disconnect(); } catch (e) {}
+          }, BUZZ_XFADE_MS + 40);
+        } catch (e) {
+          try { oldSrc.stop(0); } catch (e2) {}
+        }
+      }
+    }
+
+    function ensureBuzzPlayers() {
+      ensureBuzzCtx();
+      loadBuzzBuffers();
+      return buzzBuffers;
     }
 
     function stopAllBuzz() {
-      if (!buzzPlayers) return;
-      buzzKeys.forEach(function (key) {
-        var a = buzzPlayers[key];
-        if (!a) return;
-        try {
-          a.pause();
-          a.currentTime = 0;
-        } catch (e) { /* ignore */ }
-      });
+      stopBuzzSource(false);
     }
 
     function setBuzz(on) {
       buzzWanted = !!on;
-      ensureBuzzPlayers();
+      ensureBuzzCtx();
+      loadBuzzBuffers();
       if (!soundEnabled || !on) {
-        stopAllBuzz();
+        stopBuzzSource(false);
         return;
       }
       var key = breedKeyFromIdx(beeIdx);
-      stopAllBuzz();
-      var a = buzzPlayers[key];
-      if (!a) return;
-      var play = a.play();
-      if (play && play.catch) play.catch(function () { /* gesture needed */ });
+      /* Idempotent: keep the same looping BufferSource across flyTo hops */
+      if (buzzActiveKey === key && buzzSource) {
+        if (buzzCtx && buzzCtx.state === 'suspended') {
+          try { buzzCtx.resume(); } catch (e) {}
+        }
+        return;
+      }
+      loadBuzzBuffers().then(function (bufs) {
+        if (!buzzWanted || !soundEnabled) return;
+        if (!bufs) return;
+        var k = breedKeyFromIdx(beeIdx);
+        if (buzzActiveKey === k && buzzSource) return;
+        crossfadeBuzzTo(k);
+      });
     }
 
     function syncSoundUi() {
@@ -2296,18 +2414,10 @@
     }
 
     function unlockAudioOnce() {
-      ensureBuzzPlayers();
-      /* iOS/Safari: start+pause each sample once under a user gesture */
-      if (!buzzPlayers) return;
-      buzzKeys.forEach(function (key) {
-        var a = buzzPlayers[key];
-        if (!a) return;
-        var p = a.play();
-        if (p && p.then) {
-          p.then(function () { a.pause(); a.currentTime = 0; }).catch(function () {});
-        } else {
-          try { a.pause(); a.currentTime = 0; } catch (e) {}
-        }
+      /* iOS/Safari: resume AudioContext + decode buffers under a user gesture */
+      ensureBuzzCtx();
+      loadBuzzBuffers().then(function () {
+        if (buzzWanted && soundEnabled) setBuzz(true);
       });
     }
 
