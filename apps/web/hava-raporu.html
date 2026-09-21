@@ -244,7 +244,7 @@
 
     <h2 class="section-title">Kayıtlar</h2>
     <div class="hist-list" id="histList"></div>
-    <p class="hint" id="havaHint">Eksik günler Open-Meteo geçmiş verisiyle otomatik doldurulur; uygulama o gün açılmasa bile kayıtlar süreklidir. Burada arılık seçerek yalnızca o arılığın sıcaklık geçmişini görürsünüz. Ana’daki °C’ye dokununca da bu sayfa açılır.</p>
+    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük ve yağış özeti bu ızgara noktasından türetilir. İstasyon ölçümü değildir.</p>
   </div>
 
   <nav class="tabbar" aria-label="Alt menü">
@@ -505,18 +505,13 @@
   });
   refresh();
 
-  /* Eksik günleri Open-Meteo arşiv/past ile doldur; bitince listeyi yenile */
-  var hintEl = document.getElementById('havaHint');
+  /* Eksik günleri Open-Meteo arşiv/past ile doldur; bitince listeyi yenile (hint kalıcı) */
   var daysWanted = Number(rangeSel.value) || 30;
   if (rangeSel.value === 'all') daysWanted = 90;
   if (typeof H.ensureHistory === 'function') {
-    H.ensureHistory({ days: Math.max(daysWanted, 30) }).then(function (res) {
+    H.ensureHistory({ days: Math.max(daysWanted, 30) }).then(function () {
       fillApiaries();
       refresh();
-      if (hintEl && res && res.filled > 0) {
-        hintEl.textContent =
-          'Eksik ' + res.filled + ' günlük kayıt Open-Meteo ile tamamlandı. Uygulama kapalı olsa bile geçmiş sıcaklıklar görünür.';
-      }
     }).catch(function () {
       refresh();
     });
