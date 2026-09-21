@@ -894,6 +894,18 @@
       <img class="bee-sheet" data-breed-key="kafkas" data-view="front-flip" data-breed="Kafkas" src="assets/bees/kafkas-front-flip.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="kafkas" data-view="top45" data-breed="Kafkas" src="assets/bees/kafkas-top45.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="kafkas" data-view="top45-flip" data-breed="Kafkas" src="assets/bees/kafkas-top45-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="anadolu" data-view="side" data-breed="Anadolu" src="assets/bees/anadolu.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="anadolu" data-view="side-flip" data-breed="Anadolu" src="assets/bees/anadolu-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="anadolu" data-view="front" data-breed="Anadolu" src="assets/bees/anadolu-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="anadolu" data-view="front-flip" data-breed="Anadolu" src="assets/bees/anadolu-front-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="anadolu" data-view="top45" data-breed="Anadolu" src="assets/bees/anadolu-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="anadolu" data-view="top45-flip" data-breed="Anadolu" src="assets/bees/anadolu-top45-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="buckfast" data-view="side" data-breed="Buckfast" src="assets/bees/buckfast.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="buckfast" data-view="side-flip" data-breed="Buckfast" src="assets/bees/buckfast-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="buckfast" data-view="front" data-breed="Buckfast" src="assets/bees/buckfast-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="buckfast" data-view="front-flip" data-breed="Buckfast" src="assets/bees/buckfast-front-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="buckfast" data-view="top45" data-breed="Buckfast" src="assets/bees/buckfast-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="buckfast" data-view="top45-flip" data-breed="Buckfast" src="assets/bees/buckfast-top45-flip.png" alt="" hidden>
     </div>
 
     <section class="weather" id="weatherStrip" style="display:block">
@@ -1796,19 +1808,26 @@
     var beeSheets = {
       italyan: {},
       karniyol: {},
-      kafkas: {}
+      kafkas: {},
+      anadolu: {},
+      buckfast: {}
     };
-    ['italyan', 'karniyol', 'kafkas'].forEach(function (bk) {
+    ['italyan', 'karniyol', 'kafkas', 'anadolu', 'buckfast'].forEach(function (bk) {
       VIEW_KEYS.forEach(function (vk) {
         beeSheets[bk][vk] = sheetFor(bk, vk);
       });
     });
     var beeIdx = 0;
+    /* After a full exit cycle completes, next start uses nextBreedIdx (fixed order). */
+    var nextBreedIdx = 1;
+    var cycleActive = false;   /* true while a cycle is in flight */
+    var cycleCompleted = false; /* true after full cycle; resume → next breed */
     var beeView = 'front';
     var wingTimer = null;
     var wingPulse = 0;
-    var breedKeys = ['italyan', 'karniyol', 'kafkas'];
-    var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas'];
+    /* Fixed order each cycle: İtalyan → Karniyol → Kafkas → Anadolu → Buckfast → repeat */
+    var breedKeys = ['italyan', 'karniyol', 'kafkas', 'anadolu', 'buckfast'];
+    var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas', 'Anadolu', 'Buckfast'];
     /* Side PNG faces LEFT (= 270° when 0°=up, CW). Flip faces RIGHT (= 90°). */
 
     function drawBeeFrame() {
@@ -1848,7 +1867,7 @@
     var SOUND_PREF_KEY = 'superari.ana.beeSound';
     var beeSoundToggle = document.getElementById('beeSoundToggle');
     var buzzWanted = false;
-    var buzzKeys = ['italyan', 'karniyol', 'kafkas'];
+    var buzzKeys = ['italyan', 'karniyol', 'kafkas', 'anadolu', 'buckfast'];
     /* Web Audio: one continuous BufferSource loop while flying — never restart on hop. */
     var buzzCtx = null;
     var buzzMaster = null;
@@ -1858,7 +1877,7 @@
     var buzzSource = null;       /* current looping BufferSource */
     var buzzGain = null;         /* gain for current source */
     var buzzFadeTimer = null;
-    var BUZZ_LEVEL = { italyan: 0.20, karniyol: 0.16, kafkas: 0.17 };
+    var BUZZ_LEVEL = { italyan: 0.20, karniyol: 0.16, kafkas: 0.17, anadolu: 0.19, buckfast: 0.18 };
     var BUZZ_XFADE_MS = 180;
 
     function readSoundOn() {
@@ -2074,8 +2093,11 @@
     }
     var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
     var tileParam = (location.search.match(/[?&]tile=(\d+)/) || [])[1];
-    var beeMap = { italyan: 0, karniyol: 1, kafkas: 2 };
-    if (beeParam && beeMap[beeParam] != null) beeIdx = beeMap[beeParam];
+    var beeMap = { italyan: 0, karniyol: 1, kafkas: 2, anadolu: 3, buckfast: 4 };
+    if (beeParam && beeMap[beeParam] != null) {
+      beeIdx = beeMap[beeParam];
+      nextBreedIdx = (beeIdx + 1) % breedKeys.length;
+    }
     var freeze = location.search.indexOf('shot=1') !== -1;
 
     function clearTimers() {
@@ -2091,6 +2113,18 @@
       drawBeeFrame();
       if (buzzWanted && soundEnabled) setBuzz(true);
       return breedLabels[beeIdx] || '';
+    }
+
+    /** Resume target: next if last cycle finished; same if interrupted mid-flight. */
+    function breedForResume() {
+      if (cycleCompleted) return nextBreedIdx;
+      return beeIdx;
+    }
+
+    function markCycleCompleted() {
+      nextBreedIdx = (beeIdx + 1) % breedKeys.length;
+      cycleCompleted = true;
+      cycleActive = false;
     }
 
     function exitPoint() {
@@ -2331,6 +2365,8 @@
 
     function pauseBeesForHint() {
       hintBlockingBees = true;
+      /* Mid-flight interrupt: keep beeIdx; do not treat as completed. */
+      if (cycleActive) cycleCompleted = false;
       clearTimers();
       stopWingLoop();
       setBuzz(false);
@@ -2342,7 +2378,7 @@
 
     function resumeBeesAfterHint() {
       hintBlockingBees = false;
-      if (beesEnabled) runCycle(beeIdx);
+      if (beesEnabled) runCycle(breedForResume());
     }
 
     window.addEventListener('superari:hint', function (e) {
@@ -2360,7 +2396,11 @@
       resetVisual();
       beeRoot.classList.remove('is-off');
       podium.classList.remove('is-hidden');
+      cycleActive = true;
+      cycleCompleted = false;
       var name = setBreed(startBreed == null ? beeIdx : startBreed);
+      /* Plan next in fixed order (applied when this cycle fully completes). */
+      nextBreedIdx = (beeIdx + 1) % breedKeys.length;
 
       var order = shuffle([0,1,2,3,4,5,6,7,8]);
       var tourStops = order.slice(0, 3);
@@ -2474,6 +2514,8 @@
         later(function () {
           if (!beesEnabled) return;
           beeRoot.classList.add('is-off');
+          /* Cycle visually done — persist next breed NOW so hint/toggle in the gap advances. */
+          markCycleCompleted();
         }, 2600);
       }, t);
       t += 3000;
@@ -2481,7 +2523,9 @@
       if (!freeze) {
         later(function () {
           if (!beesEnabled) return;
-          runCycle((beeIdx + 1) % breedKeys.length);
+          /* nextBreedIdx already set by markCycleCompleted at enter-end. */
+          if (!cycleCompleted) markCycleCompleted();
+          runCycle(nextBreedIdx);
         }, t);
       }
     }
@@ -2490,8 +2534,14 @@
       beesEnabled = !!on;
       writeBeesOn(beesEnabled);
       syncToggleUi();
-      if (beesEnabled) runCycle(beeIdx);
-      else stopBees();
+      if (beesEnabled) {
+        runCycle(breedForResume());
+      } else {
+        /* Toggle off mid-flight = interrupt; keep same breed on re-enable. */
+        if (cycleActive) cycleCompleted = false;
+        cycleActive = false;
+        stopBees();
+      }
     }
 
     var audioGestureDone = false;
