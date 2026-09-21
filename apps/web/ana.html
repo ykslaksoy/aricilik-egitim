@@ -252,12 +252,13 @@
   }
   .bee-podium.is-ready .podium-stage { opacity: 1; }
   .bee-podium .podium-name {
-    font-size: 9px; font-weight: 800; color: var(--brown-mid);
+    font-size: 8px; font-weight: 800; color: var(--brown-mid);
     background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
-    border-radius: 999px; padding: 1px 7px; line-height: 1.35;
+    border-radius: 999px; padding: 1px 6px; line-height: 1.35;
     opacity: 0; transform: translateY(-4px);
     transition: opacity .35s ease, transform .35s ease;
-    margin: 0; white-space: nowrap;
+    margin: 0; white-space: nowrap; max-width: 148px;
+    overflow: hidden; text-overflow: ellipsis;
   }
   .bee-podium .podium-name.is-on {
     opacity: 1; transform: translateY(0);
@@ -894,18 +895,18 @@
       <img class="bee-sheet" data-breed-key="kafkas" data-view="front-flip" data-breed="Kafkas" src="assets/bees/kafkas-front-flip.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="kafkas" data-view="top45" data-breed="Kafkas" src="assets/bees/kafkas-top45.png" alt="" hidden>
       <img class="bee-sheet" data-breed-key="kafkas" data-view="top45-flip" data-breed="Kafkas" src="assets/bees/kafkas-top45-flip.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="anadolu" data-view="side" data-breed="Anadolu" src="assets/bees/anadolu.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="anadolu" data-view="side-flip" data-breed="Anadolu" src="assets/bees/anadolu-flip.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="anadolu" data-view="front" data-breed="Anadolu" src="assets/bees/anadolu-front.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="anadolu" data-view="front-flip" data-breed="Anadolu" src="assets/bees/anadolu-front-flip.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="anadolu" data-view="top45" data-breed="Anadolu" src="assets/bees/anadolu-top45.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="anadolu" data-view="top45-flip" data-breed="Anadolu" src="assets/bees/anadolu-top45-flip.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="buckfast" data-view="side" data-breed="Buckfast" src="assets/bees/buckfast.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="buckfast" data-view="side-flip" data-breed="Buckfast" src="assets/bees/buckfast-flip.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="buckfast" data-view="front" data-breed="Buckfast" src="assets/bees/buckfast-front.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="buckfast" data-view="front-flip" data-breed="Buckfast" src="assets/bees/buckfast-front-flip.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="buckfast" data-view="top45" data-breed="Buckfast" src="assets/bees/buckfast-top45.png" alt="" hidden>
-      <img class="bee-sheet" data-breed-key="buckfast" data-view="top45-flip" data-breed="Buckfast" src="assets/bees/buckfast-top45-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol_kafkas" data-view="side" data-breed="Karniyol × Kafkas" src="assets/bees/karniyol_kafkas.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol_kafkas" data-view="side-flip" data-breed="Karniyol × Kafkas" src="assets/bees/karniyol_kafkas-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol_kafkas" data-view="front" data-breed="Karniyol × Kafkas" src="assets/bees/karniyol_kafkas-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol_kafkas" data-view="front-flip" data-breed="Karniyol × Kafkas" src="assets/bees/karniyol_kafkas-front-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol_kafkas" data-view="top45" data-breed="Karniyol × Kafkas" src="assets/bees/karniyol_kafkas-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="karniyol_kafkas" data-view="top45-flip" data-breed="Karniyol × Kafkas" src="assets/bees/karniyol_kafkas-top45-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas_karniyol" data-view="side" data-breed="Kafkas × Karniyol" src="assets/bees/kafkas_karniyol.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas_karniyol" data-view="side-flip" data-breed="Kafkas × Karniyol" src="assets/bees/kafkas_karniyol-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas_karniyol" data-view="front" data-breed="Kafkas × Karniyol" src="assets/bees/kafkas_karniyol-front.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas_karniyol" data-view="front-flip" data-breed="Kafkas × Karniyol" src="assets/bees/kafkas_karniyol-front-flip.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas_karniyol" data-view="top45" data-breed="Kafkas × Karniyol" src="assets/bees/kafkas_karniyol-top45.png" alt="" hidden>
+      <img class="bee-sheet" data-breed-key="kafkas_karniyol" data-view="top45-flip" data-breed="Kafkas × Karniyol" src="assets/bees/kafkas_karniyol-top45-flip.png" alt="" hidden>
     </div>
 
     <section class="weather" id="weatherStrip" style="display:block">
@@ -1809,10 +1810,10 @@
       italyan: {},
       karniyol: {},
       kafkas: {},
-      anadolu: {},
-      buckfast: {}
+      karniyol_kafkas: {},
+      kafkas_karniyol: {}
     };
-    ['italyan', 'karniyol', 'kafkas', 'anadolu', 'buckfast'].forEach(function (bk) {
+    ['italyan', 'karniyol', 'kafkas', 'karniyol_kafkas', 'kafkas_karniyol'].forEach(function (bk) {
       VIEW_KEYS.forEach(function (vk) {
         beeSheets[bk][vk] = sheetFor(bk, vk);
       });
@@ -1825,9 +1826,9 @@
     var beeView = 'front';
     var wingTimer = null;
     var wingPulse = 0;
-    /* Fixed order each cycle: İtalyan → Karniyol → Kafkas → Anadolu → Buckfast → repeat */
-    var breedKeys = ['italyan', 'karniyol', 'kafkas', 'anadolu', 'buckfast'];
-    var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas', 'Anadolu', 'Buckfast'];
+    /* Fixed order each cycle: İtalyan → Karniyol → Kafkas → Karniyol×Kafkas → Kafkas×Karniyol → repeat */
+    var breedKeys = ['italyan', 'karniyol', 'kafkas', 'karniyol_kafkas', 'kafkas_karniyol'];
+    var breedLabels = ['İtalyan', 'Karniyol', 'Kafkas', 'Karniyol × Kafkas', 'Kafkas × Karniyol'];
     /* Side PNG faces LEFT (= 270° when 0°=up, CW). Flip faces RIGHT (= 90°). */
 
     function drawBeeFrame() {
@@ -1867,7 +1868,7 @@
     var SOUND_PREF_KEY = 'superari.ana.beeSound';
     var beeSoundToggle = document.getElementById('beeSoundToggle');
     var buzzWanted = false;
-    var buzzKeys = ['italyan', 'karniyol', 'kafkas', 'anadolu', 'buckfast'];
+    var buzzKeys = ['italyan', 'karniyol', 'kafkas', 'karniyol_kafkas', 'kafkas_karniyol'];
     /* Web Audio: one continuous BufferSource loop while flying — never restart on hop. */
     var buzzCtx = null;
     var buzzMaster = null;
@@ -1877,7 +1878,7 @@
     var buzzSource = null;       /* current looping BufferSource */
     var buzzGain = null;         /* gain for current source */
     var buzzFadeTimer = null;
-    var BUZZ_LEVEL = { italyan: 0.20, karniyol: 0.16, kafkas: 0.17, anadolu: 0.19, buckfast: 0.18 };
+    var BUZZ_LEVEL = { italyan: 0.20, karniyol: 0.16, kafkas: 0.17, karniyol_kafkas: 0.16, kafkas_karniyol: 0.17 };
     var BUZZ_XFADE_MS = 180;
 
     function readSoundOn() {
@@ -2093,7 +2094,7 @@
     }
     var beeParam = (location.search.match(/[?&]bee=([^&]+)/) || [])[1];
     var tileParam = (location.search.match(/[?&]tile=(\d+)/) || [])[1];
-    var beeMap = { italyan: 0, karniyol: 1, kafkas: 2, anadolu: 3, buckfast: 4 };
+    var beeMap = { italyan: 0, karniyol: 1, kafkas: 2, karniyol_kafkas: 3, kafkas_karniyol: 4 };
     if (beeParam && beeMap[beeParam] != null) {
       beeIdx = beeMap[beeParam];
       nextBreedIdx = (beeIdx + 1) % breedKeys.length;
