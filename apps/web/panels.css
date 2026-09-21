@@ -214,3 +214,22 @@ a.item-card:hover { transform: translateY(-1px); }
   font: inherit;
   font-weight: 600;
 }
+
+/* Hesap tipi / form select (match inputs) */
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .85rem 1rem;
+  font-size: 1rem;
+  background: #fff;
+  color: var(--ink);
+  font-family: inherit;
+}
+.hint-inline {
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.35;
+}

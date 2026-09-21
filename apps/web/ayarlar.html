@@ -9,8 +9,10 @@
 <body>
   <main class="wrap">
     <div class="nav">
-      <a class="chip" href="ana.html">← Ana</a>
+      <a class="chip" href="ana.html" id="nav-ana">← Ana</a>
       <a class="chip" href="arici.html">Arıcı</a>
+      <a class="chip" href="yonetici.html">Yönetici</a>
+      <a class="chip" href="isci.html">İşçi</a>
     </div>
     <div class="brand">
       <div class="brand-badge">🐝</div>
@@ -19,13 +21,60 @@
     <section class="card stack" style="max-width:560px;">
       <h2 style="margin:0;">Hesap ayarları</h2>
       <label>Bildirim e-postası
-        <input type="email" placeholder="ornek@mail.com" />
+        <input type="email" id="notif-email" placeholder="ornek@mail.com" />
       </label>
       <label>Dil
         <input value="Türkçe" readonly />
       </label>
-      <a class="btn secondary" href="giris.html">Çıkış yap</a>
+      <label>Hesap tipi
+        <select id="hesap-tipi" name="hesapTipi">
+          <option value="arici">Arıcı</option>
+          <option value="yonetici">Yönetici</option>
+          <option value="isci">İşçi</option>
+        </select>
+      </label>
+      <p class="hint-inline" id="hesap-hint">
+        Uygulama seçilen hesaba göre açılır. Demo: Yönetici seçilebilir; gerçek kimlik doğrulama sonra kilitleyecek.
+      </p>
+      <a class="btn secondary" href="giris.html" id="btn-logout">Çıkış yap</a>
     </section>
   </main>
+  <script src="panels.js"></script>
+  <script>
+    (function () {
+      var H = window.SuperAriHesap;
+      if (!H) return;
+      var sel = document.getElementById('hesap-tipi');
+      var navAna = document.getElementById('nav-ana');
+      var current = H.get();
+      sel.value = current;
+      if (navAna) navAna.href = H.homeFor(current);
+
+      sel.addEventListener('change', function () {
+        var next = H.normalize(sel.value);
+        var prev = H.get();
+        if (next === 'yonetici' && prev !== 'yonetici') {
+          var ok = window.confirm(
+            'Yönetici hesabı tüm yönetim ekranlarını (Kullanıcılar vb.) açar.\n\n' +
+            'Demo amaçlıdır — gerçek kimlik doğrulama sonra bunu kilitleyecek.\n\nDevam edilsin mi?'
+          );
+          if (!ok) {
+            sel.value = prev;
+            return;
+          }
+        }
+        H.set(next);
+        current = next;
+        if (navAna) navAna.href = H.homeFor(next);
+        var home = H.homeFor(next);
+        var label = H.labelFor(next);
+        var reopen = window.confirm(
+          'Hesap tipi «' + label + '» olarak kaydedildi.\n\n' +
+          'Eşleşen ana sayfayı şimdi açmak ister misiniz?\n(' + home + ')'
+        );
+        if (reopen) H.goHome(next);
+      });
+    })();
+  </script>
 </body>
 </html>

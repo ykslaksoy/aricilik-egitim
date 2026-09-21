@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+  <script>
+    /* Role home: yonetici/isci visiting / or ana → their shell */
+    (function () {
+      try {
+        var tip = localStorage.getItem('superari.hesapTipi');
+        if (!tip) return;
+        var s = String(tip).toLowerCase()
+          .replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g')
+          .replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c');
+        if (/yonetici|admin/.test(s)) { location.replace('yonetici.html'); return; }
+        if (/isci|worker/.test(s)) { location.replace('isci.html'); return; }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Ana</title>

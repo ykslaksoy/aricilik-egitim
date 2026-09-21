@@ -2,6 +2,72 @@
   function qs(sel, root) { return (root || document).querySelector(sel); }
   function qsa(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
 
+  var HESAP_KEY = 'superari.hesapTipi';
+  var HOME = {
+    arici: 'ana.html',
+    yonetici: 'yonetici.html',
+    isci: 'isci.html'
+  };
+  var LABELS = {
+    arici: 'Arıcı',
+    yonetici: 'Yönetici',
+    isci: 'İşçi'
+  };
+
+  function normalizeHesapTipi(v) {
+    var s = String(v || '').trim().toLowerCase()
+      .replace(/ı/g, 'i').replace(/İ/g, 'i')
+      .replace(/ş/g, 's').replace(/Ş/g, 's')
+      .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')
+      .replace(/ü/g, 'u').replace(/Ü/g, 'u')
+      .replace(/ö/g, 'o').replace(/Ö/g, 'o')
+      .replace(/ç/g, 'c').replace(/Ç/g, 'c');
+    if (!s) return 'arici';
+    if (/yonetici|admin|manager/.test(s)) return 'yonetici';
+    if (/isci|worker|employee/.test(s)) return 'isci';
+    if (/arici|beekeeper|ana/.test(s)) return 'arici';
+    if (HOME[s]) return s;
+    return 'arici';
+  }
+
+  var SuperAriHesap = {
+    KEY: HESAP_KEY,
+    HOME: HOME,
+    LABELS: LABELS,
+    normalize: normalizeHesapTipi,
+    get: function () {
+      try {
+        return normalizeHesapTipi(localStorage.getItem(HESAP_KEY) || 'arici');
+      } catch (e) {
+        return 'arici';
+      }
+    },
+    set: function (tip) {
+      var n = normalizeHesapTipi(tip);
+      try { localStorage.setItem(HESAP_KEY, n); } catch (e) { /* ignore */ }
+      return n;
+    },
+    homeFor: function (tip) {
+      return HOME[normalizeHesapTipi(tip)] || HOME.arici;
+    },
+    labelFor: function (tip) {
+      return LABELS[normalizeHesapTipi(tip)] || LABELS.arici;
+    },
+    goHome: function (tip) {
+      window.location.href = this.homeFor(tip != null ? tip : this.get());
+    },
+    /** Soft guard: non-yonetici visiting admin-only pages. */
+    requireYonetici: function (opts) {
+      opts = opts || {};
+      if (this.get() === 'yonetici') return true;
+      var msg = opts.message || 'Bu sayfa yalnızca Yönetici hesap tipi içindir. Ayarlar → Hesap tipi ile değiştirebilirsiniz (demo).';
+      try { window.alert(msg); } catch (e) { /* ignore */ }
+      window.location.replace(opts.fallback || this.homeFor(this.get()));
+      return false;
+    }
+  };
+  window.SuperAriHesap = SuperAriHesap;
+
   var USER_BUSY = 'Talep yoğunluğundan dolayı lütfen yarın deneyiniz.';
 
   qsa("[data-toggle-password]").forEach(function (btn) {
@@ -53,7 +119,12 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var target = form.getAttribute("data-demo") || "arici.html";
-      var isSignup = /kayit|onay/i.test(target) || form.querySelector('[name="email"]');
+      var isLogin = form.getAttribute("data-login") === "1" || /giris\.html$/i.test(location.pathname);
+      if (isLogin) {
+        window.location.href = SuperAriHesap.homeFor(SuperAriHesap.get());
+        return;
+      }
+      var isSignup = /kayit|onay/i.test(target) || /kayit\.html$/i.test(location.pathname);
       if (!isSignup) {
         window.location.href = target;
         return;
@@ -66,6 +137,7 @@
       if (btn) { btn.disabled = true; }
 
       function succeed() {
+        if (role) SuperAriHesap.set(role);
         if (window.SuperAriAdminNotify && SuperAriAdminNotify.upsertUser) {
           SuperAriAdminNotify.upsertUser({ name: name, email: email, role: role, status: 'pending', source: 'kayit' });
         }

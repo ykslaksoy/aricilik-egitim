@@ -4,9 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SüperArı</title>
-  <meta http-equiv="refresh" content="0; url=giris.html" />
   <link rel="stylesheet" href="panels.css" />
-  <script>location.replace("giris.html");</script>
+  <script>
+    (function () {
+      try {
+        var tip = localStorage.getItem('superari.hesapTipi');
+        if (tip) {
+          var s = String(tip).toLowerCase()
+            .replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g')
+            .replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c');
+          if (/yonetici|admin/.test(s)) { location.replace('yonetici.html'); return; }
+          if (/isci|worker/.test(s)) { location.replace('isci.html'); return; }
+          location.replace('ana.html');
+          return;
+        }
+      } catch (e) { /* ignore */ }
+      location.replace('giris.html');
+    })();
+  </script>
 </head>
 <body>
   <main class="wrap">
