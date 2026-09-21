@@ -76,9 +76,129 @@
     return out;
   }
 
-  function balSeasonBounds(year) {
+  /* Regional honey-season profiles (MM-DD). Simple Turkey boxes by lat/lon. */
+  var REGION_PROFILES = {
+    dogu_anadolu: { fromMD: '05-15', toMD: '09-15', label: 'Doğu Anadolu bal sezonu' },
+    ege_akdeniz: { fromMD: '05-01', toMD: '09-30', label: 'Ege / Akdeniz bal sezonu' },
+    karadeniz: { fromMD: '05-15', toMD: '09-15', label: 'Karadeniz bal sezonu' },
+    ic_anadolu: { fromMD: '06-01', toMD: '09-15', label: 'İç Anadolu bal sezonu' },
+    marmara: { fromMD: '05-15', toMD: '09-15', label: 'Marmara bal sezonu' },
+    fallback: { fromMD: '06-01', toMD: '09-30', label: 'Bal sezonu' }
+  };
+
+  var TR_MON_SHORT = [
+    '',
+    'Oca',
+    'Şub',
+    'Mar',
+    'Nis',
+    'May',
+    'Haz',
+    'Tem',
+    'Ağu',
+    'Eyl',
+    'Eki',
+    'Kas',
+    'Ara'
+  ];
+
+  function detectRegion(lat, lon) {
+    var La = Number(lat);
+    var Lo = Number(lon);
+    if (!isFinite(La) || !isFinite(Lo)) return 'fallback';
+    /* East Anatolia (Erzurum yayla etc.) — check first */
+    if (La >= 37.0 && La <= 42.8 && Lo >= 38.0 && Lo <= 45.0) return 'dogu_anadolu';
+    if (La >= 39.5 && La <= 42.2 && Lo >= 26.0 && Lo <= 30.8) return 'marmara';
+    if (
+      (La >= 36.0 && La <= 39.8 && Lo >= 26.0 && Lo <= 30.5) ||
+      (La >= 36.0 && La <= 37.8 && Lo >= 30.5 && Lo <= 36.5)
+    ) {
+      return 'ege_akdeniz';
+    }
+    if (La >= 40.5 && La <= 42.5 && Lo >= 27.0 && Lo <= 42.5) return 'karadeniz';
+    if (La >= 37.2 && La <= 40.8 && Lo >= 31.0 && Lo <= 37.5) return 'ic_anadolu';
+    return 'fallback';
+  }
+
+  /**
+   * Resolve coords for season: explicit lat/lon, else selected apiary,
+   * else average (or first) of registered / DEMO_APIARIES.
+   */
+  function resolveSeasonCoords(lat, lon) {
+    var La = Number(lat);
+    var Lo = Number(lon);
+    if (isFinite(La) && isFinite(Lo)) return { lat: La, lon: Lo };
+
+    try {
+      var raw = localStorage.getItem('superari.ana.selectedApiary');
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        var want = parsed && parsed.id ? String(parsed.id) : null;
+        if (want && want !== 'all') {
+          var byId = resolveApiaries();
+          for (var i = 0; i < byId.length; i++) {
+            if (byId[i].id === want) {
+              return { lat: byId[i].lat, lon: byId[i].lon };
+            }
+          }
+        }
+      }
+    } catch (eSel) {
+      /* ignore */
+    }
+
+    var list = typeof resolveApiaries === 'function' ? resolveApiaries() : DEFAULT_APIARIES.slice();
+    if (!list || !list.length) {
+      return { lat: DEFAULT_APIARIES[0].lat, lon: DEFAULT_APIARIES[0].lon };
+    }
+    if (list.length === 1) return { lat: list[0].lat, lon: list[0].lon };
+    var slat = 0;
+    var slon = 0;
+    var n = 0;
+    for (var j = 0; j < list.length; j++) {
+      var a = list[j];
+      if (!a || !isFinite(Number(a.lat)) || !isFinite(Number(a.lon))) continue;
+      slat += Number(a.lat);
+      slon += Number(a.lon);
+      n++;
+    }
+    if (n > 0) return { lat: slat / n, lon: slon / n };
+    return { lat: list[0].lat, lon: list[0].lon };
+  }
+
+  function formatMdShort(iso) {
+    var p = String(iso || '').split('-');
+    if (p.length < 3) return iso || '';
+    var day = Number(p[2]);
+    var mon = Number(p[1]);
+    var monLab = TR_MON_SHORT[mon] || p[1];
+    return day + ' ' + monLab;
+  }
+
+  function balSeasonChipLabel(bounds) {
+    var b = bounds || balSeasonBounds();
+    return 'Bal sezonu (' + formatMdShort(b.from) + ' – ' + formatMdShort(b.to) + ')';
+  }
+
+  /**
+   * balSeasonBounds(year, lat?, lon?)
+   * Region from apiary location; if lat/lon omitted, selected apiary or avg/first.
+   */
+  function balSeasonBounds(year, lat, lon) {
     var y = year != null ? Number(year) : new Date().getFullYear();
-    return { from: y + '-06-01', to: y + '-09-30', preset: 'bal' };
+    if (!isFinite(y)) y = new Date().getFullYear();
+    var coords = resolveSeasonCoords(lat, lon);
+    var region = detectRegion(coords.lat, coords.lon);
+    var profile = REGION_PROFILES[region] || REGION_PROFILES.fallback;
+    return {
+      from: y + '-' + profile.fromMD,
+      to: y + '-' + profile.toMD,
+      preset: 'bal',
+      region: region,
+      regionLabel: profile.label,
+      lat: coords.lat,
+      lon: coords.lon
+    };
   }
 
   function lastNDaysBounds(n) {
@@ -87,12 +207,18 @@
     return { from: addDaysKey(to, -(days - 1)), to: to, preset: String(days) };
   }
 
-  /** Default: current-year Bal sezonu (1 Haz – 30 Eyl), to capped at today. */
+  /** Default: current-year regional Bal sezonu, to capped at today. */
   function defaultRange() {
     var bal = balSeasonBounds();
     var today = localDateKey();
     var to = bal.to > today ? today : bal.to;
-    return { from: bal.from, to: to, preset: 'bal' };
+    return {
+      from: bal.from,
+      to: to,
+      preset: 'bal',
+      region: bal.region,
+      regionLabel: bal.regionLabel
+    };
   }
 
   function clampRange(range) {
@@ -116,6 +242,8 @@
       if (!raw) return defaultRange();
       var parsed = JSON.parse(raw);
       if (!parsed || !parsed.from || !parsed.to) return defaultRange();
+      /* Always refresh bal bounds from current apiary region */
+      if (String(parsed.preset || '') === 'bal') return rangeFromPreset('bal');
       return clampRange(parsed);
     } catch (e) {
       return defaultRange();
@@ -135,17 +263,31 @@
     return r;
   }
 
-  function rangeFromPreset(preset) {
+  function rangeFromPreset(preset, lat, lon) {
     var p = String(preset || '');
     if (p === 'bal') {
-      var bal = balSeasonBounds();
+      var bal = balSeasonBounds(null, lat, lon);
       var today = localDateKey();
-      return clampRange({ from: bal.from, to: bal.to > today ? today : bal.to, preset: 'bal' });
+      var clamped = clampRange({
+        from: bal.from,
+        to: bal.to > today ? today : bal.to,
+        preset: 'bal'
+      });
+      clamped.region = bal.region;
+      clamped.regionLabel = bal.regionLabel;
+      return clamped;
     }
     if (p === '30' || p === 'son30') return lastNDaysBounds(30);
     if (p === '90' || p === 'son90') return lastNDaysBounds(90);
     /* custom: keep current stored dates, mark custom */
-    var cur = loadRange();
+    var cur;
+    try {
+      var raw = localStorage.getItem(RANGE_KEY);
+      cur = raw ? JSON.parse(raw) : null;
+    } catch (eCur) {
+      cur = null;
+    }
+    if (!cur || !cur.from || !cur.to) cur = defaultRange();
     return clampRange({ from: cur.from, to: cur.to, preset: 'custom' });
   }
 
@@ -788,7 +930,12 @@
     labelFromCondition: labelFromCondition,
     localDateKey: localDateKey,
     addDaysKey: addDaysKey,
+    REGION_PROFILES: REGION_PROFILES,
+    detectRegion: detectRegion,
+    resolveSeasonCoords: resolveSeasonCoords,
     balSeasonBounds: balSeasonBounds,
+    balSeasonChipLabel: balSeasonChipLabel,
+    formatMdShort: formatMdShort,
     lastNDaysBounds: lastNDaysBounds,
     defaultRange: defaultRange,
     loadRange: loadRange,

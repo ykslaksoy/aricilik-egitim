@@ -131,6 +131,12 @@
     color: var(--brown);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
   }
+  .range-note {
+    margin: -6px 2px 12px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
 
   .section-title {
     font-size: 14px; font-weight: 800; color: var(--text);
@@ -226,6 +232,7 @@
         <input type="date" id="rangeTo" />
       </label>
     </div>
+    <p class="range-note" id="rangeNote" hidden>Sezon arılık bölgesine göre belirlenir.</p>
 
     <h2 class="section-title">Kayıtlar</h2>
     <div class="hist-list" id="histList"></div>
@@ -272,6 +279,44 @@
   var pageSub = document.getElementById('pageSub');
   var backRapor = document.getElementById('backRapor');
   var currentRange = H.loadRange();
+  var rangeNoteEl = document.getElementById('rangeNote');
+
+  function selectedSeasonCoords() {
+    var id = apiarySel && apiarySel.value;
+    if (!id || id === 'all') return null;
+    var list = typeof H.resolveApiaries === 'function' ? H.resolveApiaries() : [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) return { lat: list[i].lat, lon: list[i].lon };
+    }
+    return null;
+  }
+
+  function balBoundsForSelection() {
+    var c = selectedSeasonCoords();
+    return c ? H.balSeasonBounds(null, c.lat, c.lon) : H.balSeasonBounds();
+  }
+
+  function syncBalChipLabel() {
+    if (!chipsEl) return;
+    var balBtn = chipsEl.querySelector('.range-chip[data-preset="bal"]');
+    if (!balBtn) return;
+    var bal = balBoundsForSelection();
+    balBtn.textContent =
+      typeof H.balSeasonChipLabel === 'function'
+        ? H.balSeasonChipLabel(bal)
+        : ('Bal sezonu (' + H.formatMdShort(bal.from) + ' – ' + H.formatMdShort(bal.to) + ')');
+    if (rangeNoteEl) {
+      if (currentRange.preset === 'bal') {
+        rangeNoteEl.hidden = false;
+        rangeNoteEl.textContent =
+          (bal.regionLabel || 'Bal sezonu') +
+          ' — sezon arılık bölgesine göre belirlenir.';
+      } else {
+        rangeNoteEl.hidden = true;
+      }
+    }
+  }
+
 
   function formatDate(iso) {
     if (!iso) return '—';
@@ -290,6 +335,7 @@
         chips[i].classList.toggle('active', p === currentRange.preset);
       }
     }
+    syncBalChipLabel();
   }
 
   function persistAndRefresh(triggerBackfill) {
@@ -313,6 +359,9 @@
         to: rangeToEl.value || currentRange.to,
         preset: 'custom'
       });
+    } else if (preset === 'bal') {
+      var c = selectedSeasonCoords();
+      currentRange = H.rangeFromPreset('bal', c && c.lat, c && c.lon);
     } else {
       currentRange = H.rangeFromPreset(preset);
     }
@@ -383,7 +432,9 @@
     if (pageSub) {
       var rangeLab =
         currentRange.preset === 'bal'
-          ? 'Bal sezonu (1 Haz – 30 Eyl)'
+          ? (typeof H.balSeasonChipLabel === 'function'
+              ? H.balSeasonChipLabel(balBoundsForSelection())
+              : 'Bal sezonu')
           : formatDate(currentRange.from) + ' – ' + formatDate(currentRange.to);
       pageSub.textContent =
         id && id !== 'all'
@@ -453,7 +504,15 @@
   fillApiaries();
   H.ensureSeed();
   syncRangeInputs();
-  apiarySel.addEventListener('change', refresh);
+  apiarySel.addEventListener('change', function () {
+    if (currentRange.preset === 'bal') {
+      var c = selectedSeasonCoords();
+      currentRange = H.rangeFromPreset('bal', c && c.lat, c && c.lon);
+      persistAndRefresh(true);
+    } else {
+      refresh();
+    }
+  });
 
   if (chipsEl) {
     chipsEl.addEventListener('click', function (ev) {
