@@ -819,12 +819,12 @@
         ex.forEach(function (e) { total += Number(e.amount) || 0; });
       }
       if (count) {
-        giderBit = '<span class="apiary-gider">' + count + ' masraf · <strong>' + formatTRY(total) + '</strong></span>';
+        giderBit = '<span class="apiary-gider"><strong>' + formatTRY(total) + '</strong></span>';
       } else if (n > 0) {
-        giderBit = '<span class="apiary-gider">gider yok · <strong>₺0</strong></span>';
+        giderBit = '<span class="apiary-gider"><strong>₺0</strong></span>';
       }
       return (
-        '<a class="apiary-card" href="arilik.html?id=' + encodeURIComponent(a.id) + '#masraflar" aria-label="' + escapeHtml(a.name) + ', ' + n + ' kovan">' +
+        '<a class="apiary-card" href="arilik.html?id=' + encodeURIComponent(a.id) + '" aria-label="' + escapeHtml(a.name) + ', ' + n + ' kovan">' +
           '<div class="apiary-ico">' + pinSvg + '</div>' +
           '<div class="apiary-body">' +
             '<h2>' + escapeHtml(a.name) + '</h2>' +

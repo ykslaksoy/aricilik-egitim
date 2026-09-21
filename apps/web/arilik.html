@@ -242,25 +242,16 @@
     display: flex; gap: 8px; margin-top: 8px; align-items: center;
   }
   .map-loc-bar .map-btn { flex: 1; }
-  .masraflar-card {
-    margin: 0 0 14px; padding: 14px;
-    border-radius: 18px; background: #fff;
-    border: 1px solid var(--card-border);
-    box-shadow: 0 1px 0 rgba(80, 60, 20, .04);
+  .masraf-report-link {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin: 0 0 14px; padding: 12px 14px;
+    border-radius: 14px; background: #fff8df;
+    border: 1px dashed #e0c56a;
+    color: var(--brown); font-size: 13px; font-weight: 750;
+    text-decoration: none;
   }
-  .masraflar-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    gap: 10px; margin-bottom: 10px;
-  }
-  .masraflar-head .section-title { margin: 0; }
-  .masraflar-total {
-    font-size: 13px; font-weight: 800; color: var(--brown);
-    font-variant-numeric: tabular-nums; white-space: nowrap;
-  }
-  .masraflar-card .move-list { margin-bottom: 10px; }
-  .masraflar-card a.move-item { text-decoration: none; color: inherit; }
-  .masraflar-card a.move-item:active { transform: scale(.99); }
-  .masraflar-card .action-link { margin-top: 4px; }
+  .masraf-report-link:active { transform: scale(.99); }
+  .masraf-report-link span { color: #b0aaa3; font-size: 18px; font-weight: 700; }
   .map-btn.ghost {
     background: #fff; border: 1px solid #e0c56a; color: var(--brown);
   }
@@ -1141,44 +1132,13 @@
     });
   }
 
-  function masraflarHtml(apiary) {
-    if (!G) return '';
-    var expenses = G.expensesForApiary(apiary.id);
-    var total = 0;
-    expenses.forEach(function (e) { total += Number(e.amount) || 0; });
+  function masrafReportLinkHtml(apiary) {
     var href = 'giderler.html?apiary=' + encodeURIComponent(apiary.id);
-    var rows = expenses.slice(0, 16).map(function (e) {
-      var cat = G.catById(e.category);
-      var color = (cat && cat.color) || '#c4b09a';
-      var label = (cat && cat.label) || '';
-      return (
-        '<a class="move-item" href="' + href + '">' +
-          '<span class="move-dot" style="background:' + color + '"></span>' +
-          '<div>' +
-            '<h3>' + escapeHtml(e.title || 'Gider') + '</h3>' +
-            '<div class="meta">' + escapeHtml(label) + ' · ' + formatDate(e.date) +
-              (e.note ? ' · ' + escapeHtml(e.note) : '') +
-            '</div>' +
-          '</div>' +
-          '<div class="amt">' + formatTRY(e.amount) + '</div>' +
-        '</a>'
-      );
-    }).join('');
     return (
-      '<section class="masraflar-card" id="masraflar">' +
-        '<div class="masraflar-head">' +
-          '<h2 class="section-title">Masraflar</h2>' +
-          '<div class="masraflar-total">' + formatTRY(total) +
-            (expenses.length ? ' · ' + expenses.length + ' kalem' : '') +
-          '</div>' +
-        '</div>' +
-        (rows
-          ? '<div class="move-list">' + rows + '</div>'
-          : '<p class="empty" style="margin-bottom:12px;">Bu arılıkta henüz masraf yok.</p>') +
-        '<a class="action-link" href="' + href + '">' +
-          'Tüm giderler <span aria-hidden="true">›</span>' +
-        '</a>' +
-      '</section>'
+      '<a class="masraf-report-link" href="' + href + '">' +
+        'Masrafları raporlarda gör' +
+        '<span aria-hidden="true">›</span>' +
+      '</a>'
     );
   }
 
@@ -1245,18 +1205,6 @@
     }).join('');
 
     var coordsOk = hasCoords(apiary);
-    /* Auto-fill standart masraf kalemleri (kovan × birim) when missing */
-    if (G && typeof G.reconcileApiaryExpenses === 'function') {
-      var hiveN0 = linked.length || Number(apiary.hiveCount) || 0;
-      if (hiveN0 > 0) {
-        G.reconcileApiaryExpenses({
-          id: apiary.id,
-          name: apiary.name,
-          place: apiary.place,
-          hiveCount: hiveN0
-        });
-      }
-    }
 
     var mapBlock =
       '<section class="map-card">' +
@@ -1341,15 +1289,12 @@
               )) +
         '</div>' +
       '</section>' +
-      masraflarHtml(apiary) +
+      masrafReportLinkHtml(apiary) +
       mapBlock +
       '<div class="action-row">' +
         '<button type="button" class="action-link" id="btnMoveSave">' +
           'Taşıma kaydet <span aria-hidden="true">›</span>' +
         '</button>' +
-        '<a class="action-link" href="giderler.html?apiary=' + encodeURIComponent(apiary.id) + '">' +
-          'Giderler <span aria-hidden="true">›</span>' +
-        '</a>' +
         '<a class="action-link" href="' + filterHref + '">' +
           hiveN + ' kovanı gör <span aria-hidden="true">›</span>' +
         '</a>' +
@@ -1487,14 +1432,6 @@
       pasteInput.addEventListener('paste', function () { setTimeout(applyPaste, 0); });
     }
 
-    if (location.hash === '#masraflar') {
-      var masEl = document.getElementById('masraflar');
-      if (masEl) {
-        requestAnimationFrame(function () {
-          masEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-      }
-    }
   }
 
   render();
