@@ -6,12 +6,12 @@
   var HOME = {
     arici: 'ana.html',
     yonetici: 'yonetici.html',
-    isci: 'isci.html'
+    bakici: 'bakici.html'
   };
   var LABELS = {
     arici: 'Arıcı',
     yonetici: 'Yönetici',
-    isci: 'İşçi'
+    bakici: 'Bakıcı'
   };
 
   function normalizeHesapTipi(v) {
@@ -24,7 +24,8 @@
       .replace(/ç/g, 'c').replace(/Ç/g, 'c');
     if (!s) return 'arici';
     if (/yonetici|admin|manager/.test(s)) return 'yonetici';
-    if (/isci|worker|employee/.test(s)) return 'isci';
+    // Prefer bakici; migrate legacy isci (+ synonyms) → bakici
+    if (/bakici|isci|worker|employee|caretaker/.test(s)) return 'bakici';
     if (/arici|beekeeper|ana/.test(s)) return 'arici';
     if (HOME[s]) return s;
     return 'arici';
@@ -37,7 +38,13 @@
     normalize: normalizeHesapTipi,
     get: function () {
       try {
-        return normalizeHesapTipi(localStorage.getItem(HESAP_KEY) || 'arici');
+        var raw = localStorage.getItem(HESAP_KEY) || 'arici';
+        var n = normalizeHesapTipi(raw);
+        // Persist migration isci → bakici when reading
+        if (n === 'bakici' && /isci/i.test(String(raw)) && String(raw) !== 'bakici') {
+          try { localStorage.setItem(HESAP_KEY, 'bakici'); } catch (e2) { /* ignore */ }
+        }
+        return n;
       } catch (e) {
         return 'arici';
       }
@@ -46,6 +53,22 @@
       var n = normalizeHesapTipi(tip);
       try { localStorage.setItem(HESAP_KEY, n); } catch (e) { /* ignore */ }
       return n;
+    },
+    /** One-shot migrate: rewrite legacy isci → bakici in storage. */
+    migrate: function () {
+      try {
+        var raw = localStorage.getItem(HESAP_KEY);
+        if (!raw) return this.get();
+        var n = normalizeHesapTipi(raw);
+        if (n === 'bakici' && String(raw).toLowerCase().indexOf('isci') !== -1) {
+          localStorage.setItem(HESAP_KEY, 'bakici');
+        } else if (raw !== n) {
+          localStorage.setItem(HESAP_KEY, n);
+        }
+        return n;
+      } catch (e) {
+        return 'arici';
+      }
     },
     homeFor: function (tip) {
       return HOME[normalizeHesapTipi(tip)] || HOME.arici;

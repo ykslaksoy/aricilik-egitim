@@ -3772,7 +3772,7 @@ app.listen(PORT, () => {
   console.log(`ML export: GET /api/export/dataset · Etiket: POST /api/labels`);
   console.log(`Yönetici: http://localhost:${PORT}/yonetici.html?org=koloni-demo`);
   console.log(`Arıcı:    http://localhost:${PORT}/arici.html?org=koloni-demo`);
-  console.log(`İşçi:     http://localhost:${PORT}/isci.html?org=koloni-demo`);
+  console.log(`Bakıcı:   http://localhost:${PORT}/bakici.html?org=koloni-demo`);
   console.log(`ML admin: http://localhost:${PORT}/admin.html`);
   console.log(`Kovan Petek Tarama: http://localhost:${PORT}/petek-tarama.html?hiveId=1`);
 });

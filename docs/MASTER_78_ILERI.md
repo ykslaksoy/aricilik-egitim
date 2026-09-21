@@ -4,7 +4,7 @@
 
 **Ana ekran (öncelikli):** https://3530d5304b350b.lhr.life/giris.html
 
-Demo: Yönetici `1234` · Arıcı Ayşe `1111` · İşçi Hasan `3333`
+Demo: Yönetici `1234` · Arıcı Ayşe `1111` · Bakıcı Hasan `3333`
 
 > Sabit adres planı: [`docs/SABIT_LINK.md`](./SABIT_LINK.md).
 

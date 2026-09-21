@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <script>
-    /* Role home: yonetici/isci visiting / or ana → their shell */
+    /* Role home: yonetici/bakici visiting / or ana → their shell */
     (function () {
       try {
         var tip = localStorage.getItem('superari.hesapTipi');
@@ -11,7 +11,7 @@
           .replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g')
           .replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c');
         if (/yonetici|admin/.test(s)) { location.replace('yonetici.html'); return; }
-        if (/isci|worker/.test(s)) { location.replace('isci.html'); return; }
+        if (/bakici|isci|worker|caretaker/.test(s)) { location.replace('bakici.html'); return; }
       } catch (e) { /* ignore */ }
     })();
   </script>

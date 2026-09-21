@@ -1,9 +1,19 @@
 /**
- * İşletme panelleri — yönetici / arıcı / işçi
- * Aynı işletmede birden fazla arıcı ve işçi oturumu açılabilir.
+ * İşletme panelleri — yönetici / arıcı / bakıcı
+ * Aynı işletmede birden fazla arıcı ve bakıcı oturumu açılabilir.
  */
 
-const ROLES = ["yonetici", "arici", "isci"];
+const ROLES = ["yonetici", "arici", "bakici", "isci"]; // isci = legacy alias for bakici
+
+function normalizeRol(rol) {
+  const r = String(rol || "").toLowerCase()
+    .replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g")
+    .replace(/ü/g, "u").replace(/ö/g, "o").replace(/ç/g, "c");
+  if (r === "isci" || r === "bakici" || r === "worker" || r === "caretaker") return "bakici";
+  if (r === "yonetici" || r === "admin" || r === "manager") return "yonetici";
+  if (r === "arici" || r === "beekeeper") return "arici";
+  return r || "bakici";
+}
 
 /** @type {Map<string, object>} */
 const orgs = new Map();
@@ -20,8 +30,8 @@ function seedDefaults() {
       { id: "yon-1", ad: "Yönetici Ali", rol: "yonetici", pin: "1234" },
       { id: "ari-1", ad: "Arıcı Ayşe", rol: "arici", pin: "1111" },
       { id: "ari-2", ad: "Arıcı Mehmet", rol: "arici", pin: "2222" },
-      { id: "isc-1", ad: "Çalışan Hasan", rol: "isci", pin: "3333" },
-      { id: "isc-2", ad: "Çalışan Zeynep", rol: "isci", pin: "4444" },
+      { id: "isc-1", ad: "Bakıcı Hasan", rol: "bakici", pin: "3333" },
+      { id: "isc-2", ad: "Bakıcı Zeynep", rol: "bakici", pin: "4444" },
     ],
     hiveIds: null, // null = tüm filo
   });
@@ -35,7 +45,7 @@ function listOrgs() {
     roller: {
       yonetici: o.uyeler.filter((u) => u.rol === "yonetici").length,
       arici: o.uyeler.filter((u) => u.rol === "arici").length,
-      isci: o.uyeler.filter((u) => u.rol === "isci").length,
+      bakici: o.uyeler.filter((u) => u.rol === "bakici" || u.rol === "isci").length,
     },
   }));
 }
@@ -74,7 +84,7 @@ function createOrg(body = {}) {
 function addMember(orgId, body = {}) {
   const org = orgs.get(orgId);
   if (!org) return { error: "org_not_found" };
-  const rol = ROLES.includes(body.rol) ? body.rol : "isci";
+  const rol = normalizeRol(body.rol);
   const member = {
     id: `${rol.slice(0, 3)}-${Date.now()}`,
     ad: body.ad || `${rol} ${org.uyeler.length + 1}`,
@@ -95,45 +105,52 @@ function publicOrg(org) {
   };
 }
 
+function roleMatches(stored, want) {
+  const a = normalizeRol(stored);
+  const b = normalizeRol(want);
+  return a === b;
+}
+
 function login({ orgId, rol, uyeId, ad, pin } = {}) {
   const org = orgs.get(orgId);
   if (!org) return { error: "org_not_found" };
-  if (!ROLES.includes(rol)) return { error: "invalid_role" };
+  const rolNorm = normalizeRol(rol);
+  if (!["yonetici", "arici", "bakici"].includes(rolNorm)) return { error: "invalid_role" };
 
   let uye = null;
   if (uyeId) {
-    uye = org.uyeler.find((u) => u.id === uyeId && u.rol === rol);
+    uye = org.uyeler.find((u) => u.id === uyeId && roleMatches(u.rol, rolNorm));
   } else if (ad) {
     uye = org.uyeler.find(
-      (u) => u.rol === rol && u.ad.toLowerCase() === String(ad).toLowerCase()
+      (u) => roleMatches(u.rol, rolNorm) && u.ad.toLowerCase() === String(ad).toLowerCase()
     );
   }
-  // Yeni arıcı/işçi oturumu — aynı işletmede ek panel
-  if (!uye && (rol === "arici" || rol === "isci") && ad) {
+  // Yeni arıcı/bakıcı oturumu — aynı işletmede ek panel
+  if (!uye && (rolNorm === "arici" || rolNorm === "bakici") && ad) {
     uye = {
-      id: `${rol.slice(0, 3)}-${Date.now()}`,
+      id: `${rolNorm.slice(0, 3)}-${Date.now()}`,
       ad: String(ad),
-      rol,
+      rol: rolNorm,
       pin: String(pin || "0000"),
     };
     org.uyeler.push(uye);
   }
   if (!uye) {
-    uye = org.uyeler.find((u) => u.rol === rol);
+    uye = org.uyeler.find((u) => roleMatches(u.rol, rolNorm));
   }
   if (!uye) return { error: "member_not_found" };
   if (pin != null && uye.pin && String(pin) !== String(uye.pin)) {
     return { error: "bad_pin" };
   }
 
-  const token = `sess-${rol}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const token = `sess-${rolNorm}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const session = {
     token,
     orgId: org.id,
     orgAd: org.ad,
     uyeId: uye.id,
     ad: uye.ad,
-    rol: uye.rol,
+    rol: normalizeRol(uye.rol),
     hiveIds: org.hiveIds,
     createdAt: new Date().toISOString(),
   };
@@ -145,7 +162,8 @@ function login({ orgId, rol, uyeId, ad, pin } = {}) {
     panels: {
       yonetici: `/yonetici.html?org=${org.id}`,
       arici: `/arici.html?org=${org.id}`,
-      isci: `/isci.html?org=${org.id}`,
+      bakici: `/bakici.html?org=${org.id}`,
+      isci: `/isci.html?org=${org.id}`, // legacy redirect → bakici
     },
   };
 }
@@ -172,8 +190,9 @@ function panelLinks(baseUrl = "") {
   return {
     yonetici: `${root}/yonetici.html?org=koloni-demo`,
     arici: `${root}/arici.html?org=koloni-demo`,
-    isci: `${root}/isci.html?org=koloni-demo`,
-    note: "Aynı işletmede birden fazla arıcı/işçi: farklı ad ile giriş yap",
+    bakici: `${root}/bakici.html?org=koloni-demo`,
+    isci: `${root}/isci.html?org=koloni-demo`, // legacy → bakici
+    note: "Aynı işletmede birden fazla arıcı/bakıcı: farklı ad ile giriş yap",
   };
 }
 

@@ -56,7 +56,8 @@ module.exports = {
   role: {
     yonetici: "Yönetici",
     arici: "Arıcı",
-    isci: "İşçi",
+    bakici: "Bakıcı",
+    isci: "Bakıcı", // legacy alias
   },
   ui: {
     alert_fallback: "Uyarı",
