@@ -367,7 +367,7 @@
       });
   }
 
-  /** Leaflet circle helper — call with L and map instance. */
+  /** Leaflet circle helper — call with L and map instance. (Arılık sayfaları Yandex için SuperAriYandexMap.attachRadar kullanır; bu API paralel iş için korunur.) */
   function attachRadar(L, map, opts) {
     opts = opts || {};
     var radiusKm = clampRadius(opts.radiusKm != null ? opts.radiusKm : DEFAULT_RADIUS_KM);

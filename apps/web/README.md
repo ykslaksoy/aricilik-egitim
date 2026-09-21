@@ -3,9 +3,34 @@
 **Kalıcı demo URL:** https://superari.vercel.app/arici.html
 
 - Giriş: https://superari.vercel.app/giris.html
-- Kovanlar (100, genetik/grup/konum filtre): https://superari.vercel.app/kovanlar.html
-- Uyarılar: https://superari.vercel.app/uyarilar.html
-- Görevler: https://superari.vercel.app/gorevler.html
+- Arılıklar (Yandex harita seçici): https://superari.vercel.app/ariliklar.html
+- Kovanlar: https://superari.vercel.app/kovanlar.html
+- Uyarılar / Görevler: ilgili `.html` sayfalar
 
-Hosting: Vercel proje `superari` (tünel yok).  
-Kaynak senkron: `ykslaksoy/aricilik-egitim` (GitHub App erişimi açılınca).
+Hosting: Vercel proje `superari` (kök: `apps/web`).  
+Kaynak: `ykslaksoy/aricilik-egitim`.
+
+## Yandex Maps API anahtarı
+
+Arılık konum seçici **Yandex Maps JavaScript API** kullanır (Leaflet yok).
+
+Ücretsiz anahtar: https://developer.tech.yandex.ru/services/
+
+Nasıl verilir (öncelik sırası):
+
+1. URL: `?ymaps_key=ANAHTAR` (localStorage’a da yazar)
+2. `window.YANDEX_MAPS_API_KEY = 'ANAHTAR'`
+3. `localStorage.setItem('YANDEX_MAPS_API_KEY', 'ANAHTAR')`
+4. `<meta name="yandex-maps-api-key" content="ANAHTAR">`
+5. `apps/web/yandex-config.js` → `apiKey: 'ANAHTAR'`
+
+Vercel: Project → Settings → Environment Variables → `YANDEX_MAPS_API_KEY`,  
+sonra deploy öncesi `yandex-config.js` içine yazın veya CI ile üretin:
+
+```bash
+echo "window.__YANDEX_MAPS_CONFIG__={apiKey:\"$YANDEX_MAPS_API_KEY\"};" > apps/web/yandex-config.js
+```
+
+Anahtar yoksa sayfa Türkçe uyarı gösterir; Leaflet’e sessizce düşmez.
+
+**Not:** Yandex hesabındaki “kayıtlı yerler” için OAuth gerekir (sonra). Şimdilik Yandex arama + harita iğnesi + link yapıştırma + uygulamada kayıtlı arılık yer işaretleri var. İstersen pin Google / Apple / OSM / Bing’te de açılır.
