@@ -513,6 +513,29 @@
   var pendingSearchName = '';
   var searchResultsCache = [];
   var forageRadiusKm = (F && F.DEFAULT_RADIUS_KM) || 3;
+  var forageManual = false;
+
+  function forageOptsFor(apiary) {
+    var list = (D && D.loadApiaries) ? D.loadApiaries() : [];
+    return {
+      apiaries: list,
+      excludeId: apiary && apiary.id != null ? apiary.id : null,
+      ownHiveCount: apiary && apiary.hiveCount != null ? apiary.hiveCount : 0
+    };
+  }
+
+  function applyAutoForage(lat, lon, apiary) {
+    if (!F || !F.recommendRadiusKm || forageManual) return forageRadiusKm;
+    if (!isFinite(lat) || !isFinite(lon)) return forageRadiusKm;
+    var rec = F.recommendRadiusKm(lat, lon, forageOptsFor(apiary || activeApiary));
+    forageRadiusKm = rec.km;
+    var radiusInput = document.getElementById('forageRadius');
+    var radiusVal = document.getElementById('forageRadiusVal');
+    if (radiusInput) radiusInput.value = String(forageRadiusKm);
+    if (radiusVal) radiusVal.textContent = forageRadiusKm + ' km';
+    return forageRadiusKm;
+  }
+
 
   function escapeHtml(s) {
     return String(s)
@@ -790,6 +813,9 @@
   }
 
   function updateRadarAndAnalyze(lat, lon) {
+    if (isFinite(lat) && isFinite(lon) && !forageManual) {
+      applyAutoForage(lat, lon, activeApiary);
+    }
     if (radar && isFinite(lat) && isFinite(lon)) {
       radar.setRadiusKm(forageRadiusKm);
       radar.setCenter(lat, lon);
@@ -1069,9 +1095,10 @@
         '</div>' +
         '<div class="forage-radius">' +
           '<label for="forageRadius">Foraj</label>' +
-          '<input type="range" id="forageRadius" min="1" max="5" step="0.5" value="' + forageRadiusKm + '" />' +
+          '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" />' +
           '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
         '</div>' +
+        '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
         '<label class="map-paste">Yandex link / enlem,boylam' +
           '<input type="text" id="mapPaste" maxlength="240" placeholder="Yandex paylaşım linki veya 40.12, 41.45" />' +
         '</label>' +
@@ -1129,6 +1156,8 @@
         : '<p class="empty">Bu arılıkta henüz kovan yok. Arılık eklerken kovan sayısı girerseniz burada listelenir.</p>');
 
     pickMode = !coordsOk;
+    forageManual = false;
+    if (coordsOk) applyAutoForage(Number(apiary.lat), Number(apiary.lon), apiary);
     mountMap(apiary);
 
     var btnGo = document.getElementById('btnGoLoc');
@@ -1204,6 +1233,7 @@
     }
     if (radiusInput) {
       radiusInput.addEventListener('input', function () {
+        forageManual = true;
         forageRadiusKm = F ? F.clampRadius(radiusInput.value) : Number(radiusInput.value) || 3;
         if (radiusVal) radiusVal.textContent = forageRadiusKm + ' km';
         if (detailMarker) {

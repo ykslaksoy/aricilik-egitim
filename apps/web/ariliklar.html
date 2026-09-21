@@ -357,9 +357,10 @@
           <p class="map-hint">Ara → iğne düşer. Küçük haritaya dokununca <strong>tam ekran Yandex</strong> açılır (Geri ile kapat). İğneyi sürükle → <strong>Bu konumu ekle</strong>. Yandex linki de yapıştırılabilir.</p>
           <div class="forage-radius">
             <label for="forageRadius">Foraj</label>
-            <input type="range" id="forageRadius" min="1" max="5" step="0.5" value="3" />
+            <input type="range" id="forageRadius" min="0.5" max="10" step="0.5" value="3" />
             <span class="val" id="forageRadiusVal">3 km</span>
           </div>
+          <p class="forage-auto-hint" id="forageAutoHint"></p>
           <div id="forageHost"></div>
           <input type="hidden" name="lat" id="latInput" value="" />
           <input type="hidden" name="lon" id="lonInput" value="" />
@@ -427,6 +428,8 @@
   var forageHost = document.getElementById('forageHost');
   var radiusInput = document.getElementById('forageRadius');
   var radiusVal = document.getElementById('forageRadiusVal');
+  var forageHintEl = document.getElementById('forageAutoHint');
+  var forageManual = false;
   var map = null;
   var marker = null;
   var radar = null;
@@ -452,6 +455,29 @@
 
   function syncRadiusLabel() {
     if (radiusVal) radiusVal.textContent = radiusKm() + ' km';
+  }
+
+  function syncRadiusBounds() {
+    if (!radiusInput || !F) return;
+    radiusInput.min = String(F.MIN_RADIUS_KM != null ? F.MIN_RADIUS_KM : 0.5);
+    radiusInput.max = String(F.MAX_RADIUS_KM != null ? F.MAX_RADIUS_KM : 10);
+    radiusInput.step = String(F.RADIUS_STEP_KM != null ? F.RADIUS_STEP_KM : 0.5);
+    if (forageHintEl && F.AUTO_HINT_TR) forageHintEl.textContent = F.AUTO_HINT_TR;
+  }
+
+  function forageOptsFromForm() {
+    var list = D.loadApiaries ? D.loadApiaries() : [];
+    var hc = form && form.elements.hiveCount ? Number(form.elements.hiveCount.value) : 0;
+    return { apiaries: list, excludeId: null, ownHiveCount: isFinite(hc) ? hc : 0 };
+  }
+
+  function applyAutoForage(lat, lon) {
+    if (!F || !F.recommendRadiusKm || forageManual) return radiusKm();
+    if (!isFinite(lat) || !isFinite(lon)) return radiusKm();
+    var rec = F.recommendRadiusKm(lat, lon, forageOptsFromForm());
+    if (radiusInput) radiusInput.value = String(rec.km);
+    syncRadiusLabel();
+    return rec.km;
   }
 
   function scheduleAnalyze(lat, lon) {
@@ -505,6 +531,7 @@
     btnAddLoc.disabled = false;
     coordsEl.textContent = 'Seçildi — Ekle’ye bas: ' + lat.toFixed(4) + ', ' + lon.toFixed(4);
     coordsEl.classList.remove('is-empty');
+    applyAutoForage(lat, lon);
     updateRadar(lat, lon);
     scheduleAnalyze(lat, lon);
   }
@@ -702,6 +729,8 @@
     searchInput.value = '';
     hideResults();
     clearError();
+    forageManual = false;
+    syncRadiusBounds();
     if (radiusInput) radiusInput.value = String((F && F.DEFAULT_RADIUS_KM) || 3);
     syncRadiusLabel();
     if (forageHost) {
@@ -725,7 +754,17 @@
     setTimeout(function () { sheet.hidden = true; }, 220);
   }
 
-  document.getElementById('fabAdd').addEventListener('click', openSheet);
+  syncRadiusBounds();
+  if (form && form.elements.hiveCount) {
+    form.elements.hiveCount.addEventListener('change', function () {
+      if (pending && !forageManual) {
+        applyAutoForage(pending.lat, pending.lon);
+        updateRadar(pending.lat, pending.lon);
+        scheduleAnalyze(pending.lat, pending.lon);
+      }
+    });
+  }
+    document.getElementById('fabAdd').addEventListener('click', openSheet);
   document.getElementById('sheetCancel').addEventListener('click', closeSheet);
   sheet.addEventListener('click', function (e) {
     if (e.target === sheet) closeSheet();
@@ -739,6 +778,7 @@
   });
   if (radiusInput) {
     radiusInput.addEventListener('input', function () {
+      forageManual = true;
       syncRadiusLabel();
       if (pending) {
         updateRadar(pending.lat, pending.lon);

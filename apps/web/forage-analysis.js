@@ -10,8 +10,11 @@
  */
 (function (global) {
   var DEFAULT_RADIUS_KM = 3;
-  var MIN_RADIUS_KM = 1;
-  var MAX_RADIUS_KM = 5;
+  var MIN_RADIUS_KM = 0.5;
+  var MAX_RADIUS_KM = 10;
+  var RADIUS_STEP_KM = 0.5;
+  var AUTO_HINT_TR =
+    'Otomatik foraj: yakın kovan yoğunluğu yüksekse daraltır; yerleşim/araç proxy (yol-kent tahmini, trafik API yok) yüksekse daraltır. Kaydırarak elle değiştirebilirsiniz (0,5–10 km).';
   var DIRS = [
     { key: 'N', label: 'kuzeye', bearing: 0 },
     { key: 'NE', label: 'kuzeydoğuya', bearing: 45 },
@@ -23,10 +26,115 @@
     { key: 'NW', label: 'kuzeybatıya', bearing: 315 }
   ];
 
+  function roundToStep(km, step) {
+    step = step || RADIUS_STEP_KM;
+    return Math.round(km / step) * step;
+  }
+
   function clampRadius(km) {
     var n = Number(km);
     if (!isFinite(n)) return DEFAULT_RADIUS_KM;
-    return Math.max(MIN_RADIUS_KM, Math.min(MAX_RADIUS_KM, Math.round(n * 10) / 10));
+    var stepped = roundToStep(n, RADIUS_STEP_KM);
+    /* Avoid IEEE dust on 0.5 steps (e.g. 1.0000000002). */
+    stepped = Math.round(stepped * 10) / 10;
+    return Math.max(MIN_RADIUS_KM, Math.min(MAX_RADIUS_KM, stepped));
+  }
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var toRad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * toRad;
+    var dLon = (lon2 - lon1) * toRad;
+    var a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
+  /**
+   * Settlement / vehicle-density proxy 0..1 (no traffic API).
+   * Mixes: deterministic local noise + proximity to known urban hubs in region.
+   */
+  function vehicleDensityProxy(lat, lon) {
+    var hubs = [
+      { lat: 39.904, lon: 41.268, w: 1 }, /* Erzurum merkez */
+      { lat: 40.561, lon: 40.988, w: 0.55 }, /* Bayburt yönü */
+      { lat: 39.748, lon: 39.491, w: 0.45 }, /* Erzincan yönü */
+      { lat: 40.994, lon: 41.117, w: 0.4 } /* Artvin/Yusufeli corridor proxy */
+    ];
+    var hubScore = 0;
+    for (var i = 0; i < hubs.length; i++) {
+      var d = haversineKm(lat, lon, hubs[i].lat, hubs[i].lon);
+      /* ~25 km falloff — closer to town ⇒ more roads/traffic proxy */
+      var fall = Math.max(0, 1 - d / 25);
+      hubScore += fall * hubs[i].w;
+    }
+    hubScore = Math.min(1, hubScore / 1.2);
+    var local = 0.25 + hash01(lat, lon, 11) * 0.55; /* rural variegation */
+    return Math.max(0, Math.min(1, hubScore * 0.7 + local * 0.3));
+  }
+
+  /**
+   * Nearby hive competition from known apiaries (localStorage / demo).
+   * Returns normalized 0..1 pressure.
+   */
+  function hiveDensityPressure(lat, lon, opts) {
+    opts = opts || {};
+    var apiaries = opts.apiaries || [];
+    var excludeId = opts.excludeId != null ? String(opts.excludeId) : null;
+    var ownHives = Math.max(0, Number(opts.ownHiveCount) || 0);
+    var scanKm = 10;
+    var nearbyHives = 0;
+    var nearbySites = 0;
+    for (var i = 0; i < apiaries.length; i++) {
+      var a = apiaries[i];
+      if (!a) continue;
+      if (excludeId && String(a.id) === excludeId) continue;
+      var alat = Number(a.lat);
+      var alon = Number(a.lon);
+      if (!isFinite(alat) || !isFinite(alon)) continue;
+      var d = haversineKm(lat, lon, alat, alon);
+      if (d > scanKm) continue;
+      nearbySites += 1;
+      /* Closer sites weigh more (inverse distance, floor 0.5 km). */
+      var w = 1 / Math.max(0.5, d);
+      nearbyHives += Math.max(0, Number(a.hiveCount) || 0) * w;
+    }
+    /* Own yard competes fully for local forage (same pin / this arılık). */
+    nearbyHives += ownHives * 1.0;
+    /* ~60 weighted hives ⇒ full pressure. */
+    var pressure = nearbyHives / 60;
+    if (nearbySites >= 2) pressure += 0.1;
+    if (nearbySites >= 4) pressure += 0.1;
+    return Math.max(0, Math.min(1, pressure));
+  }
+
+  /**
+   * Auto forage radius from hive + vehicle proxies. Steps of 0.5 km, [0.5, 10].
+   * Mid density → ~2–4 km; high competition/traffic → smaller; sparse rural → larger.
+   */
+  function recommendRadiusKm(lat, lon, opts) {
+    lat = Number(lat);
+    lon = Number(lon);
+    if (!isFinite(lat) || !isFinite(lon)) {
+      return { km: DEFAULT_RADIUS_KM, hivePressure: 0, vehicleProxy: 0, hint: AUTO_HINT_TR };
+    }
+    opts = opts || {};
+    var hiveP = hiveDensityPressure(lat, lon, opts);
+    var vehP = vehicleDensityProxy(lat, lon);
+    /* Start ~7 km; hive + settlement/vehicle proxies pull toward min.
+       Mid density → ~2–4 km; sparse rural can approach 10 km. */
+    var raw = 7 - hiveP * 5 - vehP * 3;
+    if (hiveP > 0.8) raw -= 0.6;
+    if (hiveP < 0.15 && vehP < 0.28) raw += 2.2;
+    var km = clampRadius(raw);
+    return {
+      km: km,
+      hivePressure: Math.round(hiveP * 100) / 100,
+      vehicleProxy: Math.round(vehP * 100) / 100,
+      hint: AUTO_HINT_TR
+    };
   }
 
   function destination(lat, lon, bearingDeg, distKm) {
@@ -101,7 +209,7 @@
     var floraProxy = 40 + hash01(lat, lon, 2) * 45; /* demo land-cover proxy */
     var waterProxy = 30 + hash01(lat, lon, 3) * 50;
     var windExposure = 20 + hash01(lat, lon, 4) * 60; /* higher = more exposed (worse) */
-    var radiusFactor = 0.85 + (clampRadius(radiusKm) - 1) / 4 * 0.2;
+    var radiusFactor = 0.85 + (clampRadius(radiusKm) - MIN_RADIUS_KM) / (MAX_RADIUS_KM - MIN_RADIUS_KM) * 0.2;
 
     var raw =
       elevScore * 0.38 +
@@ -142,7 +250,7 @@
       return Promise.reject(new Error('invalid_coords'));
     }
 
-    var sampleDist = Math.min(2.5, Math.max(1.2, radiusKm * 0.55));
+    var sampleDist = Math.min(4, Math.max(0.35, radiusKm * 0.55));
     var points = [{ lat: lat, lon: lon, tag: 'center' }];
     DIRS.forEach(function (d) {
       var p = destination(lat, lon, d.bearing, sampleDist);
@@ -396,7 +504,8 @@
     '.forage-radius{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:8px 0 0;}',
     '.forage-radius label{font-size:11px;font-weight:700;color:#6b635a;}',
     '.forage-radius input[type=range]{width:100%;}',
-    '.forage-radius .val{font-size:11px;font-weight:800;color:#4a2f1a;font-variant-numeric:tabular-nums;}'
+    '.forage-radius .val{font-size:11px;font-weight:800;color:#4a2f1a;font-variant-numeric:tabular-nums;}',
+    '.forage-auto-hint{margin:4px 0 0;font-size:10px;color:#8a8278;line-height:1.35;font-weight:560;}'
   ].join('');
 
   function injectStyles() {
@@ -414,10 +523,16 @@
     DEFAULT_RADIUS_KM: DEFAULT_RADIUS_KM,
     MIN_RADIUS_KM: MIN_RADIUS_KM,
     MAX_RADIUS_KM: MAX_RADIUS_KM,
+    RADIUS_STEP_KM: RADIUS_STEP_KM,
+    AUTO_HINT_TR: AUTO_HINT_TR,
     clampRadius: clampRadius,
+    recommendRadiusKm: recommendRadiusKm,
+    hiveDensityPressure: hiveDensityPressure,
+    vehicleDensityProxy: vehicleDensityProxy,
     analyze: analyze,
     attachRadar: attachRadar,
     renderPanelHtml: renderPanelHtml,
-    destination: destination
+    destination: destination,
+    haversineKm: haversineKm
   };
 })(window);
