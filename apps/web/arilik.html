@@ -242,16 +242,6 @@
     display: flex; gap: 8px; margin-top: 8px; align-items: center;
   }
   .map-loc-bar .map-btn { flex: 1; }
-  .masraf-report-link {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin: 0 0 14px; padding: 12px 14px;
-    border-radius: 14px; background: #fff8df;
-    border: 1px dashed #e0c56a;
-    color: var(--brown); font-size: 13px; font-weight: 750;
-    text-decoration: none;
-  }
-  .masraf-report-link:active { transform: scale(.99); }
-  .masraf-report-link span { color: #b0aaa3; font-size: 18px; font-weight: 700; }
   .map-btn.ghost {
     background: #fff; border: 1px solid #e0c56a; color: var(--brown);
   }
@@ -1132,16 +1122,6 @@
     });
   }
 
-  function masrafReportLinkHtml(apiary) {
-    var href = 'giderler.html?apiary=' + encodeURIComponent(apiary.id);
-    return (
-      '<a class="masraf-report-link" href="' + href + '">' +
-        'Masrafları raporlarda gör' +
-        '<span aria-hidden="true">›</span>' +
-      '</a>'
-    );
-  }
-
   function moveLogHtml(apiary) {
     if (!G) return '';
     var moves = G.transportsForApiary(apiary.id).slice(0, 6);
@@ -1156,7 +1136,6 @@
             '<h3>' + escapeHtml(t.title || kind) + '</h3>' +
             '<div class="meta">' + escapeHtml(kind) + ' · ' + formatDate(t.date) +
               (t.note ? ' · ' + escapeHtml(t.note) : '') +
-              (t.giderId ? ' · gider bağlı' : '') +
             '</div>' +
           '</div>' +
           '<div class="amt">' + formatTRY(t.amount) + '</div>' +
@@ -1289,7 +1268,6 @@
               )) +
         '</div>' +
       '</section>' +
-      masrafReportLinkHtml(apiary) +
       mapBlock +
       '<div class="action-row">' +
         '<button type="button" class="action-link" id="btnMoveSave">' +

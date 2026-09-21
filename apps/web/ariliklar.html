@@ -97,11 +97,6 @@
     -webkit-tap-highlight-color: transparent;
   }
   .apiary-card:active { transform: scale(.98); }
-  .apiary-gider {
-    display: block; margin-top: 4px;
-    font-size: 11px; font-weight: 700; color: var(--muted);
-  }
-  .apiary-gider strong { color: var(--brown); font-weight: 800; }
   .apiary-ico {
     width: 44px; height: 44px; border-radius: 14px; flex: 0 0 auto;
     display: grid; place-items: center;
@@ -420,7 +415,6 @@
 <script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
 <script src="forage-analysis.js"></script>
-<script src="gider-store.js?v=reconcile-1"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
@@ -787,49 +781,18 @@
     errEl.classList.add('is-on');
   }
 
-  function formatTRY(n) {
-    return '₺' + Math.round(Number(n) || 0).toLocaleString('tr-TR');
-  }
-
   function render() {
     if (D.loadHives) D.loadHives();
     var apiaries = D.loadApiaries();
-    var G = window.SuperAriGider;
-    if (G && typeof G.reconcileAllApiaries === 'function') {
-      var enriched = apiaries.map(function (a) {
-        var n = D.hivesForApiary(a.id).length;
-        return {
-          id: a.id,
-          name: a.name,
-          place: a.place,
-          hiveCount: n || Number(a.hiveCount) || 0
-        };
-      });
-      G.reconcileAllApiaries(enriched);
-    }
     countEl.textContent = String(apiaries.length);
     listEl.innerHTML = apiaries.map(function (a) {
       var n = D.hivesForApiary(a.id).length;
-      var giderBit = '';
-      var total = 0;
-      var count = 0;
-      if (G && typeof G.expensesForApiary === 'function') {
-        var ex = G.expensesForApiary(a.id);
-        count = ex.length;
-        ex.forEach(function (e) { total += Number(e.amount) || 0; });
-      }
-      if (count) {
-        giderBit = '<span class="apiary-gider"><strong>' + formatTRY(total) + '</strong></span>';
-      } else if (n > 0) {
-        giderBit = '<span class="apiary-gider"><strong>₺0</strong></span>';
-      }
       return (
         '<a class="apiary-card" href="arilik.html?id=' + encodeURIComponent(a.id) + '" aria-label="' + escapeHtml(a.name) + ', ' + n + ' kovan">' +
           '<div class="apiary-ico">' + pinSvg + '</div>' +
           '<div class="apiary-body">' +
             '<h2>' + escapeHtml(a.name) + '</h2>' +
             '<p>' + escapeHtml(a.place) + '</p>' +
-            giderBit +
           '</div>' +
           '<span class="apiary-badge">' + n + ' kovan</span>' +
           '<span class="apiary-chev" aria-hidden="true">›</span>' +
