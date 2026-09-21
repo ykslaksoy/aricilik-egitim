@@ -156,10 +156,37 @@
   .map-search-results .meta {
     display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted);
   }
+  .ymap-host { position: relative; }
   #detailMap {
     height: 200px; border-radius: 14px; overflow: hidden;
     border: 1px solid var(--card-border); background: #e8ece8;
   }
+  .ymap-host .ymap-geri {
+    display: none; position: absolute; top: 10px; left: 10px; z-index: 2500;
+    min-height: 32px; padding: 6px 12px; border-radius: 999px; border: 0; cursor: pointer;
+    font-size: 12px; font-weight: 800; font-family: inherit;
+    background: rgba(255,255,255,.94); color: var(--text);
+    box-shadow: 0 2px 10px rgba(0,0,0,.18);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ymap-host.is-fullscreen .ymap-geri { display: inline-flex; align-items: center; }
+  .ymap-tap-hint {
+    display: none; position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+    z-index: 500; padding: 5px 10px; border-radius: 999px;
+    background: rgba(20,16,10,.72); color: #fff; font-size: 11px; font-weight: 700;
+    pointer-events: auto; white-space: nowrap;
+  }
+  .ymap-tap-hint.is-on { display: block; }
+  .ymap-host.is-fullscreen {
+    position: absolute; inset: 0; z-index: 120; margin: 0;
+    border-radius: 0; border: 0; background: #f7f8fa;
+    display: flex; flex-direction: column;
+  }
+  .ymap-host.is-fullscreen #detailMap {
+    flex: 1 1 auto; height: 100% !important;
+    border-radius: 0 !important; border: 0 !important;
+  }
+  .ymap-host.is-fullscreen .ymap-tap-hint { display: none !important; }
   .map-missing {
     padding: 12px; border-radius: 14px;
     background: #fff8df; border: 1px dashed #e0c56a;
@@ -451,6 +478,7 @@
   </div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
 <script src="forage-analysis.js"></script>
 <script src="gider-store.js?v=kovan-oran-1"></script>
@@ -876,6 +904,8 @@
       });
   }
 
+  var detailMapFs = null;
+
   function mountMap(apiary) {
     if (typeof L === 'undefined') return;
     var el = document.getElementById('detailMap');
@@ -884,6 +914,10 @@
       radar.clear();
       radar = null;
     }
+    if (detailMapFs) {
+      try { detailMapFs.destroy(); } catch (e0) { /* ignore */ }
+      detailMapFs = null;
+    }
     if (detailMap) {
       detailMap.remove();
       detailMap = null;
@@ -891,16 +925,30 @@
     }
     var center = hasCoords(apiary) ? [Number(apiary.lat), Number(apiary.lon)] : DEFAULT_CENTER;
     var zoom = hasCoords(apiary) ? 12 : 9;
-    detailMap = L.map(el, { zoomControl: true }).setView(center, zoom);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(detailMap);
+    var Y = window.SuperAriYandexMap;
+    if (Y && Y.createYandexMap) {
+      detailMap = Y.createYandexMap(L, el, { center: center, zoom: zoom });
+    } else {
+      detailMap = L.map(el, { zoomControl: true }).setView(center, zoom);
+      L.tileLayer('https://core-renderer-tiles.maps.yandex.net/tiles?l=map&v=latest&x={x}&y={y}&z={z}&scale=1&lang=tr_TR', {
+        maxZoom: 19,
+        attribution: '&copy; Yandex'
+      }).addTo(detailMap);
+    }
     if (F) radar = F.attachRadar(L, detailMap, { radiusKm: forageRadiusKm });
+    var host = document.getElementById('detailMapHost');
+    if (Y && host) {
+      detailMapFs = Y.attachFullscreen(host, el, detailMap, {
+        root: document.getElementById('phone')
+      });
+    }
     if (hasCoords(apiary)) {
       placeDetailMarker(L.latLng(Number(apiary.lat), Number(apiary.lon)));
     }
     detailMap.on('click', function (e) {
+      if (detailMapFs && !detailMapFs.isOpen()) {
+        detailMapFs.open();
+      }
       if (pickMode) {
         var z = detailMap.getZoom();
         if (z < 14) detailMap.setView(e.latlng, Math.min(16, z + 2));
@@ -999,7 +1047,11 @@
           '<button type="button" class="btn-ara" id="mapSearchBtn">Ara</button>' +
         '</div>' +
         '<ul class="map-search-results" id="mapSearchResults" hidden></ul>' +
-        '<div id="detailMap" role="application" aria-label="Arılık konumu"></div>' +
+        '<div class="ymap-host" id="detailMapHost">' +
+          '<button type="button" class="ymap-geri" hidden aria-label="Geri">Geri</button>' +
+          '<div id="detailMap" role="application" aria-label="Arılık konumu"></div>' +
+          '<div class="ymap-tap-hint is-on">Büyütmek için dokun</div>' +
+        '</div>' +
         (coordsOk
           ? '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Konum işlemleri">' +
               fmtCoord(apiary.lat) + ', ' + fmtCoord(apiary.lon) +
@@ -1023,7 +1075,7 @@
         '<label class="map-paste">Yandex link / enlem,boylam' +
           '<input type="text" id="mapPaste" maxlength="240" placeholder="Yandex paylaşım linki veya 40.12, 41.45" />' +
         '</label>' +
-        '<p class="map-hint-inline">Ara → iğne · dokunarak zoom · sürükle · kaydet. Sarı çember = foraj yarıçapı.</p>' +
+        '<p class="map-hint-inline">Küçük haritaya dokun → tam ekran Yandex (Geri). Ara → iğne · sürükle · kaydet. Sarı çember = foraj.</p>' +
         '<div id="forageHost"></div>' +
       '</section>';
 
