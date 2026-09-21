@@ -226,8 +226,41 @@
   button.stat-tap:active { transform: scale(.98); }
   button.stat-tap .k::after { content: " ›"; color: #b0aaa3; font-weight: 800; }
   .loc-actions {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
+    display: none !important; /* default clean: actions live in Konum sheet */
   }
+  .map-tool-row {
+    display: none !important; /* hidden unless editing — use #mapEditTools.is-on */
+  }
+  #mapEditTools.is-on.map-tool-row,
+  #mapEditTools.is-on {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .map-loc-bar {
+    display: flex; gap: 8px; margin-top: 8px; align-items: center;
+  }
+  .map-loc-bar .map-btn { flex: 1; }
+  .masraflar-card {
+    margin: 0 0 14px; padding: 14px;
+    border-radius: 18px; background: #fff;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 1px 0 rgba(80, 60, 20, .04);
+  }
+  .masraflar-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px;
+  }
+  .masraflar-head .section-title { margin: 0; }
+  .masraflar-total {
+    font-size: 13px; font-weight: 800; color: var(--brown);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .masraflar-card .move-list { margin-bottom: 10px; }
+  .masraflar-card a.move-item { text-decoration: none; color: inherit; }
+  .masraflar-card a.move-item:active { transform: scale(.99); }
+  .masraflar-card .action-link { margin-top: 4px; }
   .map-btn.ghost {
     background: #fff; border: 1px solid #e0c56a; color: var(--brown);
   }
@@ -487,7 +520,7 @@
 <script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
 <script src="forage-analysis.js"></script>
-<script src="gider-store.js?v=kovan-oran-1"></script>
+<script src="gider-store.js?v=reconcile-1"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
@@ -760,15 +793,67 @@
     prompt('Konumu kopyalayın:', text);
   }
 
+  function currentDetailPin() {
+    var c = Y && detailPlacemark ? Y.placemarkCoords(detailPlacemark) : null;
+    if (c) return c;
+    if (activeApiary && hasCoords(activeApiary)) {
+      return { lat: Number(activeApiary.lat), lon: Number(activeApiary.lon) };
+    }
+    return null;
+  }
+
+  function startPickMode() {
+    pickMode = true;
+    var btnSave = document.getElementById('btnSaveLoc');
+    var btnPick = document.getElementById('btnPickLoc');
+    var editTools = document.getElementById('mapEditTools');
+    if (btnSave) {
+      btnSave.hidden = false;
+      btnSave.textContent = 'Bu konumu kaydet';
+    }
+    if (btnPick) btnPick.hidden = true;
+    if (editTools) editTools.classList.add('is-on');
+    try {
+      if (detailPlacemark) detailPlacemark.options.set('draggable', true);
+    } catch (eDrag) {}
+  }
+
+  function openOtherMapsSheet() {
+    var pin = currentDetailPin();
+    if (!pin || !Y) {
+      alert('Önce haritadan veya aramadan bir konum seçin.');
+      return;
+    }
+    var providers = [
+      { label: 'Google Maps', action: 'ext:google' },
+      { label: 'Apple Haritalar', action: 'ext:apple' },
+      { label: 'OpenStreetMap', action: 'ext:osm' },
+      { label: 'Bing Maps', action: 'ext:bing' }
+    ];
+    openLocSheet('Diğer haritalar', fmtCoord(pin.lat) + ', ' + fmtCoord(pin.lon), providers);
+    locSheetList.querySelectorAll('.sheet-item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var act = btn.getAttribute('data-action') || '';
+        if (act.indexOf('ext:') === 0) {
+          closeLocSheet();
+          Y.openExternal(act.slice(4), pin.lat, pin.lon, 15);
+        }
+      });
+    });
+  }
+
   function openLocMenu() {
     if (!activeApiary || !hasCoords(activeApiary)) return;
     var a = activeApiary;
     openLocSheet(
-      'Konum işlemleri',
+      'Konum',
       mapsLabel(a) + ' · ' + fmtCoord(a.lat) + ', ' + fmtCoord(a.lon),
       [
         { label: 'Konuma git (yol tarifi)', action: 'goto' },
-        { label: 'Konumu gönder', action: 'share' }
+        { label: 'Konumu gönder', action: 'share' },
+        { label: 'Yandex’te aç', action: 'yandex' },
+        { label: 'Diğer haritalarda aç', action: 'other' },
+        { label: 'Konumu değiştir', action: 'pick' }
       ]
     );
     locSheetList.querySelectorAll('.sheet-item').forEach(function (btn) {
@@ -776,6 +861,15 @@
         var act = btn.getAttribute('data-action');
         if (act === 'goto') openNavChooser();
         else if (act === 'share') shareLocation();
+        else if (act === 'yandex') {
+          closeLocSheet();
+          var pin = currentDetailPin();
+          if (pin && Y) Y.openExternal('yandex', pin.lat, pin.lon, 14);
+        } else if (act === 'other') openOtherMapsSheet();
+        else if (act === 'pick') {
+          closeLocSheet();
+          startPickMode();
+        }
       });
     });
   }
@@ -1047,6 +1141,47 @@
     });
   }
 
+  function masraflarHtml(apiary) {
+    if (!G) return '';
+    var expenses = G.expensesForApiary(apiary.id);
+    var total = 0;
+    expenses.forEach(function (e) { total += Number(e.amount) || 0; });
+    var href = 'giderler.html?apiary=' + encodeURIComponent(apiary.id);
+    var rows = expenses.slice(0, 16).map(function (e) {
+      var cat = G.catById(e.category);
+      var color = (cat && cat.color) || '#c4b09a';
+      var label = (cat && cat.label) || '';
+      return (
+        '<a class="move-item" href="' + href + '">' +
+          '<span class="move-dot" style="background:' + color + '"></span>' +
+          '<div>' +
+            '<h3>' + escapeHtml(e.title || 'Gider') + '</h3>' +
+            '<div class="meta">' + escapeHtml(label) + ' · ' + formatDate(e.date) +
+              (e.note ? ' · ' + escapeHtml(e.note) : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="amt">' + formatTRY(e.amount) + '</div>' +
+        '</a>'
+      );
+    }).join('');
+    return (
+      '<section class="masraflar-card" id="masraflar">' +
+        '<div class="masraflar-head">' +
+          '<h2 class="section-title">Masraflar</h2>' +
+          '<div class="masraflar-total">' + formatTRY(total) +
+            (expenses.length ? ' · ' + expenses.length + ' kalem' : '') +
+          '</div>' +
+        '</div>' +
+        (rows
+          ? '<div class="move-list">' + rows + '</div>'
+          : '<p class="empty" style="margin-bottom:12px;">Bu arılıkta henüz masraf yok.</p>') +
+        '<a class="action-link" href="' + href + '">' +
+          'Tüm giderler <span aria-hidden="true">›</span>' +
+        '</a>' +
+      '</section>'
+    );
+  }
+
   function moveLogHtml(apiary) {
     if (!G) return '';
     var moves = G.transportsForApiary(apiary.id).slice(0, 6);
@@ -1110,18 +1245,22 @@
     }).join('');
 
     var coordsOk = hasCoords(apiary);
-    var locButtons = coordsOk
-      ? (
-          '<div class="loc-actions">' +
-            '<button type="button" class="map-btn" id="btnGoLoc">Konuma git</button>' +
-            '<button type="button" class="map-btn ghost" id="btnShareLoc">Konumu gönder</button>' +
-          '</div>'
-        )
-      : '';
+    /* Auto-fill standart masraf kalemleri (kovan × birim) when missing */
+    if (G && typeof G.reconcileApiaryExpenses === 'function') {
+      var hiveN0 = linked.length || Number(apiary.hiveCount) || 0;
+      if (hiveN0 > 0) {
+        G.reconcileApiaryExpenses({
+          id: apiary.id,
+          name: apiary.name,
+          place: apiary.place,
+          hiveCount: hiveN0
+        });
+      }
+    }
 
     var mapBlock =
       '<section class="map-card">' +
-        '<h2>Konumu Yandex haritadan seç</h2>' +
+        '<h2>Konum</h2>' +
         (coordsOk
           ? ''
           : '<p class="map-missing">Konum henüz seçilmemiş. Ara veya haritaya dokunup iğneyi kaydırın.</p>') +
@@ -1140,16 +1279,19 @@
               fmtCoord(apiary.lat) + ', ' + fmtCoord(apiary.lon) +
             '</button>'
           : '<div class="map-coords-line" id="pickCoords">Konum seçilmedi</div>') +
-        locButtons +
-        '<div class="map-tool-row">' +
-          '<button type="button" class="map-btn ghost" id="btnYandexOpen">Yandex’te aç</button>' +
-          '<button type="button" class="map-btn ghost" id="btnOtherMaps">Diğer haritalarda aç</button>' +
-          '<button type="button" class="map-btn ghost" id="btnPickLoc">' +
+        (coordsOk
+          ? '<div class="map-loc-bar">' +
+              '<button type="button" class="map-btn ghost" id="btnKonumMenu">Konum ▾</button>' +
+            '</div>'
+          : '') +
+        '<div class="map-tool-row" id="mapEditTools">' +
+          '<button type="button" class="map-btn ghost" id="btnPickLoc" hidden>' +
             (coordsOk ? 'Konumu değiştir' : 'Haritadan seç') +
           '</button>' +
         '</div>' +
         '<div class="map-actions">' +
-          '<button type="button" class="map-btn" id="btnSaveLoc" hidden>Bu konumu kaydet</button>' +
+          '<button type="button" class="map-btn" id="btnSaveLoc"' +
+            (coordsOk ? ' hidden' : '') + '>Bu konumu kaydet</button>' +
         '</div>' +
         '<div id="mapBookmarks" class="ymap-bookmarks" hidden></div>' +
         '<div class="forage-radius">' +
@@ -1199,12 +1341,13 @@
               )) +
         '</div>' +
       '</section>' +
+      masraflarHtml(apiary) +
       mapBlock +
       '<div class="action-row">' +
         '<button type="button" class="action-link" id="btnMoveSave">' +
           'Taşıma kaydet <span aria-hidden="true">›</span>' +
         '</button>' +
-        '<a class="action-link" href="giderler.html">' +
+        '<a class="action-link" href="giderler.html?apiary=' + encodeURIComponent(apiary.id) + '">' +
           'Giderler <span aria-hidden="true">›</span>' +
         '</a>' +
         '<a class="action-link" href="' + filterHref + '">' +
@@ -1222,40 +1365,35 @@
     if (coordsOk) applyAutoForage(Number(apiary.lat), Number(apiary.lon), apiary);
     mountMap(apiary);
 
-    var btnGo = document.getElementById('btnGoLoc');
-    var btnShare = document.getElementById('btnShareLoc');
     var btnPick = document.getElementById('btnPickLoc');
     var btnSave = document.getElementById('btnSaveLoc');
     var coordsBtn = document.getElementById('pickCoords');
     var statLat = document.getElementById('statLat');
     var statLon = document.getElementById('statLon');
     var btnMove = document.getElementById('btnMoveSave');
+    var btnKonum = document.getElementById('btnKonumMenu');
 
     if (btnMove) btnMove.addEventListener('click', openMoveSheet);
-    if (btnGo) btnGo.addEventListener('click', openNavChooser);
-    if (btnShare) btnShare.addEventListener('click', shareLocation);
+    if (btnKonum) btnKonum.addEventListener('click', openLocMenu);
     if (coordsBtn && coordsBtn.tagName === 'BUTTON') {
       coordsBtn.addEventListener('click', openLocMenu);
     }
     if (statLat) statLat.addEventListener('click', openLocMenu);
     if (statLon) statLon.addEventListener('click', openLocMenu);
 
-    if (btnPick && btnSave) {
-      if (!coordsOk) {
-        btnPick.hidden = true;
+    if (!coordsOk) {
+      pickMode = true;
+      if (btnSave) {
         btnSave.hidden = false;
         btnSave.textContent = 'Bu konumu kaydet';
       }
-      btnPick.addEventListener('click', function () {
-        pickMode = true;
-        btnSave.hidden = false;
-        btnPick.hidden = true;
-        if (btnGo) btnGo.hidden = true;
-        if (btnShare) btnShare.hidden = true;
-        try {
-          if (detailPlacemark) detailPlacemark.options.set('draggable', true);
-        } catch (eDrag) {}
-      });
+      var editTools0 = document.getElementById('mapEditTools');
+      if (editTools0) editTools0.classList.add('is-on');
+    }
+    if (btnPick) {
+      btnPick.addEventListener('click', startPickMode);
+    }
+    if (btnSave) {
       btnSave.addEventListener('click', function () {
         var c = Y && detailPlacemark ? Y.placemarkCoords(detailPlacemark) : null;
         if (!c) {
@@ -1270,8 +1408,6 @@
 
     var searchBtn = document.getElementById('mapSearchBtn');
     var searchInput = document.getElementById('mapSearch');
-    var btnYandex = document.getElementById('btnYandexOpen');
-    var btnOther = document.getElementById('btnOtherMaps');
     var radiusInput = document.getElementById('forageRadius');
     var radiusVal = document.getElementById('forageRadiusVal');
     var pasteInput = document.getElementById('mapPaste');
@@ -1286,25 +1422,7 @@
       });
     }
     function currentPin() {
-      var c = Y && detailPlacemark ? Y.placemarkCoords(detailPlacemark) : null;
-      if (c) return c;
-      if (hasCoords(apiary)) return { lat: Number(apiary.lat), lon: Number(apiary.lon) };
-      return null;
-    }
-    if (btnYandex) {
-      btnYandex.addEventListener('click', function () {
-        var q = String((searchInput && searchInput.value) || apiary.place || apiary.name || '').trim();
-        var pin = currentPin();
-        if (pin && Y) {
-          Y.openExternal('yandex', pin.lat, pin.lon, 14);
-          return;
-        }
-        var url = D.yandexSearchUrl ? D.yandexSearchUrl(q || 'Erzurum') : ('https://yandex.com.tr/maps/?text=' + encodeURIComponent(q || 'Erzurum'));
-        window.open(url, '_blank', 'noopener');
-      });
-    }
-    if (btnOther && Y) {
-      Y.attachOtherMapsMenu(btnOther, currentPin);
+      return currentDetailPin() || (hasCoords(apiary) ? { lat: Number(apiary.lat), lon: Number(apiary.lon) } : null);
     }
     if (bmHost && Y) {
       Y.renderBookmarksList(bmHost, function (hit) {
@@ -1367,6 +1485,15 @@
       });
       pasteInput.addEventListener('change', applyPaste);
       pasteInput.addEventListener('paste', function () { setTimeout(applyPaste, 0); });
+    }
+
+    if (location.hash === '#masraflar') {
+      var masEl = document.getElementById('masraflar');
+      if (masEl) {
+        requestAnimationFrame(function () {
+          masEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
     }
   }
 

@@ -21,6 +21,37 @@
     { id: 'diger', label: 'Diğer', color: '#c4b09a' }
   ];
 
+  /**
+   * Tipik mevsimlik / yıllık arılık masraf kalemleri (kovan başı birim × hiveCount).
+   * ensureDefaultExpensesForApiary eksik olanları kalem kalem ekler.
+   */
+  var DEFAULT_KALEM_TEMPLATES = [
+    { key: 'yem_seker', title: 'Şeker şurubu (sezon)', category: 'yem', perHive: 120,
+      aliases: ['şeker şurubu (25 kg)', 'şeker şurubu', 'fondan'] },
+    { key: 'yem_polen', title: 'Polen ikamesi', category: 'yem', perHive: 45,
+      aliases: ['polen ikamesi'] },
+    { key: 'ilac_varroa', title: 'Varroa mücadelesi', category: 'ilac', perHive: 55,
+      aliases: ['varroa damlatma', 'varroa'] },
+    { key: 'ilac_asit', title: 'Organik asit / şerit', category: 'ilac', perHive: 35,
+      aliases: ['organik asit seti', 'organik asit'] },
+    { key: 'ekipman_cerceve', title: 'Çerçeve / mum / tel', category: 'ekipman', perHive: 40,
+      aliases: ['çerçeve teli + mum', 'petek temeli', 'çerçeve'] },
+    { key: 'ekipman_bakim', title: 'Kovan bakımı malzeme', category: 'ekipman', perHive: 25,
+      aliases: ['maske / eldiven', 'arılık bakım malzemesi', 'kovan boyası'] },
+    { key: 'iscilik_sezon', title: 'Bakım işçiliği (sezon)', category: 'iscilik', perHive: 80,
+      aliases: ['yevmiye — yardımcı', 'yevmiye', 'işçilik'] },
+    { key: 'ambalaj_bal', title: 'Bal ambalaj / kap', category: 'ambalaj', perHive: 30,
+      aliases: ['kavanoz + etiket seti', 'ambalaj'] },
+    { key: 'nakliye_yayla', title: 'Yayla nakliye payı', category: 'nakliye', perHive: 70,
+      aliases: ['yayla taşıma (nakliye)', 'nakliye'] },
+    { key: 'yakit_sezon', title: 'Sezon yakıt payı', category: 'yakit', perHive: 50,
+      aliases: ['yakıt'] },
+    { key: 'yayla_kira', title: 'Yayla / kira payı', category: 'yayla_kira', perHive: 40,
+      aliases: ['arılık yeri ücreti', 'yayla', 'kira'] },
+    { key: 'diger_sigorta', title: 'Sigorta / diğer', category: 'diger', perHive: 20,
+      aliases: ['sigorta'] }
+  ];
+
   var SEED_EXPENSES = [
     {
       id: 'g1',
@@ -327,6 +358,7 @@
       note: e.note != null ? String(e.note) : '',
       apiaryId: e.apiaryId != null ? String(e.apiaryId) : '',
       apiaryName: e.apiaryName != null ? String(e.apiaryName) : '',
+      templateKey: e.templateKey != null ? String(e.templateKey) : '',
       transportMode: e.transportMode === 'nakliye' || e.transportMode === 'kendi_arac'
         ? e.transportMode
         : '',
@@ -987,6 +1019,206 @@
     return created;
   }
 
+
+  function isProtectedExpense(e) {
+    if (!e) return true;
+    if (e.transportMode === 'nakliye' || e.transportMode === 'kendi_arac') return true;
+    if (e.transportId) return true;
+    return false;
+  }
+
+  function matchKalemTemplate(e) {
+    if (!e) return null;
+    var i;
+    if (e.templateKey) {
+      for (i = 0; i < DEFAULT_KALEM_TEMPLATES.length; i++) {
+        if (DEFAULT_KALEM_TEMPLATES[i].key === String(e.templateKey)) {
+          return DEFAULT_KALEM_TEMPLATES[i];
+        }
+      }
+    }
+    var mk = materialKey(e.title);
+    if (!mk) return null;
+    for (i = 0; i < DEFAULT_KALEM_TEMPLATES.length; i++) {
+      var t = DEFAULT_KALEM_TEMPLATES[i];
+      if (mk === materialKey(t.title)) return t;
+      var aliases = t.aliases || [];
+      for (var a = 0; a < aliases.length; a++) {
+        var al = materialKey(aliases[a]);
+        if (!al) continue;
+        if (mk === al || mk.indexOf(al) === 0 || al.indexOf(mk) === 0) return t;
+      }
+    }
+    return null;
+  }
+
+  function expectedKalemAmount(t, hives) {
+    return Math.max(1, Math.round(Number(t.perHive) * Math.max(0, Number(hives) || 0)));
+  }
+
+  /**
+   * Tek arılık: şablon × hiveCount ile karşılaştır.
+   * - Eksik kalem → ekle
+   * - Fazla tutar / mükerrer şablon satırı → beklenen tutara indir / tekilleştir
+   * - Taşıma bağlı ve kullanıcı özel (şablona uymayan) satırlar korunur
+   */
+  function reconcileApiaryExpenses(apiary) {
+    var empty = { added: [], updated: [], removed: [], expectedTotal: 0 };
+    var hives = hiveCountOf(apiary);
+    if (!apiary || apiary.id == null || !(hives > 0)) return empty;
+    var apiaryId = String(apiary.id);
+    var name = apiaryDisplayName(apiary);
+    var expenses = loadExpenses();
+    var result = { added: [], updated: [], removed: [], expectedTotal: 0 };
+
+    DEFAULT_KALEM_TEMPLATES.forEach(function (t) {
+      result.expectedTotal += expectedKalemAmount(t, hives);
+    });
+
+    var byKey = {};
+    expenses.forEach(function (e) {
+      if (String(e.apiaryId || '') !== apiaryId) return;
+      if (isProtectedExpense(e)) return;
+      var t = matchKalemTemplate(e);
+      if (!t) return;
+      if (!byKey[t.key]) byKey[t.key] = [];
+      byKey[t.key].push(e);
+    });
+
+    var removeIds = {};
+    var patchById = {};
+
+    DEFAULT_KALEM_TEMPLATES.forEach(function (t) {
+      var expected = expectedKalemAmount(t, hives);
+      var group = (byKey[t.key] || []).slice();
+      if (!group.length) return;
+
+      group.sort(function (a, b) {
+        var ak = a.templateKey ? 1 : 0;
+        var bk = b.templateKey ? 1 : 0;
+        if (bk !== ak) return bk - ak;
+        var ad = String(a.id || '').indexOf('g-tpl-') === 0 ? 1 : 0;
+        var bd = String(b.id || '').indexOf('g-tpl-') === 0 ? 1 : 0;
+        if (bd !== ad) return bd - ad;
+        return (Number(b.amount) || 0) - (Number(a.amount) || 0);
+      });
+
+      var primary = group[0];
+      for (var i = 1; i < group.length; i++) {
+        removeIds[String(group[i].id)] = true;
+        result.removed.push(group[i]);
+      }
+
+      var amt = Number(primary.amount) || 0;
+      var needPatch = false;
+      var patch = {};
+      if (amt !== expected) {
+        patch.amount = expected;
+        needPatch = true;
+      }
+      if (String(primary.templateKey || '') !== t.key) {
+        patch.templateKey = t.key;
+        needPatch = true;
+      }
+      if (materialKey(primary.title) !== materialKey(t.title)) {
+        patch.title = t.title;
+        needPatch = true;
+      }
+      if (primary.category !== t.category) {
+        patch.category = t.category;
+        needPatch = true;
+      }
+      var stdNote = hives + ' kovan × ₺' + t.perHive + ' (standart kalem)';
+      var note = String(primary.note || '');
+      if (!note || note.indexOf('standart kalem') >= 0 || note.indexOf('kovan ×') >= 0) {
+        if (note !== stdNote) {
+          patch.note = stdNote;
+          needPatch = true;
+        }
+      }
+      if (name && primary.apiaryName !== name) {
+        patch.apiaryName = name;
+        needPatch = true;
+      }
+      if (needPatch) patchById[String(primary.id)] = patch;
+    });
+
+    var next = [];
+    expenses.forEach(function (e) {
+      var id = String(e.id || '');
+      if (removeIds[id]) return;
+      if (patchById[id] && String(e.apiaryId || '') === apiaryId) {
+        var merged = normalizeExpense(Object.assign({}, e, patchById[id]));
+        next.push(merged);
+        result.updated.push(merged);
+      } else {
+        next.push(e);
+      }
+    });
+
+    var haveKeys = {};
+    next.forEach(function (e) {
+      if (String(e.apiaryId || '') !== apiaryId) return;
+      if (isProtectedExpense(e)) return;
+      var t = matchKalemTemplate(e);
+      if (t) haveKeys[t.key] = true;
+    });
+
+    DEFAULT_KALEM_TEMPLATES.forEach(function (t) {
+      if (haveKeys[t.key]) return;
+      var amount = expectedKalemAmount(t, hives);
+      var gider = normalizeExpense({
+        id: 'g-tpl-' + apiaryId + '-' + t.key,
+        title: t.title,
+        category: t.category,
+        amount: amount,
+        date: todayIso(),
+        note: hives + ' kovan × ₺' + t.perHive + ' (standart kalem)',
+        apiaryId: apiaryId,
+        apiaryName: name,
+        templateKey: t.key
+      });
+      if (!gider) return;
+      next.push(gider);
+      result.added.push(gider);
+      haveKeys[t.key] = true;
+    });
+
+    if (result.added.length || result.updated.length || result.removed.length) {
+      saveExpenses(next);
+      result.added.forEach(function (g) { ensureMaterial(g.title); });
+    }
+    return result;
+  }
+
+  function reconcileAllApiaries(apiaries) {
+    var list = Array.isArray(apiaries) ? apiaries : [];
+    var summary = { added: 0, updated: 0, removed: 0, apiaries: 0 };
+    list.forEach(function (a) {
+      if (!a || !(hiveCountOf(a) > 0)) return;
+      var r = reconcileApiaryExpenses(a);
+      if (r.added.length || r.updated.length || r.removed.length) summary.apiaries += 1;
+      summary.added += r.added.length;
+      summary.updated += r.updated.length;
+      summary.removed += r.removed.length;
+    });
+    return summary;
+  }
+
+  /** Geriye dönük: eksikleri ekle (reconcile ile aynı, sadece added döner). */
+  function ensureDefaultExpensesForApiary(apiary) {
+    return reconcileApiaryExpenses(apiary).added;
+  }
+
+  function ensureDefaultExpensesForAll(apiaries) {
+    var list = Array.isArray(apiaries) ? apiaries : [];
+    var all = [];
+    list.forEach(function (a) {
+      all = all.concat(ensureDefaultExpensesForApiary(a));
+    });
+    return all;
+  }
+
   Object.defineProperty(global, 'SuperAriGider', {
     configurable: true,
     enumerable: true,
@@ -1019,7 +1251,13 @@
       expensesForMaterial: expensesForMaterial,
       findMissingMaterialGaps: findMissingMaterialGaps,
       addDistributedExpense: addDistributedExpense,
-      fillMissingMaterialShares: fillMissingMaterialShares
+      fillMissingMaterialShares: fillMissingMaterialShares,
+      DEFAULT_KALEM_TEMPLATES: DEFAULT_KALEM_TEMPLATES,
+      matchKalemTemplate: matchKalemTemplate,
+      reconcileApiaryExpenses: reconcileApiaryExpenses,
+      reconcileAllApiaries: reconcileAllApiaries,
+      ensureDefaultExpensesForApiary: ensureDefaultExpensesForApiary,
+      ensureDefaultExpensesForAll: ensureDefaultExpensesForAll
     }
   });
 })(window);
