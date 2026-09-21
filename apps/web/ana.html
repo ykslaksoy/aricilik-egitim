@@ -2186,28 +2186,21 @@
       var i = ((tileIndex % list.length) + list.length) % list.length;
       var tile = list[i];
       var s = screenEl.getBoundingClientRect();
-      var el;
-      var yNudge = 0;
+      /* Every tile (all 9) ships .hive-door + .hive-entrance via hiveHTML. */
+      var el = tile.querySelector('.hive-door') ||
+        tile.querySelector('.hive-entrance') ||
+        tile.querySelector('.hive') ||
+        tile;
+      var yNudge = -10;
       if (mode === true || mode === 'door') {
-        // Landing on hive door / entrance opening — not hive body center
-        el = tile.querySelector('.hive-door') ||
-          tile.querySelector('.hive-entrance') ||
-          tile.querySelector('.hive') ||
-          tile;
-        yNudge = -1; // sit on the slit
+        // On the entrance slit (kapı) — final shrink/enter target
+        yNudge = -1;
+      } else if (mode === 'mouth') {
+        // Very close to hive mouth, still outside — arrive near-normal size here first
+        yNudge = -5;
       } else if (mode === 'hover') {
         // Tour: hover just above the door (not emblem mid-hive)
-        el = tile.querySelector('.hive-door') ||
-          tile.querySelector('.hive-entrance') ||
-          tile.querySelector('.hive') ||
-          tile;
         yNudge = -14;
-      } else {
-        el = tile.querySelector('.hive-door') ||
-          tile.querySelector('.hive-entrance') ||
-          tile.querySelector('.hive') ||
-          tile;
-        yNudge = -10;
       }
       var b = el.getBoundingClientRect();
       return {
@@ -2318,10 +2311,11 @@
       var name = setBreed(startBreed == null ? beeIdx : startBreed);
 
       var order = shuffle([0,1,2,3,4,5,6,7,8]);
-      var tourStops = order.slice(0, 3);
+      /* Wander more: visit 5 hive mouths before entering (was 3). */
+      var tourStops = order.slice(0, 5);
       var enterTile = tileParam != null
-        ? (parseInt(tileParam, 10) || 0)
-        : order[3];
+        ? ((parseInt(tileParam, 10) || 0) % 9)
+        : order[5];
 
       var t = 0;
       later(function () {
@@ -2351,9 +2345,9 @@
       }, t);
       t += 1100;
 
-      // Tour: approach doors (grow as approaching)
+      // Tour: approach doors (grow as approaching) — more stops so bees dolaşır
       tourStops.forEach(function (tileI, n) {
-        var hop = n === 0 ? 1600 : 1400;
+        var hop = n === 0 ? 1650 : 1500;
         later(function () {
           if (!beesEnabled) return;
           beeRoot.classList.add('is-flying');
@@ -2365,19 +2359,29 @@
         t += hop;
       });
 
-      // Final: fly to door mouth at near-normal size; shrink ONLY after arrival.
+      // (a) Fly VERY close to chosen hive mouth at near-normal size (any of 9 tiles).
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.add('is-flying');
+        beeRoot.classList.remove('is-entering');
         setBuzz(true);
-        /* Keep depth-scale (no allowTiny / no early shrink) until at the door lip. */
-        flyTo(hivePoint(enterTile, 'door'), 1500, {
+        /* No allowTiny / no early shrink — arrive visible at the mouth first. */
+        flyTo(hivePoint(enterTile, 'mouth'), 1550, {
           flat: true,
           approach: true
         });
       }, t);
-      t += 1500;
+      t += 1550;
 
+      // Brief linger at mouth so "çok yaklaştıktan sonra" reads clearly.
+      later(function () {
+        if (!beesEnabled) return;
+        var mouth = hivePoint(enterTile, 'mouth');
+        placeAt(mouth, depthScaleFromY(mouth.y));
+      }, t);
+      t += 420;
+
+      // (b) After very close: shrink into the slit, enter, disappear.
       later(function () {
         if (!beesEnabled) return;
         beeRoot.classList.remove('is-flying');
@@ -2385,13 +2389,11 @@
         stopWingLoop();
         setBuzz(false);
         var door = hivePoint(enterTile, 'door');
-        /* Dibine gelince: shrink into the entrance opening, then vanish. */
         placeAt({ x: door.x, y: door.y }, 0.06, true);
         later(function () {
           if (!beesEnabled) return;
           setBeeScale(0.02, true);
         }, 90);
-        /* Remove it from the visual layer before the next breed cycle. */
         later(function () {
           if (!beesEnabled) return;
           beeRoot.classList.add('is-off');
