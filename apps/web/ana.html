@@ -2200,12 +2200,27 @@
         midScale = Math.min(midScale, fromScale) * 0.96;
         destScale = opts.scale != null ? opts.scale : Math.min(destScale, midScale) * 0.88;
       }
-      faceToward(from, mid);
+      /* faceDest: keep nose on the door (enter) — do not yaw toward bob mid first. */
+      if (opts.faceDest) faceToward(from, dest);
+      else faceToward(from, mid);
       placeAt(mid, midScale, allowTiny);
       later(function () {
         faceToward(mid, dest);
         placeAt(dest, destScale, allowTiny);
       }, Math.max(280, Math.floor((durationMs || 1400) * 0.48)));
+    }
+
+    /** Face the hive mouth; if already on the lip, look into the slit (önü kovana dönük). */
+    function faceIntoDoor(door) {
+      if (!door) return;
+      var dx = door.x - beePos.x;
+      var dy = door.y - beePos.y;
+      if (Math.abs(dx) < 1.2 && Math.abs(dy) < 1.2) {
+        /* Already at mouth — aim slightly into the entrance (down the slit). */
+        faceToward(beePos, { x: door.x, y: door.y + 10 });
+      } else {
+        faceToward(beePos, door);
+      }
     }
 
     function hivePoint(tileIndex, mode) {
@@ -2401,10 +2416,14 @@
         beeRoot.classList.add('is-flying');
         beeRoot.classList.remove('is-entering');
         setBuzz(true);
+        var doorAim = hivePoint(enterTile, 'door');
+        /* Önü kovana dönük: face the mouth for the whole final approach (not last tour yaw). */
+        faceIntoDoor(doorAim);
         /* Keep depth-scale (no allowTiny / no early shrink) until at the door lip. */
-        flyTo(hivePoint(enterTile, 'door'), 1500, {
+        flyTo(doorAim, 1500, {
           flat: true,
-          approach: true
+          approach: true,
+          faceDest: true
         });
       }, t);
       t += 1500;
@@ -2415,6 +2434,7 @@
         var lip = hivePoint(enterTile, 'door');
         beeRoot.classList.add('is-flying');
         beeRoot.classList.remove('is-entering');
+        faceIntoDoor(lip);
         placeAt(lip, depthScaleFromY(lip.y));
       }, t);
       t += 480;
@@ -2427,20 +2447,25 @@
         stopWingLoop();
         setBuzz(false);
         var door = hivePoint(enterTile, 'door');
+        /* Keep front-into-mouth facing while shrinking into the kapı. */
+        faceIntoDoor(door);
         /* Step slightly into the slit while starting a gentle shrink. */
         placeAt({ x: door.x, y: door.y + 1 }, 0.42, true);
         later(function () {
           if (!beesEnabled) return;
+          faceIntoDoor(door);
           setBeeScale(0.18, true);
           placeAt({ x: door.x, y: door.y + 2 }, 0.18, true);
         }, 550);
         later(function () {
           if (!beesEnabled) return;
+          faceIntoDoor(door);
           setBeeScale(0.06, true);
           placeAt({ x: door.x, y: door.y + 3 }, 0.06, true);
         }, 1200);
         later(function () {
           if (!beesEnabled) return;
+          faceIntoDoor(door);
           setBeeScale(0.02, true);
         }, 1850);
         /* Remove after the slow enter finishes. */
