@@ -942,12 +942,12 @@
           <span class="muayene-hint-text" id="muayeneHintText"></span>
           <button type="button" class="muayene-hint-ok" id="muayeneHintOk" hidden>Tamam</button>
         </div>
-        <button type="button" class="bee-sound-toggle" id="beeSoundToggle" aria-pressed="false" aria-label="Sesi aç" title="Sesi aç">
+        <button type="button" class="bee-sound-toggle" id="beeSoundToggle" aria-pressed="true" aria-label="Sesi kapat" title="Sesi kapat">
           <svg class="bee-sound-toggle-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
             <path class="sound-waves" d="M15.5 8.5a4 4 0 0 1 0 7M18.5 5.5a7.5 7.5 0 0 1 0 13"/>
           </svg>
-          <span class="bee-sound-text">Ses</span>
+          <span class="bee-sound-text">Sessiz</span>
         </button>
       </div>
     </section>
@@ -1865,8 +1865,8 @@
         if (v === '0' || v === 'off' || v === 'false') return false;
         if (v === '1' || v === 'on' || v === 'true') return true;
       } catch (e) { /* ignore */ }
-      /* Varsayılan: sessiz — rahatsız etmesin */
-      return false;
+      /* Varsayılan: ses açık — ilk dokunuşta AudioContext unlock */
+      return true;
     }
     function writeSoundOn(on) {
       try { localStorage.setItem(SOUND_PREF_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
@@ -2001,6 +2001,19 @@
       stopBuzzSource(false);
     }
 
+    function resumeBuzzCtx() {
+      var ctx = ensureBuzzCtx();
+      if (!ctx) return Promise.resolve(null);
+      if (ctx.state === 'suspended') {
+        try {
+          return ctx.resume().then(function () { return ctx; }).catch(function () { return ctx; });
+        } catch (e) {
+          return Promise.resolve(ctx);
+        }
+      }
+      return Promise.resolve(ctx);
+    }
+
     function setBuzz(on) {
       buzzWanted = !!on;
       ensureBuzzCtx();
@@ -2012,13 +2025,12 @@
       var key = breedKeyFromIdx(beeIdx);
       /* Idempotent: keep the same looping BufferSource across flyTo hops */
       if (buzzActiveKey === key && buzzSource) {
-        if (buzzCtx && buzzCtx.state === 'suspended') {
-          try { buzzCtx.resume(); } catch (e) {}
-        }
+        resumeBuzzCtx();
         return;
       }
-      loadBuzzBuffers().then(function (bufs) {
+      Promise.all([loadBuzzBuffers(), resumeBuzzCtx()]).then(function (pair) {
         if (!buzzWanted || !soundEnabled) return;
+        var bufs = pair[0];
         if (!bufs) return;
         var k = breedKeyFromIdx(beeIdx);
         if (buzzActiveKey === k && buzzSource) return;
@@ -2364,6 +2376,8 @@
         setBeeScale(depthScaleFromY(pt.y));
         startWingLoop();
         drawBeeFrame();
+        /* Buzz as soon as bees appear (idempotent continuous loop while flying) */
+        setBuzz(true);
       }, t);
       t += 1100;
 
@@ -2453,12 +2467,27 @@
       else stopBees();
     }
 
+    var audioGestureDone = false;
     function unlockAudioOnce() {
-      /* iOS/Safari: resume AudioContext + decode buffers under a user gesture */
+      /* Browser autoplay: AudioContext stays suspended until a user gesture */
+      audioGestureDone = true;
       ensureBuzzCtx();
-      loadBuzzBuffers().then(function () {
+      Promise.all([loadBuzzBuffers(), resumeBuzzCtx()]).then(function () {
         if (buzzWanted && soundEnabled) setBuzz(true);
       });
+    }
+
+    function armFirstGestureUnlock() {
+      if (audioGestureDone) return;
+      var once = function () {
+        document.removeEventListener('pointerdown', once, true);
+        document.removeEventListener('touchstart', once, true);
+        document.removeEventListener('keydown', once, true);
+        unlockAudioOnce();
+      };
+      document.addEventListener('pointerdown', once, true);
+      document.addEventListener('touchstart', once, true);
+      document.addEventListener('keydown', once, true);
     }
 
     if (beeToggle) {
@@ -2475,6 +2504,11 @@
     }
     syncToggleUi();
     syncSoundUi();
+    armFirstGestureUnlock();
+    /* Prefetch buzz buffers early so first fly is not silent waiting on decode */
+    if (soundEnabled) {
+      try { ensureBuzzCtx(); loadBuzzBuffers(); } catch (e) { /* ignore */ }
+    }
 
     function boot() {
       drawBeeFrame();
