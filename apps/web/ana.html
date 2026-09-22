@@ -1230,9 +1230,12 @@
       emitHintState(false);
     }
 
+    var lastHintMeta = null;
+
     function showHintMessage(msg, opts) {
       opts = opts || {};
       if (!muayeneEl || !msg) return;
+      lastHintMeta = opts;
       muayeneEl.classList.remove('is-idle');
       muayeneEl.classList.add('is-active');
       muayeneEl.removeAttribute('hidden');
@@ -1243,12 +1246,16 @@
       if (!opts.sticky) {
         tipHideTimer = setTimeout(function () {
           setHintDock();
-        }, TIP_SHOW_MS);
+          lastHintMeta = null;
+        }, opts.fromAlert ? 12000 : TIP_SHOW_MS);
       }
     }
 
     function dismissMuayeneHint() {
       if (!muayeneEl) return;
+      if (lastHintMeta && lastHintMeta.fromAlert && lastHintMeta.alertId) {
+        dismissAlertId(lastHintMeta.alertId);
+      }
       if (activeMuayeneTipDate) {
         try {
           localStorage.setItem(
@@ -1261,11 +1268,67 @@
         } catch (e) { /* ignore */ }
       }
       pendingMuayeneTip = null;
+      lastHintMeta = null;
+      activeAlertHref = null;
       if (tipHideTimer) clearTimeout(tipHideTimer);
       setHintDock();
     }
 
+    var ALERT_DISMISS_KEY = 'superari.ana.alertHintDismiss';
+    var alertTipIdx = 0;
+    var activeAlertHref = null;
+
+    function readDismissedAlerts() {
+      try {
+        var raw = localStorage.getItem(ALERT_DISMISS_KEY);
+        if (!raw) return {};
+        var parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function dismissAlertId(id) {
+      if (!id) return;
+      var map = readDismissedAlerts();
+      map[String(id)] = Date.now();
+      try { localStorage.setItem(ALERT_DISMISS_KEY, JSON.stringify(map)); } catch (e) { /* ignore */ }
+    }
+
+    function openAlerts() {
+      var D = window.SuperAriDemo;
+      if (!D || !D.alerts || !D.alerts.length) return [];
+      var dismissed = readDismissedAlerts();
+      var sevRank = { high: 0, medium: 1, low: 2 };
+      return D.alerts.filter(function (a) {
+        return a && a.id && !dismissed[String(a.id)];
+      }).slice().sort(function (a, b) {
+        return (sevRank[a.severity] != null ? sevRank[a.severity] : 9) -
+          (sevRank[b.severity] != null ? sevRank[b.severity] : 9);
+      });
+    }
+
     function nextRotatingTip() {
+      /* Priority: open hive alerts (same list as Uyarılar) at bee-exit dock */
+      var alerts = openAlerts();
+      if (alerts.length) {
+        var a = alerts[alertTipIdx % alerts.length];
+        alertTipIdx += 1;
+        activeMuayeneTipDate = null;
+        activeAlertHref = a.hiveId
+          ? ('kovan.html?id=' + encodeURIComponent(a.hiveId))
+          : 'uyarilar.html';
+        var typeLabel = a.type ? String(a.type) : 'uyari';
+        return {
+          text: a.title + (a.hiveId ? (' · Kovan ' + a.hiveId) : '') + ' · ' + typeLabel,
+          sticky: false,
+          fromAlert: true,
+          alertId: a.id,
+          href: activeAlertHref
+        };
+      }
+      activeAlertHref = null;
       if (pendingMuayeneTip && !isMuayeneDismissed(pendingMuayeneTip.date)) {
         activeMuayeneTipDate = pendingMuayeneTip.date;
         return {
@@ -1287,13 +1350,14 @@
         var tip = nextRotatingTip();
         if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
       }, TIP_GAP_MS);
-      /* first tip after a short delay so bees can emerge first */
+      /* Alerts: show soon at bee exit; generic tips wait longer */
+      var firstDelay = openAlerts().length ? 6000 : 45000;
       setTimeout(function () {
         if (!hintVisible) {
           var tip = nextRotatingTip();
           if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
         }
-      }, 45000);
+      }, firstDelay);
     }
 
     function updateMuayeneHint(daily) {
@@ -1332,6 +1396,13 @@
         if (!muayeneEl.classList.contains('is-active')) return;
         if (e.target === muayeneOk) return;
         if (e.target.closest && (e.target.closest('#beeToggle') || e.target.closest('#beeSoundToggle'))) return;
+        var href = (lastHintMeta && lastHintMeta.href) || activeAlertHref;
+        if (href) {
+          var go = href;
+          dismissMuayeneHint();
+          window.location.href = go;
+          return;
+        }
         dismissMuayeneHint();
       });
       setHintDock();
@@ -1694,16 +1765,25 @@
     raporlar: '<svg viewBox="0 0 24 24" fill="#f3e2c8"><rect x="4" y="13" width="4" height="7" rx="0.5"/><rect x="10" y="8" width="4" height="12" rx="0.5"/><rect x="16" y="4" width="4" height="16" rx="0.5"/></svg>'
   };
 
+  var demoAlerts = (window.SuperAriDemo && SuperAriDemo.alerts) ? SuperAriDemo.alerts : [];
+  var demoTasks = (window.SuperAriDemo && SuperAriDemo.tasks) ? SuperAriDemo.tasks : [];
+  var ogulAlertCount = demoAlerts.filter(function (a) { return a && a.type === 'ogul'; }).length;
+  var alertCount = demoAlerts.length;
+  var taskCount = demoTasks.length;
+  var hiveCount = (window.SuperAriDemo && SuperAriDemo.hives) ? SuperAriDemo.hives.length : 100;
+  var apiaryCount = (window.SuperAriDemo && typeof SuperAriDemo.loadApiaries === 'function')
+    ? SuperAriDemo.loadApiaries().length
+    : 3;
   var tiles = [
     { key: 'tarti', label: 'Tartı', badge: '+1.2kg', tone: 'green', href: 'kovanlar.html?view=tarti' },
     { key: 'saglik', label: 'Sağlık', badge: 'İyi', tone: 'green', href: 'kovanlar.html?view=saglik' },
-    { key: 'ogul', label: 'Oğul', badge: 'Düşük', tone: 'green', href: 'uyarilar.html?view=ogul' },
-    { key: 'kovanlar', label: 'Kovanlar', badge: '100', tone: 'tan', href: 'kovanlar.html' },
+    { key: 'ogul', label: 'Oğul', badge: ogulAlertCount ? (String(ogulAlertCount) + ' uyarı') : 'Düşük', tone: ogulAlertCount ? 'red' : 'green', href: 'uyarilar.html?view=ogul' },
+    { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
     { key: 'koloni', label: 'Koloni', badge: '12 grup', tone: 'tan', href: 'kovanlar.html?view=koloni' },
-    { key: 'ariliklar', label: 'Arılıklar', badge: '3', tone: 'tan', href: 'kovanlar.html?view=ariliklar' },
-    { key: 'gorevler', label: 'Görevler', badge: '5', tone: 'blue', href: 'gorevler.html' },
-    { key: 'uyarilar', label: 'Uyarılar', badge: '2', tone: 'red', href: 'uyarilar.html' },
-    { key: 'raporlar', label: 'Raporlar', badge: '2', tone: 'purple', href: 'raporlar.html' }
+    { key: 'ariliklar', label: 'Arılıklar', badge: String(apiaryCount), tone: 'tan', href: 'ariliklar.html' },
+    { key: 'gorevler', label: 'Görevler', badge: String(taskCount || 5), tone: 'blue', href: 'gorevler.html' },
+    { key: 'uyarilar', label: 'Uyarılar', badge: String(alertCount || 0), tone: 'red', href: 'uyarilar.html' },
+    { key: 'raporlar', label: 'Raporlar', badge: '9', tone: 'purple', href: 'raporlar.html' }
   ];
 
   function hiveHTML(key) {
