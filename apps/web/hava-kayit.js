@@ -12,6 +12,7 @@
   var DEFAULT_BACKFILL_DAYS = 30;
   var PAST_DAYS_LIMIT = 92; /* Open-Meteo forecast past_days üst sınırı */
   var ARCHIVE_CHUNK_DAYS = 90;
+  var RAIN_HOUR_THRESHOLD_MM = 0.1; /* saatlik yağış ≥ bu → yağış saati sayılır */
   var DEFAULT_APIARIES = [
     { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
     { id: 'a2', label: 'Tortum', lat: 40.61, lon: 41.66 },
@@ -420,6 +421,7 @@
           condition: cond,
           conditions: labelFromCondition(cond),
           precipMm: Math.round(precip * 10) / 10,
+          rainHours: precip > 0 ? 1 + (d % 4) : 0,
           source: 'seed'
         });
       }
@@ -513,6 +515,21 @@
     var condition = conditionFromCode(code, precip);
     var date = localDateKey();
     var id = opts.apiaryId + ':' + date;
+    var rainHours = null;
+    if (meteo.hourly) {
+      var rhMap = rainHoursFromHourly(meteo.hourly);
+      if (rhMap[date] != null) rainHours = rhMap[date];
+    } else if (
+      daily &&
+      daily.precipitation_hours &&
+      daily.time
+    ) {
+      var pidx = daily.time.indexOf(date);
+      if (pidx < 0) pidx = 0;
+      if (daily.precipitation_hours[pidx] != null) {
+        rainHours = Math.round(Number(daily.precipitation_hours[pidx]) * 10) / 10;
+      }
+    }
     var row = {
       id: id,
       apiaryId: String(opts.apiaryId),
@@ -528,6 +545,7 @@
       condition: condition,
       conditions: labelFromCondition(condition),
       precipMm: precip,
+      rainHours: rainHours,
       source: 'open_meteo'
     };
 
@@ -632,7 +650,48 @@
     return false;
   }
 
-  function rowFromDailyIndex(apiary, daily, idx, source) {
+  /**
+   * Saatlik precipitation dizisinden gün başına yağış süresi (saat).
+   * precip >= RAIN_HOUR_THRESHOLD_MM olan her saat +1.
+   */
+  function rainHoursFromHourly(hourly, threshold) {
+    var map = {};
+    var thr = threshold != null ? Number(threshold) : RAIN_HOUR_THRESHOLD_MM;
+    if (!isFinite(thr)) thr = 0.1;
+    if (!hourly || !hourly.time || !hourly.time.length) return map;
+    var precipArr = hourly.precipitation;
+    if (!precipArr || !precipArr.length) return map;
+    for (var i = 0; i < hourly.time.length; i++) {
+      var t = String(hourly.time[i] || '');
+      if (t.length < 10) continue;
+      var date = t.slice(0, 10);
+      var p = precipArr[i] != null ? Number(precipArr[i]) : 0;
+      if (!isFinite(p)) p = 0;
+      if (p >= thr) map[date] = (map[date] || 0) + 1;
+    }
+    return map;
+  }
+
+  function formatRainHours(h) {
+    if (h == null || !isFinite(Number(h))) return null;
+    var n = Math.round(Number(h) * 10) / 10;
+    if (n <= 0) return '0 saat';
+    if (Math.abs(n - Math.round(n)) < 0.05) return Math.round(n) + ' saat';
+    return String(n).replace('.', ',') + ' saat';
+  }
+
+  function formatPrecipLine(precipMm, rainHours) {
+    var mm = precipMm != null && isFinite(Number(precipMm)) ? Number(precipMm) : 0;
+    var mmLab = (Math.round(mm * 10) / 10) + ' mm';
+    if (rainHours == null || !isFinite(Number(rainHours))) {
+      return mm > 0 ? 'Yağış ' + mmLab : null;
+    }
+    var hLab = formatRainHours(rainHours);
+    if (mm <= 0 && Number(rainHours) <= 0) return null;
+    return 'Yağış ' + mmLab + ' · ~' + hLab;
+  }
+
+  function rowFromDailyIndex(apiary, daily, idx, source, rainHoursMap) {
     if (!daily || !daily.time || idx < 0 || idx >= daily.time.length) return null;
     var date = daily.time[idx];
     if (!date) return null;
@@ -658,6 +717,13 @@
       parts.length === 3
         ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0).toISOString()
         : new Date().toISOString();
+    var rainHours = null;
+    if (rainHoursMap && rainHoursMap[date] != null) {
+      rainHours = Number(rainHoursMap[date]) || 0;
+    } else if (daily.precipitation_hours && daily.precipitation_hours[idx] != null) {
+      /* Open-Meteo daily precipitation_hours yedek */
+      rainHours = Math.round(Number(daily.precipitation_hours[idx]) * 10) / 10;
+    }
     return {
       id: apiary.id + ':' + date,
       apiaryId: String(apiary.id),
@@ -673,6 +739,7 @@
       condition: condition,
       conditions: labelFromCondition(condition),
       precipMm: precip,
+      rainHours: rainHours,
       source: source || 'open_meteo_archive'
     };
   }
@@ -684,7 +751,8 @@
       encodeURIComponent(apiary.lat) +
       '&longitude=' +
       encodeURIComponent(apiary.lon) +
-      '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum' +
+      '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,precipitation_hours' +
+      '&hourly=precipitation' +
       '&timezone=auto&past_days=' +
       days +
       '&forecast_days=1';
@@ -704,7 +772,8 @@
       encodeURIComponent(startKey) +
       '&end_date=' +
       encodeURIComponent(endKey) +
-      '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum' +
+      '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,precipitation_hours' +
+      '&hourly=precipitation' +
       '&timezone=auto';
     return fetch(url).then(function (r) {
       if (!r.ok) throw new Error('meteo_archive_' + r.status);
@@ -718,21 +787,46 @@
       temperature_2m_max: [],
       temperature_2m_min: [],
       weather_code: [],
-      precipitation_sum: []
+      precipitation_sum: [],
+      precipitation_hours: []
     };
   }
 
+  function emptyHourly() {
+    return { time: [], precipitation: [] };
+  }
+
   function mergeDaily(into, meteo) {
-    var acc = into || { daily: emptyDaily() };
+    var acc = into || { daily: emptyDaily(), hourly: emptyHourly() };
+    if (!acc.daily) acc.daily = emptyDaily();
+    if (!acc.hourly) acc.hourly = emptyHourly();
     var src = meteo && meteo.daily;
-    if (!src || !src.time || !src.time.length) return acc;
-    var d = acc.daily;
-    var keys = ['time', 'temperature_2m_max', 'temperature_2m_min', 'weather_code', 'precipitation_sum'];
-    for (var k = 0; k < keys.length; k++) {
-      var key = keys[k];
-      if (!d[key]) d[key] = [];
-      var arr = src[key] || [];
-      for (var i = 0; i < arr.length; i++) d[key].push(arr[i]);
+    if (src && src.time && src.time.length) {
+      var d = acc.daily;
+      var keys = [
+        'time',
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'weather_code',
+        'precipitation_sum',
+        'precipitation_hours'
+      ];
+      for (var k = 0; k < keys.length; k++) {
+        var key = keys[k];
+        if (!d[key]) d[key] = [];
+        var arr = src[key] || [];
+        for (var i = 0; i < arr.length; i++) d[key].push(arr[i]);
+      }
+    }
+    var hs = meteo && meteo.hourly;
+    if (hs && hs.time && hs.time.length) {
+      var h = acc.hourly;
+      if (!h.time) h.time = [];
+      if (!h.precipitation) h.precipitation = [];
+      for (var j = 0; j < hs.time.length; j++) {
+        h.time.push(hs.time[j]);
+        h.precipitation.push(hs.precipitation ? hs.precipitation[j] : null);
+      }
     }
     return acc;
   }
@@ -761,13 +855,13 @@
     return chain;
   }
 
-  function applyDailyToList(list, apiary, daily, wantSet, source) {
+  function applyDailyToList(list, apiary, daily, wantSet, source, rainHoursMap) {
     if (!daily || !daily.time) return 0;
     var added = 0;
     for (var i = 0; i < daily.time.length; i++) {
       var date = daily.time[i];
       if (wantSet && !wantSet[date]) continue;
-      var row = rowFromDailyIndex(apiary, daily, i, source);
+      var row = rowFromDailyIndex(apiary, daily, i, source, rainHoursMap);
       if (!row) continue;
       /* Gerçek sıcaklık yoksa yazma — sahte/sentetik üretme */
       if (row.temp == null && row.high == null && row.low == null) continue;
@@ -775,6 +869,12 @@
       added++;
     }
     return added;
+  }
+
+  function applyMeteoPayload(list, apiary, meteo, wantSet, source) {
+    var daily = meteo && meteo.daily;
+    var rainMap = rainHoursFromHourly(meteo && meteo.hourly);
+    return applyDailyToList(list, apiary, daily, wantSet, source, rainMap);
   }
 
   /**
@@ -829,12 +929,23 @@
               return filledSoFar;
             }
             var wantSet = {};
-            if (missing.length) {
-              for (var m = 0; m < missing.length; m++) wantSet[missing[m]] = true;
-            } else {
-              /* İlk günlük pass / force: seed'leri gerçek veri ile değiştir */
-              var allKeys = dateKeysInclusive(fromKey, toKey);
+            var allKeys = dateKeysInclusive(fromKey, toKey);
+            if (opts.force || !missing.length) {
+              /* force veya seed pass: tüm aralık (rainHours dahil yenile) */
               for (var k = 0; k < allKeys.length; k++) wantSet[allKeys[k]] = true;
+            } else {
+              for (var m = 0; m < missing.length; m++) wantSet[missing[m]] = true;
+              /* Mevcut kayıtlarda rainHours yoksa onları da iste */
+              for (var li = 0; li < list.length; li++) {
+                var rr = list[li];
+                if (!rr || rr.apiaryId !== apiary.id || !rr.date) continue;
+                if (rr.date < fromKey || rr.date > toKey) continue;
+                if (rr.source === 'seed') {
+                  wantSet[rr.date] = true;
+                  continue;
+                }
+                if (rr.rainHours == null) wantSet[rr.date] = true;
+              }
             }
 
             var wantKeys = Object.keys(wantSet).sort();
@@ -864,7 +975,7 @@
                 return fetchArchiveRangeChunked(apiary, aFrom, aTo)
                   .then(function (meteo) {
                     list = prune(loadRecords());
-                    var n = applyDailyToList(list, apiary, meteo && meteo.daily, aWant, 'open_meteo_archive');
+                    var n = applyMeteoPayload(list, apiary, meteo, aWant, 'open_meteo_archive');
                     sortRecords(list);
                     saveRecords(list);
                     return n0 + n;
@@ -887,7 +998,7 @@
                       meteo && meteo.daily && meteo.daily.time && pastKeys[0] >= recentCutoff
                         ? 'open_meteo_past'
                         : 'open_meteo_archive';
-                    var n = applyDailyToList(list, apiary, meteo && meteo.daily, pWant, srcLabel);
+                    var n = applyMeteoPayload(list, apiary, meteo, pWant, srcLabel);
                     sortRecords(list);
                     saveRecords(list);
                     return n0 + n;
@@ -1099,6 +1210,10 @@
     PAST_DAYS_LIMIT: PAST_DAYS_LIMIT,
     daysBetweenKeys: daysBetweenKeys,
     dateKeysInclusive: dateKeysInclusive,
+    rainHoursFromHourly: rainHoursFromHourly,
+    formatRainHours: formatRainHours,
+    formatPrecipLine: formatPrecipLine,
+    RAIN_HOUR_THRESHOLD_MM: RAIN_HOUR_THRESHOLD_MM,
     conditionFromCode: conditionFromCode,
     labelFromCondition: labelFromCondition,
     localDateKey: localDateKey,

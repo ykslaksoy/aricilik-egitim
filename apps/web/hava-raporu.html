@@ -280,7 +280,7 @@
     </section>
 
     <a class="hist-btn" id="histBtn" href="hava-gecmis.html">Geçmiş hava sıcaklıkları</a>
-    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük ve yağış özeti bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
+    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük, yağış mm ve yağış süresi (saat) bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
   </div>
 
   <nav class="tabbar" aria-label="Alt menü">
@@ -307,7 +307,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=bal124"></script>
+<script src="hava-kayit.js?v=bal124rain"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -523,11 +523,21 @@
     var byDate = {};
     for (var i = 0; i < records.length; i++) {
       var r = records[i];
-      if (!byDate[r.date]) byDate[r.date] = { sum: 0, n: 0, rain: false };
+      if (!byDate[r.date]) byDate[r.date] = { sum: 0, n: 0, rain: false, precipSum: 0, precipN: 0, rainHoursMax: null };
       var t = r.temp != null ? r.temp : r.high;
       if (t != null) {
         byDate[r.date].sum += t;
         byDate[r.date].n++;
+      }
+      if (r.precipMm != null && isFinite(Number(r.precipMm))) {
+        byDate[r.date].precipSum += Number(r.precipMm);
+        byDate[r.date].precipN++;
+      }
+      if (r.rainHours != null && isFinite(Number(r.rainHours))) {
+        var rh = Number(r.rainHours);
+        if (byDate[r.date].rainHoursMax == null || rh > byDate[r.date].rainHoursMax) {
+          byDate[r.date].rainHoursMax = rh;
+        }
       }
       if (r.condition === 'yagmur' || r.condition === 'kar' || r.condition === 'firtina' || (r.precipMm || 0) >= 1) {
         byDate[r.date].rain = true;
@@ -540,19 +550,34 @@
         return {
           date: date,
           avg: row.n ? Math.round((row.sum / row.n) * 10) / 10 : null,
-          rain: row.rain
+          rain: row.rain,
+          precipMm: row.precipN ? Math.round((row.precipSum / row.precipN) * 10) / 10 : 0,
+          rainHours: row.rainHoursMax
         };
       });
   }
 
-  function renderStats(summary) {
+  function renderStats(summary, records) {
     function cell(k, v) {
       return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
     }
+    var rainH = 0;
+    var rainHN = 0;
+    var list = records || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].rainHours != null && isFinite(Number(list[i].rainHours))) {
+        rainH += Number(list[i].rainHours);
+        rainHN++;
+      }
+    }
+    var rainHLab =
+      rainHN > 0
+        ? (typeof H.formatRainHours === 'function' ? H.formatRainHours(rainH) : rainH + ' saat')
+        : '—';
     statsEl.innerHTML =
       cell('Ort. sıcaklık', summary.avgTemp != null ? summary.avgTemp + '°' : '—') +
       cell('En düşük / yüksek', (summary.minTemp != null ? summary.minTemp + '°' : '—') + ' / ' + (summary.maxTemp != null ? summary.maxTemp + '°' : '—')) +
-      cell('Yağışlı gün', String(summary.rainyDays)) +
+      cell('Yağışlı gün', String(summary.rainyDays) + (rainHN ? ' · Σ~' + rainHLab : '')) +
       cell('Kayıt sayısı', String(summary.count));
   }
 
@@ -574,7 +599,12 @@
       var showLab = step === 1 || j % step === 0 || j === series.length - 1;
       html +=
         '<div class="bar-col" style="min-width:' + (series.length > 40 ? '8px' : '12px') + '" title="' +
-        formatDate(s.date) + (s.avg != null ? ': ' + s.avg + '°' : '') + '">' +
+        formatDate(s.date) +
+        (s.avg != null ? ': ' + s.avg + '°' : '') +
+        (typeof H.formatPrecipLine === 'function' && (s.precipMm || s.rainHours)
+          ? ' · ' + (H.formatPrecipLine(s.precipMm, s.rainHours) || '')
+          : '') +
+        '">' +
         '<div class="bar' + (s.rain ? ' is-rain' : '') + '" style="height:' + h + 'px"></div>' +
         '<div class="bar-lab">' + (showLab ? Number(day) : '') + '</div>' +
         '</div>';
@@ -614,7 +644,7 @@
         (dayFilled ? ' (' + dayFilled + '/' + activeDays + ' gün dolu)' : '') +
         ' · Open-Meteo';
     }
-    renderStats(H.summarize(records));
+    renderStats(H.summarize(records), records);
     renderBars(dailySeries(records));
   }
 

@@ -238,7 +238,7 @@
 
     <h2 class="section-title">Kayıtlar</h2>
     <div class="hist-list" id="histList"></div>
-    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük ve yağış özeti bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
+    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük, yağış mm ve yağış süresi (saat) bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
   </div>
 
   <nav class="tabbar" aria-label="Alt menü">
@@ -265,7 +265,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=bal124"></script>
+<script src="hava-kayit.js?v=bal124rain"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -490,9 +490,15 @@
     for (var i = 0; i < sorted.length; i++) {
       var r = sorted[i];
       var title = single ? formatDate(r.date) : (r.label || r.apiaryId);
+      var precipLine =
+        typeof H.formatPrecipLine === 'function'
+          ? H.formatPrecipLine(r.precipMm, r.rainHours)
+          : (r.precipMm
+              ? ('Yağış ' + r.precipMm + ' mm' + (r.rainHours != null ? ' · ~' + r.rainHours + ' saat' : ''))
+              : null);
       var meta = single
-        ? (r.conditions || '—') + (r.precipMm ? ' · yağış ' + r.precipMm + ' mm' : '')
-        : formatDate(r.date) + ' · ' + (r.conditions || '—') + (r.precipMm ? ' · yağış ' + r.precipMm + ' mm' : '');
+        ? (r.conditions || '—') + (precipLine ? ' · ' + precipLine : '')
+        : formatDate(r.date) + ' · ' + (r.conditions || '—') + (precipLine ? ' · ' + precipLine : '');
       html +=
         '<article class="hist-item">' +
         '<div><h3>' + title + '</h3>' +
