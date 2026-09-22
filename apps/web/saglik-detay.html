@@ -83,6 +83,7 @@
   if (!H || !D) return;
   var params = new URLSearchParams(location.search);
   var bandKey = params.get('band') || 'act';
+  var hasMode = params.has('mode');
   var mode = params.get('mode') === 'all' ? 'all' : 'apiary';
   if (['ok', 'watch', 'check', 'act'].indexOf(bandKey) === -1) bandKey = 'act';
 
@@ -91,10 +92,27 @@
   var list = all.hives.filter(function (x) { return x.band.key === bandKey; });
 
   document.getElementById('pageTitle').textContent = labels[bandKey] || 'Sağlık';
-  document.getElementById('pageSub').textContent = list.length + ' kovan · ' + (mode === 'all' ? 'Tüm kovanlar' : 'Arılık');
   document.getElementById('backSaglik').href = 'saglik.html';
-  document.getElementById('listHeading').textContent = mode === 'all' ? 'Tüm kovanlar' : 'Arılıklara göre';
 
+  if (!hasMode) {
+    document.getElementById('pageSub').textContent = list.length + ' kovan · görünüm seçin';
+    document.getElementById('listHeading').textContent = 'Nasıl görmek istersiniz?';
+    document.getElementById('modeSwitch').innerHTML = '';
+    var q = 'band=' + encodeURIComponent(bandKey);
+    document.getElementById('detailBody').innerHTML =
+      '<div style="display:grid;gap:10px">' +
+        '<a class="row-item" href="saglik-detay.html?' + q + '&mode=all" style="text-decoration:none;color:inherit;display:block;padding:14px;border:1.5px solid #e0c56a;border-radius:14px;background:linear-gradient(180deg,#fff6df,#f4e3b0)">' +
+          '<div class="title" style="font-weight:800">Tüm kovanlar</div>' +
+          '<div class="meta">' + list.length + ' kovan tek listede</div></a>' +
+        '<a class="row-item" href="saglik-detay.html?' + q + '&mode=apiary" style="text-decoration:none;color:inherit;display:block;padding:14px;border:1.5px solid #e0c56a;border-radius:14px;background:linear-gradient(180deg,#fff6df,#f4e3b0)">' +
+          '<div class="title" style="font-weight:800">Arılık</div>' +
+          '<div class="meta">Arılıklara göre ayrılmış</div></a>' +
+      '</div>';
+    return;
+  }
+
+  document.getElementById('pageSub').textContent = list.length + ' kovan · ' + (mode === 'all' ? 'Tüm kovanlar' : 'Arılık');
+  document.getElementById('listHeading').textContent = mode === 'all' ? 'Tüm kovanlar' : 'Arılıklara göre';
   document.getElementById('modeSwitch').innerHTML =
     '<a class="' + (mode === 'all' ? 'active' : '') + '" href="saglik-detay.html?band=' + encodeURIComponent(bandKey) + '&mode=all">Tüm kovanlar</a>' +
     '<a class="' + (mode === 'apiary' ? 'active' : '') + '" href="saglik-detay.html?band=' + encodeURIComponent(bandKey) + '&mode=apiary">Arılık</a>';
