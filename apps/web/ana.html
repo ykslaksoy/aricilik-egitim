@@ -75,6 +75,7 @@
     width: var(--phone-w); height: var(--phone-h);
     background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
     box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
   }
   .phone-notch {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -86,11 +87,23 @@
   }
   .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .02em; }
 
+  .status-bar { flex-shrink: 0; }
   .screen {
-    height: calc(var(--phone-h) - 48px - 72px);
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
     overflow: hidden; display: flex; flex-direction: column; background: var(--bg);
     padding: 0 12px 8px;
-   position: relative;
+    position: relative;
+  }
+  .ana-top {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Hardal işletme şeridi — 3D bee logo + brand + lock; location lives in weather card below */
@@ -526,8 +539,12 @@
   }
 
   .grid {
-    flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr); gap: 8px; min-height: 0;
+    flex: 0 0 auto;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr); gap: 8px;
+    height: min(42vh, 300px);
+    min-height: 220px;
+    margin-top: 4px;
   }
   /* LOCKED: centered hive+text (PR #16) — do not regress */
   .tile {
@@ -736,6 +753,7 @@
   }
 
   .tabbar {
+    flex-shrink: 0;
     height: 72px;
     background: #fffdf8;
     border-top: 1px solid #e4d6c2;
@@ -867,6 +885,7 @@
   </div>
 
   <div class="screen">
+    <div class="ana-top" id="anaTop">
     <header class="brand-strip" id="brand-strip" aria-label="İşletme">
       <button type="button" class="brand-logo-btn" id="brandLogoBtn" aria-label="Hardal Arıcılık logosu" title="Hardal Arıcılık">
         <img class="bee-logo-img" src="assets/logos/hardal-italyan-bee.png" alt="" width="40" height="30" decoding="async" aria-hidden="true">
@@ -965,6 +984,7 @@
       </div>
     </section>
 
+    </div><!-- /.ana-top -->
     <section class="grid" id="grid" aria-label="Ana paneller"></section>
     <div class="tile-sheet" id="tileSheet" hidden>
       <div class="tile-sheet-card" role="dialog" aria-modal="true" aria-labelledby="tileSheetTitle">

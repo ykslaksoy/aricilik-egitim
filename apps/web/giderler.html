@@ -35,6 +35,7 @@
     width: var(--phone-w); height: var(--phone-h);
     background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
     box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
   }
   .phone-notch {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -45,8 +46,11 @@
     align-items: center; font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa;
   }
   .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; }
+  .status-bar { flex-shrink: 0; }
   .screen {
-    height: calc(var(--phone-h) - 48px - 72px);
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
     overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; background: var(--bg);
     padding: 0 14px 88px; position: relative;
@@ -197,6 +201,15 @@
     padding: 14px 14px 12px; margin-bottom: 14px;
     box-shadow: 0 4px 14px rgba(40, 30, 10, .05);
   }
+  .chart-block[hidden],
+  .section-title[hidden],
+  .exp-list[hidden],
+  .gap-block[hidden] { display: none !important; }
+  /* Arılıklar özet: only the apiary rows — no bakım/işçilik/sezon gap, chart, or kayıtlar */
+  .screen.is-arilik-summary #gapBlock,
+  .screen.is-arilik-summary #chartBlock,
+  .screen.is-arilik-summary .section-title,
+  .screen.is-arilik-summary #expList { display: none !important; }
   .chart-block .panel-title {
     font-size: 12px; font-weight: 700; color: var(--muted);
     letter-spacing: .02em; text-transform: uppercase; margin-bottom: 10px;
@@ -440,6 +453,7 @@
   .btn.delete[hidden] { display: none; }
 
   .tabbar {
+    flex-shrink: 0;
     height: 72px; background: #fffdf8; border-top: 1px solid #e4d6c2;
     display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
     padding: 0 2px 10px;
@@ -465,7 +479,7 @@
     body { padding: 0; background: #f7f8fa; }
     .phone { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
     .phone-notch, .home-indicator { display: none; }
-    .screen { height: calc(100dvh - 48px - 72px); }
+    .screen { flex: 1 1 auto; min-height: 0; height: auto; }
     .fab { bottom: 84px; }
   }
 </style>
@@ -511,7 +525,7 @@
 
     <section class="view-panel" id="panelAriliklar" role="tabpanel" aria-labelledby="tabAriliklar" hidden>
       <h2 class="panel-title">Arılık bazında özet</h2>
-      <p class="summary-hint">Her satırda kovan sayısı görünür (Balığındüzü dahil). Dokunun — gider listesi açılır.</p>
+      <p class="summary-hint">Satıra dokunun — o arılığın gider detayı açılır.</p>
       <div class="apiary-totals" id="apiaryTotals"></div>
     </section>
 
@@ -641,7 +655,7 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
-<script src="gider-store.js?v=reconcile-1"></script>
+<script src="gider-store.js?v=yanik-dedupe-1"></script>
 <script>
 (function () {
   var G = window.SuperAriGider;
@@ -1074,9 +1088,33 @@
       });
     });
 
-    /* Orphan expense apiaries not in store still show separately. */
+    /* Orphan expense apiaries not in store — merge Yanıkdağ Baluğundüzü onto a4. */
     byApiary.forEach(function (row) {
       if (seen[row.apiaryId]) return;
+      var orphanName = String(row.apiaryName || row.apiaryId || '');
+      var lowOrphan = orphanName.toLocaleLowerCase('tr');
+      var isYanik = lowOrphan.indexOf('yanıkdağ') !== -1
+        && (lowOrphan.indexOf('baluğundüzü') !== -1 || lowOrphan.indexOf('balığındüzü') !== -1);
+      if (isYanik && seen['a4']) {
+        for (var ri = 0; ri < rows.length; ri++) {
+          if (rows[ri].apiaryId !== 'a4') continue;
+          rows[ri].amount += row.amount;
+          rows[ri].count += row.count;
+          break;
+        }
+        return;
+      }
+      if (isYanik) {
+        rows.push({
+          apiaryId: 'a4',
+          label: orphanName,
+          hiveCount: 0,
+          amount: row.amount,
+          count: row.count
+        });
+        seen['a4'] = true;
+        return;
+      }
       rows.push({
         apiaryId: row.apiaryId,
         label: row.apiaryName || row.apiaryId,
@@ -1160,7 +1198,10 @@
 
   function syncViewChrome(list) {
     var isDetail = filterApiary && filterApiary !== 'all';
-    if (screenEl) screenEl.classList.toggle('is-detail', isDetail);
+    if (screenEl) {
+      screenEl.classList.toggle('is-detail', isDetail);
+      screenEl.classList.toggle('is-arilik-summary', !isDetail && activeView === 'ariliklar');
+    }
     detailBanner.hidden = !isDetail;
 
     document.querySelectorAll('.view-tab').forEach(function (btn) {

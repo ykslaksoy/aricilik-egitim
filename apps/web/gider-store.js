@@ -399,17 +399,62 @@
       var n = String(e.apiaryName || '').trim();
       var id = String(e.apiaryId || '');
       var next = n;
+      var nextId = id;
       if (id === 'a1' && looksLikeYanikBalugName(n)) next = GIDER_NAME_A1;
       else if (n === 'Yanıkdağ' || n === 'Yanıkdağ Arılığı' || n === 'Yanıkdağ Ana Arılık') next = GIDER_NAME_YANIK;
       else if (/^Yanıkdağ(\s|$)/i.test(n) && !looksLikeYanikBalugName(n) && n.toLocaleLowerCase('tr').indexOf('kayaköy') === -1) {
         next = GIDER_NAME_YANIK;
       }
-      if (next === n) return e;
+      /* Duplicate Yanıkdağ Baluğundüzü expenses → seed a4 (prefer one apiary). */
+      if (id !== 'a1' && id !== 'a4' && (looksLikeYanikBalugName(n) || looksLikeYanikBalugName(next))) {
+        nextId = 'a4';
+        next = GIDER_NAME_YANIK;
+      } else if (id === 'a4' && looksLikeYanikBalugName(n) && n !== GIDER_NAME_YANIK) {
+        next = GIDER_NAME_YANIK;
+      }
+      if (next === n && nextId === id) return e;
       changed = true;
       e.apiaryName = next;
+      e.apiaryId = nextId;
       return e;
     });
     return { list: out, changed: changed };
+  }
+
+  /**
+   * Remap expense apiaryIds (and Yanıkdağ-by-name orphans) onto target (default a4).
+   * remappedIds: { oldId: 'a4', ... }. Also merges any non-a1 expense whose name
+   * looks like Yanıkdağ Baluğundüzü onto a4.
+   */
+  function repointApiaryIds(remappedIds, target) {
+    target = target || { id: 'a4', name: GIDER_NAME_YANIK };
+    var targetId = String(target.id || 'a4');
+    var targetName = target.name || GIDER_NAME_YANIK;
+    remappedIds = remappedIds || {};
+    var list = loadExpenses();
+    var changed = false;
+    list = list.map(function (e) {
+      if (!e) return e;
+      var id = String(e.apiaryId || '');
+      var n = String(e.apiaryName || '').trim();
+      var nextId = id;
+      var nextName = n;
+      if (remappedIds[id]) {
+        nextId = String(remappedIds[id]);
+        nextName = targetName;
+      } else if (id !== 'a1' && id !== targetId && looksLikeYanikBalugName(n)) {
+        nextId = targetId;
+        nextName = targetName;
+      } else if (id === targetId && looksLikeYanikBalugName(n) && n !== targetName) {
+        nextName = targetName;
+      }
+      if (nextId === id && nextName === n) return e;
+      changed = true;
+      var copy = Object.assign({}, e, { apiaryId: nextId, apiaryName: nextName });
+      return normalizeExpense(copy) || copy;
+    });
+    if (changed) saveExpenses(list);
+    return changed;
   }
 
   function normalizeExpense(e) {
@@ -1345,7 +1390,9 @@
       reconcileApiaryExpenses: reconcileApiaryExpenses,
       reconcileAllApiaries: reconcileAllApiaries,
       ensureDefaultExpensesForApiary: ensureDefaultExpensesForApiary,
-      ensureDefaultExpensesForAll: ensureDefaultExpensesForAll
+      ensureDefaultExpensesForAll: ensureDefaultExpensesForAll,
+      repointApiaryIds: repointApiaryIds,
+      looksLikeYanikBalugName: looksLikeYanikBalugName
     }
   });
 })(window);

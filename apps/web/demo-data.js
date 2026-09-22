@@ -138,13 +138,14 @@
     return lower.indexOf('yanıkdağ') !== -1 && (lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığındüzü') !== -1);
   }
 
-  /** Exact «Yanıkdağ» (missing Baluğundüzü) → compound place/name. Never touches Kayaköy. */
+  /** Exact «Yanıkdağ» or any Baluğundüzü variant → canonical place/name. Never touches Kayaköy. */
   function migrateExactYanik(s, asName) {
     var t = String(s || '').trim();
     if (!t) return t;
     var lower = t.toLocaleLowerCase('tr');
     if (lower.indexOf('kayaköy') !== -1) return t;
-    if (looksLikeYanikBalug(t)) return t;
+    /* Canonicalize every Yanıkdağ Baluğundüzü spelling to seed labels. */
+    if (looksLikeYanikBalug(t)) return asName ? NAME_YANIK : PLACE_YANIK;
     if (t === 'Yanıkdağ' || t === 'Yanıkdağ Arılığı' || t === 'Yanıkdağ Ana Arılık') {
       return asName ? NAME_YANIK : PLACE_YANIK;
     }
@@ -225,6 +226,103 @@
     return { list: out, changed: changed };
   }
 
+
+  function isYanikBalugApiary(a) {
+    if (!a || String(a.id) === 'a1') return false;
+    return looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place)
+      || /^yanıkdağ$/i.test(String(a.place || '').trim())
+      || /^yanıkdağ$/i.test(String(a.name || '').trim())
+      || /^yanıkdağ(\s+arı(lığı)?)?$/i.test(String(a.name || '').trim());
+  }
+
+  /**
+   * Collapse duplicate Yanıkdağ Baluğundüzü apiaries onto seed a4.
+   * Returns remappedIds: { oldId: 'a4', ... } for hive/expense repoint.
+   */
+  function dedupeYanikBalugApiaries(list) {
+    var keep = [];
+    var dups = [];
+    (list || []).forEach(function (a) {
+      if (!a) return;
+      if (isYanikBalugApiary(a)) dups.push(a);
+      else keep.push(a);
+    });
+    var remappedIds = {};
+    var seedA4 = null;
+    for (var si = 0; si < SEED_APIARIES.length; si++) {
+      if (SEED_APIARIES[si].id === 'a4') { seedA4 = SEED_APIARIES[si]; break; }
+    }
+    if (!dups.length) {
+      return { list: keep, changed: false, remappedIds: remappedIds };
+    }
+    var primary = null;
+    dups.forEach(function (a) {
+      if (String(a.id) === 'a4') primary = a;
+    });
+    if (!primary) primary = dups[0];
+    var maxHives = 0;
+    var lat = primary.lat;
+    var lon = primary.lon;
+    dups.forEach(function (a) {
+      maxHives = Math.max(maxHives, Math.max(0, Number(a.hiveCount) || 0));
+      if (a.lat != null && isFinite(Number(a.lat))) lat = Number(a.lat);
+      if (a.lon != null && isFinite(Number(a.lon))) lon = Number(a.lon);
+      if (String(a.id) !== 'a4') remappedIds[String(a.id)] = 'a4';
+    });
+    if (seedA4) {
+      maxHives = Math.max(maxHives, Math.max(0, Number(seedA4.hiveCount) || 0));
+      if (lat == null || !isFinite(Number(lat))) lat = seedA4.lat;
+      if (lon == null || !isFinite(Number(lon))) lon = seedA4.lon;
+    }
+    var merged = {
+      id: 'a4',
+      name: NAME_YANIK,
+      place: PLACE_YANIK,
+      lat: lat != null && isFinite(Number(lat)) ? Number(lat) : 39.95,
+      lon: lon != null && isFinite(Number(lon)) ? Number(lon) : 41.30,
+      hiveCount: maxHives
+    };
+    var changed = dups.length > 1
+      || String(primary.id) !== 'a4'
+      || String(primary.name || '') !== NAME_YANIK
+      || String(primary.place || '') !== PLACE_YANIK
+      || Number(primary.hiveCount) !== maxHives
+      || Object.keys(remappedIds).length > 0;
+    keep.push(merged);
+    return { list: keep, changed: changed, remappedIds: remappedIds };
+  }
+
+  function remapHiveApiaryIds(remappedIds) {
+    if (!remappedIds) return false;
+    var keys = Object.keys(remappedIds);
+    if (!keys.length) return false;
+    try {
+      var rawH = localStorage.getItem(HIVES_KEY);
+      var hList = rawH ? JSON.parse(rawH) : [];
+      if (!Array.isArray(hList)) return false;
+      var changed = false;
+      hList.forEach(function (h) {
+        if (!h) return;
+        var id = String(h.apiaryId || '');
+        if (remappedIds[id]) {
+          h.apiaryId = remappedIds[id];
+          changed = true;
+        }
+      });
+      if (changed) localStorage.setItem(HIVES_KEY, JSON.stringify(hList));
+      return changed;
+    } catch (e) { return false; }
+  }
+
+  function repointGiderApiaries(remappedIds) {
+    try {
+      var G = global.SuperAriGider || global.SuperAriGider;
+      if (G && typeof G.repointApiaryIds === 'function') {
+        G.repointApiaryIds(remappedIds, { id: 'a4', name: NAME_YANIK });
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   function loadApiaries() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -244,13 +342,21 @@
           var rest = restoreKayakoyA1(mapped);
           var mig = migrateApiaryNames(rest.list);
           var ens = ensureSeedApiariesPresent(mig.list);
-          var out = ens.list;
-          if (rest.changed || mig.changed || ens.changed) {
+          var ded = dedupeYanikBalugApiaries(ens.list);
+          var out = ded.list;
+          if (rest.changed || mig.changed || ens.changed || ded.changed) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
             } catch (eMig) { /* ignore */ }
           }
-          if (ens.changed) {
+          if (ded.changed && ded.remappedIds && Object.keys(ded.remappedIds).length) {
+            remapHiveApiaryIds(ded.remappedIds);
+            repointGiderApiaries(ded.remappedIds);
+          } else if (ded.changed) {
+            /* Still repoint expenses that match Yanıkdağ by name onto a4. */
+            repointGiderApiaries({ __yanik_by_name__: 'a4' });
+          }
+          if (ens.changed || (ded.changed && Object.keys(ded.remappedIds || {}).length)) {
             try {
               var rawH = localStorage.getItem(HIVES_KEY);
               var hList = rawH ? JSON.parse(rawH) : [];
