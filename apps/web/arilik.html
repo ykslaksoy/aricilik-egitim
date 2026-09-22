@@ -970,23 +970,18 @@
   }
 
   function syncTipFromAnalysis(analysis, centerLat, centerLon) {
+    /* Normal (inline) map: never show öneri pin. Only «Haritada göster» places it (fullscreen). */
+    clearTipPlacemark();
     var tip = analysis && analysis.tip;
     var tLat = tip && tip.targetLat != null ? Number(tip.targetLat) : NaN;
     var tLon = tip && tip.targetLon != null ? Number(tip.targetLon) : NaN;
-    if (!isFinite(tLat) || !isFinite(tLon)) {
-      clearTipPlacemark();
-      return;
-    }
+    if (!isFinite(tLat) || !isFinite(tLon)) return;
     if (
       isFinite(Number(centerLat)) &&
       isFinite(Number(centerLon)) &&
       coordsNearlyEqual(tLat, tLon, centerLat, centerLon)
-    ) {
-      clearTipPlacemark();
-      return;
-    }
-    /* Keep the suggestion available without moving the user's current view. */
-    placeTipMarker(tLat, tLon);
+    ) return;
+    /* Tip coords stay on the forage card (data-lat/lon); map pin only on explicit tap. */
   }
 
   function ensureCurrentDetailMarker() {
@@ -1226,7 +1221,10 @@
       var host = document.getElementById('detailMapHost');
       if (host) {
         detailMapFs = Y.attachFullscreen(host, el, ctrl, {
-          root: document.getElementById('phone')
+          root: document.getElementById('phone'),
+          onChange: function (open) {
+            if (!open) clearTipPlacemark();
+          }
         });
       }
       if (hasCoords(apiary)) {

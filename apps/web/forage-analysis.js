@@ -417,7 +417,7 @@
         distStr +
         ' km ' +
         best.dir.label +
-        ' — rakım/iklim uygunluğu daha yüksek (hava modeli). Haritada öneri pin’i olarak gösterilir.'
+        ' — rakım/iklim uygunluğu daha yüksek (hava modeli). «Haritada göster» ile mevcut ve öneri birlikte açılır.'
     );
 
     var why = [];
