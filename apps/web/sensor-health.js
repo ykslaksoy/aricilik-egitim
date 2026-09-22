@@ -1,8 +1,4 @@
-/**
- * SuperAri hive health: 100 = healthy/normal.
- * Channels: T (temp), RH (humidity), IR, S (sound), W (weight), V (vibration).
- * Open hive only when combined score is low (except calendar routines).
- */
+/** SuperAri internal hive health scoring (proprietary). */
 (function (global) {
   var WEIGHTS = { T: 25, RH: 15, IR: 15, S: 15, W: 20, V: 10 };
 
@@ -14,10 +10,10 @@
 
   function band(score) {
     var s = clamp(score, 0, 100);
-    if (s >= 85) return { key: 'ok', label: 'Sağlıklı', tone: 'ok', hint: 'Normal — rutin dışında açma' };
-    if (s >= 70) return { key: 'watch', label: 'İzle', tone: 'warn', hint: '24–48 saat izle; tek sensör yetmez' };
-    if (s >= 50) return { key: 'check', label: 'Kontrol', tone: 'warn', hint: 'Önce dışarıdan bak; gerekirse aç' };
-    return { key: 'act', label: 'Müdahale', tone: 'bad', hint: 'Birleşik risk yüksek — kovanı aç / müdahale' };
+    if (s >= 85) return { key: 'ok', label: 'Sağlıklı', tone: 'ok', hint: 'Rutin dışında müdahale gerekmez' };
+    if (s >= 70) return { key: 'watch', label: 'İzle', tone: 'warn', hint: 'Kısa süre takip' };
+    if (s >= 50) return { key: 'check', label: 'Kontrol', tone: 'warn', hint: 'Sahada bakılması iyi olur' };
+    return { key: 'act', label: 'Müdahale', tone: 'bad', hint: 'Öncelikli kovan' };
   }
 
   /** Deviation 0–5 per channel from hive demo fields + synthetic sensors. */
@@ -109,8 +105,7 @@
       deviations: { T: devs.T, RH: devs.RH, IR: devs.IR, S: devs.S, W: devs.W, V: devs.V },
       readings: devs.readings,
       rules: rules,
-      openHive: score < 50,
-      formula: 'Sağlık = 100 − (25·T + 15·RH + 15·IR + 15·S + 20·W + 10·V) / 5'
+      openHive: score < 50
     };
   }
 
@@ -131,10 +126,10 @@
       },
       weights: WEIGHTS,
       thresholds: [
-        { min: 85, max: 100, label: 'Sağlıklı', desc: 'Normal — rutin dışında açma' },
-        { min: 70, max: 84, label: 'İzle', desc: '24–48 saat; tek sensör yetmez' },
-        { min: 50, max: 69, label: 'Kontrol', desc: 'Önce dışarıdan; gerekirse aç' },
-        { min: 0, max: 49, label: 'Müdahale', desc: 'Birleşik risk — aç / müdahale' }
+        { min: 85, max: 100, label: 'Sağlıklı', desc: 'Rutin dışında müdahale gerekmez' },
+        { min: 70, max: 84, label: 'İzle', desc: 'Kısa süre takip' },
+        { min: 50, max: 69, label: 'Kontrol', desc: 'Sahada bakılması iyi olur' },
+        { min: 0, max: 49, label: 'Müdahale', desc: 'Öncelikli kovan' }
       ]
     };
   }

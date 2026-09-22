@@ -19,7 +19,7 @@
     <div class="page-head">
       <div>
         <h1>Koloni sağlık</h1>
-        <p id="pageSub">100 = sağlıklı · sensör formülü</p>
+        <p id="pageSub">Kovan durumu özeti</p>
       </div>
       <div class="nav-chips">
         <a class="back-chip" href="raporlar.html">← Raporlar</a>
@@ -39,7 +39,7 @@
       <h2>Düşük skorlu kovanlar</h2>
       <div id="riskList"></div>
     </section>
-    <p class="hint">Sağlık = 100 − (25·T + 15·RH + 15·IR + 15·S + 20·W + 10·V) / 5. Ana → Sağlık ile aynı formül.</p>
+    
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html">
@@ -81,10 +81,10 @@
     '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>' +
     '<div class="stat"><div class="k">Kovan</div><div class="v">' + all.hives.length + '</div></div>';
   document.getElementById('bucketList').innerHTML =
-    '<div class="row-item"><div class="left"><div class="title">85–100 Sağlıklı</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">70–84 İzle</div></div><div class="right"><span class="badge warn">' + all.counts.watch + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">50–69 Kontrol</div></div><div class="right"><span class="badge warn">' + all.counts.check + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">0–49 Müdahale</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>';
+    '<div class="row-item"><div class="left"><div class="title">Sağlıklı</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">İzle</div></div><div class="right"><span class="badge warn">' + all.counts.watch + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">Kontrol</div></div><div class="right"><span class="badge warn">' + all.counts.check + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">Müdahale</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>';
   var byAp = {};
   all.hives.forEach(function (x) {
     var hive = hives.filter(function (h) { return String(h.id) === String(x.hiveId); })[0];
@@ -106,7 +106,7 @@
   }).join('') || '<p class="meta">Kovan yok.</p>';
   document.getElementById('riskList').innerHTML = all.hives.filter(function (x) { return x.score < 85; }).slice(0, 12).map(function (x) {
     return '<div class="row-item"><div class="left"><div class="title">' + x.name + '</div>' +
-      '<div class="meta">' + x.band.label + (x.rules[0] ? (' · ' + x.rules[0].text) : '') + '</div></div>' +
+      '<div class="meta">' + x.band.label + '</div></div>' +
       '<div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></div>';
   }).join('') || '<p class="meta">Tüm kovanlar 85+.</p>';
 })();
