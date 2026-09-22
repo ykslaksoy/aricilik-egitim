@@ -180,6 +180,14 @@
     margin-top: 0; font-size: 18px; font-weight: 800; color: var(--rain, #4c6ef5);
     white-space: nowrap;
   }
+  .stat.stat-sync {
+    border-color: #f0c36a;
+    background: #fff8ec;
+  }
+  .stat.stat-sync .v {
+    font-size: 13px;
+    color: #7a4e00;
+  }
   .chart-block {
     background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
     padding: 14px 12px 12px; margin-bottom: 14px;
@@ -789,11 +797,24 @@
     function deg(v) {
       return v != null && isFinite(Number(v)) ? Number(v) + '°' : '—';
     }
+    var cov = coverageForCurrent();
+    var expected = cov.expected || 0;
+    var filled = cov.filled || 0;
+    var kayitLab;
+    if (expected > 0) {
+      kayitLab = filled + '/' + expected;
+      if (syncInFlight || filled < expected) {
+        kayitLab += ' · güncelleniyor';
+      }
+    } else {
+      kayitLab = String(summary.count != null ? summary.count : 0);
+    }
+    var kayitCls = (expected > 0 && filled < expected) || syncInFlight ? 'stat-sync' : '';
     statsEl.innerHTML =
       cell('Ort. sıcaklık gece / gündüz', deg(summary.avgNightTemp) + ' / ' + deg(summary.avgDayTemp)) +
       cell('En düşük / yüksek', deg(summary.minTemp) + ' / ' + deg(summary.maxTemp)) +
       cell('Yağışlı gün', String(summary.rainyDays != null ? summary.rainyDays : 0)) +
-      cell('Kayıt sayısı', String(summary.count)) +
+      cell('Kayıt sayısı', kayitLab, kayitCls) +
       cell('Toplam yağışlı saat', rainHLab, 'stat-rain');
   }
 
