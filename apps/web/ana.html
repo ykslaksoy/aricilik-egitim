@@ -967,7 +967,7 @@
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
             <path class="sound-waves" d="M15.5 8.5a4 4 0 0 1 0 7M18.5 5.5a7.5 7.5 0 0 1 0 13"/>
           </svg>
-          <span class="bee-sound-text">Sessiz</span>
+          <span class="bee-sound-text">Ses</span>
         </button>
       </div>
     </section>
@@ -2073,14 +2073,18 @@
       }
       var key = breedKeyFromIdx(beeIdx);
       /* Idempotent: keep the same looping BufferSource across flyTo hops */
-      if (buzzActiveKey === key && buzzSource) {
-        resumeBuzzCtx();
+      if (buzzActiveKey === key && buzzSource && buzzCtx && buzzCtx.state === 'running') {
         return;
       }
       Promise.all([loadBuzzBuffers(), resumeBuzzCtx()]).then(function (pair) {
         if (!buzzWanted || !soundEnabled) return;
         var bufs = pair[0];
         if (!bufs) return;
+        var ctx = pair[1];
+        if (ctx && ctx.state === 'suspended') {
+          /* Still locked — wait for first user gesture (armFirstGestureUnlock) */
+          return;
+        }
         var k = breedKeyFromIdx(beeIdx);
         if (buzzActiveKey === k && buzzSource) return;
         crossfadeBuzzTo(k);
@@ -2099,8 +2103,8 @@
         soundEnabled ? 'Sesi kapat' : 'Sesi aç'
       );
       var st = beeSoundToggle.querySelector('.bee-sound-text');
-      /* ON → Sessiz (press to mute); OFF → Ses (press to enable) */
-      if (st) st.textContent = soundEnabled ? 'Sessiz' : 'Ses';
+      /* State label: ON → Ses, OFF → Sessiz (first tap used to look muted) */
+      if (st) st.textContent = soundEnabled ? 'Ses' : 'Sessiz';
     }
 
     function setSoundEnabled(on) {
@@ -2577,8 +2581,12 @@
       /* Browser autoplay: AudioContext stays suspended until a user gesture */
       audioGestureDone = true;
       ensureBuzzCtx();
-      Promise.all([loadBuzzBuffers(), resumeBuzzCtx()]).then(function () {
-        if (buzzWanted && soundEnabled) setBuzz(true);
+      return Promise.all([loadBuzzBuffers(), resumeBuzzCtx()]).then(function () {
+        if (!soundEnabled) return;
+        /* Restart source after resume — start-while-suspended stays silent on iOS/Chrome */
+        stopBuzzSource(true);
+        if (buzzWanted || (beesEnabled && cycleActive)) setBuzz(true);
+        else if (beesEnabled) setBuzz(true);
       });
     }
 
@@ -2603,6 +2611,13 @@
     }
     if (beeSoundToggle) {
       beeSoundToggle.addEventListener('click', function () {
+        var ctxSuspended = buzzCtx && buzzCtx.state === 'suspended';
+        var needsUnlock = !audioGestureDone || ctxSuspended;
+        /* First tap while "Ses" is on: unlock + keep ON (do not mute) */
+        if (needsUnlock && soundEnabled) {
+          unlockAudioOnce();
+          return;
+        }
         unlockAudioOnce();
         setSoundEnabled(!soundEnabled);
       });
