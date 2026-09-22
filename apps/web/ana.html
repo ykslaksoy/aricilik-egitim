@@ -679,6 +679,13 @@
     font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
     text-align: center;
   }
+  /* Oğul: leading O emphasized (user request) */
+  .tile[data-key="ogul"] .tile-label .cap {
+    font-size: 1.55em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    vertical-align: -0.06em;
+  }
   .badge {
     /* Keep prior label↔badge gap (~4px): was bottom 28px vs 5px + badge height */
     position: relative; left: auto; bottom: auto; transform: none;
@@ -1743,7 +1750,7 @@
     return (
       '<article class="tile" data-key="' + t.key + '" data-href="' + (t.href || '') + '" role="link" tabindex="0" aria-label="' + t.label + '">' +
         hiveHTML(t.key) +
-        '<div class="tile-label">' + t.label + '</div>' +
+        '<div class="tile-label">' + (t.key === 'ogul' ? '<span class="cap">O</span>ğul' : t.label) + '</div>' +
         (showBadge ? '<div class="badge ' + t.tone + '">' + badge + '</div>' : '') +
       '</article>'
     );
