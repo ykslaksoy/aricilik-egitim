@@ -221,6 +221,28 @@
     background: #fff8df; border: 1px dashed #e0c56a;
     color: var(--muted); font-size: 12px; line-height: 1.4;
   }
+  .sync-status {
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 12px; font-weight: 700; line-height: 1.35;
+  }
+  .sync-status[hidden] { display: none !important; }
+  .sync-status.is-updating {
+    background: #eef4ff;
+    border: 1px solid #b6c8f0;
+    color: #2c4a8c;
+  }
+  .sync-status.is-incomplete {
+    background: #fff4e5;
+    border: 1px solid #f0c36a;
+    color: #7a4e00;
+  }
+  .sync-status.is-done {
+    background: #eefaf0;
+    border: 1px solid #9fd6a8;
+    color: #1f6b2e;
+  }
   .hist-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; margin: 4px 0 0; padding: 14px 16px;
@@ -299,6 +321,7 @@
       </label>
     </div>
     <p class="range-note" id="rangeNote" hidden>Sezon arılık bölgesine göre belirlenir.</p>
+    <div class="sync-status" id="syncStatus" hidden role="status" aria-live="polite"></div>
 
     <div class="stats" id="stats" aria-label="Özet"></div>
 
@@ -335,7 +358,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=avg3"></script>
+<script src="hava-kayit.js?v=sync1"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -353,6 +376,9 @@
   var pageSub = document.getElementById('pageSub');
   var currentRange = H.loadRange();
   var rangeNoteEl = document.getElementById('rangeNote');
+  var syncStatusEl = document.getElementById('syncStatus');
+  var syncInFlight = false;
+  var syncDoneTimer = null;
 
   function selectedSeasonCoords() {
     var id = apiarySel && apiarySel.value;
@@ -423,18 +449,155 @@
     syncBalChipLabel();
   }
 
+
+  function coverageForCurrent() {
+    var from = currentRange.from;
+    var to = currentRange.to;
+    if (!from || !to || typeof H.dateKeysInclusive !== 'function') {
+      return { expected: 0, filled: 0, withRain: 0, complete: true };
+    }
+    var keys = H.dateKeysInclusive(from, to);
+    var records = H.filterRecords({
+      apiaryId: apiarySel.value,
+      from: from,
+      to: to
+    });
+    var byDate = {};
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i];
+      if (!r || !r.date) continue;
+      if (r.source === 'seed') continue;
+      byDate[r.date] = r;
+    }
+    var filled = 0;
+    var withRain = 0;
+    for (var k = 0; k < keys.length; k++) {
+      var row = byDate[keys[k]];
+      if (!row) continue;
+      filled++;
+      if (row.rainHours != null && isFinite(Number(row.rainHours))) withRain++;
+    }
+    return {
+      expected: keys.length,
+      filled: filled,
+      withRain: withRain,
+      complete: keys.length > 0 && filled >= keys.length && withRain >= keys.length
+    };
+  }
+
+  function setSyncStatus(kind, text) {
+    if (!syncStatusEl) return;
+    if (syncDoneTimer) {
+      clearTimeout(syncDoneTimer);
+      syncDoneTimer = null;
+    }
+    if (!kind || !text) {
+      syncStatusEl.hidden = true;
+      syncStatusEl.textContent = '';
+      syncStatusEl.className = 'sync-status';
+      return;
+    }
+    syncStatusEl.hidden = false;
+    syncStatusEl.className = 'sync-status is-' + kind;
+    syncStatusEl.textContent = text;
+    if (kind === 'done') {
+      syncDoneTimer = setTimeout(function () {
+        if (!syncInFlight) setSyncStatus(null);
+      }, 3200);
+    }
+  }
+
+  function showCoverageStatus() {
+    if (syncInFlight) {
+      var covU = coverageForCurrent();
+      setSyncStatus(
+        'updating',
+        'Veriler güncelleniyor…' +
+          (covU.expected
+            ? ' (' + covU.filled + '/' + covU.expected + ' gün, yağış saati ' + covU.withRain + '/' + covU.expected + ')'
+            : '')
+      );
+      return;
+    }
+    var cov = coverageForCurrent();
+    if (!cov.expected) {
+      setSyncStatus(null);
+      return;
+    }
+    if (!cov.complete) {
+      setSyncStatus(
+        'incomplete',
+        'Eksik veri var — güncelleniyor olabilir (' +
+          cov.filled +
+          '/' +
+          cov.expected +
+          ' gün dolu, yağış saati ' +
+          cov.withRain +
+          '/' +
+          cov.expected +
+          ').'
+      );
+      return;
+    }
+    /* complete and idle: leave done banner if any, else hide */
+  }
+
+  function runFullFetch() {
+    if (typeof H.ensureHistory !== 'function') return Promise.resolve();
+    syncInFlight = true;
+    showCoverageStatus();
+    var progressTick = setInterval(function () {
+      if (!syncInFlight) {
+        clearInterval(progressTick);
+        return;
+      }
+      refresh();
+    }, 1600);
+    function finishOk() {
+      clearInterval(progressTick);
+      syncInFlight = false;
+      fillApiaries();
+      refresh();
+      var cov = coverageForCurrent();
+      if (cov.complete) {
+        setSyncStatus('done', 'Tüm veriler güncellendi (' + cov.filled + '/' + cov.expected + ' gün).');
+      } else {
+        showCoverageStatus();
+      }
+      return cov;
+    }
+    return H.ensureHistory({
+      from: currentRange.from,
+      to: currentRange.to,
+      preset: currentRange.preset,
+      force: true
+    })
+      .then(function () {
+        var cov = finishOk();
+        if (cov.complete) return;
+        /* Bir kez daha zorla çek */
+        syncInFlight = true;
+        showCoverageStatus();
+        return H.ensureHistory({
+          from: currentRange.from,
+          to: currentRange.to,
+          preset: currentRange.preset,
+          force: true
+        }).then(function () { finishOk(); });
+      })
+      .catch(function () {
+        clearInterval(progressTick);
+        syncInFlight = false;
+        refresh();
+        setSyncStatus('incomplete', 'Veri güncellemesi tamamlanamadı. Sayfayı yenileyip tekrar deneyin.');
+      });
+  }
+
   function persistAndRefresh(triggerBackfill) {
     currentRange = H.saveRange(currentRange);
     syncRangeInputs();
     refresh();
-    if (triggerBackfill && typeof H.ensureHistory === 'function') {
-      H.ensureHistory({ from: currentRange.from, to: currentRange.to, force: true })
-        .then(function () {
-          fillApiaries();
-          refresh();
-        })
-        .catch(function () { refresh(); });
-    }
+    if (triggerBackfill) runFullFetch();
   }
 
   function applyPreset(preset) {
@@ -699,6 +862,7 @@
     }
     renderStats(H.summarize(records), records);
     renderBars(dailySeries(records));
+    showCoverageStatus();
   }
 
   fillApiaries();
@@ -735,20 +899,8 @@
 
   refresh();
 
-  /* Bal sezonu / seçili aralık: force ile tüm from→to Open-Meteo arşiv/past doldur */
-  if (typeof H.ensureHistory === 'function') {
-    H.ensureHistory({
-      from: currentRange.from,
-      to: currentRange.to,
-      preset: currentRange.preset,
-      force: true
-    }).then(function () {
-      fillApiaries();
-      refresh();
-    }).catch(function () {
-      refresh();
-    });
-  }
+  /* Tüm seçili aralığı Open-Meteo’dan zorla çek; eksikte uyarı göster */
+  runFullFetch();
 
   var clock = document.getElementById('clock');
   if (clock) {
