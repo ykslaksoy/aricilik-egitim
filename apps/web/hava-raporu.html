@@ -307,7 +307,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=bal124rain"></script>
+<script src="hava-kayit.js?v=avg1"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -593,9 +593,7 @@
     statsEl.innerHTML =
       cell(
         'Ort. sıcaklık',
-        typeof H.formatAvgWithDayNight === 'function'
-          ? H.formatAvgWithDayNight(summary.avgTemp, summary.avgNightTemp, summary.avgDayTemp)
-          : (summary.avgTemp != null ? summary.avgTemp + '°' : '—')
+        summary.avgTemp != null ? summary.avgTemp + '°' : '—'
       ) +
       cell('En düşük / yüksek', (summary.minTemp != null ? summary.minTemp + '°' : '—') + ' / ' + (summary.maxTemp != null ? summary.maxTemp + '°' : '—')) +
       cell('Yağışlı gün', String(summary.rainyDays) + (rainHN ? ' · Σ~' + rainHLab : '')) +
@@ -621,12 +619,7 @@
       html +=
         '<div class="bar-col" style="min-width:' + (series.length > 40 ? '8px' : '12px') + '" title="' +
         formatDate(s.date) +
-        (s.avg != null
-          ? ': ' +
-            (typeof H.formatAvgWithDayNight === 'function'
-              ? H.formatAvgWithDayNight(s.avg, s.nightAvg, s.dayAvg)
-              : s.avg + '°')
-          : '') +
+        (s.avg != null ? ': ' + s.avg + '°' : '') +
         (typeof H.formatPrecipLine === 'function' && (s.precipMm || s.rainHours)
           ? ' · ' + (H.formatPrecipLine(s.precipMm, s.rainHours) || '')
           : '') +

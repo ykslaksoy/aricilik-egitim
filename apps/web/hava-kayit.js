@@ -810,19 +810,10 @@
     return map;
   }
 
-  /** "18° (gece 12° · gündüz 22°)" — gece/gündüz yoksa sadece ortalama. */
+  /** Ortalama sıcaklık etiketi (tek değer). */
   function formatAvgWithDayNight(avg, night, day) {
     if (avg == null || !isFinite(Number(avg))) return '—';
-    var s = Number(avg) + '°';
-    if (
-      night == null ||
-      !isFinite(Number(night)) ||
-      day == null ||
-      !isFinite(Number(day))
-    ) {
-      return s;
-    }
-    return s + ' (gece ' + Number(night) + '° · gündüz ' + Number(day) + '°)';
+    return Number(avg) + '°';
   }
 
   function rowFromDailyIndex(apiary, daily, idx, source, rainHoursMap, dayNightMap) {
