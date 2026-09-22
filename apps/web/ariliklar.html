@@ -229,7 +229,7 @@
     display: none; position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
     z-index: 500; padding: 5px 10px; border-radius: 999px;
     background: rgba(20,16,10,.72); color: #fff; font-size: 11px; font-weight: 700;
-    pointer-events: auto; white-space: nowrap;
+    pointer-events: none; white-space: nowrap;
   }
   .ymap-tap-hint.is-on { display: block; }
   .ymap-host.is-fullscreen {
@@ -335,10 +335,10 @@
       <h2 id="sheetTitle">Yeni arılık</h2>
       <form id="addForm">
         <label>Ad
-          <input name="name" required maxlength="80" placeholder="Örn. Yanıkdağ Baluğundüzü Arılığı" />
+          <input name="name" required maxlength="80" placeholder="Örn. Kayaköy Ana Arılık / Cimil Yaylası Arılığı" />
         </label>
         <label>Konum (kısa ad)
-          <input name="place" required maxlength="40" placeholder="Örn. Yanıkdağ Baluğundüzü" />
+          <input name="place" required maxlength="40" placeholder="Örn. Kayaköy / Cimil Yaylası" />
         </label>
         <label>Kovan sayısı
           <input name="hiveCount" type="number" inputmode="numeric" min="0" step="1" value="0" />
@@ -349,7 +349,7 @@
             <span class="map-coords is-empty" id="mapCoords">Konum seçilmedi</span>
           </div>
           <div class="map-search-row">
-            <input type="search" id="mapSearch" maxlength="80" placeholder="Yer ara — örn. Yanıkdağ Baluğundüzü" autocomplete="off" />
+            <input type="search" id="mapSearch" maxlength="80" placeholder="Yer ara — örn. Kayaköy, Cimil Yaylası" autocomplete="off" />
             <button type="button" class="btn-ara" id="mapSearchBtn">Ara</button>
           </div>
           <ul class="map-search-results" id="mapSearchResults" hidden></ul>
@@ -421,7 +421,7 @@
   var F = window.SuperAriForage;
   if (!D) return;
 
-  var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Yanıkdağ Baluğundüzü bölgesi */
+  var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Kayaköy bölgesi */
   var DEFAULT_ZOOM = 9;
 
   var listEl = document.getElementById('apiaryList');
@@ -543,7 +543,8 @@
     }
     pending = { lat: lat, lon: lon, name: name || '' };
     btnAddLoc.disabled = false;
-    coordsEl.textContent = 'Seçildi — Ekle’ye bas: ' + lat.toFixed(4) + ', ' + lon.toFixed(4);
+    var placeBit = name ? (name + ' · ') : '';
+    coordsEl.textContent = 'Seçildi — Ekle’ye bas: ' + placeBit + lat.toFixed(4) + ', ' + lon.toFixed(4);
     coordsEl.classList.remove('is-empty');
     applyAutoForage(lat, lon);
     updateRadar(lat, lon);
@@ -590,12 +591,33 @@
         });
       }
       ctrl.map.events.add('click', function (e) {
-        if (mapFs && mapFs.shouldSuppressPick && mapFs.shouldSuppressPick()) return;
-        if (mapFs && !mapFs.isOpen()) mapFs.open();
         var c = e.get('coords');
+        var la = c[0];
+        var lo = c[1];
+        var wasClosed = mapFs && mapFs.isOpen && !mapFs.isOpen();
+        if (wasClosed) mapFs.open();
         var z = ctrl.getZoom();
-        if (z < 14) ctrl.setView(c[0], c[1], Math.min(16, z + 2));
-        placeMarker(c[0], c[1], pending && pending.name);
+        if (z < 14) ctrl.setView(la, lo, Math.min(16, z + 2));
+        /* Always drop/move pin on same tap (even when expanding to fullscreen). */
+        placeMarker(la, lo, pending && pending.name);
+        if (Y && Y.reverseGeocode) {
+          Y.reverseGeocode(la, lo).then(function (geo) {
+            var nm = (geo && (geo.name || geo.label)) || '';
+            placeMarker(la, lo, nm || (pending && pending.name) || '');
+          });
+        }
+        if (wasClosed) {
+          setTimeout(function () {
+            if (ctrl.invalidateSize) ctrl.invalidateSize();
+            if (placemark) {
+              var pc = Y.placemarkCoords(placemark);
+              if (pc) ctrl.setView(pc.lat, pc.lon, Math.max(ctrl.getZoom(), 14));
+            }
+          }, 100);
+          setTimeout(function () {
+            if (ctrl.invalidateSize) ctrl.invalidateSize();
+          }, 320);
+        }
         clearError();
         hideResults();
       });

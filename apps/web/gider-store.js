@@ -60,7 +60,7 @@
       amount: 2800,
       date: '2026-09-02',
       apiaryId: 'a1',
-      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
+      apiaryName: 'Kayaköy Ana Arılık',
       note: 'Sonbahar besleme'
     },
     {
@@ -70,7 +70,7 @@
       amount: 1400,
       date: '2026-08-28',
       apiaryId: 'a1',
-      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
+      apiaryName: 'Kayaköy Ana Arılık'
     },
     {
       id: 'g3',
@@ -79,7 +79,7 @@
       amount: 1680,
       date: '2026-09-05',
       apiaryId: 'a1',
-      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
+      apiaryName: 'Kayaköy Ana Arılık'
     },
     {
       id: 'g4',
@@ -106,7 +106,7 @@
       amount: 950,
       date: '2026-08-15',
       apiaryId: 'a1',
-      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
+      apiaryName: 'Kayaköy Ana Arılık'
     },
     {
       id: 'g10',
@@ -115,7 +115,7 @@
       amount: 1500,
       date: '2026-09-03',
       apiaryId: 'a1',
-      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
+      apiaryName: 'Kayaköy Ana Arılık',
       note: 'Günlük işçilik'
     },
     {
@@ -125,7 +125,7 @@
       amount: 820,
       date: '2026-08-30',
       apiaryId: 'a1',
-      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
+      apiaryName: 'Kayaköy Ana Arılık',
       note: 'Paketleme'
     },
     {
@@ -170,6 +170,44 @@
       date: '2026-09-08',
       apiaryId: 'a3',
       apiaryName: 'Palandöken Yayla Arılığı'
+    },
+    {
+      id: 'g13',
+      title: 'Yayla nakliye payı',
+      category: 'nakliye',
+      amount: 1400,
+      date: '2026-08-18',
+      apiaryId: 'a4',
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
+      note: 'Baluğundüzü çıkışı'
+    },
+    {
+      id: 'g14',
+      title: 'Şeker şurubu (sezon)',
+      category: 'yem',
+      amount: 1100,
+      date: '2026-09-01',
+      apiaryId: 'a4',
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
+    },
+    {
+      id: 'g15',
+      title: 'Yayla / kira payı',
+      category: 'yayla_kira',
+      amount: 1800,
+      date: '2026-07-20',
+      apiaryId: 'a5',
+      apiaryName: 'Cimil Yaylası Arılığı',
+      note: 'Cimil yayla dönemi'
+    },
+    {
+      id: 'g16',
+      title: 'Varroa mücadelesi',
+      category: 'ilac',
+      amount: 975,
+      date: '2026-08-25',
+      apiaryId: 'a5',
+      apiaryName: 'Cimil Yaylası Arılığı'
     }
   ];
 
@@ -346,18 +384,12 @@
   }
 
 
-  var GIDER_NAME_A1 = 'Yanıkdağ Baluğundüzü Arılığı';
+  var GIDER_NAME_A1 = 'Kayaköy Ana Arılık';
+  var GIDER_NAME_YANIK = 'Yanıkdağ Baluğundüzü Arılığı';
 
-  function needsGiderApiaryRename(s) {
-    var t = String(s || '').trim();
-    if (!t) return false;
-    var lower = t.toLocaleLowerCase('tr');
-    if (lower.indexOf('yanıkdağ') !== -1 && lower.indexOf('baluğundüzü') !== -1) return false;
-    if (t === 'Yanıkdağ' || t === 'Yanıkdağ Arılığı' || t === 'Yanıkdağ Ana Arılık') return true;
-    if (/^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1) return true;
-    if (t === 'Kayaköy' || t === 'Kayaköy Ana Arılık' || /^Kayaköy(\s|$)/i.test(t)) return true;
-    if (t === 'Baluğundüzü' || t === 'Balığındüzü') return true;
-    return false;
+  function looksLikeYanikBalugName(s) {
+    var lower = String(s || '').toLocaleLowerCase('tr');
+    return lower.indexOf('yanıkdağ') !== -1 && (lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığındüzü') !== -1);
   }
 
   function migrateExpenseApiaryNames(list) {
@@ -365,9 +397,16 @@
     var out = (list || []).map(function (e) {
       if (!e) return e;
       var n = String(e.apiaryName || '').trim();
-      if (!needsGiderApiaryRename(n)) return e;
+      var id = String(e.apiaryId || '');
+      var next = n;
+      if (id === 'a1' && looksLikeYanikBalugName(n)) next = GIDER_NAME_A1;
+      else if (n === 'Yanıkdağ' || n === 'Yanıkdağ Arılığı' || n === 'Yanıkdağ Ana Arılık') next = GIDER_NAME_YANIK;
+      else if (/^Yanıkdağ(\s|$)/i.test(n) && !looksLikeYanikBalugName(n) && n.toLocaleLowerCase('tr').indexOf('kayaköy') === -1) {
+        next = GIDER_NAME_YANIK;
+      }
+      if (next === n) return e;
       changed = true;
-      e.apiaryName = GIDER_NAME_A1;
+      e.apiaryName = next;
       return e;
     });
     return { list: out, changed: changed };
@@ -460,6 +499,24 @@
     return list;
   }
 
+  function ensureSeedExpenseRows(list) {
+    var byId = {};
+    (list || []).forEach(function (e) {
+      if (e && e.id) byId[String(e.id)] = true;
+    });
+    var added = false;
+    var out = (list || []).slice();
+    SEED_EXPENSES.forEach(function (seed) {
+      if (byId[seed.id]) return;
+      /* Only top-up rows for new demo apiaries a4/a5 (and any future seed ids). */
+      if (seed.apiaryId !== 'a4' && seed.apiaryId !== 'a5') return;
+      out.push(normalizeExpense(seed));
+      added = true;
+    });
+    if (added) writeJson(STORAGE_KEY, out);
+    return out;
+  }
+
   function loadExpenses() {
     var parsed = readJson(STORAGE_KEY);
     if (Array.isArray(parsed) && parsed.length) {
@@ -468,7 +525,7 @@
       );
       var mig = migrateExpenseApiaryNames(list);
       if (mig.changed) writeJson(STORAGE_KEY, mig.list);
-      return mig.list;
+      return ensureSeedExpenseRows(mig.list);
     }
     writeJson(STORAGE_KEY, SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);

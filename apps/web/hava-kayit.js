@@ -11,9 +11,11 @@
   var MAX_DAYS = 200;
   var DEFAULT_BACKFILL_DAYS = 30;
   var DEFAULT_APIARIES = [
-    { id: 'a1', label: 'Yanıkdağ Baluğundüzü', lat: 39.92, lon: 41.27 },
+    { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
     { id: 'a2', label: 'Tortum', lat: 40.61, lon: 41.66 },
-    { id: 'a3', label: 'Palandöken', lat: 40.45, lon: 41.4 }
+    { id: 'a3', label: 'Palandöken', lat: 40.45, lon: 41.4 },
+    { id: 'a4', label: 'Yanıkdağ Baluğundüzü', lat: 39.95, lon: 41.30 },
+    { id: 'a5', label: 'Cimil Yaylası', lat: 40.733, lon: 40.789 }
   ];
 
   var backfillInFlight = null;
@@ -106,7 +108,9 @@
     var La = Number(lat);
     var Lo = Number(lon);
     if (!isFinite(La) || !isFinite(Lo)) return 'fallback';
-    /* East Anatolia (Erzurum yayla etc.) — check first */
+    /* Doğu Karadeniz yayla (Rize / İkizdere / Cimil) — before Doğu Anadolu box */
+    if (La >= 40.4 && La <= 41.6 && Lo >= 39.8 && Lo <= 41.1) return 'karadeniz';
+    /* East Anatolia (Erzurum yayla etc.) */
     if (La >= 37.0 && La <= 42.8 && Lo >= 38.0 && Lo <= 45.0) return 'dogu_anadolu';
     if (La >= 39.5 && La <= 42.2 && Lo >= 26.0 && Lo <= 30.8) return 'marmara';
     if (
@@ -296,17 +300,12 @@
   }
 
 
-  var LABEL_A1 = 'Yanıkdağ Baluğundüzü';
+  var LABEL_KAYAKOY = 'Kayaköy';
+  var LABEL_YANIK = 'Yanıkdağ Baluğundüzü';
 
-  function needsHavaLabelRename(s) {
-    var t = String(s || '').trim();
-    if (!t) return false;
-    var lower = t.toLocaleLowerCase('tr');
-    if (lower.indexOf('yanıkdağ') !== -1 && lower.indexOf('baluğundüzü') !== -1) return false;
-    if (t === 'Yanıkdağ' || /^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1) return true;
-    if (t === 'Kayaköy' || t === 'Kayaköy Ana Arılık' || /^Kayaköy(\s|$)/i.test(t)) return true;
-    if (t === 'Baluğundüzü' || t === 'Balığındüzü') return true;
-    return false;
+  function looksLikeYanikBalugLabel(s) {
+    var lower = String(s || '').toLocaleLowerCase('tr');
+    return lower.indexOf('yanıkdağ') !== -1 && (lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığındüzü') !== -1);
   }
 
   function migrateHavaLabels(list) {
@@ -314,13 +313,20 @@
     var out = (list || []).map(function (r) {
       if (!r) return r;
       var lab = String(r.label || '').trim();
-      if (!needsHavaLabelRename(lab)) return r;
+      var id = String(r.apiaryId || '');
+      var next = lab;
+      /* Undo bad a1 rename */
+      if (id === 'a1' && looksLikeYanikBalugLabel(lab)) next = LABEL_KAYAKOY;
+      else if (lab === 'Yanıkdağ' || (/^Yanıkdağ(\s|$)/i.test(lab) && !looksLikeYanikBalugLabel(lab))) {
+        if (lab.toLocaleLowerCase('tr').indexOf('kayaköy') === -1) next = LABEL_YANIK;
+      }
+      if (next === lab) return r;
       changed = true;
       var copy = {};
       for (var k in r) {
         if (Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k];
       }
-      copy.label = LABEL_A1;
+      copy.label = next;
       return copy;
     });
     return { list: out, changed: changed };

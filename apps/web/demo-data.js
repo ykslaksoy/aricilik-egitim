@@ -11,9 +11,11 @@
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
-    { id: 'a1', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 39.92, lon: 41.27, hiveCount: 42 },
+    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 39.92, lon: 41.27, hiveCount: 42 },
     { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.61, lon: 41.66, hiveCount: 35 },
-    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 40.45, lon: 41.4, hiveCount: 23 }
+    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 40.45, lon: 41.4, hiveCount: 23 },
+    { id: 'a4', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 39.95, lon: 41.30, hiveCount: 20 },
+    { id: 'a5', name: 'Cimil Yaylası Arılığı', place: 'Cimil Yaylası', lat: 40.733, lon: 40.789, hiveCount: 25 }
   ];
 
   /* Named demo hives used by alerts / tasks — included inside full per-apiary fleets. */
@@ -126,43 +128,64 @@
   }
 
 
-  var PLACE_A1 = 'Yanıkdağ Baluğundüzü';
-  var NAME_A1 = 'Yanıkdağ Baluğundüzü Arılığı';
+  var PLACE_A1 = 'Kayaköy';
+  var NAME_A1 = 'Kayaköy Ana Arılık';
+  var PLACE_YANIK = 'Yanıkdağ Baluğundüzü';
+  var NAME_YANIK = 'Yanıkdağ Baluğundüzü Arılığı';
 
-  /** True if string is legacy a1 identity needing Baluğundüzü rename. */
-  function needsA1Rename(s) {
+  function looksLikeYanikBalug(s) {
+    var lower = String(s || '').toLocaleLowerCase('tr');
+    return lower.indexOf('yanıkdağ') !== -1 && (lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığındüzü') !== -1);
+  }
+
+  /** Exact «Yanıkdağ» (missing Baluğundüzü) → compound place/name. Never touches Kayaköy. */
+  function migrateExactYanik(s, asName) {
     var t = String(s || '').trim();
-    if (!t) return false;
+    if (!t) return t;
     var lower = t.toLocaleLowerCase('tr');
-    /* Already correct compound place/name */
-    if (lower.indexOf('yanıkdağ') !== -1 && lower.indexOf('baluğundüzü') !== -1) return false;
-    if (t === 'Yanıkdağ' || t === 'Yanıkdağ Arılığı' || t === 'Yanıkdağ Ana Arılık') return true;
-    if (/^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1) return true;
-    if (t === 'Kayaköy' || t === 'Kayaköy Ana Arılık' || /^Kayaköy(\s|$)/i.test(t)) return true;
-    if (t === 'Baluğundüzü' || t === 'Balığındüzü') return true;
-    return false;
-  }
-
-  function renameA1Value(s, asName) {
-    var t = String(s || '').trim();
-    if (!needsA1Rename(t)) return t;
-    if (asName && (/arılı/i.test(t) || /Ana Arılık/i.test(t))) return NAME_A1;
-    if (asName && (t === 'Yanıkdağ' || t === 'Kayaköy' || t === 'Baluğundüzü' || t === 'Balığındüzü')) {
-      return PLACE_A1;
+    if (lower.indexOf('kayaköy') !== -1) return t;
+    if (looksLikeYanikBalug(t)) return t;
+    if (t === 'Yanıkdağ' || t === 'Yanıkdağ Arılığı' || t === 'Yanıkdağ Ana Arılık') {
+      return asName ? NAME_YANIK : PLACE_YANIK;
     }
-    if (asName) return NAME_A1;
-    return PLACE_A1;
+    if (/^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1 && lower.indexOf('balığındüzü') === -1) {
+      return asName ? NAME_YANIK : PLACE_YANIK;
+    }
+    return t;
   }
 
-  /** One-time migrate of localStorage apiary name/place (Kayaköy / Yanıkdağ → Yanıkdağ Baluğundüzü). */
+  /** Undo 66c8045: a1 wrongly renamed Kayaköy → Yanıkdağ Baluğundüzü. */
+  function restoreKayakoyA1(list) {
+    var changed = false;
+    var out = (list || []).map(function (a) {
+      if (!a || String(a.id) !== 'a1') return a;
+      var name = String(a.name || '').trim();
+      var place = String(a.place || '').trim();
+      var bad = looksLikeYanikBalug(name) || looksLikeYanikBalug(place);
+      if (!bad) return a;
+      changed = true;
+      return {
+        id: a.id,
+        name: NAME_A1,
+        place: PLACE_A1,
+        lat: a.lat != null && isFinite(Number(a.lat)) ? Number(a.lat) : 39.92,
+        lon: a.lon != null && isFinite(Number(a.lon)) ? Number(a.lon) : 41.27,
+        hiveCount: a.hiveCount
+      };
+    });
+    return { list: out, changed: changed };
+  }
+
   function migrateApiaryNames(list) {
     var changed = false;
     var out = (list || []).map(function (a) {
       if (!a) return a;
+      /* a1 Kayaköy must not be migrated to Yanıkdağ */
+      if (String(a.id) === 'a1') return a;
       var name = String(a.name || '').trim();
       var place = String(a.place || '').trim();
-      var nextName = renameA1Value(name, true);
-      var nextPlace = renameA1Value(place, false);
+      var nextName = migrateExactYanik(name, true);
+      var nextPlace = migrateExactYanik(place, false);
       if (nextName !== name || nextPlace !== place) {
         changed = true;
         return {
@@ -175,6 +198,29 @@
         };
       }
       return a;
+    });
+    return { list: out, changed: changed };
+  }
+
+  /** Append missing seed apiaries by id (a4/a5 …) without wiping user rows. */
+  function ensureSeedApiariesPresent(list) {
+    var changed = false;
+    var byId = {};
+    (list || []).forEach(function (a) {
+      if (a && a.id) byId[String(a.id)] = true;
+    });
+    var out = (list || []).slice();
+    SEED_APIARIES.forEach(function (seed) {
+      if (byId[seed.id]) return;
+      changed = true;
+      out.push({
+        id: seed.id,
+        name: seed.name,
+        place: seed.place,
+        lat: seed.lat,
+        lon: seed.lon,
+        hiveCount: seed.hiveCount
+      });
     });
     return { list: out, changed: changed };
   }
@@ -195,13 +241,24 @@
               hiveCount: Math.max(0, Number(a.hiveCount) || 0)
             };
           });
-          var mig = migrateApiaryNames(mapped);
-          if (mig.changed) {
+          var rest = restoreKayakoyA1(mapped);
+          var mig = migrateApiaryNames(rest.list);
+          var ens = ensureSeedApiariesPresent(mig.list);
+          var out = ens.list;
+          if (rest.changed || mig.changed || ens.changed) {
             try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(mig.list));
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
             } catch (eMig) { /* ignore */ }
           }
-          return mig.list;
+          if (ens.changed) {
+            try {
+              var rawH = localStorage.getItem(HIVES_KEY);
+              var hList = rawH ? JSON.parse(rawH) : [];
+              if (!Array.isArray(hList)) hList = [];
+              return reconcile(out, hList).apiaries;
+            } catch (eFleet) { /* ignore */ }
+          }
+          return out;
         }
       }
     } catch (e) { /* ignore */ }

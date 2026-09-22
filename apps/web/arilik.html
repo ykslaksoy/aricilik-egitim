@@ -173,7 +173,7 @@
     display: none; position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
     z-index: 500; padding: 5px 10px; border-radius: 999px;
     background: rgba(20,16,10,.72); color: #fff; font-size: 11px; font-weight: 700;
-    pointer-events: auto; white-space: nowrap;
+    pointer-events: none; white-space: nowrap;
   }
   .ymap-tap-hint.is-on { display: block; }
   .ymap-host.is-fullscreen {
@@ -1083,22 +1083,40 @@
         placeDetailMarker(Number(apiary.lat), Number(apiary.lon));
       }
       ctrl.map.events.add('click', function (e) {
-        if (detailMapFs && detailMapFs.shouldSuppressPick && detailMapFs.shouldSuppressPick()) return;
-        if (detailMapFs && !detailMapFs.isOpen()) {
-          detailMapFs.open();
-        }
         var c = e.get('coords');
-        if (pickMode) {
-          var z = ctrl.getZoom();
-          if (z < 14) ctrl.setView(c[0], c[1], Math.min(16, z + 2));
-          placeDetailMarker(c[0], c[1], pendingSearchName);
-          var saveBtn = document.getElementById('btnSaveLoc');
-          if (saveBtn) saveBtn.hidden = false;
-          return;
+        var la = c[0];
+        var lo = c[1];
+        var wasClosed = detailMapFs && detailMapFs.isOpen && !detailMapFs.isOpen();
+        if (wasClosed) detailMapFs.open();
+        /* Any tap places/moves pin, enters pick mode, shows Save — no menu-only zoom. */
+        if (!pickMode) startPickMode();
+        var z = ctrl.getZoom();
+        if (z < 14) ctrl.setView(la, lo, Math.min(16, z + 2));
+        placeDetailMarker(la, lo, pendingSearchName);
+        var saveBtn = document.getElementById('btnSaveLoc');
+        if (saveBtn) saveBtn.hidden = false;
+        if (Y && Y.reverseGeocode) {
+          Y.reverseGeocode(la, lo).then(function (geo) {
+            var nm = (geo && (geo.name || geo.label)) || '';
+            if (nm) pendingSearchName = nm;
+            placeDetailMarker(la, lo, nm || pendingSearchName);
+            var line = document.getElementById('pickCoords');
+            if (line) {
+              line.textContent =
+                (nm ? nm + ' · ' : '') +
+                Number(la).toFixed(4) + ', ' + Number(lo).toFixed(4) +
+                ' (sürükle · kaydet)';
+            }
+          });
         }
-        var z2 = ctrl.getZoom();
-        if (z2 < 15) ctrl.setView(c[0], c[1], Math.min(16, z2 + 2));
-        if (hasCoords(apiary)) openLocMenu();
+        if (wasClosed) {
+          setTimeout(function () {
+            if (ctrl.invalidateSize) ctrl.invalidateSize();
+          }, 100);
+          setTimeout(function () {
+            if (ctrl.invalidateSize) ctrl.invalidateSize();
+          }, 320);
+        }
       });
       setTimeout(function () { ctrl.invalidateSize(); }, 60);
       return ctrl;

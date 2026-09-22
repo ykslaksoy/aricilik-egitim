@@ -312,6 +312,43 @@
   }
 
   /**
+   * Reverse-geocode lat/lon → readable place name (Yandex).
+   * Resolves { lat, lon, name, label }. Never rejects — empty name on failure.
+   */
+  function reverseGeocode(lat, lon) {
+    var la = Number(lat);
+    var lo = Number(lon);
+    var empty = { lat: la, lon: lo, name: '', label: '' };
+    if (!isFinite(la) || !isFinite(lo)) return Promise.resolve(empty);
+    return loadYmaps()
+      .then(function (ymaps) {
+        return ymaps.geocode(coordsOf(la, lo), { results: 1 }).then(function (res) {
+          var obj = res && res.geoObjects && res.geoObjects.get(0);
+          if (!obj) return empty;
+          var line = '';
+          try { line = String(obj.getAddressLine() || '').trim(); } catch (e0) { line = ''; }
+          var name = '';
+          try {
+            var thorough = obj.getThoroughfare && obj.getThoroughfare();
+            var locs = obj.getLocalities && obj.getLocalities();
+            var admins = obj.getAdministrativeAreas && obj.getAdministrativeAreas();
+            name = String(
+              thorough ||
+              (locs && locs[0]) ||
+              (admins && admins[0]) ||
+              line ||
+              ''
+            ).trim();
+          } catch (e1) {
+            name = line;
+          }
+          return { lat: la, lon: lo, name: name || line, label: line || name };
+        });
+      })
+      .catch(function () { return empty; });
+  }
+
+  /**
    * Yandex suggest + geocode search. Falls back to empty on failure.
    * Returns Promise<[{name,label,lat,lon}]>
    */
@@ -759,7 +796,8 @@
     function openFs() {
       if (open) return;
       open = true;
-      suppressUntil = Date.now() + 350;
+      /* Short suppress only to ignore a duplicate synthetic click — do not block pin place. */
+      suppressUntil = Date.now() + 120;
       if (hostEl.parentNode !== root) {
         placeholder = document.createComment('ymap-fs-anchor');
         hostEl.parentNode.insertBefore(placeholder, hostEl);
@@ -770,6 +808,13 @@
       setHint(false);
       if (opts.onChange) opts.onChange(true);
       invalidate();
+      /* Extra pass after layout so pin/center survive fullscreen expand */
+      setTimeout(function () {
+        if (ctrl && ctrl.invalidateSize) ctrl.invalidateSize();
+      }, 120);
+      setTimeout(function () {
+        if (ctrl && ctrl.invalidateSize) ctrl.invalidateSize();
+      }, 400);
     }
 
     function closeFs() {
@@ -794,9 +839,9 @@
     }
     geri.addEventListener('click', onGeri);
 
+    /* Hint is visual-only (CSS pointer-events:none). If a click still arrives, open FS without blocking map pick. */
     hint.addEventListener('click', function (e) {
       e.preventDefault();
-      e.stopPropagation();
       openFs();
     });
 
@@ -829,7 +874,7 @@
       'display:none;position:absolute;left:50%;bottom:10px;transform:translateX(-50%);' +
       'z-index:500;padding:5px 10px;border-radius:999px;' +
       'background:rgba(20,16,10,.72);color:#fff;font-size:11px;font-weight:700;' +
-      'pointer-events:auto;white-space:nowrap;' +
+      'pointer-events:none;white-space:nowrap;' +
     '}' +
     '.ymap-tap-hint.is-on{display:block;}' +
     '.ymap-host.is-fullscreen{' +
@@ -886,6 +931,7 @@
     createPlacemark: createPlacemark,
     upsertPlacemark: upsertPlacemark,
     placemarkCoords: placemarkCoords,
+    reverseGeocode: reverseGeocode,
     searchPlaces: searchPlaces,
     externalUrls: externalUrls,
     openExternal: openExternal,
