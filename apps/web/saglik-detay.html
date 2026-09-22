@@ -34,6 +34,17 @@
     font-size: 13px; font-weight: 800; border: 1.5px solid var(--card-border);
     background: #fff; color: var(--text);
   }
+
+  .choice-grid { display: grid; gap: 10px; }
+  .choice-btn {
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+    padding: 14px 14px; border-radius: 14px; text-decoration: none;
+    border: 1.5px solid #e0c56a;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
+    color: var(--brown); font-family: inherit;
+  }
+  .choice-btn strong { font-size: 15px; font-weight: 800; color: var(--brown); }
+  .choice-btn span { font-size: 12px; font-weight: 650; color: var(--muted); }
   .mode-switch a.active {
     background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
     border-color: #e0c56a; color: var(--brown);
@@ -84,42 +95,68 @@
   var params = new URLSearchParams(location.search);
   var bandKey = params.get('band') || 'act';
   var hasMode = params.has('mode');
-  var mode = params.get('mode') === 'all' ? 'all' : 'apiary';
+  var mode = params.get('mode') === 'all' ? 'all' : (params.get('mode') === 'apiary' ? 'apiary' : null);
+  var apiaryId = params.get('apiary') || '';
   if (['ok', 'watch', 'check', 'act'].indexOf(bandKey) === -1) bandKey = 'act';
 
   var all = H.evaluateAll(D.loadHives ? D.loadHives() : []);
   var labels = { ok: 'Sağlıklı', watch: 'İzle', check: 'Kontrol', act: 'Müdahale' };
   var list = all.hives.filter(function (x) { return x.band.key === bandKey; });
-
-  document.getElementById('pageTitle').textContent = labels[bandKey] || 'Sağlık';
-  document.getElementById('backSaglik').href = 'saglik.html';
-
-  if (!hasMode) {
-    document.getElementById('pageSub').textContent = list.length + ' kovan · görünüm seçin';
-    document.getElementById('listHeading').textContent = 'Nasıl görmek istersiniz?';
-    document.getElementById('modeSwitch').innerHTML = '';
-    var q = 'band=' + encodeURIComponent(bandKey);
-    document.getElementById('detailBody').innerHTML =
-      '<div style="display:grid;gap:10px">' +
-        '<a class="row-item" href="saglik-detay.html?' + q + '&mode=all" style="text-decoration:none;color:inherit;display:block;padding:14px;border:1.5px solid #e0c56a;border-radius:14px;background:linear-gradient(180deg,#fff6df,#f4e3b0)">' +
-          '<div class="title" style="font-weight:800">Tüm kovanlar</div>' +
-          '<div class="meta">' + list.length + ' kovan tek listede</div></a>' +
-        '<a class="row-item" href="saglik-detay.html?' + q + '&mode=apiary" style="text-decoration:none;color:inherit;display:block;padding:14px;border:1.5px solid #e0c56a;border-radius:14px;background:linear-gradient(180deg,#fff6df,#f4e3b0)">' +
-          '<div class="title" style="font-weight:800">Arılık</div>' +
-          '<div class="meta">Arılıklara göre ayrılmış</div></a>' +
-      '</div>';
-    return;
-  }
-
-  document.getElementById('pageSub').textContent = list.length + ' kovan · ' + (mode === 'all' ? 'Tüm kovanlar' : 'Arılık');
-  document.getElementById('listHeading').textContent = mode === 'all' ? 'Tüm kovanlar' : 'Arılıklara göre';
-  document.getElementById('modeSwitch').innerHTML =
-    '<a class="' + (mode === 'all' ? 'active' : '') + '" href="saglik-detay.html?band=' + encodeURIComponent(bandKey) + '&mode=all">Tüm kovanlar</a>' +
-    '<a class="' + (mode === 'apiary' ? 'active' : '') + '" href="saglik-detay.html?band=' + encodeURIComponent(bandKey) + '&mode=apiary">Arılık</a>';
+  var groups = all.groupByApiary(list);
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
+  function choiceBtn(href, title, meta) {
+    return '<a class="choice-btn" href="' + href + '">' +
+      '<strong>' + esc(title) + '</strong>' +
+      '<span>' + esc(meta) + '</span></a>';
+  }
+
+  document.getElementById('pageTitle').textContent = labels[bandKey] || 'Sağlık';
+  document.getElementById('backSaglik').href = 'saglik.html';
+
+  var qBand = 'band=' + encodeURIComponent(bandKey);
+
+  /* Chooser: Tüm kovanlar + her arılık ayrı buton */
+  if (!hasMode) {
+    document.getElementById('pageSub').textContent = list.length + ' kovan · görünüm seçin';
+    document.getElementById('listHeading').textContent = 'Nasıl görmek istersiniz?';
+    document.getElementById('modeSwitch').innerHTML = '';
+    var html = '<div class="choice-grid">' +
+      choiceBtn('saglik-detay.html?' + qBand + '&mode=all', 'Tüm kovanlar', list.length + ' kovan tek listede');
+    groups.forEach(function (g) {
+      html += choiceBtn(
+        'saglik-detay.html?' + qBand + '&mode=apiary&apiary=' + encodeURIComponent(g.apiaryId),
+        g.apiaryName,
+        g.hives.length + ' kovan'
+      );
+    });
+    if (!groups.length) {
+      html += '<p class="meta">Bu durumda arılık yok.</p>';
+    }
+    html += '</div>';
+    document.getElementById('detailBody').innerHTML = html;
+    return;
+  }
+
+  /* Tek arılık filtresi */
+  if (mode === 'apiary' && apiaryId) {
+    list = list.filter(function (x) { return String(x.apiaryId || 'none') === String(apiaryId); });
+    groups = all.groupByApiary(list);
+  }
+
+  var apName = '';
+  if (mode === 'apiary' && apiaryId && groups[0]) apName = groups[0].apiaryName;
+  document.getElementById('pageSub').textContent = list.length + ' kovan · ' +
+    (mode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık'));
+  document.getElementById('listHeading').textContent =
+    mode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık');
+  document.getElementById('modeSwitch').innerHTML =
+    '<a class="' + (mode === 'all' ? 'active' : '') + '" href="saglik-detay.html?' + qBand + '&mode=all">Tüm kovanlar</a>' +
+    '<a class="' + (mode === 'apiary' ? 'active' : '') + '" href="saglik-detay.html?' + qBand + '">Arılıklar</a>';
+
 
   function hiveCard(x) {
     var pills = (x.actions || []).map(function (a) {
