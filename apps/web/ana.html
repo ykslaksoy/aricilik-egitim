@@ -2182,7 +2182,7 @@
     var buzzSource = null;       /* current looping BufferSource */
     var buzzGain = null;         /* gain for current source */
     var buzzFadeTimer = null;
-    var BUZZ_LEVEL = { italyan: 0.20, karniyol: 0.16, kafkas: 0.17, karniyol_kafkas: 0.16, kafkas_karniyol: 0.17 };
+    var BUZZ_LEVEL = { italyan: 0.32, karniyol: 0.28, kafkas: 0.30, karniyol_kafkas: 0.28, kafkas_karniyol: 0.30 };
     var BUZZ_XFADE_MS = 180;
 
     function readSoundOn() {
@@ -2203,6 +2203,10 @@
       return buzzKeys[((i % buzzKeys.length) + buzzKeys.length) % buzzKeys.length];
     }
 
+    var buzzRawCache = null;   /* { key: ArrayBuffer } — fetch before AudioContext */
+    var buzzRawPromise = null;
+    var audioUnlocked = false; /* true after a real user gesture unlock */
+
     function ensureBuzzCtx() {
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
@@ -2211,27 +2215,94 @@
         buzzMaster = buzzCtx.createGain();
         buzzMaster.gain.value = 1;
         buzzMaster.connect(buzzCtx.destination);
-      }
-      if (buzzCtx.state === 'suspended') {
-        try { buzzCtx.resume(); } catch (e) { /* ignore */ }
+        try {
+          buzzCtx.addEventListener('statechange', function () {
+            if (buzzCtx && buzzCtx.state === 'running' && buzzWanted && soundEnabled) {
+              if (!(buzzActiveKey && buzzSource)) setBuzz(true);
+            }
+          });
+        } catch (e) { /* ignore */ }
       }
       return buzzCtx;
     }
 
+    function primeBuzzCtxInGesture() {
+      /* iOS/Chrome: create + silent tick MUST run inside the gesture or audio stays dead */
+      var ctx = ensureBuzzCtx();
+      if (!ctx) return null;
+      try {
+        var silent = ctx.createBuffer(1, 1, 22050);
+        var tick = ctx.createBufferSource();
+        tick.buffer = silent;
+        tick.connect(ctx.destination);
+        tick.start(0);
+      } catch (e) { /* ignore */ }
+      try { if (ctx.state === 'suspended') ctx.resume(); } catch (e2) { /* ignore */ }
+      return ctx;
+    }
+
+    function fetchBuzzRaws() {
+      if (buzzRawCache) return Promise.resolve(buzzRawCache);
+      if (buzzRawPromise) return buzzRawPromise;
+      var jobs = buzzKeys.map(function (key) {
+        return fetch('assets/bees/' + key + '-buzz.wav')
+          .then(function (r) {
+            if (!r.ok) throw new Error('buzz http ' + r.status);
+            return r.arrayBuffer();
+          })
+          .then(function (ab) { return { key: key, ab: ab }; })
+          .catch(function () { return { key: key, ab: null }; });
+      });
+      buzzRawPromise = Promise.all(jobs).then(function (rows) {
+        var cache = {};
+        var ok = 0;
+        rows.forEach(function (row) {
+          if (row.ab) { cache[row.key] = row.ab; ok += 1; }
+        });
+        if (!ok) {
+          buzzRawPromise = null;
+          return null;
+        }
+        buzzRawCache = cache;
+        return buzzRawCache;
+      }).catch(function () {
+        buzzRawPromise = null;
+        return null;
+      });
+      return buzzRawPromise;
+    }
+
     function loadBuzzBuffers() {
       if (buzzBuffers) return Promise.resolve(buzzBuffers);
+      var ctx = buzzCtx || (audioUnlocked ? ensureBuzzCtx() : null);
+      if (!ctx) {
+        /* Prefetch bytes without creating AudioContext (avoids poisoned suspended ctx) */
+        return fetchBuzzRaws().then(function () { return null; });
+      }
       if (buzzLoadPromise) return buzzLoadPromise;
-      var ctx = ensureBuzzCtx();
-      if (!ctx) return Promise.resolve(null);
-      buzzLoadPromise = Promise.all(buzzKeys.map(function (key) {
-        return fetch('assets/bees/' + key + '-buzz.wav')
-          .then(function (r) { return r.arrayBuffer(); })
-          .then(function (ab) { return ctx.decodeAudioData(ab.slice(0)); })
-          .then(function (buf) { return { key: key, buf: buf }; });
-      })).then(function (rows) {
-        buzzBuffers = {};
-        rows.forEach(function (row) { buzzBuffers[row.key] = row.buf; });
-        return buzzBuffers;
+      buzzLoadPromise = fetchBuzzRaws().then(function (raws) {
+        if (!raws) return null;
+        var keys = Object.keys(raws);
+        return Promise.all(keys.map(function (key) {
+          var ab = raws[key];
+          var copy = ab.slice(0);
+          return ctx.decodeAudioData(copy).then(
+            function (buf) { return { key: key, buf: buf }; },
+            function () { return { key: key, buf: null }; }
+          );
+        })).then(function (rows) {
+          var map = {};
+          var ok = 0;
+          rows.forEach(function (row) {
+            if (row.buf) { map[row.key] = row.buf; ok += 1; }
+          });
+          if (!ok) {
+            buzzLoadPromise = null;
+            return null;
+          }
+          buzzBuffers = map;
+          return buzzBuffers;
+        });
       }).catch(function () {
         buzzLoadPromise = null;
         return null;
@@ -2274,14 +2345,14 @@
 
     function startBuzzSource(key) {
       if (!buzzCtx || !buzzBuffers || !buzzBuffers[key] || !buzzMaster) return;
-      var level = BUZZ_LEVEL[key] != null ? BUZZ_LEVEL[key] : 0.18;
+      if (buzzCtx.state !== 'running') return;
+      var level = BUZZ_LEVEL[key] != null ? BUZZ_LEVEL[key] : 0.28;
       var g = buzzCtx.createGain();
       g.gain.value = 0.0001;
       g.connect(buzzMaster);
       var src = buzzCtx.createBufferSource();
       src.buffer = buzzBuffers[key];
       src.loop = true;
-      /* BufferSource.loop is sample-accurate — no HTMLAudio seam restart gaps */
       src.connect(g);
       try { src.start(0); } catch (e) { return; }
       var now = buzzCtx.currentTime;
@@ -2294,7 +2365,7 @@
 
     function crossfadeBuzzTo(key) {
       if (!buzzCtx || !buzzBuffers || !buzzBuffers[key]) return;
-      if (buzzActiveKey === key && buzzSource) return; /* already continuous */
+      if (buzzActiveKey === key && buzzSource && buzzCtx.state === 'running') return;
       var oldSrc = buzzSource;
       var oldGain = buzzGain;
       clearBuzzFade();
@@ -2318,8 +2389,12 @@
     }
 
     function ensureBuzzPlayers() {
-      ensureBuzzCtx();
-      loadBuzzBuffers();
+      if (audioUnlocked) {
+        ensureBuzzCtx();
+        loadBuzzBuffers();
+      } else {
+        fetchBuzzRaws();
+      }
       return buzzBuffers;
     }
 
@@ -2328,6 +2403,7 @@
     }
 
     function resumeBuzzCtx() {
+      if (!audioUnlocked) return Promise.resolve(null);
       var ctx = ensureBuzzCtx();
       if (!ctx) return Promise.resolve(null);
       if (ctx.state === 'suspended') {
@@ -2342,14 +2418,16 @@
 
     function setBuzz(on) {
       buzzWanted = !!on;
-      ensureBuzzCtx();
-      loadBuzzBuffers();
       if (!soundEnabled || !on) {
         stopBuzzSource(false);
         return;
       }
+      if (!audioUnlocked) {
+        /* Wait for unlockAudioOnce — do not create AudioContext early */
+        fetchBuzzRaws();
+        return;
+      }
       var key = breedKeyFromIdx(beeIdx);
-      /* Idempotent: keep the same looping BufferSource across flyTo hops */
       if (buzzActiveKey === key && buzzSource && buzzCtx && buzzCtx.state === 'running') {
         return;
       }
@@ -2358,17 +2436,14 @@
         var bufs = pair[0];
         if (!bufs) return;
         var ctx = pair[1];
-        if (ctx && ctx.state === 'suspended') {
-          /* Still locked — wait for first user gesture (armFirstGestureUnlock) */
-          return;
-        }
+        if (!ctx || ctx.state !== 'running') return;
         var k = breedKeyFromIdx(beeIdx);
         if (buzzActiveKey === k && buzzSource) return;
         crossfadeBuzzTo(k);
       });
     }
 
-    function syncSoundUi() {
+        function syncSoundUi() {
       if (!beeSoundToggle) return;
       beeSoundToggle.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
       beeSoundToggle.setAttribute(
@@ -2855,15 +2930,14 @@
 
     var audioGestureDone = false;
     function unlockAudioOnce() {
-      /* Browser autoplay: AudioContext stays suspended until a user gesture */
+      /* Must run synchronously in a user gesture: create ctx + silent tick, then resume */
       audioGestureDone = true;
-      ensureBuzzCtx();
+      audioUnlocked = true;
+      primeBuzzCtxInGesture();
       return Promise.all([loadBuzzBuffers(), resumeBuzzCtx()]).then(function () {
         if (!soundEnabled) return;
-        /* Restart source after resume — start-while-suspended stays silent on iOS/Chrome */
         stopBuzzSource(true);
-        if (buzzWanted || (beesEnabled && cycleActive)) setBuzz(true);
-        else if (beesEnabled) setBuzz(true);
+        if (buzzWanted || beesEnabled) setBuzz(true);
       });
     }
 
@@ -2880,6 +2954,22 @@
       document.addEventListener('keydown', once, true);
     }
 
+    function armBuzzKeepAlive() {
+      /* Tab hide/show and phone sleep suspend AudioContext — restart buzz when back */
+      var kick = function () {
+        if (!audioUnlocked || !soundEnabled || !buzzWanted) return;
+        resumeBuzzCtx().then(function (ctx) {
+          if (!ctx || ctx.state !== 'running') return;
+          if (!(buzzActiveKey && buzzSource)) setBuzz(true);
+        });
+      };
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') kick();
+      });
+      window.addEventListener('pageshow', kick);
+      window.addEventListener('focus', kick);
+    }
+
     if (beeToggle) {
       beeToggle.addEventListener('click', function () {
         unlockAudioOnce();
@@ -2889,8 +2979,8 @@
     if (beeSoundToggle) {
       beeSoundToggle.addEventListener('click', function () {
         var ctxSuspended = buzzCtx && buzzCtx.state === 'suspended';
-        var needsUnlock = !audioGestureDone || ctxSuspended;
-        /* First tap while "Ses" is on: unlock + keep ON (do not mute) */
+        var needsUnlock = !audioGestureDone || !audioUnlocked || ctxSuspended;
+        /* First tap while sound prefers ON: unlock + keep ON (do not mute) */
         if (needsUnlock && soundEnabled) {
           unlockAudioOnce();
           return;
@@ -2902,9 +2992,10 @@
     syncToggleUi();
     syncSoundUi();
     armFirstGestureUnlock();
-    /* Prefetch buzz buffers early so first fly is not silent waiting on decode */
+    armBuzzKeepAlive();
+    /* Prefetch WAV bytes only — never create AudioContext before a gesture */
     if (soundEnabled) {
-      try { ensureBuzzCtx(); loadBuzzBuffers(); } catch (e) { /* ignore */ }
+      try { fetchBuzzRaws(); } catch (e) { /* ignore */ }
     }
 
     function boot() {
