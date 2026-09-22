@@ -35,18 +35,19 @@
     width: var(--phone-w); height: var(--phone-h);
     background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
     box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
   }
   .phone-notch {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
     width: 118px; height: 28px; background: #111; border-radius: 18px; z-index: 50;
   }
-  .status-bar {
+  .status-bar { flex-shrink: 0;
     height: 48px; padding: 16px 22px 0; display: flex; justify-content: space-between;
     align-items: center; font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa;
   }
   .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; }
   .screen {
-    height: calc(var(--phone-h) - 48px - 72px);
+    flex: 1 1 auto; min-height: 0; height: auto;
     overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; background: var(--bg);
     padding: 0 14px 16px; position: relative;
@@ -385,7 +386,22 @@
   }
   .missing h2 { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
   .missing p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+  .btn-delete-apiary {
+    display: block; width: 100%; margin: 8px 0 4px;
+    padding: 12px 14px; border-radius: 12px;
+    border: 1px solid #e8c4bc; background: #fdf3f0;
+    color: #8a3b2a; font-size: 14px; font-weight: 750;
+    font-family: inherit; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-delete-apiary:active { transform: scale(.99); background: #f8e6e0; }
+  .delete-hint {
+    margin: 0 2px 18px; font-size: 11px; font-weight: 600;
+    color: var(--muted); line-height: 1.35;
+  }
   .tabbar {
+    flex-shrink: 0;
     height: 72px; background: #fff; border-top: 1px solid #e6e8ec;
     display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
     padding: 0 4px 10px;
@@ -405,7 +421,7 @@
     body { padding: 0; background: #f7f8fa; }
     .phone { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
     .phone-notch, .home-indicator { display: none; }
-    .screen { height: calc(100dvh - 48px - 72px); }
+    .screen { flex: 1 1 auto; min-height: 0; height: auto; }
   }
 </style>
 </head>
@@ -1296,6 +1312,8 @@
         '</a>' +
       '</div>' +
       moveLogHtml(apiary) +
+      '<button type="button" class="btn-delete-apiary" id="btnDeleteApiary">Arılığı sil</button>' +
+      '<p class="delete-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır.</p>' +
       '<h2 class="section-title" id="kovanlar">Kovanlar (' + hiveN + ')</h2>' +
       (hiveRows
         ? '<div class="hive-list">' + hiveRows + '</div>'
@@ -1315,6 +1333,24 @@
     var btnKonum = document.getElementById('btnKonumMenu');
 
     if (btnMove) btnMove.addEventListener('click', openMoveSheet);
+    var btnDelete = document.getElementById('btnDeleteApiary');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', function () {
+        var label = (apiary.place && apiary.place !== '—')
+          ? (apiary.place + ' · ' + apiary.name)
+          : (apiary.name || 'Arılık');
+        var ok = window.confirm(
+          'Arılık ve kovanlar silinsin. Masraflar Giderler’de kalır.\n\n«' + label + '»'
+        );
+        if (!ok) return;
+        if (!D || typeof D.removeApiary !== 'function') {
+          alert('Silme desteklenmiyor. Sayfayı yenileyip tekrar deneyin.');
+          return;
+        }
+        D.removeApiary(apiary.id);
+        window.location.href = 'ariliklar.html';
+      });
+    }
     if (btnKonum) btnKonum.addEventListener('click', openLocMenu);
     if (coordsBtn && coordsBtn.tagName === 'BUTTON') {
       coordsBtn.addEventListener('click', openLocMenu);

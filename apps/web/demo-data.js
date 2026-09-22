@@ -8,6 +8,7 @@
 (function (global) {
   var STORAGE_KEY = 'superari.ariliklar.v1';
   var HIVES_KEY = 'superari.kovanlar.v1';
+  var DELETED_SEEDS_KEY = 'superari.ariliklar.deletedSeeds.v1';
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
@@ -204,15 +205,43 @@
   }
 
   /** Append missing seed apiaries by id (a4/a5 …) without wiping user rows. */
+  function readDeletedSeedIds() {
+    try {
+      var raw = localStorage.getItem(DELETED_SEEDS_KEY);
+      if (!raw) return {};
+      var arr = JSON.parse(raw);
+      var map = {};
+      if (Array.isArray(arr)) {
+        arr.forEach(function (id) { if (id) map[String(id)] = true; });
+      }
+      return map;
+    } catch (e) { return {}; }
+  }
+
+  function markSeedDeleted(id) {
+    var key = String(id || '');
+    if (!key) return;
+    var isSeed = SEED_APIARIES.some(function (s) { return s.id === key; });
+    if (!isSeed) return;
+    var map = readDeletedSeedIds();
+    if (map[key]) return;
+    map[key] = true;
+    try {
+      localStorage.setItem(DELETED_SEEDS_KEY, JSON.stringify(Object.keys(map)));
+    } catch (e) { /* ignore */ }
+  }
+
   function ensureSeedApiariesPresent(list) {
     var changed = false;
     var byId = {};
+    var deleted = readDeletedSeedIds();
     (list || []).forEach(function (a) {
       if (a && a.id) byId[String(a.id)] = true;
     });
     var out = (list || []).slice();
     SEED_APIARIES.forEach(function (seed) {
       if (byId[seed.id]) return;
+      if (deleted[seed.id]) return; /* user deleted this seed — do not resurrect */
       changed = true;
       out.push({
         id: seed.id,
@@ -557,6 +586,31 @@
     return apiaryById(key);
   }
 
+  /**
+   * Remove apiary + its hives from localStorage.
+   * Expenses (masraflar) are left untouched in Giderler (keep apiaryId/apiaryName).
+   */
+  function removeApiary(id) {
+    var key = String(id || '');
+    if (!key) return false;
+    loadHives();
+    var list = loadApiaries().filter(function (a) {
+      return a && String(a.id) !== key;
+    });
+    var before = loadApiaries().length;
+    if (list.length === before) {
+      /* Still try hive cleanup / seed mark if id unknown in list */
+    }
+    markSeedDeleted(key);
+    var hives = loadHives().filter(function (h) {
+      return h && String(h.apiaryId) !== key;
+    });
+    /* Avoid reconcile resurrecting hives for a removed apiary: save filtered lists directly. */
+    saveApiaries(list);
+    saveHives(hives);
+    return true;
+  }
+
   function hiveById(id) {
     var n = Number(id);
     var list = loadHives();
@@ -693,6 +747,7 @@
       saveHives: saveHives,
       addApiary: addApiary,
       updateApiary: updateApiary,
+      removeApiary: removeApiary,
       yandexMapsUrl: yandexMapsUrl,
       yandexSearchUrl: yandexSearchUrl,
       geocodeSearch: geocodeSearch,
