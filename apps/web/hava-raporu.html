@@ -307,7 +307,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=avg1"></script>
+<script src="hava-kayit.js?v=avg3"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -577,26 +577,33 @@
     function cell(k, v) {
       return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
     }
-    var rainH = 0;
-    var rainHN = 0;
+    /* Gün başına tek yağış saati (çoklu arılıkta çift sayma yok) */
+    var byDateRh = {};
     var list = records || [];
     for (var i = 0; i < list.length; i++) {
-      if (list[i] && list[i].rainHours != null && isFinite(Number(list[i].rainHours))) {
-        rainH += Number(list[i].rainHours);
-        rainHN++;
-      }
+      var rec = list[i];
+      if (!rec || rec.date == null) continue;
+      if (rec.rainHours == null || !isFinite(Number(rec.rainHours))) continue;
+      var rh = Number(rec.rainHours);
+      if (byDateRh[rec.date] == null || rh > byDateRh[rec.date]) byDateRh[rec.date] = rh;
     }
+    var rainH = 0;
+    var rainDates = Object.keys(byDateRh);
+    for (var d = 0; d < rainDates.length; d++) rainH += byDateRh[rainDates[d]];
     var rainHLab =
-      rainHN > 0
-        ? (typeof H.formatRainHours === 'function' ? H.formatRainHours(rainH) : rainH + ' saat')
+      rainDates.length > 0
+        ? (typeof H.formatRainHours === 'function' ? H.formatRainHours(rainH) : Math.round(rainH) + ' saat')
         : '—';
+    function deg(v) {
+      return v != null && isFinite(Number(v)) ? Number(v) + '°' : '—';
+    }
     statsEl.innerHTML =
-      cell(
-        'Ort. sıcaklık',
-        summary.avgTemp != null ? summary.avgTemp + '°' : '—'
-      ) +
-      cell('En düşük / yüksek', (summary.minTemp != null ? summary.minTemp + '°' : '—') + ' / ' + (summary.maxTemp != null ? summary.maxTemp + '°' : '—')) +
-      cell('Yağışlı gün', String(summary.rainyDays) + (rainHN ? ' · Σ~' + rainHLab : '')) +
+      cell('Ort. sıcaklık', deg(summary.avgTemp)) +
+      cell('Gece ortalama', deg(summary.avgNightTemp)) +
+      cell('Gündüz ortalama', deg(summary.avgDayTemp)) +
+      cell('En düşük / yüksek', deg(summary.minTemp) + ' / ' + deg(summary.maxTemp)) +
+      cell('Yağışlı gün', String(summary.rainyDays != null ? summary.rainyDays : 0)) +
+      cell('Yağışlı saat', rainHLab) +
       cell('Kayıt sayısı', String(summary.count));
   }
 

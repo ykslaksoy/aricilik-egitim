@@ -1212,8 +1212,10 @@
         var mi = byDate[key];
         if (mi == null) continue;
         var tempsEl = days[i].querySelector('.day-temps');
-        var hi = roundC(daily.temperature_2m_max && daily.temperature_2m_max[mi]);
-        var lo = roundC(daily.temperature_2m_min && daily.temperature_2m_min[mi]);
+        var hi = (daily.temperature_2m_max && daily.temperature_2m_max[mi] != null && daily.temperature_2m_max[mi] !== '')
+          ? roundC(daily.temperature_2m_max[mi]) : null;
+        var lo = (daily.temperature_2m_min && daily.temperature_2m_min[mi] != null && daily.temperature_2m_min[mi] !== '')
+          ? roundC(daily.temperature_2m_min[mi]) : null;
         if (tempsEl && hi != null && lo != null) {
           tempsEl.innerHTML = hi + '°<span class="lo">/' + lo + '°</span>';
         } else if (tempsEl && hi != null) {

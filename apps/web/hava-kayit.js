@@ -28,6 +28,13 @@
     return isFinite(n) ? n : null;
   }
 
+  /** Read daily °C at index — 0 and negatives are valid (do not use && on the number). */
+  function readDailyC(arr, idx) {
+    if (!arr || idx == null || idx < 0 || idx >= arr.length) return null;
+    if (arr[idx] == null || arr[idx] === '') return null;
+    return roundC(arr[idx]);
+  }
+
   function conditionFromCode(code, precipMm) {
     var c = Number(code) || 0;
     var p = Number(precipMm) || 0;
@@ -501,8 +508,8 @@
     var idx = daily.time.indexOf(today);
     if (idx < 0) idx = 0;
     return {
-      high: roundC(daily.temperature_2m_max && daily.temperature_2m_max[idx]),
-      low: roundC(daily.temperature_2m_min && daily.temperature_2m_min[idx]),
+      high: readDailyC(daily.temperature_2m_max, idx),
+      low: readDailyC(daily.temperature_2m_min, idx),
       precipMm:
         daily.precipitation_sum && daily.precipitation_sum[idx] != null
           ? Math.round(Number(daily.precipitation_sum[idx]) * 10) / 10
@@ -820,8 +827,8 @@
     if (!daily || !daily.time || idx < 0 || idx >= daily.time.length) return null;
     var date = daily.time[idx];
     if (!date) return null;
-    var high = roundC(daily.temperature_2m_max && daily.temperature_2m_max[idx]);
-    var low = roundC(daily.temperature_2m_min && daily.temperature_2m_min[idx]);
+    var high = readDailyC(daily.temperature_2m_max, idx);
+    var low = readDailyC(daily.temperature_2m_min, idx);
     var precip =
       daily.precipitation_sum && daily.precipitation_sum[idx] != null
         ? Math.round(Number(daily.precipitation_sum[idx]) * 10) / 10
@@ -1273,10 +1280,10 @@
         daySum += Number(r.dayAvgTemp);
         dayN++;
       }
-      var lo = r.low != null ? r.low : t;
-      var hi = r.high != null ? r.high : t;
-      if (lo != null && (minT == null || lo < minT)) minT = lo;
-      if (hi != null && (maxT == null || hi > maxT)) maxT = hi;
+      var lo = r.low != null && r.low !== '' ? Number(r.low) : t;
+      var hi = r.high != null && r.high !== '' ? Number(r.high) : t;
+      if (lo != null && isFinite(lo) && (minT == null || lo < minT)) minT = lo;
+      if (hi != null && isFinite(hi) && (maxT == null || hi > maxT)) maxT = hi;
       if (r.condition === 'yagmur' || r.condition === 'kar' || (r.precipMm || 0) >= 1) {
         rainyDates[r.date] = true;
       }
@@ -1334,8 +1341,8 @@
     for (var i = 0; i < daily.time.length; i++) {
       var date = daily.time[i];
       if (date < today) continue;
-      var hi = roundC(daily.temperature_2m_max && daily.temperature_2m_max[i]);
-      var lo = roundC(daily.temperature_2m_min && daily.temperature_2m_min[i]);
+      var hi = readDailyC(daily.temperature_2m_max, i);
+      var lo = readDailyC(daily.temperature_2m_min, i);
       var precip =
         daily.precipitation_sum && daily.precipitation_sum[i] != null
           ? Number(daily.precipitation_sum[i])
