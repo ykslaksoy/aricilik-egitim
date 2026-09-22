@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Bal / verim</title>
 <link rel="stylesheet" href="rapor-common.css" />
-
 </head>
 <body>
 <div class="phone" id="phone">
@@ -19,28 +18,65 @@
     <div class="page-head">
       <div>
         <h1>Bal / verim</h1>
-        <p id="pageSub">Hasat özeti</p>
+        <p id="pageSub">Hasat özeti ve kayıt</p>
       </div>
       <div class="nav-chips">
         <a class="back-chip" href="raporlar.html">← Raporlar</a>
         <a class="back-chip" href="ana.html">Ana</a>
       </div>
     </div>
+
+    <div class="view-tabs" role="tablist" aria-label="Görünüm">
+      <button type="button" class="active" id="tabToplam" data-view="toplam">Toplam</button>
+      <button type="button" id="tabArilik" data-view="arilik">Arılık</button>
+    </div>
+
     <div class="filters">
       <label>Sezon
         <select id="seasonSel"></select>
       </label>
+      <label id="apiaryFilterWrap" hidden>Arılık
+        <select id="apiaryFilter"></select>
+      </label>
     </div>
+
     <div class="stats" id="stats"></div>
-    <section class="card-block">
+
+    <section class="card-block" id="byApiaryBlock">
       <h2>Arılık bazlı hasat</h2>
       <div id="apiaryList"></div>
     </section>
+
     <section class="card-block">
-      <h2>Hasat kayıtları</h2>
+      <h2>Hasat kaydı ekle</h2>
+      <form class="form-grid" id="harvestForm">
+        <label>Arılık
+          <select id="fApiary" required></select>
+        </label>
+        <label>Tarih
+          <input type="date" id="fDate" required />
+        </label>
+        <div class="pair">
+          <label>Bal (kg)
+            <input type="number" id="fKg" min="0.1" step="0.1" inputmode="decimal" required placeholder="ör. 120" />
+          </label>
+          <label>Çerçeve
+            <input type="number" id="fFrames" min="0" step="1" inputmode="numeric" placeholder="ör. 24" />
+          </label>
+        </div>
+        <label>Not
+          <input type="text" id="fNote" maxlength="120" placeholder="Ana hasat, ikinci sıyırma…" />
+        </label>
+        <button type="submit" class="btn">Kaydet</button>
+        <p class="form-msg" id="formMsg" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card-block">
+      <h2 id="listTitle">Hasat kayıtları</h2>
       <div id="harvestList"></div>
     </section>
-    <p class="hint">Veriler demo hasat kayıtlarından üretilir (localStorage). Canlı tartı / hasat entegrasyonu bağlandığında aynı ekran güncellenir.</p>
+    <p class="hint">Kayıtlar bu cihazda saklanır. Toplam tüm arılıkları, Arılık görünümü seçili arılığı gösterir.</p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html">
@@ -71,43 +107,175 @@
 <script>
 (function () {
   var R = window.SuperAriRapor;
+  var D = window.SuperAriDemo;
   if (!R) return;
+
+  var view = 'toplam';
   var sel = document.getElementById('seasonSel');
+  var apiaryFilter = document.getElementById('apiaryFilter');
+  var apiaryFilterWrap = document.getElementById('apiaryFilterWrap');
+  var fApiary = document.getElementById('fApiary');
   var cur = R.currentSeasonYear();
+  var apiaries = (D && typeof D.loadApiaries === 'function') ? D.loadApiaries() : [];
+
   [cur, cur - 1].forEach(function (y) {
     var o = document.createElement('option');
     o.value = y; o.textContent = y + ' bal sezonu';
     if (y === cur) o.selected = true;
     sel.appendChild(o);
   });
+
+  function fillApiarySelects() {
+    var opts = apiaries.map(function (a) {
+      return { id: a.id, name: a.name || a.place || a.id };
+    });
+    if (!opts.length) {
+      opts = [
+        { id: 'a1', name: 'Kayaköy Ana Arılık' },
+        { id: 'a2', name: 'Tortum Yayla Arılığı' }
+      ];
+    }
+    function fill(el, withAll) {
+      el.innerHTML = '';
+      if (withAll) {
+        var all = document.createElement('option');
+        all.value = ''; all.textContent = 'Tüm arılıklar';
+        el.appendChild(all);
+      }
+      opts.forEach(function (a) {
+        var o = document.createElement('option');
+        o.value = a.id; o.textContent = a.name;
+        el.appendChild(o);
+      });
+    }
+    fill(apiaryFilter, false);
+    fill(fApiary, false);
+    if (opts[0]) {
+      apiaryFilter.value = opts[0].id;
+      fApiary.value = opts[0].id;
+    }
+  }
+  fillApiarySelects();
+
+  var today = new Date();
+  var iso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  document.getElementById('fDate').value = iso;
+
+  function selectedApiaryId() {
+    if (view !== 'arilik') return '';
+    return apiaryFilter.value || '';
+  }
+
+  function setView(v) {
+    view = v;
+    document.getElementById('tabToplam').classList.toggle('active', v === 'toplam');
+    document.getElementById('tabArilik').classList.toggle('active', v === 'arilik');
+    apiaryFilterWrap.hidden = v !== 'arilik';
+    document.getElementById('byApiaryBlock').hidden = v === 'arilik';
+    render();
+  }
+
+  document.getElementById('tabToplam').addEventListener('click', function () { setView('toplam'); });
+  document.getElementById('tabArilik').addEventListener('click', function () { setView('arilik'); });
+  sel.addEventListener('change', render);
+  apiaryFilter.addEventListener('change', function () {
+    fApiary.value = apiaryFilter.value;
+    render();
+  });
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function render() {
     var y = Number(sel.value) || cur;
-    var s = R.harvestSummary(y);
-    var D = window.SuperAriDemo;
-    var hiveCount = D && D.hives ? D.hives.length : 0;
+    var aid = selectedApiaryId();
+    var s = R.harvestSummary(y, aid || null);
+    var hiveCount = 0;
+    if (D && D.hives) {
+      hiveCount = aid
+        ? D.hives.filter(function (h) { return String(h.apiaryId) === String(aid); }).length
+        : D.hives.length;
+    }
     var perHive = hiveCount ? (s.totalKg / hiveCount) : 0;
+    var scopeLabel = aid
+      ? (apiaryFilter.options[apiaryFilter.selectedIndex] || {}).textContent || 'Arılık'
+      : 'Tüm arılıklar';
+    document.getElementById('pageSub').textContent = scopeLabel + ' · ' + y;
+    document.getElementById('listTitle').textContent = aid ? 'Arılık kayıtları' : 'Hasat kayıtları';
     document.getElementById('stats').innerHTML =
       '<div class="stat"><div class="k">Toplam bal</div><div class="v">' + R.fmtKg(s.totalKg) + '</div></div>' +
       '<div class="stat"><div class="k">Çerçeve</div><div class="v">' + s.totalFrames + '</div></div>' +
       '<div class="stat"><div class="k">Hasat kaydı</div><div class="v">' + s.rows.length + '</div></div>' +
       '<div class="stat"><div class="k">Ort. / kovan</div><div class="v">' + R.fmtKg(perHive) + '</div></div>';
-    var maxKg = Math.max.apply(null, s.byApiary.map(function (a) { return a.honeyKg; }).concat([1]));
-    document.getElementById('apiaryList').innerHTML = s.byApiary.map(function (a) {
-      var pct = Math.round((a.honeyKg / maxKg) * 100);
-      return '<div class="row-item"><div class="left"><div class="title">' + a.apiaryName + '</div>' +
-        '<div class="meta">' + a.count + ' kayıt · ' + a.frames + ' çerçeve</div>' +
-        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>' +
-        '<div class="right">' + R.fmtKg(a.honeyKg) + '</div></div>';
-    }).join('') || '<p class="meta">Bu sezon hasat yok.</p>';
+
+    if (view === 'toplam') {
+      var maxKg = Math.max.apply(null, s.byApiary.map(function (a) { return a.honeyKg; }).concat([1]));
+      document.getElementById('apiaryList').innerHTML = s.byApiary.map(function (a) {
+        var pct = Math.round((a.honeyKg / maxKg) * 100);
+        return '<button type="button" class="row-item" data-jump="' + escapeHtml(a.apiaryId) + '" style="width:100%;text-align:left;border:0;background:transparent;font:inherit;cursor:pointer;display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #f0f1f3">' +
+          '<div class="left"><div class="title">' + escapeHtml(a.apiaryName) + '</div>' +
+          '<div class="meta">' + a.count + ' kayıt · ' + a.frames + ' çerçeve</div>' +
+          '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>' +
+          '<div class="right">' + R.fmtKg(a.honeyKg) + '</div></button>';
+      }).join('') || '<p class="meta">Bu sezon hasat yok.</p>';
+      document.getElementById('apiaryList').querySelectorAll('[data-jump]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          apiaryFilter.value = btn.getAttribute('data-jump');
+          fApiary.value = apiaryFilter.value;
+          setView('arilik');
+        });
+      });
+    }
+
     document.getElementById('harvestList').innerHTML = s.rows.slice().sort(function (a, b) {
       return String(b.date).localeCompare(String(a.date));
     }).map(function (h) {
-      return '<div class="row-item"><div class="left"><div class="title">' + h.apiaryName + '</div>' +
-        '<div class="meta">' + h.date + (h.note ? ' · ' + h.note : '') + '</div></div>' +
-        '<div class="right">' + R.fmtKg(h.honeyKg) + '</div></div>';
-    }).join('') || '<p class="meta">Kayıt yok.</p>';
+      return '<div class="row-item"><div class="left"><div class="title">' + escapeHtml(h.apiaryName) + '</div>' +
+        '<div class="meta">' + escapeHtml(h.date) + (h.note ? ' · ' + escapeHtml(h.note) : '') +
+        (h.frames ? ' · ' + h.frames + ' çerçeve' : '') + '</div></div>' +
+        '<div class="right">' + R.fmtKg(h.honeyKg) + '</div>' +
+        '<button type="button" class="del" data-del="' + escapeHtml(h.id) + '" aria-label="Sil">Sil</button></div>';
+    }).join('') || '<p class="meta">Kayıt yok. Aşağıdan ekleyin.</p>';
+
+    document.getElementById('harvestList').querySelectorAll('[data-del]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('Bu hasat kaydı silinsin mi?')) return;
+        R.removeHarvest(btn.getAttribute('data-del'));
+        render();
+      });
+    });
   }
-  sel.addEventListener('change', render);
+
+  document.getElementById('harvestForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('formMsg');
+    msg.className = 'form-msg';
+    msg.textContent = '';
+    var opt = fApiary.options[fApiary.selectedIndex];
+    try {
+      R.addHarvest({
+        apiaryId: fApiary.value,
+        apiaryName: opt ? opt.textContent : fApiary.value,
+        date: document.getElementById('fDate').value,
+        honeyKg: document.getElementById('fKg').value,
+        frames: document.getElementById('fFrames').value,
+        note: document.getElementById('fNote').value
+      });
+      document.getElementById('fKg').value = '';
+      document.getElementById('fFrames').value = '';
+      document.getElementById('fNote').value = '';
+      msg.textContent = 'Hasat kaydı eklendi.';
+      if (view === 'arilik') apiaryFilter.value = fApiary.value;
+      render();
+    } catch (err) {
+      msg.className = 'form-msg err';
+      msg.textContent = (err && err.message) || 'Kayıt eklenemedi.';
+    }
+  });
+
   render();
 })();
 </script>

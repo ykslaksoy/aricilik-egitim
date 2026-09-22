@@ -136,6 +136,33 @@
     return readJson(TASK_HIST_KEY) || SEED_TASK_HIST.slice();
   }
 
+  function addHarvest(entry) {
+    var list = loadHarvests().slice();
+    var id = 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    var row = {
+      id: id,
+      apiaryId: String((entry && entry.apiaryId) || ''),
+      apiaryName: String((entry && entry.apiaryName) || (entry && entry.apiaryId) || ''),
+      date: String((entry && entry.date) || '').slice(0, 10),
+      honeyKg: Number(entry && entry.honeyKg) || 0,
+      frames: Math.max(0, Math.round(Number(entry && entry.frames) || 0)),
+      note: String((entry && entry.note) || '').trim()
+    };
+    if (!row.apiaryId) throw new Error('apiaryId gerekli');
+    if (!row.date) throw new Error('tarih gerekli');
+    if (!(row.honeyKg > 0)) throw new Error('kg gerekli');
+    list.push(row);
+    writeJson(HARVEST_KEY, list);
+    return row;
+  }
+
+  function removeHarvest(id) {
+    var sid = String(id || '');
+    var list = loadHarvests().filter(function (h) { return String(h.id) !== sid; });
+    writeJson(HARVEST_KEY, list);
+    return list;
+  }
+
   /** Honey season year: May–Oct belong to that calendar year. */
   function seasonYearOf(isoDate) {
     var d = String(isoDate || '').slice(0, 10);
@@ -158,9 +185,13 @@
     });
   }
 
-  function harvestSummary(year) {
+  function harvestSummary(year, apiaryId) {
     var y = Number(year) || currentSeasonYear();
     var rows = filterBySeason(loadHarvests(), y);
+    if (apiaryId) {
+      var aid = String(apiaryId);
+      rows = rows.filter(function (h) { return String(h.apiaryId || '') === aid; });
+    }
     var byApiary = {};
     var totalKg = 0;
     var totalFrames = 0;
@@ -586,6 +617,8 @@
       INSPECTION_KEY: INSPECTION_KEY,
       ensureSeeded: ensureSeeded,
       loadHarvests: loadHarvests,
+      addHarvest: addHarvest,
+      removeHarvest: removeHarvest,
       loadIncomes: loadIncomes,
       loadInspections: loadInspections,
       loadAlertHistory: loadAlertHistory,

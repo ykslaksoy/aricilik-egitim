@@ -195,3 +195,40 @@ body {
   .phone-notch, .tabbar, .home-indicator, .nav-chips, .btn-row { display: none !important; }
   .screen { overflow: visible; background: #fff; }
 }
+
+.view-tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  margin-bottom: 12px; padding: 4px; border-radius: 12px;
+  background: #fff; border: 1px solid var(--card-border);
+}
+.view-tabs button {
+  border: 0; border-radius: 10px; padding: 10px 8px;
+  background: transparent; color: var(--muted);
+  font-size: 13px; font-weight: 750; font-family: inherit; cursor: pointer;
+}
+.view-tabs button.active {
+  background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
+  color: var(--brown); border: 1px solid #e0c56a;
+}
+.form-grid {
+  display: grid; gap: 8px;
+}
+.form-grid label {
+  display: grid; gap: 4px;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.form-grid input, .form-grid select, .form-grid textarea {
+  width: 100%; border: 1px solid var(--card-border); border-radius: 10px;
+  padding: 9px 10px; font-size: 13px; font-weight: 600; color: var(--text);
+  background: #fff; font-family: inherit;
+}
+.form-grid textarea { min-height: 64px; resize: vertical; font-weight: 500; }
+.form-grid .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row-item .del {
+  flex-shrink: 0; margin-left: 8px;
+  border: 1px solid #ffc9c9; background: #fff5f5; color: #c92a2a;
+  border-radius: 8px; padding: 6px 8px; font-size: 11px; font-weight: 750;
+  font-family: inherit; cursor: pointer;
+}
+.form-msg { font-size: 12px; font-weight: 650; color: var(--green); min-height: 16px; }
+.form-msg.err { color: var(--red); }
