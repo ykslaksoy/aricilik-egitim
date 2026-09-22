@@ -497,6 +497,27 @@
     return rec.km;
   }
 
+  function applyForageTipTarget(lat, lon) {
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!isFinite(la) || !isFinite(lo)) return;
+    ensureMap().then(function () {
+      if (mapCtrl && mapCtrl.setView) {
+        mapCtrl.setView(la, lo, Math.max(mapCtrl.getZoom ? mapCtrl.getZoom() : 13, 13));
+      }
+      placeMarker(la, lo, (pending && pending.name) || '');
+    }).catch(function () { /* map key UI */ });
+  }
+
+  function bindForageTipClicks(host) {
+    if (!host) return;
+    var btn = host.querySelector('.forage-tip.is-action[data-lat][data-lon]');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      applyForageTipTarget(btn.getAttribute('data-lat'), btn.getAttribute('data-lon'));
+    });
+  }
+
   function scheduleAnalyze(lat, lon) {
     if (!F || !forageHost) return;
     if (analyzeTimer) clearTimeout(analyzeTimer);
@@ -506,6 +527,7 @@
       F.analyze(lat, lon, radiusKm())
         .then(function (a) {
           forageHost.innerHTML = F.renderPanelHtml(a, escapeHtml);
+          bindForageTipClicks(forageHost);
         })
         .catch(function () {
           forageHost.innerHTML =

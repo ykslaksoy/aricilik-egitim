@@ -1,12 +1,12 @@
 /**
- * SüperArı — foraj radarı + yer analizi (ücretsiz kaynaklar + şeffaf tahmin).
+ * SüperArı — foraj radarı + yer analizi (Open-Meteo ölçümleri).
  *
- * Data:
- *  - Open-Meteo Elevation API (gerçek rakım, ücretsiz)
- *  - Yakın 8 yön örneklemesi → eğim/yön tahmini
- *  - Heuristic habitat/nektar skoru (lat/lon + rakım) — "tahmin/demo" etiketi
+ * Data (ücretsiz, anahtarsız):
+ *  - Open-Meteo Elevation API — merkez + 8 yön gerçek rakım
+ *  - Open-Meteo Archive — bal mevsimi (Mayıs–Eylül) ortalama sıcaklık + yağış toplamı
  *
- * Not GIS land-cover: Overpass CORS/yavaş; bu sürümde heuristic proxy.
+ * Skor yalnızca ölçülebilir faktörler: rakım bandı, sezon yağış, sezon sıcaklık, yerel eğim.
+ * Sahte floraProxy / verim % yok.
  */
 (function (global) {
   var DEFAULT_RADIUS_KM = 3;
@@ -26,6 +26,12 @@
     { key: 'NW', label: 'kuzeybatıya', bearing: 315 }
   ];
 
+  /* Transparent weights — must sum to 1 when climate present. */
+  var W_ELEV = 0.35;
+  var W_PRECIP = 0.25;
+  var W_TEMP = 0.25;
+  var W_RELIEF = 0.15;
+
   function roundToStep(km, step) {
     step = step || RADIUS_STEP_KM;
     return Math.round(km / step) * step;
@@ -35,7 +41,6 @@
     var n = Number(km);
     if (!isFinite(n)) return DEFAULT_RADIUS_KM;
     var stepped = roundToStep(n, RADIUS_STEP_KM);
-    /* Avoid IEEE dust on 0.5 steps (e.g. 1.0000000002). */
     stepped = Math.round(stepped * 10) / 10;
     return Math.max(MIN_RADIUS_KM, Math.min(MAX_RADIUS_KM, stepped));
   }
@@ -52,6 +57,12 @@
     return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
   }
 
+  /** Deterministic 0..1 noise — only for vehicle/settlement radius proxy, not forage score. */
+  function hash01(lat, lon, salt) {
+    var x = Math.sin(lat * 12.9898 + lon * 78.233 + (salt || 0) * 37.719) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
   /**
    * Settlement / vehicle-density proxy 0..1 (no traffic API).
    * Mixes: deterministic local noise + proximity to known urban hubs in region.
@@ -66,19 +77,14 @@
     var hubScore = 0;
     for (var i = 0; i < hubs.length; i++) {
       var d = haversineKm(lat, lon, hubs[i].lat, hubs[i].lon);
-      /* ~25 km falloff — closer to town ⇒ more roads/traffic proxy */
       var fall = Math.max(0, 1 - d / 25);
       hubScore += fall * hubs[i].w;
     }
     hubScore = Math.min(1, hubScore / 1.2);
-    var local = 0.25 + hash01(lat, lon, 11) * 0.55; /* rural variegation */
+    var local = 0.25 + hash01(lat, lon, 11) * 0.55;
     return Math.max(0, Math.min(1, hubScore * 0.7 + local * 0.3));
   }
 
-  /**
-   * Nearby hive competition from known apiaries (localStorage / demo).
-   * Returns normalized 0..1 pressure.
-   */
   function hiveDensityPressure(lat, lon, opts) {
     opts = opts || {};
     var apiaries = opts.apiaries || [];
@@ -97,23 +103,16 @@
       var d = haversineKm(lat, lon, alat, alon);
       if (d > scanKm) continue;
       nearbySites += 1;
-      /* Closer sites weigh more (inverse distance, floor 0.5 km). */
       var w = 1 / Math.max(0.5, d);
       nearbyHives += Math.max(0, Number(a.hiveCount) || 0) * w;
     }
-    /* Own yard competes fully for local forage (same pin / this arılık). */
     nearbyHives += ownHives * 1.0;
-    /* ~60 weighted hives ⇒ full pressure. */
     var pressure = nearbyHives / 60;
     if (nearbySites >= 2) pressure += 0.1;
     if (nearbySites >= 4) pressure += 0.1;
     return Math.max(0, Math.min(1, pressure));
   }
 
-  /**
-   * Auto forage radius from hive + vehicle proxies. Steps of 0.5 km, [0.5, 10].
-   * Mid density → ~2–4 km; high competition/traffic → smaller; sparse rural → larger.
-   */
   function recommendRadiusKm(lat, lon, opts) {
     lat = Number(lat);
     lon = Number(lon);
@@ -123,8 +122,6 @@
     opts = opts || {};
     var hiveP = hiveDensityPressure(lat, lon, opts);
     var vehP = vehicleDensityProxy(lat, lon);
-    /* Start ~7 km; hive + settlement/vehicle proxies pull toward min.
-       Mid density → ~2–4 km; sparse rural can approach 10 km. */
     var raw = 7 - hiveP * 5 - vehP * 3;
     if (hiveP > 0.8) raw -= 0.6;
     if (hiveP < 0.15 && vehP < 0.28) raw += 2.2;
@@ -186,51 +183,199 @@
       });
   }
 
-  /** Deterministic 0..1 noise from lat/lon (stable per spot). */
-  function hash01(lat, lon, salt) {
-    var x = Math.sin(lat * 12.9898 + lon * 78.233 + (salt || 0) * 37.719) * 43758.5453;
-    return x - Math.floor(x);
+  /** Last completed bal season (May–Sep). If Oct+, current year; else previous. */
+  function balSeasonWindow() {
+    var now = new Date();
+    var y = now.getUTCFullYear();
+    var m = now.getUTCMonth() + 1;
+    var seasonYear = m >= 10 ? y : y - 1;
+    return {
+      year: seasonYear,
+      start: seasonYear + '-05-01',
+      end: seasonYear + '-09-30',
+      label: 'May–Eyl ' + seasonYear
+    };
+  }
+
+  function mean(arr) {
+    if (!arr || !arr.length) return null;
+    var s = 0;
+    var n = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var v = Number(arr[i]);
+      if (!isFinite(v)) continue;
+      s += v;
+      n += 1;
+    }
+    return n ? s / n : null;
+  }
+
+  function sum(arr) {
+    if (!arr || !arr.length) return null;
+    var s = 0;
+    var n = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var v = Number(arr[i]);
+      if (!isFinite(v)) continue;
+      s += v;
+      n += 1;
+    }
+    return n ? s : null;
+  }
+
+  function precipDays(arr, thresh) {
+    thresh = thresh != null ? thresh : 0.1;
+    if (!arr || !arr.length) return null;
+    var c = 0;
+    for (var i = 0; i < arr.length; i++) {
+      var v = Number(arr[i]);
+      if (isFinite(v) && v > thresh) c += 1;
+    }
+    return c;
+  }
+
+  function climateFromDaily(daily) {
+    if (!daily) return null;
+    var meanT = mean(daily.temperature_2m_mean);
+    var precipSum = sum(daily.precipitation_sum);
+    if (meanT == null || precipSum == null) return null;
+    return {
+      meanTempC: Math.round(meanT * 10) / 10,
+      precipSumMm: Math.round(precipSum * 10) / 10,
+      precipDays: precipDays(daily.precipitation_sum)
+    };
   }
 
   /**
-   * Heuristic forage suitability 0–100 for Erzurum/Doğu Anadolu–like ranges.
-   * Uses real elevation when present; habitat mix is estimate.
+   * Open-Meteo Archive for each sample point (batch).
+   * Returns array aligned with points, or null entries on partial failure.
    */
-  function scoreSpot(lat, lon, elevM, radiusKm) {
-    var elev = elevM != null && isFinite(elevM) ? elevM : 1500 + hash01(lat, lon, 1) * 800;
-    /* Sweet band ~1200–2200 m for yayla flora in region */
-    var elevScore;
-    if (elev < 800) elevScore = 35;
-    else if (elev < 1200) elevScore = 55 + (elev - 800) / 400 * 15;
-    else if (elev <= 2200) elevScore = 85 - Math.abs(elev - 1700) / 500 * 12;
-    else if (elev <= 2800) elevScore = 70 - (elev - 2200) / 600 * 25;
-    else elevScore = 35;
+  function fetchClimateArchive(points, season) {
+    if (!points || !points.length) return Promise.resolve([]);
+    var lats = points.map(function (p) { return p.lat; }).join(',');
+    var lons = points.map(function (p) { return p.lon; }).join(',');
+    var url =
+      'https://archive-api.open-meteo.com/v1/archive?latitude=' +
+      encodeURIComponent(lats) +
+      '&longitude=' +
+      encodeURIComponent(lons) +
+      '&start_date=' +
+      encodeURIComponent(season.start) +
+      '&end_date=' +
+      encodeURIComponent(season.end) +
+      '&daily=temperature_2m_mean,precipitation_sum&timezone=auto';
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('archive_' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        var rows = Array.isArray(j) ? j : [j];
+        return points.map(function (p, i) {
+          var row = rows[i] || rows[0];
+          var clim = climateFromDaily(row && row.daily);
+          return clim
+            ? {
+                lat: p.lat,
+                lon: p.lon,
+                tag: p.tag || null,
+                meanTempC: clim.meanTempC,
+                precipSumMm: clim.precipSumMm,
+                precipDays: clim.precipDays,
+                seasonLabel: season.label
+              }
+            : null;
+        });
+      });
+  }
 
-    var floraProxy = 40 + hash01(lat, lon, 2) * 45; /* demo land-cover proxy */
-    var waterProxy = 30 + hash01(lat, lon, 3) * 50;
-    var windExposure = 20 + hash01(lat, lon, 4) * 60; /* higher = more exposed (worse) */
-    var radiusFactor = 0.85 + (clampRadius(radiusKm) - MIN_RADIUS_KM) / (MAX_RADIUS_KM - MIN_RADIUS_KM) * 0.2;
+  /** Highland / yayla elev band suitability 0–100 from measured elev (m). */
+  function elevBandScore(elev) {
+    if (elev < 800) return 35;
+    if (elev < 1200) return 55 + ((elev - 800) / 400) * 15;
+    if (elev <= 2200) return 85 - (Math.abs(elev - 1700) / 500) * 12;
+    if (elev <= 2800) return 70 - ((elev - 2200) / 600) * 25;
+    return 35;
+  }
 
-    var raw =
-      elevScore * 0.38 +
-      floraProxy * 0.32 +
-      waterProxy * 0.18 +
-      (100 - windExposure) * 0.12;
+  /** Bal-season precip suitability (mm sum May–Sep). Ideal ~120–350 mm highland. */
+  function precipScore(mm) {
+    if (mm == null || !isFinite(mm)) return null;
+    if (mm < 40) return 25;
+    if (mm < 120) return 25 + ((mm - 40) / 80) * 40;
+    if (mm <= 350) return 80 - (Math.abs(mm - 220) / 130) * 12;
+    if (mm <= 550) return 68 - ((mm - 350) / 200) * 25;
+    return 35;
+  }
+
+  /** Season mean temp suitability (°C). Ideal ~14–20 °C for highland bees. */
+  function tempScore(c) {
+    if (c == null || !isFinite(c)) return null;
+    if (c < 6) return 20;
+    if (c < 12) return 20 + ((c - 6) / 6) * 40;
+    if (c <= 20) return 85 - (Math.abs(c - 16) / 4) * 10;
+    if (c <= 26) return 70 - ((c - 20) / 6) * 30;
+    return 30;
+  }
+
+  /**
+   * Local relief / slope proxy from elev delta (m).
+   * Gentle–moderate relief preferred; extreme delta → rüzgâr/soğuk hava riski.
+   */
+  function reliefScore(deltaM) {
+    if (deltaM == null || !isFinite(deltaM)) return 55;
+    var d = Math.abs(deltaM);
+    if (d <= 40) return 72;
+    if (d <= 100) return 88;
+    if (d <= 180) return 75;
+    if (d <= 300) return 55;
+    return 38;
+  }
+
+  /**
+   * Suitability 0–100 from measured elev + optional climate + relief.
+   * No hash flora / fake habitat / fake yield %.
+   */
+  function scoreSpot(lat, lon, elevM, radiusKm, climate, reliefDeltaM) {
+    var hasElev = elevM != null && isFinite(elevM);
+    var elev = hasElev ? elevM : null;
+    var eScore = hasElev ? elevBandScore(elev) : 50;
+    var pScore = climate ? precipScore(climate.precipSumMm) : null;
+    var tScore = climate ? tempScore(climate.meanTempC) : null;
+    var rScore = reliefScore(reliefDeltaM);
+    var hasClimate = pScore != null && tScore != null;
+
+    var raw;
+    if (hasClimate) {
+      raw =
+        eScore * W_ELEV +
+        pScore * W_PRECIP +
+        tScore * W_TEMP +
+        rScore * W_RELIEF;
+    } else {
+      /* Elevation-only fallback: elev 70% + relief 30%. */
+      raw = eScore * 0.7 + rScore * 0.3;
+    }
+
+    var radiusFactor =
+      0.92 +
+      ((clampRadius(radiusKm) - MIN_RADIUS_KM) / (MAX_RADIUS_KM - MIN_RADIUS_KM)) * 0.1;
     var score = Math.round(Math.max(18, Math.min(96, raw * radiusFactor)));
-
-    var habitat;
-    if (floraProxy > 70) habitat = 'Çayır / yayla otlak ağırlıklı (tahmin)';
-    else if (floraProxy > 45) habitat = 'Karışık tarım–otlak (tahmin)';
-    else habitat = 'Seyrek örtü / taşlık eğilim (tahmin)';
 
     return {
       score: score,
-      elevM: Math.round(elev),
-      elevSource: elevM != null && isFinite(elevM) ? 'open-meteo' : 'estimate',
-      habitat: habitat,
-      floraProxy: Math.round(floraProxy),
-      waterProxy: Math.round(waterProxy),
-      windExposure: Math.round(windExposure),
+      elevM: hasElev ? Math.round(elev) : null,
+      elevSource: hasElev ? 'open-meteo' : 'missing',
+      elevScore: Math.round(eScore),
+      precipScore: pScore != null ? Math.round(pScore) : null,
+      tempScore: tScore != null ? Math.round(tScore) : null,
+      reliefScore: Math.round(rScore),
+      reliefDeltaM: reliefDeltaM != null && isFinite(reliefDeltaM) ? Math.round(reliefDeltaM) : null,
+      meanTempC: climate ? climate.meanTempC : null,
+      precipSumMm: climate ? climate.precipSumMm : null,
+      precipDays: climate ? climate.precipDays : null,
+      seasonLabel: climate ? climate.seasonLabel : null,
+      hasClimate: hasClimate,
       radiusKm: clampRadius(radiusKm)
     };
   }
@@ -240,6 +385,102 @@
     if (score >= 65) return { tr: 'Uygun', tone: 'ok' };
     if (score >= 45) return { tr: 'Orta', tone: 'mid' };
     return { tr: 'Zayıf', tone: 'bad' };
+  }
+
+  function fmtSigned(n, unit, digits) {
+    if (n == null || !isFinite(n)) return null;
+    digits = digits != null ? digits : 0;
+    var v = Number(n);
+    var s = (v > 0 ? '+' : '') + (digits ? v.toFixed(digits) : String(Math.round(v)));
+    return s + (unit || '');
+  }
+
+  /**
+   * Build tip with WHY bullets: measured deltas (rakım, sıcaklık, yağış, eğim/skor).
+   */
+  function buildTip(here, best, sampleDist) {
+    if (!best || best.score < here.score + 6) {
+      return {
+        text:
+          'Bu nokta çevresindeki örneklemeye göre görece dengeli; büyük kaydırma şart değil (Open-Meteo ölçüm).',
+        dirKey: null,
+        why: [],
+        targetLat: null,
+        targetLon: null
+      };
+    }
+
+    var distStr = sampleDist.toFixed(1).replace(/\.0$/, '');
+    var lines = [];
+    lines.push(
+      'Önerilen konum: ~' +
+        distStr +
+        ' km ' +
+        best.dir.label +
+        ' — rakım/iklim uygunluğu daha yüksek (Open-Meteo). Dokunarak pin’i taşı.'
+    );
+
+    var why = [];
+    if (here.elevM != null && best.elevM != null) {
+      var dElev = best.elevM - here.elevM;
+      why.push({
+        k: 'Rakım',
+        v:
+          best.elevM +
+          ' m' +
+          (dElev !== 0 ? ' (' + fmtSigned(dElev, ' m') + ')' : '')
+      });
+    }
+    if (here.meanTempC != null && best.meanTempC != null) {
+      var dT = Math.round((best.meanTempC - here.meanTempC) * 10) / 10;
+      why.push({
+        k: 'Sezon sıcaklık',
+        v:
+          best.meanTempC +
+          ' °C' +
+          (dT !== 0 ? ' (' + fmtSigned(dT, ' °C', 1) + ')' : '')
+      });
+    }
+    if (here.precipSumMm != null && best.precipSumMm != null) {
+      var dP = Math.round((best.precipSumMm - here.precipSumMm) * 10) / 10;
+      why.push({
+        k: 'Sezon yağış',
+        v:
+          best.precipSumMm +
+          ' mm' +
+          (dP !== 0 ? ' (' + fmtSigned(dP, ' mm', 1) + ')' : '')
+      });
+    }
+    if (here.reliefDeltaM != null && best.reliefDeltaM != null) {
+      var dR = best.reliefDeltaM - here.reliefDeltaM;
+      why.push({
+        k: 'Eğim (Δ rakım)',
+        v:
+          '~' +
+          best.reliefDeltaM +
+          ' m' +
+          (dR !== 0 ? ' (' + fmtSigned(dR, ' m') + ')' : '')
+      });
+    }
+    why.push({
+      k: 'Uygunluk skoru',
+      v:
+        best.score +
+        '/100' +
+        (best.score !== here.score
+          ? ' (' + fmtSigned(best.score - here.score, '') + ')'
+          : '')
+    });
+
+    return {
+      text: lines[0],
+      why: why,
+      dirKey: best.dir.key,
+      targetLat: best.lat,
+      targetLon: best.lon,
+      scoreHere: here.score,
+      scoreBest: best.score
+    };
   }
 
   function analyze(lat, lon, radiusKm) {
@@ -257,6 +498,8 @@
       points.push({ lat: p.lat, lon: p.lon, tag: d.key });
     });
 
+    var season = balSeasonWindow();
+
     return fetchElevations(points)
       .catch(function () {
         return points.map(function (p) {
@@ -264,90 +507,142 @@
         });
       })
       .then(function (rows) {
-        var center = rows[0] || { elev: null };
-        var here = scoreSpot(lat, lon, center.elev, radiusKm);
+        return fetchClimateArchive(points, season)
+          .then(function (climates) {
+            return { rows: rows, climates: climates, climateOk: true };
+          })
+          .catch(function () {
+            return {
+              rows: rows,
+              climates: points.map(function () { return null; }),
+              climateOk: false
+            };
+          });
+      })
+      .then(function (pack) {
+        var rows = pack.rows;
+        var climates = pack.climates || [];
+        var climateOk = !!pack.climateOk && climates.some(function (c) { return !!c; });
+
+        var elevs = rows
+          .map(function (r) { return r.elev; })
+          .filter(function (e) { return e != null && isFinite(e); });
+        var minE = elevs.length ? Math.min.apply(null, elevs) : null;
+        var maxE = elevs.length ? Math.max.apply(null, elevs) : null;
+        var ringDelta = minE != null && maxE != null ? maxE - minE : null;
+        var centerElev = rows[0] && rows[0].elev != null ? rows[0].elev : null;
+
+        function reliefFor(i, elev) {
+          if (i === 0) return ringDelta;
+          if (centerElev != null && elev != null && isFinite(elev)) {
+            return Math.abs(elev - centerElev);
+          }
+          return ringDelta;
+        }
+
+        var here = scoreSpot(
+          lat,
+          lon,
+          centerElev,
+          radiusKm,
+          climates[0] || null,
+          reliefFor(0, centerElev)
+        );
 
         var best = null;
         for (var i = 0; i < DIRS.length; i++) {
           var d = DIRS[i];
           var row = rows[i + 1] || {};
-          var sc = scoreSpot(row.lat != null ? row.lat : lat, row.lon != null ? row.lon : lon, row.elev, radiusKm);
+          var rlat = row.lat != null ? row.lat : lat;
+          var rlon = row.lon != null ? row.lon : lon;
+          var sc = scoreSpot(
+            rlat,
+            rlon,
+            row.elev,
+            radiusKm,
+            climates[i + 1] || null,
+            reliefFor(i + 1, row.elev)
+          );
           if (!best || sc.score > best.score) {
             best = {
               dir: d,
               score: sc.score,
               elevM: sc.elevM,
-              lat: row.lat,
-              lon: row.lon,
+              meanTempC: sc.meanTempC,
+              precipSumMm: sc.precipSumMm,
+              reliefDeltaM: sc.reliefDeltaM,
+              lat: rlat,
+              lon: rlon,
               distKm: sampleDist
             };
           }
         }
 
-        var tip = null;
-        if (best && best.score >= here.score + 8) {
-          var gain = Math.round(((best.score - here.score) / Math.max(here.score, 1)) * 100);
-          gain = Math.max(10, Math.min(55, gain));
-          tip = {
-            text:
-              'Pin’i ~' +
-              best.distKm.toFixed(1).replace('.0', '') +
-              ' km ' +
-              best.dir.label +
-              ' kaydırırsan verim tahminen ~%' +
-              gain +
-              ' artabilir (model tahmini).',
-            dirKey: best.dir.key,
-            gainPct: gain,
-            targetLat: best.lat,
-            targetLon: best.lon
-          };
-        } else {
-          tip = {
-            text: 'Bu nokta çevresindeki örneklemeye göre görece dengeli; büyük kaydırma şart değil (tahmin).',
-            dirKey: null,
-            gainPct: 0
-          };
-        }
+        var tip = buildTip(here, best, sampleDist);
 
         var slopeNote = null;
-        var elevs = rows
-          .map(function (r) { return r.elev; })
-          .filter(function (e) { return e != null && isFinite(e); });
-        if (elevs.length >= 3) {
-          var minE = Math.min.apply(null, elevs);
-          var maxE = Math.max.apply(null, elevs);
-          var delta = maxE - minE;
-          if (delta > 180) slopeNote = 'Çevrede belirgin rakım farkı (~' + Math.round(delta) + ' m) — rüzgâr/soğuk hava akışı riski (ölçüm).';
-          else if (delta > 80) slopeNote = 'Hafif engebeli arazi (~' + Math.round(delta) + ' m fark) (ölçüm).';
-          else slopeNote = 'Yakın çevrede rakım görece düzgün (ölçüm).';
+        if (ringDelta != null) {
+          if (ringDelta > 180) {
+            slopeNote =
+              'Çevrede belirgin rakım farkı (~' +
+              Math.round(ringDelta) +
+              ' m) — rüzgâr/soğuk hava akışı riski (ölçüm).';
+          } else if (ringDelta > 80) {
+            slopeNote =
+              'Hafif engebeli arazi (~' + Math.round(ringDelta) + ' m fark) (ölçüm).';
+          } else {
+            slopeNote = 'Yakın çevrede rakım görece düzgün (ölçüm).';
+          }
         }
 
-        var insights = [
-          {
-            k: 'Rakım',
-            v: here.elevM + ' m',
-            note: here.elevSource === 'open-meteo' ? 'Open-Meteo' : 'tahmin'
-          },
-          {
-            k: 'Foraj yarıçapı',
-            v: here.radiusKm + ' km',
-            note: 'arılar bu çapta geziyor'
-          },
-          {
-            k: 'Uygunluk',
-            v: here.score + '/100 · ' + gradeLabel(here.score).tr,
-            note: 'tahmin'
-          },
-          {
-            k: 'Örtü proxy',
-            v: here.habitat,
-            note: 'demo'
-          }
-        ];
-        if (slopeNote) {
-          insights.push({ k: 'Arazi', v: slopeNote, note: 'ölçüm/yorum' });
+        var insights = [];
+        insights.push({
+          k: 'Rakım',
+          v: here.elevM != null ? here.elevM + ' m' : '—',
+          note: here.elevSource === 'open-meteo' ? 'Open-Meteo Elev.' : 'eksik'
+        });
+        insights.push({
+          k: 'Foraj yarıçapı',
+          v: here.radiusKm + ' km',
+          note: 'arılar bu çapta geziyor'
+        });
+        if (climateOk && here.meanTempC != null) {
+          insights.push({
+            k: 'Sezon sıcaklık',
+            v: here.meanTempC + ' °C ort. (' + (here.seasonLabel || season.label) + ')',
+            note: 'Open-Meteo Archive'
+          });
+          insights.push({
+            k: 'Sezon yağış',
+            v:
+              here.precipSumMm +
+              ' mm' +
+              (here.precipDays != null ? ' · ' + here.precipDays + ' yağışlı gün' : ''),
+            note: 'Open-Meteo Archive'
+          });
+        } else {
+          insights.push({
+            k: 'İklim',
+            v: 'Archive alınamadı — skor yalnızca rakım/eğim',
+            note: 'fallback'
+          });
         }
+        insights.push({
+          k: 'Uygunluk skoru',
+          v: here.score + '/100 · ' + gradeLabel(here.score).tr,
+          note: climateOk
+            ? 'rakım+iklim+eğim'
+            : 'rakım+eğim'
+        });
+        if (slopeNote) {
+          insights.push({ k: 'Arazi', v: slopeNote, note: 'ölçüm' });
+        }
+
+        var disclaimer = climateOk
+          ? 'Kaynaklar: Open-Meteo Elevation + Archive (' +
+            season.label +
+            ' ortalama sıcaklık ve yağış toplamı). Uygunluk skoru rakım+iklim+eğim ölçümlerinden; sahte flora/verim % yoktur.'
+          : 'Kaynak: Open-Meteo Elevation. İklim (Archive) alınamadı — skor yalnızca rakım/eğim. Sahte flora/verim % yoktur.';
 
         return {
           lat: lat,
@@ -357,17 +652,22 @@
           grade: gradeLabel(here.score),
           elevM: here.elevM,
           elevSource: here.elevSource,
-          habitat: here.habitat,
+          meanTempC: here.meanTempC,
+          precipSumMm: here.precipSumMm,
+          seasonLabel: here.seasonLabel || season.label,
           insights: insights,
           tip: tip,
-          disclaimer:
-            'Yer analizi kısmen gerçek rakım (Open-Meteo), kısmen model tahmini/demo. Arazi örtüsü uydu sınıflandırması değildir.',
-          demo: true
+          disclaimer: disclaimer,
+          demo: !climateOk,
+          climateOk: climateOk,
+          sources: climateOk
+            ? ['Open-Meteo Elevation', 'Open-Meteo Archive']
+            : ['Open-Meteo Elevation']
         };
       });
   }
 
-  /** Leaflet circle helper — call with L and map instance. (Arılık sayfaları Yandex için SuperAriYandexMap.attachRadar kullanır; bu API paralel iş için korunur.) */
+  /** Leaflet circle helper — Arılık sayfaları Yandex için SuperAriYandexMap.attachRadar kullanır. */
   function attachRadar(L, map, opts) {
     opts = opts || {};
     var radiusKm = clampRadius(opts.radiusKm != null ? opts.radiusKm : DEFAULT_RADIUS_KM);
@@ -452,12 +752,60 @@
         );
       })
       .join('');
-    var tip = analysis.tip
-      ? '<p class="forage-tip">' + escapeHtml(analysis.tip.text) + '</p>'
-      : '';
+
+    var tip = '';
+    if (analysis.tip) {
+      var whyHtml = '';
+      if (analysis.tip.why && analysis.tip.why.length) {
+        whyHtml =
+          '<ul class="forage-tip-why">' +
+          analysis.tip.why
+            .map(function (w) {
+              return (
+                '<li><span class="forage-tip-why-k">' +
+                escapeHtml(w.k) +
+                ':</span> ' +
+                escapeHtml(w.v) +
+                '</li>'
+              );
+            })
+            .join('') +
+          '</ul>';
+      }
+      var hasTarget =
+        analysis.tip.targetLat != null &&
+        analysis.tip.targetLon != null &&
+        isFinite(Number(analysis.tip.targetLat)) &&
+        isFinite(Number(analysis.tip.targetLon));
+      if (hasTarget) {
+        tip =
+          '<button type="button" class="forage-tip is-action" data-lat="' +
+          Number(analysis.tip.targetLat) +
+          '" data-lon="' +
+          Number(analysis.tip.targetLon) +
+          '">' +
+          '<span class="forage-tip-text">' +
+          escapeHtml(analysis.tip.text) +
+          '</span>' +
+          whyHtml +
+          '<span class="forage-tip-cta">Haritada göster ›</span>' +
+          '</button>';
+      } else {
+        tip =
+          '<div class="forage-tip">' +
+          '<span class="forage-tip-text">' +
+          escapeHtml(analysis.tip.text) +
+          '</span>' +
+          whyHtml +
+          '</div>';
+      }
+    }
+
     return (
       '<div class="forage-panel" data-score="' +
       analysis.score +
+      '" data-demo="' +
+      (analysis.demo ? '1' : '0') +
       '">' +
       '<div class="forage-head">' +
         '<strong>Foraj &amp; yer analizi</strong>' +
@@ -471,7 +819,11 @@
       '</div>' +
       '<p class="forage-sub">Arılar ~' +
       analysis.radiusKm +
-      ' km çapta geziyor (foraj çemberi).</p>' +
+      ' km çapta geziyor (foraj çemberi).' +
+      (analysis.demo
+        ? ' <span class="forage-tag">iklim yok · rakım/eğim</span>'
+        : '') +
+      '</p>' +
       '<div class="forage-grid">' +
       rows +
       '</div>' +
@@ -499,7 +851,14 @@
     '.forage-k{font-size:11px;font-weight:700;color:#6b635a;}',
     '.forage-tag{font-weight:600;opacity:.75;}',
     '.forage-v{font-size:12px;font-weight:700;color:#2c241c;line-height:1.35;}',
-    '.forage-tip{margin:10px 0 0;padding:10px 11px;border-radius:12px;background:#fff;border:1px dashed #c9a227;font-size:12px;font-weight:700;color:#4a2f1a;line-height:1.4;}',
+    '.forage-tip{display:block;margin:10px 0 0;padding:10px 11px;border-radius:12px;background:#fff;border:1px dashed #c9a227;font-size:12px;font-weight:700;color:#4a2f1a;line-height:1.4;box-sizing:border-box;width:100%;text-align:left;font-family:inherit;}',
+    '.forage-tip.is-action{cursor:pointer;-webkit-tap-highlight-color:transparent;appearance:none;-webkit-appearance:none;}',
+    '.forage-tip.is-action:hover{border-style:solid;background:#fff8e6;}',
+    '.forage-tip.is-action:active{transform:scale(.98);background:#fff3d1;}',
+    '.forage-tip-text{display:block;}',
+    '.forage-tip-why{margin:8px 0 0;padding:0 0 0 1.1em;list-style:disc;font-size:11px;font-weight:650;color:#5a4634;line-height:1.45;}',
+    '.forage-tip-why-k{font-weight:800;color:#4a2f1a;}',
+    '.forage-tip-cta{display:inline-block;margin-top:8px;font-size:11px;font-weight:800;color:#8a6a1a;letter-spacing:.01em;}',
     '.forage-disc{margin:8px 0 0;font-size:10px;color:#8a8278;line-height:1.35;font-weight:560;}',
     '.forage-radius{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:8px 0 0;}',
     '.forage-radius label{font-size:11px;font-weight:700;color:#6b635a;}',
