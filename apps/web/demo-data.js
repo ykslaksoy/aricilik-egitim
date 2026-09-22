@@ -168,15 +168,22 @@
     return isFinite(lat) && isFinite(lon) && Math.abs(lat - 40.61) <= 0.02 && Math.abs(lon - 41.66) <= 0.02;
   }
 
+  function isNearCoordinateTarget(a, targetLat, targetLon) {
+    var lat = Number(a && a.lat);
+    var lon = Number(a && a.lon);
+    return isFinite(lat) && isFinite(lon) && Math.abs(lat - targetLat) <= 0.0005 && Math.abs(lon - targetLon) <= 0.0005;
+  }
+
   function migrateApiaryCoordinates(list) {
     var changed = false;
     var out = (list || []).map(function (a) {
       if (!a) return a;
-      var isYanik = String(a.id) === 'a4' || looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place);
-      var isTortum = String(a.id) === 'a2' || /tortum/i.test(String(a.name || '')) || /tortum/i.test(String(a.place || ''));
-      var targetLat = isYanik && isLegacyYanikCoords(a) ? YANIK_TARGET_LAT : (isTortum && isLegacyTortumCoords(a) ? TORTUM_TARGET_LAT : null);
-      var targetLon = isYanik && isLegacyYanikCoords(a) ? YANIK_TARGET_LON : (isTortum && isLegacyTortumCoords(a) ? TORTUM_TARGET_LON : null);
-      if (targetLat == null || targetLon == null) return a;
+      var id = String(a.id);
+      var isYanik = id === 'a4' || (id !== 'a2' && (looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place)));
+      var isTortum = id === 'a2' || (id !== 'a4' && (/tortum/i.test(String(a.name || '')) || /tortum/i.test(String(a.place || ''))));
+      var targetLat = isYanik ? YANIK_TARGET_LAT : (isTortum ? TORTUM_TARGET_LAT : null);
+      var targetLon = isYanik ? YANIK_TARGET_LON : (isTortum ? TORTUM_TARGET_LON : null);
+      if (targetLat == null || isNearCoordinateTarget(a, targetLat, targetLon)) return a;
       changed = true;
       var copy = {};
       for (var k in a) {
@@ -340,30 +347,19 @@
     });
     if (!primary) primary = dups[0];
     var maxHives = 0;
-    var lat = primary.lat;
-    var lon = primary.lon;
     dups.forEach(function (a) {
       maxHives = Math.max(maxHives, Math.max(0, Number(a.hiveCount) || 0));
-      if (a.lat != null && isFinite(Number(a.lat))) lat = Number(a.lat);
-      if (a.lon != null && isFinite(Number(a.lon))) lon = Number(a.lon);
       if (String(a.id) !== 'a4') remappedIds[String(a.id)] = 'a4';
     });
-    /* Keep a user-set primary pin; only legacy coordinates are migratable. */
-    if (isFinite(Number(primary.lat)) && isFinite(Number(primary.lon)) && !isLegacyYanikCoords(primary)) {
-      lat = Number(primary.lat);
-      lon = Number(primary.lon);
-    }
     if (seedA4) {
       maxHives = Math.max(maxHives, Math.max(0, Number(seedA4.hiveCount) || 0));
-      if (lat == null || !isFinite(Number(lat))) lat = seedA4.lat;
-      if (lon == null || !isFinite(Number(lon))) lon = seedA4.lon;
     }
     var merged = {
       id: 'a4',
       name: NAME_YANIK,
       place: PLACE_YANIK,
-      lat: lat != null && isFinite(Number(lat)) ? Number(lat) : YANIK_TARGET_LAT,
-      lon: lon != null && isFinite(Number(lon)) ? Number(lon) : YANIK_TARGET_LON,
+      lat: YANIK_TARGET_LAT,
+      lon: YANIK_TARGET_LON,
       hiveCount: maxHives
     };
     var changed = dups.length > 1
@@ -371,6 +367,8 @@
       || String(primary.name || '') !== NAME_YANIK
       || String(primary.place || '') !== PLACE_YANIK
       || Number(primary.hiveCount) !== maxHives
+      || Number(primary.lat) !== YANIK_TARGET_LAT
+      || Number(primary.lon) !== YANIK_TARGET_LON
       || Object.keys(remappedIds).length > 0;
     keep.push(merged);
     return { list: keep, changed: changed, remappedIds: remappedIds };

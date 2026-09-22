@@ -340,13 +340,19 @@
     return isFinite(lat) && isFinite(lon) && Math.abs(lat - 40.61) <= 0.02 && Math.abs(lon - 41.66) <= 0.02;
   }
 
+  function isNearWeatherTarget(r, targetLat, targetLon) {
+    var lat = Number(r && r.lat);
+    var lon = Number(r && r.lon);
+    return isFinite(lat) && isFinite(lon) && Math.abs(lat - targetLat) <= 0.0005 && Math.abs(lon - targetLon) <= 0.0005;
+  }
+
   function migrateHavaLabels(list) {
     var changed = false;
     var out = (list || []).map(function (r) {
       if (!r) return r;
       var lab = String(r.label || '').trim();
       var id = String(r.apiaryId || '');
-      var nameOrPlace = String(r.name || r.place || lab);
+      var nameOrPlace = String(r.name || '') + ' ' + String(r.place || '');
       var next = lab;
       /* Undo bad a1 rename */
       if (id === 'a1' && looksLikeYanikBalugLabel(lab)) next = LABEL_KAYAKOY;
@@ -355,13 +361,13 @@
       }
       var nextLat = r.lat;
       var nextLon = r.lon;
-      var isYanik = id === 'a4' || looksLikeYanikBalugLabel(lab) || looksLikeYanikBalugLabel(nameOrPlace);
-      if (isYanik && isLegacyYanikWeatherCoords(r)) {
+      var isYanik = id === 'a4' || (id !== 'a2' && (looksLikeYanikBalugLabel(lab) || looksLikeYanikBalugLabel(nameOrPlace)));
+      if (isYanik && !isNearWeatherTarget(r, YANIK_TARGET_LAT, YANIK_TARGET_LON)) {
         nextLat = YANIK_TARGET_LAT;
         nextLon = YANIK_TARGET_LON;
       }
-      var isTortum = id === 'a2' || /tortum/i.test(lab) || /tortum/i.test(nameOrPlace);
-      if (isTortum && isLegacyTortumWeatherCoords(r)) {
+      var isTortum = id === 'a2' || (id !== 'a4' && (/tortum/i.test(lab) || /tortum/i.test(nameOrPlace)));
+      if (!isYanik && isTortum && !isNearWeatherTarget(r, TORTUM_TARGET_LAT, TORTUM_TARGET_LON)) {
         nextLat = TORTUM_TARGET_LAT;
         nextLon = TORTUM_TARGET_LON;
       }
