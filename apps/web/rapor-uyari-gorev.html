@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Uyarı & görev</title>
+<link rel="stylesheet" href="rapor-common.css" />
+
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen">
+    <div class="brand-strip">Hardal Arıcılık</div>
+    <div class="page-head">
+      <div>
+        <h1>Uyarı & görev</h1>
+        <p id="pageSub">Geçmiş özeti</p>
+      </div>
+      <div class="nav-chips">
+        <a class="back-chip" href="raporlar.html">← Raporlar</a>
+        <a class="back-chip" href="ana.html">Ana</a>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <section class="card-block">
+      <h2>Uyarı türleri</h2>
+      <div id="typeList"></div>
+    </section>
+    <section class="card-block">
+      <h2>Son uyarılar</h2>
+      <div id="alertList"></div>
+    </section>
+    <section class="card-block">
+      <h2>Son görevler</h2>
+      <div id="taskList"></div>
+    </section>
+    <p class="hint">Açık uyarılar <a href="uyarilar.html" style="color:var(--brown);font-weight:700">Uyarılar</a>, görevler <a href="gorevler.html" style="color:var(--brown);font-weight:700">Görevler</a> sayfalarında da listelenir.</p>
+  </div>
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/></svg>
+      Ana
+    </a>
+    <a class="tab" href="kovanlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="5" rx="1"/><rect x="5" y="10" width="14" height="5" rx="1"/><rect x="5" y="16" width="14" height="4" rx="1"/></svg>
+      Kovanlar
+    </a>
+    <a class="tab" href="uyarilar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 7-6 7-6 12"/><path d="M10 21h4"/></svg>
+      Uyarılar
+    </a>
+    <a class="tab" href="gorevler.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+      Görevler
+    </a>
+    <a class="tab" href="ayarlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4"/></svg>
+      Ayarlar
+    </a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+<script src="demo-data.js"></script>
+<script src="rapor-store.js"></script>
+<script>
+(function () {
+  var R = window.SuperAriRapor;
+  var D = window.SuperAriDemo;
+  if (!R) return;
+  var s = R.alertTaskSummary();
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><div class="k">Açık uyarı</div><div class="v warn">' + s.openAlerts + '</div></div>' +
+    '<div class="stat"><div class="k">Çözülen</div><div class="v pos">' + s.resolvedAlerts + '</div></div>' +
+    '<div class="stat"><div class="k">Açık görev</div><div class="v">' + s.openTasks + '</div></div>' +
+    '<div class="stat"><div class="k">Tamamlanan</div><div class="v pos">' + s.doneTasks + '</div></div>';
+  var typeLabels = { ogul: 'Oğul', saglik: 'Sağlık', tarti: 'Tartı', hava: 'Hava', petek: 'Petek', diger: 'Diğer' };
+  document.getElementById('typeList').innerHTML = Object.keys(s.byType).map(function (k) {
+    return '<div class="row-item"><div class="left"><div class="title">' + (typeLabels[k] || k) + '</div></div>' +
+      '<div class="right">' + s.byType[k] + '</div></div>';
+  }).join('') || '<p class="meta">Uyarı yok.</p>';
+  function hiveName(id) {
+    if (!D) return 'Kovan ' + id;
+    var h = D.hiveById(id);
+    return h ? h.name : ('Kovan ' + id);
+  }
+  function sevBadge(sev) {
+    if (sev === 'high') return 'bad';
+    if (sev === 'medium') return 'warn';
+    return 'info';
+  }
+  function shortDate(iso) {
+    if (!iso) return '—';
+    return String(iso).slice(0, 10) + ' ' + String(iso).slice(11, 16);
+  }
+  document.getElementById('alertList').innerHTML = s.recentAlerts.map(function (a) {
+    var st = a.status === 'resolved' ? '<span class="badge ok">çözüldü</span>' : '<span class="badge warn">açık</span>';
+    return '<div class="row-item"><div class="left"><div class="title">' + a.title + ' ' + st + '</div>' +
+      '<div class="meta">' + shortDate(a.createdAt) + ' · ' + hiveName(a.hiveId) +
+      ' · <span class="badge ' + sevBadge(a.severity) + '">' + (a.type || '') + '</span></div></div></div>';
+  }).join('') || '<p class="meta">Uyarı yok.</p>';
+  document.getElementById('taskList').innerHTML = s.recentTasks.map(function (t) {
+    var st = t.status === 'done' ? '<span class="badge ok">bitti</span>' : '<span class="badge warn">açık</span>';
+    return '<div class="row-item"><div class="left"><div class="title">' + t.title + ' ' + st + '</div>' +
+      '<div class="meta">' + shortDate(t.createdAt) + ' · ' + hiveName(t.hiveId) +
+      ' · öncelik ' + t.priority + (t.doneAt ? ' · bitti ' + shortDate(t.doneAt) : '') + '</div></div></div>';
+  }).join('') || '<p class="meta">Görev yok.</p>';
+})();
+</script>
+<script>
+(function () {
+  var el = document.getElementById('clock');
+  if (!el) return;
+  function tick() {
+    var d = new Date();
+    el.textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+</body>
+</html>

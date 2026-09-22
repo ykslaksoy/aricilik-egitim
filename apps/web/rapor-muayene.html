@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Muayene / petek</title>
+<link rel="stylesheet" href="rapor-common.css" />
+
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen">
+    <div class="brand-strip">Hardal Arıcılık</div>
+    <div class="page-head">
+      <div>
+        <h1>Muayene / petek</h1>
+        <p id="pageSub">Tarama ve saha muayene özeti</p>
+      </div>
+      <div class="nav-chips">
+        <a class="back-chip" href="raporlar.html">← Raporlar</a>
+        <a class="back-chip" href="ana.html">Ana</a>
+      </div>
+    </div>
+    <div class="filters">
+      <label>Sezon
+        <select id="seasonSel"></select>
+      </label>
+    </div>
+    <div class="stats" id="stats"></div>
+    <section class="card-block">
+      <h2>Kayıtlar</h2>
+      <div id="list"></div>
+    </section>
+    <p class="hint">Muayene ve petek tarama demo kayıtları. Petek tarama akışı <a href="petek-tarama.html" style="color:var(--brown);font-weight:700">petek-tarama.html</a> üzerinden de çalışır.</p>
+  </div>
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/></svg>
+      Ana
+    </a>
+    <a class="tab" href="kovanlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="5" rx="1"/><rect x="5" y="10" width="14" height="5" rx="1"/><rect x="5" y="16" width="14" height="4" rx="1"/></svg>
+      Kovanlar
+    </a>
+    <a class="tab" href="uyarilar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 7-6 7-6 12"/><path d="M10 21h4"/></svg>
+      Uyarılar
+    </a>
+    <a class="tab" href="gorevler.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+      Görevler
+    </a>
+    <a class="tab" href="ayarlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4"/></svg>
+      Ayarlar
+    </a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+<script src="demo-data.js"></script>
+<script src="rapor-store.js"></script>
+<script>
+(function () {
+  var R = window.SuperAriRapor;
+  var D = window.SuperAriDemo;
+  if (!R) return;
+  var sel = document.getElementById('seasonSel');
+  var cur = R.currentSeasonYear();
+  [cur, cur - 1].forEach(function (y) {
+    var o = document.createElement('option');
+    o.value = y; o.textContent = y + ' sezonu'; if (y === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+  function hiveName(id) {
+    if (!D) return 'Kovan ' + id;
+    var h = D.hiveById(id);
+    return h ? h.name : ('Kovan ' + id);
+  }
+  function apiaryName(id) {
+    if (!D) return id;
+    var a = D.apiaryById(id);
+    return a ? (a.name || a.place) : id;
+  }
+  function render() {
+    var y = Number(sel.value) || cur;
+    var rows = R.filterBySeason(R.loadInspections(), y).slice().sort(function (a, b) {
+      return String(b.date).localeCompare(String(a.date));
+    });
+    var muayene = rows.filter(function (r) { return r.type === 'muayene'; }).length;
+    var petek = rows.filter(function (r) { return r.type === 'petek'; }).length;
+    var avg = rows.length ? Math.round(rows.reduce(function (s, r) { return s + (Number(r.score) || 0); }, 0) / rows.length) : 0;
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><div class="k">Kayıt</div><div class="v">' + rows.length + '</div></div>' +
+      '<div class="stat"><div class="k">Muayene</div><div class="v">' + muayene + '</div></div>' +
+      '<div class="stat"><div class="k">Petek tarama</div><div class="v">' + petek + '</div></div>' +
+      '<div class="stat"><div class="k">Ort. skor</div><div class="v">' + avg + '</div></div>';
+    document.getElementById('list').innerHTML = rows.map(function (m) {
+      var cls = m.score < 50 ? 'bad' : (m.score < 70 ? 'warn' : 'ok');
+      var tip = m.type === 'petek' ? 'Petek' : 'Muayene';
+      var detail = m.type === 'petek'
+        ? (m.note || 'Petek tarama')
+        : ('Yavru ' + m.brood + ' · bal ' + m.honey + ' · ana ' + m.queen + ' · varroa ' + m.varroa);
+      return '<div class="row-item"><div class="left"><div class="title">' + hiveName(m.hiveId) +
+        ' <span class="badge info">' + tip + '</span></div>' +
+        '<div class="meta">' + m.date + ' · ' + apiaryName(m.apiaryId) + '<br>' + detail + '</div></div>' +
+        '<div class="right"><span class="badge ' + cls + '">' + m.score + '</span></div></div>';
+    }).join('') || '<p class="meta">Bu sezon kayıt yok.</p>';
+  }
+  sel.addEventListener('change', render);
+  render();
+})();
+</script>
+<script>
+(function () {
+  var el = document.getElementById('clock');
+  if (!el) return;
+  function tick() {
+    var d = new Date();
+    el.textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+</script>
+</body>
+</html>
