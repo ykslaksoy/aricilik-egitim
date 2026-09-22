@@ -29,6 +29,20 @@
     }
     .choice-btn strong { font-size: 15px; font-weight: 800; color: var(--brown, #5c4813); }
     .choice-btn span { font-size: 12px; font-weight: 650; color: var(--muted, #868e96); }
+    .filter-chips {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+    }
+    .filter-chips a {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 8px 12px; border-radius: 999px; text-decoration: none;
+      font-size: 12px; font-weight: 750;
+      border: 1.5px solid var(--card-border, #e4e6ea);
+      background: #fff; color: var(--text, #1a1b1e);
+    }
+    .filter-chips a.active {
+      background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft, #fff3bf) 100%);
+      border-color: #e0c56a; color: var(--brown, #5c4813);
+    }
   </style>
 </head>
 <body>
@@ -49,6 +63,7 @@
     <section class="card stack">
       <h2 style="margin:0;" id="pageTitle">Uyarılar</h2>
       <p class="muted" id="summary">Demo uyarı listesi…</p>
+      <div class="filter-chips" id="filterChips" role="group" aria-label="Uyarı filtresi"></div>
       <div class="mode-switch" id="modeSwitch"></div>
       <div class="list" id="alert-list"></div>
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
@@ -59,8 +74,13 @@
     (function () {
       var D = window.SuperAriDemo;
       if (!D) return;
+      var SENSOR_TYPES = ['tarti', 'saglik', 'ogul', 'sensor', 'isi', 'nem', 'titresim', 'ir', 'batarya'];
       var params = new URLSearchParams(location.search);
       var view = (params.get('view') || '').toLowerCase();
+      /* Prefer filter=sensor; also accept legacy view=sensor when no ogul view */
+      var filterParam = (params.get('filter') || '').toLowerCase();
+      if (!filterParam && view === 'sensor') filterParam = 'sensor';
+      var sensorFilter = filterParam === 'sensor';
       var hasMode = params.has('mode');
       var modeParam = params.get('mode');
       var mode = modeParam === 'all' ? 'all' : (modeParam === 'apiary' ? 'apiary' : null);
@@ -71,6 +91,7 @@
       var summaryEl = document.getElementById('summary');
       var noteEl = document.getElementById('pageNote');
       var modeSwitchEl = document.getElementById('modeSwitch');
+      var filterChipsEl = document.getElementById('filterChips');
 
       function esc(s) {
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -78,8 +99,25 @@
 
       function pageHref(extra) {
         var parts = [];
-        if (view) parts.push('view=' + encodeURIComponent(view));
+        /* Keep view=ogul; drop view=sensor in favor of filter=sensor */
+        if (view && view !== 'sensor') parts.push('view=' + encodeURIComponent(view));
+        if (sensorFilter) parts.push('filter=sensor');
         if (extra) parts.push(extra);
+        return 'uyarilar.html' + (parts.length ? '?' + parts.join('&') : '');
+      }
+
+      function filterHref(wantSensor) {
+        var parts = [];
+        if (view && view !== 'sensor') parts.push('view=' + encodeURIComponent(view));
+        if (wantSensor) parts.push('filter=sensor');
+        /* Preserve mode/apiary when switching filter */
+        if (hasMode && mode === 'all') parts.push('mode=all');
+        else if (hasMode && mode === 'apiary' && apiaryFilter) {
+          parts.push('mode=apiary');
+          parts.push('apiary=' + encodeURIComponent(apiaryFilter));
+        } else if (!hasMode && apiaryFilter) {
+          parts.push('apiary=' + encodeURIComponent(apiaryFilter));
+        }
         return 'uyarilar.html' + (parts.length ? '?' + parts.join('&') : '');
       }
 
@@ -87,6 +125,12 @@
         return '<a class="choice-btn" href="' + href + '">' +
           '<strong>' + esc(title) + '</strong>' +
           '<span>' + esc(meta) + '</span></a>';
+      }
+
+      function isSensorAlert(a) {
+        var t = String(a && a.type != null ? a.type : '').toLowerCase().trim();
+        if (!t) return false; /* missing type: not assumed sensor */
+        return SENSOR_TYPES.indexOf(t) !== -1;
       }
 
       function alertApiaryId(a) {
@@ -135,15 +179,34 @@
       var allLabel = 'Tüm uyarılar';
       var itemWord = 'uyarı';
 
+      /* view=ogul first, then optional sensor filter (can combine) */
       if (view === 'ogul') {
         alerts = alerts.filter(function (a) { return a.type === 'ogul'; });
         titleEl.textContent = 'Oğul uyarıları';
         subEl.textContent = 'Oğul';
         allLabel = 'Tüm oğul uyarıları';
         itemWord = 'oğul uyarısı';
+      } else if (sensorFilter) {
+        titleEl.textContent = 'Sensör kaynaklı';
+        subEl.textContent = 'Sensör';
+        allLabel = 'Tüm sensör uyarıları';
+        itemWord = 'sensör uyarısı';
       } else {
         titleEl.textContent = 'Uyarılar';
         subEl.textContent = 'Uyarılar';
+      }
+
+      /* Filter applies to alert set before grouping / chooser */
+      if (sensorFilter) {
+        alerts = alerts.filter(isSensorAlert);
+      }
+
+      if (filterChipsEl) {
+        /* Hide redundant "Sensör kaynaklı" when already in ogul-only view (all ogul are sensor) —
+           still show chips so user can clear/set; useful when combining. */
+        filterChipsEl.innerHTML =
+          '<a class="' + (!sensorFilter ? 'active' : '') + '" href="' + filterHref(false) + '">Tümü</a>' +
+          '<a class="' + (sensorFilter ? 'active' : '') + '" href="' + filterHref(true) + '">Sensör kaynaklı</a>';
       }
 
       var groups = groupAlertsByApiary(alerts);
@@ -186,7 +249,9 @@
 
       summaryEl.textContent = alerts.length + ' açık ' + itemWord + ' · ' +
         (effectiveMode === 'all' ? allLabel : (apName || 'Arılık'));
-      noteEl.textContent = 'Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.';
+      noteEl.textContent = sensorFilter
+        ? 'Sensör kaynaklı demo uyarılar (tarti, sağlık, oğul…).'
+        : 'Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.';
 
       modeSwitchEl.innerHTML =
         '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">' + esc(allLabel) + '</a>' +

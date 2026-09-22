@@ -23,6 +23,43 @@
       </div>
     </div>
 
+
+    <section class="auth-card" id="cihaz">
+      <div class="settings-head">
+        <div>
+          <h2>Cihazlar</h2>
+          <p class="sub">Sensör ve gateway kaydı (demo, yerel).</p>
+        </div>
+        <a class="chip" href="sensorler.html" style="text-decoration:none">Sensörler</a>
+      </div>
+      <div class="stack" id="cihaz-panel">
+        <button class="btn" type="button" id="btn-cihaz-ekle">Cihaz ekle</button>
+        <div id="cihaz-form-wrap" hidden>
+          <form class="stack" id="cihaz-form">
+            <label>Cihaz tipi
+              <select id="cihaz-tip" name="tip" required>
+                <option value="tarti">Tartı</option>
+                <option value="isi_nem">Sıcaklık/Nem</option>
+                <option value="ir">IR</option>
+                <option value="ses_titresim">Ses/Titreşim</option>
+                <option value="gateway">Gateway</option>
+              </select>
+            </label>
+            <label>Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
+              <select id="cihaz-kovan" name="hiveId">
+                <option value="">— Seçilmedi —</option>
+              </select>
+            </label>
+            <button class="btn" type="submit">Kaydet (demo)</button>
+            <button class="btn secondary" type="button" id="btn-cihaz-iptal">İptal</button>
+          </form>
+        </div>
+        <div id="cihaz-toast" class="form-alert" hidden></div>
+        <div id="cihaz-list" class="stack" style="gap:.5rem"></div>
+        <p class="hint-inline">Kayıtlar bu cihazda tutulur. Canlı eşleştirme sonra gelir. · <a href="sensorler.html">Sensörler listesi</a></p>
+      </div>
+    </section>
+
     <section class="auth-card">
       <div class="settings-head">
         <div>
@@ -63,6 +100,7 @@
       </form>
     </section>
   </div>
+  <script src="demo-data.js"></script>
   <script src="panels.js"></script>
   <script>
     (function () {
@@ -160,6 +198,127 @@
           H.logout();
         });
       }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      var KEY = 'superari.devices';
+      var tipLabels = {
+        tarti: 'Tartı',
+        isi_nem: 'Sıcaklık/Nem',
+        ir: 'IR',
+        ses_titresim: 'Ses/Titreşim',
+        gateway: 'Gateway'
+      };
+      var formWrap = document.getElementById('cihaz-form-wrap');
+      var form = document.getElementById('cihaz-form');
+      var btnAdd = document.getElementById('btn-cihaz-ekle');
+      var btnCancel = document.getElementById('btn-cihaz-iptal');
+      var tipEl = document.getElementById('cihaz-tip');
+      var hiveEl = document.getElementById('cihaz-kovan');
+      var listEl = document.getElementById('cihaz-list');
+      var toastEl = document.getElementById('cihaz-toast');
+      var D = window.SuperAriDemo;
+
+      function loadDevices() {
+        try {
+          var raw = localStorage.getItem(KEY);
+          var arr = raw ? JSON.parse(raw) : [];
+          return Array.isArray(arr) ? arr : [];
+        } catch (e) { return []; }
+      }
+      function saveDevices(arr) {
+        try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch (e) { /* ignore */ }
+      }
+      function showToast(msg) {
+        if (!toastEl) return;
+        toastEl.hidden = false;
+        toastEl.textContent = msg;
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(function () {
+          toastEl.hidden = true;
+          toastEl.textContent = '';
+        }, 2800);
+      }
+      function hiveName(id) {
+        if (!id || !D || !D.hiveById) return '';
+        var h = D.hiveById(id);
+        return h ? (h.name || ('Kovan ' + id)) : ('Kovan ' + id);
+      }
+      function renderList() {
+        if (!listEl) return;
+        var list = loadDevices();
+        if (!list.length) {
+          listEl.innerHTML = '<p class="muted" style="margin:0">Kayıtlı demo cihaz yok.</p>';
+          return;
+        }
+        listEl.innerHTML = list.map(function (d) {
+          var tip = tipLabels[d.tip] || d.tip || 'Cihaz';
+          var hive = d.hiveId ? (' · ' + hiveName(d.hiveId)) : '';
+          return '<div class="note" style="margin:0">' +
+            '<strong>' + tip + '</strong>' + hive +
+            (d.at ? (' · ' + new Date(d.at).toLocaleString('tr-TR')) : '') +
+            '</div>';
+        }).join('');
+      }
+      function fillHives() {
+        if (!hiveEl || !D || !D.loadHives) return;
+        var hives = D.loadHives();
+        var opts = '<option value="">— Seçilmedi —</option>';
+        hives.forEach(function (h) {
+          opts += '<option value="' + h.id + '">' +
+            (h.name || ('Kovan ' + h.id)) + '</option>';
+        });
+        hiveEl.innerHTML = opts;
+      }
+      function openForm() {
+        if (formWrap) formWrap.hidden = false;
+        if (btnAdd) btnAdd.hidden = true;
+      }
+      function closeForm() {
+        if (formWrap) formWrap.hidden = true;
+        if (btnAdd) btnAdd.hidden = false;
+        if (form) form.reset();
+      }
+
+      fillHives();
+      renderList();
+
+      if (btnAdd) btnAdd.addEventListener('click', openForm);
+      if (btnCancel) btnCancel.addEventListener('click', closeForm);
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var tip = (tipEl && tipEl.value) || 'tarti';
+          var hiveId = (hiveEl && hiveEl.value) ? Number(hiveEl.value) : null;
+          var list = loadDevices();
+          list.unshift({
+            id: 'dev-' + Date.now(),
+            tip: tip,
+            hiveId: hiveId || null,
+            at: new Date().toISOString()
+          });
+          saveDevices(list.slice(0, 50));
+          renderList();
+          closeForm();
+          showToast('Demo: cihaz kaydı yerel; canlı eşleştirme sonra');
+        });
+      }
+
+      /* Deep link: #cihaz or ?focus=cihaz */
+      function maybeFocus() {
+        var params = new URLSearchParams(location.search);
+        var focus = (params.get('focus') || '').toLowerCase();
+        var hash = (location.hash || '').replace(/^#/, '').toLowerCase();
+        if (focus === 'cihaz' || hash === 'cihaz') {
+          var sec = document.getElementById('cihaz');
+          if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          openForm();
+        }
+      }
+      maybeFocus();
+      window.addEventListener('hashchange', maybeFocus);
     })();
   </script>
 </body>

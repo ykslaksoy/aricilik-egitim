@@ -548,6 +548,33 @@
     flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr); gap: 8px; min-height: 0;
   }
+  /* 4th row under locked 3×3 — Sensörler only; do not alter .grid rows */
+  .sensor-row {
+    flex: 0 0 auto;
+    margin-top: 8px;
+    min-height: 0;
+  }
+  .sensor-row-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--brown);
+    font-size: 14px;
+    font-weight: 800;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
+    border: 1.5px solid #e0c56a;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sensor-row-link:active { transform: scale(.985); }
+  .sensor-row-link .sr-meta {
+    font-size: 11px; font-weight: 650; color: var(--muted);
+  }
   /* LOCKED: centered hive+text (PR #16) — do not regress */
   .tile {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
@@ -992,6 +1019,13 @@
     </section>
 
     <section class="grid" id="grid" aria-label="Ana paneller"></section>
+    <!-- Temporary 4th-row access: Sensörler (locked 3×9 tiles unchanged) -->
+    <section class="sensor-row" aria-label="Sensörler">
+      <a class="sensor-row-link" href="sensorler.html">
+        <span>Sensörler</span>
+        <span class="sr-meta">Cihazlar · demo →</span>
+      </a>
+    </section>
     <div class="tile-sheet" id="tileSheet" hidden>
       <div class="tile-sheet-card" role="dialog" aria-modal="true" aria-labelledby="tileSheetTitle">
         <h2 class="tile-sheet-title" id="tileSheetTitle">—</h2>
