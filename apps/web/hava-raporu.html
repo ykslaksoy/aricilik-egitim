@@ -140,17 +140,24 @@
   }
 
   .stats {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    display: flex; flex-direction: column; gap: 6px;
     margin-bottom: 12px;
   }
   .stat {
-    background: #fff; border: 1px solid var(--card-border); border-radius: 14px;
-    padding: 12px 12px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    background: #fff; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 8px 14px;
+    min-height: 40px;
   }
-  .stat .k { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .stat .k {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    flex: 1; min-width: 0;
+  }
   .stat .v {
-    margin-top: 4px; font-size: 20px; font-weight: 800; color: var(--text);
+    margin-top: 0; font-size: 16px; font-weight: 800; color: var(--text);
     font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+    text-align: right; white-space: nowrap;
   }
   .chart-block {
     background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
