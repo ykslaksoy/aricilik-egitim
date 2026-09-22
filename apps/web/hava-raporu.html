@@ -140,38 +140,45 @@
   }
 
   .stats {
-    display: flex; flex-direction: column; gap: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
     margin-bottom: 12px;
   }
   .stat {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px;
-    background: #fff; border: 1px solid var(--card-border); border-radius: 10px;
-    padding: 5px 12px;
-    min-height: 30px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    background: #fff; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 8px 10px;
+    min-height: 0;
   }
   .stat .k {
-    font-size: 11px; font-weight: 600; color: var(--muted);
-    flex: 1; min-width: 0;
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    line-height: 1.25;
   }
   .stat .v {
-    margin-top: 0; font-size: 13px; font-weight: 800; color: var(--text);
+    margin-top: 3px; font-size: 15px; font-weight: 800; color: var(--text);
     font-variant-numeric: tabular-nums; letter-spacing: -.02em;
-    text-align: right; white-space: nowrap;
+    line-height: 1.2;
   }
-  /* Yağış saati: diğerlerinden büyük, açık yazı */
+  /* Yağış saati: tam satır, büyük */
   .stat.stat-rain {
+    grid-column: 1 / -1;
+    display: flex; flex-direction: row;
+    align-items: center; justify-content: space-between;
+    gap: 12px;
     padding: 12px 14px;
-    min-height: 48px;
     border-radius: 12px;
     border-color: #c5d4f7;
     background: linear-gradient(180deg, #f7faff, #fff);
   }
   .stat.stat-rain .k {
     font-size: 13px; font-weight: 700; color: var(--text);
+    flex: 1;
   }
   .stat.stat-rain .v {
-    font-size: 18px; font-weight: 800; color: var(--rain, #4c6ef5);
+    margin-top: 0; font-size: 18px; font-weight: 800; color: var(--rain, #4c6ef5);
+    white-space: nowrap;
   }
   .chart-block {
     background: #fff; border: 1px solid var(--card-border); border-radius: 18px;
@@ -623,8 +630,8 @@
       cell('Ort. sıcaklık gece / gündüz', deg(summary.avgNightTemp) + ' / ' + deg(summary.avgDayTemp)) +
       cell('En düşük / yüksek', deg(summary.minTemp) + ' / ' + deg(summary.maxTemp)) +
       cell('Yağışlı gün', String(summary.rainyDays != null ? summary.rainyDays : 0)) +
-      cell('Toplam yağışlı saat', rainHLab, 'stat-rain') +
-      cell('Kayıt sayısı', String(summary.count));
+      cell('Kayıt sayısı', String(summary.count)) +
+      cell('Toplam yağışlı saat', rainHLab, 'stat-rain');
   }
 
   function renderBars(series) {
