@@ -422,6 +422,8 @@
           conditions: labelFromCondition(cond),
           precipMm: Math.round(precip * 10) / 10,
           rainHours: precip > 0 ? 1 + (d % 4) : 0,
+          dayAvgTemp: Math.round((high * 0.65 + temp * 0.35) * 10) / 10,
+          nightAvgTemp: Math.round((low * 0.65 + temp * 0.35) * 10) / 10,
           source: 'seed'
         });
       }
@@ -480,6 +482,16 @@
           existing.source === 'open_meteo' &&
           row.source !== 'open_meteo'
         ) {
+          /* Canlı kaydı koru; eksik rainHours / gece-gündüz ort. doldur */
+          if (existing.rainHours == null && row.rainHours != null) {
+            existing.rainHours = row.rainHours;
+          }
+          if (existing.dayAvgTemp == null && row.dayAvgTemp != null) {
+            existing.dayAvgTemp = row.dayAvgTemp;
+          }
+          if (existing.nightAvgTemp == null && row.nightAvgTemp != null) {
+            existing.nightAvgTemp = row.nightAvgTemp;
+          }
           found = true;
           break;
         }
@@ -516,9 +528,16 @@
     var date = localDateKey();
     var id = opts.apiaryId + ':' + date;
     var rainHours = null;
+    var dayAvgTemp = null;
+    var nightAvgTemp = null;
     if (meteo.hourly) {
       var rhMap = rainHoursFromHourly(meteo.hourly);
       if (rhMap[date] != null) rainHours = rhMap[date];
+      var dnMap = dayNightAvgFromHourly(meteo.hourly);
+      if (dnMap[date]) {
+        if (dnMap[date].dayAvgTemp != null) dayAvgTemp = dnMap[date].dayAvgTemp;
+        if (dnMap[date].nightAvgTemp != null) nightAvgTemp = dnMap[date].nightAvgTemp;
+      }
     } else if (
       daily &&
       daily.precipitation_hours &&
@@ -546,6 +565,8 @@
       conditions: labelFromCondition(condition),
       precipMm: precip,
       rainHours: rainHours,
+      dayAvgTemp: dayAvgTemp,
+      nightAvgTemp: nightAvgTemp,
       source: 'open_meteo'
     };
 
@@ -691,7 +712,70 @@
     return 'Yağış ' + mmLab + ' · ~' + hLab;
   }
 
-  function rowFromDailyIndex(apiary, daily, idx, source, rainHoursMap) {
+  /**
+   * Saatlik temperature_2m'den gün/gece ortalama (°C, 1 ondalık).
+   * Gündüz: yerel saat 06–19; Gece: 20–23 ve 00–05.
+   * Dönüş: { [date]: { dayAvgTemp, nightAvgTemp } }
+   */
+  function dayNightAvgFromHourly(hourly) {
+    var daySum = {};
+    var dayN = {};
+    var nightSum = {};
+    var nightN = {};
+    if (!hourly || !hourly.time || !hourly.time.length) return {};
+    var temps = hourly.temperature_2m;
+    if (!temps || !temps.length) return {};
+    for (var i = 0; i < hourly.time.length; i++) {
+      var t = String(hourly.time[i] || '');
+      if (t.length < 13) continue;
+      var date = t.slice(0, 10);
+      var hour = Number(t.slice(11, 13));
+      if (!isFinite(hour)) continue;
+      var temp = temps[i] != null ? Number(temps[i]) : NaN;
+      if (!isFinite(temp)) continue;
+      if (hour >= 6 && hour <= 19) {
+        daySum[date] = (daySum[date] || 0) + temp;
+        dayN[date] = (dayN[date] || 0) + 1;
+      } else {
+        nightSum[date] = (nightSum[date] || 0) + temp;
+        nightN[date] = (nightN[date] || 0) + 1;
+      }
+    }
+    var map = {};
+    var seen = {};
+    var d;
+    for (d in daySum) {
+      if (Object.prototype.hasOwnProperty.call(daySum, d)) seen[d] = true;
+    }
+    for (d in nightSum) {
+      if (Object.prototype.hasOwnProperty.call(nightSum, d)) seen[d] = true;
+    }
+    for (d in seen) {
+      if (!Object.prototype.hasOwnProperty.call(seen, d)) continue;
+      map[d] = {
+        dayAvgTemp: dayN[d] ? Math.round((daySum[d] / dayN[d]) * 10) / 10 : null,
+        nightAvgTemp: nightN[d] ? Math.round((nightSum[d] / nightN[d]) * 10) / 10 : null
+      };
+    }
+    return map;
+  }
+
+  /** "18° (gece 12° · gündüz 22°)" — gece/gündüz yoksa sadece ortalama. */
+  function formatAvgWithDayNight(avg, night, day) {
+    if (avg == null || !isFinite(Number(avg))) return '—';
+    var s = Number(avg) + '°';
+    if (
+      night == null ||
+      !isFinite(Number(night)) ||
+      day == null ||
+      !isFinite(Number(day))
+    ) {
+      return s;
+    }
+    return s + ' (gece ' + Number(night) + '° · gündüz ' + Number(day) + '°)';
+  }
+
+  function rowFromDailyIndex(apiary, daily, idx, source, rainHoursMap, dayNightMap) {
     if (!daily || !daily.time || idx < 0 || idx >= daily.time.length) return null;
     var date = daily.time[idx];
     if (!date) return null;
@@ -724,6 +808,12 @@
       /* Open-Meteo daily precipitation_hours yedek */
       rainHours = Math.round(Number(daily.precipitation_hours[idx]) * 10) / 10;
     }
+    var dayAvgTemp = null;
+    var nightAvgTemp = null;
+    if (dayNightMap && dayNightMap[date]) {
+      if (dayNightMap[date].dayAvgTemp != null) dayAvgTemp = dayNightMap[date].dayAvgTemp;
+      if (dayNightMap[date].nightAvgTemp != null) nightAvgTemp = dayNightMap[date].nightAvgTemp;
+    }
     return {
       id: apiary.id + ':' + date,
       apiaryId: String(apiary.id),
@@ -740,6 +830,8 @@
       conditions: labelFromCondition(condition),
       precipMm: precip,
       rainHours: rainHours,
+      dayAvgTemp: dayAvgTemp,
+      nightAvgTemp: nightAvgTemp,
       source: source || 'open_meteo_archive'
     };
   }
@@ -752,7 +844,7 @@
       '&longitude=' +
       encodeURIComponent(apiary.lon) +
       '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,precipitation_hours' +
-      '&hourly=precipitation' +
+      '&hourly=precipitation,temperature_2m' +
       '&timezone=auto&past_days=' +
       days +
       '&forecast_days=1';
@@ -773,7 +865,7 @@
       '&end_date=' +
       encodeURIComponent(endKey) +
       '&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,precipitation_hours' +
-      '&hourly=precipitation' +
+      '&hourly=precipitation,temperature_2m' +
       '&timezone=auto';
     return fetch(url).then(function (r) {
       if (!r.ok) throw new Error('meteo_archive_' + r.status);
@@ -793,7 +885,7 @@
   }
 
   function emptyHourly() {
-    return { time: [], precipitation: [] };
+    return { time: [], precipitation: [], temperature_2m: [] };
   }
 
   function mergeDaily(into, meteo) {
@@ -823,9 +915,11 @@
       var h = acc.hourly;
       if (!h.time) h.time = [];
       if (!h.precipitation) h.precipitation = [];
+      if (!h.temperature_2m) h.temperature_2m = [];
       for (var j = 0; j < hs.time.length; j++) {
         h.time.push(hs.time[j]);
         h.precipitation.push(hs.precipitation ? hs.precipitation[j] : null);
+        h.temperature_2m.push(hs.temperature_2m ? hs.temperature_2m[j] : null);
       }
     }
     return acc;
@@ -855,13 +949,13 @@
     return chain;
   }
 
-  function applyDailyToList(list, apiary, daily, wantSet, source, rainHoursMap) {
+  function applyDailyToList(list, apiary, daily, wantSet, source, rainHoursMap, dayNightMap) {
     if (!daily || !daily.time) return 0;
     var added = 0;
     for (var i = 0; i < daily.time.length; i++) {
       var date = daily.time[i];
       if (wantSet && !wantSet[date]) continue;
-      var row = rowFromDailyIndex(apiary, daily, i, source, rainHoursMap);
+      var row = rowFromDailyIndex(apiary, daily, i, source, rainHoursMap, dayNightMap);
       if (!row) continue;
       /* Gerçek sıcaklık yoksa yazma — sahte/sentetik üretme */
       if (row.temp == null && row.high == null && row.low == null) continue;
@@ -874,7 +968,8 @@
   function applyMeteoPayload(list, apiary, meteo, wantSet, source) {
     var daily = meteo && meteo.daily;
     var rainMap = rainHoursFromHourly(meteo && meteo.hourly);
-    return applyDailyToList(list, apiary, daily, wantSet, source, rainMap);
+    var dnMap = dayNightAvgFromHourly(meteo && meteo.hourly);
+    return applyDailyToList(list, apiary, daily, wantSet, source, rainMap, dnMap);
   }
 
   /**
@@ -944,7 +1039,13 @@
                   wantSet[rr.date] = true;
                   continue;
                 }
-                if (rr.rainHours == null) wantSet[rr.date] = true;
+                if (
+                  rr.rainHours == null ||
+                  rr.dayAvgTemp == null ||
+                  rr.nightAvgTemp == null
+                ) {
+                  wantSet[rr.date] = true;
+                }
               }
             }
 
@@ -1096,6 +1197,8 @@
       return {
         count: 0,
         avgTemp: null,
+        avgNightTemp: null,
+        avgDayTemp: null,
         minTemp: null,
         maxTemp: null,
         rainyDays: 0,
@@ -1104,6 +1207,10 @@
     }
     var sum = 0;
     var n = 0;
+    var nightSum = 0;
+    var nightN = 0;
+    var daySum = 0;
+    var dayN = 0;
     var minT = null;
     var maxT = null;
     var rainy = 0;
@@ -1116,6 +1223,14 @@
       if (t != null && isFinite(t)) {
         sum += t;
         n++;
+      }
+      if (r.nightAvgTemp != null && isFinite(Number(r.nightAvgTemp))) {
+        nightSum += Number(r.nightAvgTemp);
+        nightN++;
+      }
+      if (r.dayAvgTemp != null && isFinite(Number(r.dayAvgTemp))) {
+        daySum += Number(r.dayAvgTemp);
+        dayN++;
       }
       var lo = r.low != null ? r.low : t;
       var hi = r.high != null ? r.high : t;
@@ -1131,6 +1246,8 @@
     return {
       count: list.length,
       avgTemp: n ? Math.round((sum / n) * 10) / 10 : null,
+      avgNightTemp: nightN ? Math.round((nightSum / nightN) * 10) / 10 : null,
+      avgDayTemp: dayN ? Math.round((daySum / dayN) * 10) / 10 : null,
       minTemp: minT,
       maxTemp: maxT,
       rainyDays: rainy,
@@ -1211,8 +1328,10 @@
     daysBetweenKeys: daysBetweenKeys,
     dateKeysInclusive: dateKeysInclusive,
     rainHoursFromHourly: rainHoursFromHourly,
+    dayNightAvgFromHourly: dayNightAvgFromHourly,
     formatRainHours: formatRainHours,
     formatPrecipLine: formatPrecipLine,
+    formatAvgWithDayNight: formatAvgWithDayNight,
     RAIN_HOUR_THRESHOLD_MM: RAIN_HOUR_THRESHOLD_MM,
     conditionFromCode: conditionFromCode,
     labelFromCondition: labelFromCondition,

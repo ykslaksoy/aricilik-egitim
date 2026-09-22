@@ -153,7 +153,8 @@
   .hist-item .meta { margin-top: 2px; font-size: 11px; color: var(--muted); line-height: 1.35; }
   .hist-temps {
     text-align: right; font-variant-numeric: tabular-nums;
-    font-size: 13px; font-weight: 800; color: var(--text);
+    font-size: 12px; font-weight: 800; color: var(--text);
+    max-width: 12rem; line-height: 1.25;
   }
   .hist-temps .range {
     display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted);
@@ -504,7 +505,10 @@
         '<article class="hist-item">' +
         '<div><h3>' + title + '</h3>' +
         '<div class="meta">' + meta + '</div></div>' +
-        '<div class="hist-temps">' + (r.temp != null ? r.temp + '°' : '—') +
+        '<div class="hist-temps">' +
+        (typeof H.formatAvgWithDayNight === 'function'
+          ? H.formatAvgWithDayNight(r.temp, r.nightAvgTemp, r.dayAvgTemp)
+          : (r.temp != null ? r.temp + '°' : '—')) +
         '<span class="range">' +
         (r.low != null ? r.low + '°' : '—') + ' / ' + (r.high != null ? r.high + '°' : '—') +
         '</span></div></article>';

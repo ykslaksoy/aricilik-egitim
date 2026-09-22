@@ -524,11 +524,24 @@
     var byDate = {};
     for (var i = 0; i < records.length; i++) {
       var r = records[i];
-      if (!byDate[r.date]) byDate[r.date] = { sum: 0, n: 0, rain: false, precipSum: 0, precipN: 0, rainHoursMax: null };
+      if (!byDate[r.date]) {
+        byDate[r.date] = {
+          sum: 0, n: 0, rain: false, precipSum: 0, precipN: 0, rainHoursMax: null,
+          nightSum: 0, nightN: 0, daySum: 0, dayN: 0
+        };
+      }
       var t = r.temp != null ? r.temp : r.high;
       if (t != null) {
         byDate[r.date].sum += t;
         byDate[r.date].n++;
+      }
+      if (r.nightAvgTemp != null && isFinite(Number(r.nightAvgTemp))) {
+        byDate[r.date].nightSum += Number(r.nightAvgTemp);
+        byDate[r.date].nightN++;
+      }
+      if (r.dayAvgTemp != null && isFinite(Number(r.dayAvgTemp))) {
+        byDate[r.date].daySum += Number(r.dayAvgTemp);
+        byDate[r.date].dayN++;
       }
       if (r.precipMm != null && isFinite(Number(r.precipMm))) {
         byDate[r.date].precipSum += Number(r.precipMm);
@@ -551,6 +564,8 @@
         return {
           date: date,
           avg: row.n ? Math.round((row.sum / row.n) * 10) / 10 : null,
+          nightAvg: row.nightN ? Math.round((row.nightSum / row.nightN) * 10) / 10 : null,
+          dayAvg: row.dayN ? Math.round((row.daySum / row.dayN) * 10) / 10 : null,
           rain: row.rain,
           precipMm: row.precipN ? Math.round((row.precipSum / row.precipN) * 10) / 10 : 0,
           rainHours: row.rainHoursMax
@@ -576,7 +591,12 @@
         ? (typeof H.formatRainHours === 'function' ? H.formatRainHours(rainH) : rainH + ' saat')
         : '—';
     statsEl.innerHTML =
-      cell('Ort. sıcaklık', summary.avgTemp != null ? summary.avgTemp + '°' : '—') +
+      cell(
+        'Ort. sıcaklık',
+        typeof H.formatAvgWithDayNight === 'function'
+          ? H.formatAvgWithDayNight(summary.avgTemp, summary.avgNightTemp, summary.avgDayTemp)
+          : (summary.avgTemp != null ? summary.avgTemp + '°' : '—')
+      ) +
       cell('En düşük / yüksek', (summary.minTemp != null ? summary.minTemp + '°' : '—') + ' / ' + (summary.maxTemp != null ? summary.maxTemp + '°' : '—')) +
       cell('Yağışlı gün', String(summary.rainyDays) + (rainHN ? ' · Σ~' + rainHLab : '')) +
       cell('Kayıt sayısı', String(summary.count));
@@ -601,7 +621,12 @@
       html +=
         '<div class="bar-col" style="min-width:' + (series.length > 40 ? '8px' : '12px') + '" title="' +
         formatDate(s.date) +
-        (s.avg != null ? ': ' + s.avg + '°' : '') +
+        (s.avg != null
+          ? ': ' +
+            (typeof H.formatAvgWithDayNight === 'function'
+              ? H.formatAvgWithDayNight(s.avg, s.nightAvg, s.dayAvg)
+              : s.avg + '°')
+          : '') +
         (typeof H.formatPrecipLine === 'function' && (s.precipMm || s.rainHours)
           ? ' · ' + (H.formatPrecipLine(s.precipMm, s.rainHours) || '')
           : '') +
