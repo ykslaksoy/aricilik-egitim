@@ -985,8 +985,38 @@
       clearTipPlacemark();
       return;
     }
+    /* Keep the suggestion available without moving the user's current view. */
     placeTipMarker(tLat, tLon);
-    fitDetailPins();
+  }
+
+  function ensureCurrentDetailMarker() {
+    /* Do not replace a pin the user may be editing; only restore an absent one. */
+    if (
+      detailPlacemark ||
+      !detailMapCtrl ||
+      !activeApiary ||
+      !hasCoords(activeApiary)
+    ) return;
+    placeDetailMarker(Number(activeApiary.lat), Number(activeApiary.lon));
+  }
+
+  function focusDetailMapForTip() {
+    var mapHost = document.getElementById('detailMapHost') || document.getElementById('detailMap');
+    if (mapHost && mapHost.scrollIntoView) {
+      mapHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (detailMapFs && detailMapFs.open && (!detailMapFs.isOpen || !detailMapFs.isOpen())) {
+      detailMapFs.open();
+    }
+    var refit = function () { fitDetailPins(); };
+    if (window.requestAnimationFrame) {
+      window.requestAnimationFrame(function () {
+        refit();
+        setTimeout(refit, 180);
+      });
+    } else {
+      setTimeout(refit, 80);
+    }
   }
 
   /** Show/highlight önerilen konum tip pin; keep current apiary pin in place. */
@@ -994,8 +1024,9 @@
     var la = Number(lat);
     var lo = Number(lon);
     if (!isFinite(la) || !isFinite(lo)) return;
+    ensureCurrentDetailMarker();
     placeTipMarker(la, lo);
-    fitDetailPins();
+    focusDetailMapForTip();
   }
 
   function bindForageTipClicks(host) {
