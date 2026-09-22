@@ -307,19 +307,6 @@
   }
   .action-link span { color: #b0aaa3; font-size: 18px; }
   .action-link:active { transform: scale(.98); }
-  .move-list { display: grid; gap: 8px; margin-bottom: 16px; }
-  .move-item {
-    display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: start;
-    padding: 12px; border-radius: 14px;
-    background: #fff; border: 1px solid var(--card-border);
-  }
-  .move-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; }
-  .move-item h3 { font-size: 13px; font-weight: 750; color: var(--text); }
-  .move-item .meta { margin-top: 2px; font-size: 11px; color: var(--muted); }
-  .move-item .amt {
-    font-size: 13px; font-weight: 800; color: var(--text);
-    font-variant-numeric: tabular-nums; white-space: nowrap;
-  }
   .mode-field { margin-bottom: 12px; }
   .mode-field .mode-label {
     display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px;
@@ -1288,34 +1275,6 @@
     });
   }
 
-  function moveLogHtml(apiary) {
-    if (!G) return '';
-    var moves = G.transportsForApiary(apiary.id).slice(0, 6);
-    var rows = moves.map(function (t) {
-      var isFuel = t.mode === 'kendi_arac';
-      var color = isFuel ? '#e8590c' : '#2f9e44';
-      var kind = isFuel ? 'Kendi araç · Yakıt' : 'Nakliye';
-      return (
-        '<article class="move-item">' +
-          '<span class="move-dot" style="background:' + color + '"></span>' +
-          '<div>' +
-            '<h3>' + escapeHtml(t.title || kind) + '</h3>' +
-            '<div class="meta">' + escapeHtml(kind) + ' · ' + formatDate(t.date) +
-              (t.note ? ' · ' + escapeHtml(t.note) : '') +
-            '</div>' +
-          '</div>' +
-          '<div class="amt">' + formatTRY(t.amount) + '</div>' +
-        '</article>'
-      );
-    }).join('');
-    return (
-      '<h2 class="section-title">Taşıma kayıtları</h2>' +
-      (rows
-        ? '<div class="move-list">' + rows + '</div>'
-        : '<p class="empty" style="margin-bottom:16px;">Henüz taşıma yok. Nakliye veya kendi araç kaydı ekleyin.</p>')
-    );
-  }
-
   function render() {
     var apiary = id ? D.apiaryById(id) : null;
     activeApiary = apiary;
@@ -1442,8 +1401,10 @@
         '<a class="action-link" href="' + filterHref + '">' +
           hiveN + ' kovanı gör <span aria-hidden="true">›</span>' +
         '</a>' +
+        '<a class="action-link" href="giderler.html?tab=ariliklar">' +
+          'Taşımalar Giderler’de <span aria-hidden="true">›</span>' +
+        '</a>' +
       '</div>' +
-      moveLogHtml(apiary) +
       '<button type="button" class="btn-delete-apiary" id="btnDeleteApiary">Arılığı sil</button>' +
       '<p class="delete-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır.</p>' +
       '<h2 class="section-title" id="kovanlar">Kovanlar (' + hiveN + ')</h2>' +
