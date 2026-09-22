@@ -30,7 +30,7 @@
           <h2>Cihazlar</h2>
           <p class="sub">Sensör ve gateway kaydı (demo, yerel).</p>
         </div>
-        <a class="chip" href="sensorler.html" style="text-decoration:none">Sensörler</a>
+        <a class="chip" href="cihazlar.html" style="text-decoration:none">Cihazlar</a>
       </div>
       <div class="stack" id="cihaz-panel">
         <button class="btn" type="button" id="btn-cihaz-ekle">Cihaz ekle</button>
@@ -42,7 +42,10 @@
                 <option value="isi_nem">Sıcaklık/Nem</option>
                 <option value="ir">IR</option>
                 <option value="ses_titresim">Ses/Titreşim</option>
-                <option value="gateway">Gateway</option>
+                <option value="gateway">Gateway (Wi‑Fi / hücresel)</option>
+                <option value="kamera_merkez">Merkezi kamera</option>
+                <option value="kamera_kovan">Kovan kamerası</option>
+                <option value="role_hub">Wireless röle / hub</option>
               </select>
             </label>
             <label>Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
@@ -56,7 +59,7 @@
         </div>
         <div id="cihaz-toast" class="form-alert" hidden></div>
         <div id="cihaz-list" class="stack" style="gap:.5rem"></div>
-        <p class="hint-inline">Kayıtlar bu cihazda tutulur. Canlı eşleştirme sonra gelir. · <a href="sensorler.html">Sensörler listesi</a></p>
+        <p class="hint-inline">Kayıtlar bu cihazda tutulur. Canlı eşleştirme sonra gelir. · <a href="cihazlar.html">Cihazlar listesi</a></p>
       </div>
     </section>
 
@@ -209,7 +212,10 @@
         isi_nem: 'Sıcaklık/Nem',
         ir: 'IR',
         ses_titresim: 'Ses/Titreşim',
-        gateway: 'Gateway'
+        gateway: 'Gateway (Wi‑Fi / hücresel)',
+        kamera_merkez: 'Merkezi kamera',
+        kamera_kovan: 'Kovan kamerası',
+        role_hub: 'Wireless röle / hub'
       };
       var formWrap = document.getElementById('cihaz-form-wrap');
       var form = document.getElementById('cihaz-form');

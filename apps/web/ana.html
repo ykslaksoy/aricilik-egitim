@@ -546,34 +546,7 @@
 
   .grid {
     flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr); gap: 8px; min-height: 0;
-  }
-  /* 4th row under locked 3×3 — Sensörler only; do not alter .grid rows */
-  .sensor-row {
-    flex: 0 0 auto;
-    margin-top: 8px;
-    min-height: 0;
-  }
-  .sensor-row-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 14px;
-    text-decoration: none;
-    color: var(--brown);
-    font-size: 14px;
-    font-weight: 800;
-    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
-    border: 1.5px solid #e0c56a;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .sensor-row-link:active { transform: scale(.985); }
-  .sensor-row-link .sr-meta {
-    font-size: 11px; font-weight: 650; color: var(--muted);
+    grid-template-rows: repeat(4, 1fr); gap: 5px; min-height: 0;
   }
   /* LOCKED: centered hive+text (PR #16) — do not regress */
   .tile {
@@ -581,7 +554,7 @@
     position: relative; overflow: hidden; min-height: 0; height: 100%;
     /* Center hive + label + badge as one group in the button */
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 6px 4px;
+    padding: 4px 3px;
     box-sizing: border-box;
   }
   .hive-area {
@@ -592,14 +565,14 @@
 
   /* ===== Shared hive: EQUAL tiers, FLUSH sides ===== */
   .hive {
-    width: 72px; height: 68px; position: relative; flex: 0 0 auto; margin-top: 0;
+    width: 58px; height: 54px; position: relative; flex: 0 0 auto; margin-top: 0;
   }
   .hive-stack {
-    position: absolute; left: 50%; top: 2px; transform: translateX(-50%);
-    width: 56px; display: flex; flex-direction: column; align-items: stretch;
+    position: absolute; left: 50%; top: 1px; transform: translateX(-50%);
+    width: 44px; display: flex; flex-direction: column; align-items: stretch;
   }
   .hive-lid {
-    width: 64px; height: 8px; margin-left: -4px; margin-bottom: 0;
+    width: 50px; height: 6px; margin-left: -3px; margin-bottom: 0;
     /* Brighter lid from pre-Grok ana.css (4994d59) */
     background: linear-gradient(180deg, #f4f5f7 0%, #c8ccd2 48%, #9aa1aa 100%);
     border-radius: 2px 2px 1px 1px;
@@ -608,11 +581,11 @@
   }
   .hive-lid::after {
     content: ""; position: absolute; left: 50%; top: 2.5px; transform: translateX(-50%);
-    width: 18px; height: 2px; border-radius: 1px; background: rgba(60,60,70,.45);
+    width: 14px; height: 1.5px; border-radius: 1px; background: rgba(60,60,70,.45);
   }
   /* Two boxes: IDENTICAL height & width → equal + flush */
   .hive-box {
-    height: 24px; /* EQUAL */
+    height: 18px; /* EQUAL */
     width: 100%;
     /* Warmer fill + highlight wash from 4994d59 .hive-box */
     background-color: var(--wood-hi);
@@ -639,7 +612,7 @@
   /* finger joints INSIDE edges — warm #e0b87a accents from 4994d59 */
   .hive-box::before,
   .hive-box::after {
-    content: ""; position: absolute; top: 3px; bottom: 3px; width: 5px;
+    content: ""; position: absolute; top: 2px; bottom: 2px; width: 4px;
     background: repeating-linear-gradient(
       180deg,
       #7a5224 0 3px,
@@ -651,32 +624,32 @@
   .hive-box::after { right: 0; }
   .hive-entrance {
     position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
-    width: 12px; height: 3px; background: #2a1a0c; border-radius: 0 0 1px 1px; z-index: 1;
+    width: 10px; height: 2px; background: #2a1a0c; border-radius: 0 0 1px 1px; z-index: 1;
   }
   /* Invisible landing target centered on the entrance slit (kapı) */
   .hive-door {
     position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%);
-    width: 18px; height: 8px; z-index: 2; pointer-events: none;
+    width: 14px; height: 6px; z-index: 2; pointer-events: none;
   }
   .hive-feet {
     display: flex; justify-content: space-between; padding: 0 2px; margin-top: 2px;
   }
   .hive-feet span {
-    width: 9px; height: 5px; background: var(--wood-lo); border-radius: 1px;
+    width: 7px; height: 4px; background: var(--wood-lo); border-radius: 1px;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
   }
   .hive-shadow {
     position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
-    width: 48px; height: 4px; background: radial-gradient(ellipse, rgba(0,0,0,.12), transparent 70%);
+    width: 38px; height: 3px; background: radial-gradient(ellipse, rgba(0,0,0,.12), transparent 70%);
   }
 
   /* Burned (yakma) emblem — branded into wood, not flat dark disc */
   .hive-icon {
     position: absolute;
     left: 50%;
-    top: 34px; /* lid(8)+half of equal boxes(24) from stack top+2 */
+    top: 26px; /* lid(6)+half of equal boxes(18) from stack top+1 */
     transform: translate(-50%, -50%);
-    width: 32px; height: 32px; border-radius: 50%;
+    width: 26px; height: 26px; border-radius: 50%;
     background: transparent;
     display: flex; align-items: center; justify-content: center;
     box-shadow: none;
@@ -691,10 +664,10 @@
     mix-blend-mode: multiply;
     background: transparent;
   }
-  .hive-icon svg { width: 18px; height: 18px; display: block; }
+  .hive-icon svg { width: 14px; height: 14px; display: block; }
   /* Tartı yakma damga — restored from 17d44cf/4994d59 ana.js + ana.css */
   .hive-icon.hive-icon-burn {
-    width: 36px; height: 36px;
+    width: 28px; height: 28px;
     border-radius: 0;
     overflow: visible;
     background: none;
@@ -721,8 +694,8 @@
   .tile-label {
     /* Flow under hive; centered with the tile group */
     position: relative; left: auto; right: auto; bottom: auto;
-    flex: 0 0 auto; width: 100%; margin-top: 2px;
-    font-size: 12px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
+    flex: 0 0 auto; width: 100%; margin-top: 1px;
+    font-size: 10px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
     text-align: center;
   }
   /* Oğul: leading O emphasized (user request) */
@@ -735,9 +708,9 @@
   .badge {
     /* Keep prior label↔badge gap (~4px): was bottom 28px vs 5px + badge height */
     position: relative; left: auto; bottom: auto; transform: none;
-    flex: 0 0 auto; margin-top: 4px;
-    padding: 2px 9px; border-radius: 999px;
-    font-size: 11px; font-weight: 700; line-height: 1.35; white-space: nowrap;
+    flex: 0 0 auto; margin-top: 2px;
+    padding: 1px 7px; border-radius: 999px;
+    font-size: 9px; font-weight: 700; line-height: 1.35; white-space: nowrap;
   }
   .badge.green { background: var(--green-bg); color: var(--green); }
   .badge.tan { background: var(--tan-bg); color: var(--tan-fg); }
@@ -1019,13 +992,6 @@
     </section>
 
     <section class="grid" id="grid" aria-label="Ana paneller"></section>
-    <!-- Temporary 4th-row access: Sensörler (locked 3×9 tiles unchanged) -->
-    <section class="sensor-row" aria-label="Sensörler">
-      <a class="sensor-row-link" href="sensorler.html">
-        <span>Sensörler</span>
-        <span class="sr-meta">Cihazlar · demo →</span>
-      </a>
-    </section>
     <div class="tile-sheet" id="tileSheet" hidden>
       <div class="tile-sheet-card" role="dialog" aria-modal="true" aria-labelledby="tileSheetTitle">
         <h2 class="tile-sheet-title" id="tileSheetTitle">—</h2>
@@ -1806,6 +1772,22 @@
     '<path d="M12 4.5v3.2M8 8.2h8"/>' +
     '<path d="M7 11.2 5.2 16.2h3.6L7 11.2zm10 0-1.8 5h3.6L17 11.2z"/>' +
     '<path d="M7 8.2 12 20M17 8.2 12 20"/>';
+  var YAKMA_CIHAZLAR =
+    '<rect x="6.5" y="7" width="11" height="9" rx="1.4"/>' +
+    '<circle cx="9.2" cy="11.5" r="1.1"/>' +
+    '<circle cx="12" cy="11.5" r="1.1"/>' +
+    '<circle cx="14.8" cy="11.5" r="1.1"/>' +
+    '<path d="M9.2 16v2.2M14.8 16v2.2"/>';
+  var YAKMA_HAVA =
+    '<circle cx="12" cy="10" r="3.2"/>' +
+    '<path d="M12 4.2v1.4M12 14.4v1.4M5.8 10H4.4M19.6 10h-1.4"/>' +
+    '<path d="M7.6 5.6l1 .95M15.4 13.45l1 .95M16.4 5.6l-1 .95M8.6 13.45l-1 .95"/>' +
+    '<path d="M7.5 18h9"/>';
+  var YAKMA_KAMERA =
+    '<path d="M8.2 8.2 9.5 6.2h5L16 8.2"/>' +
+    '<rect x="5.5" y="8.2" width="13" height="9.2" rx="1.5"/>' +
+    '<circle cx="12" cy="12.8" r="2.8"/>' +
+    '<circle cx="12" cy="12.8" r="1.15"/>';
 
   var ICONS = {
     tarti: '<svg viewBox="0 0 24 24" fill="none" stroke="#f3e2c8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="M7 7h10"/><path d="M7 7l-3 6h6L7 7z"/><path d="M17 7l-3 6h6l-3-6z"/><path d="M9 21h6"/></svg>',
@@ -1835,27 +1817,36 @@
     { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
     { key: 'koloni', label: 'Koloni', badge: '12 grup', tone: 'tan', href: 'kovanlar.html?view=koloni' },
     { key: 'ariliklar', label: 'Arılıklar', badge: String(apiaryCount), tone: 'tan', href: 'ariliklar.html' },
+    { key: 'cihazlar', label: 'Cihazlar', badge: String(hiveCount), tone: 'tan', href: 'cihazlar.html' },
     { key: 'gorevler', label: 'Görevler', badge: String(taskCount || 5), tone: 'blue', href: 'gorevler.html' },
     { key: 'uyarilar', label: 'Uyarılar', badge: String(alertCount || 0), tone: 'red', href: 'uyarilar.html' },
-    { key: 'raporlar', label: 'Raporlar', badge: '9', tone: 'purple', href: 'raporlar.html' }
+    { key: 'raporlar', label: 'Raporlar', badge: '9', tone: 'purple', href: 'raporlar.html' },
+    { key: 'hava', label: 'Hava', badge: '22°', tone: 'blue', href: 'hava-raporu.html' },
+    { key: 'kamera', label: 'Kamera', badge: 'Demo', tone: 'tan', href: 'kamera.html' }
   ];
 
   function hiveHTML(key) {
     var emblemInner;
-    if (key === 'tarti') {
-      /* Exact yakma damga from 4994d59/17d44cf (burn-ring + scale), not Grok PNG */
+    var burnPaths = {
+      tarti: YAKMA_TARTI,
+      cihazlar: YAKMA_CIHAZLAR,
+      hava: YAKMA_HAVA,
+      kamera: YAKMA_KAMERA
+    };
+    if (burnPaths[key]) {
+      /* Yakma damga (burn-ring + path); PNG yoksa SVG */
       emblemInner =
         '<div class="hive-icon hive-icon-burn" aria-hidden="true">' +
           '<svg viewBox="0 0 24 24">' +
             '<circle class="burn-ring" cx="12" cy="12" r="10.2"/>' +
-            YAKMA_TARTI +
+            burnPaths[key] +
           '</svg>' +
         '</div>';
     } else {
       var emblem = 'assets/emblems/' + key + '.png';
       emblemInner =
         '<div class="hive-icon" aria-hidden="true">' +
-          '<img src="' + emblem + '" alt="" width="32" height="32" />' +
+          '<img src="' + emblem + '" alt="" width="26" height="26" />' +
         '</div>';
     }
     return (
