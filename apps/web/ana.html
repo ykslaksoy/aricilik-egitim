@@ -265,15 +265,16 @@
   }
 
   .weather {
-    flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 16px;
-    padding: 6px 12px 8px; margin-top: 0; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 14px;
+    padding: 5px 10px 4px; margin-top: 0; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    overflow: hidden; /* breed podium taşmasın, kart büyümüş gibi görünmesin */
   }
   .weather-top {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 6px; /* dense: header row → weekday strip */
-    min-height: 32px;
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 3px;
+    min-height: 28px;
   }
-  .weather-icon { width: 28px; height: 28px; flex: 0 0 auto; }
+  .weather-icon { width: 24px; height: 24px; flex: 0 0 auto; }
   /* Content-sized (not flex:1) so #beeExit stays at end of short label — restores d6cf379 exit */
   .weather-loc { font-size: 13px; font-weight: 600; color: var(--text); flex: 0 1 auto; max-width: 52%; }
   .arilik-loc-controls {
@@ -348,7 +349,7 @@
   }
   /* Live °C from Open-Meteo (see liveWeather) — far right of weather-top */
   .weather-temp {
-    margin-left: auto; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto;
+    margin-left: auto; font-size: 24px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .weather-temp:focus-visible {
@@ -463,43 +464,46 @@
     max-width: 100%;
     position: relative;
     display: flex;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    height: 28px;
-    min-height: 28px;
-    max-height: 28px;
+    gap: 4px;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
     overflow: hidden;
   }
   .muayene-hint.is-idle .muayene-hint-mid {
-    height: 28px;
-    min-height: 28px;
-    max-height: 28px;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
   }
   .muayene-hint.is-active .muayene-hint-mid {
     justify-content: flex-start;
   }
-  .forecast { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
-  .day { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-  .day-name { font-size: 10px; font-weight: 600; color: var(--muted); }
-  .day-date { font-size: 11px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .forecast { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; text-align: center; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .day-name { font-size: 9px; font-weight: 600; color: var(--muted); line-height: 1.15; }
+  .day-date { font-size: 10px; font-weight: 700; color: var(--text); line-height: 1.1; }
   .day.is-today .day-name,
   .day.is-today .day-date { color: var(--hardal-lo, #b8860b); }
-  .day-ico { width: 18px; height: 18px; }
-  .day-hi { font-size: 11px; font-weight: 700; color: var(--text); }
-  .day-lo { font-size: 10px; color: #8a8278; }
+  .day-ico { width: 15px; height: 15px; margin: 1px 0; }
+  .day-temps { font-size: 9px; font-weight: 700; color: var(--text); line-height: 1.15; white-space: nowrap; }
+  .day-temps .lo { font-weight: 600; color: #8a8278; }
+  .day-hi { font-size: 10px; font-weight: 700; color: var(--text); }
+  .day-lo { font-size: 9px; color: #8a8278; }
   .muayene-hint {
     position: relative;
-    margin-top: 8px; padding: 6px 8px; border-radius: 10px;
+    margin-top: 2px; padding: 4px 6px; border-radius: 10px;
     background: #fff8df; border: 1px solid #e0c56a;
-    color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.25;
-    display: flex; align-items: center; gap: 8px;
+    color: var(--brown, #4a2f1a); font-size: 10px; font-weight: 650; line-height: 1.2;
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 6px;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
-    /* Not / uyarı gelince büyümesin — idle ile aynı sabit yükseklik */
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
-    overflow: hidden;
+    /* Not gelince ASLA büyümesin */
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    overflow: hidden !important;
     box-sizing: border-box;
   }
   /* Idle = bee dock under forecast; active = reminder text */
@@ -508,10 +512,10 @@
     border-color: transparent;
     cursor: default;
     justify-content: center;
-    padding: 6px 8px;
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
+    padding: 4px 6px;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
   }
   .muayene-hint.is-idle .muayene-hint-text,
   .muayene-hint.is-idle .muayene-hint-ok { display: none !important; }
@@ -561,7 +565,7 @@
   .muayene-hint-mid .bee-podium {
     position: absolute;
     left: 50%;
-    top: calc(50% + 14px);
+    top: calc(50% + 11px);
     transform: translateX(-50%);
     margin: 0;
     z-index: 2;
@@ -978,13 +982,13 @@
         <div class="weather-temp" id="weatherTemp" role="link" tabindex="0" title="Arılık hava geçmişi" aria-label="Arılık hava geçmişini aç">—°</div>
       </div>
       <div class="forecast" id="forecast">
-        <div class="day"><div class="day-name">Pzt</div><div class="day-date">7</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">24°</div><div class="day-lo">12°</div></div>
-        <div class="day"><div class="day-name">Sal</div><div class="day-date">8</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">22°</div><div class="day-lo">11°</div></div>
-        <div class="day"><div class="day-name">Çar</div><div class="day-date">9</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">19°</div><div class="day-lo">10°</div></div>
-        <div class="day"><div class="day-name">Per</div><div class="day-date">10</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="6" ry="3.5" fill="#9aadc2"/><path d="M7 14l1 3M10 14l1 3M13 14l1 3" stroke="#5b8def" stroke-width="1.2"/></svg><div class="day-hi">17°</div><div class="day-lo">8°</div></div>
-        <div class="day"><div class="day-name">Cum</div><div class="day-date">11</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-hi">18°</div><div class="day-lo">7°</div></div>
-        <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-hi">21°</div><div class="day-lo">9°</div></div>
-        <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-hi">23°</div><div class="day-lo">11°</div></div>
+        <div class="day"><div class="day-name">Pzt</div><div class="day-date">7</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-temps">24°<span class="lo">/12°</span></div></div>
+        <div class="day"><div class="day-name">Sal</div><div class="day-date">8</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-temps">22°<span class="lo">/11°</span></div></div>
+        <div class="day"><div class="day-name">Çar</div><div class="day-date">9</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-temps">19°<span class="lo">/10°</span></div></div>
+        <div class="day"><div class="day-name">Per</div><div class="day-date">10</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="6" ry="3.5" fill="#9aadc2"/><path d="M7 14l1 3M10 14l1 3M13 14l1 3" stroke="#5b8def" stroke-width="1.2"/></svg><div class="day-temps">17°<span class="lo">/8°</span></div></div>
+        <div class="day"><div class="day-name">Cum</div><div class="day-date">11</div><svg class="day-ico" viewBox="0 0 20 20"><ellipse cx="10" cy="11" rx="6" ry="3.5" fill="#b8c4d4"/></svg><div class="day-temps">18°<span class="lo">/7°</span></div></div>
+        <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-temps">21°<span class="lo">/9°</span></div></div>
+        <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-temps">23°<span class="lo">/11°</span></div></div>
       </div>
       <div class="muayene-hint is-idle" id="muayeneHint" role="status" aria-live="polite">
         <button type="button" class="bee-toggle" id="beeToggle" aria-pressed="true" aria-label="Arıları kapat" title="Arıları aç/kapat">
@@ -1201,12 +1205,14 @@
           String(d.getDate()).padStart(2, '0');
         var mi = byDate[key];
         if (mi == null) continue;
-        var hiEl = days[i].querySelector('.day-hi');
-        var loEl = days[i].querySelector('.day-lo');
+        var tempsEl = days[i].querySelector('.day-temps');
         var hi = roundC(daily.temperature_2m_max && daily.temperature_2m_max[mi]);
         var lo = roundC(daily.temperature_2m_min && daily.temperature_2m_min[mi]);
-        if (hiEl && hi != null) hiEl.textContent = hi + '°';
-        if (loEl && lo != null) loEl.textContent = lo + '°';
+        if (tempsEl && hi != null && lo != null) {
+          tempsEl.innerHTML = hi + '°<span class="lo">/' + lo + '°</span>';
+        } else if (tempsEl && hi != null) {
+          tempsEl.textContent = hi + '°';
+        }
       }
     }
 
@@ -1295,7 +1301,10 @@
       muayeneEl.classList.remove('is-idle');
       muayeneEl.classList.add('is-active');
       muayeneEl.removeAttribute('hidden');
-      if (muayeneText) muayeneText.textContent = msg;
+      /* Tek satır; uzun metin CSS ellipsis + burada da kısalt */
+      var short = String(msg).replace(/\s+/g, ' ').trim();
+      if (short.length > 42) short = short.slice(0, 40).trim() + '…';
+      if (muayeneText) muayeneText.textContent = short;
       if (muayeneOk) muayeneOk.hidden = false;
       emitHintState(true);
       if (tipHideTimer) clearTimeout(tipHideTimer);
@@ -1462,7 +1471,7 @@
       /* Show inspection tip soon if dock is free */
       if (!hintVisible) {
         activeMuayeneTipDate = best.date;
-        showHintMessage('Uygun muayene: ' + best.dayLabel + ' — ' + best.reason, { sticky: false });
+        showHintMessage('Muayene: ' + best.dayLabel + ' · ' + best.reason, { sticky: false });
       }
     }
 
