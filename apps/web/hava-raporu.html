@@ -155,7 +155,7 @@
     flex: 1; min-width: 0;
   }
   .stat .v {
-    margin-top: 0; font-size: 14px; font-weight: 800; color: var(--text);
+    margin-top: 0; font-size: 16px; font-weight: 800; color: var(--text);
     font-variant-numeric: tabular-nums; letter-spacing: -.02em;
     text-align: right; white-space: nowrap;
   }
@@ -602,23 +602,16 @@
         ? (typeof H.formatRainHours === 'function' ? H.formatRainHours(rainH) : Math.round(rainH) + ' saat')
         : '—';
     function deg(v) {
-      if (v == null || !isFinite(Number(v))) return '—';
-      var n = Number(v);
-      var s = (Math.round(n * 10) / 10).toString().replace('.', ',');
-      return s + ' derece';
+      return v != null && isFinite(Number(v)) ? Number(v) + '°' : '—';
     }
-    var rainyDaysLab =
-      summary.rainyDays != null ? String(summary.rainyDays) + ' gün' : '—';
-    var kayitLab =
-      summary.count != null ? String(summary.count) + ' kayıt' : '—';
     statsEl.innerHTML =
-      cell('Ortalama sıcaklık', deg(summary.avgTemp)) +
-      cell('Gece ortalama sıcaklık', deg(summary.avgNightTemp)) +
-      cell('Gündüz ortalama sıcaklık', deg(summary.avgDayTemp)) +
-      cell('En düşük ve en yüksek sıcaklık', deg(summary.minTemp) + ' / ' + deg(summary.maxTemp)) +
-      cell('Yağışlı gün sayısı', rainyDaysLab) +
+      cell('Ort. sıcaklık', deg(summary.avgTemp)) +
+      cell('Gece ortalama', deg(summary.avgNightTemp)) +
+      cell('Gündüz ortalama', deg(summary.avgDayTemp)) +
+      cell('En düşük / yüksek', deg(summary.minTemp) + ' / ' + deg(summary.maxTemp)) +
+      cell('Yağışlı gün', String(summary.rainyDays != null ? summary.rainyDays : 0)) +
       cell('Toplam yağışlı saat', rainHLab) +
-      cell('Kayıt sayısı', kayitLab);
+      cell('Kayıt sayısı', String(summary.count));
   }
 
   function renderBars(series) {
