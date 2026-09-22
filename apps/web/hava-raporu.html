@@ -541,7 +541,7 @@
           cov.filled +
           '/' +
           cov.expected +
-          ' gün dolu, yağış saati ' +
+          ' gün, yağış saati ' +
           cov.withRain +
           '/' +
           cov.expected +
@@ -580,7 +580,7 @@
       refresh();
       var cov = coverageForCurrent();
       if (cov.complete) {
-        setSyncStatus('done', 'Tüm veriler güncellendi (' + cov.filled + '/' + cov.expected + ' gün).');
+        setSyncStatus('done', 'Kayıtlar tamamlandı (' + cov.filled + '/' + cov.expected + ').');
       } else {
         showCoverageStatus();
       }
@@ -816,6 +816,8 @@
       kayitLab = filled + '/' + expected;
       if (syncInFlight || filled < expected) {
         kayitLab += ' · güncelleniyor';
+      } else {
+        kayitLab += ' · kayıtlar tamamlandı';
       }
     } else {
       kayitLab = String(summary.count != null ? summary.count : 0);
@@ -883,13 +885,19 @@
       }
       var dayFilled = Object.keys(uniqueDays).length;
       rangeNoteEl.hidden = false;
+      var fillNote = '';
+      if (dayFilled >= activeDays && activeDays > 0) {
+        fillNote = ' · kayıtlar tamamlandı';
+      } else if (dayFilled) {
+        fillNote = ' · ' + dayFilled + '/' + activeDays + ' gün';
+      }
       rangeNoteEl.textContent =
         'Bal sezonu · ' +
         activeDays +
         ' gün · ' +
         records.length +
         ' kayıt' +
-        (dayFilled ? ' (' + dayFilled + '/' + activeDays + ' gün dolu)' : '') +
+        fillNote +
         ' · hava modeli';
     }
     renderStats(H.summarize(records), records);
