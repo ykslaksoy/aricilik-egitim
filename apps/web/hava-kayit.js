@@ -5,8 +5,9 @@
  * açılmasa bile rapor süreklidir.
  */
 (function (global) {
-  var STORAGE_KEY = 'superari.hava.kayit.v1';
-  var BACKFILL_META_KEY = 'superari.hava.backfill.v1';
+  var STORAGE_KEY = 'superari.hava.kayit.v2';
+  var BACKFILL_META_KEY = 'superari.hava.backfill.v2';
+  var LEGACY_STORAGE_KEY = 'superari.hava.kayit.v1';
   var RANGE_KEY = 'superari.hava.range.v1';
   var MAX_DAYS = 200; /* bal sezonu 15 May–15 Eyl = 124 gün; en az 130+ */
   var DEFAULT_BACKFILL_DAYS = 30;
@@ -395,6 +396,16 @@
   function loadRecords() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        try {
+          raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+          if (raw) {
+            localStorage.setItem(STORAGE_KEY, raw);
+            localStorage.removeItem(BACKFILL_META_KEY);
+            localStorage.removeItem('superari.hava.backfill.v1');
+          }
+        } catch (eLeg) { /* ignore */ }
+      }
       if (!raw) return [];
       var parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
@@ -529,25 +540,38 @@
 
   function upsertRow(list, row, preferLive) {
     var found = false;
+    var today = localDateKey();
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === row.id) {
         var existing = list[i];
-        /* Canlı Ana kaydı arşiv ile ezilmesin */
+        /* Yalnızca bugünün canlı Ana kaydı korunur; geçmiş arşivle tam yenilenir */
         if (
           preferLive &&
           existing &&
           existing.source === 'open_meteo' &&
-          row.source !== 'open_meteo'
+          row.source !== 'open_meteo' &&
+          row.date === today
         ) {
-          /* Canlı kaydı koru; eksik rainHours / gece-gündüz ort. doldur */
-          if (existing.rainHours == null && row.rainHours != null) {
-            existing.rainHours = row.rainHours;
+          if (row.rainHours != null && isFinite(Number(row.rainHours))) {
+            existing.rainHours = Number(row.rainHours);
           }
           if (existing.dayAvgTemp == null && row.dayAvgTemp != null) {
             existing.dayAvgTemp = row.dayAvgTemp;
           }
           if (existing.nightAvgTemp == null && row.nightAvgTemp != null) {
             existing.nightAvgTemp = row.nightAvgTemp;
+          }
+          if (row.low != null && isFinite(Number(row.low))) {
+            var rowLo = Number(row.low);
+            if (existing.low == null || !isFinite(Number(existing.low)) || rowLo < Number(existing.low)) {
+              existing.low = rowLo;
+            }
+          }
+          if (row.high != null && isFinite(Number(row.high))) {
+            var rowHi = Number(row.high);
+            if (existing.high == null || !isFinite(Number(existing.high)) || rowHi > Number(existing.high)) {
+              existing.high = rowHi;
+            }
           }
           found = true;
           break;
@@ -850,11 +874,12 @@
         ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0).toISOString()
         : new Date().toISOString();
     var rainHours = null;
-    if (rainHoursMap && rainHoursMap[date] != null) {
-      rainHours = Number(rainHoursMap[date]) || 0;
-    } else if (daily.precipitation_hours && daily.precipitation_hours[idx] != null) {
-      /* Open-Meteo daily precipitation_hours yedek */
+    /* Open-Meteo daily precipitation_hours birincil */
+    if (daily.precipitation_hours && daily.precipitation_hours[idx] != null) {
       rainHours = Math.round(Number(daily.precipitation_hours[idx]) * 10) / 10;
+    } else if (rainHoursMap && rainHoursMap[date] != null) {
+      rainHours = Number(rainHoursMap[date]);
+      if (!isFinite(rainHours)) rainHours = 0;
     }
     var dayAvgTemp = null;
     var nightAvgTemp = null;
@@ -1007,7 +1032,7 @@
       if (!row) continue;
       /* Gerçek sıcaklık yoksa yazma — sahte/sentetik üretme */
       if (row.temp == null && row.high == null && row.low == null) continue;
-      upsertRow(list, row, true);
+      upsertRow(list, row, false);
       added++;
     }
     return added;
