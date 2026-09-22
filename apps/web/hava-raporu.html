@@ -605,9 +605,7 @@
       return v != null && isFinite(Number(v)) ? Number(v) + '°' : '—';
     }
     statsEl.innerHTML =
-      cell('Ort. sıcaklık', deg(summary.avgTemp)) +
-      cell('Gece ortalama', deg(summary.avgNightTemp)) +
-      cell('Gündüz ortalama', deg(summary.avgDayTemp)) +
+      cell('Ort. sıcaklık gece / gündüz', deg(summary.avgNightTemp) + ' / ' + deg(summary.avgDayTemp)) +
       cell('En düşük / yüksek', deg(summary.minTemp) + ' / ' + deg(summary.maxTemp)) +
       cell('Yağışlı gün', String(summary.rainyDays != null ? summary.rainyDays : 0)) +
       cell('Toplam yağışlı saat', rainHLab) +
