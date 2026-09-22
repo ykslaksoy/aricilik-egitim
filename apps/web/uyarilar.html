@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Uyarılar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <style>
+    .mode-switch {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    }
+    .mode-switch a {
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 10px; border-radius: 12px; text-decoration: none;
+      font-size: 13px; font-weight: 800; border: 1.5px solid var(--card-border, #e4e6ea);
+      background: #fff; color: var(--text, #1a1b1e);
+    }
+    .mode-switch a.active {
+      background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft, #fff3bf) 100%);
+      border-color: #e0c56a; color: var(--brown, #5c4813);
+    }
+    .choice-grid { display: grid; gap: 10px; }
+    .choice-btn {
+      display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+      padding: 14px 14px; border-radius: 14px; text-decoration: none;
+      border: 1.5px solid #e0c56a;
+      background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft, #fff3bf) 100%);
+      color: var(--brown, #5c4813); font-family: inherit;
+    }
+    .choice-btn strong { font-size: 15px; font-weight: 800; color: var(--brown, #5c4813); }
+    .choice-btn span { font-size: 12px; font-weight: 650; color: var(--muted, #868e96); }
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -24,8 +49,9 @@
     <section class="card stack">
       <h2 style="margin:0;" id="pageTitle">Uyarılar</h2>
       <p class="muted" id="summary">Demo uyarı listesi…</p>
+      <div class="mode-switch" id="modeSwitch"></div>
       <div class="list" id="alert-list"></div>
-      <div class="note">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
+      <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
   <script src="demo-data.js"></script>
@@ -35,35 +61,138 @@
       if (!D) return;
       var params = new URLSearchParams(location.search);
       var view = (params.get('view') || '').toLowerCase();
+      var hasMode = params.has('mode');
+      var modeParam = params.get('mode');
+      var mode = modeParam === 'all' ? 'all' : (modeParam === 'apiary' ? 'apiary' : null);
+      var apiaryFilter = params.get('apiary') || '';
       var listEl = document.getElementById('alert-list');
       var titleEl = document.getElementById('pageTitle');
       var subEl = document.getElementById('pageSub');
       var summaryEl = document.getElementById('summary');
+      var noteEl = document.getElementById('pageNote');
+      var modeSwitchEl = document.getElementById('modeSwitch');
 
-      var alerts = D.alerts.slice();
-      if (view === 'ogul') {
-        alerts = alerts.filter(function (a) { return a.type === 'ogul'; });
-        titleEl.textContent = 'Oğul uyarıları';
-        subEl.textContent = 'Oğul';
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
 
-      summaryEl.textContent = alerts.length + ' açık uyarı' + (view === 'ogul' ? ' · oğul' : '');
+      function pageHref(extra) {
+        var parts = [];
+        if (view) parts.push('view=' + encodeURIComponent(view));
+        if (extra) parts.push(extra);
+        return 'uyarilar.html' + (parts.length ? '?' + parts.join('&') : '');
+      }
 
-      listEl.innerHTML = alerts.map(function (a) {
+      function choiceBtn(href, title, meta) {
+        return '<a class="choice-btn" href="' + href + '">' +
+          '<strong>' + esc(title) + '</strong>' +
+          '<span>' + esc(meta) + '</span></a>';
+      }
+
+      function alertApiaryId(a) {
+        var hive = D.hiveById(a.hiveId);
+        return hive && hive.apiaryId ? String(hive.apiaryId) : 'none';
+      }
+
+      function groupAlertsByApiary(alerts) {
+        var map = {};
+        var order = [];
+        alerts.forEach(function (a) {
+          var aid = alertApiaryId(a);
+          if (!map[aid]) {
+            map[aid] = [];
+            order.push(aid);
+          }
+          map[aid].push(a);
+        });
+        return order.map(function (aid) {
+          var ap = D.apiaryById(aid);
+          return {
+            apiaryId: aid,
+            apiaryName: ap ? (ap.name || ap.place || 'Arılık') : 'Arılık',
+            alerts: map[aid]
+          };
+        });
+      }
+
+      function renderAlertCard(a) {
         var hive = D.hiveById(a.hiveId);
         var hiveName = hive ? hive.name : ('Kovan ' + a.hiveId);
         var pri = a.severity === 'high' ? 1 : (a.severity === 'medium' ? 2 : 3);
         return (
           '<article class="item-card">' +
             '<div class="row">' +
-              '<h3>' + a.title + '</h3>' +
-              '<span class="badge priority-' + pri + '">' + (a.type || 'uyarı') + '</span>' +
+              '<h3>' + esc(a.title) + '</h3>' +
+              '<span class="badge priority-' + pri + '">' + esc(a.type || 'uyarı') + '</span>' +
             '</div>' +
-            '<div class="meta">' + hiveName +
-              ' · <a href="kovanlar.html?id=' + a.hiveId + '">Kovana git</a></div>' +
+            '<div class="meta">' + esc(hiveName) +
+              ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a></div>' +
           '</article>'
         );
-      }).join('') || '<p class="muted">Açık uyarı yok.</p>';
+      }
+
+      var alerts = D.alerts.slice();
+      var allLabel = 'Tüm uyarılar';
+      var itemWord = 'uyarı';
+
+      if (view === 'ogul') {
+        alerts = alerts.filter(function (a) { return a.type === 'ogul'; });
+        titleEl.textContent = 'Oğul uyarıları';
+        subEl.textContent = 'Oğul';
+        allLabel = 'Tüm oğul uyarıları';
+        itemWord = 'oğul uyarısı';
+      } else {
+        titleEl.textContent = 'Uyarılar';
+        subEl.textContent = 'Uyarılar';
+      }
+
+      var groups = groupAlertsByApiary(alerts);
+
+      var effectiveMode = mode;
+      if (!hasMode && apiaryFilter) {
+        effectiveMode = 'apiary';
+      }
+
+      /* Chooser */
+      if (!hasMode && !apiaryFilter) {
+        summaryEl.textContent = alerts.length + ' açık ' + itemWord + ' · görünüm seçin';
+        noteEl.textContent = allLabel + ' veya bir arılık seçin.';
+        modeSwitchEl.innerHTML = '';
+        var html = '<div class="choice-grid">' +
+          choiceBtn(pageHref('mode=all'), allLabel, alerts.length + ' ' + itemWord + ' tek listede');
+        groups.forEach(function (g) {
+          html += choiceBtn(
+            pageHref('mode=apiary&apiary=' + encodeURIComponent(g.apiaryId)),
+            g.apiaryName,
+            g.alerts.length + ' ' + itemWord
+          );
+        });
+        if (!groups.length) {
+          html += '<p class="muted">Bu durumda arılık yok.</p>';
+        }
+        html += '</div>';
+        listEl.innerHTML = html;
+        return;
+      }
+
+      if (effectiveMode === 'apiary' && apiaryFilter) {
+        alerts = alerts.filter(function (a) {
+          return alertApiaryId(a) === String(apiaryFilter);
+        });
+      }
+
+      var filterApiary = apiaryFilter ? D.apiaryById(apiaryFilter) : null;
+      var apName = filterApiary ? (filterApiary.name || filterApiary.place) : '';
+
+      summaryEl.textContent = alerts.length + ' açık ' + itemWord + ' · ' +
+        (effectiveMode === 'all' ? allLabel : (apName || 'Arılık'));
+      noteEl.textContent = 'Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.';
+
+      modeSwitchEl.innerHTML =
+        '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">' + esc(allLabel) + '</a>' +
+        '<a class="' + (effectiveMode === 'apiary' ? 'active' : '') + '" href="' + pageHref('') + '">Arılıklar</a>';
+
+      listEl.innerHTML = alerts.map(renderAlertCard).join('') || '<p class="muted">Açık uyarı yok.</p>';
     })();
   </script>
 </body>

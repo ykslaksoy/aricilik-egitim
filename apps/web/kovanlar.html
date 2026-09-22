@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <style>
+    .mode-switch {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    }
+    .mode-switch a {
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 10px; border-radius: 12px; text-decoration: none;
+      font-size: 13px; font-weight: 800; border: 1.5px solid var(--card-border, #e4e6ea);
+      background: #fff; color: var(--text, #1a1b1e);
+    }
+    .mode-switch a.active {
+      background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft, #fff3bf) 100%);
+      border-color: #e0c56a; color: var(--brown, #5c4813);
+    }
+    .choice-grid { display: grid; gap: 10px; }
+    .choice-btn {
+      display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+      padding: 14px 14px; border-radius: 14px; text-decoration: none;
+      border: 1.5px solid #e0c56a;
+      background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft, #fff3bf) 100%);
+      color: var(--brown, #5c4813); font-family: inherit;
+    }
+    .choice-btn strong { font-size: 15px; font-weight: 800; color: var(--brown, #5c4813); }
+    .choice-btn span { font-size: 12px; font-weight: 650; color: var(--muted, #868e96); }
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -24,6 +49,7 @@
     <section class="card stack">
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
       <p class="muted" id="summary">Demo kovan listesi…</p>
+      <div class="mode-switch" id="modeSwitch"></div>
       <div class="list" id="hive-list"></div>
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
@@ -37,11 +63,16 @@
       var params = new URLSearchParams(location.search);
       var view = (params.get('view') || '').toLowerCase();
       var focusId = params.get('id');
+      var hasMode = params.has('mode');
+      var modeParam = params.get('mode');
+      var mode = modeParam === 'all' ? 'all' : (modeParam === 'apiary' ? 'apiary' : null);
+      var apiaryFilter = params.get('apiary') || '';
       var listEl = document.getElementById('hive-list');
       var titleEl = document.getElementById('pageTitle');
       var subEl = document.getElementById('pageSub');
       var summaryEl = document.getElementById('summary');
       var noteEl = document.getElementById('pageNote');
+      var modeSwitchEl = document.getElementById('modeSwitch');
 
       var titles = {
         tarti: 'Tartı',
@@ -60,7 +91,6 @@
       }
 
       if (view === 'ariliklar') {
-        /* Ana tile + legacy link → Hardal list (FAB Arılık ekle + detay) */
         location.replace('ariliklar.html');
         return;
       }
@@ -75,41 +105,50 @@
         return;
       }
 
-      var hives = D.loadHives ? D.loadHives().slice() : D.hives.slice();
-      var apiaryFilter = params.get('apiary');
-      var filterApiary = null;
-      if (apiaryFilter) {
-        hives = hives.filter(function (h) { return h.apiaryId === apiaryFilter; });
-        filterApiary = D.apiaryById(apiaryFilter);
-        titleEl.textContent = filterApiary ? (filterApiary.place || filterApiary.name) : 'Arılık kovanları';
-        subEl.textContent = 'Kovanlar';
-      }
       if (focusId) {
-        /* Deep link → kovan detay sayfası */
         location.replace('kovan.html?id=' + encodeURIComponent(focusId));
         return;
       }
 
-      if (view === 'tarti') {
-        summaryEl.textContent = hives.length + ' kovan · tartı / ağırlık değişimi';
-        noteEl.textContent = 'Tartı odaklı görünüm (delta kg).';
-      } else if (view === 'saglik') {
-        summaryEl.textContent = hives.length + ' kovan · sağlık skoru';
-        noteEl.textContent = 'Sağlık odaklı görünüm.';
-      } else if (view === 'koloni') {
-        summaryEl.textContent = hives.length + ' kovan · koloni skoru';
-        noteEl.textContent = 'Koloni gücü odaklı görünüm.';
-      } else if (apiaryFilter) {
-        var apName = filterApiary ? filterApiary.name : apiaryFilter;
-        summaryEl.textContent = hives.length + ' kovan · ' + apName;
-        noteEl.innerHTML = '<a href="arilik.html?id=' + encodeURIComponent(apiaryFilter) + '">← Arılık detayı</a>' +
-          ' · <a href="ariliklar.html">Tüm arılıklar</a>';
-      } else {
-        summaryEl.textContent = hives.length + ' kovan';
-        noteEl.textContent = 'Kayıtlı kovanlar. Arılık detayından süzebilirsiniz.';
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
 
-      listEl.innerHTML = hives.map(function (h) {
+      function pageHref(extra) {
+        var parts = [];
+        if (view) parts.push('view=' + encodeURIComponent(view));
+        if (extra) parts.push(extra);
+        return 'kovanlar.html' + (parts.length ? '?' + parts.join('&') : '');
+      }
+
+      function choiceBtn(href, title, meta) {
+        return '<a class="choice-btn" href="' + href + '">' +
+          '<strong>' + esc(title) + '</strong>' +
+          '<span>' + esc(meta) + '</span></a>';
+      }
+
+      function groupByApiary(hives) {
+        var map = {};
+        var order = [];
+        hives.forEach(function (h) {
+          var aid = String(h.apiaryId || 'none');
+          if (!map[aid]) {
+            map[aid] = [];
+            order.push(aid);
+          }
+          map[aid].push(h);
+        });
+        return order.map(function (aid) {
+          var ap = D.apiaryById(aid);
+          return {
+            apiaryId: aid,
+            apiaryName: ap ? (ap.name || ap.place || 'Arılık') : 'Arılık',
+            hives: map[aid]
+          };
+        });
+      }
+
+      function renderHiveCard(h) {
         var ap = D.apiaryById(h.apiaryId);
         var place = ap ? ap.name : '—';
         var badge;
@@ -118,9 +157,6 @@
           var sign = h.deltaKg > 0 ? '+' : '';
           badge = sign + h.deltaKg.toFixed(1) + ' kg';
           meta = h.weightKg.toFixed(1) + ' kg · ' + place;
-        } else if (view === 'saglik') {
-          badge = h.health;
-          meta = 'Skor ' + h.healthScore + ' · ' + place;
         } else if (view === 'koloni') {
           badge = String(h.colonyScore);
           meta = 'Koloni · ' + place;
@@ -130,16 +166,78 @@
         }
         var tone = h.healthScore < 50 ? 'priority-1' : (h.healthScore < 70 ? 'priority-2' : 'priority-3');
         return (
-          '<a class="item-card" id="hive-' + h.id + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
+          '<a class="item-card" id="hive-' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
             '<div class="row">' +
-              '<h3>' + h.name + '</h3>' +
-              '<span class="badge ' + tone + '">' + badge + '</span>' +
+              '<h3>' + esc(h.name) + '</h3>' +
+              '<span class="badge ' + tone + '">' + esc(badge) + '</span>' +
             '</div>' +
-            '<div class="meta">' + meta +
-              ' · <span onclick="event.preventDefault();event.stopPropagation();location.href=\'petek-tarama.html?hiveId=' + h.id + '\';" style="color:#2b6cb0;text-decoration:underline;cursor:pointer;">Petek tarama</span></div>' +
+            '<div class="meta">' + esc(meta) +
+              ' · <span onclick="event.preventDefault();event.stopPropagation();location.href=\'petek-tarama.html?hiveId=' + encodeURIComponent(h.id) + '\';" style="color:#2b6cb0;text-decoration:underline;cursor:pointer;">Petek tarama</span></div>' +
           '</a>'
         );
-      }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
+      }
+
+      var hives = D.loadHives ? D.loadHives().slice() : D.hives.slice();
+      var groups = groupByApiary(hives);
+
+      /* Legacy apiary= without mode → already chose that apiary (list, not chooser) */
+      var effectiveMode = mode;
+      if (!hasMode && apiaryFilter) {
+        effectiveMode = 'apiary';
+      }
+
+      /* Chooser: no mode and no apiary */
+      if (!hasMode && !apiaryFilter) {
+        summaryEl.textContent = hives.length + ' kovan · görünüm seçin';
+        noteEl.textContent = 'Tüm kovanlar veya bir arılık seçin.';
+        modeSwitchEl.innerHTML = '';
+        var html = '<div class="choice-grid">' +
+          choiceBtn(pageHref('mode=all'), 'Tüm kovanlar', hives.length + ' kovan tek listede');
+        groups.forEach(function (g) {
+          html += choiceBtn(
+            pageHref('mode=apiary&apiary=' + encodeURIComponent(g.apiaryId)),
+            g.apiaryName,
+            g.hives.length + ' kovan'
+          );
+        });
+        if (!groups.length) {
+          html += '<p class="muted">Bu durumda arılık yok.</p>';
+        }
+        html += '</div>';
+        listEl.innerHTML = html;
+        return;
+      }
+
+      /* Filter to one apiary */
+      if (effectiveMode === 'apiary' && apiaryFilter) {
+        hives = hives.filter(function (h) { return String(h.apiaryId) === String(apiaryFilter); });
+      }
+
+      var filterApiary = apiaryFilter ? D.apiaryById(apiaryFilter) : null;
+      var apName = filterApiary ? (filterApiary.name || filterApiary.place) : '';
+
+      if (view === 'tarti') {
+        summaryEl.textContent = hives.length + ' kovan · ' +
+          (effectiveMode === 'all' ? 'Tüm kovanlar · tartı' : ((apName || 'Arılık') + ' · tartı'));
+        noteEl.textContent = 'Tartı odaklı görünüm (delta kg).';
+      } else if (view === 'koloni') {
+        summaryEl.textContent = hives.length + ' kovan · ' +
+          (effectiveMode === 'all' ? 'Tüm kovanlar · koloni' : ((apName || 'Arılık') + ' · koloni'));
+        noteEl.textContent = 'Koloni gücü odaklı görünüm.';
+      } else if (effectiveMode === 'apiary' && apiaryFilter) {
+        summaryEl.textContent = hives.length + ' kovan · ' + (apName || apiaryFilter);
+        noteEl.innerHTML = '<a href="arilik.html?id=' + encodeURIComponent(apiaryFilter) + '">← Arılık detayı</a>' +
+          ' · <a href="ariliklar.html">Tüm arılıklar</a>';
+      } else {
+        summaryEl.textContent = hives.length + ' kovan · Tüm kovanlar';
+        noteEl.textContent = 'Kayıtlı kovanlar. Arılık detayından süzebilirsiniz.';
+      }
+
+      modeSwitchEl.innerHTML =
+        '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">Tüm kovanlar</a>' +
+        '<a class="' + (effectiveMode === 'apiary' ? 'active' : '') + '" href="' + pageHref('') + '">Arılıklar</a>';
+
+      listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
 </body>
