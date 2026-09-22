@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SüperArı · Kovan</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --card-border: #e6e8ec;
+    --text: #1f1a16;
+    --muted: #6b635a;
+    --phone-w: 390px;
+    --phone-h: 844px;
+    --orange: #f08c00;
+    --green: #2f9e44;
+    --green-bg: #e8f7ec;
+    --green-soft: #d3f0db;
+    --warn: #e67700;
+    --warn-bg: #fff4e0;
+    --danger: #e03131;
+    --danger-bg: #ffe3e3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; min-height: 100%; background: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    display: flex; align-items: flex-start; justify-content: center;
+    min-height: 100vh; padding: 20px 0 28px;
+    overflow-x: hidden; overflow-y: auto;
+  }
+  .phone {
+    width: var(--phone-w); height: var(--phone-h);
+    background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
+  }
+  .phone-notch {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 28px; background: #111; border-radius: 18px; z-index: 50;
+  }
+  .status-bar {
+    flex-shrink: 0; height: 48px; padding: 16px 22px 0;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa;
+  }
+  .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; }
+  .screen {
+    flex: 1 1 auto; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; background: var(--bg);
+    padding: 0 14px 18px; position: relative;
+  }
+
+  .kd-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 4px 0 12px; min-height: 44px;
+  }
+  .back-btn {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: #fff; border: 1px solid var(--card-border);
+    color: #444; text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  .back-btn svg { width: 18px; height: 18px; }
+  .kd-titles { flex: 1; min-width: 0; text-align: center; }
+  .kd-titles h1 {
+    font-size: 18px; font-weight: 800; color: var(--text);
+    letter-spacing: -.02em; line-height: 1.15;
+  }
+  .kd-titles p {
+    margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ok-pill {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 7px 10px; border-radius: 999px;
+    background: var(--green-bg); color: var(--green);
+    font-size: 11px; font-weight: 750; white-space: nowrap;
+    border: 1px solid var(--green-soft);
+  }
+  .ok-pill.warn { background: var(--warn-bg); color: var(--warn); border-color: #ffe0a8; }
+  .ok-pill.bad { background: var(--danger-bg); color: var(--danger); border-color: #ffc9c9; }
+
+  .wx-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+    margin-bottom: 12px;
+  }
+  .wx-cell {
+    background: #eef0f3; border-radius: 12px; padding: 8px 4px 7px;
+    text-align: center; min-width: 0;
+  }
+  .wx-ico { font-size: 15px; line-height: 1; margin-bottom: 3px; }
+  .wx-val {
+    font-size: 12px; font-weight: 800; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wx-lbl {
+    margin-top: 1px; font-size: 10px; font-weight: 600; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .sum-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 12px;
+  }
+  .sum-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 10px 8px 9px;
+    box-shadow: 0 2px 8px rgba(40,30,10,.04);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+    min-width: 0;
+  }
+  .sum-top { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .sum-ico {
+    width: 22px; height: 22px; border-radius: 7px;
+    display: grid; place-items: center; font-size: 12px;
+    background: var(--green-bg); color: var(--green);
+  }
+  .sum-ico.warn { background: var(--warn-bg); color: var(--warn); }
+  .sum-ico.bad { background: var(--danger-bg); color: var(--danger); }
+  .sum-lbl { font-size: 11px; font-weight: 700; color: var(--muted); }
+  .sum-val {
+    font-size: 16px; font-weight: 800; color: var(--green);
+    letter-spacing: -.02em; line-height: 1.1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  .sum-val.warn { color: var(--warn); }
+  .sum-val.bad { color: var(--danger); }
+  .sum-badge {
+    display: inline-flex; padding: 2px 7px; border-radius: 999px;
+    font-size: 10px; font-weight: 750;
+    background: var(--green-soft); color: var(--green);
+  }
+  .sum-badge.warn { background: #ffe8c2; color: var(--warn); }
+  .sum-badge.bad { background: #ffd0d0; color: var(--danger); }
+
+  .hive-photo {
+    margin-bottom: 12px; border-radius: 16px; overflow: hidden;
+    background: #fff; border: 1px solid var(--card-border);
+    box-shadow: 0 4px 14px rgba(40,30,10,.06);
+    aspect-ratio: 16 / 10;
+  }
+  .hive-photo img {
+    display: block; width: 100%; height: 100%;
+    object-fit: contain; background: linear-gradient(180deg, #fafbfc, #f0f2f5);
+  }
+
+  .sensor-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .sensor-tile {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px;
+    box-shadow: 0 2px 8px rgba(40,30,10,.04);
+    display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;
+  }
+  .s-ico {
+    width: 28px; height: 28px; border-radius: 9px;
+    display: grid; place-items: center; font-size: 14px;
+    background: #f1f3f5; color: #495057;
+  }
+  .s-lbl { font-size: 11px; font-weight: 700; color: var(--muted); }
+  .s-val {
+    margin-top: 2px; font-size: 15px; font-weight: 800; color: var(--green);
+    letter-spacing: -.02em;
+  }
+  .s-val.warn { color: var(--warn); }
+  .s-val.bad { color: var(--danger); }
+  .s-badge {
+    padding: 3px 7px; border-radius: 999px;
+    font-size: 10px; font-weight: 750;
+    background: var(--green-soft); color: var(--green); white-space: nowrap;
+  }
+  .s-badge.warn { background: #ffe8c2; color: var(--warn); }
+  .s-badge.bad { background: #ffd0d0; color: var(--danger); }
+
+  .chart-card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 14px 12px 12px;
+    box-shadow: 0 2px 10px rgba(40,30,10,.04);
+    margin-bottom: 8px;
+  }
+  .chart-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 10px;
+  }
+  .chart-head h2 { font-size: 15px; font-weight: 800; color: var(--text); }
+  .metric-select {
+    appearance: none; -webkit-appearance: none;
+    background: #f1f3f5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b635a' d='M1 1l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 10px center;
+    border: 1px solid var(--card-border); border-radius: 10px;
+    padding: 7px 28px 7px 11px; font-size: 12px; font-weight: 750;
+    color: var(--text); font-family: inherit; cursor: pointer;
+  }
+  .chart-wrap {
+    position: relative; width: 100%; height: 168px;
+    border-radius: 12px; background: #fafbfc; border: 1px solid #eef0f3;
+    overflow: hidden;
+  }
+  .chart-wrap canvas { display: block; width: 100%; height: 100%; }
+  .chart-toggles {
+    display: flex; flex-wrap: wrap; gap: 8px 12px;
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid #eef0f3;
+  }
+  .tog {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    cursor: pointer; user-select: none;
+  }
+  .tog input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+  .tog-sw {
+    width: 32px; height: 18px; border-radius: 999px;
+    background: #ced4da; position: relative; transition: background .15s;
+    flex: 0 0 auto;
+  }
+  .tog-sw::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15); transition: transform .15s;
+  }
+  .tog input:checked + .tog-sw { background: var(--green); }
+  .tog input:checked + .tog-sw::after { transform: translateX(14px); }
+  .tog.is-on { color: var(--text); }
+
+  .missing {
+    background: #fff; border: 1px solid var(--card-border); border-radius: 16px;
+    padding: 28px 18px; text-align: center; margin-top: 24px;
+  }
+  .missing h2 { font-size: 18px; font-weight: 800; color: var(--text); }
+  .missing p { margin: 8px 0 16px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .missing a {
+    display: inline-flex; padding: 10px 14px; border-radius: 10px;
+    background: #fff; border: 1px solid var(--card-border);
+    color: var(--text); font-size: 13px; font-weight: 700; text-decoration: none;
+  }
+
+  .tabbar {
+    flex-shrink: 0; height: 72px; background: #fff; border-top: 1px solid #e6e8ec;
+    display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
+    padding: 0 4px 10px;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: #8b8680; font-size: 10px; font-weight: 600;
+    text-decoration: none; -webkit-tap-highlight-color: transparent;
+  }
+  .tab.active { color: var(--orange); }
+  .tab svg { width: 22px; height: 22px; }
+  .home-indicator {
+    position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 4px; background: #222; border-radius: 4px; z-index: 60;
+  }
+  @media (max-width: 420px) {
+    body { padding: 0; background: #f7f8fa; }
+    .phone { width: 100vw; height: 100dvh; border-radius: 0; box-shadow: none; }
+    .phone-notch, .home-indicator { display: none; }
+    .screen { flex: 1 1 auto; min-height: 0; height: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen" id="screen">
+    <div id="content"></div>
+  </div>
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9h-5v-6H11v6H6v-9H3l9-8z"/></svg>
+      Ana
+    </a>
+    <a class="tab active" href="kovanlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="5" rx="1"/><rect x="5" y="10" width="14" height="5" rx="1"/><rect x="5" y="16" width="14" height="4" rx="1"/></svg>
+      Kovanlar
+    </a>
+    <a class="tab" href="uyarilar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 7-6 7-6 12"/><path d="M10 21h4"/></svg>
+      Uyarılar
+    </a>
+    <a class="tab" href="gorevler.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+      Görevler
+    </a>
+    <a class="tab" href="ayarlar.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4"/></svg>
+      Ayarlar
+    </a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+
+<script src="demo-data.js"></script>
+<script>
+(function () {
+  var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+  var WIND_DIRS = ['K','KD','D','GD','G','GB','B','KB'];
+  var METRICS = {
+    tarti: { key: 'tarti', label: 'Tartı', unit: 'kg', color: '#2f9e44' },
+    sicaklik: { key: 'sicaklik', label: 'Sıcaklık', unit: '°C', color: '#e67700', fixedMax: 45 },
+    nem: { key: 'nem', label: 'Nem', unit: '%', color: '#1c7ed6', fixedMax: 100 },
+    ses: { key: 'ses', label: 'Ses', unit: '', color: '#7048e8', fixedMax: 1 },
+    titresim: { key: 'titresim', label: 'Titreşim', unit: '', color: '#e03131', fixedMax: 1 },
+    ir: { key: 'ir', label: 'IR', unit: '/saat', color: '#0ca678' }
+  };
+
+  var chartState = {
+    series: [],
+    primary: 'tarti',
+    overlays: { sicaklik: false, nem: false, ses: false, titresim: false, ir: false }
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function tickClock() {
+    var el = $('clock');
+    if (!el) return;
+    var d = new Date();
+    el.textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  tickClock();
+  setInterval(tickClock, 30000);
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function toneHealth(health, score) {
+    var h = String(health || '');
+    if (h === 'Kritik' || score < 50) return 'bad';
+    if (h === 'Dikkat' || score < 70) return 'warn';
+    return '';
+  }
+  function toneSwarm(risk) {
+    var r = String(risk || '');
+    if (r === 'Yüksek') return 'bad';
+    if (r === 'Orta') return 'warn';
+    return '';
+  }
+  function toneWeight(delta) {
+    if (delta <= -1.5) return 'bad';
+    if (delta < -0.3 || delta > 2.5) return 'warn';
+    return '';
+  }
+  function sensorsPill(hive) {
+    var t = toneHealth(hive.health, hive.healthScore);
+    if (t === 'bad') return { cls: 'bad', label: '⚠ Sensör uyarısı' };
+    if (t === 'warn') return { cls: 'warn', label: '◐ Kısmi uyarı' };
+    return { cls: '', label: '✔ Sensörler OK' };
+  }
+
+  function deriveSensors(hive) {
+    var id = Number(hive.id) || 0;
+    var score = Number(hive.healthScore) || 80;
+    var seed = (id * 17 + Math.round((Number(hive.weightKg) || 30) * 10)) % 97;
+    var temp = 32.4 + (seed % 30) / 10;
+    var humid = 55 + (seed % 18);
+    var ir = 90 + (seed % 60) + Math.round(score / 5);
+    var batt = Math.max(42, Math.min(98, 70 + Math.round(score / 5) - (seed % 8)));
+    var soundOk = score >= 55;
+    var vibOk = score >= 50;
+    var tempTone = (temp < 30 || temp > 36.5 || score < 50) ? 'warn' : '';
+    var humidTone = (humid < 50 || humid > 75 || score < 50) ? 'warn' : '';
+    return {
+      temp: { value: temp.toFixed(1) + '°C', tone: tempTone, badge: tempTone ? 'Dikkat' : 'Normal' },
+      humid: { value: '%' + humid, tone: humidTone, badge: humidTone ? 'Dikkat' : 'Normal' },
+      sound: { value: soundOk ? 'Normal' : 'Yüksek', tone: soundOk ? '' : 'warn', badge: soundOk ? 'Normal' : 'Dikkat' },
+      vib: { value: vibOk ? 'Normal' : 'Yüksek', tone: vibOk ? '' : 'warn', badge: vibOk ? 'Normal' : 'Dikkat' },
+      ir: { value: ir + '/saat', tone: '', badge: 'Normal' },
+      batt: { value: '%' + batt, tone: batt < 55 ? 'warn' : '', badge: batt < 55 ? 'Düşük' : 'Normal' }
+    };
+  }
+
+  function demoWeather(hive, apiary) {
+    var id = Number(hive.id) || 0;
+    var seed = (id * 13 + (apiary && apiary.lat ? Math.round(apiary.lat * 10) : 0)) % 40;
+    var conds = ['Güneşli', 'Az bulutlu', 'Parçalı bulutlu', 'Açık'];
+    return {
+      temp: 18 + (seed % 12),
+      cond: conds[seed % conds.length],
+      humid: 35 + (seed % 30),
+      wind: 4 + (seed % 10),
+      dir: WIND_DIRS[seed % WIND_DIRS.length]
+    };
+  }
+
+  function buildSeries(hive) {
+    var base = Number(hive.weightKg) || 35;
+    var delta = Number(hive.deltaKg) || 0;
+    var id = Number(hive.id) || 1;
+    var days = [];
+    var now = new Date();
+    for (var i = 9; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      var t = (9 - i) / 9;
+      var wobble = Math.sin((id + i) * 0.7) * 0.55 + Math.cos((id * 0.3) + i) * 0.35;
+      days.push({
+        date: d,
+        label: d.getDate() + ' ' + TR_MONTHS[d.getMonth()],
+        tarti: +(base - delta * (1 - t) + wobble).toFixed(2),
+        sicaklik: +(33.2 + Math.sin((id + i) * 0.5) * 1.4 + (i % 3) * 0.2).toFixed(1),
+        nem: Math.round(58 + Math.cos((id + i) * 0.4) * 6 + (i % 2)),
+        ses: +(0.35 + Math.abs(Math.sin((id + i) * 0.6)) * 0.25).toFixed(2),
+        titresim: +(0.2 + Math.abs(Math.cos((id + i) * 0.55)) * 0.3).toFixed(2),
+        ir: Math.round(100 + Math.sin((id + i) * 0.45) * 25 + i * 2)
+      });
+    }
+    days[days.length - 1].tarti = +base.toFixed(2);
+    return days;
+  }
+
+  function niceMax(v) {
+    if (v <= 0) return 1;
+    var p = Math.pow(10, Math.floor(Math.log10(v)));
+    var n = Math.ceil(v / p);
+    if (n <= 2) return 2 * p;
+    if (n <= 5) return 5 * p;
+    return 10 * p;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function drawChart() {
+    var canvas = $('trendChart');
+    if (!canvas || !chartState.series.length) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cssW = canvas.clientWidth || 340;
+    var cssH = canvas.clientHeight || 168;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    var pad = { t: 18, r: 12, b: 28, l: 40 };
+    var plotW = cssW - pad.l - pad.r;
+    var plotH = cssH - pad.t - pad.b;
+    var series = chartState.series;
+    var n = series.length;
+    var primary = METRICS[chartState.primary] || METRICS.tarti;
+    var values = series.map(function (d) { return d[primary.key]; });
+    var maxV = Math.max.apply(null, values.concat([0.01]));
+    var yMax = primary.fixedMax != null ? primary.fixedMax : niceMax(maxV * 1.15);
+    if (yMax < maxV) yMax = niceMax(maxV * 1.15);
+
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#adb5bd';
+    ctx.font = '600 10px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (var ti = 0; ti <= 3; ti++) {
+      var yv = (yMax * ti) / 3;
+      var y = pad.t + plotH - (plotH * ti) / 3;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(pad.l + plotW, y);
+      ctx.stroke();
+      var label;
+      if (primary.unit === 'kg') label = Math.round(yv) + ' kg';
+      else if (primary.unit === '°C') label = Math.round(yv) + '°';
+      else if (primary.unit === '%') label = '%' + Math.round(yv);
+      else if (primary.unit === '/saat') label = String(Math.round(yv));
+      else label = yv < 1 ? yv.toFixed(1) : String(Math.round(yv));
+      ctx.fillText(label, pad.l - 6, y);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#868e96';
+    for (var xi = 0; xi < n; xi++) {
+      if (xi !== 0 && xi !== n - 1 && xi % 3 !== 0) continue;
+      ctx.fillText(series[xi].label, pad.l + (plotW * xi) / (n - 1), pad.t + plotH + 8);
+    }
+
+    function xAt(i) { return pad.l + (plotW * i) / (n - 1); }
+    function yAt(v) { return pad.t + plotH - (plotH * Math.max(0, Math.min(v, yMax))) / yMax; }
+
+    Object.keys(chartState.overlays).forEach(function (k) {
+      if (!chartState.overlays[k] || k === chartState.primary) return;
+      var m = METRICS[k];
+      if (!m) return;
+      var ov = series.map(function (d) { return d[m.key]; });
+      var oMax = Math.max.apply(null, ov.concat([0.01]));
+      ctx.beginPath();
+      for (var i = 0; i < n; i++) {
+        var yy = pad.t + plotH - (plotH * (ov[i] / oMax)) * 0.92;
+        if (i === 0) ctx.moveTo(xAt(i), yy); else ctx.lineTo(xAt(i), yy);
+      }
+      ctx.strokeStyle = m.color;
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    });
+
+    ctx.beginPath();
+    for (var i = 0; i < n; i++) {
+      var xx = xAt(i);
+      var yy = yAt(series[i][primary.key]);
+      if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+    }
+    ctx.strokeStyle = primary.color;
+    ctx.lineWidth = 2.4;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    ctx.lineTo(xAt(n - 1), pad.t + plotH);
+    ctx.lineTo(xAt(0), pad.t + plotH);
+    ctx.closePath();
+    ctx.fillStyle = primary.color + '28';
+    ctx.fill();
+
+    for (var pi = 0; pi < n; pi++) {
+      var px = xAt(pi);
+      var py = yAt(series[pi][primary.key]);
+      ctx.beginPath();
+      ctx.arc(px, py, pi === n - 1 ? 5 : 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = primary.color;
+      ctx.lineWidth = pi === n - 1 ? 2.5 : 1.6;
+      ctx.stroke();
+    }
+
+    var last = series[n - 1][primary.key];
+    var lx = xAt(n - 1);
+    var ly = yAt(last);
+    var tag;
+    if (primary.unit === 'kg') tag = last.toFixed(1) + ' kg';
+    else if (primary.unit === '°C') tag = last.toFixed(1) + '°C';
+    else if (primary.unit === '%') tag = '%' + Math.round(last);
+    else if (primary.unit === '/saat') tag = Math.round(last) + '/saat';
+    else tag = String(last);
+    ctx.font = '700 10px -apple-system, BlinkMacSystemFont, sans-serif';
+    var tw = ctx.measureText(tag).width;
+    var bx = Math.min(lx - tw / 2 - 6, cssW - pad.r - tw - 14);
+    bx = Math.max(pad.l, bx);
+    var by = Math.max(pad.t + 2, ly - 22);
+    ctx.fillStyle = primary.color;
+    roundRect(ctx, bx, by - 10, tw + 12, 18, 8);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tag, bx + 6, by - 1);
+  }
+
+  function sensorTile(ico, label, s) {
+    var t = s.tone || '';
+    return (
+      '<div class="sensor-tile">' +
+        '<div class="s-ico" aria-hidden="true">' + ico + '</div>' +
+        '<div>' +
+          '<div class="s-lbl">' + label + '</div>' +
+          '<div class="s-val' + (t ? ' ' + t : '') + '">' + escapeHtml(s.value) + '</div>' +
+        '</div>' +
+        '<span class="s-badge' + (t ? ' ' + t : '') + '">' + escapeHtml(s.badge) + '</span>' +
+      '</div>'
+    );
+  }
+
+  function toggleHtml(key, label) {
+    return (
+      '<label class="tog" data-key="' + key + '">' +
+        '<input type="checkbox" data-overlay="' + key + '" />' +
+        '<span class="tog-sw" aria-hidden="true"></span>' +
+        label +
+      '</label>'
+    );
+  }
+
+  function bindChartControls() {
+    var sel = $('metricSelect');
+    if (sel) {
+      sel.onchange = function () {
+        chartState.primary = sel.value;
+        drawChart();
+      };
+    }
+    var root = $('chartToggles');
+    if (!root) return;
+    root.querySelectorAll('input[data-overlay]').forEach(function (inp) {
+      inp.onchange = function () {
+        var k = inp.getAttribute('data-overlay');
+        chartState.overlays[k] = !!inp.checked;
+        var lab = inp.closest('.tog');
+        if (lab) lab.classList.toggle('is-on', inp.checked);
+        drawChart();
+      };
+    });
+  }
+
+  function render(hive, apiary) {
+    var content = $('content');
+    if (!hive) {
+      document.title = 'SüperArı · Kovan bulunamadı';
+      content.innerHTML =
+        '<div class="missing">' +
+          '<h2>Kovan bulunamadı</h2>' +
+          '<p>Listeye dönüp bir kovan seçin.</p>' +
+          '<a href="kovanlar.html">← Kovanlar</a>' +
+        '</div>';
+      return;
+    }
+
+    var place = apiary ? (apiary.place || apiary.name) : '—';
+    var backHref = apiary
+      ? 'arilik.html?id=' + encodeURIComponent(apiary.id)
+      : 'kovanlar.html';
+    document.title = 'SüperArı · ' + hive.name;
+
+    var ok = sensorsPill(hive);
+    var wt = toneWeight(Number(hive.deltaKg) || 0);
+    var ht = toneHealth(hive.health, hive.healthScore);
+    var st = toneSwarm(hive.swarmRisk);
+    var sensors = deriveSensors(hive);
+    var wx = demoWeather(hive, apiary);
+    chartState.series = buildSeries(hive);
+    chartState.primary = 'tarti';
+    chartState.overlays = { sicaklik: false, nem: false, ses: false, titresim: false, ir: false };
+
+    function cls(t) { return t ? ' ' + t : ''; }
+    var swarmTone = st || 'warn';
+
+    content.innerHTML =
+      '<header class="kd-head">' +
+        '<a class="back-btn" href="' + backHref + '" aria-label="Geri">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' +
+        '</a>' +
+        '<div class="kd-titles">' +
+          '<h1>' + escapeHtml(hive.name) + '</h1>' +
+          '<p>' + escapeHtml(place) + '</p>' +
+        '</div>' +
+        '<span class="ok-pill' + cls(ok.cls) + '">' + escapeHtml(ok.label) + '</span>' +
+      '</header>' +
+
+      '<div class="wx-strip" aria-label="Hava">' +
+        '<div class="wx-cell"><div class="wx-ico">☀️</div><div class="wx-val">' + wx.temp + '°C</div><div class="wx-lbl">' + escapeHtml(wx.cond) + '</div></div>' +
+        '<div class="wx-cell"><div class="wx-ico">💧</div><div class="wx-val">%' + wx.humid + '</div><div class="wx-lbl">Nem</div></div>' +
+        '<div class="wx-cell"><div class="wx-ico">💨</div><div class="wx-val">' + wx.wind + ' km/sa</div><div class="wx-lbl">Rüzgar</div></div>' +
+        '<div class="wx-cell"><div class="wx-ico">🧭</div><div class="wx-val">' + escapeHtml(wx.dir) + '</div><div class="wx-lbl">Rüzgar Yönü</div></div>' +
+      '</div>' +
+
+      '<div class="sum-row">' +
+        '<div class="sum-card">' +
+          '<div class="sum-top"><span class="sum-ico' + cls(wt) + '">⚖</span><span class="sum-lbl">Tartı</span></div>' +
+          '<div class="sum-val' + cls(wt) + '">' + Number(hive.weightKg).toFixed(1) + ' kg</div>' +
+          '<span class="sum-badge' + cls(wt) + '">' + (wt === 'bad' ? 'Kritik' : wt === 'warn' ? 'Dikkat' : 'Normal') + '</span>' +
+        '</div>' +
+        '<div class="sum-card">' +
+          '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +
+          '<div class="sum-val' + cls(ht) + '">' + escapeHtml(hive.health) + '</div>' +
+          '<span class="sum-badge' + cls(ht) + '">' + escapeHtml(hive.health) + '</span>' +
+        '</div>' +
+        '<div class="sum-card">' +
+          '<div class="sum-top"><span class="sum-ico' + cls(swarmTone) + '">◎</span><span class="sum-lbl">Oğul riski</span></div>' +
+          '<div class="sum-val' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</div>' +
+          '<span class="sum-badge' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="hive-photo">' +
+        '<img src="assets/hive-clean.jpg" alt="' + escapeHtml(hive.name) + ' görseli" width="780" height="520" decoding="async" />' +
+      '</div>' +
+
+      '<div class="sensor-grid" aria-label="Sensörler">' +
+        sensorTile('🌡', 'Sıcaklık', sensors.temp) +
+        sensorTile('💧', 'Nem', sensors.humid) +
+        sensorTile('🔊', 'Ses', sensors.sound) +
+        sensorTile('📳', 'Titreşim', sensors.vib) +
+        sensorTile('👁', 'IR', sensors.ir) +
+        sensorTile('🔋', 'Batarya', sensors.batt) +
+      '</div>' +
+
+      '<section class="chart-card">' +
+        '<div class="chart-head">' +
+          '<h2>Son 10 gün</h2>' +
+          '<select class="metric-select" id="metricSelect" aria-label="Grafik metriği">' +
+            '<option value="tarti" selected>Tartı</option>' +
+            '<option value="sicaklik">Sıcaklık</option>' +
+            '<option value="nem">Nem</option>' +
+            '<option value="ses">Ses</option>' +
+            '<option value="titresim">Titreşim</option>' +
+            '<option value="ir">IR</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="chart-wrap"><canvas id="trendChart" aria-label="Son 10 gün grafiği"></canvas></div>' +
+        '<div class="chart-toggles" id="chartToggles">' +
+          toggleHtml('sicaklik', 'Sıcaklık') +
+          toggleHtml('nem', 'Nem') +
+          toggleHtml('ses', 'Ses') +
+          toggleHtml('titresim', 'Titreşim') +
+          toggleHtml('ir', 'IR') +
+        '</div>' +
+      '</section>';
+
+    requestAnimationFrame(function () {
+      drawChart();
+      bindChartControls();
+    });
+  }
+
+  window.addEventListener('resize', function () { drawChart(); }, { passive: true });
+
+  var D = window.SuperAriDemo;
+  var params = new URLSearchParams(location.search);
+  var id = params.get('id') || params.get('hiveId') || params.get('hive');
+  var hive = null;
+  var apiary = null;
+  if (D && id != null && id !== '') {
+    hive = D.hiveById(id);
+    if (hive) apiary = D.apiaryById(hive.apiaryId);
+  }
+  render(hive, apiary);
+})();
+</script>
+</body>
+</html>

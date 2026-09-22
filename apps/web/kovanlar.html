@@ -79,8 +79,9 @@
         subEl.textContent = 'Kovanlar';
       }
       if (focusId) {
-        var one = D.hiveById(focusId);
-        if (one) hives = [one];
+        /* Deep link → kovan detay sayfası */
+        location.replace('kovan.html?id=' + encodeURIComponent(focusId));
+        return;
       }
 
       if (view === 'tarti') {
@@ -123,14 +124,14 @@
         }
         var tone = h.healthScore < 50 ? 'priority-1' : (h.healthScore < 70 ? 'priority-2' : 'priority-3');
         return (
-          '<article class="item-card" id="hive-' + h.id + '">' +
+          '<a class="item-card" id="hive-' + h.id + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
             '<div class="row">' +
               '<h3>' + h.name + '</h3>' +
               '<span class="badge ' + tone + '">' + badge + '</span>' +
             '</div>' +
             '<div class="meta">' + meta +
-              ' · <a href="petek-tarama.html?hiveId=' + h.id + '">Petek tarama</a></div>' +
-          '</article>'
+              ' · <span onclick="event.preventDefault();event.stopPropagation();location.href=\'petek-tarama.html?hiveId=' + h.id + '\';" style="color:#2b6cb0;text-decoration:underline;cursor:pointer;">Petek tarama</span></div>' +
+          '</a>'
         );
       }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();

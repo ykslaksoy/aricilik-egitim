@@ -1298,7 +1298,7 @@
     var filterHref = 'kovanlar.html?apiary=' + encodeURIComponent(apiary.id);
     var hiveRows = linked.map(function (h) {
       return (
-        '<a class="hive-item" href="kovanlar.html?id=' + encodeURIComponent(h.id) + '&amp;apiary=' + encodeURIComponent(apiary.id) + '">' +
+        '<a class="hive-item" href="kovan.html?id=' + encodeURIComponent(h.id) + '">' +
           '<div>' +
             '<h3>' + escapeHtml(h.name) + '</h3>' +
             '<div class="meta">' + escapeHtml(h.health) + ' · ' + h.weightKg.toFixed(1) + ' kg · oğul ' + escapeHtml(h.swarmRisk) + '</div>' +
