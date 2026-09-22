@@ -457,6 +457,133 @@
     return changed;
   }
 
+  var APIARIES_KEY = 'superari.ariliklar.v1';
+  var DELETED_SEEDS_KEY = 'superari.ariliklar.deletedSeeds.v1';
+  var ORPHAN_PURGE_FLAG = 'superari.giderler.orphanPurge.v1';
+
+  function readDeletedSeedIdMap() {
+    try {
+      var raw = localStorage.getItem(DELETED_SEEDS_KEY);
+      if (!raw) return {};
+      var arr = JSON.parse(raw);
+      var map = {};
+      if (Array.isArray(arr)) {
+        arr.forEach(function (id) { if (id) map[String(id)] = true; });
+      }
+      return map;
+    } catch (e) { return {}; }
+  }
+
+  /** Live apiary ids from arılık store (no SuperAriDemo call — avoids recursion). */
+  function readLiveApiaryIdMap() {
+    var map = {};
+    try {
+      var raw = localStorage.getItem(APIARIES_KEY);
+      if (raw) {
+        var list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          list.forEach(function (a) {
+            if (a && a.id) map[String(a.id)] = true;
+          });
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return map;
+  }
+
+  function clearExpenseApiaryLink(e) {
+    if (!e) return e;
+    var copy = Object.assign({}, e, {
+      apiaryId: '',
+      apiaryName: '',
+      deletedApiary: true
+    });
+    return normalizeExpense(copy) || copy;
+  }
+
+  /**
+   * After apiary delete: keep ₺ in Toplam but strip name/id so no labeled arılık row.
+   */
+  function detachApiaryFromExpenses(apiaryId) {
+    var key = String(apiaryId || '');
+    if (!key) return false;
+    var changed = false;
+    var expenses = readJson(STORAGE_KEY);
+    if (Array.isArray(expenses) && expenses.length) {
+      expenses = expenses.map(function (e) {
+        if (!e || String(e.apiaryId || '') !== key) return e;
+        changed = true;
+        return clearExpenseApiaryLink(e);
+      });
+      if (changed) writeJson(STORAGE_KEY, expenses.map(normalizeExpense).filter(Boolean));
+    }
+    var transports = readJson(TRANSPORT_KEY);
+    if (Array.isArray(transports) && transports.length) {
+      var tChanged = false;
+      transports = transports.map(function (t) {
+        if (!t || String(t.apiaryId || '') !== key) return t;
+        tChanged = true;
+        return Object.assign({}, t, {
+          apiaryId: '',
+          apiaryName: '',
+          deletedApiary: true
+        });
+      });
+      if (tChanged) {
+        writeJson(TRANSPORT_KEY, transports);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  /**
+   * One-time / on-load: strip labels for expenses whose apiaryId is gone from live list
+   * or marked deleted seed. Amounts stay in Toplam.
+   */
+  function purgeOrphanApiaryLabels() {
+    var live = readLiveApiaryIdMap();
+    var deleted = readDeletedSeedIdMap();
+    /* If arılık store empty and nothing deleted, seeds may not be written yet — skip. */
+    if (!Object.keys(live).length && !Object.keys(deleted).length) return false;
+
+    var changed = false;
+    var expenses = readJson(STORAGE_KEY);
+    if (Array.isArray(expenses) && expenses.length) {
+      expenses = expenses.map(function (e) {
+        if (!e) return e;
+        var id = String(e.apiaryId || '');
+        if (!id) return e;
+        if (live[id] && !deleted[id]) return e;
+        changed = true;
+        return clearExpenseApiaryLink(e);
+      });
+      if (changed) writeJson(STORAGE_KEY, expenses.map(normalizeExpense).filter(Boolean));
+    }
+    var transports = readJson(TRANSPORT_KEY);
+    if (Array.isArray(transports) && transports.length) {
+      var tChanged = false;
+      transports = transports.map(function (t) {
+        if (!t) return t;
+        var id = String(t.apiaryId || '');
+        if (!id) return t;
+        if (live[id] && !deleted[id]) return t;
+        tChanged = true;
+        return Object.assign({}, t, {
+          apiaryId: '',
+          apiaryName: '',
+          deletedApiary: true
+        });
+      });
+      if (tChanged) {
+        writeJson(TRANSPORT_KEY, transports);
+        changed = true;
+      }
+    }
+    try { localStorage.setItem(ORPHAN_PURGE_FLAG, '1'); } catch (eFlag) { /* ignore */ }
+    return changed;
+  }
+
   function normalizeExpense(e) {
     if (!e || typeof e !== 'object') return null;
     var cat = String(e.category || 'diger');
@@ -474,7 +601,8 @@
       transportMode: e.transportMode === 'nakliye' || e.transportMode === 'kendi_arac'
         ? e.transportMode
         : '',
-      transportId: e.transportId != null ? String(e.transportId) : ''
+      transportId: e.transportId != null ? String(e.transportId) : '',
+      deletedApiary: e.deletedApiary === true
     };
   }
 
@@ -532,15 +660,22 @@
     var changed = false;
     list = list.map(function (e) {
       if (!e) return e;
+      if (e.deletedApiary) return e; /* user deleted arılık — keep unlinked for Toplam only */
       if (e.apiaryId) return e;
       var hint = SEED_APIARY_BY_ID[e.id];
       if (!hint) return e;
+      /* Do not resurrect links onto deleted seeds */
+      var deleted = readDeletedSeedIdMap();
+      if (deleted[String(hint.id)]) {
+        changed = true;
+        return clearExpenseApiaryLink(e);
+      }
       changed = true;
       e.apiaryId = hint.id;
       e.apiaryName = hint.name || e.apiaryName || '';
       return e;
     });
-    if (changed) writeJson(STORAGE_KEY, list);
+    if (changed) writeJson(STORAGE_KEY, list.map(normalizeExpense).filter(Boolean));
     return list;
   }
 
@@ -551,10 +686,15 @@
     });
     var added = false;
     var out = (list || []).slice();
+    var deletedSeeds = readDeletedSeedIdMap();
+    var liveIds = readLiveApiaryIdMap();
     SEED_EXPENSES.forEach(function (seed) {
       if (byId[seed.id]) return;
       /* Only top-up rows for new demo apiaries a4/a5 (and any future seed ids). */
       if (seed.apiaryId !== 'a4' && seed.apiaryId !== 'a5') return;
+      var aid = String(seed.apiaryId || '');
+      if (deletedSeeds[aid]) return; /* user deleted this arılık — do not resurrect labeled rows */
+      if (Object.keys(liveIds).length && !liveIds[aid]) return;
       out.push(normalizeExpense(seed));
       added = true;
     });
@@ -570,7 +710,15 @@
       );
       var mig = migrateExpenseApiaryNames(list);
       if (mig.changed) writeJson(STORAGE_KEY, mig.list);
-      return ensureSeedExpenseRows(mig.list);
+      purgeOrphanApiaryLabels();
+      /* Re-read after possible orphan purge */
+      var after = readJson(STORAGE_KEY);
+      if (Array.isArray(after) && after.length) {
+        list = after.map(normalizeExpense).filter(Boolean);
+      } else {
+        list = mig.list;
+      }
+      return ensureSeedExpenseRows(list);
     }
     writeJson(STORAGE_KEY, SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);
@@ -853,11 +1001,11 @@
     var rows = list || loadExpenses();
     var map = {};
     rows.forEach(function (e) {
-      var id = e.apiaryId || 'none';
+      var id = (e.deletedApiary || !e.apiaryId) ? 'none' : String(e.apiaryId);
       if (!map[id]) {
         map[id] = {
           apiaryId: id,
-          apiaryName: e.apiaryName || (id === 'none' ? 'Atanmamış' : id),
+          apiaryName: id === 'none' ? 'Atanmamış' : (e.apiaryName || id),
           amount: 0,
           count: 0
         };
@@ -1392,7 +1540,9 @@
       ensureDefaultExpensesForApiary: ensureDefaultExpensesForApiary,
       ensureDefaultExpensesForAll: ensureDefaultExpensesForAll,
       repointApiaryIds: repointApiaryIds,
-      looksLikeYanikBalugName: looksLikeYanikBalugName
+      looksLikeYanikBalugName: looksLikeYanikBalugName,
+      detachApiaryFromExpenses: detachApiaryFromExpenses,
+      purgeOrphanApiaryLabels: purgeOrphanApiaryLabels
     }
   });
 })(window);

@@ -385,6 +385,13 @@
             /* Still repoint expenses that match Yanıkdağ by name onto a4. */
             repointGiderApiaries({ __yanik_by_name__: 'a4' });
           }
+          /* Strip expense/transport labels for ids no longer in live arılık list. */
+          try {
+            var Gpurge = global.SuperAriGider;
+            if (Gpurge && typeof Gpurge.purgeOrphanApiaryLabels === 'function') {
+              Gpurge.purgeOrphanApiaryLabels();
+            }
+          } catch (ePurge) { /* ignore */ }
           if (ens.changed || (ded.changed && Object.keys(ded.remappedIds || {}).length)) {
             try {
               var rawH = localStorage.getItem(HIVES_KEY);
@@ -588,7 +595,8 @@
 
   /**
    * Remove apiary + its hives from localStorage.
-   * Expenses (masraflar) are left untouched in Giderler (keep apiaryId/apiaryName).
+   * Expenses stay in Giderler Toplam but apiaryId/apiaryName are cleared
+   * so deleted names never appear as labeled arılık rows.
    */
   function removeApiary(id) {
     var key = String(id || '');
@@ -608,6 +616,15 @@
     /* Avoid reconcile resurrecting hives for a removed apiary: save filtered lists directly. */
     saveApiaries(list);
     saveHives(hives);
+    try {
+      var G = global.SuperAriGider;
+      if (G && typeof G.detachApiaryFromExpenses === 'function') {
+        G.detachApiaryFromExpenses(key);
+      }
+      if (G && typeof G.purgeOrphanApiaryLabels === 'function') {
+        G.purgeOrphanApiaryLabels();
+      }
+    } catch (eDetach) { /* ignore */ }
     return true;
   }
 

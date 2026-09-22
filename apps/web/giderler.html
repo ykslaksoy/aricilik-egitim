@@ -655,7 +655,7 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
-<script src="gider-store.js?v=yanik-dedupe-1"></script>
+<script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
 (function () {
   var G = window.SuperAriGider;
@@ -1074,7 +1074,8 @@
     var rows = [];
     var seen = {};
 
-    /* Every store apiary (incl. Balığındüzü / zero-expense) gets its own total row. */
+    /* Only live store apiaries — never push expense-only orphan named rows
+       (deleted arılık amounts stay in Toplam via cleared apiaryId). */
     apiaries.forEach(function (a) {
       var id = a.id;
       seen[id] = true;
@@ -1088,9 +1089,10 @@
       });
     });
 
-    /* Orphan expense apiaries not in store — merge Yanıkdağ Baluğundüzü onto a4. */
+    /* Merge orphan Yanıkdağ amounts onto live a4 if still present (no new row). */
     byApiary.forEach(function (row) {
       if (seen[row.apiaryId]) return;
+      if (row.apiaryId === 'none' || !row.apiaryId) return;
       var orphanName = String(row.apiaryName || row.apiaryId || '');
       var lowOrphan = orphanName.toLocaleLowerCase('tr');
       var isYanik = lowOrphan.indexOf('yanıkdağ') !== -1
@@ -1102,26 +1104,8 @@
           rows[ri].count += row.count;
           break;
         }
-        return;
       }
-      if (isYanik) {
-        rows.push({
-          apiaryId: 'a4',
-          label: orphanName,
-          hiveCount: 0,
-          amount: row.amount,
-          count: row.count
-        });
-        seen['a4'] = true;
-        return;
-      }
-      rows.push({
-        apiaryId: row.apiaryId,
-        label: row.apiaryName || row.apiaryId,
-        hiveCount: 0,
-        amount: row.amount,
-        count: row.count
-      });
+      /* else: drop — do not create labeled orphan row */
     });
 
     rows.sort(function (a, b) {

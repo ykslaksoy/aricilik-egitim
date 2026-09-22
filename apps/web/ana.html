@@ -1574,22 +1574,40 @@
       }));
     }
 
+    function filterDeletedSeeds(list) {
+      var deleted = {};
+      try {
+        var raw = localStorage.getItem('superari.ariliklar.deletedSeeds.v1');
+        if (raw) {
+          var arr = JSON.parse(raw);
+          if (Array.isArray(arr)) {
+            arr.forEach(function (id) { if (id) deleted[String(id)] = true; });
+          }
+        }
+      } catch (eDel) { /* ignore */ }
+      if (!Object.keys(deleted).length) return list;
+      return (list || []).filter(function (a) {
+        return a && !deleted[String(a.id)];
+      });
+    }
+
     /**
      * Same source as Arılıklar list: localStorage via SuperAriDemo.
      * Do not prefer /api/locations — that is a 3-item server seed and
      * hides user-added apiaries (e.g. Balığındüzü).
+     * Never cycle deleted seed names (e.g. Yanıkdağ after delete).
      */
     function loadApiaries() {
       var fromStore = fromLocalStore();
       if (fromStore && fromStore.length) {
         return Promise.resolve(fromStore);
       }
-      return Promise.resolve(DEMO_APIARIES.slice());
+      return Promise.resolve(filterDeletedSeeds(DEMO_APIARIES.slice()));
     }
 
     function applyApiaryList(list, keepIndex) {
       var prevId = currentApiary() && currentApiary().id;
-      apiaries = list && list.length ? list : DEMO_APIARIES.slice();
+      apiaries = list && list.length ? list : filterDeletedSeeds(DEMO_APIARIES.slice());
       if (keepIndex && prevId) {
         for (var i = 0; i < apiaries.length; i++) {
           if (apiaries[i].id === prevId) {
@@ -1630,7 +1648,7 @@
     });
 
     loadApiaries().then(function (list) {
-      apiaries = list && list.length ? list : DEMO_APIARIES.slice();
+      apiaries = list && list.length ? list : filterDeletedSeeds(DEMO_APIARIES.slice());
       if (window.SuperAriHava) {
         try { window.SuperAriHava.ensureSeed(); } catch (e) { /* ignore */ }
       }

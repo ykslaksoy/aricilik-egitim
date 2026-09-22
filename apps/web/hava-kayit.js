@@ -554,15 +554,12 @@
       }
     }
 
-    DEFAULT_APIARIES.forEach(add);
-
+    var fromDemo = false;
     try {
-      if (global.SuperAriDemo) {
-        var demoList =
-          typeof global.SuperAriDemo.apiaries !== 'undefined'
-            ? global.SuperAriDemo.apiaries
-            : null;
+      if (global.SuperAriDemo && typeof global.SuperAriDemo.loadApiaries === 'function') {
+        var demoList = global.SuperAriDemo.loadApiaries();
         if (demoList && demoList.length) {
+          fromDemo = true;
           for (var d = 0; d < demoList.length; d++) {
             var da = demoList[d];
             add({
@@ -573,16 +570,27 @@
             });
           }
         }
+      } else if (global.SuperAriDemo && global.SuperAriDemo.apiaries && global.SuperAriDemo.apiaries.length) {
+        fromDemo = true;
+        var demoList2 = global.SuperAriDemo.apiaries;
+        for (var d2 = 0; d2 < demoList2.length; d2++) {
+          var da2 = demoList2[d2];
+          add({
+            id: da2.id,
+            label: da2.place || da2.name || da2.id,
+            lat: da2.lat,
+            lon: da2.lon
+          });
+        }
       }
     } catch (eDemo) {
       /* ignore */
     }
 
-    var records = loadRecords();
-    for (var i = 0; i < records.length; i++) {
-      var r = records[i];
-      if (!r) continue;
-      add({ id: r.apiaryId, label: r.label, lat: r.lat, lon: r.lon });
+    /* Only fall back to DEFAULT when no live demo list — never resurrect deleted names
+       from weather records or seed defaults when SuperAriDemo has the live set. */
+    if (!fromDemo) {
+      DEFAULT_APIARIES.forEach(add);
     }
 
     if (extra && extra.length) {
@@ -915,6 +923,18 @@
   }
 
   function apiaryOptions(records) {
+    /* Dropdown = live apiaries only (same source as Ana / Arılıklar). */
+    var live = resolveApiaries();
+    if (live && live.length) {
+      return live
+        .slice()
+        .sort(function (a, b) {
+          return String(a.label || a.id).localeCompare(String(b.label || b.id), 'tr');
+        })
+        .map(function (a) {
+          return { id: a.id, label: a.label || a.id };
+        });
+    }
     var map = {};
     var list = records || ensureSeed();
     for (var i = 0; i < list.length; i++) {
