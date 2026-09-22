@@ -11,7 +11,7 @@
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
-    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 39.92, lon: 41.27, hiveCount: 42 },
+    { id: 'a1', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 39.92, lon: 41.27, hiveCount: 42 },
     { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.61, lon: 41.66, hiveCount: 35 },
     { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 40.45, lon: 41.4, hiveCount: 23 }
   ];
@@ -125,13 +125,67 @@
     return out;
   }
 
+
+  var PLACE_A1 = 'Yanıkdağ Baluğundüzü';
+  var NAME_A1 = 'Yanıkdağ Baluğundüzü Arılığı';
+
+  /** True if string is legacy a1 identity needing Baluğundüzü rename. */
+  function needsA1Rename(s) {
+    var t = String(s || '').trim();
+    if (!t) return false;
+    var lower = t.toLocaleLowerCase('tr');
+    /* Already correct compound place/name */
+    if (lower.indexOf('yanıkdağ') !== -1 && lower.indexOf('baluğundüzü') !== -1) return false;
+    if (t === 'Yanıkdağ' || t === 'Yanıkdağ Arılığı' || t === 'Yanıkdağ Ana Arılık') return true;
+    if (/^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1) return true;
+    if (t === 'Kayaköy' || t === 'Kayaköy Ana Arılık' || /^Kayaköy(\s|$)/i.test(t)) return true;
+    if (t === 'Baluğundüzü' || t === 'Balığındüzü') return true;
+    return false;
+  }
+
+  function renameA1Value(s, asName) {
+    var t = String(s || '').trim();
+    if (!needsA1Rename(t)) return t;
+    if (asName && (/arılı/i.test(t) || /Ana Arılık/i.test(t))) return NAME_A1;
+    if (asName && (t === 'Yanıkdağ' || t === 'Kayaköy' || t === 'Baluğundüzü' || t === 'Balığındüzü')) {
+      return PLACE_A1;
+    }
+    if (asName) return NAME_A1;
+    return PLACE_A1;
+  }
+
+  /** One-time migrate of localStorage apiary name/place (Kayaköy / Yanıkdağ → Yanıkdağ Baluğundüzü). */
+  function migrateApiaryNames(list) {
+    var changed = false;
+    var out = (list || []).map(function (a) {
+      if (!a) return a;
+      var name = String(a.name || '').trim();
+      var place = String(a.place || '').trim();
+      var nextName = renameA1Value(name, true);
+      var nextPlace = renameA1Value(place, false);
+      if (nextName !== name || nextPlace !== place) {
+        changed = true;
+        return {
+          id: a.id,
+          name: nextName || name || 'Arılık',
+          place: nextPlace || place || '—',
+          lat: a.lat,
+          lon: a.lon,
+          hiveCount: a.hiveCount
+        };
+      }
+      return a;
+    });
+    return { list: out, changed: changed };
+  }
+
   function loadApiaries() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length) {
-          return parsed.map(function (a) {
+          var mapped = parsed.map(function (a) {
             return {
               id: String(a.id),
               name: String(a.name || '').trim() || 'Arılık',
@@ -141,6 +195,13 @@
               hiveCount: Math.max(0, Number(a.hiveCount) || 0)
             };
           });
+          var mig = migrateApiaryNames(mapped);
+          if (mig.changed) {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(mig.list));
+            } catch (eMig) { /* ignore */ }
+          }
+          return mig.list;
         }
       }
     } catch (e) { /* ignore */ }

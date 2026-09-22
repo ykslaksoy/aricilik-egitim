@@ -11,7 +11,7 @@
   var MAX_DAYS = 200;
   var DEFAULT_BACKFILL_DAYS = 30;
   var DEFAULT_APIARIES = [
-    { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
+    { id: 'a1', label: 'Yanıkdağ Baluğundüzü', lat: 39.92, lon: 41.27 },
     { id: 'a2', label: 'Tortum', lat: 40.61, lon: 41.66 },
     { id: 'a3', label: 'Palandöken', lat: 40.45, lon: 41.4 }
   ];
@@ -295,12 +295,50 @@
     return dateKeysInclusive(fromKey, toKey).length;
   }
 
+
+  var LABEL_A1 = 'Yanıkdağ Baluğundüzü';
+
+  function needsHavaLabelRename(s) {
+    var t = String(s || '').trim();
+    if (!t) return false;
+    var lower = t.toLocaleLowerCase('tr');
+    if (lower.indexOf('yanıkdağ') !== -1 && lower.indexOf('baluğundüzü') !== -1) return false;
+    if (t === 'Yanıkdağ' || /^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1) return true;
+    if (t === 'Kayaköy' || t === 'Kayaköy Ana Arılık' || /^Kayaköy(\s|$)/i.test(t)) return true;
+    if (t === 'Baluğundüzü' || t === 'Balığındüzü') return true;
+    return false;
+  }
+
+  function migrateHavaLabels(list) {
+    var changed = false;
+    var out = (list || []).map(function (r) {
+      if (!r) return r;
+      var lab = String(r.label || '').trim();
+      if (!needsHavaLabelRename(lab)) return r;
+      changed = true;
+      var copy = {};
+      for (var k in r) {
+        if (Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k];
+      }
+      copy.label = LABEL_A1;
+      return copy;
+    });
+    return { list: out, changed: changed };
+  }
+
   function loadRecords() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
       var parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      var mig = migrateHavaLabels(parsed);
+      if (mig.changed) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mig.list));
+        } catch (eMig) { /* ignore */ }
+      }
+      return mig.list;
     } catch (e) {
       return [];
     }

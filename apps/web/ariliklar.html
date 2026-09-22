@@ -335,10 +335,10 @@
       <h2 id="sheetTitle">Yeni arılık</h2>
       <form id="addForm">
         <label>Ad
-          <input name="name" required maxlength="80" placeholder="Örn. Kayaköy Ana Arılık" />
+          <input name="name" required maxlength="80" placeholder="Örn. Yanıkdağ Baluğundüzü Arılığı" />
         </label>
         <label>Konum (kısa ad)
-          <input name="place" required maxlength="40" placeholder="Örn. Kayaköy" />
+          <input name="place" required maxlength="40" placeholder="Örn. Yanıkdağ Baluğundüzü" />
         </label>
         <label>Kovan sayısı
           <input name="hiveCount" type="number" inputmode="numeric" min="0" step="1" value="0" />
@@ -349,7 +349,7 @@
             <span class="map-coords is-empty" id="mapCoords">Konum seçilmedi</span>
           </div>
           <div class="map-search-row">
-            <input type="search" id="mapSearch" maxlength="80" placeholder="Yer ara — örn. Balığındüzü, Yanıkdağ" autocomplete="off" />
+            <input type="search" id="mapSearch" maxlength="80" placeholder="Yer ara — örn. Yanıkdağ Baluğundüzü" autocomplete="off" />
             <button type="button" class="btn-ara" id="mapSearchBtn">Ara</button>
           </div>
           <ul class="map-search-results" id="mapSearchResults" hidden></ul>
@@ -421,7 +421,7 @@
   var F = window.SuperAriForage;
   if (!D) return;
 
-  var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Kayaköy bölgesi */
+  var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Yanıkdağ Baluğundüzü bölgesi */
   var DEFAULT_ZOOM = 9;
 
   var listEl = document.getElementById('apiaryList');

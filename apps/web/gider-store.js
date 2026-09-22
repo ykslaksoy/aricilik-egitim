@@ -60,7 +60,7 @@
       amount: 2800,
       date: '2026-09-02',
       apiaryId: 'a1',
-      apiaryName: 'Kayaköy Ana Arılık',
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
       note: 'Sonbahar besleme'
     },
     {
@@ -70,7 +70,7 @@
       amount: 1400,
       date: '2026-08-28',
       apiaryId: 'a1',
-      apiaryName: 'Kayaköy Ana Arılık'
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
     },
     {
       id: 'g3',
@@ -79,7 +79,7 @@
       amount: 1680,
       date: '2026-09-05',
       apiaryId: 'a1',
-      apiaryName: 'Kayaköy Ana Arılık'
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
     },
     {
       id: 'g4',
@@ -106,7 +106,7 @@
       amount: 950,
       date: '2026-08-15',
       apiaryId: 'a1',
-      apiaryName: 'Kayaköy Ana Arılık'
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı'
     },
     {
       id: 'g10',
@@ -115,7 +115,7 @@
       amount: 1500,
       date: '2026-09-03',
       apiaryId: 'a1',
-      apiaryName: 'Kayaköy Ana Arılık',
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
       note: 'Günlük işçilik'
     },
     {
@@ -125,7 +125,7 @@
       amount: 820,
       date: '2026-08-30',
       apiaryId: 'a1',
-      apiaryName: 'Kayaköy Ana Arılık',
+      apiaryName: 'Yanıkdağ Baluğundüzü Arılığı',
       note: 'Paketleme'
     },
     {
@@ -345,6 +345,34 @@
     } catch (e) { /* ignore */ }
   }
 
+
+  var GIDER_NAME_A1 = 'Yanıkdağ Baluğundüzü Arılığı';
+
+  function needsGiderApiaryRename(s) {
+    var t = String(s || '').trim();
+    if (!t) return false;
+    var lower = t.toLocaleLowerCase('tr');
+    if (lower.indexOf('yanıkdağ') !== -1 && lower.indexOf('baluğundüzü') !== -1) return false;
+    if (t === 'Yanıkdağ' || t === 'Yanıkdağ Arılığı' || t === 'Yanıkdağ Ana Arılık') return true;
+    if (/^Yanıkdağ(\s|$)/i.test(t) && lower.indexOf('baluğundüzü') === -1) return true;
+    if (t === 'Kayaköy' || t === 'Kayaköy Ana Arılık' || /^Kayaköy(\s|$)/i.test(t)) return true;
+    if (t === 'Baluğundüzü' || t === 'Balığındüzü') return true;
+    return false;
+  }
+
+  function migrateExpenseApiaryNames(list) {
+    var changed = false;
+    var out = (list || []).map(function (e) {
+      if (!e) return e;
+      var n = String(e.apiaryName || '').trim();
+      if (!needsGiderApiaryRename(n)) return e;
+      changed = true;
+      e.apiaryName = GIDER_NAME_A1;
+      return e;
+    });
+    return { list: out, changed: changed };
+  }
+
   function normalizeExpense(e) {
     if (!e || typeof e !== 'object') return null;
     var cat = String(e.category || 'diger');
@@ -435,9 +463,12 @@
   function loadExpenses() {
     var parsed = readJson(STORAGE_KEY);
     if (Array.isArray(parsed) && parsed.length) {
-      return ensureApiaryLinks(
+      var list = ensureApiaryLinks(
         ensureDemoCategoriesVisible(parsed.map(normalizeExpense).filter(Boolean))
       );
+      var mig = migrateExpenseApiaryNames(list);
+      if (mig.changed) writeJson(STORAGE_KEY, mig.list);
+      return mig.list;
     }
     writeJson(STORAGE_KEY, SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);
