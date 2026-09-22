@@ -13,9 +13,9 @@
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
     { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 39.92, lon: 41.27, hiveCount: 42 },
-    { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.61, lon: 41.66, hiveCount: 35 },
+    { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.257866, lon: 41.613415, hiveCount: 35 },
     { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 40.45, lon: 41.4, hiveCount: 23 },
-    { id: 'a4', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 39.95, lon: 41.30, hiveCount: 20 },
+    { id: 'a4', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 41.080781, lon: 40.753956, hiveCount: 20 },
     { id: 'a5', name: 'Cimil Yaylası Arılığı', place: 'Cimil Yaylası', lat: 40.733, lon: 40.789, hiveCount: 25 }
   ];
 
@@ -133,10 +133,60 @@
   var NAME_A1 = 'Kayaköy Ana Arılık';
   var PLACE_YANIK = 'Yanıkdağ Baluğundüzü';
   var NAME_YANIK = 'Yanıkdağ Baluğundüzü Arılığı';
+  var YANIK_TARGET_LAT = 41.080781;
+  var YANIK_TARGET_LON = 40.753956;
+  var TORTUM_TARGET_LAT = 40.257866;
+  var TORTUM_TARGET_LON = 41.613415;
+  var YANIK_LEGACY_COORDS = [
+    { lat: 39.95, lon: 41.30 },
+    { lat: 41.072, lon: 40.743 }
+  ];
 
   function looksLikeYanikBalug(s) {
     var lower = String(s || '').toLocaleLowerCase('tr');
-    return lower.indexOf('yanıkdağ') !== -1 && (lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığındüzü') !== -1);
+    return (lower.indexOf('yanıkdağ') !== -1 && (
+      lower.indexOf('baluğundüzü') !== -1 ||
+      lower.indexOf('balığundüzü') !== -1 ||
+      lower.indexOf('balığındüzü') !== -1 ||
+      lower.indexOf('balığun') !== -1
+    )) || lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığundüzü') !== -1 ||
+      lower.indexOf('balığındüzü') !== -1 || lower.indexOf('balığun') !== -1;
+  }
+
+  function isLegacyYanikCoords(a) {
+    var lat = Number(a && a.lat);
+    var lon = Number(a && a.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return false;
+    return YANIK_LEGACY_COORDS.some(function (old) {
+      return Math.abs(lat - old.lat) <= 0.02 && Math.abs(lon - old.lon) <= 0.02;
+    });
+  }
+
+  function isLegacyTortumCoords(a) {
+    var lat = Number(a && a.lat);
+    var lon = Number(a && a.lon);
+    return isFinite(lat) && isFinite(lon) && Math.abs(lat - 40.61) <= 0.02 && Math.abs(lon - 41.66) <= 0.02;
+  }
+
+  function migrateApiaryCoordinates(list) {
+    var changed = false;
+    var out = (list || []).map(function (a) {
+      if (!a) return a;
+      var isYanik = String(a.id) === 'a4' || looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place);
+      var isTortum = String(a.id) === 'a2' || /tortum/i.test(String(a.name || '')) || /tortum/i.test(String(a.place || ''));
+      var targetLat = isYanik && isLegacyYanikCoords(a) ? YANIK_TARGET_LAT : (isTortum && isLegacyTortumCoords(a) ? TORTUM_TARGET_LAT : null);
+      var targetLon = isYanik && isLegacyYanikCoords(a) ? YANIK_TARGET_LON : (isTortum && isLegacyTortumCoords(a) ? TORTUM_TARGET_LON : null);
+      if (targetLat == null || targetLon == null) return a;
+      changed = true;
+      var copy = {};
+      for (var k in a) {
+        if (Object.prototype.hasOwnProperty.call(a, k)) copy[k] = a[k];
+      }
+      copy.lat = targetLat;
+      copy.lon = targetLon;
+      return copy;
+    });
+    return { list: out, changed: changed };
   }
 
   /** Exact «Yanıkdağ» or any Baluğundüzü variant → canonical place/name. Never touches Kayaköy. */
@@ -298,6 +348,11 @@
       if (a.lon != null && isFinite(Number(a.lon))) lon = Number(a.lon);
       if (String(a.id) !== 'a4') remappedIds[String(a.id)] = 'a4';
     });
+    /* Keep a user-set primary pin; only legacy coordinates are migratable. */
+    if (isFinite(Number(primary.lat)) && isFinite(Number(primary.lon)) && !isLegacyYanikCoords(primary)) {
+      lat = Number(primary.lat);
+      lon = Number(primary.lon);
+    }
     if (seedA4) {
       maxHives = Math.max(maxHives, Math.max(0, Number(seedA4.hiveCount) || 0));
       if (lat == null || !isFinite(Number(lat))) lat = seedA4.lat;
@@ -307,8 +362,8 @@
       id: 'a4',
       name: NAME_YANIK,
       place: PLACE_YANIK,
-      lat: lat != null && isFinite(Number(lat)) ? Number(lat) : 39.95,
-      lon: lon != null && isFinite(Number(lon)) ? Number(lon) : 41.30,
+      lat: lat != null && isFinite(Number(lat)) ? Number(lat) : YANIK_TARGET_LAT,
+      lon: lon != null && isFinite(Number(lon)) ? Number(lon) : YANIK_TARGET_LON,
       hiveCount: maxHives
     };
     var changed = dups.length > 1
@@ -370,10 +425,11 @@
           });
           var rest = restoreKayakoyA1(mapped);
           var mig = migrateApiaryNames(rest.list);
-          var ens = ensureSeedApiariesPresent(mig.list);
+          var coordMig = migrateApiaryCoordinates(mig.list);
+          var ens = ensureSeedApiariesPresent(coordMig.list);
           var ded = dedupeYanikBalugApiaries(ens.list);
           var out = ded.list;
-          if (rest.changed || mig.changed || ens.changed || ded.changed) {
+          if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
             } catch (eMig) { /* ignore */ }

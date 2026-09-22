@@ -15,9 +15,9 @@
   var RAIN_HOUR_THRESHOLD_MM = 0.1; /* saatlik yağış ≥ bu → yağış saati sayılır */
   var DEFAULT_APIARIES = [
     { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
-    { id: 'a2', label: 'Tortum', lat: 40.61, lon: 41.66 },
+    { id: 'a2', label: 'Tortum', lat: 40.257866, lon: 41.613415 },
     { id: 'a3', label: 'Palandöken', lat: 40.45, lon: 41.4 },
-    { id: 'a4', label: 'Yanıkdağ Baluğundüzü', lat: 39.95, lon: 41.30 },
+    { id: 'a4', label: 'Yanıkdağ Baluğundüzü', lat: 41.080781, lon: 40.753956 },
     { id: 'a5', label: 'Cimil Yaylası', lat: 40.733, lon: 40.789 }
   ];
 
@@ -305,10 +305,39 @@
 
   var LABEL_KAYAKOY = 'Kayaköy';
   var LABEL_YANIK = 'Yanıkdağ Baluğundüzü';
+  var YANIK_TARGET_LAT = 41.080781;
+  var YANIK_TARGET_LON = 40.753956;
+  var YANIK_LEGACY_COORDS = [
+    { lat: 39.95, lon: 41.30 },
+    { lat: 41.072, lon: 40.743 }
+  ];
+  var TORTUM_TARGET_LAT = 40.257866;
+  var TORTUM_TARGET_LON = 41.613415;
 
   function looksLikeYanikBalugLabel(s) {
     var lower = String(s || '').toLocaleLowerCase('tr');
-    return lower.indexOf('yanıkdağ') !== -1 && (lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığındüzü') !== -1);
+    return (lower.indexOf('yanıkdağ') !== -1 && (
+      lower.indexOf('baluğundüzü') !== -1 ||
+      lower.indexOf('balığundüzü') !== -1 ||
+      lower.indexOf('balığındüzü') !== -1 ||
+      lower.indexOf('balığun') !== -1
+    )) || lower.indexOf('baluğundüzü') !== -1 || lower.indexOf('balığundüzü') !== -1 ||
+      lower.indexOf('balığındüzü') !== -1 || lower.indexOf('balığun') !== -1;
+  }
+
+  function isLegacyYanikWeatherCoords(r) {
+    var lat = Number(r && r.lat);
+    var lon = Number(r && r.lon);
+    if (!isFinite(lat) || !isFinite(lon)) return false;
+    return YANIK_LEGACY_COORDS.some(function (old) {
+      return Math.abs(lat - old.lat) <= 0.02 && Math.abs(lon - old.lon) <= 0.02;
+    });
+  }
+
+  function isLegacyTortumWeatherCoords(r) {
+    var lat = Number(r && r.lat);
+    var lon = Number(r && r.lon);
+    return isFinite(lat) && isFinite(lon) && Math.abs(lat - 40.61) <= 0.02 && Math.abs(lon - 41.66) <= 0.02;
   }
 
   function migrateHavaLabels(list) {
@@ -317,19 +346,34 @@
       if (!r) return r;
       var lab = String(r.label || '').trim();
       var id = String(r.apiaryId || '');
+      var nameOrPlace = String(r.name || r.place || lab);
       var next = lab;
       /* Undo bad a1 rename */
       if (id === 'a1' && looksLikeYanikBalugLabel(lab)) next = LABEL_KAYAKOY;
-      else if (lab === 'Yanıkdağ' || (/^Yanıkdağ(\s|$)/i.test(lab) && !looksLikeYanikBalugLabel(lab))) {
+      else if (looksLikeYanikBalugLabel(lab) || looksLikeYanikBalugLabel(nameOrPlace) || lab === 'Yanıkdağ' || /^Yanıkdağ(\s|$)/i.test(lab)) {
         if (lab.toLocaleLowerCase('tr').indexOf('kayaköy') === -1) next = LABEL_YANIK;
       }
-      if (next === lab) return r;
+      var nextLat = r.lat;
+      var nextLon = r.lon;
+      var isYanik = id === 'a4' || looksLikeYanikBalugLabel(lab) || looksLikeYanikBalugLabel(nameOrPlace);
+      if (isYanik && isLegacyYanikWeatherCoords(r)) {
+        nextLat = YANIK_TARGET_LAT;
+        nextLon = YANIK_TARGET_LON;
+      }
+      var isTortum = id === 'a2' || /tortum/i.test(lab) || /tortum/i.test(nameOrPlace);
+      if (isTortum && isLegacyTortumWeatherCoords(r)) {
+        nextLat = TORTUM_TARGET_LAT;
+        nextLon = TORTUM_TARGET_LON;
+      }
+      if (next === lab && nextLat === r.lat && nextLon === r.lon) return r;
       changed = true;
       var copy = {};
       for (var k in r) {
         if (Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k];
       }
       copy.label = next;
+      copy.lat = nextLat;
+      copy.lon = nextLon;
       return copy;
     });
     return { list: out, changed: changed };
