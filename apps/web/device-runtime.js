@@ -178,6 +178,9 @@
         syncDemoBanner();
       }
     } catch (e2) { /* ignore */ }
+    try {
+      window.dispatchEvent(new CustomEvent('superari:workMode', { detail: { mode: next } }));
+    } catch (e3) { /* ignore */ }
     return next;
   }
 
@@ -377,7 +380,7 @@
       'background:linear-gradient(180deg,#fff6df 0%,#f5e6b8 100%);' +
       'border-bottom:1.5px solid #e0c56a;font-family:inherit;' +
       '}' +
-      'html[data-work-mode="demo"] #' + BANNER_ID + '{display:flex}' +
+      '#' + BANNER_ID + '{display:none!important}' +
       '#' + BANNER_ID + ' .demo-chip{' +
       'display:inline-block;padding:2px 10px;border-radius:999px;' +
       'border:1.5px solid #c9a84a;background:#fffaf0;color:#3d2e12;' +
@@ -404,30 +407,10 @@
     ensureBannerStyles();
     var mode = getMode();
     try { document.documentElement.setAttribute('data-work-mode', mode); } catch (e) {}
+    /* Üst Demo şeridi yok — Ana’da Konumu sabitle butonu «Demo Modu» yazar */
     var el = document.getElementById(BANNER_ID);
-    if (!el) {
-      el = document.createElement('div');
-      el.id = BANNER_ID;
-      el.setAttribute('role', 'status');
-      el.innerHTML = '<span class="demo-chip">Demo mod</span>';
-      var host =
-        document.querySelector('.phone .screen') ||
-        document.querySelector('.auth-phone') ||
-        document.querySelector('.phone') ||
-        document.body;
-      if (!host || typeof host.querySelector !== 'function') {
-        try { (document.body || document.documentElement).appendChild(el); } catch (e3) {}
-      } else {
-        var brand = host.querySelector('.brand-strip') || host.querySelector('.brand') || host.querySelector('.nav');
-        if (brand && brand.parentNode === host) {
-          if (brand.nextSibling) host.insertBefore(el, brand.nextSibling);
-          else host.appendChild(el);
-        } else if (host.firstChild) {
-          host.insertBefore(el, host.firstChild);
-        } else {
-          host.appendChild(el);
-        }
-      }
+    if (el && el.parentNode) {
+      try { el.parentNode.removeChild(el); } catch (e2) {}
     }
   }
 

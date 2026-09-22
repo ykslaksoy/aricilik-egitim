@@ -1566,7 +1566,18 @@
 
     function syncLockBtn() {
       if (!lockBtn) return;
+      var demo =
+        window.SuperAriDevices && typeof SuperAriDevices.isDemo === 'function'
+          ? SuperAriDevices.isDemo()
+          : false;
       lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+      if (demo) {
+        /* Demo: buton metni Demo Modu; Canlı’ya geçince eski yazı döner */
+        lockBtn.textContent = 'Demo Modu';
+        lockBtn.setAttribute('aria-label', 'Demo Modu — Ayarlar’dan Canlı’ya geçilebilir');
+        lockBtn.setAttribute('title', 'Demo Modu — örnek veri; Ayarlar → Çalışma modu');
+        return;
+      }
       lockBtn.textContent = locked ? 'Sabitlendi' : 'Konumu sabitle';
       lockBtn.setAttribute(
         'aria-label',
@@ -1585,6 +1596,15 @@
       if (prevBtn) prevBtn.disabled = !multi;
       if (nextBtn) nextBtn.disabled = !multi;
     }
+
+    window.addEventListener('superari:workMode', function () {
+      try { syncLockBtn(); } catch (e) { /* ignore */ }
+    });
+    window.addEventListener('storage', function (e) {
+      if (e && e.key === 'superari.workMode') {
+        try { syncLockBtn(); } catch (err) { /* ignore */ }
+      }
+    });
 
     function stopCycle() {
       if (cycleTimer) {
