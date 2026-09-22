@@ -57,25 +57,17 @@
   }
   .cam-card strong { font-size: 13px; font-weight: 800; color: var(--brown); }
   .cam-card span { font-size: 11px; font-weight: 650; color: var(--muted); }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+  .status-pill {
+    display: inline-block; padding: 2px 7px; border-radius: 999px;
+    font-size: 10px; font-weight: 750; border: 1px solid var(--card-border);
   }
-  .dot.on { background: #2b8a3e; }
-  .dot.off { background: #c92a2a; }
-  .disconnect-banner {
-    display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  .empty-live {
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
     padding: 14px; border-radius: 14px; margin-bottom: 12px;
-    border: 1.5px solid #ffa8a8; background: #fff5f5; color: #862e2e;
+    border: 1.5px solid #cfd8e3; background: #f7f8fa; color: #6b635a;
   }
-  .disconnect-banner strong { font-size: 14px; font-weight: 800; }
-  .disconnect-banner p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; color: #a61e4d; }
-  .disconnect-banner .add-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 10px 14px; border-radius: 12px; text-decoration: none;
-    font-size: 13px; font-weight: 800; border: 1.5px solid #e0c56a;
-    background: linear-gradient(180deg, #fff6df 0%, #f5e6b8 100%);
-    color: var(--brown);
-  }
+  .empty-live strong { font-size: 14px; font-weight: 800; color: var(--brown); }
+  .empty-live p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; }
   .hidden-block { display: none !important; }
 </style>
 </head>
@@ -96,17 +88,18 @@
       <div class="nav-chips">
         <a class="back-chip" href="ana.html">← Ana</a>
         <a class="back-chip" href="cihazlar.html">Cihazlar</a>
-        <a class="back-chip" href="ayarlar.html#cihaz">Cihaz ekle</a>
+        <a class="back-chip" href="ayarlar.html#calisma-modu">Mod</a>
       </div>
     </div>
 
+    <div id="workModeBanner" class="mode-banner" hidden></div>
+
     <div id="emptyState" class="card-block" hidden>
-      <div class="disconnect-banner" role="status">
-        <strong>Kamera bağlı değil</strong>
-        <p>Kamera bağlı değil. Arılık kamerası veya isteğe bağlı kovan kamerası ekleyince burada izlenir.</p>
-        <a class="add-btn" href="ayarlar.html#cihaz">Cihaz ekle</a>
+      <div class="empty-live" role="status">
+        <strong>Canlı kamera yok · takılınca burada görünür</strong>
+        <p>Arılık kamerası bağlanınca izlenir. Kovan kamerası isteğe bağlıdır — olmadan da sistem çalışır.</p>
       </div>
-      <p class="hint" style="margin:0">Canlı video yok · demo görüntü gösterilmiyor</p>
+      <p class="hint" style="margin:0">Canlı mod · elle ekleme zorunlu değil</p>
     </div>
 
     <section class="card-block" id="liveSection">
@@ -117,8 +110,8 @@
       <div class="viewer empty" id="viewer" aria-label="Kamera görüntüsü">
         <div class="viewer-frame" aria-hidden="true"></div>
         <div class="viewer-placeholder">
-          <strong id="frameTitle">Kamera bağlı değil</strong>
-          <span id="frameNote">Kamera donanımı gelince burada izlenir. Kovan kamerası olmadan da sistem çalışır.</span>
+          <strong id="frameTitle">Kamera</strong>
+          <span id="frameNote">Durum aşağıda.</span>
         </div>
       </div>
       <div class="cam-meta" id="camMeta"></div>
@@ -128,7 +121,7 @@
       <h2>Kameralar</h2>
       <p class="meta" id="camSummary" style="margin-bottom:8px"></p>
       <div class="cam-list" id="camList"></div>
-      <p class="hint" id="camHint" style="margin-top:12px">Canlı akış yok · yalnızca kayıtlı kamera cihazları</p>
+      <p class="hint" id="camHint" style="margin-top:12px"></p>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -141,64 +134,42 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
+<script src="device-runtime.js"></script>
 <script>
 (function () {
-  var D = window.SuperAriDemo;
-  if (!D) return;
-  var DEVICES_KEY = 'superari.devices';
-  var tipLabels = {
-    kamera_arilik: 'Arılık kamerası',
-    kamera_merkez: 'Arılık kamerası',
-    kamera_kovan: 'Kovan kamerası'
-  };
+  var Dev = window.SuperAriDevices;
+  if (!Dev) return;
   var params = new URLSearchParams(location.search);
   var sel = document.getElementById('apiarySelect');
-  var apiaries = D.loadApiaries ? D.loadApiaries() : [];
+  var workMode = Dev.getMode();
+  var cams = Dev.cameraDevices();
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function isCameraTip(tip) {
-    var t = String(tip || '').toLowerCase();
-    return t === 'kamera_arilik' || t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
+  var banner = document.getElementById('workModeBanner');
+  if (banner) {
+    banner.hidden = false;
+    if (workMode === 'demo') {
+      banner.className = 'mode-banner';
+      banner.innerHTML = '<strong>Demo</strong><span>· örnek arılık kameraları</span>';
+    } else {
+      banner.className = 'mode-banner live';
+      banner.innerHTML = '<strong>Canlı</strong><span>· tak–çalıştır · yoksa Yok</span>';
+    }
   }
 
-  function loadCameraDevices() {
-    try {
-      var raw = localStorage.getItem(DEVICES_KEY);
-      var arr = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(arr)) return [];
-      return arr.filter(function (d) { return d && isCameraTip(d.tip || d.type); }).map(function (d) {
-        var tip = d.tip || d.type || '';
-        var hiveId = d.hiveId != null ? d.hiveId : null;
-        var hive = (hiveId != null && D.hiveById) ? D.hiveById(hiveId) : null;
-        var apId = hive ? String(hive.apiaryId || '') : '';
-        var ap = apId && D.apiaryById ? D.apiaryById(apId) : null;
-        return {
-          id: d.id || ('cam-' + tip),
-          tip: tip,
-          label: tipLabels[tip] || tip || 'Kamera',
-          apiaryId: apId || 'none',
-          apiaryName: ap ? (ap.name || ap.place || 'Arılık') : (hive ? 'Kovan ' + hive.id : '—'),
-          hiveId: hiveId,
-          online: false,
-          at: d.at || null
-        };
-      });
-    } catch (e) { return []; }
-  }
-
-  var cams = loadCameraDevices();
   var emptyEl = document.getElementById('emptyState');
   var liveSection = document.getElementById('liveSection');
   var listSection = document.getElementById('listSection');
 
   if (!cams.length) {
-    document.getElementById('pageSub').textContent = 'Kamera bağlı değil';
+    document.getElementById('pageSub').textContent = workMode === 'live' ? 'Canlı kamera yok' : 'Kamera Yok';
     if (emptyEl) emptyEl.hidden = false;
     if (liveSection) liveSection.classList.add('hidden-block');
     if (listSection) listSection.classList.add('hidden-block');
+    document.getElementById('camHint') && (document.getElementById('camHint').textContent = '');
     return;
   }
 
@@ -212,7 +183,7 @@
     return { id: id, name: apiaryIds[id] };
   });
   if (!camApiaries.length) {
-    camApiaries = [{ id: 'none', name: 'Kayıtlı kameralar' }];
+    camApiaries = [{ id: 'none', name: 'Kameralar' }];
   }
 
   sel.innerHTML = camApiaries.map(function (ap) {
@@ -232,33 +203,51 @@
       return String(c.apiaryId) === String(aid);
     });
     if (!list.length) list = cams.slice();
-    var name = (camApiaries.find(function (a) { return String(a.id) === String(aid); }) || {}).name || 'Kamera';
+    var primary = list[0];
+    var st = primary ? (primary.status || Dev.STATUS.yok) : Dev.STATUS.yok;
+    var stLabel = Dev.statusLabel(st);
+    var stClass = Dev.statusTone(st);
 
-    document.getElementById('pageSub').textContent = list.length + ' kamera · canlı yok';
+    document.getElementById('pageSub').textContent = list.length + ' kamera · ' + stLabel;
     var viewer = document.getElementById('viewer');
-    viewer.classList.add('empty');
-    document.getElementById('frameTitle').textContent = 'Kamera bağlı değil';
-    document.getElementById('frameNote').textContent =
-      'Kayıtlı ' + list.length + ' kamera var; canlı akış henüz yok. Kamera donanımı gelince burada izlenir. Kovan kamerası olmadan da sistem çalışır.';
+    if (st === Dev.STATUS.bagli && workMode === 'demo') {
+      viewer.classList.remove('empty');
+      document.getElementById('frameTitle').textContent = 'Örnek görüntü · ' + (primary.typeLabel || 'Kamera');
+      document.getElementById('frameNote').textContent =
+        (primary.apiaryName || '') + ' · Demo mod · canlı akış simülasyonu yok';
+    } else {
+      viewer.classList.add('empty');
+      document.getElementById('frameTitle').textContent = stLabel;
+      document.getElementById('frameNote').textContent = st === Dev.STATUS.yok
+        ? 'Kamera yok · takılınca burada görünür. Kovan kamerası isteğe bağlıdır.'
+        : (st === Dev.STATUS.kopuk
+          ? 'Bağlantı koptu (ağ / gateway). Yeniden bağlanınca Bağlı olur.'
+          : (st === Dev.STATUS.arizali
+            ? 'Cihaz biliniyor ancak arızalı / anlamsız veri / düşük batarya.'
+            : 'Kamera donanımı gelince burada izlenir.'));
+    }
 
     document.getElementById('camMeta').innerHTML =
-      '<span class="cam-pill">' + list.length + ' kayıtlı</span>' +
-      '<span class="cam-pill">Canlı yok</span>';
+      '<span class="cam-pill' + (workMode === 'demo' ? ' live' : '') + '">' + list.length + ' kamera</span>' +
+      '<span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span>';
 
     document.getElementById('camSummary').textContent =
-      list.length + ' kayıtlı kamera · canlı eşleşme yok';
+      list.length + ' kamera' + (workMode === 'demo' ? ' · örnek' : '');
+
+    document.getElementById('camHint').textContent = workMode === 'demo'
+      ? 'Demo: sabit örnek kameralar · kullanıcı kayıtları karışmaz'
+      : 'Canlı: yalnızca gerçek / keşfedilen kameralar';
 
     document.getElementById('camList').innerHTML = list.map(function (c) {
+      var cs = c.status || Dev.STATUS.yok;
       return '<div class="cam-card">' +
-        '<div><strong>' + esc(c.label) + '</strong><br>' +
-        '<span>' + esc(c.apiaryName) + ' · bağlı değil</span></div>' +
-        '<span class="dot off" title="Bağlı değil"></span>' +
+        '<div><strong>' + esc(c.typeLabel || c.label || 'Kamera') + '</strong><br>' +
+        '<span>' + esc(c.apiaryName) +
+          (c.hiveName ? (' · ' + esc(c.hiveName)) : '') +
+        '</span></div>' +
+        '<span class="status-pill ' + Dev.statusTone(cs) + '">' + esc(Dev.statusLabel(cs)) + '</span>' +
       '</div>';
-    }).join('') +
-    '<a class="cam-card" href="ayarlar.html#cihaz" style="border-color:#e0c56a;background:#fff6df">' +
-      '<div><strong>Cihaz ekle / düzenle</strong><br>' +
-      '<span>Ayarlar → Cihaz ekle →</span></div>' +
-    '</a>';
+    }).join('');
   }
 
   sel.addEventListener('change', render);

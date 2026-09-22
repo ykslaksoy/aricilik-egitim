@@ -42,8 +42,6 @@
     display: inline-block; margin: 0 0 0 4px; padding: 2px 7px; border-radius: 999px;
     font-size: 10px; font-weight: 750; border: 1px solid var(--card-border);
   }
-  .status-pill.online { background: #ebfbee; color: #2b8a3e; border-color: #8ce99a; }
-  .status-pill.offline { background: #fff5f5; color: #c92a2a; border-color: #ffa8a8; }
   .type-tag {
     display: inline-block; margin: 2px 4px 0 0; padding: 2px 7px; border-radius: 999px;
     font-size: 10px; font-weight: 750; border: 1px solid #e0c56a;
@@ -52,20 +50,13 @@
   .type-tag.demo {
     border-color: #cfd8e3; background: #f4f6f8; color: #6b635a;
   }
-  .disconnect-banner {
-    display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+  .empty-live {
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
     padding: 14px; border-radius: 14px; margin-bottom: 12px;
-    border: 1.5px solid #ffa8a8; background: #fff5f5; color: #862e2e;
+    border: 1.5px solid #cfd8e3; background: #f7f8fa; color: #6b635a;
   }
-  .disconnect-banner strong { font-size: 14px; font-weight: 800; }
-  .disconnect-banner p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; color: #a61e4d; }
-  .disconnect-banner .add-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 10px 14px; border-radius: 12px; text-decoration: none;
-    font-size: 13px; font-weight: 800; border: 1.5px solid #e0c56a;
-    background: linear-gradient(180deg, #fff6df 0%, #f5e6b8 100%);
-    color: var(--brown);
-  }
+  .empty-live strong { font-size: 14px; font-weight: 800; color: var(--brown); }
+  .empty-live p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; }
   .section-label {
     margin: 14px 0 8px; font-size: 11px; font-weight: 800;
     color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
@@ -89,15 +80,16 @@
       <div class="nav-chips">
         <a class="back-chip" href="ana.html">← Ana</a>
         <a class="back-chip" href="kamera.html">Kamera</a>
-        <a class="back-chip" href="ayarlar.html#cihaz">Cihaz ekle</a>
+        <a class="back-chip" href="ayarlar.html#calisma-modu">Mod</a>
       </div>
     </div>
+    <div id="workModeBanner" class="mode-banner" hidden></div>
     <div class="mode-switch" id="modeSwitch"></div>
     <section class="card-block">
       <h2 id="listHeading">Cihazlar</h2>
       <p class="meta" id="summary" style="margin-bottom:10px"></p>
       <div id="deviceBody"></div>
-      <p class="hint" id="pageNote" style="margin-top:12px">Kayıtlı cihazlar bu cihazda tutulur · canlı eşleştirme sonra</p>
+      <p class="hint" id="pageNote" style="margin-top:12px"></p>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -110,26 +102,19 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
+<script src="device-runtime.js"></script>
 <script>
 (function () {
+  var Dev = window.SuperAriDevices;
+  if (!Dev) return;
   var D = window.SuperAriDemo;
-  if (!D) return;
-  var DEVICES_KEY = 'superari.devices';
-  var tipLabels = {
-    tarti: 'Tartı',
-    isi_nem: 'Sıcaklık/Nem',
-    ir: 'IR',
-    ses_titresim: 'Ses/Titreşim',
-    gateway: 'Gateway (Wi‑Fi / hücresel)',
-    kamera_arilik: 'Arılık kamerası',
-    kamera_merkez: 'Arılık kamerası',
-    kamera_kovan: 'Kovan kamerası',
-    role_hub: 'Wireless röle / hub'
-  };
   var params = new URLSearchParams(location.search);
   var hasMode = params.has('mode');
   var mode = params.get('mode') === 'all' ? 'all' : (params.get('mode') === 'apiary' ? 'apiary' : null);
   var apiaryId = params.get('apiary') || '';
+  var workMode = Dev.getMode();
+  var devices = Dev.listDevices();
+  var counts = Dev.summarize();
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -145,75 +130,18 @@
       '<span>' + esc(meta) + '</span></a>';
   }
 
-  function loadUserDevices() {
-    try {
-      var raw = localStorage.getItem(DEVICES_KEY);
-      var arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
-    } catch (e) { return []; }
-  }
-
-  function isCameraTip(tip) {
-    var t = String(tip || '').toLowerCase();
-    return t === 'kamera_arilik' || t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
-  }
-
-  function deviceFromUser(d) {
-    var tip = d.tip || d.type || '';
-    var hiveId = d.hiveId != null ? d.hiveId : null;
-    var hive = (hiveId != null && D.hiveById) ? D.hiveById(hiveId) : null;
-    var ap = hive && D.apiaryById ? D.apiaryById(hive.apiaryId) : null;
-    var kind = isCameraTip(tip) ? 'kamera' : 'paket';
-    return {
-      source: 'user',
-      kind: kind,
-      tip: tip,
-      typeLabel: tipLabels[tip] || tip || 'Cihaz',
-      hiveId: hiveId,
-      hiveName: hive
-        ? (hive.name || ('Kovan ' + hive.id))
-        : (kind === 'kamera' ? (tipLabels[tip] || 'Kamera') : 'Kayıtlı cihaz'),
-      apiaryId: hive ? String(hive.apiaryId || 'none') : 'none',
-      apiaryName: ap ? (ap.name || ap.place || 'Arılık') : '—',
-      battery: null,
-      lastMins: null,
-      online: false,
-      channels: [tipLabels[tip] || tip || 'Cihaz'],
-      at: d.at || null
-    };
-  }
-
-  /** Örnek / demo paketler — canlı değil; yalnızca kullanıcı cihazı yokken isteğe bağlı. */
-  function deviceFromHiveDemo(h) {
-    var id = Number(h.id) || 0;
-    var ap = D.apiaryById(h.apiaryId);
-    return {
-      source: 'demo',
-      kind: 'paket',
-      typeLabel: 'Sensör paketi',
-      hiveId: h.id,
-      hiveName: h.name || ('Kovan ' + h.id),
-      apiaryId: String(h.apiaryId || 'none'),
-      apiaryName: ap ? (ap.name || ap.place || 'Arılık') : 'Arılık',
-      battery: 55 + ((id * 7) % 41),
-      lastMins: 2 + ((id * 3) % 118),
-      online: false,
-      channels: ['Tartı', 'Sıcaklık/Nem', 'IR', 'Ses/Titreşim']
-    };
-  }
-
   function relAgo(mins) {
-    if (mins == null) return 'bağlı değil';
+    if (mins == null) return '—';
     if (mins < 60) return mins + ' dk önce';
     var h = Math.floor(mins / 60);
     var m = mins % 60;
     return h + ' sa' + (m ? ' ' + m + ' dk' : '') + ' önce';
   }
 
-  function groupByApiary(devices) {
+  function groupByApiary(list) {
     var map = {};
     var order = [];
-    devices.forEach(function (d) {
+    list.forEach(function (d) {
       var aid = String(d.apiaryId || 'none');
       if (!map[aid]) { map[aid] = []; order.push(aid); }
       map[aid].push(d);
@@ -227,11 +155,10 @@
     });
   }
 
-  function disconnectBannerHtml() {
-    return '<div class="disconnect-banner" role="status">' +
-      '<strong>Canlı cihaz bağlı değil</strong>' +
-      '<p>Henüz kayıtlı donanım yok. Sensör veya kamera ekleyince burada listelenir. Kovan kamerası isteğe bağlıdır.</p>' +
-      '<a class="add-btn" href="ayarlar.html#cihaz">Cihaz ekle</a>' +
+  function emptyLiveHtml() {
+    return '<div class="empty-live" role="status">' +
+      '<strong>Canlı cihaz yok · takılınca burada görünür</strong>' +
+      '<p>Tak–çalıştır: donanım bağlanınca otomatik listelenir. Elle ekleme gerekmez. Kovan kamerası isteğe bağlıdır.</p>' +
     '</div>';
   }
 
@@ -239,46 +166,45 @@
     var pills = (d.channels || []).map(function (c) {
       return '<span class="chan-pill">' + esc(c) + '</span>';
     }).join('');
-    var isDemo = d.source === 'demo';
-    var typeTag = '<span class="type-tag' + (isDemo ? ' demo' : '') + '">' +
-      esc(isDemo ? ('Örnek / demo · ' + (d.typeLabel || 'Cihaz')) : (d.typeLabel || 'Cihaz')) +
+    var isDemoSrc = d.source === 'demo';
+    var typeTag = '<span class="type-tag' + (isDemoSrc ? ' demo' : '') + '">' +
+      esc(isDemoSrc ? ('Örnek · ' + (d.typeLabel || 'Cihaz')) : (d.typeLabel || 'Cihaz')) +
       '</span>';
-    var connClass = d.online ? 'online' : 'offline';
-    var connText = d.online ? 'Bağlı' : (isDemo ? 'Örnek' : 'Bağlı değil');
-    var bat = (d.battery == null)
-      ? (isDemo ? 'demo' : 'kayıtlı')
-      : ('batarya %' + d.battery);
+    var st = d.status || Dev.STATUS.yok;
+    var stLabel = Dev.statusLabel(st);
+    var stClass = Dev.statusTone(st);
+    var title = d.hiveName || d.typeLabel || 'Cihaz';
+    var bat = (d.battery == null) ? '—' : ('batarya %' + d.battery);
     var href = d.kind === 'kamera'
       ? 'kamera.html'
       : (d.hiveId != null ? ('kovan.html?id=' + encodeURIComponent(d.hiveId)) : 'cihazlar.html');
     return '<a class="row-item device-link" href="' + href + '">' +
       '<div class="left">' +
-        '<div class="title">' + esc(d.hiveName) + ' ' + typeTag + '</div>' +
+        '<div class="title">' + esc(title) + ' ' + typeTag + '</div>' +
         '<div class="meta">' + esc(d.apiaryName) +
           ' · ' + bat +
           ' · ' + esc(relAgo(d.lastMins)) + '</div>' +
         '<div style="margin-top:4px">' + pills +
-          '<span class="status-pill ' + connClass + '">' + connText + '</span></div>' +
+          '<span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
       '</div>' +
-      '<div class="right"><span class="badge ' + (d.online ? 'ok' : 'warn') + '">' +
-        connText + '</span></div>' +
+      '<div class="right"><span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
     '</a>';
   }
 
-  var userRaw = loadUserDevices();
-  var userDevices = userRaw.map(deviceFromUser);
-  var hives = D.loadHives ? D.loadHives().slice() : [];
-  var apiaries = D.loadApiaries ? D.loadApiaries() : [];
-
-  /* Kullanıcı cihazı yoksa canlı liste boş — demo paketleri ayrı etiketle (isteğe bağlı örnek). */
-  var demoDevices = [];
-  if (!userDevices.length) {
-    demoDevices = hives.slice(0, 3).map(deviceFromHiveDemo);
+  /* Page mode banner (Demo vs Canlı) */
+  var banner = document.getElementById('workModeBanner');
+  if (banner) {
+    banner.hidden = false;
+    if (workMode === 'demo') {
+      banner.className = 'mode-banner';
+      banner.innerHTML = '<strong>Demo</strong><span>· örnek cihazlar · Yok ima edilir (listede yok)</span>';
+    } else {
+      banner.className = 'mode-banner live';
+      banner.innerHTML = '<strong>Canlı</strong><span>· tak–çalıştır · kayıt yoksa Yok</span>';
+    }
   }
 
-  var devices = userDevices.concat(demoDevices);
-  var groups = groupByApiary(userDevices.length ? userDevices : devices);
-
+  var groups = groupByApiary(devices);
   var effectiveMode = mode;
   if (!hasMode && apiaryId) effectiveMode = 'apiary';
 
@@ -289,28 +215,28 @@
     return list;
   }
 
-  /* Chooser — canlı cihaz yoksa banner + ekle */
+  document.getElementById('pageNote').textContent = workMode === 'demo'
+    ? 'Demo: sabit örnek paket · kullanıcı kayıtları karışmaz'
+    : 'Canlı: yalnızca gerçek / keşfedilen cihazlar';
+
+  /* Chooser */
   if (!hasMode && !apiaryId) {
-    document.getElementById('pageSub').textContent = userDevices.length
-      ? (userDevices.length + ' kayıtlı cihaz · görünüm seçin')
-      : 'Canlı cihaz yok';
-    document.getElementById('listHeading').textContent = userDevices.length
+    document.getElementById('pageSub').textContent = devices.length
+      ? (devices.length + ' cihaz · görünüm seçin')
+      : (workMode === 'live' ? 'Canlı cihaz yok' : 'Demo boş');
+    document.getElementById('listHeading').textContent = devices.length
       ? 'Nasıl görmek istersiniz?'
       : 'Cihazlar';
-    document.getElementById('summary').textContent = '';
+    document.getElementById('summary').textContent = devices.length
+      ? ('Bağlı ' + counts.bagli + ' · Kopuk ' + counts.kopuk + ' · Arızalı ' + counts.arizali)
+      : '';
     document.getElementById('modeSwitch').innerHTML = '';
     var html = '';
-    if (!userDevices.length) {
-      html += disconnectBannerHtml();
-      document.getElementById('pageNote').textContent =
-        'Sensör/kamera donanımı gelince burada izlenir · örnek satırlar canlı değildir';
-      if (demoDevices.length) {
-        html += '<div class="section-label">Örnek / demo (canlı değil)</div>';
-        html += demoDevices.map(renderDevice).join('');
-      }
+    if (!devices.length) {
+      html += emptyLiveHtml();
     } else {
       html += '<div class="choice-grid">' +
-        choiceBtn(pageHref('mode=all'), 'Tüm cihazlar', userDevices.length + ' cihaz tek listede');
+        choiceBtn(pageHref('mode=all'), 'Tüm cihazlar', devices.length + ' cihaz tek listede');
       groups.forEach(function (g) {
         html += choiceBtn(
           pageHref('mode=apiary&apiary=' + encodeURIComponent(g.apiaryId)),
@@ -324,27 +250,27 @@
     return;
   }
 
-  var listUser = filterByApiary(userDevices);
-  var listDemo = userDevices.length ? [] : filterByApiary(demoDevices);
-  var listAll = listUser.concat(listDemo);
+  var list = filterByApiary(devices);
   var apName = '';
   if (effectiveMode === 'apiary' && apiaryId) {
-    var g0 = groupByApiary(listAll)[0];
+    var g0 = groupByApiary(list)[0];
     if (g0) apName = g0.apiaryName;
-    else {
-      var ap = D.apiaryById ? D.apiaryById(apiaryId) : null;
+    else if (D && D.apiaryById) {
+      var ap = D.apiaryById(apiaryId);
       apName = ap ? (ap.name || ap.place || 'Arılık') : 'Arılık';
+    } else {
+      apName = 'Arılık';
     }
   }
 
-  document.getElementById('pageSub').textContent = listUser.length
-    ? (listUser.length + ' cihaz · ' + (effectiveMode === 'all' ? 'Tüm cihazlar' : (apName || 'Arılık')))
-    : 'Canlı cihaz yok';
+  document.getElementById('pageSub').textContent = list.length
+    ? (list.length + ' cihaz · ' + (effectiveMode === 'all' ? 'Tüm cihazlar' : (apName || 'Arılık')))
+    : (workMode === 'live' ? 'Canlı cihaz yok' : 'Cihaz yok');
   document.getElementById('listHeading').textContent =
     effectiveMode === 'all' ? 'Tüm cihazlar' : (apName || 'Arılık');
-  document.getElementById('summary').textContent = listUser.length
-    ? (listUser.length + ' kayıtlı cihaz · canlı eşleşme yok')
-    : 'Kayıtlı cihaz yok';
+  document.getElementById('summary').textContent = list.length
+    ? (list.length + ' cihaz')
+    : '';
 
   document.getElementById('modeSwitch').innerHTML =
     '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">Tüm cihazlar</a>' +
@@ -352,15 +278,10 @@
 
   var body = document.getElementById('deviceBody');
   var out = '';
-  if (!listUser.length) {
-    out += disconnectBannerHtml();
-  }
-  if (listUser.length) {
-    out += listUser.map(renderDevice).join('');
-  }
-  if (listDemo.length) {
-    out += '<div class="section-label">Örnek / demo (canlı değil)</div>';
-    out += listDemo.map(renderDevice).join('');
+  if (!list.length) {
+    out += emptyLiveHtml();
+  } else {
+    out += list.map(renderDevice).join('');
   }
   body.innerHTML = out;
 })();

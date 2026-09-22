@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Ayarlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <style>
+    .mode-seg {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .mode-seg-btn {
+      font: inherit; font-weight: 800; font-size: 14px;
+      padding: 12px 10px; border-radius: 12px; cursor: pointer;
+      border: 1.5px solid #d8c48a; background: #fff; color: #5c4a2a;
+    }
+    .mode-seg-btn.active {
+      background: linear-gradient(180deg, #fff6df 0%, #f5e6b8 100%);
+      border-color: #c9a84a; color: #3d2e12;
+      box-shadow: 0 1px 0 rgba(0,0,0,.04);
+    }
+  </style>
 </head>
 <body class="auth-body">
   <div class="auth-phone">
@@ -24,16 +39,33 @@
     </div>
 
 
+    <section class="auth-card" id="calisma-modu">
+      <div class="settings-head">
+        <div>
+          <h2>Çalışma modu</h2>
+          <p class="sub">Demo örnek veri; Canlı tak–çalıştır.</p>
+        </div>
+      </div>
+      <div class="stack" id="mode-panel">
+        <div class="mode-seg" role="group" aria-label="Çalışma modu">
+          <button type="button" class="mode-seg-btn" id="btn-mode-demo" data-mode="demo">Demo</button>
+          <button type="button" class="mode-seg-btn" id="btn-mode-live" data-mode="live">Canlı</button>
+        </div>
+        <p class="hint-inline" id="mode-help">Demo: örnek veri. Canlı: tak–çalıştır; yoksa Yok, kopunca Kopuk, bozuksa Arızalı.</p>
+        <div id="mode-toast" class="form-alert" hidden></div>
+      </div>
+    </section>
+
     <section class="auth-card" id="cihaz">
       <div class="settings-head">
         <div>
           <h2>Cihazlar</h2>
-          <p class="sub">Sensör ve gateway kaydı (demo, yerel).</p>
+          <p class="sub">Tak–çalıştır; elle kayıt nadirdir.</p>
         </div>
         <a class="chip" href="cihazlar.html" style="text-decoration:none">Cihazlar</a>
       </div>
       <div class="stack" id="cihaz-panel">
-        <button class="btn" type="button" id="btn-cihaz-ekle">Cihaz ekle</button>
+        <button class="btn secondary" type="button" id="btn-cihaz-ekle">Elle kayıt (nadir / test)</button>
         <div id="cihaz-form-wrap" hidden>
           <form class="stack" id="cihaz-form">
             <label>Cihaz tipi
@@ -54,13 +86,13 @@
               </select>
             </label>
             <p class="hint-inline" id="cihaz-kamera-hint" hidden>Arılık kamerası arılığa; kovan kamerası isteğe bağlıdır — olmadan da sistem çalışır.</p>
-            <button class="btn" type="submit">Kaydet (demo)</button>
+            <button class="btn" type="submit">Kaydet (elle)</button>
             <button class="btn secondary" type="button" id="btn-cihaz-iptal">İptal</button>
           </form>
         </div>
         <div id="cihaz-toast" class="form-alert" hidden></div>
         <div id="cihaz-list" class="stack" style="gap:.5rem"></div>
-        <p class="hint-inline">Kayıtlar bu cihazda tutulur. Canlı eşleştirme sonra gelir. · <a href="cihazlar.html">Cihazlar listesi</a></p>
+        <p class="hint-inline">Asıl yol: cihazlar otomatik tanınır. Elle kayıt yalnızca test / nadir durumlar içindir. · <a href="cihazlar.html">Cihazlar listesi</a></p>
       </div>
     </section>
 
@@ -105,6 +137,7 @@
     </section>
   </div>
   <script src="demo-data.js"></script>
+  <script src="device-runtime.js"></script>
   <script src="panels.js"></script>
   <script>
     (function () {
@@ -205,6 +238,42 @@
     })();
   </script>
 
+
+  <script>
+    (function () {
+      var Dev = window.SuperAriDevices;
+      if (!Dev) return;
+      var btnDemo = document.getElementById('btn-mode-demo');
+      var btnLive = document.getElementById('btn-mode-live');
+      var toastEl = document.getElementById('mode-toast');
+      function showToast(msg) {
+        if (!toastEl) return;
+        toastEl.hidden = false;
+        toastEl.textContent = msg;
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(function () {
+          toastEl.hidden = true;
+          toastEl.textContent = '';
+        }, 2600);
+      }
+      function paint() {
+        var m = Dev.getMode();
+        if (btnDemo) btnDemo.classList.toggle('active', m === 'demo');
+        if (btnLive) btnLive.classList.toggle('active', m === 'live');
+      }
+      function set(mode) {
+        Dev.setMode(mode);
+        paint();
+        if (Dev.syncDemoBanner) Dev.syncDemoBanner();
+        showToast(mode === 'live'
+          ? 'Canlı mod: tak–çalıştır; yoksa Yok.'
+          : 'Demo mod: sabit örnek veri (kullanıcı kayıtları karışmaz).');
+      }
+      paint();
+      if (btnDemo) btnDemo.addEventListener('click', function () { set('demo'); });
+      if (btnLive) btnLive.addEventListener('click', function () { set('live'); });
+    })();
+  </script>
   <script>
     (function () {
       var KEY = 'superari.devices';
@@ -257,11 +326,15 @@
       function renderList() {
         if (!listEl) return;
         var list = loadDevices();
+        var DevR = window.SuperAriDevices;
+        var modeNote = (DevR && DevR.isDemo && DevR.isDemo())
+          ? '<p class="muted" style="margin:0 0 .4rem">Elle kayıt Canlı moda aittir; Demo listesi ayrıdır.</p>'
+          : '';
         if (!list.length) {
-          listEl.innerHTML = '<p class="muted" style="margin:0">Kayıtlı demo cihaz yok.</p>';
+          listEl.innerHTML = modeNote + '<p class="muted" style="margin:0">Elle kayıt yok · asıl yol otomatik tanıma.</p>';
           return;
         }
-        listEl.innerHTML = list.map(function (d) {
+        listEl.innerHTML = modeNote + list.map(function (d) {
           var tip = tipLabels[d.tip] || d.tip || 'Cihaz';
           var where = '';
           if (d.apiaryId) where = ' · ' + apiaryName(d.apiaryId);
@@ -340,7 +413,7 @@
           saveDevices(list.slice(0, 50));
           renderList();
           closeForm();
-          showToast('Demo: cihaz kaydı yerel; canlı eşleştirme sonra');
+          showToast('Elle kayıt kaydedildi (nadir / test)');
         });
       }
 

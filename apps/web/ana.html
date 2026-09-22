@@ -1059,6 +1059,7 @@
 </div>
 
 <script src="demo-data.js"></script>
+<script src="device-runtime.js"></script>
 <script src="sensor-health.js"></script>
 <script src="hava-kayit.js"></script>
 <script src="logos/hardal-bees.js"></script>
@@ -1890,19 +1891,6 @@
     ? SuperAriDemo.loadApiaries().length
     : 0;
 
-  function loadStoredDevices() {
-    try {
-      var raw = localStorage.getItem('superari.devices');
-      var arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr : [];
-    } catch (e) { return []; }
-  }
-  function isCameraDeviceTip(tip) {
-    var t = String(tip || '').toLowerCase();
-    return t === 'kamera_arilik' || t === 'kamera_merkez' || t === 'kamera_kovan' ||
-      t === 'merkezi_kamera' || t === 'kovan_kamerasi' ||
-      t.indexOf('kamera') !== -1;
-  }
   function meanDeltaKgBadge(hv) {
     if (!hv || !hv.length) return '—';
     var sum = 0;
@@ -1941,17 +1929,18 @@
     return t;
   }
 
-  var storedDevices = loadStoredDevices();
-  var deviceCount = storedDevices.length;
-  var cameraDeviceCount = storedDevices.filter(function (d) {
-    return d && isCameraDeviceTip(d.tip || d.type || d.kind);
-  }).length;
   var tartiBadge = meanDeltaKgBadge(hivesForTiles);
   var tartiTone = meanDeltaTone(hivesForTiles);
   var koloniBadge = avgColonyBadge(hivesForTiles);
   var koloniTone = avgColonyTone(hivesForTiles);
-  var cihazBadge = deviceCount ? String(deviceCount) : '0';
-  var kameraBadge = cameraDeviceCount ? String(cameraDeviceCount) : 'Yok';
+  var cihazInfo = (window.SuperAriDevices && SuperAriDevices.anaCihazBadge)
+    ? SuperAriDevices.anaCihazBadge()
+    : { text: 'Yok', tone: 'tan' };
+  var kameraInfo = (window.SuperAriDevices && SuperAriDevices.anaKameraBadge)
+    ? SuperAriDevices.anaKameraBadge()
+    : { text: 'Yok', tone: 'tan' };
+  var cihazBadge = cihazInfo.text;
+  var kameraBadge = kameraInfo.text;
 
   var tiles = [
     { key: 'tarti', label: 'Tartı', badge: tartiBadge, tone: tartiTone, href: 'kovanlar.html?view=tarti' },
@@ -1960,12 +1949,12 @@
     { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
     { key: 'koloni', label: 'Koloni', badge: koloniBadge, tone: koloniTone, href: 'kovanlar.html?view=koloni' },
     { key: 'ariliklar', label: 'Arılıklar', badge: String(apiaryCount), tone: 'tan', href: 'ariliklar.html' },
-    { key: 'cihazlar', label: 'Cihazlar', badge: cihazBadge, tone: deviceCount ? 'green' : 'tan', href: 'cihazlar.html' },
+    { key: 'cihazlar', label: 'Cihazlar', badge: cihazBadge, tone: cihazInfo.tone || 'tan', href: 'cihazlar.html' },
     { key: 'gorevler', label: 'Görevler', badge: String(taskCount || 0), tone: 'blue', href: 'gorevler.html' },
     { key: 'uyarilar', label: 'Uyarılar', badge: String(alertCount || 0), tone: alertCount ? 'red' : 'tan', href: 'uyarilar.html' },
     { key: 'raporlar', label: 'Raporlar', badge: '9', tone: 'purple', href: 'raporlar.html' },
     { key: 'hava', label: 'Hava', badge: weatherBadgeFromDom(), tone: 'blue', href: 'hava-raporu.html' },
-    { key: 'kamera', label: 'Kamera', badge: kameraBadge, tone: cameraDeviceCount ? 'green' : 'tan', href: 'kamera.html' }
+    { key: 'kamera', label: 'Kamera', badge: kameraBadge, tone: kameraInfo.tone || 'tan', href: 'kamera.html' }
   ];
 
   function hiveHTML(key) {
