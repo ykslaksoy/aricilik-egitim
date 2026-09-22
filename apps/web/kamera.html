@@ -20,14 +20,19 @@
   .viewer-frame {
     position: absolute; inset: 0;
     background:
-      radial-gradient(ellipse at 30% 35%, rgba(255, 214, 120, .18), transparent 45%),
-      radial-gradient(ellipse at 70% 70%, rgba(120, 180, 255, .08), transparent 50%),
-      repeating-linear-gradient(0deg, transparent 0 18px, rgba(255,255,255,.03) 18px 19px);
+      radial-gradient(ellipse at 30% 35%, rgba(255, 214, 120, .12), transparent 45%),
+      radial-gradient(ellipse at 70% 70%, rgba(120, 180, 255, .06), transparent 50%);
   }
+  .viewer.empty {
+    border-color: #cfd8e3;
+    background: linear-gradient(165deg, #f7f8fa 0%, #eef1f4 100%);
+  }
+  .viewer.empty .viewer-frame { display: none; }
   .viewer-placeholder {
     position: relative; z-index: 1; text-align: center; padding: 16px;
     color: #f3e2c8;
   }
+  .viewer.empty .viewer-placeholder { color: var(--brown); }
   .viewer-placeholder strong {
     display: block; font-size: 16px; font-weight: 800; margin-bottom: 6px;
   }
@@ -57,6 +62,21 @@
   }
   .dot.on { background: #2b8a3e; }
   .dot.off { background: #c92a2a; }
+  .disconnect-banner {
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+    padding: 14px; border-radius: 14px; margin-bottom: 12px;
+    border: 1.5px solid #ffa8a8; background: #fff5f5; color: #862e2e;
+  }
+  .disconnect-banner strong { font-size: 14px; font-weight: 800; }
+  .disconnect-banner p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; color: #a61e4d; }
+  .disconnect-banner .add-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 10px 14px; border-radius: 12px; text-decoration: none;
+    font-size: 13px; font-weight: 800; border: 1.5px solid #e0c56a;
+    background: linear-gradient(180deg, #fff6df 0%, #f5e6b8 100%);
+    color: var(--brown);
+  }
+  .hidden-block { display: none !important; }
 </style>
 </head>
 <body>
@@ -76,29 +96,39 @@
       <div class="nav-chips">
         <a class="back-chip" href="ana.html">← Ana</a>
         <a class="back-chip" href="cihazlar.html">Cihazlar</a>
+        <a class="back-chip" href="ayarlar.html#cihaz">Cihaz ekle</a>
       </div>
     </div>
 
-    <section class="card-block">
+    <div id="emptyState" class="card-block" hidden>
+      <div class="disconnect-banner" role="status">
+        <strong>Kamera bağlı değil</strong>
+        <p>Kayıtlı kamera cihazı yok. Sensör/kamera donanımı gelince burada izlenir.</p>
+        <a class="add-btn" href="ayarlar.html#cihaz">Cihaz ekle</a>
+      </div>
+      <p class="hint" style="margin:0">Canlı video yok · demo görüntü gösterilmiyor</p>
+    </div>
+
+    <section class="card-block" id="liveSection">
       <h2>Arılık</h2>
       <label class="meta" for="apiarySelect" style="display:block;margin-bottom:6px">Hangi arılığı izlemek istersiniz?</label>
       <select class="cam-select" id="apiarySelect" aria-label="Arılık seç"></select>
 
-      <div class="viewer" id="viewer" aria-label="Kamera görüntüsü">
+      <div class="viewer empty" id="viewer" aria-label="Kamera görüntüsü">
         <div class="viewer-frame" aria-hidden="true"></div>
         <div class="viewer-placeholder">
-          <strong id="frameTitle">Son kare · demo</strong>
-          <span id="frameNote">Canlı yakında. Bağlantı durumu için Cihazlar’a bakın.</span>
+          <strong id="frameTitle">Kamera bağlı değil</strong>
+          <span id="frameNote">Sensör/kamera donanımı gelince burada izlenir.</span>
         </div>
       </div>
       <div class="cam-meta" id="camMeta"></div>
     </section>
 
-    <section class="card-block">
+    <section class="card-block" id="listSection">
       <h2>Kameralar</h2>
       <p class="meta" id="camSummary" style="margin-bottom:8px"></p>
       <div class="cam-list" id="camList"></div>
-      <p class="hint" style="margin-top:12px">Canlı akış henüz yok · son kare yer tutucu</p>
+      <p class="hint" id="camHint" style="margin-top:12px">Canlı akış yok · yalnızca kayıtlı kamera cihazları</p>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -115,6 +145,11 @@
 (function () {
   var D = window.SuperAriDemo;
   if (!D) return;
+  var DEVICES_KEY = 'superari.devices';
+  var tipLabels = {
+    kamera_merkez: 'Merkezi kamera',
+    kamera_kovan: 'Kovan kamerası'
+  };
   var params = new URLSearchParams(location.search);
   var sel = document.getElementById('apiarySelect');
   var apiaries = D.loadApiaries ? D.loadApiaries() : [];
@@ -123,87 +158,105 @@
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function camsFor(ap, i) {
-    var aid = String(ap.id || ('ap-' + i));
-    var name = ap.name || ap.place || ('Arılık ' + (i + 1));
-    return [
-      {
-        id: 'cam-m-' + aid,
-        label: 'Merkezi kamera',
-        apiaryId: aid,
-        apiaryName: name,
-        online: (i % 3) !== 2,
-        lastMins: 1 + ((i * 5) % 40)
-      },
-      {
-        id: 'cam-k-' + aid,
-        label: 'Kovan kamerası',
-        apiaryId: aid,
-        apiaryName: name,
-        online: (i % 4) !== 0,
-        lastMins: 5 + ((i * 9) % 90)
-      }
-    ];
+  function isCameraTip(tip) {
+    var t = String(tip || '').toLowerCase();
+    return t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
   }
 
-  function relAgo(mins) {
-    if (mins < 60) return mins + ' dk önce';
-    var h = Math.floor(mins / 60);
-    var m = mins % 60;
-    return h + ' sa' + (m ? ' ' + m + ' dk' : '') + ' önce';
+  function loadCameraDevices() {
+    try {
+      var raw = localStorage.getItem(DEVICES_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(function (d) { return d && isCameraTip(d.tip || d.type); }).map(function (d) {
+        var tip = d.tip || d.type || '';
+        var hiveId = d.hiveId != null ? d.hiveId : null;
+        var hive = (hiveId != null && D.hiveById) ? D.hiveById(hiveId) : null;
+        var apId = hive ? String(hive.apiaryId || '') : '';
+        var ap = apId && D.apiaryById ? D.apiaryById(apId) : null;
+        return {
+          id: d.id || ('cam-' + tip),
+          tip: tip,
+          label: tipLabels[tip] || tip || 'Kamera',
+          apiaryId: apId || 'none',
+          apiaryName: ap ? (ap.name || ap.place || 'Arılık') : (hive ? 'Kovan ' + hive.id : '—'),
+          hiveId: hiveId,
+          online: false,
+          at: d.at || null
+        };
+      });
+    } catch (e) { return []; }
   }
 
-  if (!apiaries.length) {
-    sel.innerHTML = '<option value="">Arılık yok</option>';
-  } else {
-    sel.innerHTML = apiaries.map(function (ap, i) {
-      var id = String(ap.id || ('ap-' + i));
-      var name = ap.name || ap.place || ('Arılık ' + (i + 1));
-      return '<option value="' + esc(id) + '">' + esc(name) + '</option>';
-    }).join('');
-    var want = params.get('apiary');
-    if (want) {
-      for (var o = 0; o < sel.options.length; o++) {
-        if (sel.options[o].value === String(want)) { sel.selectedIndex = o; break; }
-      }
+  var cams = loadCameraDevices();
+  var emptyEl = document.getElementById('emptyState');
+  var liveSection = document.getElementById('liveSection');
+  var listSection = document.getElementById('listSection');
+
+  if (!cams.length) {
+    document.getElementById('pageSub').textContent = 'Kamera bağlı değil';
+    if (emptyEl) emptyEl.hidden = false;
+    if (liveSection) liveSection.classList.add('hidden-block');
+    if (listSection) listSection.classList.add('hidden-block');
+    return;
+  }
+
+  if (emptyEl) emptyEl.hidden = true;
+
+  var apiaryIds = {};
+  cams.forEach(function (c) {
+    if (c.apiaryId && c.apiaryId !== 'none') apiaryIds[c.apiaryId] = c.apiaryName;
+  });
+  var camApiaries = Object.keys(apiaryIds).map(function (id) {
+    return { id: id, name: apiaryIds[id] };
+  });
+  if (!camApiaries.length) {
+    camApiaries = [{ id: 'none', name: 'Kayıtlı kameralar' }];
+  }
+
+  sel.innerHTML = camApiaries.map(function (ap) {
+    return '<option value="' + esc(ap.id) + '">' + esc(ap.name) + '</option>';
+  }).join('');
+  var want = params.get('apiary');
+  if (want) {
+    for (var o = 0; o < sel.options.length; o++) {
+      if (sel.options[o].value === String(want)) { sel.selectedIndex = o; break; }
     }
   }
 
   function render() {
     var aid = sel.value;
-    var idx = Math.max(0, apiaries.findIndex(function (ap, i) {
-      return String(ap.id || ('ap-' + i)) === String(aid);
-    }));
-    var ap = apiaries[idx] || { name: 'Arılık' };
-    var name = ap.name || ap.place || 'Arılık';
-    var cams = camsFor(ap, idx);
-    var onlineN = cams.filter(function (c) { return c.online; }).length;
+    var list = cams.filter(function (c) {
+      if (aid === 'none') return true;
+      return String(c.apiaryId) === String(aid);
+    });
+    if (!list.length) list = cams.slice();
+    var name = (camApiaries.find(function (a) { return String(a.id) === String(aid); }) || {}).name || 'Kamera';
 
-    document.getElementById('pageSub').textContent = name + ' · izleme';
-    document.getElementById('frameTitle').textContent = name + ' · son kare';
+    document.getElementById('pageSub').textContent = list.length + ' kamera · canlı yok';
+    var viewer = document.getElementById('viewer');
+    viewer.classList.add('empty');
+    document.getElementById('frameTitle').textContent = 'Kamera bağlı değil';
     document.getElementById('frameNote').textContent =
-      'Canlı yakında. Demo yer tutucu — bağlantı için Cihazlar.';
+      'Kayıtlı ' + list.length + ' kamera var; canlı akış henüz yok. Sensör/kamera donanımı gelince burada izlenir.';
 
     document.getElementById('camMeta').innerHTML =
-      '<span class="cam-pill live">Son kare · demo</span>' +
-      '<span class="cam-pill">Canlı yakında</span>' +
-      '<span class="cam-pill">' + onlineN + '/' + cams.length + ' bağlı</span>';
+      '<span class="cam-pill">' + list.length + ' kayıtlı</span>' +
+      '<span class="cam-pill">Canlı yok</span>';
 
     document.getElementById('camSummary').textContent =
-      cams.length + ' kamera · durum Cihazlar’da da görünür';
+      list.length + ' kayıtlı kamera · canlı eşleşme yok';
 
-    document.getElementById('camList').innerHTML = cams.map(function (c) {
+    document.getElementById('camList').innerHTML = list.map(function (c) {
       return '<div class="cam-card">' +
         '<div><strong>' + esc(c.label) + '</strong><br>' +
-        '<span>' + (c.online ? 'Bağlı' : 'Çevrimdışı') +
-        ' · son veri ' + esc(relAgo(c.lastMins)) + '</span></div>' +
-        '<span class="dot ' + (c.online ? 'on' : 'off') + '" title="' +
-          (c.online ? 'Bağlı' : 'Çevrimdışı') + '"></span>' +
+        '<span>' + esc(c.apiaryName) + ' · bağlı değil</span></div>' +
+        '<span class="dot off" title="Bağlı değil"></span>' +
       '</div>';
     }).join('') +
-    '<a class="cam-card" href="cihazlar.html" style="border-color:#e0c56a;background:#fff6df">' +
-      '<div><strong>Cihaz bağlantı durumu</strong><br>' +
-      '<span>Batarya, son veri ve bağlı/çevrimdışı →</span></div>' +
+    '<a class="cam-card" href="ayarlar.html#cihaz" style="border-color:#e0c56a;background:#fff6df">' +
+      '<div><strong>Cihaz ekle / düzenle</strong><br>' +
+      '<span>Ayarlar → Cihaz ekle →</span></div>' +
     '</a>';
   }
 

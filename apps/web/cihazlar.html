@@ -49,6 +49,27 @@
     font-size: 10px; font-weight: 750; border: 1px solid #e0c56a;
     background: #fff6df; color: var(--brown);
   }
+  .type-tag.demo {
+    border-color: #cfd8e3; background: #f4f6f8; color: #6b635a;
+  }
+  .disconnect-banner {
+    display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
+    padding: 14px; border-radius: 14px; margin-bottom: 12px;
+    border: 1.5px solid #ffa8a8; background: #fff5f5; color: #862e2e;
+  }
+  .disconnect-banner strong { font-size: 14px; font-weight: 800; }
+  .disconnect-banner p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; color: #a61e4d; }
+  .disconnect-banner .add-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 10px 14px; border-radius: 12px; text-decoration: none;
+    font-size: 13px; font-weight: 800; border: 1.5px solid #e0c56a;
+    background: linear-gradient(180deg, #fff6df 0%, #f5e6b8 100%);
+    color: var(--brown);
+  }
+  .section-label {
+    margin: 14px 0 8px; font-size: 11px; font-weight: 800;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
+  }
 </style>
 </head>
 <body>
@@ -76,7 +97,7 @@
       <h2 id="listHeading">Cihazlar</h2>
       <p class="meta" id="summary" style="margin-bottom:10px"></p>
       <div id="deviceBody"></div>
-      <p class="hint" id="pageNote" style="margin-top:12px">Canlı bağlantı henüz yok · demo değerler</p>
+      <p class="hint" id="pageNote" style="margin-top:12px">Kayıtlı cihazlar bu cihazda tutulur · canlı eşleştirme sonra</p>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -93,6 +114,17 @@
 (function () {
   var D = window.SuperAriDemo;
   if (!D) return;
+  var DEVICES_KEY = 'superari.devices';
+  var tipLabels = {
+    tarti: 'Tartı',
+    isi_nem: 'Sıcaklık/Nem',
+    ir: 'IR',
+    ses_titresim: 'Ses/Titreşim',
+    gateway: 'Gateway (Wi‑Fi / hücresel)',
+    kamera_merkez: 'Merkezi kamera',
+    kamera_kovan: 'Kovan kamerası',
+    role_hub: 'Wireless röle / hub'
+  };
   var params = new URLSearchParams(location.search);
   var hasMode = params.has('mode');
   var mode = params.get('mode') === 'all' ? 'all' : (params.get('mode') === 'apiary' ? 'apiary' : null);
@@ -112,62 +144,65 @@
       '<span>' + esc(meta) + '</span></a>';
   }
 
-  /** One demo sensor pack per hive — bağlantı durumu (formül yok). */
-  function deviceFromHive(h) {
+  function loadUserDevices() {
+    try {
+      var raw = localStorage.getItem(DEVICES_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function isCameraTip(tip) {
+    var t = String(tip || '').toLowerCase();
+    return t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
+  }
+
+  function deviceFromUser(d) {
+    var tip = d.tip || d.type || '';
+    var hiveId = d.hiveId != null ? d.hiveId : null;
+    var hive = (hiveId != null && D.hiveById) ? D.hiveById(hiveId) : null;
+    var ap = hive && D.apiaryById ? D.apiaryById(hive.apiaryId) : null;
+    var kind = isCameraTip(tip) ? 'kamera' : 'paket';
+    return {
+      source: 'user',
+      kind: kind,
+      tip: tip,
+      typeLabel: tipLabels[tip] || tip || 'Cihaz',
+      hiveId: hiveId,
+      hiveName: hive
+        ? (hive.name || ('Kovan ' + hive.id))
+        : (kind === 'kamera' ? (tipLabels[tip] || 'Kamera') : 'Kayıtlı cihaz'),
+      apiaryId: hive ? String(hive.apiaryId || 'none') : 'none',
+      apiaryName: ap ? (ap.name || ap.place || 'Arılık') : '—',
+      battery: null,
+      lastMins: null,
+      online: false,
+      channels: [tipLabels[tip] || tip || 'Cihaz'],
+      at: d.at || null
+    };
+  }
+
+  /** Örnek / demo paketler — canlı değil; yalnızca kullanıcı cihazı yokken isteğe bağlı. */
+  function deviceFromHiveDemo(h) {
     var id = Number(h.id) || 0;
-    var bat = 55 + ((id * 7) % 41); /* 55–95 */
-    var mins = 2 + ((id * 3) % 118); /* 2–119 dk */
-    var online = (id % 7) !== 0; /* demo: bazıları çevrimdışı */
     var ap = D.apiaryById(h.apiaryId);
     return {
+      source: 'demo',
       kind: 'paket',
       typeLabel: 'Sensör paketi',
       hiveId: h.id,
       hiveName: h.name || ('Kovan ' + h.id),
       apiaryId: String(h.apiaryId || 'none'),
       apiaryName: ap ? (ap.name || ap.place || 'Arılık') : 'Arılık',
-      battery: bat,
-      lastMins: mins,
-      online: online,
+      battery: 55 + ((id * 7) % 41),
+      lastMins: 2 + ((id * 3) % 118),
+      online: false,
       channels: ['Tartı', 'Sıcaklık/Nem', 'IR', 'Ses/Titreşim']
     };
   }
 
-  /** Demo kameralar (merkezi + kovan) — canlı izleme Kamera sayfasında. */
-  function cameraDevices(apiaries) {
-    var out = [];
-    (apiaries || []).forEach(function (ap, i) {
-      var aid = String(ap.id || ('ap-' + i));
-      var name = ap.name || ap.place || ('Arılık ' + (i + 1));
-      out.push({
-        kind: 'kamera',
-        typeLabel: 'Merkezi kamera',
-        hiveId: null,
-        hiveName: name + ' · merkez',
-        apiaryId: aid,
-        apiaryName: name,
-        battery: null,
-        lastMins: 1 + ((i * 5) % 40),
-        online: (i % 3) !== 2,
-        channels: ['Kamera']
-      });
-      out.push({
-        kind: 'kamera',
-        typeLabel: 'Kovan kamerası',
-        hiveId: null,
-        hiveName: name + ' · kovan cam',
-        apiaryId: aid,
-        apiaryName: name,
-        battery: 40 + ((i * 11) % 50),
-        lastMins: 5 + ((i * 9) % 90),
-        online: (i % 4) !== 0,
-        channels: ['Kamera']
-      });
-    });
-    return out;
-  }
-
   function relAgo(mins) {
+    if (mins == null) return 'bağlı değil';
     if (mins < 60) return mins + ' dk önce';
     var h = Math.floor(mins / 60);
     var m = mins % 60;
@@ -191,23 +226,36 @@
     });
   }
 
+  function disconnectBannerHtml() {
+    return '<div class="disconnect-banner" role="status">' +
+      '<strong>Canlı cihaz bağlı değil</strong>' +
+      '<p>Henüz kayıtlı donanım yok. Sensör veya kamera ekleyince burada listelenir.</p>' +
+      '<a class="add-btn" href="ayarlar.html#cihaz">Cihaz ekle</a>' +
+    '</div>';
+  }
+
   function renderDevice(d) {
     var pills = (d.channels || []).map(function (c) {
       return '<span class="chan-pill">' + esc(c) + '</span>';
     }).join('');
-    var typeTag = '<span class="type-tag">' + esc(d.typeLabel || 'Cihaz') + '</span>';
+    var isDemo = d.source === 'demo';
+    var typeTag = '<span class="type-tag' + (isDemo ? ' demo' : '') + '">' +
+      esc(isDemo ? ('Örnek / demo · ' + (d.typeLabel || 'Cihaz')) : (d.typeLabel || 'Cihaz')) +
+      '</span>';
     var connClass = d.online ? 'online' : 'offline';
-    var connText = d.online ? 'Bağlı' : 'Çevrimdışı';
-    var bat = (d.battery == null) ? 'şebeke' : ('batarya %' + d.battery);
+    var connText = d.online ? 'Bağlı' : (isDemo ? 'Örnek' : 'Bağlı değil');
+    var bat = (d.battery == null)
+      ? (isDemo ? 'demo' : 'kayıtlı')
+      : ('batarya %' + d.battery);
     var href = d.kind === 'kamera'
-      ? 'kamera.html?apiary=' + encodeURIComponent(d.apiaryId)
+      ? 'kamera.html'
       : (d.hiveId != null ? ('kovan.html?id=' + encodeURIComponent(d.hiveId)) : 'cihazlar.html');
     return '<a class="row-item device-link" href="' + href + '">' +
       '<div class="left">' +
         '<div class="title">' + esc(d.hiveName) + ' ' + typeTag + '</div>' +
         '<div class="meta">' + esc(d.apiaryName) +
           ' · ' + bat +
-          ' · son veri ' + esc(relAgo(d.lastMins)) + '</div>' +
+          ' · ' + esc(relAgo(d.lastMins)) + '</div>' +
         '<div style="margin-top:4px">' + pills +
           '<span class="status-pill ' + connClass + '">' + connText + '</span></div>' +
       '</div>' +
@@ -216,62 +264,104 @@
     '</a>';
   }
 
+  var userRaw = loadUserDevices();
+  var userDevices = userRaw.map(deviceFromUser);
   var hives = D.loadHives ? D.loadHives().slice() : [];
   var apiaries = D.loadApiaries ? D.loadApiaries() : [];
-  var devices = hives.map(deviceFromHive).concat(cameraDevices(apiaries));
-  var groups = groupByApiary(devices);
+
+  /* Kullanıcı cihazı yoksa canlı liste boş — demo paketleri ayrı etiketle (isteğe bağlı örnek). */
+  var demoDevices = [];
+  if (!userDevices.length) {
+    demoDevices = hives.slice(0, 3).map(deviceFromHiveDemo);
+  }
+
+  var devices = userDevices.concat(demoDevices);
+  var groups = groupByApiary(userDevices.length ? userDevices : devices);
 
   var effectiveMode = mode;
   if (!hasMode && apiaryId) effectiveMode = 'apiary';
 
-  /* Chooser */
+  function filterByApiary(list) {
+    if (effectiveMode === 'apiary' && apiaryId) {
+      return list.filter(function (d) { return String(d.apiaryId) === String(apiaryId); });
+    }
+    return list;
+  }
+
+  /* Chooser — canlı cihaz yoksa banner + ekle */
   if (!hasMode && !apiaryId) {
-    document.getElementById('pageSub').textContent = devices.length + ' cihaz · görünüm seçin';
-    document.getElementById('listHeading').textContent = 'Nasıl görmek istersiniz?';
+    document.getElementById('pageSub').textContent = userDevices.length
+      ? (userDevices.length + ' kayıtlı cihaz · görünüm seçin')
+      : 'Canlı cihaz yok';
+    document.getElementById('listHeading').textContent = userDevices.length
+      ? 'Nasıl görmek istersiniz?'
+      : 'Cihazlar';
     document.getElementById('summary').textContent = '';
     document.getElementById('modeSwitch').innerHTML = '';
-    var html = '<div class="choice-grid">' +
-      choiceBtn(pageHref('mode=all'), 'Tüm cihazlar', devices.length + ' cihaz tek listede');
-    groups.forEach(function (g) {
-      html += choiceBtn(
-        pageHref('mode=apiary&apiary=' + encodeURIComponent(g.apiaryId)),
-        g.apiaryName,
-        g.devices.length + ' cihaz'
-      );
-    });
-    if (!groups.length) {
-      html += '<p class="meta">Bu durumda arılık yok.</p>';
+    var html = '';
+    if (!userDevices.length) {
+      html += disconnectBannerHtml();
+      document.getElementById('pageNote').textContent =
+        'Sensör/kamera donanımı gelince burada izlenir · örnek satırlar canlı değildir';
+      if (demoDevices.length) {
+        html += '<div class="section-label">Örnek / demo (canlı değil)</div>';
+        html += demoDevices.map(renderDevice).join('');
+      }
+    } else {
+      html += '<div class="choice-grid">' +
+        choiceBtn(pageHref('mode=all'), 'Tüm cihazlar', userDevices.length + ' cihaz tek listede');
+      groups.forEach(function (g) {
+        html += choiceBtn(
+          pageHref('mode=apiary&apiary=' + encodeURIComponent(g.apiaryId)),
+          g.apiaryName,
+          g.devices.length + ' cihaz'
+        );
+      });
+      html += '</div>';
     }
-    html += '</div>';
     document.getElementById('deviceBody').innerHTML = html;
     return;
   }
 
+  var listUser = filterByApiary(userDevices);
+  var listDemo = userDevices.length ? [] : filterByApiary(demoDevices);
+  var listAll = listUser.concat(listDemo);
+  var apName = '';
   if (effectiveMode === 'apiary' && apiaryId) {
-    devices = devices.filter(function (d) { return String(d.apiaryId) === String(apiaryId); });
-    groups = groupByApiary(devices);
+    var g0 = groupByApiary(listAll)[0];
+    if (g0) apName = g0.apiaryName;
+    else {
+      var ap = D.apiaryById ? D.apiaryById(apiaryId) : null;
+      apName = ap ? (ap.name || ap.place || 'Arılık') : 'Arılık';
+    }
   }
 
-  var apName = '';
-  if (effectiveMode === 'apiary' && apiaryId && groups[0]) apName = groups[0].apiaryName;
-
-  document.getElementById('pageSub').textContent = devices.length + ' cihaz · ' +
-    (effectiveMode === 'all' ? 'Tüm cihazlar' : (apName || 'Arılık'));
+  document.getElementById('pageSub').textContent = listUser.length
+    ? (listUser.length + ' cihaz · ' + (effectiveMode === 'all' ? 'Tüm cihazlar' : (apName || 'Arılık')))
+    : 'Canlı cihaz yok';
   document.getElementById('listHeading').textContent =
     effectiveMode === 'all' ? 'Tüm cihazlar' : (apName || 'Arılık');
-  document.getElementById('summary').textContent =
-    devices.length + ' cihaz · bağlantı durumu demo';
+  document.getElementById('summary').textContent = listUser.length
+    ? (listUser.length + ' kayıtlı cihaz · canlı eşleşme yok')
+    : 'Kayıtlı cihaz yok';
 
   document.getElementById('modeSwitch').innerHTML =
     '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">Tüm cihazlar</a>' +
     '<a class="' + (effectiveMode === 'apiary' ? 'active' : '') + '" href="' + pageHref('') + '">Arılıklar</a>';
 
   var body = document.getElementById('deviceBody');
-  if (!devices.length) {
-    body.innerHTML = '<p class="meta">Cihaz yok. <a href="ayarlar.html#cihaz">Cihaz ekle</a></p>';
-    return;
+  var out = '';
+  if (!listUser.length) {
+    out += disconnectBannerHtml();
   }
-  body.innerHTML = devices.map(renderDevice).join('');
+  if (listUser.length) {
+    out += listUser.map(renderDevice).join('');
+  }
+  if (listDemo.length) {
+    out += '<div class="section-label">Örnek / demo (canlı değil)</div>';
+    out += listDemo.map(renderDevice).join('');
+  }
+  body.innerHTML = out;
 })();
 </script>
 <script>

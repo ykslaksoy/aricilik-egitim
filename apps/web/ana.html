@@ -1148,6 +1148,19 @@
       var n = roundC(c);
       if (n == null) return;
       tempEl.textContent = n + '°';
+      try {
+        var badge = document.querySelector('.tile[data-key="hava"] .badge');
+        if (badge) badge.textContent = n + '°';
+        else {
+          var tile = document.querySelector('.tile[data-key="hava"]');
+          if (tile && !tile.querySelector('.badge')) {
+            var b = document.createElement('div');
+            b.className = 'badge blue';
+            b.textContent = n + '°';
+            tile.appendChild(b);
+          }
+        }
+      } catch (e) { /* ignore */ }
     }
 
     function setPlace(name, withFade) {
@@ -1352,6 +1365,19 @@
       });
     }
 
+    function topOpenTask() {
+      var D = window.SuperAriDemo;
+      if (!D || !D.tasks || !D.tasks.length) return null;
+      var list = D.tasks.filter(function (t) {
+        return t && t.title && t.done !== true && t.status !== 'done' && t.status !== 'closed';
+      }).slice().sort(function (a, b) {
+        var pa = a.priority != null ? Number(a.priority) : 99;
+        var pb = b.priority != null ? Number(b.priority) : 99;
+        return pa - pb;
+      });
+      return list[0] || null;
+    }
+
     function nextRotatingTip() {
       /* Priority: open hive alerts (same list as Uyarılar) at bee-exit dock */
       var alerts = openAlerts();
@@ -1372,7 +1398,20 @@
         };
       }
       activeAlertHref = null;
+      /* No alerts: Bugün = highest-priority open task (fits fixed 40px dock via is-active) */
+      var task = topOpenTask();
+      if (task && (tipPoolIdx % (tipPool.length + 2) === 0)) {
+        tipPoolIdx += 1;
+        activeMuayeneTipDate = null;
+        return {
+          text: 'Bugün: ' + String(task.title),
+          sticky: false,
+          fromTask: true,
+          href: 'gorevler.html'
+        };
+      }
       if (pendingMuayeneTip && !isMuayeneDismissed(pendingMuayeneTip.date)) {
+        tipPoolIdx += 1;
         activeMuayeneTipDate = pendingMuayeneTip.date;
         return {
           text: 'Uygun muayene: ' + pendingMuayeneTip.dayLabel + ' — ' + pendingMuayeneTip.reason,
@@ -1391,14 +1430,14 @@
       tipRotateTimer = setInterval(function () {
         if (hintVisible) return;
         var tip = nextRotatingTip();
-        if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
+        if (tip && tip.text) showHintMessage(tip.text, tip);
       }, TIP_GAP_MS);
-      /* Alerts: show soon at bee exit; generic tips wait longer */
-      var firstDelay = openAlerts().length ? 6000 : 45000;
+      /* Alerts / Bugün task: show soon at bee exit; generic tips wait longer */
+      var firstDelay = openAlerts().length ? 6000 : (topOpenTask() ? 8000 : 45000);
       setTimeout(function () {
         if (!hintVisible) {
           var tip = nextRotatingTip();
-          if (tip && tip.text) showHintMessage(tip.text, { sticky: tip.sticky });
+          if (tip && tip.text) showHintMessage(tip.text, tip);
         }
       }, firstDelay);
     }
@@ -1829,23 +1868,90 @@
   var ogulAlertCount = demoAlerts.filter(function (a) { return a && a.type === 'ogul'; }).length;
   var alertCount = demoAlerts.length;
   var taskCount = demoTasks.length;
-  var hiveCount = (window.SuperAriDemo && SuperAriDemo.hives) ? SuperAriDemo.hives.length : 100;
+  var hivesForTiles = (window.SuperAriDemo && typeof SuperAriDemo.loadHives === 'function')
+    ? SuperAriDemo.loadHives()
+    : ((window.SuperAriDemo && SuperAriDemo.hives) ? SuperAriDemo.hives : []);
+  var hiveCount = hivesForTiles.length;
   var apiaryCount = (window.SuperAriDemo && typeof SuperAriDemo.loadApiaries === 'function')
     ? SuperAriDemo.loadApiaries().length
-    : 3;
+    : 0;
+
+  function loadStoredDevices() {
+    try {
+      var raw = localStorage.getItem('superari.devices');
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function isCameraDeviceTip(tip) {
+    var t = String(tip || '').toLowerCase();
+    return t === 'kamera_merkez' || t === 'kamera_kovan' ||
+      t === 'merkezi_kamera' || t === 'kovan_kamerasi' ||
+      t.indexOf('kamera') !== -1;
+  }
+  function meanDeltaKgBadge(hv) {
+    if (!hv || !hv.length) return '—';
+    var sum = 0;
+    for (var i = 0; i < hv.length; i++) sum += Number(hv[i].deltaKg) || 0;
+    var mean = sum / hv.length;
+    var sign = mean > 0 ? '+' : '';
+    return sign + mean.toFixed(1) + 'kg';
+  }
+  function meanDeltaTone(hv) {
+    if (!hv || !hv.length) return 'tan';
+    var sum = 0;
+    for (var i = 0; i < hv.length; i++) sum += Number(hv[i].deltaKg) || 0;
+    var mean = sum / hv.length;
+    if (mean >= 0.3) return 'green';
+    if (mean <= -0.3) return 'red';
+    return 'tan';
+  }
+  function avgColonyBadge(hv) {
+    if (!hv || !hv.length) return '—';
+    var sum = 0;
+    for (var i = 0; i < hv.length; i++) sum += Number(hv[i].colonyScore) || 0;
+    return String(Math.round(sum / hv.length));
+  }
+  function avgColonyTone(hv) {
+    if (!hv || !hv.length) return 'tan';
+    var avg = Number(avgColonyBadge(hv));
+    if (avg >= 80) return 'green';
+    if (avg >= 60) return 'tan';
+    return 'red';
+  }
+  function weatherBadgeFromDom() {
+    var el = document.getElementById('weatherTemp');
+    if (!el) return '—';
+    var t = String(el.textContent || '').trim();
+    if (!t || t === '—°' || t === '—' || t === '…' || t.indexOf('—') === 0) return '—';
+    return t;
+  }
+
+  var storedDevices = loadStoredDevices();
+  var deviceCount = storedDevices.length;
+  var cameraDeviceCount = storedDevices.filter(function (d) {
+    return d && isCameraDeviceTip(d.tip || d.type || d.kind);
+  }).length;
+  var tartiBadge = meanDeltaKgBadge(hivesForTiles);
+  var tartiTone = meanDeltaTone(hivesForTiles);
+  var koloniBadge = avgColonyBadge(hivesForTiles);
+  var koloniTone = avgColonyTone(hivesForTiles);
+  var cihazBadge = deviceCount ? String(deviceCount) : '0';
+  var kameraBadge = cameraDeviceCount ? String(cameraDeviceCount) : 'Yok';
+
   var tiles = [
-    { key: 'tarti', label: 'Tartı', badge: '+1.2kg', tone: 'green', href: 'kovanlar.html?view=tarti' },
-    { key: 'saglik', label: 'Sağlık', badge: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=SuperAriDemo.loadHives?SuperAriDemo.loadHives():[]; if(!SH||!hv.length) return 'İyi'; return String(SH.evaluateAll(hv).avg); } catch(e){ return 'İyi'; } })(), tone: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=SuperAriDemo.loadHives?SuperAriDemo.loadHives():[]; if(!SH||!hv.length) return 'green'; var a=SH.evaluateAll(hv).avg; return a>=85?'green':(a>=70?'tan':'red'); } catch(e){ return 'green'; } })(), href: 'saglik.html' },
+    { key: 'tarti', label: 'Tartı', badge: tartiBadge, tone: tartiTone, href: 'kovanlar.html?view=tarti' },
+    { key: 'saglik', label: 'Sağlık', badge: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=hivesForTiles; if(!SH||!hv.length) return 'İyi'; return String(SH.evaluateAll(hv).avg); } catch(e){ return 'İyi'; } })(), tone: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=hivesForTiles; if(!SH||!hv.length) return 'green'; var a=SH.evaluateAll(hv).avg; return a>=85?'green':(a>=70?'tan':'red'); } catch(e){ return 'green'; } })(), href: 'saglik.html' },
     { key: 'ogul', label: 'Oğul', badge: ogulAlertCount ? (String(ogulAlertCount) + ' uyarı') : 'Düşük', tone: ogulAlertCount ? 'red' : 'green', href: 'uyarilar.html?view=ogul' },
     { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
-    { key: 'koloni', label: 'Koloni', badge: '12 grup', tone: 'tan', href: 'kovanlar.html?view=koloni' },
+    { key: 'koloni', label: 'Koloni', badge: koloniBadge, tone: koloniTone, href: 'kovanlar.html?view=koloni' },
     { key: 'ariliklar', label: 'Arılıklar', badge: String(apiaryCount), tone: 'tan', href: 'ariliklar.html' },
-    { key: 'cihazlar', label: 'Cihazlar', badge: String(hiveCount), tone: 'tan', href: 'cihazlar.html' },
-    { key: 'gorevler', label: 'Görevler', badge: String(taskCount || 5), tone: 'blue', href: 'gorevler.html' },
-    { key: 'uyarilar', label: 'Uyarılar', badge: String(alertCount || 0), tone: 'red', href: 'uyarilar.html' },
+    { key: 'cihazlar', label: 'Cihazlar', badge: cihazBadge, tone: deviceCount ? 'green' : 'tan', href: 'cihazlar.html' },
+    { key: 'gorevler', label: 'Görevler', badge: String(taskCount || 0), tone: 'blue', href: 'gorevler.html' },
+    { key: 'uyarilar', label: 'Uyarılar', badge: String(alertCount || 0), tone: alertCount ? 'red' : 'tan', href: 'uyarilar.html' },
     { key: 'raporlar', label: 'Raporlar', badge: '9', tone: 'purple', href: 'raporlar.html' },
-    { key: 'hava', label: 'Hava', badge: '22°', tone: 'blue', href: 'hava-raporu.html' },
-    { key: 'kamera', label: 'Kamera', badge: 'Demo', tone: 'tan', href: 'kamera.html' }
+    { key: 'hava', label: 'Hava', badge: weatherBadgeFromDom(), tone: 'blue', href: 'hava-raporu.html' },
+    { key: 'kamera', label: 'Kamera', badge: kameraBadge, tone: cameraDeviceCount ? 'green' : 'tan', href: 'kamera.html' }
   ];
 
   function hiveHTML(key) {
