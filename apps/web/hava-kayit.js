@@ -8,8 +8,10 @@
   var STORAGE_KEY = 'superari.hava.kayit.v1';
   var BACKFILL_META_KEY = 'superari.hava.backfill.v1';
   var RANGE_KEY = 'superari.hava.range.v1';
-  var MAX_DAYS = 200;
+  var MAX_DAYS = 200; /* bal sezonu 15 May–15 Eyl = 124 gün; en az 130+ */
   var DEFAULT_BACKFILL_DAYS = 30;
+  var PAST_DAYS_LIMIT = 92; /* Open-Meteo forecast past_days üst sınırı */
+  var ARCHIVE_CHUNK_DAYS = 90;
   var DEFAULT_APIARIES = [
     { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
     { id: 'a2', label: 'Tortum', lat: 40.61, lon: 41.66 },
@@ -710,6 +712,55 @@
     });
   }
 
+  function emptyDaily() {
+    return {
+      time: [],
+      temperature_2m_max: [],
+      temperature_2m_min: [],
+      weather_code: [],
+      precipitation_sum: []
+    };
+  }
+
+  function mergeDaily(into, meteo) {
+    var acc = into || { daily: emptyDaily() };
+    var src = meteo && meteo.daily;
+    if (!src || !src.time || !src.time.length) return acc;
+    var d = acc.daily;
+    var keys = ['time', 'temperature_2m_max', 'temperature_2m_min', 'weather_code', 'precipitation_sum'];
+    for (var k = 0; k < keys.length; k++) {
+      var key = keys[k];
+      if (!d[key]) d[key] = [];
+      var arr = src[key] || [];
+      for (var i = 0; i < arr.length; i++) d[key].push(arr[i]);
+    }
+    return acc;
+  }
+
+  /** Open-Meteo archive date ranges — chunk long bal-season windows. */
+  function fetchArchiveRangeChunked(apiary, startKey, endKey) {
+    if (!startKey || !endKey || startKey > endKey) {
+      return Promise.resolve({ daily: emptyDaily() });
+    }
+    var keys = dateKeysInclusive(startKey, endKey);
+    if (!keys.length) return Promise.resolve({ daily: emptyDaily() });
+    var chunkSize = ARCHIVE_CHUNK_DAYS;
+    var segments = [];
+    for (var i = 0; i < keys.length; i += chunkSize) {
+      var slice = keys.slice(i, i + chunkSize);
+      segments.push({ start: slice[0], end: slice[slice.length - 1] });
+    }
+    var chain = Promise.resolve({ daily: emptyDaily() });
+    segments.forEach(function (seg) {
+      chain = chain.then(function (acc) {
+        return fetchArchiveRange(apiary, seg.start, seg.end).then(function (meteo) {
+          return mergeDaily(acc, meteo);
+        });
+      });
+    });
+    return chain;
+  }
+
   function applyDailyToList(list, apiary, daily, wantSet, source) {
     if (!daily || !daily.time) return 0;
     var added = 0;
@@ -718,15 +769,17 @@
       if (wantSet && !wantSet[date]) continue;
       var row = rowFromDailyIndex(apiary, daily, i, source);
       if (!row) continue;
-      var before = list.length;
+      /* Gerçek sıcaklık yoksa yazma — sahte/sentetik üretme */
+      if (row.temp == null && row.high == null && row.low == null) continue;
       upsertRow(list, row, true);
-      if (list.length > before || true) added++;
+      added++;
     }
     return added;
   }
 
   /**
    * Eksik günleri Open-Meteo geçmiş verisiyle doldurur (uygulama kapalı olsa bile).
+   * from/to verilirse TÜM aralık (bal sezonu 124 gün vb.) — DEFAULT_BACKFILL_DAYS=30 ile sınırlama.
    * Promise<{ filled, apiaries }>.
    */
   function backfillMissing(opts) {
@@ -740,13 +793,17 @@
       fromKey = clamped.from;
       toKey = clamped.to;
       days = daysBetweenKeys(fromKey, toKey) || DEFAULT_BACKFILL_DAYS;
+      /* Uzun aralıkta from'u MAX_DAYS ile budama (to sabit) */
+      if (days > MAX_DAYS) {
+        fromKey = addDaysKey(toKey, -(MAX_DAYS - 1));
+        days = daysBetweenKeys(fromKey, toKey);
+      }
     } else {
       days = Number(opts.days) || DEFAULT_BACKFILL_DAYS;
       if (days > MAX_DAYS) days = MAX_DAYS;
       fromKey = addDaysKey(today, -(days - 1));
       toKey = today;
     }
-    if (days > MAX_DAYS) days = MAX_DAYS;
     var apiaries = resolveApiaries(opts.apiaries);
     if (!apiaries.length) {
       return Promise.resolve({ filled: 0, apiaries: 0 });
@@ -758,7 +815,7 @@
 
     if (backfillInFlight && !opts.force) return backfillInFlight;
 
-    backfillInFlight = Promise.resolve()
+    var run = Promise.resolve()
       .then(function () {
         var chain = Promise.resolve(0);
         var meta = loadBackfillMeta();
@@ -768,45 +825,81 @@
             var list = prune(loadRecords());
             var missing = missingDatesForApiary(apiary.id, fromKey, toKey, list);
             /* Meta bugün değilse seed'leri de yenilemek için tüm aralığı iste */
-            if (!missing.length && meta[apiary.id] === today) {
+            if (!missing.length && meta[apiary.id] === today && !opts.force) {
               return filledSoFar;
             }
             var wantSet = {};
             if (missing.length) {
               for (var m = 0; m < missing.length; m++) wantSet[missing[m]] = true;
             } else {
-              /* İlk günlük pass: seed'leri gerçek veri ile değiştir */
+              /* İlk günlük pass / force: seed'leri gerçek veri ile değiştir */
               var allKeys = dateKeysInclusive(fromKey, toKey);
               for (var k = 0; k < allKeys.length; k++) wantSet[allKeys[k]] = true;
             }
 
-            /* past_days max ~92; older / bal season → archive API */
-            var recentCutoff = addDaysKey(today, -91);
-            var usePast = fromKey >= recentCutoff && days <= 92;
-            var fetchP = usePast
-              ? fetchForecastPast(apiary, Math.max(days, daysBetweenKeys(fromKey, today)))
-              : fetchArchiveRange(apiary, fromKey, toKey);
+            var wantKeys = Object.keys(wantSet).sort();
+            if (!wantKeys.length) {
+              meta[apiary.id] = today;
+              saveBackfillMeta(meta);
+              return filledSoFar;
+            }
 
-            return fetchP
-              .catch(function () {
-                /* Forecast past başarısızsa archive dene */
-                return fetchArchiveRange(apiary, fromKey, toKey);
-              })
-              .then(function (meteo) {
-                var daily = meteo && meteo.daily;
-                list = prune(loadRecords());
-                var n = applyDailyToList(
-                  list,
-                  apiary,
-                  daily,
-                  wantSet,
-                  usePast ? 'open_meteo_past' : 'open_meteo_archive'
-                );
-                sortRecords(list);
-                saveRecords(list);
+            /* past_days ~92; daha eski → archive (chunk). Karışık aralıkta hibrit. */
+            var recentCutoff = addDaysKey(today, -(PAST_DAYS_LIMIT - 1));
+            var archiveKeys = [];
+            var pastKeys = [];
+            for (var w = 0; w < wantKeys.length; w++) {
+              if (wantKeys[w] < recentCutoff) archiveKeys.push(wantKeys[w]);
+              else pastKeys.push(wantKeys[w]);
+            }
+
+            var steps = Promise.resolve(0);
+
+            if (archiveKeys.length) {
+              steps = steps.then(function (n0) {
+                var aFrom = archiveKeys[0];
+                var aTo = archiveKeys[archiveKeys.length - 1];
+                var aWant = {};
+                for (var ai = 0; ai < archiveKeys.length; ai++) aWant[archiveKeys[ai]] = true;
+                return fetchArchiveRangeChunked(apiary, aFrom, aTo)
+                  .then(function (meteo) {
+                    list = prune(loadRecords());
+                    var n = applyDailyToList(list, apiary, meteo && meteo.daily, aWant, 'open_meteo_archive');
+                    sortRecords(list);
+                    saveRecords(list);
+                    return n0 + n;
+                  });
+              });
+            }
+
+            if (pastKeys.length) {
+              steps = steps.then(function (n0) {
+                var pWant = {};
+                for (var pi = 0; pi < pastKeys.length; pi++) pWant[pastKeys[pi]] = true;
+                var pastSpan = daysBetweenKeys(pastKeys[0], today);
+                return fetchForecastPast(apiary, Math.min(PAST_DAYS_LIMIT, Math.max(pastSpan, pastKeys.length)))
+                  .catch(function () {
+                    return fetchArchiveRangeChunked(apiary, pastKeys[0], pastKeys[pastKeys.length - 1]);
+                  })
+                  .then(function (meteo) {
+                    list = prune(loadRecords());
+                    var srcLabel =
+                      meteo && meteo.daily && meteo.daily.time && pastKeys[0] >= recentCutoff
+                        ? 'open_meteo_past'
+                        : 'open_meteo_archive';
+                    var n = applyDailyToList(list, apiary, meteo && meteo.daily, pWant, srcLabel);
+                    sortRecords(list);
+                    saveRecords(list);
+                    return n0 + n;
+                  });
+              });
+            }
+
+            return steps
+              .then(function (n) {
                 meta[apiary.id] = today;
                 saveBackfillMeta(meta);
-                return filledSoFar + n;
+                return filledSoFar + (n || 0);
               })
               .catch(function () {
                 /* Ağ hatası — sessizce atla */
@@ -818,15 +911,16 @@
         return chain;
       })
       .then(function (filled) {
-        backfillInFlight = null;
-        return { filled: filled || 0, apiaries: apiaries.length };
+        if (backfillInFlight === run) backfillInFlight = null;
+        return { filled: filled || 0, apiaries: apiaries.length, from: fromKey, to: toKey, days: days };
       })
       .catch(function (err) {
-        backfillInFlight = null;
+        if (backfillInFlight === run) backfillInFlight = null;
         return { filled: 0, apiaries: apiaries.length, error: String(err && err.message || err) };
       });
 
-    return backfillInFlight;
+    backfillInFlight = run;
+    return run;
   }
 
   function scheduleBackfill(opts) {
@@ -856,10 +950,21 @@
 
   /**
    * Rapor sayfası için: seed + arşiv doldurma, sonra kayıtlar.
+   * opts.from/to yoksa kayıtlı aralık (bal sezonu dahil) kullanılır — 30 güne düşmez.
    */
   function ensureHistory(opts) {
     ensureSeed();
-    return backfillMissing(opts || { days: DEFAULT_BACKFILL_DAYS });
+    opts = opts || {};
+    if (!opts.from && !opts.to && opts.days == null) {
+      var range = loadRange();
+      opts = {
+        from: range.from,
+        to: range.to,
+        preset: range.preset,
+        force: !!opts.force
+      };
+    }
+    return backfillMissing(opts);
   }
 
   function filterRecords(opts) {
@@ -990,6 +1095,10 @@
     STORAGE_KEY: STORAGE_KEY,
     RANGE_KEY: RANGE_KEY,
     MAX_DAYS: MAX_DAYS,
+    DEFAULT_BACKFILL_DAYS: DEFAULT_BACKFILL_DAYS,
+    PAST_DAYS_LIMIT: PAST_DAYS_LIMIT,
+    daysBetweenKeys: daysBetweenKeys,
+    dateKeysInclusive: dateKeysInclusive,
     conditionFromCode: conditionFromCode,
     labelFromCondition: labelFromCondition,
     localDateKey: localDateKey,

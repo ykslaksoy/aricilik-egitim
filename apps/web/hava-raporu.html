@@ -307,7 +307,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js"></script>
+<script src="hava-kayit.js?v=bal124"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -353,9 +353,21 @@
     if (rangeNoteEl) {
       if (currentRange.preset === 'bal') {
         rangeNoteEl.hidden = false;
+        var seasonDays =
+          typeof H.daysBetweenKeys === 'function'
+            ? H.daysBetweenKeys(bal.from, bal.to)
+            : 124;
+        var activeDays =
+          typeof H.daysBetweenKeys === 'function'
+            ? H.daysBetweenKeys(currentRange.from, currentRange.to)
+            : seasonDays;
         rangeNoteEl.textContent =
           (bal.regionLabel || 'Bal sezonu') +
-          ' — sezon arılık bölgesine göre belirlenir.';
+          ' · ' +
+          activeDays +
+          ' gün' +
+          (activeDays === seasonDays ? '' : ' (sezon ' + seasonDays + ')') +
+          ' — Open-Meteo; sezon arılık bölgesine göre.';
       } else {
         rangeNoteEl.hidden = true;
       }
@@ -577,6 +589,31 @@
       from: currentRange.from,
       to: currentRange.to
     });
+    if (rangeNoteEl && currentRange.preset === 'bal') {
+      var bal = balBoundsForSelection();
+      var seasonDays =
+        typeof H.daysBetweenKeys === 'function'
+          ? H.daysBetweenKeys(bal.from, bal.to)
+          : 124;
+      var activeDays =
+        typeof H.daysBetweenKeys === 'function'
+          ? H.daysBetweenKeys(currentRange.from, currentRange.to)
+          : seasonDays;
+      var uniqueDays = {};
+      for (var ri = 0; ri < records.length; ri++) {
+        if (records[ri] && records[ri].date) uniqueDays[records[ri].date] = true;
+      }
+      var dayFilled = Object.keys(uniqueDays).length;
+      rangeNoteEl.hidden = false;
+      rangeNoteEl.textContent =
+        'Bal sezonu · ' +
+        activeDays +
+        ' gün · ' +
+        records.length +
+        ' kayıt' +
+        (dayFilled ? ' (' + dayFilled + '/' + activeDays + ' gün dolu)' : '') +
+        ' · Open-Meteo';
+    }
     renderStats(H.summarize(records));
     renderBars(dailySeries(records));
   }
@@ -615,9 +652,14 @@
 
   refresh();
 
-  /* Eksik günleri seçili aralığa göre Open-Meteo ile doldur (hint kalıcı) */
+  /* Bal sezonu / seçili aralık: force ile tüm from→to Open-Meteo arşiv/past doldur */
   if (typeof H.ensureHistory === 'function') {
-    H.ensureHistory({ from: currentRange.from, to: currentRange.to }).then(function () {
+    H.ensureHistory({
+      from: currentRange.from,
+      to: currentRange.to,
+      preset: currentRange.preset,
+      force: true
+    }).then(function () {
       fillApiaries();
       refresh();
     }).catch(function () {
