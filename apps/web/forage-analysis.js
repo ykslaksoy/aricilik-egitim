@@ -402,7 +402,7 @@
     if (!best || best.score < here.score + 6) {
       return {
         text:
-          'Bu nokta çevresindeki örneklemeye göre görece dengeli; büyük kaydırma şart değil (Open-Meteo ölçüm).',
+          'Bu nokta çevresindeki örneklemeye göre görece dengeli; büyük kaydırma şart değil (hava modeli verisi).',
         dirKey: null,
         why: [],
         targetLat: null,
@@ -417,7 +417,7 @@
         distStr +
         ' km ' +
         best.dir.label +
-        ' — rakım/iklim uygunluğu daha yüksek (Open-Meteo). Haritada öneri pin’i olarak gösterilir.'
+        ' — rakım/iklim uygunluğu daha yüksek (hava modeli). Haritada öneri pin’i olarak gösterilir.'
     );
 
     var why = [];
@@ -599,7 +599,7 @@
         insights.push({
           k: 'Rakım',
           v: here.elevM != null ? here.elevM + ' m' : '—',
-          note: here.elevSource === 'open-meteo' ? 'Open-Meteo Elev.' : 'eksik'
+          note: here.elevSource === 'open-meteo' ? 'rakım ölçümü' : 'eksik'
         });
         insights.push({
           k: 'Foraj yarıçapı',
@@ -610,7 +610,7 @@
           insights.push({
             k: 'Sezon sıcaklık',
             v: here.meanTempC + ' °C ort. (' + (here.seasonLabel || season.label) + ')',
-            note: 'Open-Meteo Archive'
+            note: 'iklim arşivi'
           });
           insights.push({
             k: 'Sezon yağış',
@@ -618,7 +618,7 @@
               here.precipSumMm +
               ' mm' +
               (here.precipDays != null ? ' · ' + here.precipDays + ' yağışlı gün' : ''),
-            note: 'Open-Meteo Archive'
+            note: 'iklim arşivi'
           });
         } else {
           insights.push({
@@ -639,10 +639,10 @@
         }
 
         var disclaimer = climateOk
-          ? 'Kaynaklar: Open-Meteo Elevation + Archive (' +
+          ? 'Kaynaklar: rakım ölçümü + iklim arşivi (' +
             season.label +
             ' ortalama sıcaklık ve yağış toplamı). Uygunluk skoru rakım+iklim+eğim ölçümlerinden; sahte flora/verim % yoktur.'
-          : 'Kaynak: Open-Meteo Elevation. İklim (Archive) alınamadı — skor yalnızca rakım/eğim. Sahte flora/verim % yoktur.';
+          : 'Kaynak: rakım ölçümü. İklim arşivi alınamadı — skor yalnızca rakım/eğim. Sahte flora/verim % yoktur.';
 
         return {
           lat: lat,
@@ -661,8 +661,8 @@
           demo: !climateOk,
           climateOk: climateOk,
           sources: climateOk
-            ? ['Open-Meteo Elevation', 'Open-Meteo Archive']
-            : ['Open-Meteo Elevation']
+            ? ['rakım ölçümü', 'iklim arşivi']
+            : ['rakım ölçümü']
         };
       });
   }

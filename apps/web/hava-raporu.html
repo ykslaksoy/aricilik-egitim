@@ -280,7 +280,7 @@
     </section>
 
     <a class="hist-btn" id="histBtn" href="hava-gecmis.html">Geçmiş hava sıcaklıkları</a>
-    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük, yağış mm ve yağış süresi (saat) bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
+    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre hava modeli ve konum verisi kullanılarak sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük, yağış mm ve yağış süresi (saat) bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
   </div>
 
   <nav class="tabbar" aria-label="Alt menü">
@@ -367,7 +367,7 @@
           activeDays +
           ' gün' +
           (activeDays === seasonDays ? '' : ' (sezon ' + seasonDays + ')') +
-          ' — Open-Meteo; sezon arılık bölgesine göre.';
+          ' — hava modeli; sezon arılık bölgesine göre.';
       } else {
         rangeNoteEl.hidden = true;
       }
@@ -668,7 +668,7 @@
         records.length +
         ' kayıt' +
         (dayFilled ? ' (' + dayFilled + '/' + activeDays + ' gün dolu)' : '') +
-        ' · Open-Meteo';
+        ' · hava modeli';
     }
     renderStats(H.summarize(records), records);
     renderBars(dailySeries(records));

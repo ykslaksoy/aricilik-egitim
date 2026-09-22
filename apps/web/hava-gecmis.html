@@ -239,7 +239,7 @@
 
     <h2 class="section-title">Kayıtlar</h2>
     <div class="hist-list" id="histList"></div>
-    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre Open-Meteo üzerinden sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük, yağış mm ve yağış süresi (saat) bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
+    <p class="hint" id="havaHint">Sıcaklık kayıtları, arılığın enlem/boylamına göre hava modeli ve konum verisi kullanılarak sağlanır. Değerler yerden ~2 m yükseklik için model çıktısıdır (ECMWF / GFS vb. küresel hava modellerinin birleşimi); günlük en yüksek–en düşük, yağış mm ve yağış süresi (saat) bu ızgara noktasından türetilir. Yer istasyonu ölçümü değildir.</p>
   </div>
 
   <nav class="tabbar" aria-label="Alt menü">
@@ -325,7 +325,7 @@
           activeDays +
           ' gün' +
           (activeDays === seasonDays ? '' : ' (sezon ' + seasonDays + ')') +
-          ' — Open-Meteo; sezon arılık bölgesine göre.';
+          ' — hava modeli; sezon arılık bölgesine göre.';
       } else {
         rangeNoteEl.hidden = true;
       }
@@ -480,7 +480,7 @@
 
   function renderList(records) {
     if (!records.length) {
-      listEl.innerHTML = '<div class="empty">Seçilen aralıkta kayıt yok. Eksik günler Open-Meteo’dan dolduruluyor…</div>';
+      listEl.innerHTML = '<div class="empty">Seçilen aralıkta kayıt yok. Eksik günler dolduruluyor…</div>';
       return;
     }
     var single = apiarySel.value && apiarySel.value !== 'all';
@@ -546,7 +546,7 @@
         records.length +
         ' kayıt' +
         (dayFilled ? ' (' + dayFilled + '/' + activeDays + ' gün dolu)' : '') +
-        ' · Open-Meteo';
+        ' · hava modeli';
     }
     renderList(records);
   }
