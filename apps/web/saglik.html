@@ -5,6 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Sağlık</title>
 <link rel="stylesheet" href="rapor-common.css" />
+<style>
+  .status-row {
+    width: 100%; display: flex; gap: 10px; align-items: center;
+    padding: 10px 0; border-top: 1px solid #f0f1f3;
+    background: transparent; border-left: 0; border-right: 0; border-bottom: 0;
+    font: inherit; text-align: left; cursor: pointer; color: inherit;
+  }
+  .status-row:first-child { border-top: 0; padding-top: 0; }
+  .status-row.is-on {
+    background: #fff8df; margin: 0 -10px; padding-left: 10px; padding-right: 10px;
+    border-radius: 10px; border-top-color: transparent;
+  }
+  .kind-pill {
+    display: inline-block; margin: 2px 4px 0 0; padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 750; border: 1px solid var(--card-border);
+    background: #f7f8fa; color: var(--muted);
+  }
+  .kind-pill.ogul { background: #fff5f5; color: #c92a2a; border-color: #ffc9c9; }
+  .kind-pill.varroa { background: #fff4e6; color: #e8590c; border-color: #ffd8a8; }
+  .kind-pill.besleme { background: #e7f5ff; color: #1864ab; border-color: #a5d8ff; }
+  .kind-pill.malzeme { background: #f3f0ff; color: #5f3dc4; border-color: #d0bfff; }
+  .kind-pill.yavru, .kind-pill.nem, .kind-pill.genel { background: #ebfbee; color: #2b8a3e; border-color: #b2f2bb; }
+  .apiary-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e4e6ea; }
+  .apiary-block:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .apiary-title { font-size: 14px; font-weight: 800; color: var(--brown); margin-bottom: 6px; }
+  .mat-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid #f0f1f3; font-size: 12px; }
+  .mat-row:first-of-type { border-top: 0; }
+  .detail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .detail-head h2 { margin: 0; }
+</style>
 </head>
 <body>
 <div class="phone" id="phone">
@@ -25,17 +55,17 @@
         <a class="back-chip" href="rapor-saglik.html">Rapor</a>
       </div>
     </div>
-
     <div class="stats" id="stats"></div>
-
     <section class="card-block">
       <h2>Durum özeti</h2>
       <div id="statusList"></div>
     </section>
-
-    <section class="card-block">
-      <h2>Kovanlar</h2>
-      <div id="hiveList"></div>
+    <section class="card-block" id="detailBlock">
+      <div class="detail-head">
+        <h2 id="detailTitle">Detay</h2>
+        <button type="button" class="back-chip" id="btnClearFilter" hidden>Tümü</button>
+      </div>
+      <div id="detailBody"></div>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -54,11 +84,10 @@
   var H = window.SuperAriSensorHealth;
   var D = window.SuperAriDemo;
   if (!H || !D) return;
-  var hives = D.loadHives ? D.loadHives() : (D.hives || []);
-  var all = H.evaluateAll(hives);
-  var b = all.band;
+  var hivesRaw = D.loadHives ? D.loadHives() : [];
+  var all = H.evaluateAll(hivesRaw);
+  var filterKey = null;
 
-  /* Silent telemetry for product improvement — not shown in UI */
   try {
     var key = 'superari.saglik.telemetry.v1';
     var log = [];
@@ -69,36 +98,123 @@
       avg: all.avg,
       counts: all.counts,
       hives: all.hives.map(function (x) {
-        return { id: x.hiveId, score: x.score, band: x.band.key };
+        return { id: x.hiveId, score: x.score, band: x.band.key, kinds: (x.actions || []).map(function (a) { return a.kind; }) };
       })
     });
     if (log.length > 200) log = log.slice(-200);
     localStorage.setItem(key, JSON.stringify(log));
-  } catch (e2) { /* ignore */ }
+  } catch (e2) {}
 
-  document.getElementById('pageSub').textContent = 'Ort. ' + all.avg + ' · ' + b.label;
-  document.getElementById('stats').innerHTML =
-    '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + all.avg + '</div></div>' +
-    '<div class="stat"><div class="k">Sağlıklı</div><div class="v">' + all.counts.ok + '</div></div>' +
-    '<div class="stat"><div class="k">İzle / kontrol</div><div class="v">' + (all.counts.watch + all.counts.check) + '</div></div>' +
-    '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>';
-
-  document.getElementById('statusList').innerHTML =
-    '<div class="row-item"><div class="left"><div class="title">Sağlıklı</div><div class="meta">Rutin dışında müdahale gerekmez</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">İzle</div><div class="meta">Kısa süre takip</div></div><div class="right"><span class="badge warn">' + all.counts.watch + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">Kontrol</div><div class="meta">Sahada bakılması iyi olur</div></div><div class="right"><span class="badge warn">' + all.counts.check + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">Müdahale</div><div class="meta">Öncelikli kovan</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>';
+  var bands = [
+    { key: 'ok', label: 'Sağlıklı', meta: 'Rutin dışında müdahale gerekmez', count: all.counts.ok, tone: 'ok' },
+    { key: 'watch', label: 'İzle', meta: 'Kısa süre takip', count: all.counts.watch, tone: 'warn' },
+    { key: 'check', label: 'Kontrol', meta: 'Sahada bakılması iyi olur', count: all.counts.check, tone: 'warn' },
+    { key: 'act', label: 'Müdahale', meta: 'Öncelikli — gerekçe ve malzeme', count: all.counts.act, tone: 'bad' }
+  ];
 
   function esc(s) {
-    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  document.getElementById('hiveList').innerHTML = all.hives.map(function (x) {
-    return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="text-decoration:none;color:inherit;display:flex;">' +
-      '<div class="left"><div class="title">' + esc(x.name) + '</div>' +
-      '<div class="meta">' + esc(x.band.label) + (x.band.hint ? (' · ' + esc(x.band.hint)) : '') + '</div></div>' +
-      '<div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></a>';
-  }).join('') || '<p class="meta">Kovan yok.</p>';
+  function filteredHives() {
+    if (!filterKey) return all.hives;
+    return all.hives.filter(function (x) { return x.band.key === filterKey; });
+  }
+
+  function groupsFor(list) {
+    return all.groupByApiary(list);
+  }
+
+  function renderStatus() {
+    document.getElementById('statusList').innerHTML = bands.map(function (b) {
+      return '<button type="button" class="status-row' + (filterKey === b.key ? ' is-on' : '') + '" data-band="' + b.key + '">' +
+        '<div class="left" style="flex:1;min-width:0"><div class="title">' + esc(b.label) + '</div>' +
+        '<div class="meta">' + esc(b.meta) + '</div></div>' +
+        '<span class="badge ' + b.tone + '">' + b.count + '</span></button>';
+    }).join('');
+    document.querySelectorAll('#statusList [data-band]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var k = btn.getAttribute('data-band');
+        filterKey = (filterKey === k) ? null : k;
+        render();
+        document.getElementById('detailBlock').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  function renderDetail() {
+    var list = filteredHives();
+    var groups = groupsFor(list);
+    var clearBtn = document.getElementById('btnClearFilter');
+    var title = 'Tüm kovanlar';
+    if (filterKey) {
+      var bb = bands.filter(function (b) { return b.key === filterKey; })[0];
+      title = bb ? (bb.label + ' · ' + list.length + ' kovan') : 'Detay';
+      clearBtn.hidden = false;
+    } else {
+      clearBtn.hidden = true;
+    }
+    document.getElementById('detailTitle').textContent = title;
+
+    if (!groups.length) {
+      document.getElementById('detailBody').innerHTML = '<p class="meta">Bu durumda kovan yok.</p>';
+      return;
+    }
+
+    document.getElementById('detailBody').innerHTML = groups.map(function (g) {
+      var matHtml = '';
+      if (g.materials && g.materials.length && filterKey && filterKey !== 'ok') {
+        matHtml =
+          '<div style="margin:8px 0 4px;font-size:12px;font-weight:800;color:var(--text)">Gerekli malzeme</div>' +
+          g.materials.map(function (m) {
+            return '<div class="mat-row"><span>' + esc(m.name) + '</span><strong>' + m.qty + ' ' + esc(m.unit) + '</strong></div>';
+          }).join('');
+      }
+      var hiveHtml = g.hives.map(function (x) {
+        var pills = (x.actions || []).map(function (a) {
+          return '<span class="kind-pill ' + esc(a.kind) + '">' + esc(a.title) + '</span>';
+        }).join('') || '<span class="kind-pill genel">Stabil</span>';
+        var details = (x.actions || []).map(function (a) {
+          return '<div class="meta" style="margin-top:4px"><strong>' + esc(a.title) + ':</strong> ' + esc(a.detail) + '</div>';
+        }).join('');
+        var hiveMats = '';
+        if ((filterKey === 'act' || filterKey === 'check') && x.materials && x.materials.length) {
+          hiveMats = '<div class="meta" style="margin-top:6px">Malzeme: ' +
+            x.materials.map(function (m) { return esc(m.name) + ' ×' + m.qty; }).join(', ') +
+            '</div>';
+        }
+        return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;">' +
+          '<div class="left"><div class="title">' + esc(x.name) + '</div>' +
+          '<div class="meta">' + esc(x.band.label) + ' · skor ' + x.score + '</div>' +
+          '<div style="margin-top:4px">' + pills + '</div>' + details + hiveMats +
+          '</div><div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></a>';
+      }).join('');
+      return '<div class="apiary-block">' +
+        '<div class="apiary-title">' + esc(g.apiaryName) + ' · ' + g.hives.length + ' kovan</div>' +
+        matHtml + hiveHtml +
+        '</div>';
+    }).join('');
+  }
+
+  function render() {
+    document.getElementById('pageSub').textContent = 'Ort. ' + all.avg + ' · ' + all.band.label;
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + all.avg + '</div></div>' +
+      '<div class="stat"><div class="k">Sağlıklı</div><div class="v">' + all.counts.ok + '</div></div>' +
+      '<div class="stat"><div class="k">İzle / kontrol</div><div class="v">' + (all.counts.watch + all.counts.check) + '</div></div>' +
+      '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>';
+    renderStatus();
+    renderDetail();
+  }
+
+  document.getElementById('btnClearFilter').addEventListener('click', function () {
+    filterKey = null;
+    render();
+  });
+
+  var q = new URLSearchParams(location.search).get('band');
+  if (q && ['ok', 'watch', 'check', 'act'].indexOf(q) !== -1) filterKey = q;
+  render();
 })();
 </script>
 <script>
