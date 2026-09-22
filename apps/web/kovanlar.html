@@ -29,6 +29,7 @@
     </section>
   </main>
   <script src="demo-data.js"></script>
+  <script src="sensor-health.js"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -52,6 +53,11 @@
       var label = titles[view] != null ? titles[view] : 'Kovanlar';
       titleEl.textContent = label;
       subEl.textContent = label;
+
+      if (view === 'saglik') {
+        location.replace('saglik.html');
+        return;
+      }
 
       if (view === 'ariliklar') {
         /* Ana tile + legacy link → Hardal list (FAB Arılık ekle + detay) */

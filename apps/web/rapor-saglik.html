@@ -19,7 +19,7 @@
     <div class="page-head">
       <div>
         <h1>Koloni sağlık</h1>
-        <p id="pageSub">Tartı, oğul ve skor özeti</p>
+        <p id="pageSub">100 = sağlıklı · sensör formülü</p>
       </div>
       <div class="nav-chips">
         <a class="back-chip" href="raporlar.html">← Raporlar</a>
@@ -39,7 +39,7 @@
       <h2>Düşük skorlu kovanlar</h2>
       <div id="riskList"></div>
     </section>
-    <p class="hint">Skorlar kovan kayıtlardaki healthScore / tartı / oğul riski alanlarından hesaplanır.</p>
+    <p class="hint">Sağlık = 100 − (25·T + 15·RH + 15·IR + 15·S + 20·W + 10·V) / 5. Ana → Sağlık ile aynı formül.</p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html">
@@ -66,39 +66,49 @@
   <div class="home-indicator"></div>
 </div>
 <script src="demo-data.js"></script>
+<script src="sensor-health.js"></script>
 <script src="rapor-store.js"></script>
 <script>
 (function () {
-  var R = window.SuperAriRapor;
-  if (!R) return;
-  var s = R.healthSummary();
+  var H = window.SuperAriSensorHealth;
+  var D = window.SuperAriDemo;
+  if (!H || !D) return;
+  var hives = D.loadHives ? D.loadHives() : [];
+  var all = H.evaluateAll(hives);
   document.getElementById('stats').innerHTML =
-    '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + s.avgHealth + '</div></div>' +
-    '<div class="stat"><div class="k">Ort. tartı</div><div class="v">' + s.avgWeight + ' kg</div></div>' +
-    '<div class="stat"><div class="k">Δ tartı toplam</div><div class="v ' + (s.deltaSum >= 0 ? 'pos' : 'neg') + '">' +
-      (s.deltaSum >= 0 ? '+' : '') + s.deltaSum + ' kg</div></div>' +
-    '<div class="stat"><div class="k">Kovan</div><div class="v">' + s.hiveCount + '</div></div>';
-  var b = s.buckets; var sw = s.swarm;
+    '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + all.avg + '</div></div>' +
+    '<div class="stat"><div class="k">Dokunma</div><div class="v">' + all.counts.ok + '</div></div>' +
+    '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>' +
+    '<div class="stat"><div class="k">Kovan</div><div class="v">' + all.hives.length + '</div></div>';
   document.getElementById('bucketList').innerHTML =
-    '<div class="row-item"><div class="left"><div class="title">İyi</div></div><div class="right"><span class="badge ok">' + b.iyi + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">Dikkat</div></div><div class="right"><span class="badge warn">' + b.dikkat + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">Kritik</div></div><div class="right"><span class="badge bad">' + b.kritik + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">Oğul riski (D / O / Y)</div><div class="meta">Düşük / Orta / Yüksek</div></div>' +
-    '<div class="right">' + sw.dusuk + ' / ' + sw.orta + ' / ' + sw.yuksek + '</div></div>';
-  document.getElementById('apiaryList').innerHTML = s.byApiary.map(function (a) {
-    return '<div class="row-item"><div class="left"><div class="title">' + a.apiaryName + '</div>' +
-      '<div class="meta">' + a.count + ' kovan · Δ ' + (a.deltaSum >= 0 ? '+' : '') + a.deltaSum +
-      ' kg · kritik ' + a.kritik + ' · oğul↑ ' + a.ogulYuksek + '</div>' +
-      '<div class="bar-track"><div class="bar-fill" style="width:' + a.avgHealth + '%"></div></div></div>' +
-      '<div class="right">' + a.avgHealth + '</div></div>';
+    '<div class="row-item"><div class="left"><div class="title">85–100 Dokunma</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">70–84 İzle</div></div><div class="right"><span class="badge warn">' + all.counts.watch + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">50–69 Kontrol</div></div><div class="right"><span class="badge warn">' + all.counts.check + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">0–49 Müdahale</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>';
+  var byAp = {};
+  all.hives.forEach(function (x) {
+    var hive = hives.filter(function (h) { return String(h.id) === String(x.hiveId); })[0];
+    var aid = hive ? String(hive.apiaryId || 'none') : 'none';
+    if (!byAp[aid]) byAp[aid] = { name: aid, sum: 0, n: 0 };
+    byAp[aid].sum += x.score; byAp[aid].n += 1;
+    if (hive && D.apiaryById) {
+      var ap = D.apiaryById(hive.apiaryId);
+      if (ap) byAp[aid].name = ap.name || ap.place || aid;
+    }
+  });
+  document.getElementById('apiaryList').innerHTML = Object.keys(byAp).map(function (k) {
+    var a = byAp[k];
+    var avg = Math.round(a.sum / a.n);
+    return '<div class="row-item"><div class="left"><div class="title">' + a.name + '</div>' +
+      '<div class="meta">' + a.n + ' kovan</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + avg + '%"></div></div></div>' +
+      '<div class="right">' + avg + '</div></div>';
   }).join('') || '<p class="meta">Kovan yok.</p>';
-  document.getElementById('riskList').innerHTML = s.topRisk.map(function (h) {
-    var cls = h.healthScore < 50 ? 'bad' : (h.healthScore < 70 ? 'warn' : 'ok');
-    return '<div class="row-item"><div class="left"><div class="title">' + (h.name || ('Kovan ' + h.id)) + '</div>' +
-      '<div class="meta">' + (h.weightKg || '—') + ' kg · Δ ' + (h.deltaKg >= 0 ? '+' : '') + (h.deltaKg || 0) +
-      ' · oğul ' + (h.swarmRisk || '—') + '</div></div>' +
-      '<div class="right"><span class="badge ' + cls + '">' + h.healthScore + '</span></div></div>';
-  }).join('') || '<p class="meta">Veri yok.</p>';
+  document.getElementById('riskList').innerHTML = all.hives.filter(function (x) { return x.score < 85; }).slice(0, 12).map(function (x) {
+    return '<div class="row-item"><div class="left"><div class="title">' + x.name + '</div>' +
+      '<div class="meta">' + x.band.label + (x.rules[0] ? (' · ' + x.rules[0].text) : '') + '</div></div>' +
+      '<div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></div>';
+  }).join('') || '<p class="meta">Tüm kovanlar 85+.</p>';
 })();
 </script>
 <script>

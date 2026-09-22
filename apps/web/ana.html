@@ -1008,6 +1008,7 @@
 </div>
 
 <script src="demo-data.js"></script>
+<script src="sensor-health.js"></script>
 <script src="hava-kayit.js"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
@@ -1776,7 +1777,7 @@
     : 3;
   var tiles = [
     { key: 'tarti', label: 'Tartı', badge: '+1.2kg', tone: 'green', href: 'kovanlar.html?view=tarti' },
-    { key: 'saglik', label: 'Sağlık', badge: 'İyi', tone: 'green', href: 'kovanlar.html?view=saglik' },
+    { key: 'saglik', label: 'Sağlık', badge: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=SuperAriDemo.loadHives?SuperAriDemo.loadHives():[]; if(!SH||!hv.length) return 'İyi'; return String(SH.evaluateAll(hv).avg); } catch(e){ return 'İyi'; } })(), tone: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=SuperAriDemo.loadHives?SuperAriDemo.loadHives():[]; if(!SH||!hv.length) return 'green'; var a=SH.evaluateAll(hv).avg; return a>=85?'green':(a>=70?'tan':'red'); } catch(e){ return 'green'; } })(), href: 'saglik.html' },
     { key: 'ogul', label: 'Oğul', badge: ogulAlertCount ? (String(ogulAlertCount) + ' uyarı') : 'Düşük', tone: ogulAlertCount ? 'red' : 'green', href: 'uyarilar.html?view=ogul' },
     { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
     { key: 'koloni', label: 'Koloni', badge: '12 grup', tone: 'tan', href: 'kovanlar.html?view=koloni' },
