@@ -456,7 +456,7 @@
 
   function fillApiaries() {
     var opts = H.apiaryOptions();
-    apiarySel.innerHTML = '<option value="all">Tüm arılıklar</option>';
+    apiarySel.innerHTML = '';
     for (var i = 0; i < opts.length; i++) {
       var o = opts[i];
       var el = document.createElement('option');
@@ -464,8 +464,9 @@
       el.textContent = o.label;
       apiarySel.appendChild(el);
     }
+    if (!opts.length) return;
     var pref = preferredApiary(opts);
-    if (pref) apiarySel.value = pref;
+    apiarySel.value = pref || opts[0].id;
   }
 
   function syncBanner() {
