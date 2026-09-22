@@ -14,7 +14,7 @@
 
   function band(score) {
     var s = clamp(score, 0, 100);
-    if (s >= 85) return { key: 'ok', label: 'Dokunma', tone: 'ok', hint: 'Sağlıklı — rutin dışında açma' };
+    if (s >= 85) return { key: 'ok', label: 'Sağlıklı', tone: 'ok', hint: 'Normal — rutin dışında açma' };
     if (s >= 70) return { key: 'watch', label: 'İzle', tone: 'warn', hint: '24–48 saat izle; tek sensör yetmez' };
     if (s >= 50) return { key: 'check', label: 'Kontrol', tone: 'warn', hint: 'Önce dışarıdan bak; gerekirse aç' };
     return { key: 'act', label: 'Müdahale', tone: 'bad', hint: 'Birleşik risk yüksek — kovanı aç / müdahale' };
@@ -131,7 +131,7 @@
       },
       weights: WEIGHTS,
       thresholds: [
-        { min: 85, max: 100, label: 'Dokunma', desc: 'Sağlıklı — rutin dışında açma' },
+        { min: 85, max: 100, label: 'Sağlıklı', desc: 'Normal — rutin dışında açma' },
         { min: 70, max: 84, label: 'İzle', desc: '24–48 saat; tek sensör yetmez' },
         { min: 50, max: 69, label: 'Kontrol', desc: 'Önce dışarıdan; gerekirse aç' },
         { min: 0, max: 49, label: 'Müdahale', desc: 'Birleşik risk — aç / müdahale' }

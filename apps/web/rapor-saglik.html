@@ -77,11 +77,11 @@
   var all = H.evaluateAll(hives);
   document.getElementById('stats').innerHTML =
     '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + all.avg + '</div></div>' +
-    '<div class="stat"><div class="k">Dokunma</div><div class="v">' + all.counts.ok + '</div></div>' +
+    '<div class="stat"><div class="k">Sağlıklı</div><div class="v">' + all.counts.ok + '</div></div>' +
     '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>' +
     '<div class="stat"><div class="k">Kovan</div><div class="v">' + all.hives.length + '</div></div>';
   document.getElementById('bucketList').innerHTML =
-    '<div class="row-item"><div class="left"><div class="title">85–100 Dokunma</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
+    '<div class="row-item"><div class="left"><div class="title">85–100 Sağlıklı</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
     '<div class="row-item"><div class="left"><div class="title">70–84 İzle</div></div><div class="right"><span class="badge warn">' + all.counts.watch + '</span></div></div>' +
     '<div class="row-item"><div class="left"><div class="title">50–69 Kontrol</div></div><div class="right"><span class="badge warn">' + all.counts.check + '</span></div></div>' +
     '<div class="row-item"><div class="left"><div class="title">0–49 Müdahale</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>';
