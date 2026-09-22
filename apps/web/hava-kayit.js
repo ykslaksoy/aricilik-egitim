@@ -5,9 +5,9 @@
  * açılmasa bile rapor süreklidir.
  */
 (function (global) {
-  var STORAGE_KEY = 'superari.hava.kayit.v2';
-  var BACKFILL_META_KEY = 'superari.hava.backfill.v2';
-  var LEGACY_STORAGE_KEY = 'superari.hava.kayit.v1';
+  var STORAGE_KEY = 'superari.hava.kayit.v3';
+  var BACKFILL_META_KEY = 'superari.hava.backfill.v3';
+  var LEGACY_STORAGE_KEYS = ['superari.hava.kayit.v2', 'superari.hava.kayit.v1'];
   var RANGE_KEY = 'superari.hava.range.v1';
   var MAX_DAYS = 200; /* bal sezonu 15 May–15 Eyl = 124 gün; en az 130+ */
   var DEFAULT_BACKFILL_DAYS = 30;
@@ -398,11 +398,24 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         try {
-          raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+          var legKeys = LEGACY_STORAGE_KEYS || [];
+          for (var li = 0; li < legKeys.length; li++) {
+            raw = localStorage.getItem(legKeys[li]);
+            if (raw) break;
+          }
           if (raw) {
+            var legList = JSON.parse(raw);
+            if (Array.isArray(legList)) {
+              /* Eski yağış saatleri yanlış/kısmi kalmasın — sıfırla, arşiv yeniden yazar */
+              for (var lj = 0; lj < legList.length; lj++) {
+                if (legList[lj]) legList[lj].rainHours = null;
+              }
+              raw = JSON.stringify(legList);
+            }
             localStorage.setItem(STORAGE_KEY, raw);
             localStorage.removeItem(BACKFILL_META_KEY);
             localStorage.removeItem('superari.hava.backfill.v1');
+            localStorage.removeItem('superari.hava.backfill.v2');
           }
         } catch (eLeg) { /* ignore */ }
       }
@@ -1045,6 +1058,46 @@
     return applyDailyToList(list, apiary, daily, wantSet, source, rainMap, dnMap);
   }
 
+  /** Force aralığında eski kayıtları sil (bugünün canlı open_meteo hariç). */
+  function clearRangeRecords(fromKey, toKey, apiaryIds) {
+    var today = localDateKey();
+    var idSet = null;
+    if (apiaryIds && apiaryIds.length) {
+      idSet = {};
+      for (var i = 0; i < apiaryIds.length; i++) idSet[String(apiaryIds[i])] = true;
+    }
+    var list = loadRecords();
+    var out = [];
+    for (var j = 0; j < list.length; j++) {
+      var r = list[j];
+      if (!r || !r.date) {
+        out.push(r);
+        continue;
+      }
+      if (fromKey && r.date < fromKey) {
+        out.push(r);
+        continue;
+      }
+      if (toKey && r.date > toKey) {
+        out.push(r);
+        continue;
+      }
+      if (idSet && !idSet[String(r.apiaryId)]) {
+        out.push(r);
+        continue;
+      }
+      /* Bugünün canlı Ana kaydı kalsın */
+      if (r.source === 'open_meteo' && r.date === today) {
+        r.rainHours = null;
+        out.push(r);
+        continue;
+      }
+      /* Bu aralıktaki eski/kısmi kayıtları at — arşiv yeniden yazacak */
+    }
+    saveRecords(out);
+    return out.length;
+  }
+
   /**
    * Eksik günleri Open-Meteo geçmiş verisiyle doldurur (uygulama kapalı olsa bile).
    * from/to verilirse TÜM aralık (bal sezonu 124 gün vb.) — DEFAULT_BACKFILL_DAYS=30 ile sınırlama.
@@ -1081,10 +1134,33 @@
       return Promise.resolve({ filled: 0, apiaries: apiaries.length, skipped: true });
     }
 
-    if (backfillInFlight && !opts.force) return backfillInFlight;
+    if (backfillInFlight) {
+      if (!opts.force) return backfillInFlight;
+      /* Önceki bitince force yeniden — yarışmasın */
+      return backfillInFlight.then(function () {
+        return backfillMissing({
+          from: opts.from,
+          to: opts.to,
+          preset: opts.preset,
+          days: opts.days,
+          apiaries: opts.apiaries,
+          force: true
+        });
+      });
+    }
 
     var run = Promise.resolve()
       .then(function () {
+        if (opts.force && fromKey && toKey) {
+          clearRangeRecords(
+            fromKey,
+            toKey,
+            apiaries.map(function (a) { return a.id; })
+          );
+          try {
+            saveBackfillMeta({});
+          } catch (eMetaClr) { /* ignore */ }
+        }
         var chain = Promise.resolve(0);
         var meta = loadBackfillMeta();
 
@@ -1426,6 +1502,7 @@
     saveRecords: saveRecords,
     ensureSeed: ensureSeed,
     ensureHistory: ensureHistory,
+    clearRangeRecords: clearRangeRecords,
     backfillMissing: backfillMissing,
     recordFromMeteo: recordFromMeteo,
     filterRecords: filterRecords,

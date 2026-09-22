@@ -366,7 +366,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=rain900"></script>
+<script src="hava-kayit.js?v=rain901"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -555,7 +555,13 @@
     try {
       localStorage.removeItem('superari.hava.backfill.v1');
       localStorage.removeItem('superari.hava.backfill.v2');
+      localStorage.removeItem('superari.hava.backfill.v3');
     } catch (eMeta) { /* ignore */ }
+    if (typeof H.clearRangeRecords === 'function' && currentRange.from && currentRange.to) {
+      try {
+        H.clearRangeRecords(currentRange.from, currentRange.to, null);
+      } catch (eClr) { /* ignore */ }
+    }
     syncInFlight = true;
     showCoverageStatus();
     var progressTick = setInterval(function () {
