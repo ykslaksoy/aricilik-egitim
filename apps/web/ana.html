@@ -460,15 +460,21 @@
   .muayene-hint-mid {
     flex: 1 1 auto;
     min-width: 0;
+    max-width: 100%;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
+    height: 28px;
     min-height: 28px;
+    max-height: 28px;
+    overflow: hidden;
   }
   .muayene-hint.is-idle .muayene-hint-mid {
-    min-height: 32px;
+    height: 28px;
+    min-height: 28px;
+    max-height: 28px;
   }
   .muayene-hint.is-active .muayene-hint-mid {
     justify-content: flex-start;
@@ -484,12 +490,16 @@
   .day-lo { font-size: 10px; color: #8a8278; }
   .muayene-hint {
     position: relative;
-    margin-top: 8px; padding: 8px 10px; border-radius: 10px;
+    margin-top: 8px; padding: 6px 8px; border-radius: 10px;
     background: #fff8df; border: 1px solid #e0c56a;
-    color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.35;
+    color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.25;
     display: flex; align-items: center; gap: 8px;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
-    min-height: 34px;
+    /* Not / uyarı gelince büyümesin — idle ile aynı sabit yükseklik */
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    overflow: hidden;
     box-sizing: border-box;
   }
   /* Idle = bee dock under forecast; active = reminder text */
@@ -499,17 +509,30 @@
     cursor: default;
     justify-content: center;
     padding: 6px 8px;
-    min-height: 36px;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
   }
   .muayene-hint.is-idle .muayene-hint-text,
   .muayene-hint.is-idle .muayene-hint-ok { display: none !important; }
   .muayene-hint.is-active .bee-exit,
   .muayene-hint.is-active .bee-podium { display: none !important; }
-  .muayene-hint-text { flex: 1 1 auto; min-width: 0; }
+  .muayene-hint-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .muayene-hint-ok {
     flex: 0 0 auto;
-    min-height: 28px;
-    padding: 4px 11px;
+    height: 26px;
+    min-height: 26px;
+    max-height: 26px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid rgba(176, 140, 60, 0.45);
     border-radius: 8px;
     background: rgba(255, 252, 244, 0.95);
