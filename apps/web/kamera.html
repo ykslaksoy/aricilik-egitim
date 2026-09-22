@@ -103,7 +103,7 @@
     <div id="emptyState" class="card-block" hidden>
       <div class="disconnect-banner" role="status">
         <strong>Kamera bağlı değil</strong>
-        <p>Kayıtlı kamera cihazı yok. Sensör/kamera donanımı gelince burada izlenir.</p>
+        <p>Kamera bağlı değil. Arılık kamerası veya isteğe bağlı kovan kamerası ekleyince burada izlenir.</p>
         <a class="add-btn" href="ayarlar.html#cihaz">Cihaz ekle</a>
       </div>
       <p class="hint" style="margin:0">Canlı video yok · demo görüntü gösterilmiyor</p>
@@ -118,7 +118,7 @@
         <div class="viewer-frame" aria-hidden="true"></div>
         <div class="viewer-placeholder">
           <strong id="frameTitle">Kamera bağlı değil</strong>
-          <span id="frameNote">Sensör/kamera donanımı gelince burada izlenir.</span>
+          <span id="frameNote">Kamera donanımı gelince burada izlenir. Kovan kamerası olmadan da sistem çalışır.</span>
         </div>
       </div>
       <div class="cam-meta" id="camMeta"></div>
@@ -147,7 +147,8 @@
   if (!D) return;
   var DEVICES_KEY = 'superari.devices';
   var tipLabels = {
-    kamera_merkez: 'Merkezi kamera',
+    kamera_arilik: 'Arılık kamerası',
+    kamera_merkez: 'Arılık kamerası',
     kamera_kovan: 'Kovan kamerası'
   };
   var params = new URLSearchParams(location.search);
@@ -160,7 +161,7 @@
 
   function isCameraTip(tip) {
     var t = String(tip || '').toLowerCase();
-    return t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
+    return t === 'kamera_arilik' || t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
   }
 
   function loadCameraDevices() {
@@ -238,7 +239,7 @@
     viewer.classList.add('empty');
     document.getElementById('frameTitle').textContent = 'Kamera bağlı değil';
     document.getElementById('frameNote').textContent =
-      'Kayıtlı ' + list.length + ' kamera var; canlı akış henüz yok. Sensör/kamera donanımı gelince burada izlenir.';
+      'Kayıtlı ' + list.length + ' kamera var; canlı akış henüz yok. Kamera donanımı gelince burada izlenir. Kovan kamerası olmadan da sistem çalışır.';
 
     document.getElementById('camMeta').innerHTML =
       '<span class="cam-pill">' + list.length + ' kayıtlı</span>' +

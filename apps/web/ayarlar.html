@@ -43,16 +43,17 @@
                 <option value="ir">IR</option>
                 <option value="ses_titresim">Ses/Titreşim</option>
                 <option value="gateway">Gateway (Wi‑Fi / hücresel)</option>
-                <option value="kamera_merkez">Merkezi kamera</option>
-                <option value="kamera_kovan">Kovan kamerası</option>
+                <option value="kamera_arilik">Arılık kamerası</option>
+                <option value="kamera_kovan">Kovan kamerası (isteğe bağlı)</option>
                 <option value="role_hub">Wireless röle / hub</option>
               </select>
             </label>
-            <label>Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
+            <label id="cihaz-hedef-label">Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
               <select id="cihaz-kovan" name="hiveId">
                 <option value="">— Seçilmedi —</option>
               </select>
             </label>
+            <p class="hint-inline" id="cihaz-kamera-hint" hidden>Arılık kamerası arılığa; kovan kamerası isteğe bağlıdır — olmadan da sistem çalışır.</p>
             <button class="btn" type="submit">Kaydet (demo)</button>
             <button class="btn secondary" type="button" id="btn-cihaz-iptal">İptal</button>
           </form>
@@ -213,7 +214,8 @@
         ir: 'IR',
         ses_titresim: 'Ses/Titreşim',
         gateway: 'Gateway (Wi‑Fi / hücresel)',
-        kamera_merkez: 'Merkezi kamera',
+        kamera_arilik: 'Arılık kamerası',
+        kamera_merkez: 'Arılık kamerası',
         kamera_kovan: 'Kovan kamerası',
         role_hub: 'Wireless röle / hub'
       };
@@ -261,50 +263,80 @@
         }
         listEl.innerHTML = list.map(function (d) {
           var tip = tipLabels[d.tip] || d.tip || 'Cihaz';
-          var hive = d.hiveId ? (' · ' + hiveName(d.hiveId)) : '';
+          var where = '';
+          if (d.apiaryId) where = ' · ' + apiaryName(d.apiaryId);
+          else if (d.hiveId) where = ' · ' + hiveName(d.hiveId);
           return '<div class="note" style="margin:0">' +
-            '<strong>' + tip + '</strong>' + hive +
+            '<strong>' + tip + '</strong>' + where +
             (d.at ? (' · ' + new Date(d.at).toLocaleString('tr-TR')) : '') +
             '</div>';
         }).join('');
       }
-      function fillHives() {
-        if (!hiveEl || !D || !D.loadHives) return;
-        var hives = D.loadHives();
+      function apiaryName(id) {
+        if (!id || !D || !D.apiaryById) return '';
+        var a = D.apiaryById(id);
+        return a ? (a.place || a.name || id) : String(id);
+      }
+      function isApiaryTip(tip) {
+        return tip === 'kamera_arilik' || tip === 'kamera_merkez' ||
+          tip === 'gateway' || tip === 'role_hub';
+      }
+      var hedefLabel = document.getElementById('cihaz-hedef-label');
+      var kameraHint = document.getElementById('cihaz-kamera-hint');
+      function fillTargetOptions() {
+        if (!hiveEl || !D) return;
+        var tip = (tipEl && tipEl.value) || 'tarti';
         var opts = '<option value="">— Seçilmedi —</option>';
-        hives.forEach(function (h) {
-          opts += '<option value="' + h.id + '">' +
-            (h.name || ('Kovan ' + h.id)) + '</option>';
-        });
+        if (isApiaryTip(tip) && D.loadApiaries) {
+          if (hedefLabel) hedefLabel.innerHTML = 'Arılık <span class="muted" style="font-weight:500">(isteğe bağlı)</span>';
+          if (kameraHint) kameraHint.hidden = (tip !== 'kamera_arilik' && tip !== 'kamera_merkez');
+          D.loadApiaries().forEach(function (a) {
+            opts += '<option value="' + a.id + '">' + (a.place || a.name || a.id) + '</option>';
+          });
+        } else {
+          if (hedefLabel) hedefLabel.innerHTML = 'Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>';
+          if (kameraHint) kameraHint.hidden = tip !== 'kamera_kovan';
+          if (D.loadHives) {
+            D.loadHives().forEach(function (h) {
+              opts += '<option value="' + h.id + '">' + (h.name || ('Kovan ' + h.id)) + '</option>';
+            });
+          }
+        }
         hiveEl.innerHTML = opts;
       }
       function openForm() {
         if (formWrap) formWrap.hidden = false;
         if (btnAdd) btnAdd.hidden = true;
+        fillTargetOptions();
       }
       function closeForm() {
         if (formWrap) formWrap.hidden = true;
         if (btnAdd) btnAdd.hidden = false;
         if (form) form.reset();
+        fillTargetOptions();
       }
 
-      fillHives();
+      fillTargetOptions();
       renderList();
 
+      if (tipEl) tipEl.addEventListener('change', fillTargetOptions);
       if (btnAdd) btnAdd.addEventListener('click', openForm);
       if (btnCancel) btnCancel.addEventListener('click', closeForm);
       if (form) {
         form.addEventListener('submit', function (e) {
           e.preventDefault();
           var tip = (tipEl && tipEl.value) || 'tarti';
-          var hiveId = (hiveEl && hiveEl.value) ? Number(hiveEl.value) : null;
+          var raw = hiveEl && hiveEl.value ? hiveEl.value : '';
           var list = loadDevices();
-          list.unshift({
-            id: 'dev-' + Date.now(),
-            tip: tip,
-            hiveId: hiveId || null,
-            at: new Date().toISOString()
-          });
+          var row = { id: 'dev-' + Date.now(), tip: tip, at: new Date().toISOString() };
+          if (isApiaryTip(tip)) {
+            row.apiaryId = raw || null;
+            row.hiveId = null;
+          } else {
+            row.hiveId = raw ? Number(raw) : null;
+            row.apiaryId = null;
+          }
+          list.unshift(row);
           saveDevices(list.slice(0, 50));
           renderList();
           closeForm();

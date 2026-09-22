@@ -121,7 +121,8 @@
     ir: 'IR',
     ses_titresim: 'Ses/Titreşim',
     gateway: 'Gateway (Wi‑Fi / hücresel)',
-    kamera_merkez: 'Merkezi kamera',
+    kamera_arilik: 'Arılık kamerası',
+    kamera_merkez: 'Arılık kamerası',
     kamera_kovan: 'Kovan kamerası',
     role_hub: 'Wireless röle / hub'
   };
@@ -154,7 +155,7 @@
 
   function isCameraTip(tip) {
     var t = String(tip || '').toLowerCase();
-    return t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
+    return t === 'kamera_arilik' || t === 'kamera_merkez' || t === 'kamera_kovan' || t.indexOf('kamera') !== -1;
   }
 
   function deviceFromUser(d) {
@@ -229,7 +230,7 @@
   function disconnectBannerHtml() {
     return '<div class="disconnect-banner" role="status">' +
       '<strong>Canlı cihaz bağlı değil</strong>' +
-      '<p>Henüz kayıtlı donanım yok. Sensör veya kamera ekleyince burada listelenir.</p>' +
+      '<p>Henüz kayıtlı donanım yok. Sensör veya kamera ekleyince burada listelenir. Kovan kamerası isteğe bağlıdır.</p>' +
       '<a class="add-btn" href="ayarlar.html#cihaz">Cihaz ekle</a>' +
     '</div>';
   }
