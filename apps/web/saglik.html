@@ -73,6 +73,17 @@
   .detail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .detail-head h2 { margin: 0; font-size: 16px; }
   #detailBlock[hidden] { display: none !important; }
+
+  .nav-pages { display: grid; gap: 8px; }
+  .nav-page-btn {
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+    padding: 14px 14px; border-radius: 14px; text-decoration: none;
+    border: 1.5px solid #e0c56a;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
+    color: var(--brown); font-family: inherit;
+  }
+  .nav-page-btn strong { font-size: 15px; font-weight: 800; }
+  .nav-page-btn span { font-size: 12px; font-weight: 650; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -103,14 +114,11 @@
 
     <section class="card-block" id="detailBlock" hidden>
       <div class="detail-head">
-        <h2 id="detailTitle">Kovanlar</h2>
+        <h2 id="detailTitle">Görünüm seç</h2>
         <button type="button" class="back-chip" id="btnCloseDetail">Kapat</button>
       </div>
-      <div class="view-tabs" role="tablist" aria-label="Görünüm">
-        <button type="button" class="active" id="tabApiary" data-view="apiary">Arılık</button>
-        <button type="button" id="tabAll" data-view="all">Tümü</button>
-      </div>
-      <div id="detailBody"></div>
+      <p class="meta" id="detailHint" style="margin-bottom:10px"></p>
+      <div class="nav-pages" id="navPages"></div>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -131,7 +139,6 @@
   if (!H || !D) return;
   var all = H.evaluateAll(D.loadHives ? D.loadHives() : []);
   var filterKey = null;
-  var viewMode = 'apiary'; /* apiary | all */
 
   var NOTES = {
     ok: 'Not: Bu kovanlarda rutin dışında işlem gerekmez. Takvimli varroa / sezon işleri ayrı sürer.',
@@ -151,9 +158,8 @@
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function filteredHives() {
-    if (!filterKey) return [];
-    return all.hives.filter(function (x) { return x.band.key === filterKey; });
+  function countFor(key) {
+    return all.hives.filter(function (x) { return x.band.key === key; }).length;
   }
 
   function renderStatus() {
@@ -170,8 +176,7 @@
     }).join('');
     document.querySelectorAll('#statusList [data-band]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var k = btn.getAttribute('data-band');
-        filterKey = k;
+        filterKey = btn.getAttribute('data-band');
         render();
         var block = document.getElementById('detailBlock');
         block.hidden = false;
@@ -180,101 +185,37 @@
     });
   }
 
-  function hiveCard(x) {
-    var pills = (x.actions || []).map(function (a) {
-      return '<span class="kind-pill ' + esc(a.kind) + '">' + esc(a.title) + '</span>';
-    }).join('') || '<span class="kind-pill genel">Stabil</span>';
-    var details = (x.actions || []).map(function (a) {
-      return '<div class="meta" style="margin-top:4px"><strong>' + esc(a.title) + ':</strong> ' + esc(a.detail) + '</div>';
-    }).join('');
-    var hiveMats = '';
-    if ((filterKey === 'act' || filterKey === 'check') && x.materials && x.materials.length) {
-      hiveMats = '<div class="meta" style="margin-top:6px">Malzeme: ' +
-        x.materials.map(function (m) { return esc(m.name) + ' ×' + m.qty; }).join(', ') + '</div>';
-    }
-    return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;">' +
-      '<div class="left"><div class="title">' + esc(x.name) + '</div>' +
-      '<div class="meta">' + esc(x.band.label) + ' · skor ' + x.score + '</div>' +
-      '<div style="margin-top:4px">' + pills + '</div>' + details + hiveMats +
-      '</div><div class="right"><span class="badge ' + esc(x.band.tone) + '">' + x.score + '</span></div></a>';
-  }
-
-  function renderDetail() {
+  function renderNav() {
     var block = document.getElementById('detailBlock');
     if (!filterKey) {
       block.hidden = true;
       return;
     }
     block.hidden = false;
-    var list = filteredHives();
     var bb = bands.filter(function (b) { return b.key === filterKey; })[0];
-    document.getElementById('detailTitle').textContent = (bb ? bb.label : 'Detay') + ' · ' + list.length;
-
-    document.getElementById('tabApiary').classList.toggle('active', viewMode === 'apiary');
-    document.getElementById('tabAll').classList.toggle('active', viewMode === 'all');
-
-    if (!list.length) {
-      document.getElementById('detailBody').innerHTML = '<p class="meta">Bu durumda kovan yok.</p>';
-      return;
-    }
-
-    if (viewMode === 'all') {
-      var flatMats = {};
-      list.forEach(function (x) {
-        (x.materials || []).forEach(function (m) {
-          if (!flatMats[m.id]) flatMats[m.id] = { name: m.name, qty: 0, unit: m.unit };
-          flatMats[m.id].qty += Number(m.qty) || 0;
-        });
-      });
-      var matKeys = Object.keys(flatMats);
-      var matHtml = '';
-      if (matKeys.length && filterKey !== 'ok') {
-        matHtml = '<div style="margin:0 0 8px;font-size:12px;font-weight:800">Gerekli malzeme (tüm)</div>' +
-          matKeys.map(function (id) {
-            var m = flatMats[id];
-            return '<div class="mat-row"><span>' + esc(m.name) + '</span><strong>' + m.qty + ' ' + esc(m.unit) + '</strong></div>';
-          }).join('');
-      }
-      document.getElementById('detailBody').innerHTML = matHtml + list.map(hiveCard).join('');
-      return;
-    }
-
-    var groups = all.groupByApiary(list);
-    document.getElementById('detailBody').innerHTML = groups.map(function (g) {
-      var matHtml = '';
-      if (g.materials && g.materials.length && filterKey !== 'ok') {
-        matHtml = '<div style="margin:8px 0 4px;font-size:12px;font-weight:800">Gerekli malzeme</div>' +
-          g.materials.map(function (m) {
-            return '<div class="mat-row"><span>' + esc(m.name) + '</span><strong>' + m.qty + ' ' + esc(m.unit) + '</strong></div>';
-          }).join('');
-      }
-      return '<div class="apiary-block">' +
-        '<div class="apiary-title">' + esc(g.apiaryName) + ' · ' + g.hives.length + ' kovan</div>' +
-        matHtml + g.hives.map(hiveCard).join('') +
-        '</div>';
-    }).join('');
+    var n = countFor(filterKey);
+    document.getElementById('detailTitle').textContent = (bb ? bb.label : 'Durum') + ' · ' + n;
+    document.getElementById('detailHint').textContent = 'Nasıl görmek istersiniz?';
+    var q = 'band=' + encodeURIComponent(filterKey);
+    document.getElementById('navPages').innerHTML =
+      '<a class="nav-page-btn" href="saglik-detay.html?' + q + '&mode=all">' +
+        '<strong>Tüm kovanlar</strong>' +
+        '<span>' + n + ' kovan tek listede · malzeme özeti</span></a>' +
+      '<a class="nav-page-btn" href="saglik-detay.html?' + q + '&mode=apiary">' +
+        '<strong>Arılık</strong>' +
+        '<span>Arılıklara göre ayrılmış liste · arılık malzemesi</span></a>';
   }
 
   function render() {
     renderStatus();
-    renderDetail();
+    renderNav();
   }
 
   document.getElementById('btnCloseDetail').addEventListener('click', function () {
     filterKey = null;
     render();
   });
-  document.getElementById('tabApiary').addEventListener('click', function () {
-    viewMode = 'apiary';
-    renderDetail();
-  });
-  document.getElementById('tabAll').addEventListener('click', function () {
-    viewMode = 'all';
-    renderDetail();
-  });
 
-  var q = new URLSearchParams(location.search).get('band');
-  if (q && ['ok', 'watch', 'check', 'act'].indexOf(q) !== -1) filterKey = q;
   render();
 })();
 </script>
