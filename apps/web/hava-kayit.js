@@ -744,6 +744,8 @@
       if (!r || r.apiaryId !== apiaryId || !r.date) continue;
       /* seed sayılmaz — gerçek veri ile değiştirilecek */
       if (r.source === 'seed') continue;
+      /* Yağış saati yoksa gün eksik sayılır — sıcaklık dolu olsa bile */
+      if (r.rainHours == null || !isFinite(Number(r.rainHours))) continue;
       have[r.date] = true;
     }
     return dateKeysInclusive(fromKey, toKey).filter(function (dk) {
@@ -1328,6 +1330,36 @@
     return backfillMissing(opts);
   }
 
+  /**
+   * Uygulamadaki kayıtlardan yağış saati toplamı (tek arılık / aralık).
+   * Her gün için bir değer: seed hariç, aynı günde birden fazla varsa en son yazılan.
+   */
+  function sumRainHoursFromRecords(records, fromKey, toKey) {
+    var byDate = {};
+    var list = records || [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      if (!r || !r.date) continue;
+      if (fromKey && r.date < fromKey) continue;
+      if (toKey && r.date > toKey) continue;
+      if (r.source === 'seed') continue;
+      if (r.rainHours == null || !isFinite(Number(r.rainHours))) continue;
+      byDate[r.date] = Number(r.rainHours);
+    }
+    var keys = Object.keys(byDate).sort();
+    var total = 0;
+    for (var k = 0; k < keys.length; k++) total += byDate[keys[k]];
+    var expected =
+      fromKey && toKey ? dateKeysInclusive(fromKey, toKey).length : keys.length;
+    return {
+      total: Math.round(total * 10) / 10,
+      daysWithHours: keys.length,
+      expected: expected,
+      complete: expected > 0 && keys.length >= expected,
+      byDate: byDate
+    };
+  }
+
   function filterRecords(opts) {
     opts = opts || {};
     var list = ensureSeed();
@@ -1506,6 +1538,7 @@
     backfillMissing: backfillMissing,
     recordFromMeteo: recordFromMeteo,
     filterRecords: filterRecords,
+    sumRainHoursFromRecords: sumRainHoursFromRecords,
     summarize: summarize,
     apiaryOptions: apiaryOptions,
     bestInspectionDay: bestInspectionDay,
