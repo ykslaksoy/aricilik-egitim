@@ -6,17 +6,55 @@
 <title>SüperArı · Sağlık</title>
 <link rel="stylesheet" href="rapor-common.css" />
 <style>
-  .status-row {
-    width: 100%; display: flex; gap: 10px; align-items: center;
-    padding: 10px 0; border-top: 1px solid #f0f1f3;
-    background: transparent; border-left: 0; border-right: 0; border-bottom: 0;
-    font: inherit; text-align: left; cursor: pointer; color: inherit;
+  .badge.green { background: #ebfbee; color: #2b8a3e; border-color: #8ce99a; }
+  .badge.yellow { background: #fff9db; color: #e67700; border-color: #ffe066; }
+  .badge.orange { background: #fff4e6; color: #d9480f; border-color: #ffc078; }
+  .badge.red { background: #fff5f5; color: #c92a2a; border-color: #ffa8a8; }
+
+  .status-list { display: grid; gap: 8px; }
+  .status-btn {
+    width: 100%; display: flex; gap: 12px; align-items: flex-start;
+    padding: 12px 12px; border-radius: 14px; border: 1.5px solid #e4e6ea;
+    background: #fff; font: inherit; text-align: left; cursor: pointer; color: inherit;
+    -webkit-tap-highlight-color: transparent;
   }
-  .status-row:first-child { border-top: 0; padding-top: 0; }
-  .status-row.is-on {
-    background: #fff8df; margin: 0 -10px; padding-left: 10px; padding-right: 10px;
-    border-radius: 10px; border-top-color: transparent;
+  .status-btn:active { transform: scale(.985); }
+  .status-btn.is-on { box-shadow: 0 0 0 2px rgba(212,160,23,.35); }
+  .status-btn.tone-green { border-color: #8ce99a; background: linear-gradient(180deg,#fff 0%,#ebfbee 100%); }
+  .status-btn.tone-yellow { border-color: #ffe066; background: linear-gradient(180deg,#fff 0%,#fff9db 100%); }
+  .status-btn.tone-orange { border-color: #ffc078; background: linear-gradient(180deg,#fff 0%,#fff4e6 100%); }
+  .status-btn.tone-red { border-color: #ffa8a8; background: linear-gradient(180deg,#fff 0%,#fff5f5 100%); }
+  .status-btn .count {
+    flex-shrink: 0; min-width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums;
   }
+  .status-btn.tone-green .count { background: #d3f9d8; color: #2b8a3e; }
+  .status-btn.tone-yellow .count { background: #fff3bf; color: #e67700; }
+  .status-btn.tone-orange .count { background: #ffd8a8; color: #d9480f; }
+  .status-btn.tone-red .count { background: #ffc9c9; color: #c92a2a; }
+  .status-btn .title { font-size: 15px; font-weight: 800; color: var(--text); }
+  .status-btn .meta { margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .status-btn .note {
+    margin-top: 6px; font-size: 11px; font-weight: 650; color: var(--brown);
+    background: rgba(255,255,255,.65); border-radius: 8px; padding: 6px 8px;
+  }
+
+  .view-tabs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    margin: 0 0 10px; padding: 4px; border-radius: 12px;
+    background: #fff; border: 1px solid var(--card-border);
+  }
+  .view-tabs button {
+    border: 0; border-radius: 10px; padding: 9px 8px;
+    background: transparent; color: var(--muted);
+    font-size: 13px; font-weight: 750; font-family: inherit; cursor: pointer;
+  }
+  .view-tabs button.active {
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 100%);
+    color: var(--brown); border: 1px solid #e0c56a;
+  }
+
   .kind-pill {
     display: inline-block; margin: 2px 4px 0 0; padding: 2px 8px; border-radius: 999px;
     font-size: 10px; font-weight: 750; border: 1px solid var(--card-border);
@@ -32,8 +70,9 @@
   .apiary-title { font-size: 14px; font-weight: 800; color: var(--brown); margin-bottom: 6px; }
   .mat-row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid #f0f1f3; font-size: 12px; }
   .mat-row:first-of-type { border-top: 0; }
-  .detail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-  .detail-head h2 { margin: 0; }
+  .detail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .detail-head h2 { margin: 0; font-size: 16px; }
+  #detailBlock[hidden] { display: none !important; }
 </style>
 </head>
 <body>
@@ -55,15 +94,21 @@
         <a class="back-chip" href="rapor-saglik.html">Rapor</a>
       </div>
     </div>
-    <div class="stats" id="stats"></div>
+
     <section class="card-block">
-      <h2>Durum özeti</h2>
-      <div id="statusList"></div>
+      <h2>Durum</h2>
+      <p class="meta" id="avgLine" style="margin-bottom:10px"></p>
+      <div class="status-list" id="statusList"></div>
     </section>
-    <section class="card-block" id="detailBlock">
+
+    <section class="card-block" id="detailBlock" hidden>
       <div class="detail-head">
-        <h2 id="detailTitle">Detay</h2>
-        <button type="button" class="back-chip" id="btnClearFilter" hidden>Tümü</button>
+        <h2 id="detailTitle">Kovanlar</h2>
+        <button type="button" class="back-chip" id="btnCloseDetail">Kapat</button>
+      </div>
+      <div class="view-tabs" role="tablist" aria-label="Görünüm">
+        <button type="button" class="active" id="tabApiary" data-view="apiary">Arılık</button>
+        <button type="button" id="tabAll" data-view="all">Tümü</button>
       </div>
       <div id="detailBody"></div>
     </section>
@@ -84,32 +129,22 @@
   var H = window.SuperAriSensorHealth;
   var D = window.SuperAriDemo;
   if (!H || !D) return;
-  var hivesRaw = D.loadHives ? D.loadHives() : [];
-  var all = H.evaluateAll(hivesRaw);
+  var all = H.evaluateAll(D.loadHives ? D.loadHives() : []);
   var filterKey = null;
+  var viewMode = 'apiary'; /* apiary | all */
 
-  try {
-    var key = 'superari.saglik.telemetry.v1';
-    var log = [];
-    try { log = JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (e1) { log = []; }
-    if (!Array.isArray(log)) log = [];
-    log.push({
-      at: new Date().toISOString(),
-      avg: all.avg,
-      counts: all.counts,
-      hives: all.hives.map(function (x) {
-        return { id: x.hiveId, score: x.score, band: x.band.key, kinds: (x.actions || []).map(function (a) { return a.kind; }) };
-      })
-    });
-    if (log.length > 200) log = log.slice(-200);
-    localStorage.setItem(key, JSON.stringify(log));
-  } catch (e2) {}
+  var NOTES = {
+    ok: 'Not: Bu kovanlarda rutin dışında işlem gerekmez. Takvimli varroa / sezon işleri ayrı sürer.',
+    watch: 'Not: Kısa süre izleyin. Tekrarlayan düşüşte Kontrol’e düşebilir; gerekirse saha notu ekleyin.',
+    check: 'Not: Sahada bakın. Oğul, besleme veya yavru şüphesi olabilir; malzeme listesine bakın.',
+    act: 'Not: Öncelikli müdahale. Gerekçe (oğul, varroa, besleme, malzeme) ve arılık malzemesini açın.'
+  };
 
   var bands = [
-    { key: 'ok', label: 'Sağlıklı', meta: 'Rutin dışında müdahale gerekmez', count: all.counts.ok, tone: 'ok' },
-    { key: 'watch', label: 'İzle', meta: 'Kısa süre takip', count: all.counts.watch, tone: 'warn' },
-    { key: 'check', label: 'Kontrol', meta: 'Sahada bakılması iyi olur', count: all.counts.check, tone: 'warn' },
-    { key: 'act', label: 'Müdahale', meta: 'Öncelikli — gerekçe ve malzeme', count: all.counts.act, tone: 'bad' }
+    { key: 'ok', label: 'Sağlıklı', meta: 'Rutin dışında müdahale gerekmez', count: all.counts.ok, tone: 'green' },
+    { key: 'watch', label: 'İzle', meta: 'Kısa süre takip', count: all.counts.watch, tone: 'yellow' },
+    { key: 'check', label: 'Kontrol', meta: 'Sahada bakılması iyi olur', count: all.counts.check, tone: 'orange' },
+    { key: 'act', label: 'Müdahale', meta: 'Öncelikli kovan', count: all.counts.act, tone: 'red' }
   ];
 
   function esc(s) {
@@ -117,99 +152,125 @@
   }
 
   function filteredHives() {
-    if (!filterKey) return all.hives;
+    if (!filterKey) return [];
     return all.hives.filter(function (x) { return x.band.key === filterKey; });
   }
 
-  function groupsFor(list) {
-    return all.groupByApiary(list);
-  }
-
   function renderStatus() {
+    document.getElementById('avgLine').textContent = 'Ort. skor ' + all.avg + ' · ' + all.hives.length + ' kovan';
+    document.getElementById('pageSub').textContent = 'Ort. ' + all.avg;
     document.getElementById('statusList').innerHTML = bands.map(function (b) {
-      return '<button type="button" class="status-row' + (filterKey === b.key ? ' is-on' : '') + '" data-band="' + b.key + '">' +
-        '<div class="left" style="flex:1;min-width:0"><div class="title">' + esc(b.label) + '</div>' +
-        '<div class="meta">' + esc(b.meta) + '</div></div>' +
-        '<span class="badge ' + b.tone + '">' + b.count + '</span></button>';
+      return '<button type="button" class="status-btn tone-' + b.tone + (filterKey === b.key ? ' is-on' : '') + '" data-band="' + b.key + '">' +
+        '<div class="count">' + b.count + '</div>' +
+        '<div class="left" style="flex:1;min-width:0">' +
+          '<div class="title">' + esc(b.label) + '</div>' +
+          '<div class="meta">' + esc(b.meta) + '</div>' +
+          '<div class="note">' + esc(NOTES[b.key]) + '</div>' +
+        '</div></button>';
     }).join('');
     document.querySelectorAll('#statusList [data-band]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var k = btn.getAttribute('data-band');
-        filterKey = (filterKey === k) ? null : k;
+        filterKey = k;
         render();
-        document.getElementById('detailBlock').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var block = document.getElementById('detailBlock');
+        block.hidden = false;
+        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   }
 
-  function renderDetail() {
-    var list = filteredHives();
-    var groups = groupsFor(list);
-    var clearBtn = document.getElementById('btnClearFilter');
-    var title = 'Tüm kovanlar';
-    if (filterKey) {
-      var bb = bands.filter(function (b) { return b.key === filterKey; })[0];
-      title = bb ? (bb.label + ' · ' + list.length + ' kovan') : 'Detay';
-      clearBtn.hidden = false;
-    } else {
-      clearBtn.hidden = true;
+  function hiveCard(x) {
+    var pills = (x.actions || []).map(function (a) {
+      return '<span class="kind-pill ' + esc(a.kind) + '">' + esc(a.title) + '</span>';
+    }).join('') || '<span class="kind-pill genel">Stabil</span>';
+    var details = (x.actions || []).map(function (a) {
+      return '<div class="meta" style="margin-top:4px"><strong>' + esc(a.title) + ':</strong> ' + esc(a.detail) + '</div>';
+    }).join('');
+    var hiveMats = '';
+    if ((filterKey === 'act' || filterKey === 'check') && x.materials && x.materials.length) {
+      hiveMats = '<div class="meta" style="margin-top:6px">Malzeme: ' +
+        x.materials.map(function (m) { return esc(m.name) + ' ×' + m.qty; }).join(', ') + '</div>';
     }
-    document.getElementById('detailTitle').textContent = title;
+    return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;">' +
+      '<div class="left"><div class="title">' + esc(x.name) + '</div>' +
+      '<div class="meta">' + esc(x.band.label) + ' · skor ' + x.score + '</div>' +
+      '<div style="margin-top:4px">' + pills + '</div>' + details + hiveMats +
+      '</div><div class="right"><span class="badge ' + esc(x.band.tone) + '">' + x.score + '</span></div></a>';
+  }
 
-    if (!groups.length) {
+  function renderDetail() {
+    var block = document.getElementById('detailBlock');
+    if (!filterKey) {
+      block.hidden = true;
+      return;
+    }
+    block.hidden = false;
+    var list = filteredHives();
+    var bb = bands.filter(function (b) { return b.key === filterKey; })[0];
+    document.getElementById('detailTitle').textContent = (bb ? bb.label : 'Detay') + ' · ' + list.length;
+
+    document.getElementById('tabApiary').classList.toggle('active', viewMode === 'apiary');
+    document.getElementById('tabAll').classList.toggle('active', viewMode === 'all');
+
+    if (!list.length) {
       document.getElementById('detailBody').innerHTML = '<p class="meta">Bu durumda kovan yok.</p>';
       return;
     }
 
+    if (viewMode === 'all') {
+      var flatMats = {};
+      list.forEach(function (x) {
+        (x.materials || []).forEach(function (m) {
+          if (!flatMats[m.id]) flatMats[m.id] = { name: m.name, qty: 0, unit: m.unit };
+          flatMats[m.id].qty += Number(m.qty) || 0;
+        });
+      });
+      var matKeys = Object.keys(flatMats);
+      var matHtml = '';
+      if (matKeys.length && filterKey !== 'ok') {
+        matHtml = '<div style="margin:0 0 8px;font-size:12px;font-weight:800">Gerekli malzeme (tüm)</div>' +
+          matKeys.map(function (id) {
+            var m = flatMats[id];
+            return '<div class="mat-row"><span>' + esc(m.name) + '</span><strong>' + m.qty + ' ' + esc(m.unit) + '</strong></div>';
+          }).join('');
+      }
+      document.getElementById('detailBody').innerHTML = matHtml + list.map(hiveCard).join('');
+      return;
+    }
+
+    var groups = all.groupByApiary(list);
     document.getElementById('detailBody').innerHTML = groups.map(function (g) {
       var matHtml = '';
-      if (g.materials && g.materials.length && filterKey && filterKey !== 'ok') {
-        matHtml =
-          '<div style="margin:8px 0 4px;font-size:12px;font-weight:800;color:var(--text)">Gerekli malzeme</div>' +
+      if (g.materials && g.materials.length && filterKey !== 'ok') {
+        matHtml = '<div style="margin:8px 0 4px;font-size:12px;font-weight:800">Gerekli malzeme</div>' +
           g.materials.map(function (m) {
             return '<div class="mat-row"><span>' + esc(m.name) + '</span><strong>' + m.qty + ' ' + esc(m.unit) + '</strong></div>';
           }).join('');
       }
-      var hiveHtml = g.hives.map(function (x) {
-        var pills = (x.actions || []).map(function (a) {
-          return '<span class="kind-pill ' + esc(a.kind) + '">' + esc(a.title) + '</span>';
-        }).join('') || '<span class="kind-pill genel">Stabil</span>';
-        var details = (x.actions || []).map(function (a) {
-          return '<div class="meta" style="margin-top:4px"><strong>' + esc(a.title) + ':</strong> ' + esc(a.detail) + '</div>';
-        }).join('');
-        var hiveMats = '';
-        if ((filterKey === 'act' || filterKey === 'check') && x.materials && x.materials.length) {
-          hiveMats = '<div class="meta" style="margin-top:6px">Malzeme: ' +
-            x.materials.map(function (m) { return esc(m.name) + ' ×' + m.qty; }).join(', ') +
-            '</div>';
-        }
-        return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;">' +
-          '<div class="left"><div class="title">' + esc(x.name) + '</div>' +
-          '<div class="meta">' + esc(x.band.label) + ' · skor ' + x.score + '</div>' +
-          '<div style="margin-top:4px">' + pills + '</div>' + details + hiveMats +
-          '</div><div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></a>';
-      }).join('');
       return '<div class="apiary-block">' +
         '<div class="apiary-title">' + esc(g.apiaryName) + ' · ' + g.hives.length + ' kovan</div>' +
-        matHtml + hiveHtml +
+        matHtml + g.hives.map(hiveCard).join('') +
         '</div>';
     }).join('');
   }
 
   function render() {
-    document.getElementById('pageSub').textContent = 'Ort. ' + all.avg + ' · ' + all.band.label;
-    document.getElementById('stats').innerHTML =
-      '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + all.avg + '</div></div>' +
-      '<div class="stat"><div class="k">Sağlıklı</div><div class="v">' + all.counts.ok + '</div></div>' +
-      '<div class="stat"><div class="k">İzle / kontrol</div><div class="v">' + (all.counts.watch + all.counts.check) + '</div></div>' +
-      '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>';
     renderStatus();
     renderDetail();
   }
 
-  document.getElementById('btnClearFilter').addEventListener('click', function () {
+  document.getElementById('btnCloseDetail').addEventListener('click', function () {
     filterKey = null;
     render();
+  });
+  document.getElementById('tabApiary').addEventListener('click', function () {
+    viewMode = 'apiary';
+    renderDetail();
+  });
+  document.getElementById('tabAll').addEventListener('click', function () {
+    viewMode = 'all';
+    renderDetail();
   });
 
   var q = new URLSearchParams(location.search).get('band');

@@ -10,10 +10,10 @@
 
   function band(score) {
     var s = clamp(score, 0, 100);
-    if (s >= 85) return { key: 'ok', label: 'Sağlıklı', tone: 'ok', hint: 'Rutin dışında müdahale gerekmez' };
-    if (s >= 70) return { key: 'watch', label: 'İzle', tone: 'warn', hint: 'Kısa süre takip' };
-    if (s >= 50) return { key: 'check', label: 'Kontrol', tone: 'warn', hint: 'Sahada bakılması iyi olur' };
-    return { key: 'act', label: 'Müdahale', tone: 'bad', hint: 'Öncelikli kovan' };
+    if (s >= 85) return { key: 'ok', label: 'Sağlıklı', tone: 'green', hint: 'Rutin dışında müdahale gerekmez' };
+    if (s >= 70) return { key: 'watch', label: 'İzle', tone: 'yellow', hint: 'Kısa süre takip; gerekirse not düşün' };
+    if (s >= 50) return { key: 'check', label: 'Kontrol', tone: 'orange', hint: 'Sahada bakılması iyi olur' };
+    return { key: 'act', label: 'Müdahale', tone: 'red', hint: 'Öncelikli — gerekçe ve malzemeye bakın' };
   }
 
   function deviationsFromHive(h) {
