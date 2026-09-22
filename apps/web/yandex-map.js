@@ -257,16 +257,22 @@
 
   function createPlacemark(ymaps, lat, lon, opts) {
     opts = opts || {};
+    var props = {
+      balloonContent: opts.title || '',
+      hintContent: opts.hint || opts.title || ''
+    };
+    if (opts.iconContent != null && opts.iconContent !== '') {
+      props.iconContent = opts.iconContent;
+    }
+    var pmOpts = {
+      draggable: !!opts.draggable,
+      preset: opts.preset || 'islands#redIcon'
+    };
+    if (opts.iconColor) pmOpts.iconColor = opts.iconColor;
     var pm = new ymaps.Placemark(
       coordsOf(lat, lon),
-      {
-        balloonContent: opts.title || '',
-        hintContent: opts.hint || opts.title || ''
-      },
-      {
-        draggable: !!opts.draggable,
-        preset: opts.preset || 'islands#redIcon'
-      }
+      props,
+      pmOpts
     );
     if (opts.onDrag) {
       pm.events.add('drag', function () {
@@ -297,6 +303,15 @@
       placemark.geometry.setCoordinates(coordsOf(lat, lon));
       try {
         placemark.options.set('draggable', !!opts.draggable);
+        if (opts.preset) placemark.options.set('preset', opts.preset);
+        if (opts.iconColor) placemark.options.set('iconColor', opts.iconColor);
+        if (opts.iconContent != null) placemark.properties.set('iconContent', opts.iconContent);
+        if (opts.title != null) {
+          placemark.properties.set('balloonContent', opts.title);
+          placemark.properties.set('hintContent', opts.hint || opts.title);
+        } else if (opts.hint != null) {
+          placemark.properties.set('hintContent', opts.hint);
+        }
       } catch (e) { /* ignore */ }
       return placemark;
     }
@@ -305,10 +320,56 @@
     return pm;
   }
 
+  function removePlacemark(ctrl, placemark) {
+    if (!placemark) return null;
+    if (ctrl && ctrl.map) {
+      try {
+        ctrl.map.geoObjects.remove(placemark);
+      } catch (e) { /* ignore */ }
+    }
+    return null;
+  }
+
   function placemarkCoords(pm) {
     if (!pm) return null;
     var c = pm.geometry.getCoordinates();
     return { lat: c[0], lon: c[1] };
+  }
+
+  /**
+   * Fit map to one or more {lat,lon} (or [lat,lon]) points.
+   * opts: { zoom, margin, duration }
+   */
+  function fitPoints(ctrl, points, opts) {
+    opts = opts || {};
+    if (!ctrl || !ctrl.map) return;
+    var coords = [];
+    (points || []).forEach(function (p) {
+      if (!p) return;
+      var la = Number(p.lat != null ? p.lat : p[0]);
+      var lo = Number(
+        p.lon != null ? p.lon : p.lng != null ? p.lng : p[1]
+      );
+      if (isFinite(la) && isFinite(lo)) coords.push([la, lo]);
+    });
+    if (!coords.length) return;
+    if (coords.length === 1) {
+      var z = opts.zoom != null ? opts.zoom : Math.max(ctrl.getZoom ? ctrl.getZoom() : 12, 12);
+      ctrl.setView(coords[0][0], coords[0][1], z);
+      return;
+    }
+    try {
+      var bounds = ctrl.ymaps.util.bounds.fromPoints(coords);
+      ctrl.map.setBounds(bounds, {
+        checkZoomRange: true,
+        zoomMargin: opts.margin != null ? opts.margin : 48,
+        duration: opts.duration != null ? opts.duration : 280
+      });
+    } catch (e2) {
+      var midLat = (coords[0][0] + coords[coords.length - 1][0]) / 2;
+      var midLon = (coords[0][1] + coords[coords.length - 1][1]) / 2;
+      ctrl.setView(midLat, midLon, opts.zoom || 11);
+    }
   }
 
   /**
@@ -930,7 +991,9 @@
     createMap: createMap,
     createPlacemark: createPlacemark,
     upsertPlacemark: upsertPlacemark,
+    removePlacemark: removePlacemark,
     placemarkCoords: placemarkCoords,
+    fitPoints: fitPoints,
     reverseGeocode: reverseGeocode,
     searchPlaces: searchPlaces,
     externalUrls: externalUrls,

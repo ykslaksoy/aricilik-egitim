@@ -542,6 +542,7 @@
   var arAmountLabelText = document.getElementById('arAmountLabelText');
   var detailMapCtrl = null;
   var detailPlacemark = null;
+  var tipPlacemark = null;
   var pickMode = false;
   var activeApiary = null;
   var radar = null;
@@ -910,17 +911,91 @@
     updateRadarAndAnalyze(la, lo);
   }
 
+  function coordsNearlyEqual(aLat, aLon, bLat, bLon) {
+    return (
+      Math.abs(Number(aLat) - Number(bLat)) < 0.00015 &&
+      Math.abs(Number(aLon) - Number(bLon)) < 0.00015
+    );
+  }
+
+  function clearTipPlacemark() {
+    if (tipPlacemark && Y && Y.removePlacemark && detailMapCtrl) {
+      tipPlacemark = Y.removePlacemark(detailMapCtrl, tipPlacemark);
+    } else {
+      tipPlacemark = null;
+    }
+  }
+
+  function placeTipMarker(lat, lon) {
+    if (!detailMapCtrl || !Y || !Y.upsertPlacemark) return;
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!isFinite(la) || !isFinite(lo)) return;
+    tipPlacemark = Y.upsertPlacemark(detailMapCtrl, tipPlacemark, la, lo, {
+      draggable: false,
+      preset: 'islands#darkGreenStretchyIcon',
+      iconContent: 'Öneri',
+      title: 'Önerilen konum',
+      hint: 'Önerilen konum'
+    });
+  }
+
+  function forageCircleFitPoints(lat, lon) {
+    var r = radar && radar.getRadiusKm ? Number(radar.getRadiusKm()) : forageRadiusKm;
+    if (!isFinite(lat) || !isFinite(lon) || !isFinite(r) || r <= 0) return [];
+    var dLat = r / 111.32;
+    var cos = Math.cos((lat * Math.PI) / 180);
+    var dLon = cos ? r / (111.32 * Math.abs(cos)) : r / 111.32;
+    return [
+      { lat: lat + dLat, lon: lon },
+      { lat: lat - dLat, lon: lon },
+      { lat: lat, lon: lon + dLon },
+      { lat: lat, lon: lon - dLon }
+    ];
+  }
+
+  function fitDetailPins() {
+    if (!detailMapCtrl || !Y || !Y.fitPoints) return;
+    var points = [];
+    var cur = currentDetailPin();
+    if (cur) {
+      points.push(cur);
+      points = points.concat(forageCircleFitPoints(cur.lat, cur.lon));
+    }
+    if (tipPlacemark) {
+      var tip = Y.placemarkCoords(tipPlacemark);
+      if (tip) points.push(tip);
+    }
+    if (points.length) Y.fitPoints(detailMapCtrl, points, { margin: 56 });
+  }
+
+  function syncTipFromAnalysis(analysis, centerLat, centerLon) {
+    var tip = analysis && analysis.tip;
+    var tLat = tip && tip.targetLat != null ? Number(tip.targetLat) : NaN;
+    var tLon = tip && tip.targetLon != null ? Number(tip.targetLon) : NaN;
+    if (!isFinite(tLat) || !isFinite(tLon)) {
+      clearTipPlacemark();
+      return;
+    }
+    if (
+      isFinite(Number(centerLat)) &&
+      isFinite(Number(centerLon)) &&
+      coordsNearlyEqual(tLat, tLon, centerLat, centerLon)
+    ) {
+      clearTipPlacemark();
+      return;
+    }
+    placeTipMarker(tLat, tLon);
+    fitDetailPins();
+  }
+
+  /** Show/highlight önerilen konum tip pin; keep current apiary pin in place. */
   function applyForageTipTarget(lat, lon) {
     var la = Number(lat);
     var lo = Number(lon);
     if (!isFinite(la) || !isFinite(lo)) return;
-    if (!pickMode) startPickMode();
-    if (detailMapCtrl && detailMapCtrl.setView) {
-      detailMapCtrl.setView(la, lo, Math.max(detailMapCtrl.getZoom ? detailMapCtrl.getZoom() : 13, 13));
-    }
-    placeDetailMarker(la, lo, pendingSearchName);
-    var saveBtn = document.getElementById('btnSaveLoc');
-    if (saveBtn) saveBtn.hidden = false;
+    placeTipMarker(la, lo);
+    fitDetailPins();
   }
 
   function bindForageTipClicks(host) {
@@ -949,8 +1024,10 @@
         .then(function (a) {
           host.innerHTML = F.renderPanelHtml(a, escapeHtml);
           bindForageTipClicks(host);
+          syncTipFromAnalysis(a, lat, lon);
         })
         .catch(function () {
+          clearTipPlacemark();
           host.innerHTML =
             '<div class="forage-panel is-empty"><p>Analiz alınamadı — konum yine kaydedilebilir.</p></div>';
         });
@@ -1095,6 +1172,9 @@
       try { detailMapCtrl.destroy(); } catch (e1) {}
       detailMapCtrl = null;
       detailPlacemark = null;
+      tipPlacemark = null;
+    } else {
+      tipPlacemark = null;
     }
     detailMapReady = null;
 

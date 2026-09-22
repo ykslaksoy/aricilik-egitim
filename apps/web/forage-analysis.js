@@ -417,7 +417,7 @@
         distStr +
         ' km ' +
         best.dir.label +
-        ' — rakım/iklim uygunluğu daha yüksek (Open-Meteo). Dokunarak pin’i taşı.'
+        ' — rakım/iklim uygunluğu daha yüksek (Open-Meteo). Haritada öneri pin’i olarak gösterilir.'
     );
 
     var why = [];
