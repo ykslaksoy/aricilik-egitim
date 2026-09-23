@@ -196,6 +196,8 @@
 
     var center = options.center || [39.92, 41.27];
     var zoom = options.zoom != null ? options.zoom : 9;
+    /* Default hybrid (satellite + labels). Override with options.type e.g. yandex#map */
+    var mapType = options.type || 'yandex#hybrid';
 
     return loadYmaps().then(function (ymaps) {
       node.innerHTML = '';
@@ -204,6 +206,7 @@
         {
           center: center,
           zoom: zoom,
+          type: mapType,
           controls: options.controls || ['zoomControl', 'geolocationControl', 'typeSelector']
         },
         {
