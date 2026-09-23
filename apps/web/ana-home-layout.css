@@ -1,4 +1,5 @@
-/* Ana home layout — relax existing weather card; shrink tiles ~5%; keep grid gap */
+/* Ana home layout — relax existing weather card; shrink tile ROWS ~5% only; keep gap */
+/* Hive art, labels, badges stay at original ana.html sizes (no scale-down). */
 /* Applied on ana.html via device-runtime inject (#weatherStrip + #grid). */
 
 .weather {
@@ -34,31 +35,30 @@
   flex: 0 0 auto !important;
 }
 
-/* Buttons ~5% smaller; gap stays 5px; grid no longer eats leftover space */
+/* Tile/button block ~5% shorter vertically; gap stays 5px; grid does not eat leftover */
+/* Typical pre-change 1fr row ≈ 135px → 95% ≈ 128px */
 .grid {
   flex: 0 0 auto !important;
   grid-template-rows: repeat(4, 128px) !important;
   gap: 5px !important;
 }
-.tile {
-  border-radius: 13px !important;
-  padding: 3px 2px !important;
+
+/* Restore bee entrance / flight hole (was lost when hive-box was force-shrunk) */
+.hive-entrance {
+  display: block !important;
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 0 !important;
+  transform: translateX(-50%) !important;
+  width: 10px !important;
+  height: 3px !important;
+  background: #2a1a0c !important;
+  border-radius: 0 0 1px 1px !important;
+  z-index: 4 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
 }
-.hive { width: 55px !important; height: 51px !important; }
-.hive-stack { width: 42px !important; }
-.hive-lid { width: 48px !important; }
-.hive-box { height: 17px !important; }
-.hive-icon {
-  top: 24px !important;
-  width: 25px !important;
-  height: 25px !important;
-}
-.hive-icon.hive-icon-burn {
-  width: 27px !important;
-  height: 27px !important;
-}
-.tile-label { font-size: 9.5px !important; }
-.badge {
-  padding: 1px 6px !important;
-  font-size: 8.5px !important;
+.hive-box.bottom {
+  overflow: visible !important;
 }
