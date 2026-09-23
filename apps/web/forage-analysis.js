@@ -4,9 +4,10 @@
  * Data (ücretsiz, anahtarsız):
  *  - Open-Meteo Elevation API — merkez + 8 yön gerçek rakım
  *  - Open-Meteo Archive — bal mevsimi (Mayıs–Eylül) ortalama sıcaklık + yağış toplamı
+ *    + bağıl nem + ET0 (su/nem / kuraklık yorumu)
  *
  * Skor yalnızca ölçülebilir faktörler: rakım bandı, sezon yağış, sezon sıcaklık, yerel eğim.
- * Sahte floraProxy / verim % yok.
+ * Su/nem paneli ölçülen nem + yağış/ET0 dengesinden; sahte floraProxy / verim % yok.
  */
 (function (global) {
   var DEFAULT_RADIUS_KM = 3;
@@ -239,10 +240,14 @@
     var meanT = mean(daily.temperature_2m_mean);
     var precipSum = sum(daily.precipitation_sum);
     if (meanT == null || precipSum == null) return null;
+    var meanRh = mean(daily.relative_humidity_2m_mean);
+    var et0Sum = sum(daily.et0_fao_evapotranspiration);
     return {
       meanTempC: Math.round(meanT * 10) / 10,
       precipSumMm: Math.round(precipSum * 10) / 10,
-      precipDays: precipDays(daily.precipitation_sum)
+      precipDays: precipDays(daily.precipitation_sum),
+      meanRhPct: meanRh != null ? Math.round(meanRh * 10) / 10 : null,
+      et0SumMm: et0Sum != null ? Math.round(et0Sum * 10) / 10 : null
     };
   }
 
@@ -263,7 +268,7 @@
       encodeURIComponent(season.start) +
       '&end_date=' +
       encodeURIComponent(season.end) +
-      '&daily=temperature_2m_mean,precipitation_sum&timezone=auto';
+      '&daily=temperature_2m_mean,precipitation_sum,relative_humidity_2m_mean,et0_fao_evapotranspiration&timezone=auto';
     return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('archive_' + r.status);
@@ -282,6 +287,8 @@
                 meanTempC: clim.meanTempC,
                 precipSumMm: clim.precipSumMm,
                 precipDays: clim.precipDays,
+                meanRhPct: clim.meanRhPct,
+                et0SumMm: clim.et0SumMm,
                 seasonLabel: season.label
               }
             : null;
@@ -306,6 +313,72 @@
     if (mm <= 350) return 80 - (Math.abs(mm - 220) / 130) * 12;
     if (mm <= 550) return 68 - ((mm - 350) / 200) * 25;
     return 35;
+  }
+
+
+  /**
+   * Su / nem yorumu — Open-Meteo bağıl nem + yağış/ET0 dengesi.
+   * Skora dahil değil; panelde ayrı Satır/insight.
+   */
+  function waterAnalysis(climate) {
+    if (!climate) return null;
+    var rh = climate.meanRhPct;
+    var precip = climate.precipSumMm;
+    var et0 = climate.et0SumMm;
+    var precipDaysN = climate.precipDays;
+    var balance = precip != null && et0 != null ? Math.round((precip - et0) * 10) / 10 : null;
+    var ratio = precip != null && et0 != null && et0 > 0 ? precip / et0 : null;
+
+    var rhNote = null;
+    if (rh != null && isFinite(rh)) {
+      if (rh < 40) rhNote = 'kuru hava — arılar daha çok su arar';
+      else if (rh < 55) rhNote = 'orta-düşük nem';
+      else if (rh <= 75) rhNote = 'arıcılık için dengeli nem';
+      else rhNote = 'yüksek nem — küf/fermantasyon riski artabilir';
+    }
+
+    var droughtTone = 'mid';
+    var droughtLabel = 'Bilinmiyor';
+    var droughtNote = 'ET0/yağış eksik';
+    if (ratio != null && isFinite(ratio)) {
+      if (ratio < 0.35) {
+        droughtTone = 'bad';
+        droughtLabel = 'Yüksek kuraklık riski';
+        droughtNote = 'yağış ≪ buharlaşma — flora ve arı suyu sıkışabilir';
+      } else if (ratio < 0.7) {
+        droughtTone = 'mid';
+        droughtLabel = 'Orta su stresi';
+        droughtNote = 'yağış buharlaşmanın altında — su kaynağı önemli';
+      } else if (ratio <= 1.2) {
+        droughtTone = 'ok';
+        droughtLabel = 'Dengeli su';
+        droughtNote = 'yağış ≈ ET0 — su mevcudiyeti makul';
+      } else {
+        droughtTone = 'good';
+        droughtLabel = 'Bol nem / su';
+        droughtNote = 'yağış > buharlaşma — kuraklık düşük';
+      }
+    }
+
+    var summaryParts = [];
+    if (rhNote) summaryParts.push(rhNote);
+    if (droughtNote && droughtLabel !== 'Bilinmiyor') summaryParts.push(droughtLabel + ': ' + droughtNote);
+    var summary = summaryParts.length
+      ? summaryParts.join(' · ')
+      : 'Su/nem ölçümü kısmi — yalnızca mevcut alanlar gösteriliyor.';
+
+    return {
+      meanRhPct: rh != null && isFinite(rh) ? rh : null,
+      et0SumMm: et0 != null && isFinite(et0) ? et0 : null,
+      waterBalanceMm: balance,
+      precipEt0Ratio: ratio != null && isFinite(ratio) ? Math.round(ratio * 100) / 100 : null,
+      precipDays: precipDaysN != null ? precipDaysN : null,
+      rhNote: rhNote,
+      droughtTone: droughtTone,
+      droughtLabel: droughtLabel,
+      droughtNote: droughtNote,
+      summary: summary
+    };
   }
 
   /** Season mean temp suitability (°C). Ideal ~14–20 °C for highland bees. */
@@ -374,6 +447,8 @@
       meanTempC: climate ? climate.meanTempC : null,
       precipSumMm: climate ? climate.precipSumMm : null,
       precipDays: climate ? climate.precipDays : null,
+      meanRhPct: climate ? climate.meanRhPct : null,
+      et0SumMm: climate ? climate.et0SumMm : null,
       seasonLabel: climate ? climate.seasonLabel : null,
       hasClimate: hasClimate,
       radiusKm: clampRadius(radiusKm)
@@ -627,6 +702,44 @@
             note: 'fallback'
           });
         }
+
+        var water = climateOk ? waterAnalysis(climates[0] || null) : null;
+        if (water) {
+          if (water.meanRhPct != null) {
+            insights.push({
+              k: 'Bağıl nem',
+              v:
+                water.meanRhPct +
+                ' % ort.' +
+                (water.rhNote ? ' — ' + water.rhNote : ''),
+              note: 'su / nem'
+            });
+          }
+          if (water.et0SumMm != null && here.precipSumMm != null) {
+            insights.push({
+              k: 'Su dengesi',
+              v:
+                'yağış ' +
+                here.precipSumMm +
+                ' mm · ET0 ' +
+                water.et0SumMm +
+                ' mm' +
+                (water.waterBalanceMm != null
+                  ? ' · Δ ' +
+                    (water.waterBalanceMm > 0 ? '+' : '') +
+                    water.waterBalanceMm +
+                    ' mm'
+                  : ''),
+              note: 'su / nem'
+            });
+          }
+          insights.push({
+            k: 'Su / nem',
+            v: water.droughtLabel + ' — ' + water.summary,
+            note: 'yorum'
+          });
+        }
+
         insights.push({
           k: 'Uygunluk skoru',
           v: here.score + '/100 · ' + gradeLabel(here.score).tr,
@@ -641,7 +754,7 @@
         var disclaimer = climateOk
           ? 'Kaynaklar: rakım ölçümü + iklim arşivi (' +
             season.label +
-            ' ortalama sıcaklık ve yağış toplamı). Uygunluk skoru rakım+iklim+eğim ölçümlerinden; sahte flora/verim % yoktur.'
+            ' ortalama sıcaklık, yağış, bağıl nem, ET0). Uygunluk skoru rakım+iklim+eğim; Su/nem paneli yağış−ET0 ve nem ölçümünden. Sahte flora/verim % yoktur.'
           : 'Kaynak: rakım ölçümü. İklim arşivi alınamadı — skor yalnızca rakım/eğim. Sahte flora/verim % yoktur.';
 
         return {
@@ -654,6 +767,9 @@
           elevSource: here.elevSource,
           meanTempC: here.meanTempC,
           precipSumMm: here.precipSumMm,
+          meanRhPct: here.meanRhPct,
+          et0SumMm: here.et0SumMm,
+          water: water || null,
           seasonLabel: here.seasonLabel || season.label,
           insights: insights,
           tip: tip,
@@ -661,7 +777,7 @@
           demo: !climateOk,
           climateOk: climateOk,
           sources: climateOk
-            ? ['rakım ölçümü', 'iklim arşivi']
+            ? ['rakım ölçümü', 'iklim arşivi', 'su / nem (RH+ET0)']
             : ['rakım ölçümü']
         };
       });
@@ -827,6 +943,37 @@
       '<div class="forage-grid">' +
       rows +
       '</div>' +
+      (function () {
+        if (!analysis.water) return '';
+        var w = analysis.water;
+        return (
+          '<div class="forage-water">' +
+            '<div class="forage-water-head">Su / nem analizi</div>' +
+            '<p class="forage-water-sum">' +
+            escapeHtml(w.summary || w.droughtLabel || '') +
+            '</p>' +
+            (w.meanRhPct != null
+              ? '<div class="forage-row"><div class="forage-k">Bağıl nem <span class="forage-tag">ölçüm</span></div><div class="forage-v">' +
+                escapeHtml(String(w.meanRhPct) + ' %') +
+                '</div></div>'
+              : '') +
+            (w.et0SumMm != null
+              ? '<div class="forage-row"><div class="forage-k">Buharlaşma (ET0) <span class="forage-tag">ölçüm</span></div><div class="forage-v">' +
+                escapeHtml(String(w.et0SumMm) + ' mm') +
+                '</div></div>'
+              : '') +
+            (w.droughtLabel
+              ? '<div class="forage-row"><div class="forage-k">Kuraklık / su <span class="forage-tag tone-' +
+                escapeHtml(w.droughtTone || 'mid') +
+                '">' +
+                escapeHtml(w.droughtLabel) +
+                '</span></div><div class="forage-v">' +
+                escapeHtml(w.droughtNote || '') +
+                '</div></div>'
+              : '') +
+          '</div>'
+        );
+      })() +
       tip +
       '<p class="forage-disc">' +
       escapeHtml(analysis.disclaimer) +
@@ -864,7 +1011,15 @@
     '.forage-radius label{font-size:11px;font-weight:700;color:#6b635a;}',
     '.forage-radius input[type=range]{width:100%;}',
     '.forage-radius .val{font-size:11px;font-weight:800;color:#4a2f1a;font-variant-numeric:tabular-nums;}',
-    '.forage-auto-hint{margin:4px 0 0;font-size:10px;color:#8a8278;line-height:1.35;font-weight:560;}'
+    '.forage-auto-hint{margin:4px 0 0;font-size:10px;color:#8a8278;line-height:1.35;font-weight:560;}',
+    '.forage-water{margin-top:10px;padding:10px 11px;border-radius:12px;background:#f3f8ff;border:1px solid #a8c4e0;}',
+    '.forage-water-head{font-size:12px;font-weight:800;color:#1e3a5f;margin:0 0 4px;}',
+    '.forage-water-sum{font-size:11px;font-weight:650;color:#3a4f66;margin:0 0 8px;line-height:1.4;}',
+    '.forage-water .forage-row{margin-top:4px;}',
+    '.forage-tag.tone-good{color:#3d5a2a;}',
+    '.forage-tag.tone-ok{color:#4a2f1a;}',
+    '.forage-tag.tone-mid{color:#6a4220;}',
+    '.forage-tag.tone-bad{color:#8a2e1c;}'
   ].join('');
 
   function injectStyles() {
