@@ -443,6 +443,14 @@
     font-size: 13px; font-weight: 750; font-family: inherit; cursor: pointer;
   }
   .btn-pin-target:active { transform: scale(.98); }
+  .btn-pin-target.is-picking {
+    border-style: solid;
+    background: #fff3d0;
+  }
+  .move-dest-hint {
+    margin: -4px 0 10px;
+    font-size: 10px; font-weight: 560; color: #8a8278; line-height: 1.35;
+  }
   .action-link, button.action-link {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 14px; border-radius: 14px;
@@ -607,7 +615,11 @@
         <label>Hedef boylam
           <input name="lon" type="number" inputmode="decimal" step="any" required placeholder="41.27" />
         </label>
-        <button type="button" class="btn-pin-target" id="btnUseMapPin">Haritadaki iğneyi hedef al</button>
+        <label>Koordinat yapıştır <span style="font-weight:600;opacity:.7">(isteğe bağlı)</span>
+          <input type="text" id="moveCoordPaste" maxlength="240" placeholder="41.08, 40.75 · Yandex linki" autocomplete="off" />
+        </label>
+        <p class="move-dest-hint">Koordinat yazabilir veya haritadan iğne koyarak hedef seçebilirsiniz.</p>
+        <button type="button" class="btn-pin-target" id="btnUseMapPin">Haritadan konum belirle</button>
         <label id="arAmountLabel"><span id="arAmountLabelText">Nakliye ücreti (₺)</span>
           <input name="amount" type="number" inputmode="decimal" min="1" step="1" required placeholder="0" />
         </label>
@@ -666,7 +678,11 @@
   var pickMode = false;
   var waterPickMode = false;
   var waterDraftPlacemark = null;
+  var moveDestPickMode = false;
+  var moveDestPlacemark = null;
+  var moveFormDraft = null;
   var MAP_TAP_HINT_DEFAULT = 'Büyütmek için dokun';
+  var MAP_TAP_HINT_MOVE = 'Taşıma hedefini haritaya dokunarak seç · iğneyi sürükleyebilirsiniz';
   var MAP_TAP_HINT_WATER = 'Su konumunu haritaya dokunarak seç';
   var activeApiary = null;
   var radar = null;
@@ -790,6 +806,134 @@
     setTimeout(function () { moveSheet.hidden = true; }, 220);
   }
 
+  function clearMoveDestPlacemark() {
+    if (moveDestPlacemark && Y && Y.removePlacemark && detailMapCtrl) {
+      moveDestPlacemark = Y.removePlacemark(detailMapCtrl, moveDestPlacemark);
+    } else {
+      moveDestPlacemark = null;
+    }
+  }
+
+  function setMoveDestButtons(on) {
+    var conf = document.getElementById('btnConfirmMoveDest');
+    var canc = document.getElementById('btnCancelMoveDest');
+    var pinBtn = document.getElementById('btnUseMapPin');
+    if (conf) conf.hidden = !on;
+    if (canc) canc.hidden = !on;
+    if (pinBtn) {
+      if (on) {
+        pinBtn.textContent = 'Haritada seçiliyor…';
+        pinBtn.classList.add('is-picking');
+      } else {
+        pinBtn.textContent = 'Haritadan konum belirle';
+        pinBtn.classList.remove('is-picking');
+      }
+    }
+  }
+
+  function placeMoveDestMarker(lat, lon) {
+    if (!detailMapCtrl || !Y || !Y.upsertPlacemark) return;
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!isFinite(la) || !isFinite(lo)) return;
+    moveDestPlacemark = Y.upsertPlacemark(detailMapCtrl, moveDestPlacemark, la, lo, {
+      draggable: true,
+      preset: 'islands#darkOrangeStretchyIcon',
+      iconContent: 'Hedef',
+      title: 'Taşıma hedefi',
+      hint: 'Taşıma hedefi — sürükleyebilirsiniz',
+      onDragEnd: function (a, b) {
+        /* keep marker; confirm reads geometry */
+        void a; void b;
+      }
+    });
+    try {
+      if (moveDestPlacemark) moveDestPlacemark.options.set('draggable', true);
+    } catch (e0) {}
+    setMoveDestButtons(true);
+  }
+
+  function readMoveDestCoords() {
+    if (moveDestPlacemark && Y && Y.placemarkCoords) {
+      var c = Y.placemarkCoords(moveDestPlacemark);
+      if (c && isFinite(c.lat) && isFinite(c.lon)) return c;
+    }
+    if (moveDestPlacemark && moveDestPlacemark.geometry && moveDestPlacemark.geometry.getCoordinates) {
+      try {
+        var g = moveDestPlacemark.geometry.getCoordinates();
+        if (g && isFinite(g[0]) && isFinite(g[1])) return { lat: g[0], lon: g[1] };
+      } catch (e1) {}
+    }
+    return null;
+  }
+
+  function exitMoveDestPick(opts) {
+    opts = opts || {};
+    moveDestPickMode = false;
+    setMapTapHint(MAP_TAP_HINT_DEFAULT, true);
+    setMoveDestButtons(false);
+    if (!opts.keepMarker) clearMoveDestPlacemark();
+  }
+
+  function snapshotMoveForm() {
+    if (!moveForm) return null;
+    return {
+      mode: arModeInput ? arModeInput.value : 'nakliye',
+      amount: moveForm.elements.amount.value,
+      date: moveForm.elements.date.value,
+      note: moveForm.elements.note.value,
+      place: moveForm.elements.place.value,
+      lat: moveForm.elements.lat.value,
+      lon: moveForm.elements.lon.value,
+      paste: (document.getElementById('moveCoordPaste') || {}).value || ''
+    };
+  }
+
+  function beginMoveDestPick() {
+    if (!activeApiary) return;
+    moveFormDraft = snapshotMoveForm();
+    if (waterPickMode) exitWaterPickMode({ keepDraft: true });
+    pickMode = false;
+    try {
+      if (detailPlacemark) detailPlacemark.options.set('draggable', false);
+    } catch (e0) {}
+    closeMoveSheet();
+    moveDestPickMode = true;
+    setMapTapHint(MAP_TAP_HINT_MOVE, true);
+    setMoveDestButtons(true);
+    var lat0 = Number(moveForm.elements.lat.value);
+    var lon0 = Number(moveForm.elements.lon.value);
+    if (isFinite(lat0) && isFinite(lon0)) {
+      placeMoveDestMarker(lat0, lon0);
+      if (detailMapCtrl && detailMapCtrl.setView) detailMapCtrl.setView(lat0, lon0, 14);
+    } else {
+      clearMoveDestPlacemark();
+    }
+    var mapHost = document.getElementById('detailMapHost');
+    if (mapHost && mapHost.scrollIntoView) {
+      mapHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (detailMapFs && detailMapFs.open && (!detailMapFs.isOpen || !detailMapFs.isOpen())) {
+      detailMapFs.open();
+    }
+  }
+
+  function confirmMoveDestPick() {
+    var pin = readMoveDestCoords();
+    if (!pin) {
+      alert('Haritaya dokunarak hedef iğnesi koyun, sonra onaylayın.');
+      return;
+    }
+    var placeKeep = String((moveFormDraft && moveFormDraft.place) || moveForm.elements.place.value || '').trim();
+    exitMoveDestPick({ keepMarker: false });
+    openMoveSheet({
+      restoreDraft: true,
+      destLat: pin.lat,
+      destLon: pin.lon,
+      destPlace: placeKeep || pendingSearchName || ''
+    });
+  }
+
   function fillPlanDestFromPin() {
     var pin = currentDetailPin
       ? currentDetailPin()
@@ -808,11 +952,14 @@
     return true;
   }
 
-  function openMoveSheet() {
+  function openMoveSheet(opts) {
+    opts = opts || {};
     if (!activeApiary || !G) return;
     document.getElementById('moveSheetSub').textContent =
       (activeApiary.place || activeApiary.name) + ' · hedef konum planlanır, Tamam’da uygulanır';
     moveForm.reset();
+    var pasteEl = document.getElementById('moveCoordPaste');
+    if (pasteEl) pasteEl.value = '';
     moveForm.elements.date.value = G.todayIso();
     setArTransportMode('nakliye');
     var existing = loadMovePlan(activeApiary.id);
@@ -836,6 +983,25 @@
       }
       if (pendingSearchName) moveForm.elements.place.value = pendingSearchName;
     }
+    if (opts.restoreDraft && moveFormDraft) {
+      var d = moveFormDraft;
+      setArTransportMode(d.mode === 'kendi_arac' ? 'kendi_arac' : 'nakliye');
+      moveForm.elements.amount.value = d.amount != null ? d.amount : '';
+      moveForm.elements.date.value = d.date || G.todayIso();
+      moveForm.elements.note.value = d.note || '';
+      moveForm.elements.place.value = d.place || '';
+      moveForm.elements.lat.value = d.lat != null ? d.lat : '';
+      moveForm.elements.lon.value = d.lon != null ? d.lon : '';
+      var pasteEl2 = document.getElementById('moveCoordPaste');
+      if (pasteEl2) pasteEl2.value = d.paste || '';
+      moveFormDraft = null;
+    }
+    if (opts.destLat != null && opts.destLon != null &&
+        isFinite(Number(opts.destLat)) && isFinite(Number(opts.destLon))) {
+      moveForm.elements.lat.value = Number(opts.destLat).toFixed(6);
+      moveForm.elements.lon.value = Number(opts.destLon).toFixed(6);
+      if (opts.destPlace) moveForm.elements.place.value = String(opts.destPlace);
+    }
     moveSheet.hidden = false;
     requestAnimationFrame(function () { moveSheet.classList.add('is-open'); });
     setTimeout(function () { moveForm.elements.lat.focus(); }, 220);
@@ -851,8 +1017,31 @@
     if (e.target === moveSheet) closeMoveSheet();
   });
   document.getElementById('btnUseMapPin').addEventListener('click', function () {
-    fillPlanDestFromPin();
+    beginMoveDestPick();
   });
+  (function wireMoveCoordPaste() {
+    var paste = document.getElementById('moveCoordPaste');
+    if (!paste) return;
+    function applyPaste() {
+      if (!D || !D.parseCoordsFromText) return;
+      var p = D.parseCoordsFromText(paste.value);
+      if (!p) {
+        if (String(paste.value || '').trim()) {
+          alert('Geçersiz koordinat. Örn. 41.08, 40.75 veya Yandex linki.');
+        }
+        return;
+      }
+      moveForm.elements.lat.value = Number(p.lat).toFixed(6);
+      moveForm.elements.lon.value = Number(p.lon).toFixed(6);
+    }
+    paste.addEventListener('change', applyPaste);
+    paste.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyPaste();
+      }
+    });
+  })();
   moveForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!activeApiary || !G) return;
@@ -1035,6 +1224,7 @@
   }
 
   function startPickMode() {
+    if (moveDestPickMode) exitMoveDestPick({ keepMarker: false });
     if (waterPickMode) exitWaterPickMode({ keepDraft: true });
     pickMode = true;
     var btnSave = document.getElementById('btnSaveLoc');
@@ -1127,6 +1317,7 @@
   }
 
   function startWaterPickMode() {
+    if (moveDestPickMode) exitMoveDestPick({ keepMarker: false });
     var expand = document.getElementById('waterExpandPanel');
     if (expand) expand.hidden = false;
     var panel = document.getElementById('waterAddPanel');
@@ -2326,6 +2517,28 @@
         var lo = c[1];
         var wasClosed = detailMapFs && detailMapFs.isOpen && !detailMapFs.isOpen();
         if (wasClosed) detailMapFs.open();
+        /* Move-plan destination pick — do not move apiary pin. */
+        if (moveDestPickMode) {
+          var zM = ctrl.getZoom();
+          if (zM < 14) ctrl.setView(la, lo, Math.min(16, zM + 2));
+          placeMoveDestMarker(la, lo);
+          if (Y && Y.reverseGeocode) {
+            Y.reverseGeocode(la, lo).then(function (geo) {
+              if (!moveDestPickMode) return;
+              var nm = (geo && (geo.name || geo.label)) || '';
+              if (nm) pendingSearchName = nm;
+            });
+          }
+          if (wasClosed) {
+            setTimeout(function () {
+              if (ctrl.invalidateSize) ctrl.invalidateSize();
+            }, 100);
+            setTimeout(function () {
+              if (ctrl.invalidateSize) ctrl.invalidateSize();
+            }, 320);
+          }
+          return;
+        }
         /* Water pick: set catalog coords only — do not move apiary pin. */
         if (waterPickMode) {
           var zW = ctrl.getZoom();
@@ -2476,6 +2689,8 @@
         '<div class="map-actions">' +
           '<button type="button" class="map-btn" id="btnSaveLoc"' +
             (coordsOk ? ' hidden' : '') + '>Bu konumu kaydet</button>' +
+          '<button type="button" class="map-btn" id="btnConfirmMoveDest" hidden>Bu konumu hedef al</button>' +
+          '<button type="button" class="map-btn ghost" id="btnCancelMoveDest" hidden>Hedef seçimini iptal</button>' +
         '</div>' +
         '<div class="forage-radius">' +
           '<label for="forageRadius">Foraj</label>' +
@@ -2615,6 +2830,18 @@
         startWaterPickMode();
       });
     }
+    var btnConfirmMoveDest = document.getElementById('btnConfirmMoveDest');
+    var btnCancelMoveDest = document.getElementById('btnCancelMoveDest');
+    if (btnConfirmMoveDest) {
+      btnConfirmMoveDest.addEventListener('click', confirmMoveDestPick);
+    }
+    if (btnCancelMoveDest) {
+      btnCancelMoveDest.addEventListener('click', function () {
+        exitMoveDestPick({ keepMarker: false });
+        openMoveSheet({ restoreDraft: true });
+      });
+    }
+    if (moveDestPickMode) setMoveDestButtons(true);
     if (btnSave) {
       btnSave.addEventListener('click', function () {
         var c = Y && detailPlacemark ? Y.placemarkCoords(detailPlacemark) : null;
