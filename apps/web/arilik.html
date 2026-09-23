@@ -238,6 +238,14 @@
     gap: 6px;
     margin-top: 8px;
   }
+  #mapEditTools .map-btn {
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.25;
+    padding: 6px 8px;
+    min-height: 42px;
+    white-space: normal;
+  }
   .map-loc-bar {
     display: flex; gap: 8px; margin-top: 6px; align-items: center;
   }
@@ -1110,6 +1118,11 @@
       btn.textContent = 'Haritadan seç';
       btn.classList.remove('is-picking');
     }
+    var btnTop = document.getElementById('btnUpdateWaterLoc');
+    if (btnTop) {
+      btnTop.textContent = 'Su konumunu güncelle';
+      btnTop.classList.remove('is-picking');
+    }
     if (!opts.keepDraft) clearWaterDraftPlacemark();
   }
 
@@ -1132,6 +1145,11 @@
     if (btn) {
       btn.textContent = 'Seçiliyor… (Vazgeç)';
       btn.classList.add('is-picking');
+    }
+    var btnTop = document.getElementById('btnUpdateWaterLoc');
+    if (btnTop) {
+      btnTop.textContent = 'Seçiliyor… (Vazgeç)';
+      btnTop.classList.add('is-picking');
     }
     var mapHost = document.getElementById('detailMapHost');
     if (mapHost && mapHost.scrollIntoView) {
@@ -2452,9 +2470,8 @@
             )
           : '<div class="map-coords-line" id="pickCoords">Konum seçilmedi</div>') +
         '<div class="map-tool-row is-on" id="mapEditTools">' +
-          '<button type="button" class="map-btn ghost" id="btnPickLoc">' +
-            (coordsOk ? 'Haritadan seç / değiştir' : 'Haritadan seç') +
-          '</button>' +
+          '<button type="button" class="map-btn ghost" id="btnPickLoc">Arılık konumu güncelle</button>' +
+          '<button type="button" class="map-btn ghost" id="btnUpdateWaterLoc">Su konumunu güncelle</button>' +
         '</div>' +
         '<div class="map-actions">' +
           '<button type="button" class="map-btn" id="btnSaveLoc"' +
@@ -2587,6 +2604,16 @@
     }
     if (btnPick) {
       btnPick.addEventListener('click', startPickMode);
+    }
+    var btnUpdateWaterLoc = document.getElementById('btnUpdateWaterLoc');
+    if (btnUpdateWaterLoc) {
+      btnUpdateWaterLoc.addEventListener('click', function () {
+        if (waterPickMode) {
+          exitWaterPickMode({ keepDraft: true });
+          return;
+        }
+        startWaterPickMode();
+      });
     }
     if (btnSave) {
       btnSave.addEventListener('click', function () {
