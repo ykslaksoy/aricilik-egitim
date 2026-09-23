@@ -692,6 +692,14 @@
         mapFs = Y.attachFullscreen(host, document.getElementById('pickerMap'), ctrl, {
           root: document.getElementById('phone')
         });
+        if (Y.attachMyLocationButton) {
+          Y.attachMyLocationButton(host, ctrl, {
+            onLocated: function (lat, lon) {
+              if (typeof placePickerMarker === 'function') placePickerMarker(lat, lon);
+              else if (ctrl.setView) ctrl.setView(lat, lon, Math.max(15, ctrl.getZoom ? ctrl.getZoom() : 15));
+            }
+          });
+        }
       }
       ctrl.map.events.add('click', function (e) {
         var c = e.get('coords');

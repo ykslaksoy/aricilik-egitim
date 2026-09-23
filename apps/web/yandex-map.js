@@ -207,7 +207,7 @@
           center: center,
           zoom: zoom,
           type: mapType,
-          controls: options.controls || ['zoomControl', 'geolocationControl', 'typeSelector']
+          controls: options.controls || ['zoomControl', 'typeSelector']
         },
         {
           suppressMapOpenBlock: true
@@ -258,7 +258,84 @@
     });
   }
 
+  /**
+   * Reliable "my location" control — Yandex geolocationControl often no-ops on mobile/PWA.
+   * Uses navigator.geolocation, then centers map. opts.onLocated(lat, lon) optional.
+   */
+  function attachMyLocationButton(hostEl, ctrl, opts) {
+    opts = opts || {};
+    if (!hostEl || !ctrl || !ctrl.map) {
+      return { destroy: function () {} };
+    }
+    var existing = hostEl.querySelector('.ymap-my-loc');
+    if (existing) existing.remove();
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ymap-my-loc';
+    btn.setAttribute('aria-label', 'Konumuma git');
+    btn.title = 'Konumuma git';
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
+      '<path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-6C6.5 2 2 6.5 2 12c0 5.5 4.5 10 10 10s10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/>' +
+      '<circle cx="12" cy="12" r="2.2" fill="currentColor"/>' +
+      '</svg>';
+    hostEl.appendChild(btn);
+
+    function setBusy(on) {
+      btn.classList.toggle('is-busy', !!on);
+      btn.disabled = !!on;
+    }
+
+    function go() {
+      if (!navigator.geolocation) {
+        alert('Bu cihaz konum paylaşımını desteklemiyor.');
+        return;
+      }
+      setBusy(true);
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          setBusy(false);
+          var lat = pos.coords.latitude;
+          var lon = pos.coords.longitude;
+          if (!isFinite(lat) || !isFinite(lon)) {
+            alert('Konum alınamadı.');
+            return;
+          }
+          var z = ctrl.getZoom ? ctrl.getZoom() : 14;
+          if (z < 14) z = 15;
+          if (ctrl.setView) ctrl.setView(lat, lon, z);
+          else if (ctrl.setCenter) ctrl.setCenter(lat, lon, z);
+          if (typeof opts.onLocated === 'function') {
+            try { opts.onLocated(lat, lon); } catch (e) { /* ignore */ }
+          }
+        },
+        function (err) {
+          setBusy(false);
+          var code = err && err.code;
+          if (code === 1) alert('Konum izni gerekli. Tarayıcı / uygulama ayarlarından konumuna izin ver.');
+          else if (code === 2) alert('Konum alınamadı (sinyal / GPS).');
+          else if (code === 3) alert('Konum zaman aşımı — tekrar dene.');
+          else alert('Konum alınamadı.');
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      );
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      go();
+    });
+
+    return {
+      destroy: function () {
+        try { btn.remove(); } catch (e2) { /* ignore */ }
+      }
+    };
+  }
+
   function createPlacemark(ymaps, lat, lon, opts) {
+
     opts = opts || {};
     var props = {
       balloonContent: opts.title || '',
@@ -934,6 +1011,16 @@
       '-webkit-tap-highlight-color:transparent;' +
     '}' +
     '.ymap-host.is-fullscreen .ymap-geri{display:inline-flex;align-items:center;}' +
+    '.ymap-my-loc{' +
+      'position:absolute;top:10px;left:10px;z-index:2600;' +
+      'width:40px;height:40px;border-radius:10px;border:1px solid #d8d0c6;' +
+      'background:#fff;color:#333;display:flex;align-items:center;justify-content:center;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer;padding:0;' +
+      '-webkit-tap-highlight-color:transparent;' +
+    '}',
+    '.ymap-my-loc:active{transform:scale(.96);}',
+    '.ymap-my-loc.is-busy{opacity:.55;}',
+    '.ymap-host.is-fullscreen .ymap-my-loc{top:54px;}',
     '.ymap-tap-hint{' +
       'display:none;position:absolute;left:50%;bottom:10px;transform:translateX(-50%);' +
       'z-index:500;padding:5px 10px;border-radius:999px;' +
@@ -992,6 +1079,7 @@
     showKeyRequired: showKeyRequired,
     loadYmaps: loadYmaps,
     createMap: createMap,
+    attachMyLocationButton: attachMyLocationButton,
     createPlacemark: createPlacemark,
     upsertPlacemark: upsertPlacemark,
     removePlacemark: removePlacemark,

@@ -2085,6 +2085,17 @@
             if (!open) clearTipPlacemark();
           }
         });
+        if (Y.attachMyLocationButton) {
+          Y.attachMyLocationButton(host, ctrl, {
+            onLocated: function (lat, lon) {
+              if (typeof waterPickMode !== 'undefined' && waterPickMode) return;
+              if (!pickMode) startPickMode();
+              placeDetailMarker(lat, lon, pendingSearchName);
+              var saveBtn = document.getElementById('btnSaveLoc');
+              if (saveBtn) saveBtn.hidden = false;
+            }
+          });
+        }
       }
       if (hasCoords(apiary)) {
         placeDetailMarker(Number(apiary.lat), Number(apiary.lon));
