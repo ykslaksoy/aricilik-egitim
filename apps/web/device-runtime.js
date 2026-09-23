@@ -474,9 +474,9 @@
         /* idle dock: allow podium into white forecast; active notes keep clip via base CSS */
         '#muayeneHint.muayene-hint.is-idle{flex:0 0 auto!important;flex-shrink:0!important;overflow:visible!important;position:relative!important;z-index:5!important}',
         '#muayeneHint .muayene-hint-mid{overflow:visible!important;position:relative!important;z-index:6!important}',
-        /* group down: name lines up with Arılar/Sessiz text; exit→stage keep same gaps above name */
-        '.muayene-hint-mid .bee-exit{top:auto!important;bottom:calc(100% + 8px)!important;left:50%!important;transform:translate(-50%,-50%)!important;margin:0!important;z-index:31!important}',
-        '.muayene-hint-mid .bee-podium{top:auto!important;bottom:calc(100% - 18px)!important;left:50%!important;transform:translateX(-50%)!important;margin:0!important;z-index:30!important;flex-direction:column!important;gap:2px!important;pointer-events:none!important}',
+        /* center exit+podium+name as one group in mid gap between Arılar/Sessiz */
+        '.muayene-hint-mid .bee-exit{top:50%!important;bottom:auto!important;left:50%!important;transform:translate(-50%,calc(-50% - 18px))!important;margin:0!important;z-index:31!important}',
+        '.muayene-hint-mid .bee-podium{top:50%!important;bottom:auto!important;left:50%!important;transform:translate(-50%,-50%)!important;margin:0!important;z-index:30!important;flex-direction:column!important;gap:2px!important;pointer-events:none!important}',
         '.bee-podium:not(.is-hidden){display:flex!important}',
         '.bee-podium .podium-name{overflow:visible!important;z-index:30!important;max-width:160px!important}',
         '.bee-podium .podium-name.is-on{opacity:1!important;transform:none!important}'
