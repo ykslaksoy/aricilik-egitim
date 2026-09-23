@@ -256,13 +256,32 @@
     padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
     background: #f7f8fa; font-family: inherit;
   }
+  .water-source-wrap {
+    margin-top: 8px; display: grid; gap: 6px;
+  }
+  .water-radius .val {
+    font-size: 11px; font-weight: 800; color: #4a2f1a;
+    font-variant-numeric: tabular-nums; min-width: 0;
+  }
+  .water-radius .map-btn {
+    min-height: 32px; min-width: 64px; padding: 0 10px;
+    font-size: 11px; font-weight: 750;
+  }
+  .water-expand-panel {
+    display: grid; gap: 8px;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    padding: 10px 11px; border-radius: 12px;
+    background: #f3f8fc; border: 1px solid #c5d7e8;
+  }
+  .water-expand-panel[hidden] { display: none !important; }
   .water-dist-row {
     margin-top: 10px; display: grid; gap: 8px;
     font-size: 12px; font-weight: 700; color: var(--muted);
     padding: 10px 11px; border-radius: 12px;
     background: #f3f8fc; border: 1px solid #c5d7e8;
   }
-  .water-dist-row label { color: var(--muted); font-size: 11px; font-weight: 700; display: block; margin-bottom: 4px; }
+  .water-dist-row label,
+  .water-expand-panel label { color: var(--muted); font-size: 11px; font-weight: 700; display: block; margin-bottom: 4px; }
   .water-source-title {
     font-size: 13px; font-weight: 800; color: var(--text); margin: 0;
   }
@@ -271,9 +290,12 @@
     display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
   }
   .water-dist-row select,
+  .water-expand-panel select,
   .water-dist-inputs input,
   .water-dist-row input[type="text"],
-  .water-dist-row input[type="number"] {
+  .water-dist-row input[type="number"],
+  .water-expand-panel input[type="text"],
+  .water-expand-panel input[type="number"] {
     width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
     padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
     background: #fff; font-family: inherit; box-sizing: border-box;
@@ -290,8 +312,8 @@
   }
   .water-source-prompt[hidden] { display: none !important; }
   .water-suggest-banner {
-    display: grid; gap: 8px; padding: 10px 11px; border-radius: 12px;
-    background: #e8f2fb; border: 1px solid #7aafd4; margin-top: 8px;
+    display: grid; gap: 6px; padding: 8px 10px; border-radius: 10px;
+    background: #e8f2fb; border: 1px solid #7aafd4; margin: 0;
   }
   .water-suggest-banner[hidden] { display: none !important; }
   .water-suggest-banner p {
@@ -1068,6 +1090,8 @@
   }
 
   function startWaterPickMode() {
+    var expand = document.getElementById('waterExpandPanel');
+    if (expand) expand.hidden = false;
     var panel = document.getElementById('waterAddPanel');
     if (panel) panel.hidden = false;
     var showBtn = document.getElementById('btnShowWaterAdd');
@@ -1598,6 +1622,9 @@
     var pin = currentDetailPin();
     if (pin) syncWaterPlacemark(pin.lat, pin.lon);
     else renderWaterSuggestBanner(null);
+    /* Collapse expand + refresh compact summary */
+    if (opts.skipRender) return true;
+    render();
     return true;
   }
 
@@ -1634,6 +1661,8 @@
     if (opts.reanalyze && hasCoords(activeApiary)) {
       updateRadarAndAnalyze(Number(activeApiary.lat), Number(activeApiary.lon));
     }
+    if (opts.skipRender) return true;
+    render();
     return true;
   }
 
@@ -1830,6 +1859,18 @@
     );
   }
 
+  function waterSummaryText(apiary) {
+    if (!apiary || !apiary.waterSourceId || !D || !D.waterCatalogById) return 'Seçilmedi';
+    var item = D.waterCatalogById(apiary.waterSourceId);
+    if (!item) return 'Seçilmedi';
+    var label = String(item.label || '').trim() || waterTypeLabelTr(item.typeKey) || 'Su';
+    var eff = effectiveDistInfo(apiary, item);
+    if (eff && eff.metres != null && isFinite(Number(eff.metres))) {
+      return label + ' · ' + Math.round(Number(eff.metres)) + ' m';
+    }
+    return label;
+  }
+
   function waterSourceBlockHtml(apiary) {
     var overrideVal = apiary && apiary.waterDistanceM != null && apiary.waterDistanceM !== ''
       ? String(apiary.waterDistanceM)
@@ -1851,57 +1892,62 @@
     );
     /* Elle mesafe yalnız konum yoksa; konum varsa harita mesafesi kullanılır. */
     var showManualDist = !!(apiary && apiary.waterSourceId && !waterHasCoords);
+    var hasActive = !!activeWater;
+    var summary = waterSummaryText(apiary);
+    var toggleLabel = hasActive ? 'Değiştir' : 'Ekle';
     return (
-      '<div class="water-dist-row" id="waterSourceBlock">' +
+      '<div class="water-source-wrap" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
-        '<p class="water-source-title">Yerel su kaynağı <span class="water-source-sub">(kalıcı liste)</span></p>' +
-        waterCatalogListHtml(apiary) +
-        '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle / Yeni su kaynağı</button>' +
-        '<div class="water-add-panel" id="waterAddPanel" hidden>' +
-          '<label for="waterAddType">Tür</label>' +
-          '<select id="waterAddType">' + waterSourceSelectHtml('kuyu', false) + '</select>' +
-          '<label for="waterAddLabel">Ad</label>' +
-          '<input type="text" id="waterAddLabel" maxlength="80" placeholder="örn. Kuzey kuyu" />' +
-          '<label for="waterAddDist">Mesafe (m) — bu arılık</label>' +
-          '<input type="number" id="waterAddDist" inputmode="numeric" min="0" step="1" placeholder="100 / boş = harita" />' +
-          '<label for="waterAddNote">Kısa bilgi (isteğe bağlı)</label>' +
-          '<input type="text" id="waterAddNote" maxlength="120" placeholder="örn. yazın kuruyan yan dere" />' +
-          '<label for="waterAddPlace">Yer adı (isteğe bağlı)</label>' +
-          '<input type="text" id="waterAddPlace" maxlength="80" placeholder="örn. köy üstü" />' +
-          '<label>Konum (isteğe bağlı)</label>' +
-          '<input type="text" id="waterAddPaste" maxlength="240" placeholder="39.92, 41.27 veya Yandex linki" />' +
-          '<div class="water-coord-row">' +
-            '<input type="number" id="waterAddLat" step="any" placeholder="Enlem" />' +
-            '<input type="number" id="waterAddLon" step="any" placeholder="Boylam" />' +
-          '</div>' +
-          '<p class="water-auto-dist" id="waterAddAutoDist" hidden></p>' +
-          '<div class="water-add-actions">' +
-            '<button type="button" class="map-btn ghost" id="btnWaterPickMap">Haritadan seç</button>' +
-            '<button type="button" class="map-btn ghost" id="btnWaterUseMapPin">Haritadaki iğneyi su al</button>' +
-          '</div>' +
-          '<p class="water-source-hint" id="waterPickStatus" hidden>Su konumunu haritaya dokunarak seç — arılık iğnesi yerinde kalır. İptal: Vazgeç.</p>' +
-          '<p class="water-source-hint">«Haritadaki iğneyi su al» arılık pinini taşırsa konumu değiştirir; su için «Haritadan seç» tercih edin.</p>' +
-          '<div class="water-add-actions">' +
-            '<button type="button" class="map-btn" id="btnSaveWaterAdd">Kaydet</button>' +
-            '<button type="button" class="map-btn ghost" id="btnCancelWaterAdd">Vazgeç</button>' +
-          '</div>' +
+        '<div class="forage-radius water-radius">' +
+          '<label>Su</label>' +
+          '<div class="val" id="waterSummaryVal">' + escapeHtml(summary) + '</div>' +
+          '<button type="button" class="map-btn ghost" id="btnWaterToggle">' + toggleLabel + '</button>' +
         '</div>' +
-        (showManualDist
-          ? (
-              '<label for="waterDistM">Bu arılığa mesafe (m)</label>' +
-              '<div class="water-dist-inputs">' +
-                '<input type="number" id="waterDistM" inputmode="numeric" min="0" step="1" placeholder="metre" value="' +
-                  escapeHtml(overrideVal) +
-                '" />' +
-                '<button type="button" class="map-btn ghost" id="btnSaveWaterDist">Kaydet</button>' +
-              '</div>' +
-              '<p class="water-auto-dist" id="waterAutoDist" hidden></p>' +
-              '<p class="water-source-hint">Bu kaynağın harita konumu yok — mesafeyi metre olarak girin.</p>'
-            )
-          : (waterHasCoords
-              ? '<p class="water-source-hint">Mesafe harita konumundan otomatik (elle girilmez).</p>'
-              : '')) +
-        '<p class="water-source-hint">Haritadaki mavi iğne en yakın kayıtlı sudur (öneri). Hedef bal için Onayla veya listeden seçin. Liste kalıcıdır.</p>' +
+        '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
+          waterCatalogListHtml(apiary) +
+          '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle</button>' +
+          '<div class="water-add-panel" id="waterAddPanel" hidden>' +
+            '<label for="waterAddType">Tür</label>' +
+            '<select id="waterAddType">' + waterSourceSelectHtml('kuyu', false) + '</select>' +
+            '<label for="waterAddLabel">Ad</label>' +
+            '<input type="text" id="waterAddLabel" maxlength="80" placeholder="örn. Kuzey kuyu" />' +
+            '<label for="waterAddDist">Mesafe (m) — bu arılık</label>' +
+            '<input type="number" id="waterAddDist" inputmode="numeric" min="0" step="1" placeholder="100 / boş = harita" />' +
+            '<label for="waterAddNote">Kısa bilgi (isteğe bağlı)</label>' +
+            '<input type="text" id="waterAddNote" maxlength="120" placeholder="örn. yazın kuruyan yan dere" />' +
+            '<label for="waterAddPlace">Yer adı (isteğe bağlı)</label>' +
+            '<input type="text" id="waterAddPlace" maxlength="80" placeholder="örn. köy üstü" />' +
+            '<label>Konum (isteğe bağlı)</label>' +
+            '<input type="text" id="waterAddPaste" maxlength="240" placeholder="39.92, 41.27 veya Yandex linki" />' +
+            '<div class="water-coord-row">' +
+              '<input type="number" id="waterAddLat" step="any" placeholder="Enlem" />' +
+              '<input type="number" id="waterAddLon" step="any" placeholder="Boylam" />' +
+            '</div>' +
+            '<p class="water-auto-dist" id="waterAddAutoDist" hidden></p>' +
+            '<div class="water-add-actions">' +
+              '<button type="button" class="map-btn ghost" id="btnWaterPickMap">Haritadan seç</button>' +
+              '<button type="button" class="map-btn ghost" id="btnWaterUseMapPin">Haritadaki iğneyi su al</button>' +
+            '</div>' +
+            '<p class="water-source-hint" id="waterPickStatus" hidden>Su konumunu haritaya dokunarak seç — arılık iğnesi yerinde kalır. İptal: Vazgeç.</p>' +
+            '<div class="water-add-actions">' +
+              '<button type="button" class="map-btn" id="btnSaveWaterAdd">Kaydet</button>' +
+              '<button type="button" class="map-btn ghost" id="btnCancelWaterAdd">Vazgeç</button>' +
+            '</div>' +
+          '</div>' +
+          (showManualDist
+            ? (
+                '<label for="waterDistM">Bu arılığa mesafe (m)</label>' +
+                '<div class="water-dist-inputs">' +
+                  '<input type="number" id="waterDistM" inputmode="numeric" min="0" step="1" placeholder="metre" value="' +
+                    escapeHtml(overrideVal) +
+                  '" />' +
+                  '<button type="button" class="map-btn ghost" id="btnSaveWaterDist">Kaydet</button>' +
+                '</div>' +
+                '<p class="water-auto-dist" id="waterAutoDist" hidden></p>'
+              )
+            : '') +
+          '<p class="water-source-hint">Mavi iğne öneridir — Onayla veya listeden seçin.</p>' +
+        '</div>' +
       '</div>'
     );
   }
@@ -2451,7 +2497,26 @@
     var btnShowAdd = document.getElementById('btnShowWaterAdd');
     var addPanel = document.getElementById('waterAddPanel');
     var btnSaveAdd = document.getElementById('btnSaveWaterAdd');
-    
+    var expandPanel = document.getElementById('waterExpandPanel');
+    var btnWaterToggle = document.getElementById('btnWaterToggle');
+    if (btnWaterToggle && expandPanel) {
+      btnWaterToggle.addEventListener('click', function () {
+        var opening = expandPanel.hidden;
+        expandPanel.hidden = !opening;
+        if (!opening) {
+          /* collapsing — leave add panel as-is for next open */
+          return;
+        }
+        var list = catalogList();
+        if (!list.length) {
+          if (addPanel) addPanel.hidden = false;
+          if (btnShowAdd) btnShowAdd.hidden = true;
+          var lab = document.getElementById('waterAddLabel');
+          if (lab) lab.focus();
+        }
+      });
+    }
+
     var btnChangeWater = document.getElementById('btnWaterChangeSource');
     var fullListEl = document.getElementById('waterCatalogFullList');
     if (btnChangeWater && fullListEl && activeApiary) {
