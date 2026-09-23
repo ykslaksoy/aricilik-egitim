@@ -186,7 +186,7 @@
       <details id="arilik-danger-details">
         <summary>Gelişmiş · arılık silme</summary>
         <div class="danger-wrap">
-          <p class="danger-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır. Bu işlem geri alınamaz — onay ister.</p>
+          <p class="danger-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır. Bu işlem geri alınamaz — onay + yönetici anahtarı ister.</p>
           <div id="arilik-delete-list" class="stack" style="gap:.5rem"></div>
         </div>
       </details>
@@ -539,6 +539,18 @@
               'Arılık ve kovanlar silinsin. Masraflar Giderler’de kalır.\n\n«' + labelOf(apiary) + '»'
             );
             if (!ok) return;
+            var H = window.SuperAriHesap;
+            if (!H || typeof H.promptAdminPassword !== 'function') {
+              alert('Yönetici doğrulaması yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+              return;
+            }
+            var authed = H.promptAdminPassword({
+              message:
+                'Arılık silmek için yönetici anahtarı / şifre:\n(«' +
+                labelOf(apiary) +
+                '»)'
+            });
+            if (!authed) return;
             if (typeof D.removeApiary !== 'function') {
               alert('Silme desteklenmiyor. Sayfayı yenileyip tekrar deneyin.');
               return;

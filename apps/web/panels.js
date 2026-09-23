@@ -6,6 +6,9 @@
   var ACCOUNT_KEY = 'superari.account.v1';
   var PENDING_KEY = 'superari.account.pending.v1';
   var SESSION_KEY = 'superari.session.v1';
+  /* Same storage/default as apps/web/admin.js — do not invent a second secret. */
+  var ADMIN_KEY_STORAGE = 'koloni_admin_key';
+  var DEFAULT_ADMIN_KEY = 'koloni-admin';
   var HOME = {
     arici: 'ana.html',
     yonetici: 'yonetici.html',
@@ -247,6 +250,52 @@
     },
     session: function () {
       return readJson(SESSION_KEY, null);
+    },
+
+    /** Admin key used by ML admin.html (localStorage koloni_admin_key || koloni-admin). */
+    getAdminKey: function () {
+      try {
+        return localStorage.getItem(ADMIN_KEY_STORAGE) || DEFAULT_ADMIN_KEY;
+      } catch (e) {
+        return DEFAULT_ADMIN_KEY;
+      }
+    },
+    /**
+     * Prompt for admin password before destructive actions.
+     * Accepts: stored admin key (same as admin.js), OR current Yönetici account password.
+     * Does not write a new secret store.
+     */
+    promptAdminPassword: function (opts) {
+      opts = opts || {};
+      var msg =
+        opts.message ||
+        'Bu işlem için yönetici anahtarı / şifre gerekli:';
+      var entered;
+      try {
+        entered = window.prompt(msg);
+      } catch (e) {
+        return false;
+      }
+      if (entered == null) return false;
+      entered = String(entered);
+      if (!entered) {
+        try {
+          window.alert(opts.failMessage || 'Yönetici anahtarı / şifre hatalı.');
+        } catch (e2) { /* ignore */ }
+        return false;
+      }
+      var ok = entered === String(this.getAdminKey());
+      if (!ok && this.get() === 'yonetici') {
+        var acc = this.getAccount();
+        if (acc && acc.password && entered === String(acc.password)) ok = true;
+      }
+      if (!ok) {
+        try {
+          window.alert(opts.failMessage || 'Yönetici anahtarı / şifre hatalı.');
+        } catch (e3) { /* ignore */ }
+        return false;
+      }
+      return true;
     }
   };
   window.SuperAriHesap = SuperAriHesap;
