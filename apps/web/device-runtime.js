@@ -456,3 +456,87 @@
 
   mount();
 })(typeof window !== 'undefined' ? window : this);
+
+/* Ana home layout: relax weather card, shrink tiles ~5%, keep gaps (injected) */
+(function injectAnaHomeLayout() {
+  try {
+    if (typeof document === 'undefined') return;
+    var apply = function () {
+      if (!document.getElementById('weatherStrip') || !document.getElementById('grid')) return;
+      if (document.getElementById('ana-home-layout-css')) return;
+      var s = document.createElement('style');
+      s.id = 'ana-home-layout-css';
+      s.textContent = `/* ana-home-layout.css — relax existing weather card; shrink tiles ~5%; keep grid gap */
+/* Loaded only from ana.html */
+
+.weather {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 10px 12px 8px !important;
+  margin-bottom: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-evenly !important;
+  gap: 4px !important;
+}
+.weather-top {
+  gap: 6px !important;
+  min-height: 34px !important;
+  padding: 2px 0 !important;
+  flex: 0 0 auto !important;
+}
+.weather-icon { width: 28px !important; height: 28px !important; }
+.weather-loc { font-size: 15px !important; }
+.weather-temp { font-size: 30px !important; }
+.forecast {
+  margin-top: 4px !important;
+  flex: 0 0 auto !important;
+  padding: 2px 0 !important;
+}
+.day { gap: 1px !important; padding: 2px 0 !important; }
+.day-date { font-size: 13px !important; line-height: 1.1 !important; }
+.day-ico { width: 19px !important; height: 19px !important; margin: 1px 0 !important; }
+.day-temps { font-size: 12px !important; line-height: 1.15 !important; }
+.muayene-hint {
+  margin-top: 6px !important;
+  flex: 0 0 auto !important;
+}
+
+/* Buttons ~5% smaller; gap stays 5px; grid no longer eats leftover space */
+.grid {
+  flex: 0 0 auto !important;
+  grid-template-rows: repeat(4, 128px) !important;
+  gap: 5px !important;
+}
+.tile {
+  border-radius: 13px !important;
+  padding: 3px 2px !important;
+}
+.hive { width: 55px !important; height: 51px !important; }
+.hive-stack { width: 42px !important; }
+.hive-lid { width: 48px !important; }
+.hive-box { height: 17px !important; }
+.hive-icon {
+  top: 24px !important;
+  width: 25px !important;
+  height: 25px !important;
+}
+.hive-icon.hive-icon-burn {
+  width: 27px !important;
+  height: 27px !important;
+}
+.tile-label { font-size: 9.5px !important; }
+.badge {
+  padding: 1px 6px !important;
+  font-size: 8.5px !important;
+}
+`;
+      (document.head || document.documentElement).appendChild(s);
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', apply);
+    } else {
+      apply();
+    }
+  } catch (e) { /* ignore */ }
+})();
