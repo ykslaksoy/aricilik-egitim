@@ -322,6 +322,13 @@
   }
   .water-add-panel[hidden] { display: none !important; }
   .water-add-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .water-add-actions .map-btn.is-picking {
+    border-color: #3d7ab5; background: #e8f2fb; color: #1e4a6e;
+  }
+  #waterPickStatus:not([hidden]) {
+    color: #1e4a6e; font-weight: 750; background: #e8f2fb;
+    padding: 6px 8px; border-radius: 8px; border: 1px solid #7aafd4;
+  }
   .water-coord-row {
     display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
   }
@@ -603,6 +610,10 @@
   var waterSuggestDismissed = null;
   var pendingWaterSuggest = null;
   var pickMode = false;
+  var waterPickMode = false;
+  var waterDraftPlacemark = null;
+  var MAP_TAP_HINT_DEFAULT = 'Büyütmek için dokun';
+  var MAP_TAP_HINT_WATER = 'Su konumunu haritaya dokunarak seç';
   var activeApiary = null;
   var radar = null;
   var analyzeTimer = null;
@@ -901,8 +912,21 @@
   }
 
   function openNavChooser() {
-    if (!activeApiary || !hasCoords(activeApiary)) return;
-    var a = activeApiary;
+    if (!activeApiary) return;
+    var pin = currentDetailPin();
+    if (!pin && hasCoords(activeApiary)) {
+      pin = { lat: Number(activeApiary.lat), lon: Number(activeApiary.lon) };
+    }
+    if (!pin) {
+      alert('Önce haritadan bir konum seçin.');
+      return;
+    }
+    var a = {
+      lat: pin.lat,
+      lon: pin.lon,
+      place: activeApiary.place,
+      name: activeApiary.name
+    };
     var apps = navApps(a);
     openLocSheet(
       'Navigasyon uygulaması',
@@ -957,6 +981,7 @@
   }
 
   function startPickMode() {
+    if (waterPickMode) exitWaterPickMode({ keepDraft: true });
     pickMode = true;
     var btnSave = document.getElementById('btnSaveLoc');
     var btnPick = document.getElementById('btnPickLoc');
@@ -965,11 +990,123 @@
       btnSave.hidden = false;
       btnSave.textContent = 'Bu konumu kaydet';
     }
-    if (btnPick) btnPick.hidden = true;
+    /* Keep «Haritadan seç» visible even while editing. */
+    if (btnPick) btnPick.hidden = false;
     if (editTools) editTools.classList.add('is-on');
     try {
       if (detailPlacemark) detailPlacemark.options.set('draggable', true);
     } catch (eDrag) {}
+  }
+
+  function setMapTapHint(text, on) {
+    var host = document.getElementById('detailMapHost');
+    var hint = host && host.querySelector('.ymap-tap-hint');
+    if (!hint) return;
+    if (text != null) hint.textContent = text;
+    if (on != null) {
+      var fsOpen = detailMapFs && detailMapFs.isOpen && detailMapFs.isOpen();
+      hint.classList.toggle('is-on', !!on && !fsOpen);
+    }
+  }
+
+  function setWaterPickStatus(on) {
+    var el = document.getElementById('waterPickStatus');
+    if (!el) return;
+    el.hidden = !on;
+  }
+
+  function clearWaterDraftPlacemark() {
+    if (waterDraftPlacemark && Y && Y.removePlacemark && detailMapCtrl) {
+      waterDraftPlacemark = Y.removePlacemark(detailMapCtrl, waterDraftPlacemark);
+    } else {
+      waterDraftPlacemark = null;
+    }
+  }
+
+  function placeWaterDraftMarker(lat, lon) {
+    if (!detailMapCtrl || !Y || !Y.upsertPlacemark) return;
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!isFinite(la) || !isFinite(lo)) return;
+    waterDraftPlacemark = Y.upsertPlacemark(detailMapCtrl, waterDraftPlacemark, la, lo, {
+      draggable: false,
+      preset: 'islands#lightBlueStretchyIcon',
+      iconContent: 'Su',
+      title: 'Yeni su konumu (taslak)',
+      hint: 'Kaydedince katalogda kalır'
+    });
+  }
+
+  function setWaterAddCoords(lat, lon) {
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!isFinite(la) || !isFinite(lo)) return false;
+    la = Math.round(la * 1e6) / 1e6;
+    lo = Math.round(lo * 1e6) / 1e6;
+    var latIn = document.getElementById('waterAddLat');
+    var lonIn = document.getElementById('waterAddLon');
+    var pasteIn = document.getElementById('waterAddPaste');
+    if (latIn) latIn.value = String(la);
+    if (lonIn) lonIn.value = String(lo);
+    if (pasteIn) pasteIn.value = la + ', ' + lo;
+    placeWaterDraftMarker(la, lo);
+    syncAddFormComputedDist();
+    return true;
+  }
+
+  function exitWaterPickMode(opts) {
+    opts = opts || {};
+    waterPickMode = false;
+    setWaterPickStatus(false);
+    setMapTapHint(MAP_TAP_HINT_DEFAULT, true);
+    var btn = document.getElementById('btnWaterPickMap');
+    if (btn) {
+      btn.textContent = 'Haritadan seç';
+      btn.classList.remove('is-picking');
+    }
+    if (!opts.keepDraft) clearWaterDraftPlacemark();
+  }
+
+  function startWaterPickMode() {
+    var panel = document.getElementById('waterAddPanel');
+    if (panel) panel.hidden = false;
+    var showBtn = document.getElementById('btnShowWaterAdd');
+    if (showBtn) showBtn.hidden = true;
+    /* Prefer dedicated water tap — do not move apiary pin. */
+    pickMode = false;
+    try {
+      if (detailPlacemark) detailPlacemark.options.set('draggable', false);
+    } catch (e0) {}
+    waterPickMode = true;
+    setWaterPickStatus(true);
+    setMapTapHint(MAP_TAP_HINT_WATER, true);
+    var btn = document.getElementById('btnWaterPickMap');
+    if (btn) {
+      btn.textContent = 'Seçiliyor… (Vazgeç)';
+      btn.classList.add('is-picking');
+    }
+    var mapHost = document.getElementById('detailMapHost');
+    if (mapHost && mapHost.scrollIntoView) {
+      mapHost.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (detailMapFs && detailMapFs.open && (!detailMapFs.isOpen || !detailMapFs.isOpen())) {
+      detailMapFs.open();
+    }
+  }
+
+  function applyWaterPickFromMap(lat, lon) {
+    if (!setWaterAddCoords(lat, lon)) return;
+    exitWaterPickMode({ keepDraft: true });
+  }
+
+  function fillWaterAddFromMapPin() {
+    var pin = currentDetailPin();
+    if (!pin) {
+      alert('Önce haritada arılık iğnesi olsun. Su için «Haritadan seç» tercih edin — iğneyi taşımak arılık konumunu değiştirir.');
+      return;
+    }
+    setWaterAddCoords(pin.lat, pin.lon);
+    exitWaterPickMode({ keepDraft: true });
   }
 
   function openOtherMapsSheet() {
@@ -1268,6 +1405,10 @@
     if (waterPlacemark) {
       var wpt = Y.placemarkCoords(waterPlacemark);
       if (wpt) points.push(wpt);
+    }
+    if (waterDraftPlacemark) {
+      var dpt = Y.placemarkCoords(waterDraftPlacemark);
+      if (dpt) points.push(dpt);
     }
     if (points.length) Y.fitPoints(detailMapCtrl, points, { margin: 56 });
   }
@@ -1706,6 +1847,12 @@
           '</div>' +
           '<p class="water-auto-dist" id="waterAddAutoDist" hidden></p>' +
           '<div class="water-add-actions">' +
+            '<button type="button" class="map-btn ghost" id="btnWaterPickMap">Haritadan seç</button>' +
+            '<button type="button" class="map-btn ghost" id="btnWaterUseMapPin">Haritadaki iğneyi su al</button>' +
+          '</div>' +
+          '<p class="water-source-hint" id="waterPickStatus" hidden>Su konumunu haritaya dokunarak seç — arılık iğnesi yerinde kalır. İptal: Vazgeç.</p>' +
+          '<p class="water-source-hint">«Haritadaki iğneyi su al» arılık pinini taşırsa konumu değiştirir; su için «Haritadan seç» tercih edin.</p>' +
+          '<div class="water-add-actions">' +
             '<button type="button" class="map-btn" id="btnSaveWaterAdd">Kaydet</button>' +
             '<button type="button" class="map-btn ghost" id="btnCancelWaterAdd">Vazgeç</button>' +
           '</div>' +
@@ -1811,7 +1958,7 @@
           saveBtn.hidden = false;
           saveBtn.textContent = 'Bu konumu kaydet';
         }
-        if (pickBtn) pickBtn.hidden = true;
+        if (pickBtn) pickBtn.hidden = false;
         hideSearchResults();
       });
     });
@@ -1858,7 +2005,7 @@
             saveBtn.hidden = false;
             saveBtn.textContent = 'Bu konumu kaydet';
           }
-          if (pickBtn) pickBtn.hidden = true;
+          if (pickBtn) pickBtn.hidden = false;
         }
       })
       .catch(function (err) {
@@ -1901,15 +2048,18 @@
       try { detailMapFs.destroy(); } catch (e0) { /* ignore */ }
       detailMapFs = null;
     }
+    waterPickMode = false;
     if (detailMapCtrl) {
       try { detailMapCtrl.destroy(); } catch (e1) {}
       detailMapCtrl = null;
       detailPlacemark = null;
       tipPlacemark = null;
       waterPlacemark = null;
+      waterDraftPlacemark = null;
     } else {
       tipPlacemark = null;
       waterPlacemark = null;
+      waterDraftPlacemark = null;
     }
     detailMapReady = null;
 
@@ -1945,6 +2095,21 @@
         var lo = c[1];
         var wasClosed = detailMapFs && detailMapFs.isOpen && !detailMapFs.isOpen();
         if (wasClosed) detailMapFs.open();
+        /* Water pick: set catalog coords only — do not move apiary pin. */
+        if (waterPickMode) {
+          var zW = ctrl.getZoom();
+          if (zW < 14) ctrl.setView(la, lo, Math.min(16, zW + 2));
+          applyWaterPickFromMap(la, lo);
+          if (wasClosed) {
+            setTimeout(function () {
+              if (ctrl.invalidateSize) ctrl.invalidateSize();
+            }, 100);
+            setTimeout(function () {
+              if (ctrl.invalidateSize) ctrl.invalidateSize();
+            }, 320);
+          }
+          return;
+        }
         /* Any tap places/moves pin, enters pick mode, shows Save — no menu-only zoom. */
         if (!pickMode) startPickMode();
         var z = ctrl.getZoom();
@@ -1954,6 +2119,7 @@
         if (saveBtn) saveBtn.hidden = false;
         if (Y && Y.reverseGeocode) {
           Y.reverseGeocode(la, lo).then(function (geo) {
+            if (waterPickMode) return; /* ignore late geocode during water pick */
             var nm = (geo && (geo.name || geo.label)) || '';
             if (nm) pendingSearchName = nm;
             placeDetailMarker(la, lo, nm || pendingSearchName);
@@ -2253,14 +2419,35 @@
     }
     if (btnCancelAdd && addPanel && btnShowAdd) {
       btnCancelAdd.addEventListener('click', function () {
+        if (waterPickMode) {
+          /* Abort tap mode only — keep already chosen coords/draft. */
+          exitWaterPickMode({ keepDraft: true });
+          return;
+        }
+        exitWaterPickMode({ keepDraft: false });
         addPanel.hidden = true;
         btnShowAdd.hidden = false;
       });
     }
     if (btnSaveAdd) {
       btnSaveAdd.addEventListener('click', function () {
+        exitWaterPickMode({ keepDraft: false });
         saveNewWaterSource();
       });
+    }
+    var btnWaterPickMap = document.getElementById('btnWaterPickMap');
+    var btnWaterUseMapPin = document.getElementById('btnWaterUseMapPin');
+    if (btnWaterPickMap) {
+      btnWaterPickMap.addEventListener('click', function () {
+        if (waterPickMode) {
+          exitWaterPickMode({ keepDraft: true });
+          return;
+        }
+        startWaterPickMode();
+      });
+    }
+    if (btnWaterUseMapPin) {
+      btnWaterUseMapPin.addEventListener('click', fillWaterAddFromMapPin);
     }
     ['waterAddLat', 'waterAddLon', 'waterAddPaste'].forEach(function (id) {
       var el = document.getElementById(id);
