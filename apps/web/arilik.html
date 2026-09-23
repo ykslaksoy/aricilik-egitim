@@ -844,15 +844,34 @@
     );
   }
 
+  /** Open http(s) in a new tab; custom schemes (yandexnavi, geo) via location.href — window.open often fails on mobile. */
+  function openExternalUrl(url) {
+    if (!url) return;
+    var s = String(url);
+    if (/^(yandexnavi|geo|maps|comgooglemaps):/i.test(s)) {
+      window.location.href = s;
+      return;
+    }
+    var a = document.createElement('a');
+    a.href = s;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   function navApps(a) {
     var lat = Number(a.lat);
     var lon = Number(a.lon);
     var q = encodeURIComponent(mapsLabel(a));
+    /* Yol tarifi: rtext=~lat,lon (boştan hedefe). pt= sadece işaretler, rota açmaz. */
+    var yandexDir =
+      'https://yandex.com.tr/maps/?rtext=~' + lat + ',' + lon + '&rtt=auto';
     return [
       {
-        label: 'Yandex Haritalar',
-        url: D.yandexMapsUrl ? D.yandexMapsUrl(lat, lon, 15) :
-          ('https://yandex.com/maps/?pt=' + lon + ',' + lat + '&z=15&l=map')
+        label: 'Yandex Haritalar (yol tarifi)',
+        url: yandexDir
       },
       {
         label: 'Yandex Navigasyon',
@@ -899,7 +918,7 @@
         var app = apps[idx];
         if (!app) return;
         closeLocSheet();
-        window.open(app.url, '_blank', 'noopener');
+        openExternalUrl(app.url);
       });
     });
   }
