@@ -468,12 +468,15 @@
       s.id = 'ana-safe-layout-css';
       s.textContent = [
         '#grid{flex:0 0 auto!important;grid-template-rows:repeat(4,122px)!important;gap:5px!important}',
-        '#weatherStrip{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important}',
+        '#weatherStrip{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:visible!important}',
         '#weatherStrip .forecast{flex:1 1 auto!important;min-height:0!important}',
         '#weatherStrip .weather-top{flex:0 0 auto!important}',
-        '#muayeneHint{flex:0 0 auto!important;flex-shrink:0!important;overflow:visible!important}',
-        '#muayeneHint .muayene-hint-mid,.bee-podium,.bee-podium .podium-name{overflow:visible!important;z-index:5!important}',
-        '#weatherStrip{overflow:visible!important}'
+        /* idle dock: allow podium into white forecast; active notes keep clip via base CSS */
+        '#muayeneHint.muayene-hint.is-idle{flex:0 0 auto!important;flex-shrink:0!important;overflow:visible!important}',
+        '#muayeneHint .muayene-hint-mid{overflow:visible!important}',
+        /* podium+name sit ABOVE dock mid, inside white weather card */
+        '.muayene-hint-mid .bee-podium{top:auto!important;bottom:calc(100% + 4px)!important;left:50%!important;transform:translateX(-50%)!important;margin:0!important;z-index:8!important;flex-direction:column-reverse!important;gap:2px!important}',
+        '.bee-podium .podium-name{overflow:visible!important;z-index:8!important}'
       ].join('');
       (document.head || document.documentElement).appendChild(s);
     };
