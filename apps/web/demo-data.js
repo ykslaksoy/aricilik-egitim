@@ -21,12 +21,12 @@
 
   /* Named demo hives used by alerts / tasks — included inside full per-apiary fleets. */
   var FEATURED_HIVES = [
-    { id: 101, name: 'Kovan 101', apiaryId: 'a1', weightKg: 38.2, deltaKg: 1.2, health: 'İyi', healthScore: 88, colonyScore: 82, swarmRisk: 'Düşük' },
-    { id: 102, name: 'Kovan 102', apiaryId: 'a1', weightKg: 35.6, deltaKg: 0.4, health: 'İyi', healthScore: 84, colonyScore: 79, swarmRisk: 'Düşük' },
-    { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta' },
-    { id: 204, name: 'Kovan 204', apiaryId: 'a2', weightKg: 33.1, deltaKg: -0.3, health: 'İyi', healthScore: 90, colonyScore: 86, swarmRisk: 'Düşük' },
-    { id: 211, name: 'Kovan 211', apiaryId: 'a2', weightKg: 29.4, deltaKg: 0.1, health: 'Kritik', healthScore: 41, colonyScore: 48, swarmRisk: 'Yüksek' },
-    { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük' }
+    { id: 101, name: 'Kovan 101', apiaryId: 'a1', weightKg: 38.2, deltaKg: 1.2, health: 'İyi', healthScore: 88, colonyScore: 82, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Anadolu' },
+    { id: 102, name: 'Kovan 102', apiaryId: 'a1', weightKg: 35.6, deltaKg: 0.4, health: 'İyi', healthScore: 84, colonyScore: 79, swarmRisk: 'Düşük', strength: 'orta', breed: 'Karniyol' },
+    { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta', strength: 'orta', breed: 'İtalyan' },
+    { id: 204, name: 'Kovan 204', apiaryId: 'a2', weightKg: 33.1, deltaKg: -0.3, health: 'İyi', healthScore: 90, colonyScore: 86, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas' },
+    { id: 211, name: 'Kovan 211', apiaryId: 'a2', weightKg: 29.4, deltaKg: 0.1, health: 'Kritik', healthScore: 41, colonyScore: 48, swarmRisk: 'Yüksek', strength: 'zayıf', breed: 'Karniyol' },
+    { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas × Karniyol' }
   ];
 
   var alerts = [
@@ -60,8 +60,11 @@
     });
   }
 
+  var BREEDS = ['Anadolu', 'Kafkas', 'Karniyol', 'İtalyan', 'Kafkas × Karniyol', 'Karadeniz melez'];
+  var STRENGTHS = ['güçlü', 'orta', 'zayıf', 'orta', 'güçlü', 'orta'];
+
   function normalizeHive(h) {
-    return {
+    var out = {
       id: Number(h.id),
       name: String(h.name || ('Kovan ' + h.id)),
       apiaryId: String(h.apiaryId || ''),
@@ -72,6 +75,11 @@
       colonyScore: Math.max(0, Math.min(100, Number(h.colonyScore) || 75)),
       swarmRisk: String(h.swarmRisk || 'Düşük')
     };
+    /* Optional colony fields for yield / swap heuristics (graceful if absent). */
+    if (h.strength != null && String(h.strength).trim()) out.strength = String(h.strength).trim();
+    if (h.breed != null && String(h.breed).trim()) out.breed = String(h.breed).trim();
+    else if (h.irk != null && String(h.irk).trim()) out.breed = String(h.irk).trim();
+    return out;
   }
 
   function synthHive(apiaryId, id, i) {
@@ -87,7 +95,9 @@
       health: health,
       healthScore: score,
       colonyScore: Math.max(40, score - 6 + (i % 5)),
-      swarmRisk: SWARMS[i % SWARMS.length]
+      swarmRisk: SWARMS[i % SWARMS.length],
+      strength: STRENGTHS[i % STRENGTHS.length],
+      breed: BREEDS[i % BREEDS.length]
     });
   }
 

@@ -415,11 +415,14 @@
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
+<script src="rapor-store.js"></script>
 <script src="forage-analysis.js"></script>
+<script src="forage-yield-estimate.js"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
   var F = window.SuperAriForage;
+  var FY = window.SuperAriForageYield;
   if (!D) return;
 
   var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Kayaköy bölgesi */
@@ -517,6 +520,23 @@
     });
   }
 
+  function appendYieldEstimate(host, analysis) {
+    if (!FY || !host || !analysis) return;
+    try {
+      var hc = form && form.elements.hiveCount ? Number(form.elements.hiveCount.value) : 0;
+      var built = FY.buildFromAnalysis(analysis, {
+        apiary: null,
+        apiaryId: '',
+        n: isFinite(hc) ? hc : 0,
+        hives: [],
+        forageOpts: forageOptsFromForm(),
+        Hprev: null,
+        escapeHtml: escapeHtml
+      });
+      if (built && built.html) host.insertAdjacentHTML('beforeend', built.html);
+    } catch (e) { /* yield block optional */ }
+  }
+
   function scheduleAnalyze(lat, lon) {
     if (!F || !forageHost) return;
     if (analyzeTimer) clearTimeout(analyzeTimer);
@@ -527,6 +547,7 @@
         .then(function (a) {
           forageHost.innerHTML = F.renderPanelHtml(a, escapeHtml);
           bindForageTipClicks(forageHost);
+          appendYieldEstimate(forageHost, a);
         })
         .catch(function () {
           forageHost.innerHTML =

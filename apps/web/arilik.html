@@ -502,13 +502,16 @@
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
 <script src="demo-data.js"></script>
+<script src="rapor-store.js"></script>
 <script src="forage-analysis.js"></script>
+<script src="forage-yield-estimate.js"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
   var G = window.SuperAriGider;
   var F = window.SuperAriForage;
+  var FY = window.SuperAriForageYield;
   if (!D) return;
 
   var DEFAULT_CENTER = [39.92, 41.27];
@@ -1019,6 +1022,18 @@
     });
   }
 
+  function appendYieldEstimate(host, analysis, apiary) {
+    if (!FY || !host || !analysis) return;
+    try {
+      var built = FY.buildFromAnalysis(analysis, {
+        apiary: apiary || activeApiary,
+        forageOpts: forageOptsFor(apiary || activeApiary),
+        escapeHtml: escapeHtml
+      });
+      if (built && built.html) host.insertAdjacentHTML('beforeend', built.html);
+    } catch (e) { /* yield block optional */ }
+  }
+
   function updateRadarAndAnalyze(lat, lon) {
     if (isFinite(lat) && isFinite(lon) && !forageManual) {
       applyAutoForage(lat, lon, activeApiary);
@@ -1036,6 +1051,7 @@
         .then(function (a) {
           host.innerHTML = F.renderPanelHtml(a, escapeHtml);
           bindForageTipClicks(host);
+          appendYieldEstimate(host, a, activeApiary);
           syncTipFromAnalysis(a, lat, lon);
         })
         .catch(function () {
