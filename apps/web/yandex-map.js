@@ -1017,10 +1017,10 @@
       'background:#fff;color:#333;display:flex;align-items:center;justify-content:center;' +
       'box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer;padding:0;' +
       '-webkit-tap-highlight-color:transparent;' +
-    '}',
-    '.ymap-my-loc:active{transform:scale(.96);}',
-    '.ymap-my-loc.is-busy{opacity:.55;}',
-    '.ymap-host.is-fullscreen .ymap-my-loc{top:54px;}',
+    '}' +
+    '.ymap-my-loc:active{transform:scale(.96);}' +
+    '.ymap-my-loc.is-busy{opacity:.55;}' +
+    '.ymap-host.is-fullscreen .ymap-my-loc{top:54px;}' +
     '.ymap-tap-hint{' +
       'display:none;position:absolute;left:50%;bottom:10px;transform:translateX(-50%);' +
       'z-index:500;padding:5px 10px;border-radius:999px;' +
