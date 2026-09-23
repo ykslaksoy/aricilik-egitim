@@ -471,7 +471,9 @@
         '#weatherStrip{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important}',
         '#weatherStrip .forecast{flex:1 1 auto!important;min-height:0!important}',
         '#weatherStrip .weather-top{flex:0 0 auto!important}',
-        '#muayeneHint{flex:0 0 auto!important;flex-shrink:0!important}'
+        '#muayeneHint{flex:0 0 auto!important;flex-shrink:0!important;overflow:visible!important}',
+        '#muayeneHint .muayene-hint-mid,.bee-podium,.bee-podium .podium-name{overflow:visible!important;z-index:5!important}',
+        '#weatherStrip{overflow:visible!important}'
       ].join('');
       (document.head || document.documentElement).appendChild(s);
     };
