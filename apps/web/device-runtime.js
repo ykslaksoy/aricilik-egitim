@@ -172,6 +172,13 @@
   function setMode(mode) {
     var next = mode === 'live' ? 'live' : 'demo';
     try { localStorage.setItem(MODE_KEY, next); } catch (e) { /* ignore */ }
+    /* Same-tab Ana refresh: storage events don't fire here; ping + BroadcastChannel do */
+    try { localStorage.setItem(MODE_KEY + '.ping', String(Date.now()) + ':' + next); } catch (ePing) { /* ignore */ }
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        new BroadcastChannel('superari-workMode').postMessage({ mode: next });
+      }
+    } catch (eBc) { /* ignore */ }
     try {
       if (typeof document !== 'undefined') {
         document.documentElement.setAttribute('data-work-mode', next);
@@ -521,5 +528,125 @@
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
+  } catch (e) { /* ignore */ }
+})();
+
+
+/* Demo/mobile: ensure bee buzz plays after a user gesture when bees+sound are on */
+(function anaDemoBuzzAssist() {
+  try {
+    if (typeof document === 'undefined') return;
+    var go = function () {
+      if (!document.getElementById('beeToggle') || !document.getElementById('beeSoundToggle')) return;
+      if (window.__superariBuzzAssist) return;
+      window.__superariBuzzAssist = true;
+      var audio = null;
+      var unlocked = false;
+      function ensure() {
+        if (!audio) {
+          audio = new Audio('assets/bees/italyan-buzz.wav');
+          audio.loop = true;
+          audio.preload = 'auto';
+          audio.volume = 0.34;
+        }
+        return audio;
+      }
+      function beesOn() {
+        var b = document.getElementById('beeToggle');
+        return !!(b && b.getAttribute('aria-pressed') === 'true');
+      }
+      function soundOn() {
+        var s = document.getElementById('beeSoundToggle');
+        return !!(s && s.getAttribute('aria-pressed') === 'true');
+      }
+      function sync() {
+        var a = ensure();
+        if (unlocked && beesOn() && soundOn()) {
+          var p = a.play();
+          if (p && p.catch) p.catch(function () {});
+        } else {
+          try { a.pause(); } catch (e) {}
+        }
+      }
+      function unlock() {
+        unlocked = true;
+        var a = ensure();
+        var p = a.play();
+        if (p && p.then) {
+          p.then(function () { if (!(beesOn() && soundOn())) { try { a.pause(); } catch (e) {} } }).catch(function () {});
+        }
+        sync();
+      }
+      document.addEventListener('pointerdown', unlock, true);
+      document.addEventListener('touchstart', unlock, true);
+      var bee = document.getElementById('beeToggle');
+      var snd = document.getElementById('beeSoundToggle');
+      if (bee) bee.addEventListener('click', function () { setTimeout(sync, 30); });
+      if (snd) snd.addEventListener('click', function () { setTimeout(sync, 30); });
+      setInterval(sync, 1200);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+    else go();
+  } catch (e) { /* ignore */ }
+})();
+
+
+/* Ana: Demo/Canlı seçince üst yazı (Demo Modu / Konumu sabitle) hemen güncellensin */
+(function anaModeLockLabelSync() {
+  try {
+    if (typeof document === 'undefined') return;
+    var LOCK_KEY = 'superari.ana.arilikLock';
+    function lockedFromLs() {
+      try {
+        var raw = localStorage.getItem(LOCK_KEY);
+        var p = raw ? JSON.parse(raw) : null;
+        return !!(p && p.locked);
+      } catch (e) { return false; }
+    }
+    function paint() {
+      var lockBtn = document.getElementById('arilikLockBtn');
+      if (!lockBtn) return;
+      var demo = false;
+      try {
+        demo = !!(window.SuperAriDevices && typeof SuperAriDevices.isDemo === 'function' && SuperAriDevices.isDemo());
+      } catch (e) { demo = false; }
+      if (demo) {
+        lockBtn.textContent = 'Demo Modu';
+        lockBtn.setAttribute('aria-pressed', lockedFromLs() ? 'true' : 'false');
+        lockBtn.setAttribute('aria-label', 'Demo Modu — Ayarlar’dan Canlı’ya geçilebilir');
+        lockBtn.setAttribute('title', 'Demo Modu — örnek veri; Ayarlar → Çalışma modu');
+        return;
+      }
+      var locked = lockedFromLs() || lockBtn.getAttribute('aria-pressed') === 'true';
+      lockBtn.textContent = locked ? 'Sabitlendi' : 'Konumu sabitle';
+      lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+      lockBtn.setAttribute('aria-label', locked ? 'Sabitlemeyi kaldır — otomatik döngüyü sürdür' : 'Konumu sabitle — otomatik döngüyü durdur');
+      lockBtn.setAttribute('title', locked
+        ? 'Sabitlendi — dokununca 10sn döngü devam eder (oklar yine çalışır)'
+        : 'Konumu sabitle — sadece otomatik döngüyü durdurur');
+    }
+    function go() {
+      if (!document.getElementById('arilikLockBtn')) return;
+      if (window.__superariModeLabelSync) return;
+      window.__superariModeLabelSync = true;
+      paint();
+      window.addEventListener('superari:workMode', paint);
+      window.addEventListener('pageshow', paint);
+      window.addEventListener('focus', paint);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') paint();
+      });
+      window.addEventListener('storage', function (e) {
+        if (!e) return;
+        if (e.key === 'superari.workMode' || e.key === 'superari.workMode.ping' || e.key === LOCK_KEY) paint();
+      });
+      try {
+        var bc = new BroadcastChannel('superari-workMode');
+        bc.onmessage = function () { paint(); };
+      } catch (e2) { /* ignore */ }
+      setInterval(paint, 700);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+    else go();
   } catch (e) { /* ignore */ }
 })();
