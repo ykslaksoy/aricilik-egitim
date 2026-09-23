@@ -1772,6 +1772,31 @@
     render();
   }
 
+  function waterCatalogRowHtml(apiary, item, isOn) {
+    var typeLab = waterTypeLabelTr(item.typeKey);
+    var eff = effectiveDistInfo(apiary, item);
+    var distTxt = eff.metres != null
+      ? (eff.metres + ' m' + (eff.source === 'haversine' ? ' · harita' : (eff.source === 'manual' && isOn ? ' · elle' : '')))
+      : (item.lat != null ? 'mesafe hesaplanacak' : 'mesafe yok');
+    var placeBit = item.place ? (' · ' + item.place) : '';
+    var coordBit = (item.lat != null && item.lon != null)
+      ? (' · ' + Number(item.lat).toFixed(4) + ', ' + Number(item.lon).toFixed(4))
+      : '';
+    return (
+      '<li class="' + (isOn ? 'is-active' : '') + '" data-id="' + escapeHtml(item.id) + '">' +
+        '<input type="radio" name="waterSourcePick" value="' + escapeHtml(item.id) + '"' +
+          (isOn ? ' checked' : '') + ' aria-label="' + escapeHtml(item.label) + '" />' +
+        '<div>' +
+          '<div class="water-cat-name">' + escapeHtml(item.label) +
+            ' <span class="water-source-sub">(' + escapeHtml(typeLab) + ')</span></div>' +
+          '<div class="water-cat-meta">' + escapeHtml(distTxt + placeBit + coordBit) + '</div>' +
+        '</div>' +
+        '<button type="button" class="water-cat-del" data-del-water="' + escapeHtml(item.id) + '" title="Listeden sil">Sil</button>' +
+      '</li>'
+    );
+  }
+
+  /** Compact: only active source. Full list behind «Değiştir». */
   function waterCatalogListHtml(apiary) {
     var list = catalogList();
     var activeId = apiary && apiary.waterSourceId ? String(apiary.waterSourceId) : '';
@@ -1782,32 +1807,25 @@
         '</p>'
       );
     }
-    var rows = list.map(function (item) {
-      var isOn = item.id === activeId;
-      var typeLab = waterTypeLabelTr(item.typeKey);
-      var eff = effectiveDistInfo(apiary, item);
-      var distTxt = eff.metres != null
-        ? (eff.metres + ' m' + (eff.source === 'haversine' ? ' · harita' : (eff.source === 'manual' && isOn ? ' · elle' : '')))
-        : (item.lat != null ? 'mesafe hesaplanacak' : 'mesafe yok');
-      var placeBit = item.place ? (' · ' + item.place) : '';
-      var coordBit = (item.lat != null && item.lon != null)
-        ? (' · ' + Number(item.lat).toFixed(4) + ', ' + Number(item.lon).toFixed(4))
-        : '';
+    var active = null;
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === activeId) { active = list[i]; break; }
+    }
+    if (active) {
       return (
-        '<li class="' + (isOn ? 'is-active' : '') + '" data-id="' + escapeHtml(item.id) + '">' +
-          '<input type="radio" name="waterSourcePick" value="' + escapeHtml(item.id) + '"' +
-            (isOn ? ' checked' : '') + ' aria-label="' + escapeHtml(item.label) + '" />' +
-          '<div>' +
-            '<div class="water-cat-name">' + escapeHtml(item.label) +
-              ' <span class="water-source-sub">(' + escapeHtml(typeLab) + ')</span></div>' +
-            '<div class="water-cat-meta">' + escapeHtml(distTxt + placeBit + coordBit) + '</div>' +
-          '</div>' +
-          '<button type="button" class="water-cat-del" data-del-water="' + escapeHtml(item.id) + '" title="Listeden sil">Sil</button>' +
-        '</li>'
+        '<p class="water-source-title" style="font-size:12px;margin:0">Seçili su kaynağı</p>' +
+        '<ul class="water-catalog-list" id="waterCatalogList">' +
+          waterCatalogRowHtml(apiary, active, true) +
+        '</ul>' +
+        '<button type="button" class="map-btn ghost" id="btnWaterChangeSource">Değiştir / listeden seç</button>' +
+        '<ul class="water-catalog-list water-catalog-full" id="waterCatalogFullList" hidden></ul>'
       );
+    }
+    var rows = list.map(function (item) {
+      return waterCatalogRowHtml(apiary, item, false);
     }).join('');
     return (
-      '<p class="water-source-title" style="font-size:12px;margin:0">Kayıtlı su kaynakları</p>' +
+      '<p class="water-source-title" style="font-size:12px;margin:0">Kaynak seçin</p>' +
       '<ul class="water-catalog-list" id="waterCatalogList">' + rows + '</ul>'
     );
   }
@@ -1822,6 +1840,17 @@
         overrideVal = ''; /* show empty so auto applies; placeholder via hint */
       }
     }
+    var activeWater = null;
+    if (apiary && apiary.waterSourceId && D && D.waterCatalogById) {
+      activeWater = D.waterCatalogById(apiary.waterSourceId);
+    }
+    var waterHasCoords = !!(
+      activeWater &&
+      isFinite(Number(activeWater.lat)) &&
+      isFinite(Number(activeWater.lon))
+    );
+    /* Elle mesafe yalnız konum yoksa; konum varsa harita mesafesi kullanılır. */
+    var showManualDist = !!(apiary && apiary.waterSourceId && !waterHasCoords);
     return (
       '<div class="water-dist-row" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
@@ -1857,19 +1886,22 @@
             '<button type="button" class="map-btn ghost" id="btnCancelWaterAdd">Vazgeç</button>' +
           '</div>' +
         '</div>' +
-        (apiary && apiary.waterSourceId
+        (showManualDist
           ? (
               '<label for="waterDistM">Bu arılığa mesafe (m)</label>' +
               '<div class="water-dist-inputs">' +
-                '<input type="number" id="waterDistM" inputmode="numeric" min="0" step="1" placeholder="boş = harita" value="' +
+                '<input type="number" id="waterDistM" inputmode="numeric" min="0" step="1" placeholder="metre" value="' +
                   escapeHtml(overrideVal) +
                 '" />' +
                 '<button type="button" class="map-btn ghost" id="btnSaveWaterDist">Kaydet</button>' +
               '</div>' +
-              '<p class="water-auto-dist" id="waterAutoDist" hidden></p>'
+              '<p class="water-auto-dist" id="waterAutoDist" hidden></p>' +
+              '<p class="water-source-hint">Bu kaynağın harita konumu yok — mesafeyi metre olarak girin.</p>'
             )
-          : '') +
-        '<p class="water-source-hint">Haritadaki mavi iğne en yakın kayıtlı sudur (öneri). Hedef bal için Onayla veya listeden seçin. Liste tüm arılıklar için kalıcıdır; konum varsa mesafe otomatik hesaplanır.</p>' +
+          : (waterHasCoords
+              ? '<p class="water-source-hint">Mesafe harita konumundan otomatik (elle girilmez).</p>'
+              : '')) +
+        '<p class="water-source-hint">Haritadaki mavi iğne en yakın kayıtlı sudur (öneri). Hedef bal için Onayla veya listeden seçin. Liste kalıcıdır.</p>' +
       '</div>'
     );
   }
@@ -2419,6 +2451,49 @@
     var btnShowAdd = document.getElementById('btnShowWaterAdd');
     var addPanel = document.getElementById('waterAddPanel');
     var btnSaveAdd = document.getElementById('btnSaveWaterAdd');
+    
+    var btnChangeWater = document.getElementById('btnWaterChangeSource');
+    var fullListEl = document.getElementById('waterCatalogFullList');
+    if (btnChangeWater && fullListEl && activeApiary) {
+      btnChangeWater.addEventListener('click', function () {
+        var open = fullListEl.hidden;
+        if (open) {
+          var all = catalogList();
+          var activeId = String(activeApiary.waterSourceId || '');
+          fullListEl.innerHTML = all.map(function (item) {
+            return waterCatalogRowHtml(activeApiary, item, String(item.id) === activeId);
+          }).join('');
+          fullListEl.hidden = false;
+          btnChangeWater.textContent = 'Listeyi gizle';
+          fullListEl.querySelectorAll('input[name="waterSourcePick"]').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+              if (!inp.checked) return;
+              selectWaterSource(inp.value);
+            });
+          });
+          fullListEl.querySelectorAll('[data-del-water]').forEach(function (btn) {
+            btn.addEventListener('click', function (ev) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              var id = btn.getAttribute('data-del-water');
+              if (!id || !D.removeWaterCatalogItem) return;
+              if (!confirm('Bu su kaynağı kalıcı listeden silinsin mi?')) return;
+              D.removeWaterCatalogItem(id);
+              if (activeApiary && String(activeApiary.waterSourceId) === String(id)) {
+                D.updateApiary(activeApiary.id, { waterSourceId: null, waterSourceConfirmedAt: null });
+                refreshActiveApiary();
+              }
+              render();
+            });
+          });
+        } else {
+          fullListEl.hidden = true;
+          fullListEl.innerHTML = '';
+          btnChangeWater.textContent = 'Değiştir / listeden seç';
+        }
+      });
+    }
+
     var btnCancelAdd = document.getElementById('btnCancelWaterAdd');
     if (btnShowAdd && addPanel) {
       btnShowAdd.addEventListener('click', function () {
