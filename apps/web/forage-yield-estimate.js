@@ -17,8 +17,8 @@
  *   priorPerHive = Hprev / max(n,1)
  *   locationFactor = clamp(0.7 + (S/100)*0.5, 0.75, 1.25)
  *   colonyAvg = avg(strength*health*breed) or 1.0
- *   waterFactor(waterDistanceM) — distance to nearest water (metres):
- *     null/missing → 1.0 (do not invent)
+ *   waterFactor(waterDistanceM) — user-reported distance to local water (metres):
+ *     null/missing → 1.0 (do not invent); type/note are display-only
  *     ≤150 → 1.05; ≤500 → 1.02; ≤1000 → 1.0;
  *     ≤2000 → 0.95; ≤3000 → 0.88; >3000 → 0.82
  *   factorProduct = clamp(locationFactor * colonyAvg * waterFactor, 0.5, 1.6)
@@ -233,6 +233,32 @@
     return 0.82;
   }
 
+  var WATER_TYPE_LABELS_TR = {
+    kuyu: 'kuyu',
+    dere: 'dere',
+    oluk: 'oluk',
+    golet: 'gölet',
+    cesme: 'çeşme',
+    mevsimlik_dere: 'mevsimlik dere',
+    diger: 'diğer'
+  };
+
+  function waterTypeLabel(typeKey) {
+    if (typeKey == null || typeKey === '') return null;
+    var k = String(typeKey).trim().toLowerCase();
+    return WATER_TYPE_LABELS_TR[k] || k;
+  }
+
+  function truncateNote(note, maxLen) {
+    if (note == null || note === '') return null;
+    var s = String(note).trim();
+    if (!s) return null;
+    maxLen = maxLen || 40;
+    if (s.length <= maxLen) return s;
+    return s.slice(0, Math.max(1, maxLen - 1)) + '…';
+  }
+
+
   /**
    * @param {object} opts
    * @param {number} opts.S - suitability 0–100
@@ -244,6 +270,8 @@
    * @param {number} [opts.analysisRadiusKm]
    * @param {boolean} [opts.usedRecommendedRadius]
    * @param {number|null} [opts.waterDistanceM] - metres to nearest water (null → factor 1.0)
+   * @param {string|null} [opts.waterSourceType] - user-reported type key (display)
+   * @param {string|null} [opts.waterSourceNote] - optional short note (display)
    */
   function estimateYield(opts) {
     opts = opts || {};
@@ -340,6 +368,14 @@
       locationFactor: locationFactor != null ? round1(locationFactor) : null,
       waterDistanceM: wDist != null ? round0(wDist) : null,
       waterFactor: Math.round(wF * 100) / 100,
+      waterSourceType:
+        opts.waterSourceType != null && String(opts.waterSourceType).trim()
+          ? String(opts.waterSourceType).trim().toLowerCase()
+          : null,
+      waterSourceNote:
+        opts.waterSourceNote != null && String(opts.waterSourceNote).trim()
+          ? String(opts.waterSourceNote).trim().slice(0, 120)
+          : null,
       siteClass: siteClass,
       usedRecommendedRadius: opts.usedRecommendedRadius !== false,
       recommendedRadiusKm:
@@ -564,16 +600,25 @@
         : '') +
       '</p>' +
       (function () {
+        var typeLab = waterTypeLabel(estimate.waterSourceType);
+        var noteShort = truncateNote(estimate.waterSourceNote, 40);
+        var parts = [];
+        if (typeLab) parts.push(typeLab);
         if (estimate.waterDistanceM != null) {
-          return (
-            '<p class="fy-water">Su mesafesi: ' +
-            escapeHtml(String(estimate.waterDistanceM)) +
-            ' m · çarpan ' +
-            escapeHtml(String(estimate.waterFactor)) +
-            '</p>'
-          );
+          parts.push(String(estimate.waterDistanceM) + ' m');
+        } else if (typeLab) {
+          parts.push('mesafe girin');
         }
-        return '<p class="fy-water">Su mesafesi girilmedi — çarpan 1.0</p>';
+        if (noteShort) parts.push(noteShort);
+        parts.push('çarpan ' + String(estimate.waterFactor));
+        if (estimate.waterDistanceM == null && !typeLab) {
+          return '<p class="fy-water">Su mesafesi girilmedi — çarpan 1.0 (arıcı girişi)</p>';
+        }
+        return (
+          '<p class="fy-water">Su: ' +
+          escapeHtml(parts.join(' · ')) +
+          '</p>'
+        );
       })() +
       (function () {
         if (!tip || tip.yieldPct == null || tip.yieldPct < 8) return '';
@@ -723,6 +768,20 @@
           ? apiary.waterDistanceM
           : null;
 
+    var waterSourceType =
+      ctx.waterSourceType !== undefined
+        ? ctx.waterSourceType
+        : apiary && apiary.waterSourceType != null
+          ? apiary.waterSourceType
+          : null;
+
+    var waterSourceNote =
+      ctx.waterSourceNote !== undefined
+        ? ctx.waterSourceNote
+        : apiary && apiary.waterSourceNote != null
+          ? apiary.waterSourceNote
+          : null;
+
     var estimate = estimateYield({
       S: analysis.score,
       Hprev: Hprev,
@@ -732,7 +791,9 @@
       recommendedRadiusKm: recKm,
       analysisRadiusKm: analysis.radiusKm,
       usedRecommendedRadius: true,
-      waterDistanceM: waterDistanceM
+      waterDistanceM: waterDistanceM,
+      waterSourceType: waterSourceType,
+      waterSourceNote: waterSourceNote
     });
 
     var allHives =

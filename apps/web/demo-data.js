@@ -69,9 +69,54 @@
     return Math.round(n);
   }
 
+  /** User-reported local water source (not satellite-detected). ASCII keys. */
+  var WATER_SOURCE_TYPE_KEYS = {
+    kuyu: true,
+    dere: true,
+    oluk: true,
+    golet: true,
+    cesme: true,
+    mevsimlik_dere: true,
+    diger: true
+  };
+
+  var WATER_SOURCE_TYPE_LABELS_TR = {
+    kuyu: 'Kuyu',
+    dere: 'Dere',
+    oluk: 'Oluk-kap',
+    golet: 'Gölet',
+    cesme: 'Çeşme',
+    mevsimlik_dere: 'Mevsimlik dere',
+    diger: 'Diğer'
+  };
+
+  function parseWaterSourceType(v) {
+    if (v == null || v === '') return null;
+    var k = String(v).trim().toLowerCase()
+      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+      .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+      .replace(/\s+/g, '_');
+    if (k === 'go_let') k = 'golet';
+    if (!WATER_SOURCE_TYPE_KEYS[k]) return null;
+    return k;
+  }
+
+  function parseWaterSourceNote(v) {
+    if (v == null || v === '') return null;
+    var s = String(v).trim();
+    if (!s) return null;
+    if (s.length > 120) s = s.slice(0, 120);
+    return s;
+  }
+
+  /** Copy waterDistanceM + optional type/note from src onto dest (load/save path). */
   function applyWaterDistance(dest, src) {
     var w = parseWaterDistanceM(src && src.waterDistanceM);
     if (w != null) dest.waterDistanceM = w;
+    var t = parseWaterSourceType(src && src.waterSourceType);
+    if (t != null) dest.waterSourceType = t;
+    var n = parseWaterSourceNote(src && src.waterSourceNote);
+    if (n != null) dest.waterSourceNote = n;
     return dest;
   }
 
@@ -665,6 +710,16 @@
           if (wd != null) a.waterDistanceM = wd;
           else delete a.waterDistanceM;
         }
+        if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceType')) {
+          var wt = parseWaterSourceType(patch.waterSourceType);
+          if (wt != null) a.waterSourceType = wt;
+          else delete a.waterSourceType;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceNote')) {
+          var wn = parseWaterSourceNote(patch.waterSourceNote);
+          if (wn != null) a.waterSourceNote = wn;
+          else delete a.waterSourceNote;
+        }
       }
       list[i] = a;
       found = a;
@@ -849,6 +904,9 @@
       addApiary: addApiary,
       updateApiary: updateApiary,
       removeApiary: removeApiary,
+      WATER_SOURCE_TYPE_KEYS: WATER_SOURCE_TYPE_KEYS,
+      WATER_SOURCE_TYPE_LABELS_TR: WATER_SOURCE_TYPE_LABELS_TR,
+      parseWaterSourceType: parseWaterSourceType,
       yandexMapsUrl: yandexMapsUrl,
       yandexSearchUrl: yandexSearchUrl,
       geocodeSearch: geocodeSearch,
