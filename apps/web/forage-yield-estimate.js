@@ -17,11 +17,18 @@
  *   priorPerHive = Hprev / max(n,1)
  *   locationFactor = clamp(0.7 + (S/100)*0.5, 0.75, 1.25)
  *   colonyAvg = avg(strength*health*breed) or 1.0
- *   blendedMid = W_HARVEST*(priorPerHive*locationFactor*colonyAvg)
- *              + (1-W_HARVEST)*(scoreMid*colonyAvg)
+ *   waterFactor(waterDistanceM) — distance to nearest water (metres):
+ *     null/missing → 1.0 (do not invent)
+ *     ≤150 → 1.05; ≤500 → 1.02; ≤1000 → 1.0;
+ *     ≤2000 → 0.95; ≤3000 → 0.88; >3000 → 0.82
+ *   factorProduct = clamp(locationFactor * colonyAvg * waterFactor, 0.5, 1.6)
+ *   scoreProduct  = clamp(colonyAvg * waterFactor, 0.5, 1.5)
+ *   blendedMid = W_HARVEST*(priorPerHive*factorProduct)
+ *              + (1-W_HARVEST)*(scoreMid*scoreProduct)
+ *   Without harvest: mid = scoreMid * scoreProduct
  *   range = mid ± max(4, mid*0.25)
  *
- * Label: «Yaklaşık hedef (garanti değil)» + harvest usage note.
+ * Label: «Yaklaşık hedef; su mesafesi düzenleyici çarpan (garanti değil)» + harvest note.
  */
 (function (global) {
   var W_HARVEST = 0.45;
@@ -211,6 +218,22 @@
   }
 
   /**
+   * Distance-to-water multiplier for hedef bal (metres).
+   * null/missing → 1.0 (never invent a distance).
+   */
+  function waterFactor(waterDistanceM) {
+    if (waterDistanceM == null || waterDistanceM === '') return 1.0;
+    var d = Number(waterDistanceM);
+    if (!isFinite(d) || d < 0) return 1.0;
+    if (d <= 150) return 1.05;
+    if (d <= 500) return 1.02;
+    if (d <= 1000) return 1.0;
+    if (d <= 2000) return 0.95;
+    if (d <= 3000) return 0.88;
+    return 0.82;
+  }
+
+  /**
    * @param {object} opts
    * @param {number} opts.S - suitability 0–100
    * @param {number|null} [opts.Hprev] - prior season harvest kg (null if missing)
@@ -220,6 +243,7 @@
    * @param {number} [opts.recommendedRadiusKm]
    * @param {number} [opts.analysisRadiusKm]
    * @param {boolean} [opts.usedRecommendedRadius]
+   * @param {number|null} [opts.waterDistanceM] - metres to nearest water (null → factor 1.0)
    */
   function estimateYield(opts) {
     opts = opts || {};
@@ -256,26 +280,38 @@
       colonyAvg = sum / products.length;
     }
 
+    var wDist =
+      opts.waterDistanceM != null &&
+      opts.waterDistanceM !== '' &&
+      isFinite(Number(opts.waterDistanceM)) &&
+      Number(opts.waterDistanceM) >= 0
+        ? Number(opts.waterDistanceM)
+        : null;
+    var wF = waterFactor(wDist);
+    var scoreProduct = clamp(colonyAvg * wF, 0.5, 1.5);
+
     var usedHarvest = Hprev != null;
     var mid;
     var lo;
     var hi;
     var priorPerHive = null;
     var locationFactor = null;
+    var factorProduct = null;
 
     if (usedHarvest) {
       priorPerHive = Hprev / Math.max(n, 1);
       locationFactor = clamp(0.7 + ((S != null ? S : 50) / 100) * 0.5, 0.75, 1.25);
+      factorProduct = clamp(locationFactor * colonyAvg * wF, 0.5, 1.6);
       mid =
-        W_HARVEST * (priorPerHive * locationFactor * colonyAvg) +
-        (1 - W_HARVEST) * (scoreMid * colonyAvg);
+        W_HARVEST * (priorPerHive * factorProduct) +
+        (1 - W_HARVEST) * (scoreMid * scoreProduct);
       var halfH = Math.max(4, mid * 0.25);
       lo = Math.max(0, mid - halfH);
       hi = mid + halfH;
     } else {
-      mid = scoreMid * colonyAvg;
-      lo = Math.max(0, (base.mid - base.half) * colonyAvg);
-      hi = (base.mid + base.half) * colonyAvg;
+      mid = scoreMid * scoreProduct;
+      lo = Math.max(0, (base.mid - base.half) * scoreProduct);
+      hi = (base.mid + base.half) * scoreProduct;
     }
 
     var perHiveMid = round1(mid);
@@ -294,7 +330,7 @@
       harvestNoteTr: usedHarvest
         ? 'Geçen sezon hasat ağırlığı %' + Math.round(W_HARVEST * 100)
         : 'Hasat yok — yer+koloni tahmini',
-      labelTr: 'Yaklaşık hedef (garanti değil)',
+      labelTr: 'Yaklaşık hedef; su mesafesi düzenleyici çarpan (garanti değil)',
       perHive: { mid: perHiveMid, lo: perHiveLo, hi: perHiveHi },
       total: { mid: totalMid, lo: totalLo, hi: totalHi },
       colonyAvg: round1(colonyAvg),
@@ -302,6 +338,8 @@
       scoreMid: scoreMid,
       priorPerHive: priorPerHive != null ? round1(priorPerHive) : null,
       locationFactor: locationFactor != null ? round1(locationFactor) : null,
+      waterDistanceM: wDist != null ? round0(wDist) : null,
+      waterFactor: Math.round(wF * 100) / 100,
       siteClass: siteClass,
       usedRecommendedRadius: opts.usedRecommendedRadius !== false,
       recommendedRadiusKm:
@@ -526,6 +564,18 @@
         : '') +
       '</p>' +
       (function () {
+        if (estimate.waterDistanceM != null) {
+          return (
+            '<p class="fy-water">Su mesafesi: ' +
+            escapeHtml(String(estimate.waterDistanceM)) +
+            ' m · çarpan ' +
+            escapeHtml(String(estimate.waterFactor)) +
+            '</p>'
+          );
+        }
+        return '<p class="fy-water">Su mesafesi girilmedi — çarpan 1.0</p>';
+      })() +
+      (function () {
         if (!tip || tip.yieldPct == null || tip.yieldPct < 8) return '';
         var km =
           tip.distKm != null && isFinite(Number(tip.distKm))
@@ -666,6 +716,13 @@
           ? priorHarvestKg(apiaryId)
           : null;
 
+    var waterDistanceM =
+      ctx.waterDistanceM !== undefined
+        ? ctx.waterDistanceM
+        : apiary && apiary.waterDistanceM != null
+          ? apiary.waterDistanceM
+          : null;
+
     var estimate = estimateYield({
       S: analysis.score,
       Hprev: Hprev,
@@ -674,7 +731,8 @@
       site: site,
       recommendedRadiusKm: recKm,
       analysisRadiusKm: analysis.radiusKm,
-      usedRecommendedRadius: true
+      usedRecommendedRadius: true,
+      waterDistanceM: waterDistanceM
     });
 
     var allHives =
@@ -715,6 +773,7 @@
     '.fy-sum{margin:0 0 4px;font-size:12px;font-weight:700;color:#2c241c;line-height:1.4;}',
     '.fy-range{font-weight:650;color:#5a6a4a;}',
     '.fy-meta{margin:0;font-size:11px;font-weight:650;color:#4a5a3a;line-height:1.35;}',
+    '.fy-water{margin:4px 0 0;font-size:11px;font-weight:700;color:#1e4a6a;line-height:1.35;}',
     '.fy-better{margin:6px 0 0;font-size:11px;font-weight:750;color:#3d5a2a;line-height:1.35;}',
     '.fy-notes{margin:6px 0 0;font-size:10px;font-weight:560;color:#6b735a;line-height:1.35;}',
     '.fy-empty{margin:0;font-size:11px;font-weight:650;color:#6b635a;}',
@@ -741,6 +800,7 @@
   global.SuperAriForageYield = {
     W_HARVEST: W_HARVEST,
     estimateYield: estimateYield,
+    waterFactor: waterFactor,
     midKgFromScore: midKgFromScore,
     yieldPctFromScores: yieldPctFromScores,
     findMismatchedHives: findMismatchedHives,

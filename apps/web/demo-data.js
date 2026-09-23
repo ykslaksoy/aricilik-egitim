@@ -60,6 +60,21 @@
     });
   }
 
+
+  /** Metres to nearest water; null/missing → omit (yield waterFactor 1.0). */
+  function parseWaterDistanceM(v) {
+    if (v == null || v === '') return null;
+    var n = Number(v);
+    if (!isFinite(n) || n < 0) return null;
+    return Math.round(n);
+  }
+
+  function applyWaterDistance(dest, src) {
+    var w = parseWaterDistanceM(src && src.waterDistanceM);
+    if (w != null) dest.waterDistanceM = w;
+    return dest;
+  }
+
   var BREEDS = ['Anadolu', 'Kafkas', 'Karniyol', 'İtalyan', 'Kafkas × Karniyol', 'Karadeniz melez'];
   var STRENGTHS = ['güçlü', 'orta', 'zayıf', 'orta', 'güçlü', 'orta'];
 
@@ -233,14 +248,14 @@
       var bad = looksLikeYanikBalug(name) || looksLikeYanikBalug(place);
       if (!bad) return a;
       changed = true;
-      return {
+      return applyWaterDistance({
         id: a.id,
         name: NAME_A1,
         place: PLACE_A1,
         lat: a.lat != null && isFinite(Number(a.lat)) ? Number(a.lat) : 39.92,
         lon: a.lon != null && isFinite(Number(a.lon)) ? Number(a.lon) : 41.27,
         hiveCount: a.hiveCount
-      };
+      }, a);
     });
     return { list: out, changed: changed };
   }
@@ -257,14 +272,14 @@
       var nextPlace = migrateExactYanik(place, false);
       if (nextName !== name || nextPlace !== place) {
         changed = true;
-        return {
+        return applyWaterDistance({
           id: a.id,
           name: nextName || name || 'Arılık',
           place: nextPlace || place || '—',
           lat: a.lat,
           lon: a.lon,
           hiveCount: a.hiveCount
-        };
+        }, a);
       }
       return a;
     });
@@ -364,14 +379,14 @@
     if (seedA4) {
       maxHives = Math.max(maxHives, Math.max(0, Number(seedA4.hiveCount) || 0));
     }
-    var merged = {
+    var merged = applyWaterDistance({
       id: 'a4',
       name: NAME_YANIK,
       place: PLACE_YANIK,
       lat: YANIK_TARGET_LAT,
       lon: YANIK_TARGET_LON,
       hiveCount: maxHives
-    };
+    }, primary);
     var changed = dups.length > 1
       || String(primary.id) !== 'a4'
       || String(primary.name || '') !== NAME_YANIK
@@ -422,14 +437,14 @@
         var parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length) {
           var mapped = parsed.map(function (a) {
-            return {
+            return applyWaterDistance({
               id: String(a.id),
               name: String(a.name || '').trim() || 'Arılık',
               place: String(a.place || '').trim() || '—',
               lat: a.lat != null && a.lat !== '' ? Number(a.lat) : null,
               lon: a.lon != null && a.lon !== '' ? Number(a.lon) : null,
               hiveCount: Math.max(0, Number(a.hiveCount) || 0)
-            };
+            }, a);
           });
           var rest = restoreKayakoyA1(mapped);
           var mig = migrateApiaryNames(rest.list);
@@ -538,14 +553,14 @@
       }
 
       fleet.forEach(function (h) { out.push(h); });
-      return {
+      return applyWaterDistance({
         id: a.id,
         name: a.name,
         place: a.place,
         lat: a.lat,
         lon: a.lon,
         hiveCount: fleet.length
-      };
+      }, a);
     });
 
     /* Keep orphan hives from unknown apiaries out of the active set (count is per known apiary). */
@@ -601,14 +616,14 @@
     if (!isFinite(lat) || !isFinite(lon)) {
       throw new Error('Arılık için haritadan konum seçilmeli (enlem/boylam).');
     }
-    var item = {
+    var item = applyWaterDistance({
       id: 'a' + Date.now(),
       name: name,
       place: place,
       lat: lat,
       lon: lon,
       hiveCount: hiveCount
-    };
+    }, input || {});
     list.push(item);
 
     var used = {};
@@ -644,6 +659,11 @@
         }
         if (patch.hiveCount != null && patch.hiveCount !== '') {
           a.hiveCount = Math.max(0, Number(patch.hiveCount) || 0);
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'waterDistanceM')) {
+          var wd = parseWaterDistanceM(patch.waterDistanceM);
+          if (wd != null) a.waterDistanceM = wd;
+          else delete a.waterDistanceM;
         }
       }
       list[i] = a;

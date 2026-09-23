@@ -256,6 +256,22 @@
     padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
     background: #f7f8fa; font-family: inherit;
   }
+  .water-dist-row {
+    margin-top: 10px; display: grid; gap: 5px;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+  }
+  .water-dist-row label { color: var(--muted); }
+  .water-dist-inputs {
+    display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
+  }
+  .water-dist-inputs input {
+    width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
+    background: #f7f8fa; font-family: inherit;
+  }
+  .water-dist-inputs .map-btn {
+    min-height: 42px; min-width: 72px; padding: 0 12px;
+  }
   .sheet {
     position: absolute; inset: 0; z-index: 80;
     background: rgba(20, 16, 10, .45);
@@ -1094,6 +1110,37 @@
     });
   }
 
+  function readWaterDistanceMFromInput() {
+    var input = document.getElementById('waterDistM');
+    if (!input) return undefined;
+    var raw = String(input.value || '').trim();
+    if (raw === '') return null;
+    var n = Number(raw);
+    if (!isFinite(n) || n < 0) return undefined;
+    return Math.round(n);
+  }
+
+  /** Persist En yakın su (m) on apiary; returns false if invalid. */
+  function saveWaterDistance(opts) {
+    opts = opts || {};
+    if (!activeApiary || !D || !D.updateApiary) return false;
+    var input = document.getElementById('waterDistM');
+    var wd = readWaterDistanceMFromInput();
+    if (wd === undefined) {
+      if (opts.alertOnBad) alert('Su mesafesi metre olarak 0 veya pozitif sayı olmalı.');
+      return false;
+    }
+    D.updateApiary(activeApiary.id, { waterDistanceM: wd });
+    activeApiary = D.apiaryById(activeApiary.id) || activeApiary;
+    if (input) {
+      input.value = activeApiary.waterDistanceM != null ? String(activeApiary.waterDistanceM) : '';
+    }
+    if (opts.reanalyze && hasCoords(activeApiary)) {
+      updateRadarAndAnalyze(Number(activeApiary.lat), Number(activeApiary.lon));
+    }
+    return true;
+  }
+
   function appendYieldEstimate(host, analysis, apiary) {
     if (!FY || !host || !analysis) return;
     try {
@@ -1450,6 +1497,15 @@
           '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
         '</div>' +
         '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
+        '<div class="water-dist-row">' +
+          '<label for="waterDistM">En yakın su (m)</label>' +
+          '<div class="water-dist-inputs">' +
+            '<input type="number" id="waterDistM" inputmode="numeric" min="0" step="1" placeholder="100 / 3000" value="' +
+              escapeHtml(apiary.waterDistanceM != null && apiary.waterDistanceM !== '' ? String(apiary.waterDistanceM) : '') +
+            '" />' +
+            '<button type="button" class="map-btn ghost" id="btnSaveWaterDist">Kaydet</button>' +
+          '</div>' +
+        '</div>' +
         '<label class="map-paste">Koordinat — tek satır (enlem, boylam)' +
           '<div class="map-search-row map-paste-row">' +
             '<input type="text" id="mapPaste" maxlength="240" placeholder="39.92, 41.27  ·  39.92 41.27  ·  Yandex linki" autocomplete="off" inputmode="decimal" />' +
@@ -1578,9 +1634,31 @@
           alert('Önce ara veya haritaya dokunarak konum seçin.');
           return;
         }
-        D.updateApiary(apiary.id, { lat: c.lat, lon: c.lon });
+        var locPatch = { lat: c.lat, lon: c.lon };
+        var wdSave = readWaterDistanceMFromInput();
+        if (wdSave !== undefined) locPatch.waterDistanceM = wdSave;
+        D.updateApiary(apiary.id, locPatch);
         pickMode = false;
         render();
+      });
+    }
+
+    var waterInput = document.getElementById('waterDistM');
+    var btnSaveWater = document.getElementById('btnSaveWaterDist');
+    if (waterInput) {
+      waterInput.addEventListener('blur', function () {
+        saveWaterDistance({ reanalyze: true, alertOnBad: false });
+      });
+      waterInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          waterInput.blur();
+        }
+      });
+    }
+    if (btnSaveWater) {
+      btnSaveWater.addEventListener('click', function () {
+        saveWaterDistance({ reanalyze: true, alertOnBad: true });
       });
     }
 
