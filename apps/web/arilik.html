@@ -2125,9 +2125,10 @@
   var WATER_STEP_M = 50;
   var WATER_DEFAULT_M = 800;
   var WATER_AUTO_HINT_TR =
-    'Su mesafesi hedef balda çarpan olur (garanti değil). ' +
-    'Kaydırarak elle değiştirebilirsiniz (100 m–3 km). Başlangıç / seçili öneri: 800 m. ' +
-    'Kaynak seçmek veya eklemek için Değiştir.';
+    'Su, yavruya mama seyreltme ve sıcak günde kovan soğutma (buharlaşma) için şarttır; ' +
+    'kaynak uzaklaştıkça su toplayıcı arı daha çok enerji harcar, nektar toplayıcı sayısı görece azalır. ' +
+    'Yakın su (yaklaşık ≤1 km) koloninin dinlenmesini ve bal verimini destekler; 2–3 km hâlâ mümkün ama maliyetlidir (garanti değil). ' +
+    'Kaydırarak 100 m–3 km ayarlayın · başlangıç 800 m · kaynak için Değiştir.';
 
   function clampWaterDistM(v) {
     var n = Math.round(Number(v));
