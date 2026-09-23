@@ -275,19 +275,16 @@
   .water-source-wrap {
     margin-top: 8px; display: grid; gap: 6px;
   }
-  .water-radius {
-    grid-template-columns: auto 1fr auto auto;
+  .water-source-bar {
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
   }
-  .water-radius .water-mid {
+  .water-source-bar .water-mid {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-size: 11px; font-weight: 750; color: #4a2f1a;
-    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .water-radius .water-mid.is-empty { color: #8a8278; font-weight: 650; }
-  .water-radius .val {
-    font-size: 11px; font-weight: 800; color: #4a2f1a;
-    font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right;
-  }
-  .water-radius .map-btn {
+  .water-source-bar .water-mid.is-empty { color: #8a8278; font-weight: 650; }
+  .water-source-bar .map-btn {
+    flex: 0 0 auto;
     min-height: 32px; min-width: 64px; padding: 0 10px;
     font-size: 11px; font-weight: 750;
   }
@@ -1902,9 +1899,50 @@
     );
   }
 
+  var WATER_MIN_M = 100;
+  var WATER_MAX_M = 3000;
+  var WATER_STEP_M = 50;
+  var WATER_DEFAULT_M = 800;
   var WATER_AUTO_HINT_TR =
-    'En yakın su mesafesi hedef balda çarpan olur (yaklaşık 100 m–3 km; garanti değil). ' +
-    'Konumlu kaynakta mesafe haritadan gelir; konum yoksa elle girilir. Değiştir ile kaynak seçin veya ekleyin.';
+    'Su mesafesi hedef balda çarpan olur (yaklaşık 100 m–3 km; garanti değil). ' +
+    'Kaydırarak elle değiştirebilirsiniz. Kaynak seçmek veya eklemek için Değiştir.';
+
+  function clampWaterDistM(v) {
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) n = WATER_DEFAULT_M;
+    if (n < WATER_MIN_M) n = WATER_MIN_M;
+    if (n > WATER_MAX_M) n = WATER_MAX_M;
+    var step = WATER_STEP_M;
+    n = Math.round(n / step) * step;
+    if (n < WATER_MIN_M) n = WATER_MIN_M;
+    if (n > WATER_MAX_M) n = WATER_MAX_M;
+    return n;
+  }
+
+  function formatWaterDistLabel(metres) {
+    var m = Math.round(Number(metres));
+    if (!isFinite(m)) return '—';
+    if (m >= 1000) {
+      var km = Math.round((m / 1000) * 10) / 10;
+      return String(km).replace('.', ',') + ' km';
+    }
+    return m + ' m';
+  }
+
+  function initialWaterSliderM(apiary) {
+    if (apiary && apiary.waterDistanceM != null && apiary.waterDistanceM !== '') {
+      var o = Number(apiary.waterDistanceM);
+      if (isFinite(o) && o >= 0) return clampWaterDistM(o);
+    }
+    if (apiary && apiary.waterSourceId && D && D.waterCatalogById) {
+      var item = D.waterCatalogById(apiary.waterSourceId);
+      var eff = effectiveDistInfo(apiary, item);
+      if (eff && eff.metres != null && isFinite(Number(eff.metres))) {
+        return clampWaterDistM(eff.metres);
+      }
+    }
+    return WATER_DEFAULT_M;
+  }
 
   function waterTypeSummary(apiary) {
     if (!apiary || !apiary.waterSourceId || !D || !D.waterCatalogById) return '';
@@ -1959,20 +1997,24 @@
     var showManualDist = !!(apiary && apiary.waterSourceId && !waterHasCoords);
     var hasActive = !!activeWater;
     var typeLab = waterTypeSummary(apiary);
-    var distLab = waterDistSummary(apiary);
     var toggleLabel = hasActive ? 'Değiştir' : 'Ekle';
     var midClass = 'water-mid' + (typeLab ? '' : ' is-empty');
     var midText = typeLab || 'Seçilmedi';
+    var sliderM = initialWaterSliderM(apiary);
     return (
       '<div class="water-source-wrap" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
-        '<div class="forage-radius water-radius">' +
-          '<label>Su</label>' +
-          '<div class="' + midClass + '" id="waterTypeVal">' + escapeHtml(midText) + '</div>' +
-          '<span class="val" id="waterDistVal">' + escapeHtml(distLab) + '</span>' +
-          '<button type="button" class="map-btn ghost" id="btnWaterToggle">' + toggleLabel + '</button>' +
+        '<div class="forage-radius">' +
+          '<label for="waterRadius">Su</label>' +
+          '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
+            '" step="' + WATER_STEP_M + '" value="' + sliderM + '" />' +
+          '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
         '</div>' +
         '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
+        '<div class="water-source-bar">' +
+          '<div class="' + midClass + '" id="waterTypeVal">' + escapeHtml(midText) + '</div>' +
+          '<button type="button" class="map-btn ghost" id="btnWaterToggle">' + toggleLabel + '</button>' +
+        '</div>' +
         '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
           waterCatalogListHtml(apiary) +
           '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle</button>' +
@@ -2747,6 +2789,21 @@
         if (radiusVal) radiusVal.textContent = forageRadiusKm + ' km';
         var pin = currentPin();
         if (pin) updateRadarAndAnalyze(pin.lat, pin.lon);
+      });
+    }
+    var waterRadius = document.getElementById('waterRadius');
+    var waterRadiusVal = document.getElementById('waterRadiusVal');
+    if (waterRadius) {
+      waterRadius.addEventListener('input', function () {
+        var m = clampWaterDistM(waterRadius.value);
+        waterRadius.value = String(m);
+        if (waterRadiusVal) waterRadiusVal.textContent = formatWaterDistLabel(m);
+        if (activeApiary && D && D.updateApiary) {
+          D.updateApiary(activeApiary.id, { waterDistanceM: m });
+          refreshActiveApiary();
+        }
+        var pinW = currentPin();
+        if (pinW) updateRadarAndAnalyze(pinW.lat, pinW.lon);
       });
     }
     if (pasteInput && D.parseCoordsFromText) {
