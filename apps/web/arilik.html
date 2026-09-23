@@ -373,19 +373,6 @@
   .missing h2 { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
   .missing p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
 
-  .btn-delete-apiary {
-    display: block; width: 100%; margin: 8px 0 4px;
-    padding: 12px 14px; border-radius: 12px;
-    border: 1px solid #e8c4bc; background: #fdf3f0;
-    color: #8a3b2a; font-size: 14px; font-weight: 750;
-    font-family: inherit; cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .btn-delete-apiary:active { transform: scale(.99); background: #f8e6e0; }
-  .delete-hint {
-    margin: 0 2px 18px; font-size: 11px; font-weight: 600;
-    color: var(--muted); line-height: 1.35;
-  }
   .tabbar {
     flex-shrink: 0;
     height: 72px; background: #fff; border-top: 1px solid #e6e8ec;
@@ -1419,8 +1406,6 @@
           'Taşımalar Giderler’de <span aria-hidden="true">›</span>' +
         '</a>' +
       '</div>' +
-      '<button type="button" class="btn-delete-apiary" id="btnDeleteApiary">Arılığı sil</button>' +
-      '<p class="delete-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır.</p>' +
       '<h2 class="section-title" id="kovanlar">Kovanlar (' + hiveN + ')</h2>' +
       (hiveRows
         ? '<div class="hive-list">' + hiveRows + '</div>'
@@ -1440,24 +1425,6 @@
     var btnKonum = document.getElementById('btnKonumMenu');
 
     if (btnMove) btnMove.addEventListener('click', openMoveSheet);
-    var btnDelete = document.getElementById('btnDeleteApiary');
-    if (btnDelete) {
-      btnDelete.addEventListener('click', function () {
-        var label = (apiary.place && apiary.place !== '—')
-          ? (apiary.place + ' · ' + apiary.name)
-          : (apiary.name || 'Arılık');
-        var ok = window.confirm(
-          'Arılık ve kovanlar silinsin. Masraflar Giderler’de kalır.\n\n«' + label + '»'
-        );
-        if (!ok) return;
-        if (!D || typeof D.removeApiary !== 'function') {
-          alert('Silme desteklenmiyor. Sayfayı yenileyip tekrar deneyin.');
-          return;
-        }
-        D.removeApiary(apiary.id);
-        window.location.href = 'ariliklar.html';
-      });
-    }
     if (btnKonum) btnKonum.addEventListener('click', openLocMenu);
     if (coordsBtn && coordsBtn.tagName === 'BUTTON') {
       coordsBtn.addEventListener('click', openLocMenu);

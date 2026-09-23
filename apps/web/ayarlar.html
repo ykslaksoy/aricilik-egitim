@@ -19,6 +19,46 @@
       border-color: #c9a84a; color: #3d2e12;
       box-shadow: 0 1px 0 rgba(0,0,0,.04);
     }
+    .arilik-ayarlari details {
+      border: 1px solid #e8c4bc; border-radius: 12px; background: #fdf8f6;
+      padding: 0;
+    }
+    .arilik-ayarlari summary {
+      cursor: pointer; list-style: none; padding: 12px 14px;
+      font-size: 13px; font-weight: 750; color: #6a3a2a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .arilik-ayarlari summary::-webkit-details-marker { display: none; }
+    .arilik-ayarlari summary::after {
+      content: ' ›'; font-weight: 800; opacity: .55;
+    }
+    .arilik-ayarlari details[open] summary::after { content: ' ˅'; }
+    .arilik-ayarlari .danger-wrap {
+      padding: 0 12px 12px; display: grid; gap: 8px;
+    }
+    .arilik-ayarlari .danger-hint {
+      margin: 0; font-size: 11px; font-weight: 600; color: #8a6a5a; line-height: 1.4;
+    }
+    .arilik-ayarlari .apiary-del-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 11px; border-radius: 10px; background: #fff;
+      border: 1px solid #ecd5ce;
+    }
+    .arilik-ayarlari .apiary-del-meta {
+      font-size: 13px; font-weight: 700; color: #3a2a22; line-height: 1.3;
+    }
+    .arilik-ayarlari .apiary-del-meta span {
+      display: block; font-size: 11px; font-weight: 600; color: #8a7358; margin-top: 2px;
+    }
+    .arilik-ayarlari .btn-del-apiary {
+      flex: 0 0 auto; padding: 8px 12px; border-radius: 10px;
+      border: 1px solid #e8c4bc; background: #fdf3f0; color: #8a3b2a;
+      font: inherit; font-size: 12px; font-weight: 750; cursor: pointer;
+    }
+    .arilik-ayarlari .btn-del-apiary:active { background: #f8e6e0; }
+    .arilik-ayarlari .empty-del {
+      margin: 0; font-size: 12px; font-weight: 650; color: #8a7358;
+    }
   </style>
 </head>
 <body class="auth-body">
@@ -134,6 +174,22 @@
         <button class="btn" type="submit">Kaydet</button>
         <a class="btn secondary" href="giris.html" id="btn-logout">Çıkış yap</a>
       </form>
+    </section>
+
+    <section class="auth-card arilik-ayarlari" id="arilik-ayarlari">
+      <div class="settings-head">
+        <div>
+          <h2>Arılık ayarları</h2>
+          <p class="sub">Nadir kullanılan işlemler — arılık silme burada.</p>
+        </div>
+      </div>
+      <details id="arilik-danger-details">
+        <summary>Gelişmiş · arılık silme</summary>
+        <div class="danger-wrap">
+          <p class="danger-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır. Bu işlem geri alınamaz — onay ister.</p>
+          <div id="arilik-delete-list" class="stack" style="gap:.5rem"></div>
+        </div>
+      </details>
     </section>
   </div>
   <script src="demo-data.js"></script>
@@ -430,6 +486,85 @@
       }
       maybeFocus();
       window.addEventListener('hashchange', maybeFocus);
+    })();
+  </script>
+  <script>
+    (function () {
+      var D = window.SuperAriDemo;
+      var listEl = document.getElementById('arilik-delete-list');
+      if (!D || !listEl) return;
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function labelOf(a) {
+        if (a.place && a.place !== '—') return a.place + ' · ' + (a.name || '');
+        return a.name || 'Arılık';
+      }
+
+      function render() {
+        var list = D.loadApiaries ? D.loadApiaries() : (D.apiaries || []);
+        if (!list.length) {
+          listEl.innerHTML = '<p class="empty-del">Silinecek arılık yok.</p>';
+          return;
+        }
+        listEl.innerHTML = list.map(function (a) {
+          var n = a.hiveCount != null ? a.hiveCount : (D.hivesForApiary ? D.hivesForApiary(a.id).length : 0);
+          return (
+            '<div class="apiary-del-row" data-id="' + escapeHtml(String(a.id)) + '">' +
+              '<div class="apiary-del-meta">' + escapeHtml(labelOf(a)) +
+                '<span>' + escapeHtml(String(n)) + ' kovan · ' + escapeHtml(String(a.id)) + '</span>' +
+              '</div>' +
+              '<button type="button" class="btn-del-apiary" data-id="' + escapeHtml(String(a.id)) + '">Sil</button>' +
+            '</div>'
+          );
+        }).join('');
+        listEl.querySelectorAll('.btn-del-apiary').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-id');
+            var apiary = D.apiaryById ? D.apiaryById(id) : null;
+            if (!apiary && D.loadApiaries) {
+              apiary = (D.loadApiaries() || []).filter(function (x) { return String(x.id) === String(id); })[0];
+            }
+            if (!apiary) {
+              alert('Arılık bulunamadı.');
+              return;
+            }
+            var ok = window.confirm(
+              'Arılık ve kovanlar silinsin. Masraflar Giderler’de kalır.\n\n«' + labelOf(apiary) + '»'
+            );
+            if (!ok) return;
+            if (typeof D.removeApiary !== 'function') {
+              alert('Silme desteklenmiyor. Sayfayı yenileyip tekrar deneyin.');
+              return;
+            }
+            D.removeApiary(apiary.id);
+            render();
+          });
+        });
+      }
+
+      render();
+
+      /* Deep link: #arilik-ayarlari opens the buried details */
+      function maybeOpenDanger() {
+        var hash = (location.hash || '').replace(/^#/, '').toLowerCase();
+        var params = new URLSearchParams(location.search);
+        var focus = (params.get('focus') || '').toLowerCase();
+        if (hash === 'arilik-ayarlari' || focus === 'arilik-ayarlari') {
+          var sec = document.getElementById('arilik-ayarlari');
+          var det = document.getElementById('arilik-danger-details');
+          if (det) det.open = true;
+          if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+      maybeOpenDanger();
+      window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
 </body>
