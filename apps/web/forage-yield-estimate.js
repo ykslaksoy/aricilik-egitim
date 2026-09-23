@@ -271,7 +271,9 @@
    * @param {boolean} [opts.usedRecommendedRadius]
    * @param {number|null} [opts.waterDistanceM] - metres to nearest water (null → factor 1.0)
    * @param {string|null} [opts.waterSourceType] - user-reported type key (display)
+   * @param {string|null} [opts.waterSourceLabel] - catalog label (display)
    * @param {string|null} [opts.waterSourceNote] - optional short note (display)
+   * @param {string|null} [opts.waterDistanceSource] - 'manual' | 'haversine' | 'none'
    */
   function estimateYield(opts) {
     opts = opts || {};
@@ -372,9 +374,17 @@
         opts.waterSourceType != null && String(opts.waterSourceType).trim()
           ? String(opts.waterSourceType).trim().toLowerCase()
           : null,
+      waterSourceLabel:
+        opts.waterSourceLabel != null && String(opts.waterSourceLabel).trim()
+          ? String(opts.waterSourceLabel).trim().slice(0, 80)
+          : null,
       waterSourceNote:
         opts.waterSourceNote != null && String(opts.waterSourceNote).trim()
           ? String(opts.waterSourceNote).trim().slice(0, 120)
+          : null,
+      waterDistanceSource:
+        opts.waterDistanceSource === 'manual' || opts.waterDistanceSource === 'haversine'
+          ? opts.waterDistanceSource
           : null,
       siteClass: siteClass,
       usedRecommendedRadius: opts.usedRecommendedRadius !== false,
@@ -601,18 +611,28 @@
       '</p>' +
       (function () {
         var typeLab = waterTypeLabel(estimate.waterSourceType);
+        var label = estimate.waterSourceLabel
+          ? String(estimate.waterSourceLabel).trim()
+          : '';
         var noteShort = truncateNote(estimate.waterSourceNote, 40);
+        var head = '';
+        if (label && typeLab) head = label + ' (' + typeLab + ')';
+        else if (label) head = label;
+        else if (typeLab) head = typeLab;
         var parts = [];
-        if (typeLab) parts.push(typeLab);
+        if (head) parts.push(head);
         if (estimate.waterDistanceM != null) {
-          parts.push(String(estimate.waterDistanceM) + ' m');
-        } else if (typeLab) {
+          var distBit = String(estimate.waterDistanceM) + ' m';
+          if (estimate.waterDistanceSource === 'haversine') distBit += ' (harita)';
+          else if (estimate.waterDistanceSource === 'manual') distBit += ' (elle)';
+          parts.push(distBit);
+        } else if (head) {
           parts.push('mesafe girin');
         }
-        if (noteShort) parts.push(noteShort);
+        if (noteShort && noteShort !== label) parts.push(noteShort);
         parts.push('çarpan ' + String(estimate.waterFactor));
-        if (estimate.waterDistanceM == null && !typeLab) {
-          return '<p class="fy-water">Su mesafesi girilmedi — çarpan 1.0 (arıcı girişi)</p>';
+        if (estimate.waterDistanceM == null && !head) {
+          return '<p class="fy-water">Su kaynağı seçilmedi — çarpan 1.0 (arıcı girişi)</p>';
         }
         return (
           '<p class="fy-water">Su: ' +
@@ -761,26 +781,52 @@
           ? priorHarvestKg(apiaryId)
           : null;
 
-    var waterDistanceM =
-      ctx.waterDistanceM !== undefined
-        ? ctx.waterDistanceM
-        : apiary && apiary.waterDistanceM != null
-          ? apiary.waterDistanceM
-          : null;
+    var catalogItem = null;
+    if (apiary && apiary.waterSourceId && D && D.waterCatalogById) {
+      catalogItem = D.waterCatalogById(apiary.waterSourceId);
+    }
+
+    var waterDistanceSource = null;
+    var waterDistanceM;
+    if (ctx.waterDistanceM !== undefined) {
+      waterDistanceM = ctx.waterDistanceM;
+      waterDistanceSource = ctx.waterDistanceSource || null;
+    } else if (D && D.effectiveWaterDistanceM && apiary) {
+      var eff = D.effectiveWaterDistanceM(apiary, catalogItem);
+      waterDistanceM = eff && eff.metres != null ? eff.metres : null;
+      waterDistanceSource = eff && eff.source !== 'none' ? eff.source : null;
+    } else {
+      waterDistanceM =
+        apiary && apiary.waterDistanceM != null ? apiary.waterDistanceM : null;
+      if (waterDistanceM != null) waterDistanceSource = 'manual';
+    }
 
     var waterSourceType =
       ctx.waterSourceType !== undefined
         ? ctx.waterSourceType
-        : apiary && apiary.waterSourceType != null
-          ? apiary.waterSourceType
-          : null;
+        : catalogItem
+          ? catalogItem.typeKey
+          : apiary && apiary.waterSourceType != null
+            ? apiary.waterSourceType
+            : null;
+
+    var waterSourceLabel =
+      ctx.waterSourceLabel !== undefined
+        ? ctx.waterSourceLabel
+        : catalogItem
+          ? catalogItem.label
+          : apiary && apiary.waterSourceLabel != null
+            ? apiary.waterSourceLabel
+            : null;
 
     var waterSourceNote =
       ctx.waterSourceNote !== undefined
         ? ctx.waterSourceNote
-        : apiary && apiary.waterSourceNote != null
-          ? apiary.waterSourceNote
-          : null;
+        : catalogItem && catalogItem.note
+          ? catalogItem.note
+          : apiary && apiary.waterSourceNote != null
+            ? apiary.waterSourceNote
+            : null;
 
     var estimate = estimateYield({
       S: analysis.score,
@@ -792,7 +838,9 @@
       analysisRadiusKm: analysis.radiusKm,
       usedRecommendedRadius: true,
       waterDistanceM: waterDistanceM,
+      waterDistanceSource: waterDistanceSource,
       waterSourceType: waterSourceType,
+      waterSourceLabel: waterSourceLabel,
       waterSourceNote: waterSourceNote
     });
 

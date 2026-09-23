@@ -9,6 +9,7 @@
   var STORAGE_KEY = 'superari.ariliklar.v1';
   var HIVES_KEY = 'superari.kovanlar.v1';
   var DELETED_SEEDS_KEY = 'superari.ariliklar.deletedSeeds.v1';
+  var WATER_CATALOG_KEY = 'superari.waterSources.catalog.v1';
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
@@ -109,14 +110,313 @@
     return s;
   }
 
-  /** Copy waterDistanceM + optional type/note from src onto dest (load/save path). */
+  function parseWaterSourceLabel(v) {
+    if (v == null || v === '') return null;
+    var s = String(v).trim();
+    if (!s) return null;
+    if (s.length > 80) s = s.slice(0, 80);
+    return s;
+  }
+
+  function newWaterCatalogId() {
+    return 'ws' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function parseOptionalCoord(v, kind) {
+    if (v == null || v === '') return null;
+    var n = Number(v);
+    if (!isFinite(n)) return null;
+    if (kind === 'lat' && (n < -90 || n > 90)) return null;
+    if (kind === 'lon' && (n < -180 || n > 180)) return null;
+    return Math.round(n * 1e6) / 1e6;
+  }
+
+  function parseWaterPlace(v) {
+    if (v == null || v === '') return null;
+    var s = String(v).trim();
+    if (!s) return null;
+    if (s.length > 80) s = s.slice(0, 80);
+    return s;
+  }
+
+  /** Haversine distance in metres between two WGS84 points. */
+  function haversineMetres(lat1, lon1, lat2, lon2) {
+    var a = Number(lat1);
+    var b = Number(lon1);
+    var c = Number(lat2);
+    var d = Number(lon2);
+    if (!isFinite(a) || !isFinite(b) || !isFinite(c) || !isFinite(d)) return null;
+    var toRad = Math.PI / 180;
+    var dLat = (c - a) * toRad;
+    var dLon = (d - b) * toRad;
+    var x =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(a * toRad) * Math.cos(c * toRad) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var metres = 2 * 6371000 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+    if (!isFinite(metres) || metres < 0) return null;
+    return Math.round(metres);
+  }
+
+  function applyCatalogCoords(dest, src) {
+    var lat = parseOptionalCoord(src && src.lat, 'lat');
+    var lon = parseOptionalCoord(src && src.lon, 'lon');
+    if (lat != null && lon != null) {
+      dest.lat = lat;
+      dest.lon = lon;
+    }
+    var place = parseWaterPlace(src && src.place);
+    if (place != null) dest.place = place;
+    return dest;
+  }
+
+  function normalizeWaterCatalogItem(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var id = raw.id != null ? String(raw.id).trim() : '';
+    if (!id) return null;
+    var typeKey = parseWaterSourceType(raw.typeKey);
+    if (!typeKey) typeKey = 'diger';
+    var label = parseWaterSourceLabel(raw.label);
+    if (!label) {
+      label = WATER_SOURCE_TYPE_LABELS_TR[typeKey] || typeKey;
+    }
+    var note = parseWaterSourceNote(raw.note);
+    var createdAt = raw.createdAt != null ? String(raw.createdAt) : new Date().toISOString();
+    var out = { id: id, label: label, typeKey: typeKey, createdAt: createdAt };
+    if (note != null) out.note = note;
+    applyCatalogCoords(out, raw);
+    return out;
+  }
+
+  function loadWaterCatalog() {
+    try {
+      var raw = localStorage.getItem(WATER_CATALOG_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          var out = [];
+          var seen = {};
+          parsed.forEach(function (item) {
+            var n = normalizeWaterCatalogItem(item);
+            if (!n || seen[n.id]) return;
+            seen[n.id] = true;
+            out.push(n);
+          });
+          return out;
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return [];
+  }
+
+  function saveWaterCatalog(list) {
+    if (!Array.isArray(list)) return;
+    try {
+      localStorage.setItem(WATER_CATALOG_KEY, JSON.stringify(list));
+    } catch (e) { /* ignore */ }
+  }
+
+  function waterCatalogById(id) {
+    var key = String(id || '');
+    if (!key) return null;
+    var list = loadWaterCatalog();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === key) return list[i];
+    }
+    return null;
+  }
+
+  function mergeCatalogCoordsIfMissing(existing, incoming) {
+    var changed = false;
+    if (incoming.lat != null && incoming.lon != null &&
+        (existing.lat == null || existing.lon == null)) {
+      existing.lat = incoming.lat;
+      existing.lon = incoming.lon;
+      changed = true;
+    }
+    if (incoming.place && !existing.place) {
+      existing.place = incoming.place;
+      changed = true;
+    }
+    if (incoming.note && !existing.note) {
+      existing.note = incoming.note;
+      changed = true;
+    }
+    return changed;
+  }
+
+  /** Append a permanent catalog entry (shared across apiaries). Never wiped on navigate. */
+  function addWaterCatalogItem(input) {
+    var typeKey = parseWaterSourceType(input && input.typeKey);
+    if (!typeKey) typeKey = 'diger';
+    var label = parseWaterSourceLabel(input && input.label);
+    if (!label) label = WATER_SOURCE_TYPE_LABELS_TR[typeKey] || typeKey;
+    var note = parseWaterSourceNote(input && input.note);
+    var item = {
+      id: (input && input.id) ? String(input.id) : newWaterCatalogId(),
+      label: label,
+      typeKey: typeKey,
+      createdAt: (input && input.createdAt) ? String(input.createdAt) : new Date().toISOString()
+    };
+    if (note != null) item.note = note;
+    applyCatalogCoords(item, input || {});
+    var list = loadWaterCatalog();
+    /* Dedupe by same label+typeKey (case-insensitive label). */
+    var labLower = item.label.toLowerCase();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].typeKey === item.typeKey && String(list[i].label).toLowerCase() === labLower) {
+        if (mergeCatalogCoordsIfMissing(list[i], item)) saveWaterCatalog(list);
+        return list[i];
+      }
+    }
+    list.push(item);
+    saveWaterCatalog(list);
+    return item;
+  }
+
+  /** Patch fields on an existing catalog entry (label/type/note/coords). */
+  function updateWaterCatalogItem(id, patch) {
+    var key = String(id || '');
+    if (!key || !patch) return null;
+    var list = loadWaterCatalog();
+    var found = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id !== key) continue;
+      var cur = list[i];
+      if (Object.prototype.hasOwnProperty.call(patch, 'label')) {
+        var lab = parseWaterSourceLabel(patch.label);
+        if (lab) cur.label = lab;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'typeKey')) {
+        var tk = parseWaterSourceType(patch.typeKey);
+        if (tk) cur.typeKey = tk;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'note')) {
+        var wn = parseWaterSourceNote(patch.note);
+        if (wn != null) cur.note = wn;
+        else delete cur.note;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'place')) {
+        var pl = parseWaterPlace(patch.place);
+        if (pl != null) cur.place = pl;
+        else delete cur.place;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'lat') ||
+          Object.prototype.hasOwnProperty.call(patch, 'lon')) {
+        var la = Object.prototype.hasOwnProperty.call(patch, 'lat')
+          ? parseOptionalCoord(patch.lat, 'lat')
+          : cur.lat;
+        var lo = Object.prototype.hasOwnProperty.call(patch, 'lon')
+          ? parseOptionalCoord(patch.lon, 'lon')
+          : cur.lon;
+        if (la != null && lo != null) {
+          cur.lat = la;
+          cur.lon = lo;
+        } else if (patch.lat === null || patch.lon === null ||
+                   patch.lat === '' || patch.lon === '') {
+          delete cur.lat;
+          delete cur.lon;
+        }
+      }
+      list[i] = cur;
+      found = cur;
+      break;
+    }
+    if (!found) return null;
+    saveWaterCatalog(list);
+    return found;
+  }
+
+  function removeWaterCatalogItem(id) {
+    var key = String(id || '');
+    if (!key) return false;
+    var list = loadWaterCatalog();
+    var next = list.filter(function (x) { return x.id !== key; });
+    if (next.length === list.length) return false;
+    saveWaterCatalog(next);
+    return true;
+  }
+
+  /**
+   * Distance for yield: manual waterDistanceM override wins;
+   * else haversine when both apiary + catalog item have coords.
+   */
+  function computedWaterDistanceM(apiary, catalogItem) {
+    if (!apiary || !catalogItem) return null;
+    var alat = Number(apiary.lat);
+    var alon = Number(apiary.lon);
+    var wlat = Number(catalogItem.lat);
+    var wlon = Number(catalogItem.lon);
+    if (!isFinite(alat) || !isFinite(alon) || !isFinite(wlat) || !isFinite(wlon)) return null;
+    return haversineMetres(alat, alon, wlat, wlon);
+  }
+
+  function effectiveWaterDistanceM(apiary, catalogItem) {
+    var override = parseWaterDistanceM(apiary && apiary.waterDistanceM);
+    if (override != null) return { metres: override, source: 'manual' };
+    var item = catalogItem || (apiary && apiary.waterSourceId ? waterCatalogById(apiary.waterSourceId) : null);
+    var auto = computedWaterDistanceM(apiary, item);
+    if (auto != null) return { metres: auto, source: 'haversine' };
+    return { metres: null, source: 'none' };
+  }
+
+  /** Sync convenience fields from active catalog item onto dest. */
+  function syncWaterConvenienceFromCatalog(dest) {
+    if (!dest) return dest;
+    var sid = dest.waterSourceId != null ? String(dest.waterSourceId).trim() : '';
+    if (!sid) {
+      delete dest.waterSourceLabel;
+      return dest;
+    }
+    var item = waterCatalogById(sid);
+    if (!item) return dest;
+    dest.waterSourceType = item.typeKey;
+    dest.waterSourceLabel = item.label;
+    if (item.note) dest.waterSourceNote = item.note;
+    else delete dest.waterSourceNote;
+    /* If no manual override, leave waterDistanceM unset so estimate uses haversine. */
+    return dest;
+  }
+
+  /**
+   * If apiary has legacy type/distance but no waterSourceId, promote into global catalog once.
+   * Catalog entries persist forever — never wiped on navigate/refresh.
+   */
+  function migrateLegacyWaterToCatalog(dest, src) {
+    if (!dest) return dest;
+    var existingId = dest.waterSourceId || (src && src.waterSourceId);
+    if (existingId && waterCatalogById(existingId)) {
+      dest.waterSourceId = String(existingId);
+      return syncWaterConvenienceFromCatalog(dest);
+    }
+    var t = parseWaterSourceType(src && src.waterSourceType) || parseWaterSourceType(dest.waterSourceType);
+    var n = parseWaterSourceNote(src && src.waterSourceNote) || parseWaterSourceNote(dest.waterSourceNote);
+    var lab = parseWaterSourceLabel(src && src.waterSourceLabel) || parseWaterSourceLabel(dest.waterSourceLabel);
+    var hasDist = parseWaterDistanceM(dest.waterDistanceM) != null ||
+      parseWaterDistanceM(src && src.waterDistanceM) != null;
+    if (!t && !lab && !n && !hasDist) return dest;
+    if (!t && !lab && !n) return dest; /* distance alone — wait for type/label via UI */
+    if (!t) t = 'diger';
+    if (!lab) lab = n || WATER_SOURCE_TYPE_LABELS_TR[t] || t;
+    var item = addWaterCatalogItem({ label: lab, typeKey: t, note: n });
+    dest.waterSourceId = item.id;
+    return syncWaterConvenienceFromCatalog(dest);
+  }
+
+  /** Copy waterDistanceM + waterSourceId + type/note/label from src onto dest (load/save path). */
   function applyWaterDistance(dest, src) {
     var w = parseWaterDistanceM(src && src.waterDistanceM);
     if (w != null) dest.waterDistanceM = w;
+    var sid = src && src.waterSourceId != null ? String(src.waterSourceId).trim() : '';
+    if (sid) dest.waterSourceId = sid;
     var t = parseWaterSourceType(src && src.waterSourceType);
     if (t != null) dest.waterSourceType = t;
     var n = parseWaterSourceNote(src && src.waterSourceNote);
     if (n != null) dest.waterSourceNote = n;
+    var lab = parseWaterSourceLabel(src && src.waterSourceLabel);
+    if (lab != null) dest.waterSourceLabel = lab;
+    migrateLegacyWaterToCatalog(dest, src);
+    syncWaterConvenienceFromCatalog(dest);
     return dest;
   }
 
@@ -710,6 +1010,18 @@
           if (wd != null) a.waterDistanceM = wd;
           else delete a.waterDistanceM;
         }
+        if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceId')) {
+          var sid = patch.waterSourceId != null ? String(patch.waterSourceId).trim() : '';
+          if (sid && waterCatalogById(sid)) {
+            a.waterSourceId = sid;
+            syncWaterConvenienceFromCatalog(a);
+          } else if (!sid) {
+            delete a.waterSourceId;
+            delete a.waterSourceLabel;
+            delete a.waterSourceType;
+            delete a.waterSourceNote;
+          }
+        }
         if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceType')) {
           var wt = parseWaterSourceType(patch.waterSourceType);
           if (wt != null) a.waterSourceType = wt;
@@ -720,6 +1032,13 @@
           if (wn != null) a.waterSourceNote = wn;
           else delete a.waterSourceNote;
         }
+        if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceLabel')) {
+          var wl = parseWaterSourceLabel(patch.waterSourceLabel);
+          if (wl != null) a.waterSourceLabel = wl;
+          else delete a.waterSourceLabel;
+        }
+        /* Keep type/note/label aligned with catalog when id is set. */
+        if (a.waterSourceId) syncWaterConvenienceFromCatalog(a);
       }
       list[i] = a;
       found = a;
@@ -906,7 +1225,20 @@
       removeApiary: removeApiary,
       WATER_SOURCE_TYPE_KEYS: WATER_SOURCE_TYPE_KEYS,
       WATER_SOURCE_TYPE_LABELS_TR: WATER_SOURCE_TYPE_LABELS_TR,
+      WATER_CATALOG_KEY: WATER_CATALOG_KEY,
       parseWaterSourceType: parseWaterSourceType,
+      parseWaterSourceNote: parseWaterSourceNote,
+      parseWaterSourceLabel: parseWaterSourceLabel,
+      parseWaterDistanceM: parseWaterDistanceM,
+      loadWaterCatalog: loadWaterCatalog,
+      saveWaterCatalog: saveWaterCatalog,
+      waterCatalogById: waterCatalogById,
+      addWaterCatalogItem: addWaterCatalogItem,
+      updateWaterCatalogItem: updateWaterCatalogItem,
+      removeWaterCatalogItem: removeWaterCatalogItem,
+      haversineMetres: haversineMetres,
+      computedWaterDistanceM: computedWaterDistanceM,
+      effectiveWaterDistanceM: effectiveWaterDistanceM,
       yandexMapsUrl: yandexMapsUrl,
       yandexSearchUrl: yandexSearchUrl,
       geocodeSearch: geocodeSearch,
