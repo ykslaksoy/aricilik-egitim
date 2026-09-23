@@ -4,10 +4,11 @@
  * Data (ücretsiz, anahtarsız):
  *  - Open-Meteo Elevation API — merkez + 8 yön gerçek rakım
  *  - Open-Meteo Archive — bal mevsimi (Mayıs–Eylül) ortalama sıcaklık + yağış toplamı
- *    + bağıl nem + ET0 (su/nem / kuraklık yorumu)
+ *    + bağıl nem + ET0 (su/nem) + precipitation_hours (uçuş/yağış özeti)
  *
  * Skor yalnızca ölçülebilir faktörler: rakım bandı, sezon yağış, sezon sıcaklık, yerel eğim.
- * Su/nem paneli ölçülen nem + yağış/ET0 dengesinden; sahte floraProxy / verim % yok.
+ * Su/nem paneli ölçülen nem + yağış/ET0 dengesinden; uçuş özeti yağışlı saatlerden.
+ * Sahte floraProxy / verim % yok.
  */
 (function (global) {
   var DEFAULT_RADIUS_KM = 3;
@@ -32,6 +33,12 @@
   var W_PRECIP = 0.25;
   var W_TEMP = 0.25;
   var W_RELIEF = 0.15;
+
+  /* Hava (hava-kayit) ile hizalı yağış saati eşiği */
+  var RAIN_HOUR_THRESHOLD_MM = 0.1;
+  /* Gün uçuşa elverişsiz: yağışlı saat ≥6 veya günlük yağış >5 mm */
+  var POOR_FLIGHT_RAIN_HOURS = 6;
+  var POOR_FLIGHT_PRECIP_MM = 5;
 
   function roundToStep(km, step) {
     step = step || RADIUS_STEP_KM;
@@ -242,12 +249,38 @@
     if (meanT == null || precipSum == null) return null;
     var meanRh = mean(daily.relative_humidity_2m_mean);
     var et0Sum = sum(daily.et0_fao_evapotranspiration);
+    var rainHoursSum = sum(daily.precipitation_hours);
+    var seasonDayCount = 0;
+    if (daily.time && daily.time.length) seasonDayCount = daily.time.length;
+    else if (daily.precipitation_sum && daily.precipitation_sum.length) {
+      seasonDayCount = daily.precipitation_sum.length;
+    }
+    var poorFlightDays = null;
+    if (daily.precipitation_sum && daily.precipitation_sum.length) {
+      poorFlightDays = 0;
+      var ph = daily.precipitation_hours || [];
+      for (var i = 0; i < daily.precipitation_sum.length; i++) {
+        var pmm = Number(daily.precipitation_sum[i]);
+        var rh = ph[i] != null ? Number(ph[i]) : null;
+        var heavyPrecip = isFinite(pmm) && pmm > POOR_FLIGHT_PRECIP_MM;
+        var longRain = rh != null && isFinite(rh) && rh >= POOR_FLIGHT_RAIN_HOURS;
+        /* precipDays eşiği ile uyumlu: yağışlı ama saat yoksa düşük mm günleri sayma */
+        if (longRain || heavyPrecip) poorFlightDays += 1;
+      }
+    }
     return {
       meanTempC: Math.round(meanT * 10) / 10,
       precipSumMm: Math.round(precipSum * 10) / 10,
-      precipDays: precipDays(daily.precipitation_sum),
+      precipDays: precipDays(daily.precipitation_sum, RAIN_HOUR_THRESHOLD_MM),
       meanRhPct: meanRh != null ? Math.round(meanRh * 10) / 10 : null,
-      et0SumMm: et0Sum != null ? Math.round(et0Sum * 10) / 10 : null
+      et0SumMm: et0Sum != null ? Math.round(et0Sum * 10) / 10 : null,
+      rainHoursSum: rainHoursSum != null ? Math.round(rainHoursSum * 10) / 10 : null,
+      rainHoursAvg:
+        rainHoursSum != null && seasonDayCount > 0
+          ? Math.round((rainHoursSum / seasonDayCount) * 10) / 10
+          : null,
+      seasonDayCount: seasonDayCount || null,
+      poorFlightDays: poorFlightDays
     };
   }
 
@@ -268,7 +301,7 @@
       encodeURIComponent(season.start) +
       '&end_date=' +
       encodeURIComponent(season.end) +
-      '&daily=temperature_2m_mean,precipitation_sum,relative_humidity_2m_mean,et0_fao_evapotranspiration&timezone=auto';
+      '&daily=temperature_2m_mean,precipitation_sum,precipitation_hours,relative_humidity_2m_mean,et0_fao_evapotranspiration&timezone=auto';
     return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('archive_' + r.status);
@@ -289,6 +322,10 @@
                 precipDays: clim.precipDays,
                 meanRhPct: clim.meanRhPct,
                 et0SumMm: clim.et0SumMm,
+                rainHoursSum: clim.rainHoursSum,
+                rainHoursAvg: clim.rainHoursAvg,
+                seasonDayCount: clim.seasonDayCount,
+                poorFlightDays: clim.poorFlightDays,
                 seasonLabel: season.label
               }
             : null;
@@ -377,6 +414,73 @@
       droughtTone: droughtTone,
       droughtLabel: droughtLabel,
       droughtNote: droughtNote,
+      summary: summary
+    };
+  }
+
+  /**
+   * Uçuş / yağış özeti — Archive precipitation_hours (hava-kayit ile aynı kaynak).
+   * Skora dahil değil; panelde Su/nem benzeri ayrı blok.
+   * Kural: yağışlı saat ≥ POOR_FLIGHT_RAIN_HOURS veya günlük yağış > POOR_FLIGHT_PRECIP_MM
+   * → uçuşa elverişsiz gün.
+   */
+  function flightAnalysis(climate) {
+    if (!climate) return null;
+    var precipDaysN = climate.precipDays;
+    var rainSum = climate.rainHoursSum;
+    var rainAvg = climate.rainHoursAvg;
+    var seasonDays = climate.seasonDayCount;
+    var poor = climate.poorFlightDays;
+    var flightOk = null;
+    if (seasonDays != null && poor != null) {
+      flightOk = Math.max(0, seasonDays - poor);
+    }
+
+    var tip =
+      'Kural: yağışlı saat ≥' +
+      POOR_FLIGHT_RAIN_HOURS +
+      ' veya günlük yağış >' +
+      POOR_FLIGHT_PRECIP_MM +
+      ' mm → uçuşa elverişsiz gün (hava eşiği ' +
+      RAIN_HOUR_THRESHOLD_MM +
+      ' mm/saat).';
+
+    var summaryParts = [];
+    if (precipDaysN != null) summaryParts.push(precipDaysN + ' yağışlı gün');
+    if (rainSum != null) {
+      summaryParts.push(
+        'toplam ~' +
+          (Math.abs(rainSum - Math.round(rainSum)) < 0.05
+            ? Math.round(rainSum)
+            : rainSum) +
+          ' yağışlı saat'
+      );
+    }
+    if (flightOk != null) {
+      summaryParts.push('uçuşa daha uygun gün ≈ ' + flightOk);
+    }
+    var summary = summaryParts.length
+      ? summaryParts.join(' · ')
+      : 'Yağış saati ölçümü yok — yalnızca mevcut alanlar.';
+
+    var tone = 'mid';
+    if (flightOk != null && seasonDays) {
+      var ratio = flightOk / seasonDays;
+      if (ratio >= 0.75) tone = 'good';
+      else if (ratio >= 0.55) tone = 'ok';
+      else if (ratio >= 0.4) tone = 'mid';
+      else tone = 'bad';
+    }
+
+    return {
+      precipDays: precipDaysN != null ? precipDaysN : null,
+      rainHoursSum: rainSum != null && isFinite(rainSum) ? rainSum : null,
+      rainHoursAvg: rainAvg != null && isFinite(rainAvg) ? rainAvg : null,
+      seasonDayCount: seasonDays != null ? seasonDays : null,
+      poorFlightDays: poor != null ? poor : null,
+      flightOkDays: flightOk,
+      tone: tone,
+      tip: tip,
       summary: summary
     };
   }
@@ -704,6 +808,7 @@
         }
 
         var water = climateOk ? waterAnalysis(climates[0] || null) : null;
+        var flight = climateOk ? flightAnalysis(climates[0] || null) : null;
         if (water) {
           if (water.meanRhPct != null) {
             insights.push({
@@ -740,6 +845,20 @@
           });
         }
 
+        if (flight && flight.flightOkDays != null) {
+          insights.push({
+            k: 'Uçuş penceresi',
+            v:
+              '≈ ' +
+              flight.flightOkDays +
+              ' gün' +
+              (flight.rainHoursSum != null
+                ? ' · ~' + flight.rainHoursSum + ' yağışlı saat'
+                : ''),
+            note: 'özet (skora dahil değil)'
+          });
+        }
+
         insights.push({
           k: 'Uygunluk skoru',
           v: here.score + '/100 · ' + gradeLabel(here.score).tr,
@@ -754,7 +873,7 @@
         var disclaimer = climateOk
           ? 'Kaynaklar: rakım ölçümü + iklim arşivi (' +
             season.label +
-            ' ortalama sıcaklık, yağış, bağıl nem, ET0). Uygunluk skoru rakım+iklim+eğim; Su/nem paneli yağış−ET0 ve nem ölçümünden. Sahte flora/verim % yoktur.'
+            ' ortalama sıcaklık, yağış, yağışlı saat, bağıl nem, ET0). Uygunluk skoru rakım+iklim+eğim; Su/nem yağış−ET0; uçuş özeti precipitation_hours. Sahte flora/verim % yoktur.'
           : 'Kaynak: rakım ölçümü. İklim arşivi alınamadı — skor yalnızca rakım/eğim. Sahte flora/verim % yoktur.';
 
         return {
@@ -770,6 +889,7 @@
           meanRhPct: here.meanRhPct,
           et0SumMm: here.et0SumMm,
           water: water || null,
+          flight: flight || null,
           seasonLabel: here.seasonLabel || season.label,
           insights: insights,
           tip: tip,
@@ -777,7 +897,7 @@
           demo: !climateOk,
           climateOk: climateOk,
           sources: climateOk
-            ? ['rakım ölçümü', 'iklim arşivi', 'su / nem (RH+ET0)']
+            ? ['rakım ölçümü', 'iklim arşivi', 'su / nem (RH+ET0)', 'uçuş / yağış saati']
             : ['rakım ölçümü']
         };
       });
@@ -974,6 +1094,53 @@
           '</div>'
         );
       })() +
+      (function () {
+        if (!analysis.flight) return '';
+        var f = analysis.flight;
+        function fmtH(h) {
+          if (h == null || !isFinite(Number(h))) return null;
+          var n = Math.round(Number(h) * 10) / 10;
+          if (Math.abs(n - Math.round(n)) < 0.05) return String(Math.round(n));
+          return String(n).replace('.', ',');
+        }
+        return (
+          '<div class="forage-flight">' +
+            '<div class="forage-flight-head">Uçuş / yağış özeti</div>' +
+            '<p class="forage-flight-sum">' +
+            escapeHtml(f.summary || '') +
+            '</p>' +
+            (f.precipDays != null
+              ? '<div class="forage-row"><div class="forage-k">Yağışlı gün <span class="forage-tag">sezon</span></div><div class="forage-v">' +
+                escapeHtml(String(f.precipDays) + ' gün') +
+                '</div></div>'
+              : '') +
+            (f.rainHoursSum != null
+              ? '<div class="forage-row"><div class="forage-k">Yağışlı saat <span class="forage-tag">toplam</span></div><div class="forage-v">' +
+                escapeHtml('~' + fmtH(f.rainHoursSum) + ' saat') +
+                (f.rainHoursAvg != null
+                  ? escapeHtml(' · ort. ' + fmtH(f.rainHoursAvg) + ' sa/gün')
+                  : '') +
+                '</div></div>'
+              : '') +
+            (f.flightOkDays != null
+              ? '<div class="forage-row"><div class="forage-k">Uçuş penceresi <span class="forage-tag tone-' +
+                escapeHtml(f.tone || 'mid') +
+                '">özet</span></div><div class="forage-v">' +
+                escapeHtml(
+                  'uçuşa daha uygun gün ≈ ' +
+                    f.flightOkDays +
+                    (f.poorFlightDays != null
+                      ? ' (elverişsiz ' + f.poorFlightDays + ')'
+                      : '')
+                ) +
+                '</div></div>'
+              : '') +
+            (f.tip
+              ? '<p class="forage-flight-tip">' + escapeHtml(f.tip) + '</p>'
+              : '') +
+          '</div>'
+        );
+      })() +
       tip +
       '<p class="forage-disc">' +
       escapeHtml(analysis.disclaimer) +
@@ -1016,6 +1183,11 @@
     '.forage-water-head{font-size:12px;font-weight:800;color:#1e3a5f;margin:0 0 4px;}',
     '.forage-water-sum{font-size:11px;font-weight:650;color:#3a4f66;margin:0 0 8px;line-height:1.4;}',
     '.forage-water .forage-row{margin-top:4px;}',
+    '.forage-flight{margin-top:10px;padding:10px 11px;border-radius:12px;background:#fff8f0;border:1px solid #e0b88a;}',
+    '.forage-flight-head{font-size:12px;font-weight:800;color:#5a3a1a;margin:0 0 4px;}',
+    '.forage-flight-sum{font-size:11px;font-weight:650;color:#6a4f34;margin:0 0 8px;line-height:1.4;}',
+    '.forage-flight .forage-row{margin-top:4px;}',
+    '.forage-flight-tip{margin:8px 0 0;font-size:10px;font-weight:560;color:#8a7358;line-height:1.35;}',
     '.forage-tag.tone-good{color:#3d5a2a;}',
     '.forage-tag.tone-ok{color:#4a2f1a;}',
     '.forage-tag.tone-mid{color:#6a4220;}',
