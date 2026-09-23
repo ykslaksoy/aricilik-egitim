@@ -577,6 +577,32 @@
   /**
    * Build tip with WHY bullets: measured deltas (rakım, sıcaklık, yağış, eğim/skor).
    */
+  function midKgFromScoreLocal(S) {
+    S = Number(S) || 0;
+    if (S >= 80) return 30;
+    if (S >= 65) return 24;
+    if (S >= 45) return 16;
+    return 10;
+  }
+
+  function yieldPctForTip(scoreHere, scoreBest) {
+    var Y = global.SuperAriForageYield;
+    if (Y && typeof Y.yieldPctFromScores === 'function') {
+      return Y.yieldPctFromScores(scoreHere, scoreBest);
+    }
+    var midHere =
+      Y && typeof Y.midKgFromScore === 'function'
+        ? Y.midKgFromScore(scoreHere)
+        : midKgFromScoreLocal(scoreHere);
+    var midBest =
+      Y && typeof Y.midKgFromScore === 'function'
+        ? Y.midKgFromScore(scoreBest)
+        : midKgFromScoreLocal(scoreBest);
+    var pct = Math.round(100 * (midBest - midHere) / Math.max(midHere, 1));
+    if (!isFinite(pct) || pct < 8) return null;
+    return Math.max(5, Math.min(80, pct));
+  }
+
   function buildTip(here, best, sampleDist) {
     if (!best || best.score < here.score + 6) {
       return {
@@ -589,15 +615,36 @@
       };
     }
 
-    var distStr = sampleDist.toFixed(1).replace(/\.0$/, '');
+    var kmShow = Math.round(Number(sampleDist) * 2) / 2;
+    if (!isFinite(kmShow)) kmShow = Number(sampleDist) || 0;
+    var distStr = String(kmShow).replace(/\.0$/, '');
+    var dirLabel = best.dir.label;
+    var yieldPct = yieldPctForTip(here.score, best.score);
+
     var lines = [];
-    lines.push(
-      'Önerilen konum: ~' +
-        distStr +
-        ' km ' +
-        best.dir.label +
-        ' — rakım/iklim uygunluğu daha yüksek (hava modeli). «Haritada göster» ile mevcut ve öneri birlikte açılır.'
-    );
+    if (yieldPct != null) {
+      lines.push(
+        'Yaklaşık ' +
+          distStr +
+          ' km ' +
+          dirLabel +
+          ' taşırsan hedef bal ~%' +
+          yieldPct +
+          ' artabilir (garanti değil; yer skoru ' +
+          here.score +
+          '→' +
+          best.score +
+          ').'
+      );
+    } else {
+      lines.push(
+        'Önerilen konum: ~' +
+          distStr +
+          ' km ' +
+          dirLabel +
+          ' — rakım/iklim uygunluğu daha yüksek (hava modeli). «Haritada göster» ile mevcut ve öneri birlikte açılır.'
+      );
+    }
 
     var why = [];
     if (here.elevM != null && best.elevM != null) {
@@ -651,15 +698,19 @@
           : '')
     });
 
-    return {
+    var tip = {
       text: lines[0],
       why: why,
       dirKey: best.dir.key,
+      dirLabel: dirLabel,
+      distKm: kmShow,
       targetLat: best.lat,
       targetLon: best.lon,
       scoreHere: here.score,
       scoreBest: best.score
     };
+    if (yieldPct != null) tip.yieldPct = yieldPct;
+    return tip;
   }
 
   function analyze(lat, lon, radiusKm) {

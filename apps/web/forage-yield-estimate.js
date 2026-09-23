@@ -66,6 +66,24 @@
     return { mid: 10, half: 5 };
   }
 
+  /** Mid kg/hive from score bands — for tip % deltas (yaklaşık hedef farkı). */
+  function midKgFromScore(S) {
+    return scoreBaseline(S).mid;
+  }
+
+  /**
+   * Relative hedef-bal improvement % from two suitability scores.
+   * Returns null when improvement is too small to claim (&lt;8%).
+   * Display clamped to 5–80.
+   */
+  function yieldPctFromScores(scoreHere, scoreBest) {
+    var midHere = midKgFromScore(scoreHere);
+    var midBest = midKgFromScore(scoreBest);
+    var pct = Math.round(100 * (midBest - midHere) / Math.max(midHere, 1));
+    if (!isFinite(pct) || pct < 8) return null;
+    return Math.max(5, Math.min(80, pct));
+  }
+
   function normalizeBreedKey(raw) {
     var s = String(raw || '')
       .toLocaleLowerCase('tr')
@@ -440,7 +458,7 @@
       .replace(/"/g, '&quot;');
   }
 
-  function renderBlocksHtml(estimate, mismatches, escapeHtml) {
+  function renderBlocksHtml(estimate, mismatches, escapeHtml, tip) {
     escapeHtml = escapeHtml || escapeDefault;
     if (!estimate) return '';
 
@@ -507,6 +525,24 @@
         ? ' · geçen sezon ' + escapeHtml(String(round0(estimate.Hprev))) + ' kg'
         : '') +
       '</p>' +
+      (function () {
+        if (!tip || tip.yieldPct == null || tip.yieldPct < 8) return '';
+        var km =
+          tip.distKm != null && isFinite(Number(tip.distKm))
+            ? String(Math.round(Number(tip.distKm) * 2) / 2).replace(/\.0$/, '')
+            : '';
+        var dir = tip.dirLabel || tip.dirKey || '';
+        if (!km || !dir) return '';
+        return (
+          '<p class="fy-better">Daha iyi nokta: ' +
+          escapeHtml(km) +
+          ' km ' +
+          escapeHtml(dir) +
+          ' — ~+%' +
+          escapeHtml(String(tip.yieldPct)) +
+          ' hedef</p>'
+        );
+      })() +
       notesHtml +
       radiusNote +
       '</div>';
@@ -666,7 +702,7 @@
     return {
       estimate: estimate,
       mismatches: mismatches,
-      html: renderBlocksHtml(estimate, mismatches, ctx.escapeHtml)
+      html: renderBlocksHtml(estimate, mismatches, ctx.escapeHtml, analysis.tip || null)
     };
   }
 
@@ -679,6 +715,7 @@
     '.fy-sum{margin:0 0 4px;font-size:12px;font-weight:700;color:#2c241c;line-height:1.4;}',
     '.fy-range{font-weight:650;color:#5a6a4a;}',
     '.fy-meta{margin:0;font-size:11px;font-weight:650;color:#4a5a3a;line-height:1.35;}',
+    '.fy-better{margin:6px 0 0;font-size:11px;font-weight:750;color:#3d5a2a;line-height:1.35;}',
     '.fy-notes{margin:6px 0 0;font-size:10px;font-weight:560;color:#6b735a;line-height:1.35;}',
     '.fy-empty{margin:0;font-size:11px;font-weight:650;color:#6b635a;}',
     '.fy-swap-list{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:8px;}',
@@ -704,6 +741,8 @@
   global.SuperAriForageYield = {
     W_HARVEST: W_HARVEST,
     estimateYield: estimateYield,
+    midKgFromScore: midKgFromScore,
+    yieldPctFromScores: yieldPctFromScores,
     findMismatchedHives: findMismatchedHives,
     renderBlocksHtml: renderBlocksHtml,
     buildFromAnalysis: buildFromAnalysis,
