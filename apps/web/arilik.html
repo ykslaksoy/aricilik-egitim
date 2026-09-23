@@ -299,6 +299,16 @@
   .water-auto-hint {
     margin: 4px 0 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
   }
+  .water-radius-vals {
+    display: inline-flex; align-items: baseline; gap: 4px;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .water-radius-vals .val {
+    font-size: 11px; font-weight: 800; color: #4a2f1a;
+  }
+  .water-radius-vals .val-max {
+    font-size: 10px; font-weight: 650; color: #8a8278;
+  }
   .water-expand-panel {
     display: grid; gap: 8px;
     font-size: 12px; font-weight: 700; color: var(--muted);
@@ -2115,8 +2125,9 @@
   var WATER_STEP_M = 50;
   var WATER_DEFAULT_M = 800;
   var WATER_AUTO_HINT_TR =
-    'Su mesafesi hedef balda çarpan olur (yaklaşık 100 m–3 km; garanti değil). ' +
-    'Kaydırarak elle değiştirebilirsiniz. Kaynak seçmek veya eklemek için Değiştir.';
+    'Su mesafesi hedef balda çarpan olur (garanti değil). ' +
+    'Kaydırarak elle değiştirebilirsiniz (100 m–3 km). Başlangıç / seçili öneri: 800 m. ' +
+    'Kaynak seçmek veya eklemek için Değiştir.';
 
   function clampWaterDistM(v) {
     var n = Math.round(Number(v));
@@ -2219,7 +2230,10 @@
           '<label for="waterRadius">Su</label>' +
           '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
             '" step="' + WATER_STEP_M + '" value="' + sliderM + '" />' +
-          '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
+          '<span class="water-radius-vals">' +
+            '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
+            '<span class="val-max" id="waterRadiusMax">/ 3 km</span>' +
+          '</span>' +
         '</div>' +
         '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
         '<div class="water-source-bar">' +
