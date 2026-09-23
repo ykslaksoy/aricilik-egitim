@@ -457,7 +457,8 @@
   mount();
 })(typeof window !== 'undefined' ? window : this);
 
-/* Safe ana layout: shorter tile rows only; do NOT touch muayeneHint / hive / labels */
+/* LOCKED 2026-09-23 — Ana bee/podium/name layout + safe grid. Do not change without explicit user ask.
+ * Group centered in mid gap: exit (top) → podium → breed name (bottom). Protect muayeneHint dock. */
 (function injectSafeAnaLayout() {
   try {
     if (typeof document === 'undefined') return;
@@ -474,7 +475,7 @@
         /* idle dock: allow podium into white forecast; active notes keep clip via base CSS */
         '#muayeneHint.muayene-hint.is-idle{flex:0 0 auto!important;flex-shrink:0!important;overflow:visible!important;position:relative!important;z-index:5!important}',
         '#muayeneHint .muayene-hint-mid{overflow:visible!important;position:relative!important;z-index:6!important}',
-        /* center exit+podium+name as one group in mid gap between Arılar/Sessiz */
+        /* LOCKED: center exit+podium+name as one group in mid gap between Arılar/Sessiz */
         '.muayene-hint-mid .bee-exit{top:50%!important;bottom:auto!important;left:50%!important;transform:translate(-50%,calc(-50% - 18px))!important;margin:0!important;z-index:31!important}',
         '.muayene-hint-mid .bee-podium{top:50%!important;bottom:auto!important;left:50%!important;transform:translate(-50%,-50%)!important;margin:0!important;z-index:30!important;flex-direction:column!important;gap:2px!important;pointer-events:none!important}',
         '.bee-podium:not(.is-hidden){display:flex!important}',
