@@ -360,6 +360,33 @@
     return { metres: null, source: 'none' };
   }
 
+  /**
+   * Nearest catalog water source that has finite lat/lon (haversine).
+   * @returns {{ item: object, metres: number }|null}
+   */
+  function nearestWaterSourceWithCoords(lat, lon) {
+    var a = Number(lat);
+    var b = Number(lon);
+    if (!isFinite(a) || !isFinite(b)) return null;
+    var list = loadWaterCatalog();
+    var best = null;
+    var bestM = Infinity;
+    for (var i = 0; i < list.length; i++) {
+      var item = list[i];
+      var wlat = Number(item.lat);
+      var wlon = Number(item.lon);
+      if (!isFinite(wlat) || !isFinite(wlon)) continue;
+      var m = haversineMetres(a, b, wlat, wlon);
+      if (m == null) continue;
+      if (m < bestM) {
+        bestM = m;
+        best = item;
+      }
+    }
+    if (!best) return null;
+    return { item: best, metres: bestM };
+  }
+
   /** Sync convenience fields from active catalog item onto dest. */
   function syncWaterConvenienceFromCatalog(dest) {
     if (!dest) return dest;
@@ -415,6 +442,9 @@
     if (n != null) dest.waterSourceNote = n;
     var lab = parseWaterSourceLabel(src && src.waterSourceLabel);
     if (lab != null) dest.waterSourceLabel = lab;
+    if (src && src.waterSourceConfirmedAt != null && String(src.waterSourceConfirmedAt).trim()) {
+      dest.waterSourceConfirmedAt = String(src.waterSourceConfirmedAt).trim();
+    }
     migrateLegacyWaterToCatalog(dest, src);
     syncWaterConvenienceFromCatalog(dest);
     return dest;
@@ -1020,6 +1050,7 @@
             delete a.waterSourceLabel;
             delete a.waterSourceType;
             delete a.waterSourceNote;
+            delete a.waterSourceConfirmedAt;
           }
         }
         if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceType')) {
@@ -1036,6 +1067,11 @@
           var wl = parseWaterSourceLabel(patch.waterSourceLabel);
           if (wl != null) a.waterSourceLabel = wl;
           else delete a.waterSourceLabel;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'waterSourceConfirmedAt')) {
+          var wsc = patch.waterSourceConfirmedAt;
+          if (wsc != null && String(wsc).trim()) a.waterSourceConfirmedAt = String(wsc).trim();
+          else delete a.waterSourceConfirmedAt;
         }
         /* Keep type/note/label aligned with catalog when id is set. */
         if (a.waterSourceId) syncWaterConvenienceFromCatalog(a);
@@ -1237,6 +1273,7 @@
       updateWaterCatalogItem: updateWaterCatalogItem,
       removeWaterCatalogItem: removeWaterCatalogItem,
       haversineMetres: haversineMetres,
+      nearestWaterSourceWithCoords: nearestWaterSourceWithCoords,
       computedWaterDistanceM: computedWaterDistanceM,
       effectiveWaterDistanceM: effectiveWaterDistanceM,
       yandexMapsUrl: yandexMapsUrl,

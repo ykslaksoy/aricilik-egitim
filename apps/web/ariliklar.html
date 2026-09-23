@@ -449,6 +449,7 @@
   var forageManual = false;
   var mapCtrl = null;
   var placemark = null;
+  var waterPlacemark = null;
   var radar = null;
   var Y = window.SuperAriYandexMap;
   var otherMapsMenu = null;
@@ -595,16 +596,74 @@
     scheduleAnalyze(lat, lon);
   }
 
+  function clearWaterPlacemark() {
+    if (waterPlacemark && Y && Y.removePlacemark && mapCtrl) {
+      waterPlacemark = Y.removePlacemark(mapCtrl, waterPlacemark);
+    } else {
+      waterPlacemark = null;
+    }
+  }
+
+  function waterPinBalloon(item) {
+    if (!item) return 'Su kaynağı';
+    var labels = (D && D.WATER_SOURCE_TYPE_LABELS_TR) || {};
+    var typeLab = labels[item.typeKey] || item.typeKey || '';
+    var typeBit = typeLab ? String(typeLab).toLocaleLowerCase('tr-TR') : '';
+    var label = item.label ? String(item.label).trim() : typeLab || 'Su';
+    return typeBit ? (label + ' · ' + typeBit) : label;
+  }
+
+  /** Nearest catalog water pin (suggestion only; confirm on arılık detay). */
+  function syncWaterPlacemark(lat, lon) {
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!mapCtrl || !Y || !Y.upsertPlacemark || !isFinite(la) || !isFinite(lo)) {
+      clearWaterPlacemark();
+      return;
+    }
+    if (!D || !D.nearestWaterSourceWithCoords) {
+      clearWaterPlacemark();
+      return;
+    }
+    var hit = D.nearestWaterSourceWithCoords(la, lo);
+    if (!hit || !hit.item) {
+      clearWaterPlacemark();
+      return;
+    }
+    var item = hit.item;
+    var wLat = Number(item.lat);
+    var wLon = Number(item.lon);
+    if (!isFinite(wLat) || !isFinite(wLon)) {
+      clearWaterPlacemark();
+      return;
+    }
+    var balloon = waterPinBalloon(item);
+    waterPlacemark = Y.upsertPlacemark(mapCtrl, waterPlacemark, wLat, wLon, {
+      draggable: false,
+      preset: 'islands#blueStretchyIcon',
+      iconContent: 'Su',
+      title: balloon,
+      hint: balloon
+    });
+  }
+
   function placeMarker(lat, lon, name) {
     if (!mapCtrl) return;
     var la = typeof lat === 'object' ? lat.lat : lat;
     var lo = typeof lat === 'object' ? (lat.lng != null ? lat.lng : lat.lon) : lon;
     placemark = Y.upsertPlacemark(mapCtrl, placemark, la, lo, {
       draggable: true,
-      onDrag: function (a, b) { updateRadar(a, b); },
-      onDragEnd: function (a, b) { setPending(a, b, pending && pending.name); }
+      onDrag: function (a, b) {
+        updateRadar(a, b);
+        syncWaterPlacemark(a, b);
+      },
+      onDragEnd: function (a, b) {
+        setPending(a, b, pending && pending.name);
+        syncWaterPlacemark(a, b);
+      }
     });
     setPending(la, lo, name);
+    syncWaterPlacemark(la, lo);
   }
 
   var mapFs = null;
@@ -891,6 +950,7 @@
       try { mapCtrl.map.geoObjects.remove(placemark); } catch (e0) {}
       placemark = null;
     }
+    clearWaterPlacemark();
     requestAnimationFrame(function () {
       sheet.classList.add('is-open');
       refreshMap();

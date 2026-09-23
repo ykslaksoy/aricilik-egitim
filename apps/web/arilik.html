@@ -289,6 +289,17 @@
     margin: 0; font-size: 11px; font-weight: 700; color: #8a5a20; line-height: 1.35;
   }
   .water-source-prompt[hidden] { display: none !important; }
+  .water-suggest-banner {
+    display: grid; gap: 8px; padding: 10px 11px; border-radius: 12px;
+    background: #e8f2fb; border: 1px solid #7aafd4; margin-top: 8px;
+  }
+  .water-suggest-banner[hidden] { display: none !important; }
+  .water-suggest-banner p {
+    margin: 0; font-size: 12px; font-weight: 700; color: #1e4a6e; line-height: 1.4;
+  }
+  .water-suggest-banner strong { font-weight: 850; }
+  .water-suggest-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .water-suggest-actions .map-btn { min-height: 40px; min-width: 88px; padding: 0 14px; }
   .water-catalog-list {
     list-style: none; margin: 0; padding: 0; display: grid; gap: 6px;
   }
@@ -587,6 +598,10 @@
   var detailMapCtrl = null;
   var detailPlacemark = null;
   var tipPlacemark = null;
+  var waterPlacemark = null;
+  /** Session: dismissed nearest suggestion { apiaryId, sourceId } — pin may remain. */
+  var waterSuggestDismissed = null;
+  var pendingWaterSuggest = null;
   var pickMode = false;
   var activeApiary = null;
   var radar = null;
@@ -1008,6 +1023,7 @@
       onDrag: function (a, b) {
         if (!pickMode || !radar) return;
         radar.setCenter(a, b);
+        syncWaterPlacemark(a, b);
       },
       onDragEnd: function (a, b) {
         if (!pickMode) return;
@@ -1016,6 +1032,7 @@
         var saveBtn = document.getElementById('btnSaveLoc');
         if (saveBtn) saveBtn.hidden = false;
         updateRadarAndAnalyze(a, b);
+        syncWaterPlacemark(a, b);
       },
       onClick: function () {
         if (!pickMode && activeApiary && hasCoords(activeApiary)) openLocMenu();
@@ -1031,6 +1048,7 @@
     }
     if (name) pendingSearchName = name;
     updateRadarAndAnalyze(la, lo);
+    syncWaterPlacemark(la, lo);
   }
 
   function coordsNearlyEqual(aLat, aLon, bLat, bLon) {
@@ -1062,6 +1080,146 @@
     });
   }
 
+  function clearWaterPlacemark() {
+    if (waterPlacemark && Y && Y.removePlacemark && detailMapCtrl) {
+      waterPlacemark = Y.removePlacemark(detailMapCtrl, waterPlacemark);
+    } else {
+      waterPlacemark = null;
+    }
+  }
+
+  function waterPinBalloon(item) {
+    if (!item) return 'Su kaynağı';
+    var typeLab = waterTypeLabelTr(item.typeKey) || item.typeKey || '';
+    var typeBit = typeLab ? String(typeLab).toLocaleLowerCase('tr-TR') : '';
+    var label = item.label ? String(item.label).trim() : typeLab || 'Su';
+    return typeBit ? (label + ' · ' + typeBit) : label;
+  }
+
+  function isWaterSuggestDismissed(apiaryId, sourceId) {
+    return !!(
+      waterSuggestDismissed &&
+      String(waterSuggestDismissed.apiaryId) === String(apiaryId || '') &&
+      String(waterSuggestDismissed.sourceId) === String(sourceId || '')
+    );
+  }
+
+  /**
+   * Place / refresh blue pin on nearest catalog water with coords.
+   * Suggestion only — does not set waterSourceId until Onayla / list pick.
+   */
+  function syncWaterPlacemark(lat, lon) {
+    pendingWaterSuggest = null;
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!detailMapCtrl || !Y || !Y.upsertPlacemark || !isFinite(la) || !isFinite(lo)) {
+      clearWaterPlacemark();
+      renderWaterSuggestBanner(null);
+      return null;
+    }
+    if (!D || !D.nearestWaterSourceWithCoords) {
+      clearWaterPlacemark();
+      renderWaterSuggestBanner(null);
+      return null;
+    }
+    var hit = D.nearestWaterSourceWithCoords(la, lo);
+    if (!hit || !hit.item) {
+      clearWaterPlacemark();
+      renderWaterSuggestBanner(null);
+      return null;
+    }
+    var item = hit.item;
+    var wLat = Number(item.lat);
+    var wLon = Number(item.lon);
+    if (!isFinite(wLat) || !isFinite(wLon)) {
+      clearWaterPlacemark();
+      renderWaterSuggestBanner(null);
+      return null;
+    }
+    var balloon = waterPinBalloon(item);
+    waterPlacemark = Y.upsertPlacemark(detailMapCtrl, waterPlacemark, wLat, wLon, {
+      draggable: false,
+      preset: 'islands#blueStretchyIcon',
+      iconContent: 'Su',
+      title: balloon,
+      hint: balloon
+    });
+    pendingWaterSuggest = {
+      id: item.id,
+      label: item.label,
+      typeKey: item.typeKey,
+      metres: hit.metres,
+      lat: wLat,
+      lon: wLon
+    };
+    renderWaterSuggestBanner(pendingWaterSuggest);
+    return pendingWaterSuggest;
+  }
+
+  function shouldOfferWaterSuggest(suggest) {
+    if (!suggest || !suggest.id || !activeApiary) return false;
+    var activeId = activeApiary.waterSourceId ? String(activeApiary.waterSourceId) : '';
+    if (activeId) return false; /* already confirmed via list / prior Onayla */
+    if (isWaterSuggestDismissed(activeApiary.id, suggest.id)) return false;
+    return true;
+  }
+
+  function renderWaterSuggestBanner(suggest) {
+    var el = document.getElementById('waterSuggestBanner');
+    if (!el) return;
+    if (!shouldOfferWaterSuggest(suggest)) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+    var typeLab = waterTypeLabelTr(suggest.typeKey) || suggest.typeKey || '';
+    var name = suggest.label || typeLab || 'Su kaynağı';
+    var metres = suggest.metres != null && isFinite(Number(suggest.metres))
+      ? Math.round(Number(suggest.metres))
+      : null;
+    var distBit = metres != null ? (' · ' + metres + ' m') : '';
+    el.hidden = false;
+    el.innerHTML =
+      '<p>Önerilen su: <strong>' + escapeHtml(name) + '</strong>' +
+        (typeLab ? (' <span class="water-source-sub">(' + escapeHtml(typeLab) + ')</span>') : '') +
+        escapeHtml(distBit) +
+        ' — Bu kaynak mı?</p>' +
+      '<div class="water-suggest-actions">' +
+        '<button type="button" class="map-btn" id="btnConfirmWaterSuggest">Onayla</button>' +
+        '<button type="button" class="map-btn ghost" id="btnDismissWaterSuggest">Değil</button>' +
+      '</div>';
+    var btnOk = document.getElementById('btnConfirmWaterSuggest');
+    var btnNo = document.getElementById('btnDismissWaterSuggest');
+    if (btnOk) btnOk.addEventListener('click', confirmWaterSuggestion);
+    if (btnNo) btnNo.addEventListener('click', dismissWaterSuggestion);
+  }
+
+  function confirmWaterSuggestion() {
+    if (!pendingWaterSuggest || !pendingWaterSuggest.id || !activeApiary || !D || !D.updateApiary) return;
+    var sid = String(pendingWaterSuggest.id);
+    waterSuggestDismissed = null;
+    D.updateApiary(activeApiary.id, {
+      waterSourceId: sid,
+      waterDistanceM: null,
+      waterSourceConfirmedAt: new Date().toISOString()
+    });
+    refreshActiveApiary();
+    render();
+  }
+
+  function dismissWaterSuggestion() {
+    if (!activeApiary || !pendingWaterSuggest) {
+      renderWaterSuggestBanner(null);
+      return;
+    }
+    waterSuggestDismissed = {
+      apiaryId: activeApiary.id,
+      sourceId: pendingWaterSuggest.id
+    };
+    renderWaterSuggestBanner(null);
+  }
+
+
   function forageCircleFitPoints(lat, lon) {
     var r = radar && radar.getRadiusKm ? Number(radar.getRadiusKm()) : forageRadiusKm;
     if (!isFinite(lat) || !isFinite(lon) || !isFinite(r) || r <= 0) return [];
@@ -1087,6 +1245,10 @@
     if (tipPlacemark) {
       var tip = Y.placemarkCoords(tipPlacemark);
       if (tip) points.push(tip);
+    }
+    if (waterPlacemark) {
+      var wpt = Y.placemarkCoords(waterPlacemark);
+      if (wpt) points.push(wpt);
     }
     if (points.length) Y.fitPoints(detailMapCtrl, points, { margin: 56 });
   }
@@ -1252,8 +1414,13 @@
       if (opts.alertOnBad) alert('Su kaynağı bulunamadı.');
       return false;
     }
-    var patch = { waterSourceId: sid, waterDistanceM: null };
+    var patch = {
+      waterSourceId: sid,
+      waterDistanceM: null,
+      waterSourceConfirmedAt: new Date().toISOString()
+    };
     /* Reset override on source change — haversine applies when both have coords. */
+    waterSuggestDismissed = null;
     D.updateApiary(activeApiary.id, patch);
     refreshActiveApiary();
     syncWaterAutoDistHint();
@@ -1268,6 +1435,9 @@
     if (opts.reanalyze && hasCoords(activeApiary)) {
       updateRadarAndAnalyze(Number(activeApiary.lat), Number(activeApiary.lon));
     }
+    var pin = currentDetailPin();
+    if (pin) syncWaterPlacemark(pin.lat, pin.lon);
+    else renderWaterSuggestBanner(null);
     return true;
   }
 
@@ -1403,7 +1573,11 @@
       alert('Su kaynağı kaydedilemedi.');
       return false;
     }
-    var patch = { waterSourceId: item.id };
+    var patch = {
+      waterSourceId: item.id,
+      waterSourceConfirmedAt: new Date().toISOString()
+    };
+    waterSuggestDismissed = null;
     if (form.distanceM != null) {
       patch.waterDistanceM = form.distanceM;
     } else {
@@ -1490,6 +1664,7 @@
     }
     return (
       '<div class="water-dist-row" id="waterSourceBlock">' +
+        '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
         '<p class="water-source-title">Yerel su kaynağı <span class="water-source-sub">(kalıcı liste)</span></p>' +
         waterCatalogListHtml(apiary) +
         '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle / Yeni su kaynağı</button>' +
@@ -1528,7 +1703,7 @@
               '<p class="water-auto-dist" id="waterAutoDist" hidden></p>'
             )
           : '') +
-        '<p class="water-source-hint">Liste tüm arılıklar için kalıcıdır; bir kez ekleyin, istediğiniz arılıkta seçin. Konum varsa mesafe otomatik hesaplanır.</p>' +
+        '<p class="water-source-hint">Haritadaki mavi iğne en yakın kayıtlı sudur (öneri). Hedef bal için Onayla veya listeden seçin. Liste tüm arılıklar için kalıcıdır; konum varsa mesafe otomatik hesaplanır.</p>' +
       '</div>'
     );
   }
@@ -1712,8 +1887,10 @@
       detailMapCtrl = null;
       detailPlacemark = null;
       tipPlacemark = null;
+      waterPlacemark = null;
     } else {
       tipPlacemark = null;
+      waterPlacemark = null;
     }
     detailMapReady = null;
 
