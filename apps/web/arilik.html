@@ -686,6 +686,7 @@
   var MAP_TAP_HINT_WATER = 'Su konumunu haritaya dokunarak seç';
   var activeApiary = null;
   var radar = null;
+  var waterRadar = null;
   var analyzeTimer = null;
   var pendingSearchName = '';
   var searchResultsCache = [];
@@ -1404,6 +1405,7 @@
     if (radar && radar.setCenter) {
       try { radar.setCenter(lat, lon); } catch (e2) {}
     }
+    syncWaterRadar(lat, lon);
   }
 
   function openLocMenu() {
@@ -2285,6 +2287,23 @@
     } catch (e) { /* yield block optional */ }
   }
 
+  function currentWaterRadiusM() {
+    var input = document.getElementById('waterRadius');
+    if (input && input.value != null && input.value !== '') {
+      return clampWaterDistM(input.value);
+    }
+    if (activeApiary) return initialWaterSliderM(activeApiary);
+    return WATER_DEFAULT_M;
+  }
+
+  function syncWaterRadar(lat, lon) {
+    if (!waterRadar || !isFinite(lat) || !isFinite(lon)) return;
+    var m = currentWaterRadiusM();
+    if (waterRadar.setRadiusM) waterRadar.setRadiusM(m);
+    else waterRadar.setRadiusKm(m / 1000);
+    waterRadar.setCenter(lat, lon);
+  }
+
   function updateRadarAndAnalyze(lat, lon) {
     if (isFinite(lat) && isFinite(lon) && !forageManual) {
       applyAutoForage(lat, lon, activeApiary);
@@ -2293,6 +2312,7 @@
       radar.setRadiusKm(forageRadiusKm);
       radar.setCenter(lat, lon);
     }
+    syncWaterRadar(lat, lon);
     var host = document.getElementById('forageHost');
     if (!F || !host || !isFinite(lat) || !isFinite(lon)) return;
     if (analyzeTimer) clearTimeout(analyzeTimer);
@@ -2455,10 +2475,18 @@
       tipPlacemark = null;
       waterPlacemark = null;
       waterDraftPlacemark = null;
+      moveDestPlacemark = null;
+      if (radar && radar.clear) try { radar.clear(); } catch (eR) {}
+      if (waterRadar && waterRadar.clear) try { waterRadar.clear(); } catch (eW) {}
+      radar = null;
+      waterRadar = null;
     } else {
       tipPlacemark = null;
       waterPlacemark = null;
       waterDraftPlacemark = null;
+      moveDestPlacemark = null;
+      radar = null;
+      waterRadar = null;
     }
     detailMapReady = null;
 
@@ -2476,6 +2504,13 @@
     detailMapReady = Y.createMap(el, { center: center, zoom: zoom }).then(function (ctrl) {
       detailMapCtrl = ctrl;
       radar = Y.attachRadar(ctrl, { radiusKm: forageRadiusKm });
+      var wKm = currentWaterRadiusM() / 1000;
+      waterRadar = Y.attachRadar(ctrl, {
+        radiusKm: wKm > 0 ? wKm : 0.8,
+        fillColor: '#3d9be528',
+        strokeColor: '#2a7ab8',
+        strokeWidth: 2
+      });
       var host = document.getElementById('detailMapHost');
       if (host) {
         detailMapFs = Y.attachFullscreen(host, el, ctrl, {
@@ -2504,6 +2539,7 @@
               if (radar && radar.setCenter) {
                 try { radar.setCenter(lat, lon); } catch (e1) { /* ignore */ }
               }
+              syncWaterRadar(lat, lon);
             }
           });
         }
@@ -2705,7 +2741,7 @@
             '<button type="button" class="btn-ara" id="mapPasteBtn">Uygula</button>' +
           '</div>' +
         '</label>' +
-        '<p class="map-hint-inline">Tek satır + Enter/Uygula: pin koyar, kaydı açar. Haritada da ara / iğne / sürükle · kaydet (tam ekran Geri). Google · Apple · OSM · Bing. Sarı çember = foraj.</p>' +
+        '<p class="map-hint-inline">Tek satır + Enter/Uygula: pin koyar, kaydı açar. Haritada da ara / iğne / sürükle · kaydet (tam ekran Geri). Google · Apple · OSM · Bing. Sarı çember = foraj · mavi çember = su mesafesi.</p>' +
         '<div id="forageHost"></div>' +
       '</section>';
 
@@ -3057,7 +3093,10 @@
           refreshActiveApiary();
         }
         var pinW = currentPin();
-        if (pinW) updateRadarAndAnalyze(pinW.lat, pinW.lon);
+        if (pinW) {
+          syncWaterRadar(pinW.lat, pinW.lon);
+          updateRadarAndAnalyze(pinW.lat, pinW.lon);
+        }
       });
     }
     if (pasteInput && D.parseCoordsFromText) {

@@ -851,11 +851,14 @@
       .replace(/"/g, '&quot;');
   }
 
-  /** Forage radius circle on a Yandex map (no Leaflet). */
+  /** Forage / water radius circle on a Yandex map (no Leaflet). */
   function attachRadar(ctrl, opts) {
     opts = opts || {};
     var radiusKm = Number(opts.radiusKm);
     if (!isFinite(radiusKm) || radiusKm <= 0) radiusKm = 3;
+    var fillColor = opts.fillColor || '#f0c43a24';
+    var strokeColor = opts.strokeColor || '#c9a227';
+    var strokeWidth = opts.strokeWidth != null ? Number(opts.strokeWidth) : 2;
     var circle = null;
 
     function meters() {
@@ -870,9 +873,9 @@
           [center, meters()],
           {},
           {
-            fillColor: '#f0c43a24',
-            strokeColor: '#c9a227',
-            strokeWidth: 2,
+            fillColor: fillColor,
+            strokeColor: strokeColor,
+            strokeWidth: strokeWidth,
             opacity: 0.85,
             interactivityModel: 'default#transparent'
           }
@@ -885,9 +888,16 @@
     }
 
     function setRadiusKm(km) {
-      radiusKm = Number(km) || radiusKm;
+      var n = Number(km);
+      if (isFinite(n) && n > 0) radiusKm = n;
       if (circle) circle.geometry.setRadius(meters());
       return radiusKm;
+    }
+
+    function setRadiusM(m) {
+      var n = Number(m);
+      if (!isFinite(n) || n < 0) n = 0;
+      return setRadiusKm(n / 1000);
     }
 
     function clear() {
@@ -902,7 +912,9 @@
     return {
       setCenter: setCenter,
       setRadiusKm: setRadiusKm,
+      setRadiusM: setRadiusM,
       getRadiusKm: function () { return radiusKm; },
+      getRadiusM: function () { return Math.round(radiusKm * 1000); },
       clear: clear
     };
   }
