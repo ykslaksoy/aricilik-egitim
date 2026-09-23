@@ -239,9 +239,25 @@
     margin-top: 8px;
   }
   .map-loc-bar {
-    display: flex; gap: 8px; margin-top: 8px; align-items: center;
+    display: flex; gap: 8px; margin-top: 6px; align-items: center;
   }
-  .map-loc-bar .map-btn { flex: 1; }
+  .map-coords-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
+  }
+  .map-coords-row .map-coords-line {
+    flex: 1; min-width: 0; margin: 0;
+  }
+  .map-coords-row #btnKonumMenu,
+  .map-btn.icon-gear {
+    flex: 0 0 auto;
+    width: 36px; height: 36px; min-height: 36px; min-width: 36px;
+    padding: 0; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #fff; border: 1px solid #e0c56a; color: var(--brown);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .map-btn.icon-gear:active { transform: scale(.96); opacity: .85; }
+  .map-btn.icon-gear svg { width: 18px; height: 18px; display: block; }
   .map-btn.ghost {
     background: #fff; border: 1px solid #e0c56a; color: var(--brown);
   }
@@ -2316,15 +2332,17 @@
           '<div class="ymap-tap-hint is-on">Büyütmek için dokun</div>' +
         '</div>' +
         (coordsOk
-          ? '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Konum işlemleri">' +
-              fmtCoord(apiary.lat) + ', ' + fmtCoord(apiary.lon) +
-            '</button>'
+          ? (
+              '<div class="map-coords-row">' +
+                '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Koordinatlar">' +
+                  fmtCoord(apiary.lat) + ', ' + fmtCoord(apiary.lon) +
+                '</button>' +
+                '<button type="button" class="map-btn icon-gear" id="btnKonumMenu" aria-label="Konum ayarları" title="Konum ayarları">' +
+                  '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.59.24-1.13.55-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.83 14.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.43.34.68.22l2.39-.96c.5.39 1.04.71 1.63.94l.36 2.54c.05.24.25.42.49.42h3.8c.24 0 .44-.18.49-.42l.36-2.54c.59-.24 1.13-.55 1.63-.94l2.39.96c.25.12.54.02.68-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg>' +
+                '</button>' +
+              '</div>'
+            )
           : '<div class="map-coords-line" id="pickCoords">Konum seçilmedi</div>') +
-        (coordsOk
-          ? '<div class="map-loc-bar">' +
-              '<button type="button" class="map-btn ghost" id="btnKonumMenu">Konum ▾</button>' +
-            '</div>'
-          : '') +
         '<div class="map-tool-row is-on" id="mapEditTools">' +
           '<button type="button" class="map-btn ghost" id="btnPickLoc">' +
             (coordsOk ? 'Haritadan seç / değiştir' : 'Haritadan seç') +
