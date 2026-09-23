@@ -189,7 +189,6 @@
   .ymap-host.is-fullscreen .ymap-tap-hint { display: none !important; }
   .map-actions { flex-wrap: wrap; }
   .map-tool-row { flex-wrap: wrap; }
-  .ymap-bookmarks { margin-top: 6px; }
   #detailMap { width: 100%; min-height: 220px; border-radius: 14px; overflow: hidden; background: #eef1f4; }
 
   .map-missing {
@@ -1345,7 +1344,6 @@
           '<button type="button" class="map-btn" id="btnSaveLoc"' +
             (coordsOk ? ' hidden' : '') + '>Bu konumu kaydet</button>' +
         '</div>' +
-        '<div id="mapBookmarks" class="ymap-bookmarks" hidden></div>' +
         '<div class="forage-radius">' +
           '<label for="forageRadius">Foraj</label>' +
           '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" />' +
@@ -1481,7 +1479,6 @@
     var radiusInput = document.getElementById('forageRadius');
     var radiusVal = document.getElementById('forageRadiusVal');
     var pasteInput = document.getElementById('mapPaste');
-    var bmHost = document.getElementById('mapBookmarks');
     if (searchBtn) searchBtn.addEventListener('click', runDetailSearch);
     if (searchInput) {
       searchInput.addEventListener('keydown', function (e) {
@@ -1493,18 +1490,6 @@
     }
     function currentPin() {
       return currentDetailPin() || (hasCoords(apiary) ? { lat: Number(apiary.lat), lon: Number(apiary.lon) } : null);
-    }
-    if (bmHost && Y) {
-      Y.renderBookmarksList(bmHost, function (hit) {
-        pickMode = true;
-        placeDetailMarker(hit.lat, hit.lon, hit.name);
-        if (detailMapCtrl) detailMapCtrl.setView(hit.lat, hit.lon, 13);
-        if (btnSave) {
-          btnSave.hidden = false;
-          btnSave.textContent = 'Bu konumu kaydet';
-        }
-        if (btnPick) btnPick.hidden = true;
-      });
     }
     if (radiusInput) {
       radiusInput.addEventListener('input', function () {

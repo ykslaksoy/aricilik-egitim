@@ -245,7 +245,6 @@
   }
   .ymap-host.is-fullscreen .ymap-tap-hint { display: none !important; }
   .map-tool-row { flex-wrap: wrap; }
-  .ymap-bookmarks { margin-top: 6px; }
   #pickerMap { width: 100%; height: 220px; border-radius: 14px; overflow: hidden; background: #eef1f4; }
 
   .map-hint {
@@ -362,7 +361,6 @@
             <button type="button" class="btn-tool" id="btnOtherMaps">Diğer haritalarda aç</button>
             <button type="button" class="btn-tool primary" id="btnAddLoc" disabled>Bu konumu ekle</button>
           </div>
-          <div id="mapBookmarks" class="ymap-bookmarks" hidden></div>
           <label class="map-paste">Koordinat — tek satır (enlem, boylam)
             <div class="map-search-row map-paste-row">
               <input type="text" id="mapPaste" maxlength="240" placeholder="39.92, 41.27  ·  39.92 41.27  ·  Yandex linki" autocomplete="off" inputmode="decimal" />
@@ -871,18 +869,6 @@
     if (placemark && mapCtrl) {
       try { mapCtrl.map.geoObjects.remove(placemark); } catch (e0) {}
       placemark = null;
-    }
-    var bmHost = document.getElementById('mapBookmarks');
-    if (Y && bmHost) {
-      Y.renderBookmarksList(bmHost, function (hit) {
-        ensureMap().then(function () {
-          placeMarker(hit.lat, hit.lon, hit.name);
-          if (mapCtrl) mapCtrl.setView(hit.lat, hit.lon, 13);
-          if (!String(form.elements.place.value || '').trim() && hit.name) {
-            form.elements.place.value = String(hit.name).slice(0, 40);
-          }
-        });
-      });
     }
     requestAnimationFrame(function () {
       sheet.classList.add('is-open');
