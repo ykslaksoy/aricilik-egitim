@@ -290,11 +290,26 @@
     border: 0; background: #f0f1f3; color: var(--text);
     font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit;
   }
-  .section-title {
-    font-size: 14px; font-weight: 800; color: var(--text);
-    margin: 4px 2px 10px;
-  }
   .action-row { display: grid; gap: 8px; margin-bottom: 16px; }
+  .plan-banner {
+    margin-bottom: 16px; padding: 14px; border-radius: 14px;
+    background: #fff8df; border: 1px solid #e0c56a;
+  }
+  .plan-banner .plan-title {
+    font-size: 13px; font-weight: 800; color: var(--brown); margin-bottom: 4px;
+  }
+  .plan-banner .plan-meta {
+    font-size: 12px; color: var(--muted); line-height: 1.45; font-weight: 600;
+  }
+  .plan-banner .plan-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+  }
+  .btn-pin-target {
+    width: 100%; min-height: 40px; margin-bottom: 12px; border-radius: 12px;
+    border: 1px dashed #e0c56a; background: #fffdf5; color: var(--brown);
+    font-size: 13px; font-weight: 750; font-family: inherit; cursor: pointer;
+  }
+  .btn-pin-target:active { transform: scale(.98); }
   .action-link, button.action-link {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 14px; border-radius: 14px;
@@ -346,24 +361,6 @@
   .btn.save {
     background: linear-gradient(145deg, var(--hardal-hi), var(--hardal));
     color: #3b2b00;
-  }
-  .hive-list { display: grid; gap: 8px; }
-  .hive-item {
-    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start;
-    padding: 12px; border-radius: 14px;
-    background: #fff; border: 1px solid var(--card-border);
-    text-decoration: none; color: inherit;
-  }
-  .hive-item h3 { font-size: 13px; font-weight: 750; color: var(--text); }
-  .hive-item .meta { margin-top: 2px; font-size: 11px; color: var(--muted); }
-  .hive-item .badge {
-    font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px;
-    background: #fff8df; color: var(--brown); white-space: nowrap;
-  }
-  .empty {
-    padding: 14px; border-radius: 14px;
-    background: #fff8df; border: 1px dashed #e0c56a;
-    color: var(--muted); font-size: 13px; line-height: 1.4;
   }
   .missing {
     padding: 18px 14px; border-radius: 16px;
@@ -454,8 +451,8 @@
 
   <div class="sheet" id="moveSheet" hidden>
     <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="moveSheetTitle">
-      <h2 id="moveSheetTitle">Taşıma kaydet</h2>
-      <p class="sheet-sub" id="moveSheetSub">Nakliye veya kendi araç</p>
+      <h2 id="moveSheetTitle">Taşıma planla</h2>
+      <p class="sheet-sub" id="moveSheetSub">Hedef konum + gider planı · Tamam’da uygulanır</p>
       <form id="moveForm">
         <div class="mode-field">
           <span class="mode-label">Taşıma şekli</span>
@@ -466,8 +463,18 @@
           <input type="hidden" name="mode" id="arTransportMode" value="nakliye" />
         </div>
         <p class="fuel-hint" id="arFuelHint" hidden>
-          Kendi araç seçildi — yakıt tutarı zorunlu; Giderler’de Yakıt kaydı oluşur.
+          Kendi araç seçildi — yakıt tutarı zorunlu; taşıma tamamlanınca Giderler’de Yakıt kaydı oluşur.
         </p>
+        <label>Hedef yer adı <span style="font-weight:600;opacity:.7">(isteğe bağlı)</span>
+          <input name="place" type="text" maxlength="80" placeholder="Örn. Yayla kampı" />
+        </label>
+        <label>Hedef enlem
+          <input name="lat" type="number" inputmode="decimal" step="any" required placeholder="39.92" />
+        </label>
+        <label>Hedef boylam
+          <input name="lon" type="number" inputmode="decimal" step="any" required placeholder="41.27" />
+        </label>
+        <button type="button" class="btn-pin-target" id="btnUseMapPin">Haritadaki iğneyi hedef al</button>
         <label id="arAmountLabel"><span id="arAmountLabelText">Nakliye ücreti (₺)</span>
           <input name="amount" type="number" inputmode="decimal" min="1" step="1" required placeholder="0" />
         </label>
@@ -479,7 +486,7 @@
         </label>
         <div class="sheet-actions">
           <button type="button" class="btn cancel" id="moveSheetCancel">Vazgeç</button>
-          <button type="submit" class="btn save">Kaydet</button>
+          <button type="submit" class="btn save">Planı kaydet</button>
         </div>
       </form>
     </div>
@@ -530,6 +537,32 @@
   var Y = window.SuperAriYandexMap;
   var detailMapFs = null;
   var detailMapReady = null;
+  var MOVE_PLAN_KEY = 'superari.arilik.movePlan.v1';
+
+  function loadMovePlan(apiaryId) {
+    try {
+      var raw = localStorage.getItem(MOVE_PLAN_KEY);
+      if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (!p || String(p.apiaryId) !== String(apiaryId)) return null;
+      var lat = Number(p.lat);
+      var lon = Number(p.lon);
+      if (!isFinite(lat) || !isFinite(lon)) return null;
+      return p;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveMovePlan(plan) {
+    try {
+      localStorage.setItem(MOVE_PLAN_KEY, JSON.stringify(plan));
+    } catch (e) { /* ignore quota */ }
+  }
+
+  function clearMovePlan() {
+    try { localStorage.removeItem(MOVE_PLAN_KEY); } catch (e) { /* ignore */ }
+  }
 
   function forageOptsFor(apiary) {
     var list = (D && D.loadApiaries) ? D.loadApiaries() : [];
@@ -616,16 +649,55 @@
     setTimeout(function () { moveSheet.hidden = true; }, 220);
   }
 
+  function fillPlanDestFromPin() {
+    var pin = currentDetailPin
+      ? currentDetailPin()
+      : (activeApiary && hasCoords(activeApiary)
+          ? { lat: Number(activeApiary.lat), lon: Number(activeApiary.lon) }
+          : null);
+    if (!pin) {
+      alert('Önce haritada iğneyi konumlandırın, sonra hedef alın.');
+      return false;
+    }
+    moveForm.elements.lat.value = Number(pin.lat).toFixed(6);
+    moveForm.elements.lon.value = Number(pin.lon).toFixed(6);
+    if (pendingSearchName && !String(moveForm.elements.place.value || '').trim()) {
+      moveForm.elements.place.value = pendingSearchName;
+    }
+    return true;
+  }
+
   function openMoveSheet() {
     if (!activeApiary || !G) return;
     document.getElementById('moveSheetSub').textContent =
-      (activeApiary.place || activeApiary.name) + ' · gider listesine yazılır';
+      (activeApiary.place || activeApiary.name) + ' · hedef konum planlanır, Tamam’da uygulanır';
     moveForm.reset();
     moveForm.elements.date.value = G.todayIso();
     setArTransportMode('nakliye');
+    var existing = loadMovePlan(activeApiary.id);
+    if (existing) {
+      setArTransportMode(existing.mode || 'nakliye');
+      moveForm.elements.amount.value = existing.amount != null ? existing.amount : '';
+      moveForm.elements.date.value = existing.date || G.todayIso();
+      moveForm.elements.note.value = existing.note || '';
+      moveForm.elements.place.value = existing.place || '';
+      moveForm.elements.lat.value = existing.lat != null ? existing.lat : '';
+      moveForm.elements.lon.value = existing.lon != null ? existing.lon : '';
+    } else {
+      var pin = currentDetailPin
+        ? currentDetailPin()
+        : (hasCoords(activeApiary)
+            ? { lat: Number(activeApiary.lat), lon: Number(activeApiary.lon) }
+            : null);
+      if (pin) {
+        moveForm.elements.lat.value = Number(pin.lat).toFixed(6);
+        moveForm.elements.lon.value = Number(pin.lon).toFixed(6);
+      }
+      if (pendingSearchName) moveForm.elements.place.value = pendingSearchName;
+    }
     moveSheet.hidden = false;
     requestAnimationFrame(function () { moveSheet.classList.add('is-open'); });
-    setTimeout(function () { moveForm.elements.amount.focus(); }, 220);
+    setTimeout(function () { moveForm.elements.lat.focus(); }, 220);
   }
 
   moveSheet.querySelectorAll('.mode-chip').forEach(function (btn) {
@@ -637,6 +709,9 @@
   moveSheet.addEventListener('click', function (e) {
     if (e.target === moveSheet) closeMoveSheet();
   });
+  document.getElementById('btnUseMapPin').addEventListener('click', function () {
+    fillPlanDestFromPin();
+  });
   moveForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!activeApiary || !G) return;
@@ -644,25 +719,35 @@
     var amount = Number(moveForm.elements.amount.value);
     var date = moveForm.elements.date.value;
     var note = String(moveForm.elements.note.value || '').trim();
+    var place = String(moveForm.elements.place.value || '').trim();
+    var lat = Number(moveForm.elements.lat.value);
+    var lon = Number(moveForm.elements.lon.value);
+    if (!isFinite(lat) || !isFinite(lon)) {
+      alert('Hedef enlem ve boylam zorunludur.');
+      moveForm.elements.lat.focus();
+      return;
+    }
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      alert('Geçersiz koordinat aralığı.');
+      return;
+    }
     if (mode === 'kendi_arac' && !(amount > 0)) {
       alert('Kendi araçta yakıt tutarı zorunludur.');
       moveForm.elements.amount.focus();
       return;
     }
     if (!(amount > 0) || !date) return;
-    try {
-      G.recordTransport({
-        mode: mode,
-        amount: amount,
-        date: date,
-        note: note,
-        apiaryId: activeApiary.id,
-        apiaryName: activeApiary.name || activeApiary.place || ''
-      });
-    } catch (err) {
-      alert((err && err.message) || 'Kayıt başarısız.');
-      return;
-    }
+    saveMovePlan({
+      apiaryId: activeApiary.id,
+      lat: lat,
+      lon: lon,
+      place: place,
+      mode: mode,
+      amount: amount,
+      date: date,
+      note: note,
+      createdAt: new Date().toISOString()
+    });
     closeMoveSheet();
     render();
   });
@@ -1298,17 +1383,29 @@
     var linked = D.hivesForApiary(apiary.id);
     var hiveN = linked.length;
     var filterHref = 'kovanlar.html?apiary=' + encodeURIComponent(apiary.id);
-    var hiveRows = linked.map(function (h) {
-      return (
-        '<a class="hive-item" href="kovan.html?id=' + encodeURIComponent(h.id) + '">' +
-          '<div>' +
-            '<h3>' + escapeHtml(h.name) + '</h3>' +
-            '<div class="meta">' + escapeHtml(h.health) + ' · ' + h.weightKg.toFixed(1) + ' kg · oğul ' + escapeHtml(h.swarmRisk) + '</div>' +
+    var movePlan = loadMovePlan(apiary.id);
+    var giderAddHref = 'giderler.html?yeni=1&apiary=' + encodeURIComponent(apiary.id);
+
+    var planBanner = '';
+    if (movePlan) {
+      var destLabel = movePlan.place
+        ? escapeHtml(movePlan.place) + ' · ' + fmtCoord(movePlan.lat) + ', ' + fmtCoord(movePlan.lon)
+        : fmtCoord(movePlan.lat) + ', ' + fmtCoord(movePlan.lon);
+      var modeLabel = movePlan.mode === 'kendi_arac' ? 'Kendi araç' : 'Nakliye';
+      planBanner =
+        '<div class="plan-banner" id="movePlanBanner">' +
+          '<div class="plan-title">Planlı taşıma</div>' +
+          '<div class="plan-meta">' +
+            escapeHtml(apiary.place || apiary.name || 'Arılık') + ' → ' + destLabel +
+            '<br>' + modeLabel + ' · ' + formatTRY(movePlan.amount) + ' · ' + formatDate(movePlan.date) +
+            (movePlan.note ? '<br>' + escapeHtml(movePlan.note) : '') +
           '</div>' +
-          '<span class="badge">' + h.healthScore + '</span>' +
-        '</a>'
-      );
-    }).join('');
+          '<div class="plan-actions">' +
+            '<button type="button" class="btn cancel" id="btnPlanCancel">Planı iptal</button>' +
+            '<button type="button" class="btn save" id="btnPlanDone">Tamam</button>' +
+          '</div>' +
+        '</div>';
+    }
 
     var coordsOk = hasCoords(apiary);
 
@@ -1395,21 +1492,18 @@
         '</div>' +
       '</section>' +
       mapBlock +
+      planBanner +
       '<div class="action-row">' +
         '<button type="button" class="action-link" id="btnMoveSave">' +
-          'Taşıma kaydet <span aria-hidden="true">›</span>' +
+          'Taşıma planla <span aria-hidden="true">›</span>' +
         '</button>' +
         '<a class="action-link" href="' + filterHref + '">' +
           hiveN + ' kovanı gör <span aria-hidden="true">›</span>' +
         '</a>' +
-        '<a class="action-link" href="giderler.html?tab=ariliklar">' +
-          'Taşımalar Giderler’de <span aria-hidden="true">›</span>' +
+        '<a class="action-link" href="' + giderAddHref + '">' +
+          'Gider ekle <span aria-hidden="true">›</span>' +
         '</a>' +
-      '</div>' +
-      '<h2 class="section-title" id="kovanlar">Kovanlar (' + hiveN + ')</h2>' +
-      (hiveRows
-        ? '<div class="hive-list">' + hiveRows + '</div>'
-        : '<p class="empty">Bu arılıkta henüz kovan yok. Arılık eklerken kovan sayısı girerseniz burada listelenir.</p>');
+      '</div>';
 
     pickMode = !coordsOk;
     forageManual = false;
@@ -1425,6 +1519,39 @@
     var btnKonum = document.getElementById('btnKonumMenu');
 
     if (btnMove) btnMove.addEventListener('click', openMoveSheet);
+    var btnPlanDone = document.getElementById('btnPlanDone');
+    var btnPlanCancel = document.getElementById('btnPlanCancel');
+    if (btnPlanCancel) {
+      btnPlanCancel.addEventListener('click', function () {
+        clearMovePlan();
+        render();
+      });
+    }
+    if (btnPlanDone) {
+      btnPlanDone.addEventListener('click', function () {
+        var plan = loadMovePlan(apiary.id);
+        if (!plan || !G) return;
+        if (!confirm('Taşıma tamamlandı sayılacak; konum güncellenir ve gider yazılır.')) return;
+        var patch = { lat: Number(plan.lat), lon: Number(plan.lon) };
+        if (plan.place) patch.place = plan.place;
+        D.updateApiary(apiary.id, patch);
+        try {
+          G.recordTransport({
+            mode: plan.mode === 'kendi_arac' ? 'kendi_arac' : 'nakliye',
+            amount: Number(plan.amount),
+            date: plan.date,
+            note: plan.note || '',
+            apiaryId: apiary.id,
+            apiaryName: (plan.place || apiary.name || apiary.place || '')
+          });
+        } catch (err) {
+          alert((err && err.message) || 'Gider yazılamadı.');
+          return;
+        }
+        clearMovePlan();
+        render();
+      });
+    }
     if (btnKonum) btnKonum.addEventListener('click', openLocMenu);
     if (coordsBtn && coordsBtn.tagName === 'BUTTON') {
       coordsBtn.addEventListener('click', openLocMenu);

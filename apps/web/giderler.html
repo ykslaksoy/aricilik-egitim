@@ -679,13 +679,14 @@
   function readStateFromUrl() {
     try {
       var params = new URLSearchParams(window.location.search || '');
-      var id = String(params.get('apiary') || params.get('arilik') || '').trim();
+      var id = String(params.get('apiary') || params.get('arilik') || params.get('apiaryId') || '').trim();
       var tab = String(params.get('tab') || '').trim().toLowerCase();
-      if (id) return { view: 'ariliklar', apiary: id };
-      if (tab === 'ariliklar' || tab === 'arilik') return { view: 'ariliklar', apiary: 'all' };
-      return { view: 'toplam', apiary: 'all' };
+      var openNew = params.get('yeni') === '1' || params.get('add') === '1';
+      if (id) return { view: 'ariliklar', apiary: id, openNew: openNew };
+      if (tab === 'ariliklar' || tab === 'arilik') return { view: 'ariliklar', apiary: 'all', openNew: openNew };
+      return { view: 'toplam', apiary: 'all', openNew: openNew };
     } catch (e) {
-      return { view: 'toplam', apiary: 'all' };
+      return { view: 'toplam', apiary: 'all', openNew: false };
     }
   }
 
@@ -705,10 +706,12 @@
     } catch (e) { /* ignore */ }
   }
 
+  var pendingOpenNew = false;
   (function initState() {
     var s = readStateFromUrl();
     activeView = s.view;
     filterApiary = s.apiary;
+    pendingOpenNew = !!s.openNew;
   })();
 
   function formatTRY(n) {
@@ -1497,6 +1500,17 @@
   });
 
   render();
+
+  if (pendingOpenNew) {
+    pendingOpenNew = false;
+    try {
+      var clean = new URL(window.location.href);
+      clean.searchParams.delete('yeni');
+      clean.searchParams.delete('add');
+      history.replaceState(null, '', clean.pathname + clean.search + clean.hash);
+    } catch (e) { /* ignore */ }
+    setTimeout(function () { openSheet(null); }, 80);
+  }
 
   var clock = document.getElementById('clock');
   function tick() {
