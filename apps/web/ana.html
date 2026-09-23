@@ -532,7 +532,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
+  .muayene-hint-text:active { opacity: .75; }
   .muayene-hint-ok {
     flex: 0 0 auto;
     height: 26px;
@@ -1010,7 +1021,7 @@
             <div class="podium-stage" id="podiumStage"></div>
             <span class="podium-name" id="podiumName"></span>
           </div>
-          <span class="muayene-hint-text" id="muayeneHintText"></span>
+          <button type="button" class="muayene-hint-text" id="muayeneHintText" hidden aria-label="Nota git"></button>
           <button type="button" class="muayene-hint-ok" id="muayeneHintOk" hidden>Tamam</button>
         </div>
         <button type="button" class="bee-sound-toggle" id="beeSoundToggle" aria-pressed="true" aria-label="Sesi kapat" title="Sesi kapat">
@@ -1295,7 +1306,10 @@
       muayeneEl.classList.add('is-idle');
       muayeneEl.classList.remove('is-active');
       muayeneEl.removeAttribute('hidden');
-      if (muayeneText) muayeneText.textContent = '';
+      if (muayeneText) {
+        muayeneText.textContent = '';
+        muayeneText.hidden = true;
+      }
       if (muayeneOk) muayeneOk.hidden = true;
       emitHintState(false);
     }
@@ -1312,7 +1326,14 @@
       /* Tek satır; uzun metin CSS ellipsis + burada da kısalt */
       var short = String(msg).replace(/\s+/g, ' ').trim();
       if (short.length > 42) short = short.slice(0, 40).trim() + '…';
-      if (muayeneText) muayeneText.textContent = short;
+      if (muayeneText) {
+        muayeneText.textContent = short;
+        muayeneText.hidden = false;
+        muayeneText.setAttribute(
+          'aria-label',
+          (opts.href ? 'Nota git: ' : '') + short
+        );
+      }
       if (muayeneOk) muayeneOk.hidden = false;
       emitHintState(true);
       if (tipHideTimer) clearTimeout(tipHideTimer);
@@ -1395,6 +1416,19 @@
       return list[0] || null;
     }
 
+    function currentApiaryHref() {
+      var a = apiaries[idx] || apiaries[0] || DEMO_APIARIES[0];
+      if (!a || !a.id) return 'ariliklar.html';
+      return 'arilik.html?id=' + encodeURIComponent(a.id);
+    }
+
+    function openHintTarget() {
+      var href = (lastHintMeta && lastHintMeta.href) || activeAlertHref || currentApiaryHref();
+      if (!href) return;
+      if (tipHideTimer) clearTimeout(tipHideTimer);
+      window.location.href = href;
+    }
+
     function nextRotatingTip() {
       /* Priority: open hive alerts (same list as Uyarılar) at bee-exit dock */
       var alerts = openAlerts();
@@ -1433,13 +1467,14 @@
         return {
           text: 'Uygun muayene: ' + pendingMuayeneTip.dayLabel + ' — ' + pendingMuayeneTip.reason,
           sticky: false,
-          fromMuayene: true
+          fromMuayene: true,
+          href: currentApiaryHref()
         };
       }
       var t = tipPool[tipPoolIdx % tipPool.length];
       tipPoolIdx += 1;
       activeMuayeneTipDate = null;
-      return { text: t, sticky: false, fromMuayene: false };
+      return { text: t, sticky: false, fromMuayene: false, href: currentApiaryHref() };
     }
 
     function startTipRotation() {
@@ -1479,7 +1514,11 @@
       /* Show inspection tip soon if dock is free */
       if (!hintVisible) {
         activeMuayeneTipDate = best.date;
-        showHintMessage('Muayene: ' + best.dayLabel + ' · ' + best.reason, { sticky: false });
+        showHintMessage('Muayene: ' + best.dayLabel + ' · ' + best.reason, {
+          sticky: false,
+          fromMuayene: true,
+          href: currentApiaryHref()
+        });
       }
     }
 
@@ -1490,19 +1529,27 @@
         dismissMuayeneHint();
       });
     }
+    if (muayeneText) {
+      muayeneText.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!muayeneEl || !muayeneEl.classList.contains('is-active')) return;
+        openHintTarget();
+      });
+    }
     if (muayeneEl) {
       muayeneEl.addEventListener('click', function (e) {
         if (!muayeneEl.classList.contains('is-active')) return;
-        if (e.target === muayeneOk) return;
-        if (e.target.closest && (e.target.closest('#beeToggle') || e.target.closest('#beeSoundToggle'))) return;
-        var href = (lastHintMeta && lastHintMeta.href) || activeAlertHref;
-        if (href) {
-          var go = href;
-          dismissMuayeneHint();
-          window.location.href = go;
-          return;
+        if (e.target.closest && (
+          e.target.closest('#muayeneHintOk') ||
+          e.target.closest('#muayeneHintText') ||
+          e.target.closest('#beeToggle') ||
+          e.target.closest('#beeSoundToggle')
+        )) return;
+        /* Mid strip (not Tamam): same as note → go to place */
+        if (e.target.closest && e.target.closest('.muayene-hint-mid')) {
+          openHintTarget();
         }
-        dismissMuayeneHint();
       });
       setHintDock();
       startTipRotation();
