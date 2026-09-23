@@ -275,13 +275,24 @@
   .water-source-wrap {
     margin-top: 8px; display: grid; gap: 6px;
   }
+  .water-radius {
+    grid-template-columns: auto 1fr auto auto;
+  }
+  .water-radius .water-mid {
+    font-size: 11px; font-weight: 750; color: #4a2f1a;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .water-radius .water-mid.is-empty { color: #8a8278; font-weight: 650; }
   .water-radius .val {
     font-size: 11px; font-weight: 800; color: #4a2f1a;
-    font-variant-numeric: tabular-nums; min-width: 0;
+    font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right;
   }
   .water-radius .map-btn {
     min-height: 32px; min-width: 64px; padding: 0 10px;
     font-size: 11px; font-weight: 750;
+  }
+  .water-auto-hint {
+    margin: 4px 0 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
   }
   .water-expand-panel {
     display: grid; gap: 8px;
@@ -1891,16 +1902,38 @@
     );
   }
 
-  function waterSummaryText(apiary) {
-    if (!apiary || !apiary.waterSourceId || !D || !D.waterCatalogById) return 'Seçilmedi';
+  var WATER_AUTO_HINT_TR =
+    'En yakın su mesafesi hedef balda çarpan olur (yaklaşık 100 m–3 km; garanti değil). ' +
+    'Konumlu kaynakta mesafe haritadan gelir; konum yoksa elle girilir. Değiştir ile kaynak seçin veya ekleyin.';
+
+  function waterTypeSummary(apiary) {
+    if (!apiary || !apiary.waterSourceId || !D || !D.waterCatalogById) return '';
     var item = D.waterCatalogById(apiary.waterSourceId);
-    if (!item) return 'Seçilmedi';
-    var label = String(item.label || '').trim() || waterTypeLabelTr(item.typeKey) || 'Su';
+    if (!item) return '';
+    return String(item.label || '').trim() || waterTypeLabelTr(item.typeKey) || 'Su';
+  }
+
+  function waterDistSummary(apiary) {
+    if (!apiary || !apiary.waterSourceId || !D || !D.waterCatalogById) return '—';
+    var item = D.waterCatalogById(apiary.waterSourceId);
+    if (!item) return '—';
     var eff = effectiveDistInfo(apiary, item);
     if (eff && eff.metres != null && isFinite(Number(eff.metres))) {
-      return label + ' · ' + Math.round(Number(eff.metres)) + ' m';
+      var m = Math.round(Number(eff.metres));
+      if (m >= 1000) {
+        var km = Math.round((m / 1000) * 10) / 10;
+        return String(km).replace('.', ',') + ' km';
+      }
+      return m + ' m';
     }
-    return label;
+    return '—';
+  }
+
+  function waterSummaryText(apiary) {
+    var type = waterTypeSummary(apiary);
+    if (!type) return 'Seçilmedi';
+    var dist = waterDistSummary(apiary);
+    return dist && dist !== '—' ? (type + ' · ' + dist) : type;
   }
 
   function waterSourceBlockHtml(apiary) {
@@ -1925,16 +1958,21 @@
     /* Elle mesafe yalnız konum yoksa; konum varsa harita mesafesi kullanılır. */
     var showManualDist = !!(apiary && apiary.waterSourceId && !waterHasCoords);
     var hasActive = !!activeWater;
-    var summary = waterSummaryText(apiary);
+    var typeLab = waterTypeSummary(apiary);
+    var distLab = waterDistSummary(apiary);
     var toggleLabel = hasActive ? 'Değiştir' : 'Ekle';
+    var midClass = 'water-mid' + (typeLab ? '' : ' is-empty');
+    var midText = typeLab || 'Seçilmedi';
     return (
       '<div class="water-source-wrap" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
         '<div class="forage-radius water-radius">' +
           '<label>Su</label>' +
-          '<div class="val" id="waterSummaryVal">' + escapeHtml(summary) + '</div>' +
+          '<div class="' + midClass + '" id="waterTypeVal">' + escapeHtml(midText) + '</div>' +
+          '<span class="val" id="waterDistVal">' + escapeHtml(distLab) + '</span>' +
           '<button type="button" class="map-btn ghost" id="btnWaterToggle">' + toggleLabel + '</button>' +
         '</div>' +
+        '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
         '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
           waterCatalogListHtml(apiary) +
           '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle</button>' +
