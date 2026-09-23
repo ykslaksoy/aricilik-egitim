@@ -2235,12 +2235,24 @@
         });
         if (Y.attachMyLocationButton) {
           Y.attachMyLocationButton(host, ctrl, {
-            onLocated: function (lat, lon) {
-              if (typeof waterPickMode !== 'undefined' && waterPickMode) return;
-              if (!pickMode) startPickMode();
-              placeDetailMarker(lat, lon, pendingSearchName);
-              var saveBtn = document.getElementById('btnSaveLoc');
-              if (saveBtn) saveBtn.hidden = false;
+            label: 'Kayıtlı konumu ortala',
+            getTarget: function () {
+              /* Prefer live pin on map; else saved apiary coords */
+              if (detailPlacemark && detailPlacemark.geometry && detailPlacemark.geometry.getCoordinates) {
+                try {
+                  var c = detailPlacemark.geometry.getCoordinates();
+                  if (c && isFinite(c[0]) && isFinite(c[1])) return { lat: c[0], lon: c[1] };
+                } catch (e0) { /* fall through */ }
+              }
+              if (activeApiary && hasCoords(activeApiary)) {
+                return { lat: Number(activeApiary.lat), lon: Number(activeApiary.lon) };
+              }
+              return null;
+            },
+            onCentered: function (lat, lon) {
+              if (radar && radar.setCenter) {
+                try { radar.setCenter(lat, lon); } catch (e1) { /* ignore */ }
+              }
             }
           });
         }

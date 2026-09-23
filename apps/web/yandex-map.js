@@ -259,8 +259,10 @@
   }
 
   /**
-   * Reliable "my location" control — Yandex geolocationControl often no-ops on mobile/PWA.
-   * Uses navigator.geolocation, then centers map. opts.onLocated(lat, lon) optional.
+   * Map control: center on a target (saved/marked pin) or GPS.
+   * opts.getTarget() → { lat, lon } — if set, button recenters on that (no GPS).
+   * Else uses navigator.geolocation. opts.onLocated(lat, lon) optional (GPS path only).
+   * opts.label / opts.title optional.
    */
   function attachMyLocationButton(hostEl, ctrl, opts) {
     opts = opts || {};
@@ -269,15 +271,20 @@
     }
     var existing = hostEl.querySelector('.ymap-my-loc');
     if (existing) existing.remove();
+    var useSaved = typeof opts.getTarget === 'function';
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'ymap-my-loc';
-    btn.setAttribute('aria-label', 'Konumuma git');
-    btn.title = 'Konumuma git';
+    var label = opts.label || (useSaved ? 'Kayıtlı konumu ortala' : 'Konumuma git');
+    btn.setAttribute('aria-label', label);
+    btn.title = opts.title || label;
+    /* Classic crosshair (older locate glyph) — not GPS “me” */
     btn.innerHTML =
       '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
-      '<path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-6C6.5 2 2 6.5 2 12c0 5.5 4.5 10 10 10s10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8z"/>' +
-      '<circle cx="12" cy="12" r="2.2" fill="currentColor"/>' +
+      '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+      'd="M12 3v3M12 18v3M3 12h3M18 12h3"/>' +
+      '<circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/>' +
+      '<circle cx="12" cy="12" r="1.6" fill="currentColor"/>' +
       '</svg>';
     hostEl.appendChild(btn);
 
@@ -286,7 +293,29 @@
       btn.disabled = !!on;
     }
 
-    function go() {
+    function centerAt(lat, lon) {
+      if (!isFinite(lat) || !isFinite(lon)) return false;
+      var z = ctrl.getZoom ? ctrl.getZoom() : 14;
+      if (z < 14) z = 14;
+      if (ctrl.setView) ctrl.setView(lat, lon, z);
+      else if (ctrl.setCenter) ctrl.setCenter(lat, lon, z);
+      return true;
+    }
+
+    function goSaved() {
+      var t = null;
+      try { t = opts.getTarget(); } catch (e0) { t = null; }
+      if (!t || !isFinite(Number(t.lat)) || !isFinite(Number(t.lon))) {
+        alert('Haritada işaretli kayıtlı konum yok.');
+        return;
+      }
+      centerAt(Number(t.lat), Number(t.lon));
+      if (typeof opts.onCentered === 'function') {
+        try { opts.onCentered(Number(t.lat), Number(t.lon)); } catch (e1) { /* ignore */ }
+      }
+    }
+
+    function goGps() {
       if (!navigator.geolocation) {
         alert('Bu cihaz konum paylaşımını desteklemiyor.');
         return;
@@ -297,14 +326,10 @@
           setBusy(false);
           var lat = pos.coords.latitude;
           var lon = pos.coords.longitude;
-          if (!isFinite(lat) || !isFinite(lon)) {
+          if (!centerAt(lat, lon)) {
             alert('Konum alınamadı.');
             return;
           }
-          var z = ctrl.getZoom ? ctrl.getZoom() : 14;
-          if (z < 14) z = 15;
-          if (ctrl.setView) ctrl.setView(lat, lon, z);
-          else if (ctrl.setCenter) ctrl.setCenter(lat, lon, z);
           if (typeof opts.onLocated === 'function') {
             try { opts.onLocated(lat, lon); } catch (e) { /* ignore */ }
           }
@@ -324,7 +349,8 @@
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
-      go();
+      if (useSaved) goSaved();
+      else goGps();
     });
 
     return {
