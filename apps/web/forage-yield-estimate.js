@@ -396,7 +396,9 @@
       siteClass: siteClass,
       hives: hives,
       dataThin: dataThin,
-      perHiveMid: perHiveMid
+      perHiveMid: perHiveMid,
+      landCoverAvailable: opts.landCoverAvailable,
+      landCoverSummary: opts.landCoverSummary || null
     });
 
     return {
@@ -454,7 +456,12 @@
       k: 'Yer skoru',
       v:
         (ctx.S != null ? ctx.S + '/100' : '—') +
-        (ctx.scoreMid != null ? ' → taban ~' + ctx.scoreMid + ' kg/kovan' : '')
+        (ctx.scoreMid != null ? ' → taban ~' + ctx.scoreMid + ' kg/kovan' : '') +
+        (ctx.landCoverAvailable
+          ? ' · bitki örtüsü OSM canlı (NDVI değil)'
+          : ctx.landCoverAvailable === false
+            ? ' · OSM örtü yok (skor rakım+iklim)'
+            : '')
     });
     rows.push({
       k: 'Su',
@@ -995,7 +1002,17 @@
       waterDistanceSource: waterDistanceSource,
       waterSourceType: waterSourceType,
       waterSourceLabel: waterSourceLabel,
-      waterSourceNote: waterSourceNote
+      waterSourceNote: waterSourceNote,
+      landCoverAvailable:
+        analysis.landCoverAvailable === true
+          ? true
+          : analysis.landCoverAvailable === false
+            ? false
+            : null,
+      landCoverSummary:
+        analysis.landCover && analysis.landCover.summaryTr
+          ? analysis.landCover.summaryTr
+          : null
     });
 
     var allHives =

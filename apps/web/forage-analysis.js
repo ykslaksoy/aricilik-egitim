@@ -1,15 +1,16 @@
 /**
- * SüperArı — foraj radarı + yer analizi (Open-Meteo ölçümleri).
+ * SüperArı — foraj radarı + yer analizi (Open-Meteo + OSM örtü).
  *
  * Data (ücretsiz, anahtarsız):
  *  - Open-Meteo Elevation API — merkez + 8 yön gerçek rakım
  *  - Open-Meteo Archive — bal mevsimi (Mayıs–Eylül) ortalama sıcaklık + yağış toplamı
  *    + bağıl nem + ET0 (su/nem) + precipitation_hours (uçuş/yağış özeti)
  *  - Open-Meteo Forecast — Mevsim/kışlama: don riski, rüzgâr, Karniyol kışlama uygunluğu
+ *  - OpenStreetMap Overpass — landuse/natural bitki örtüsü (canlı harita örtüsü, NDVI değil)
  *
- * Skor yalnızca ölçülebilir faktörler: rakım bandı, sezon yağış, sezon sıcaklık, yerel eğim.
+ * Skor: rakım bandı, sezon yağış, sezon sıcaklık, yerel eğim + (varsa) OSM örtü.
  * Su/nem paneli ölçülen nem + yağış/ET0 dengesinden; uçuş özeti yağışlı saatlerden.
- * Uydu NDVI / flora örtüsü yok — dürüstçe belirtilir; sahte vegetation proxy yok.
+ * Uydu NDVI yok — OSM etiketleri gerçek harita örtüsü; sahte NDVI % yok.
  */
 (function (global) {
   var DEFAULT_RADIUS_KM = 3;
@@ -35,6 +36,19 @@
   var W_PRECIP = 0.25;
   var W_TEMP = 0.25;
   var W_RELIEF = 0.15;
+  /* With live OSM land-cover: elev+precip+temp+relief+veg = 1.0 */
+  var W_ELEV_V = 0.28;
+  var W_PRECIP_V = 0.22;
+  var W_TEMP_V = 0.22;
+  var W_RELIEF_V = 0.12;
+  var W_VEG = 0.16;
+
+  var OVERPASS_ENDPOINTS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
+  var OVERPASS_TIMEOUT_MS = 25000;
+  var LANDCOVER_SPARSE_MAX = 3;
 
   /* Hava (hava-kayit) ile hizalı yağış saati eşiği */
   var RAIN_HOUR_THRESHOLD_MM = 0.1;
@@ -521,11 +535,277 @@
     return 38;
   }
 
+
+  var GOOD_LANDUSE = {
+    meadow: 1,
+    grassland: 1,
+    orchard: 1,
+    farmland: 1,
+    vineyard: 1,
+    flowerbed: 1
+  };
+  var GOOD_NATURAL = {
+    heath: 1,
+    scrub: 1,
+    grassland: 1,
+    fell: 1,
+    moor: 1
+  };
+  var MIXED_LANDUSE = { forest: 1 };
+  var MIXED_NATURAL = { wood: 1 };
+  var POOR_LANDUSE = {
+    residential: 1,
+    industrial: 1,
+    commercial: 1,
+    retail: 1,
+    construction: 1,
+    quarry: 1,
+    landfill: 1,
+    cemetery: 1,
+    military: 1
+  };
+  var OTHER_NATURAL = { water: 1, wetland: 1 };
+
+  function classifyLandCoverTags(tags) {
+    if (!tags) return null;
+    var lu = tags.landuse;
+    var nat = tags.natural;
+    if (lu && GOOD_LANDUSE[lu]) return 'good';
+    if (nat && GOOD_NATURAL[nat]) return 'good';
+    if (lu && MIXED_LANDUSE[lu]) return 'mixed';
+    if (nat && MIXED_NATURAL[nat]) return 'mixed';
+    if (lu && POOR_LANDUSE[lu]) return 'poor';
+    if (nat && OTHER_NATURAL[nat]) return 'other';
+    if (lu === 'basin' || lu === 'reservoir') return 'other';
+    return null;
+  }
+
+  function mixedWeightFromLeaf(tags) {
+    if (!tags) return 0.55;
+    var lt = tags.leaf_type;
+    if (lt === 'broadleaved' || lt === 'mixed') return 0.7;
+    if (lt === 'needleleaved') return 0.45;
+    return 0.55;
+  }
+
+  function dominantTagLabelTr(tagCounts) {
+    var bestK = null;
+    var bestN = 0;
+    for (var k in tagCounts) {
+      if (!Object.prototype.hasOwnProperty.call(tagCounts, k)) continue;
+      if (tagCounts[k] > bestN) {
+        bestN = tagCounts[k];
+        bestK = k;
+      }
+    }
+    if (!bestK) return null;
+    var map = {
+      meadow: 'çayır',
+      grassland: 'mera / çayır',
+      orchard: 'bahçe / fındık-meyve',
+      farmland: 'tarım arazisi',
+      vineyard: 'bağ',
+      flowerbed: 'çiçeklik',
+      heath: 'fundalık',
+      scrub: 'çalılık',
+      fell: 'yayla / çıplak tepe',
+      moor: 'fundalık',
+      wood: 'orman',
+      forest: 'orman',
+      residential: 'yerleşim',
+      industrial: 'sanayi',
+      commercial: 'ticari alan',
+      retail: 'ticari alan',
+      construction: 'inşaat',
+      quarry: 'ocak',
+      landfill: 'depolama',
+      cemetery: 'mezarlık',
+      military: 'askeri alan',
+      water: 'su',
+      wetland: 'sulak alan'
+    };
+    return map[bestK] || bestK;
+  }
+
+  function summarizeLandCoverTr(goodPct, mixedPct, poorPct, otherPct, tagCounts, sparse) {
+    if (sparse) {
+      return 'OSM seyrek — skor nötr (haritada az örtü etiketi)';
+    }
+    var parts = [];
+    var dom = dominantTagLabelTr(tagCounts);
+    if (dom) parts.push(dom + ' baskın');
+    if (goodPct >= 40) parts.push('iyi foraj örtüsü');
+    else if (mixedPct >= 40) parts.push('orman / karışık örtü');
+    else if (poorPct >= 40) parts.push('yerleşim / zayıf örtü');
+    if (otherPct >= 25) parts.push('su/sulak alan notu');
+    if (!parts.length) {
+      if (goodPct >= mixedPct && goodPct >= poorPct) parts.push('karışık ama foraja uygun etiketler');
+      else if (mixedPct >= poorPct) parts.push('orman ağırlıklı karışık örtü');
+      else parts.push('zayıf örtü ağırlıklı');
+    }
+    return parts.join(' · ');
+  }
+
+  function landCoverFromElements(elements, radiusKm) {
+    var good = 0;
+    var mixed = 0;
+    var poor = 0;
+    var other = 0;
+    var mixedWSum = 0;
+    var tagCounts = {};
+    var n = 0;
+    for (var i = 0; i < (elements || []).length; i++) {
+      var el = elements[i];
+      if (!el || el.type === 'count') continue;
+      var tags = el.tags || {};
+      var cat = classifyLandCoverTags(tags);
+      if (!cat) continue;
+      n += 1;
+      var key = tags.landuse || tags.natural || 'other';
+      tagCounts[key] = (tagCounts[key] || 0) + 1;
+      if (cat === 'good') good += 1;
+      else if (cat === 'mixed') {
+        mixed += 1;
+        mixedWSum += mixedWeightFromLeaf(tags);
+      } else if (cat === 'poor') poor += 1;
+      else other += 1;
+    }
+    var sparse = n < LANDCOVER_SPARSE_MAX;
+    var denom = Math.max(1, n);
+    var goodPct = Math.round((good / denom) * 1000) / 10;
+    var mixedPct = Math.round((mixed / denom) * 1000) / 10;
+    var poorPct = Math.round((poor / denom) * 1000) / 10;
+    var otherPct = Math.round((other / denom) * 1000) / 10;
+    /* Normalize tiny float drift so shares ~100 */
+    var sumPct = goodPct + mixedPct + poorPct + otherPct;
+    if (n > 0 && Math.abs(sumPct - 100) > 0.2) {
+      otherPct = Math.round((100 - goodPct - mixedPct - poorPct) * 10) / 10;
+    }
+
+    var vegScore;
+    var coverageNote;
+    if (sparse) {
+      vegScore = 52;
+      coverageNote = 'OSM seyrek — skor nötr (' + n + ' özellik)';
+    } else {
+      var mixedAvgW = mixed > 0 ? mixedWSum / mixed : 0.55;
+      /* Weighted 0–100 from category shares (other contributes 0). */
+      vegScore =
+        goodPct * 1.0 +
+        mixedPct * mixedAvgW +
+        poorPct * 0.15;
+      vegScore = Math.round(Math.max(8, Math.min(96, vegScore)));
+      coverageNote = n + ' OSM özelliği · yarıçap ' + clampRadius(radiusKm) + ' km';
+    }
+
+    var summaryTr = summarizeLandCoverTr(
+      goodPct,
+      mixedPct,
+      poorPct,
+      otherPct,
+      tagCounts,
+      sparse
+    );
+
+    return {
+      ok: true,
+      source: 'osm-overpass',
+      goodPct: goodPct,
+      mixedPct: mixedPct,
+      poorPct: poorPct,
+      otherPct: otherPct,
+      vegScore: vegScore,
+      summaryTr: summaryTr,
+      featureCount: n,
+      sparse: sparse,
+      coverageNote: coverageNote,
+      tagCounts: tagCounts,
+      fetchedAt: new Date().toISOString()
+    };
+  }
+
+  function buildOverpassQuery(lat, lon, radiusKm) {
+    var rM = Math.round(clampRadius(radiusKm) * 1000);
+    var around = '(around:' + rM + ',' + lat + ',' + lon + ')';
+    return (
+      '[out:json][timeout:25];\n' +
+      '/* SuperAri forage landcover */\n' +
+      '(\n' +
+      '  way["landuse"~"^(meadow|grassland|orchard|farmland|vineyard|flowerbed|forest|residential|industrial|commercial|retail|construction|quarry|landfill|cemetery|military)$"]' +
+      around +
+      ';\n' +
+      '  way["natural"~"^(heath|scrub|grassland|fell|moor|wood|water|wetland)$"]' +
+      around +
+      ';\n' +
+      '  relation["landuse"~"^(meadow|grassland|orchard|farmland|vineyard|flowerbed|forest|residential|industrial|commercial|retail|construction|quarry|landfill|cemetery|military)$"]' +
+      around +
+      ';\n' +
+      '  relation["natural"~"^(heath|scrub|grassland|fell|moor|wood|water|wetland)$"]' +
+      around +
+      ';\n' +
+      ');\n' +
+      'out tags;'
+    );
+  }
+
+  function fetchOverpassOnce(endpoint, query, signal) {
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        Accept: 'application/json'
+      },
+      body: 'data=' + encodeURIComponent(query),
+      signal: signal
+    }).then(function (r) {
+      if (!r.ok) throw new Error('overpass_' + r.status);
+      return r.json();
+    });
+  }
+
   /**
-   * Suitability 0–100 from measured elev + optional climate + relief.
-   * No hash flora / fake habitat / fake yield %.
+   * Live OSM land-cover for forage circle. Not satellite NDVI.
+   * Degrades to null on timeout / error (caller keeps climate/elev score).
    */
-  function scoreSpot(lat, lon, elevM, radiusKm, climate, reliefDeltaM) {
+  function fetchLandCover(lat, lon, radiusKm) {
+    var query = buildOverpassQuery(lat, lon, radiusKm);
+    var controllers = [];
+    function attempt(i) {
+      if (i >= OVERPASS_ENDPOINTS.length) {
+        return Promise.reject(new Error('overpass_all_failed'));
+      }
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      if (ctrl) controllers.push(ctrl);
+      var timer =
+        ctrl &&
+        setTimeout(function () {
+          try {
+            ctrl.abort();
+          } catch (e) {}
+        }, OVERPASS_TIMEOUT_MS);
+      return fetchOverpassOnce(
+        OVERPASS_ENDPOINTS[i],
+        query,
+        ctrl ? ctrl.signal : undefined
+      )
+        .then(function (j) {
+          if (timer) clearTimeout(timer);
+          var els = (j && j.elements) || [];
+          return landCoverFromElements(els, radiusKm);
+        })
+        .catch(function () {
+          if (timer) clearTimeout(timer);
+          return attempt(i + 1);
+        });
+    }
+    return attempt(0);
+  }
+
+  /**
+   * Suitability 0–100 from measured elev + optional climate + relief + OSM örtü.
+   * No hash flora / fake NDVI / fake habitat %.
+   */
+  function scoreSpot(lat, lon, elevM, radiusKm, climate, reliefDeltaM, landCover) {
     var hasElev = elevM != null && isFinite(elevM);
     var elev = hasElev ? elevM : null;
     var eScore = hasElev ? elevBandScore(elev) : 50;
@@ -533,14 +813,30 @@
     var tScore = climate ? tempScore(climate.meanTempC) : null;
     var rScore = reliefScore(reliefDeltaM);
     var hasClimate = pScore != null && tScore != null;
+    var hasVeg =
+      landCover &&
+      landCover.ok &&
+      landCover.vegScore != null &&
+      isFinite(landCover.vegScore);
+    var vScore = hasVeg ? Number(landCover.vegScore) : null;
 
     var raw;
-    if (hasClimate) {
+    if (hasClimate && hasVeg) {
+      raw =
+        eScore * W_ELEV_V +
+        pScore * W_PRECIP_V +
+        tScore * W_TEMP_V +
+        rScore * W_RELIEF_V +
+        vScore * W_VEG;
+    } else if (hasClimate) {
       raw =
         eScore * W_ELEV +
         pScore * W_PRECIP +
         tScore * W_TEMP +
         rScore * W_RELIEF;
+    } else if (hasVeg) {
+      /* Elevation + relief + OSM örtü (iklim yok). */
+      raw = eScore * 0.55 + rScore * 0.25 + vScore * 0.2;
     } else {
       /* Elevation-only fallback: elev 70% + relief 30%. */
       raw = eScore * 0.7 + rScore * 0.3;
@@ -567,6 +863,8 @@
       et0SumMm: climate ? climate.et0SumMm : null,
       seasonLabel: climate ? climate.seasonLabel : null,
       hasClimate: hasClimate,
+      hasVeg: !!hasVeg,
+      vegScore: vScore != null ? Math.round(vScore) : null,
       radiusKm: clampRadius(radiusKm)
     };
   }
@@ -742,6 +1040,11 @@
 
     var season = balSeasonWindow();
 
+    /* OSM land-cover in parallel with elev+climate (one query for whole circle). */
+    var landCoverPromise = fetchLandCover(lat, lon, radiusKm).catch(function () {
+      return null;
+    });
+
     return fetchElevations(points)
       .catch(function () {
         return points.map(function (p) {
@@ -762,9 +1065,17 @@
           });
       })
       .then(function (pack) {
+        return landCoverPromise.then(function (lc) {
+          pack.landCover = lc && lc.ok ? lc : null;
+          return pack;
+        });
+      })
+      .then(function (pack) {
         var rows = pack.rows;
         var climates = pack.climates || [];
         var climateOk = !!pack.climateOk && climates.some(function (c) { return !!c; });
+        var landCover = pack.landCover || null;
+        var landCoverOk = !!(landCover && landCover.ok);
 
         var elevs = rows
           .map(function (r) { return r.elev; })
@@ -788,7 +1099,8 @@
           centerElev,
           radiusKm,
           climates[0] || null,
-          reliefFor(0, centerElev)
+          reliefFor(0, centerElev),
+          landCover
         );
 
         var best = null;
@@ -803,7 +1115,8 @@
             row.elev,
             radiusKm,
             climates[i + 1] || null,
-            reliefFor(i + 1, row.elev)
+            reliefFor(i + 1, row.elev),
+            landCover
           );
           if (!best || sc.score > best.score) {
             best = {
@@ -922,28 +1235,104 @@
           });
         }
 
+        var scoreNoteParts = [];
+        if (climateOk) scoreNoteParts.push('rakım+iklim+eğim');
+        else scoreNoteParts.push('rakım+eğim');
+        if (landCoverOk) scoreNoteParts.push('OSM örtü');
         insights.push({
           k: 'Uygunluk skoru',
           v: here.score + '/100 · ' + gradeLabel(here.score).tr,
-          note: climateOk
-            ? 'rakım+iklim+eğim'
-            : 'rakım+eğim'
+          note: scoreNoteParts.join('+')
         });
         if (slopeNote) {
           insights.push({ k: 'Arazi', v: slopeNote, note: 'ölçüm' });
         }
 
-        insights.push({
-          k: 'Flora / NDVI',
-          v: 'Uydu NDVI / bitki örtüsü katmanı yok — flora uydurma yok',
-          note: 'dürüst boşluk'
-        });
+        if (landCoverOk) {
+          insights.push({
+            k: 'Bitki örtüsü',
+            v:
+              '%' +
+              Math.round(landCover.goodPct) +
+              ' iyi / %' +
+              Math.round(landCover.mixedPct) +
+              ' orman / %' +
+              Math.round(landCover.poorPct) +
+              ' zayıf · OSM canlı (yarıçap ' +
+              here.radiusKm +
+              ' km)',
+            note: 'Bitki örtüsü (OSM canlı)'
+          });
+          insights.push({
+            k: 'Örtü özeti',
+            v: landCover.summaryTr || landCover.coverageNote || '',
+            note: landCover.sparse ? 'OSM seyrek' : 'OSM landuse/natural'
+          });
+        } else {
+          insights.push({
+            k: 'Bitki örtüsü',
+            v: 'Canlı örtü alınamadı — skor rakım+iklim',
+            note: 'Bitki örtüsü alınamadı'
+          });
+        }
 
-        var disclaimer = climateOk
-          ? 'Kaynaklar: Open-Meteo rakım + iklim arşivi (' +
-            season.label +
-            ' sıcaklık, yağış, yağışlı saat, bağıl nem, ET0). Skor rakım+iklim+eğim; su/nem yağış−ET0; uçuş precipitation_hours. Uydu NDVI yok — sahte flora/verim % yoktur.'
-          : 'Kaynak: Open-Meteo rakım. İklim arşivi alınamadı — skor yalnız rakım/eğim. Uydu NDVI yok; sahte flora/verim % yoktur.';
+        var disclaimerParts = [];
+        if (climateOk) {
+          disclaimerParts.push(
+            'Kaynaklar: Open-Meteo rakım + iklim arşivi (' +
+              season.label +
+              ' sıcaklık, yağış, yağışlı saat, bağıl nem, ET0)'
+          );
+        } else {
+          disclaimerParts.push(
+            'Kaynak: Open-Meteo rakım. İklim arşivi alınamadı — skor yalnız rakım/eğim' +
+              (landCoverOk ? '+OSM örtü' : '')
+          );
+        }
+        if (landCoverOk) {
+          disclaimerParts.push(
+            'bitki örtüsü OpenStreetMap Overpass (landuse/natural) — harita örtüsü, uydu NDVI değil'
+          );
+        } else {
+          disclaimerParts.push('canlı OSM örtü alınamadı');
+        }
+        disclaimerParts.push(
+          'Uydu NDVI yok — sahte NDVI/flora % yoktur. OSM yoğunluğu yere göre değişir.'
+        );
+        if (climateOk) {
+          disclaimerParts.push('Skor rakım+iklim+eğim' + (landCoverOk ? '+OSM örtü' : '') + '; su/nem yağış−ET0; uçuş precipitation_hours.');
+        }
+        var disclaimer = disclaimerParts.join('. ');
+
+        var sources = [];
+        if (climateOk) {
+          sources = [
+            'rakım ölçümü',
+            'iklim arşivi',
+            'su / nem (RH+ET0)',
+            'uçuş / yağış saati'
+          ];
+        } else {
+          sources = ['rakım ölçümü'];
+        }
+        if (landCoverOk) sources.push('bitki örtüsü (OSM)');
+
+        var landCoverPayload = null;
+        if (landCoverOk) {
+          landCoverPayload = {
+            source: 'osm-overpass',
+            goodPct: landCover.goodPct,
+            mixedPct: landCover.mixedPct,
+            poorPct: landCover.poorPct,
+            otherPct: landCover.otherPct,
+            summaryTr: landCover.summaryTr,
+            featureCount: landCover.featureCount,
+            vegScore: landCover.vegScore,
+            sparse: !!landCover.sparse,
+            coverageNote: landCover.coverageNote,
+            fetchedAt: landCover.fetchedAt
+          };
+        }
 
         return {
           lat: lat,
@@ -966,9 +1355,9 @@
           demo: !climateOk,
           climateOk: climateOk,
           ndviAvailable: false,
-          sources: climateOk
-            ? ['rakım ölçümü', 'iklim arşivi', 'su / nem (RH+ET0)', 'uçuş / yağış saati']
-            : ['rakım ölçümü'],
+          landCoverAvailable: landCoverOk,
+          landCover: landCoverPayload,
+          sources: sources,
           climateSnapshot: climateOk && climates[0]
             ? {
                 meanTempC: climates[0].meanTempC,
@@ -1477,6 +1866,48 @@
           '</div>'
         );
       })() +
+      (function () {
+        var lc = analysis.landCover;
+        if (analysis.landCoverAvailable && lc) {
+          return (
+            '<div class="forage-landcover">' +
+              '<div class="forage-landcover-head">Bitki örtüsü (OSM canlı)</div>' +
+              '<p class="forage-landcover-sum">' +
+              escapeHtml(lc.summaryTr || '') +
+              '</p>' +
+              '<div class="forage-row"><div class="forage-k">İyi foraj <span class="forage-tag">çayır/bahçe/tarım</span></div><div class="forage-v">' +
+              escapeHtml('%' + Math.round(Number(lc.goodPct) || 0)) +
+              '</div></div>' +
+              '<div class="forage-row"><div class="forage-k">Orman / karışık <span class="forage-tag">wood/forest</span></div><div class="forage-v">' +
+              escapeHtml('%' + Math.round(Number(lc.mixedPct) || 0)) +
+              '</div></div>' +
+              '<div class="forage-row"><div class="forage-k">Zayıf örtü <span class="forage-tag">yerleşim/sanayi</span></div><div class="forage-v">' +
+              escapeHtml('%' + Math.round(Number(lc.poorPct) || 0)) +
+              '</div></div>' +
+              (lc.otherPct != null
+                ? '<div class="forage-row"><div class="forage-k">Su / diğer <span class="forage-tag">not</span></div><div class="forage-v">' +
+                  escapeHtml('%' + Math.round(Number(lc.otherPct) || 0)) +
+                  '</div></div>'
+                : '') +
+              '<p class="forage-landcover-note">' +
+              escapeHtml(
+                (lc.coverageNote || '') +
+                  ' · uydu NDVI değil; OSM landuse/natural etiketleri'
+              ) +
+              '</p>' +
+            '</div>'
+          );
+        }
+        if (analysis.landCoverAvailable === false) {
+          return (
+            '<div class="forage-landcover is-miss">' +
+              '<div class="forage-landcover-head">Bitki örtüsü</div>' +
+              '<p class="forage-landcover-sum">Canlı örtü alınamadı — skor rakım+iklim</p>' +
+            '</div>'
+          );
+        }
+        return '';
+      })() +
       tip +
       '<p class="forage-disc">' +
       escapeHtml(analysis.disclaimer) +
@@ -1528,6 +1959,12 @@
     '.forage-tag.tone-ok{color:#4a2f1a;}',
     '.forage-tag.tone-mid{color:#6a4220;}',
     '.forage-tag.tone-bad{color:#8a2e1c;}',
+    '.forage-landcover{margin-top:10px;padding:10px 11px;border-radius:12px;background:#f3faf3;border:1px solid #9bb87a;}',
+    '.forage-landcover.is-miss{background:#f7f5f0;border-color:#d0c8b8;}',
+    '.forage-landcover-head{font-size:12px;font-weight:800;color:#2e4a22;margin:0 0 4px;}',
+    '.forage-landcover-sum{font-size:11px;font-weight:650;color:#3d5a2a;margin:0 0 8px;line-height:1.4;}',
+    '.forage-landcover .forage-row{margin-top:4px;}',
+    '.forage-landcover-note{margin:8px 0 0;font-size:10px;font-weight:560;color:#6a7a58;line-height:1.35;}',
     '.season-panel{margin-top:10px;padding:12px;border-radius:14px;background:#f4f7fb;border:1px solid #a8b8d0;}',
     '.season-panel.is-empty{color:#6b635a;font-size:12px;font-weight:600;}',
     '.season-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}',
