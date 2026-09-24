@@ -5,10 +5,11 @@
  *  - Open-Meteo Elevation API — merkez + 8 yön gerçek rakım
  *  - Open-Meteo Archive — bal mevsimi (Mayıs–Eylül) ortalama sıcaklık + yağış toplamı
  *    + bağıl nem + ET0 (su/nem) + precipitation_hours (uçuş/yağış özeti)
+ *  - Open-Meteo Forecast — Mevsim/kışlama: don riski, rüzgâr, Karniyol kışlama uygunluğu
  *
  * Skor yalnızca ölçülebilir faktörler: rakım bandı, sezon yağış, sezon sıcaklık, yerel eğim.
  * Su/nem paneli ölçülen nem + yağış/ET0 dengesinden; uçuş özeti yağışlı saatlerden.
- * Sahte floraProxy / verim % yok.
+ * Uydu NDVI / flora örtüsü yok — dürüstçe belirtilir; sahte vegetation proxy yok.
  */
 (function (global) {
   var DEFAULT_RADIUS_KM = 3;
@@ -131,12 +132,19 @@
     opts = opts || {};
     var hiveP = hiveDensityPressure(lat, lon, opts);
     var vehP = vehicleDensityProxy(lat, lon);
-    /* Üretken foraj ~2–3 km; eski taban 7 km kırsalda 5–9 km şişiriyordu. */
-    var raw = 4 - hiveP * 2 - vehP * 1.5;
-    if (hiveP > 0.8) raw -= 0.4;
-    if (hiveP < 0.15 && vehP < 0.28) raw += 0.5;
+    /* Üretken foraj ~2–3,5 km; yoğunluk/yerleşim daraltır, seyrek yayla biraz açar. */
+    var raw = 3.6 - hiveP * 2.2 - vehP * 1.6;
+    if (hiveP > 0.75) raw -= 0.5;
+    if (hiveP > 0.9) raw -= 0.3;
+    if (hiveP < 0.12 && vehP < 0.25) raw += 0.65;
+    if (hiveP < 0.08 && vehP < 0.18) raw += 0.25;
+    /* Opsiyonel: yüksek kendi kovan sayısı daraltır (aynı saha baskısı). */
+    var own = Math.max(0, Number(opts.ownHiveCount) || 0);
+    if (own >= 40) raw -= 0.35;
+    else if (own >= 25) raw -= 0.2;
     /* Otomatik öneri tavanı (kaydırıcı görsel önizleme; skor bu km ile kilitli). */
     if (raw > 4) raw = 4;
+    if (raw < 1.5) raw = 1.5;
     var km = clampRadius(raw);
     return {
       km: km,
@@ -925,11 +933,17 @@
           insights.push({ k: 'Arazi', v: slopeNote, note: 'ölçüm' });
         }
 
+        insights.push({
+          k: 'Flora / NDVI',
+          v: 'Uydu NDVI / bitki örtüsü katmanı yok — flora uydurma yok',
+          note: 'dürüst boşluk'
+        });
+
         var disclaimer = climateOk
-          ? 'Kaynaklar: rakım ölçümü + iklim arşivi (' +
+          ? 'Kaynaklar: Open-Meteo rakım + iklim arşivi (' +
             season.label +
-            ' ortalama sıcaklık, yağış, yağışlı saat, bağıl nem, ET0). Uygunluk skoru rakım+iklim+eğim; Su/nem yağış−ET0; uçuş özeti precipitation_hours. Sahte flora/verim % yoktur.'
-          : 'Kaynak: rakım ölçümü. İklim arşivi alınamadı — skor yalnızca rakım/eğim. Sahte flora/verim % yoktur.';
+            ' sıcaklık, yağış, yağışlı saat, bağıl nem, ET0). Skor rakım+iklim+eğim; su/nem yağış−ET0; uçuş precipitation_hours. Uydu NDVI yok — sahte flora/verim % yoktur.'
+          : 'Kaynak: Open-Meteo rakım. İklim arşivi alınamadı — skor yalnız rakım/eğim. Uydu NDVI yok; sahte flora/verim % yoktur.';
 
         return {
           lat: lat,
@@ -951,11 +965,278 @@
           disclaimer: disclaimer,
           demo: !climateOk,
           climateOk: climateOk,
+          ndviAvailable: false,
           sources: climateOk
             ? ['rakım ölçümü', 'iklim arşivi', 'su / nem (RH+ET0)', 'uçuş / yağış saati']
-            : ['rakım ölçümü']
+            : ['rakım ölçümü'],
+          climateSnapshot: climateOk && climates[0]
+            ? {
+                meanTempC: climates[0].meanTempC,
+                precipSumMm: climates[0].precipSumMm,
+                meanRhPct: climates[0].meanRhPct,
+                et0SumMm: climates[0].et0SumMm,
+                precipDays: climates[0].precipDays,
+                rainHoursSum: climates[0].rainHoursSum,
+                poorFlightDays: climates[0].poorFlightDays,
+                seasonLabel: season.label
+              }
+            : null
         };
       });
+  }
+
+  /**
+   * Mevsim / kışlama — Open-Meteo forecast (don, rüzgâr) + Karniyol kışlama yorumu.
+   * No fake sensors; wind/frost only when API returns values.
+   */
+  function analyzeSeason(lat, lon) {
+    lat = Number(lat);
+    lon = Number(lon);
+    if (!isFinite(lat) || !isFinite(lon)) {
+      return Promise.reject(new Error('invalid_coords'));
+    }
+    var url =
+      'https://api.open-meteo.com/v1/forecast?latitude=' +
+      encodeURIComponent(String(lat)) +
+      '&longitude=' +
+      encodeURIComponent(String(lon)) +
+      '&daily=temperature_2m_min,temperature_2m_max,wind_speed_10m_max,precipitation_sum' +
+      '&forecast_days=14&timezone=auto';
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('forecast_' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        var daily = (j && j.daily) || {};
+        var mins = daily.temperature_2m_min || [];
+        var maxs = daily.temperature_2m_max || [];
+        var winds = daily.wind_speed_10m_max || [];
+        var precips = daily.precipitation_sum || [];
+        var elev = j && j.elevation != null && isFinite(Number(j.elevation))
+          ? Math.round(Number(j.elevation))
+          : null;
+
+        function avg(arr) {
+          var s = 0;
+          var n = 0;
+          for (var i = 0; i < arr.length; i++) {
+            var v = Number(arr[i]);
+            if (isFinite(v)) { s += v; n++; }
+          }
+          return n ? s / n : null;
+        }
+        function minOf(arr) {
+          var m = null;
+          for (var i = 0; i < arr.length; i++) {
+            var v = Number(arr[i]);
+            if (!isFinite(v)) continue;
+            if (m == null || v < m) m = v;
+          }
+          return m;
+        }
+        function maxOf(arr) {
+          var m = null;
+          for (var i = 0; i < arr.length; i++) {
+            var v = Number(arr[i]);
+            if (!isFinite(v)) continue;
+            if (m == null || v > m) m = v;
+          }
+          return m;
+        }
+
+        var frostDays = 0;
+        var nearFrostDays = 0;
+        for (var i = 0; i < mins.length; i++) {
+          var t = Number(mins[i]);
+          if (!isFinite(t)) continue;
+          if (t <= 0) frostDays++;
+          else if (t <= 3) nearFrostDays++;
+        }
+        var minT = minOf(mins);
+        var maxWind = maxOf(winds);
+        var avgWind = avg(winds);
+        var avgMin = avg(mins);
+        var avgMax = avg(maxs);
+        var precip14 = avg(precips) != null
+          ? Math.round(precips.reduce(function (s, v) {
+              var n = Number(v);
+              return s + (isFinite(n) ? n : 0);
+            }, 0) * 10) / 10
+          : null;
+
+        var frostTone = 'good';
+        var frostLabel = 'Düşük don riski';
+        var frostNote = 'Önümüzdeki 14 günde gece ≤0 °C beklenmiyor (tahmin).';
+        if (frostDays >= 5) {
+          frostTone = 'bad';
+          frostLabel = 'Yüksek don riski';
+          frostNote = frostDays + ' gece ≤0 °C · min ≈ ' + (minT != null ? minT.toFixed(1) : '—') + ' °C';
+        } else if (frostDays >= 1) {
+          frostTone = 'mid';
+          frostLabel = 'Orta don riski';
+          frostNote = frostDays + ' gece don · ' + nearFrostDays + ' gece 0–3 °C';
+        } else if (nearFrostDays >= 3) {
+          frostTone = 'ok';
+          frostLabel = 'Hafif soğuk riski';
+          frostNote = nearFrostDays + ' gece 0–3 °C (tahmin)';
+        }
+
+        var windTone = 'good';
+        var windLabel = 'Rüzgâr ölçümü yok';
+        var windNote = 'Open-Meteo rüzgâr alanı alınamadı.';
+        if (maxWind != null) {
+          if (maxWind >= 55) {
+            windTone = 'bad';
+            windLabel = 'Sert rüzgâr';
+            windNote = '14g max ≈ ' + Math.round(maxWind) + ' km/s — kış yalıtımı / yön önemli';
+          } else if (maxWind >= 40) {
+            windTone = 'mid';
+            windLabel = 'Orta-kuvvetli rüzgâr';
+            windNote = '14g max ≈ ' + Math.round(maxWind) + ' km/s · ort. max ≈ ' +
+              (avgWind != null ? Math.round(avgWind) : '—') + ' km/s';
+          } else {
+            windTone = 'good';
+            windLabel = 'Ilımlı rüzgâr';
+            windNote = '14g max ≈ ' + Math.round(maxWind) + ' km/s · ort. max ≈ ' +
+              (avgWind != null ? Math.round(avgWind) : '—') + ' km/s';
+          }
+        }
+
+        /* Karniyol: iyi kışlayan ırk; don+sert rüzgâr+yüksek rakım birlikte zorlar. */
+        var winterScore = 72;
+        if (frostDays >= 5) winterScore -= 18;
+        else if (frostDays >= 1) winterScore -= 8;
+        else if (nearFrostDays >= 3) winterScore -= 4;
+        if (maxWind != null && maxWind >= 55) winterScore -= 12;
+        else if (maxWind != null && maxWind >= 40) winterScore -= 6;
+        if (elev != null && elev >= 1800) winterScore -= 8;
+        else if (elev != null && elev >= 1200) winterScore -= 3;
+        if (avgMin != null && avgMin >= 5) winterScore += 6;
+        winterScore = Math.max(25, Math.min(92, winterScore));
+
+        var winterTone = winterScore >= 70 ? 'good' : winterScore >= 55 ? 'ok' : winterScore >= 40 ? 'mid' : 'bad';
+        var winterLabel =
+          winterScore >= 70
+            ? 'Karniyol için kışlama uygun'
+            : winterScore >= 55
+              ? 'Karniyol kışlama: dikkatli'
+              : winterScore >= 40
+                ? 'Kışlama zorlayıcı'
+                : 'Kışlama riskli';
+        var winterNote =
+          'Karniyol soğuğa dayanıklıdır; yine de yalıtım, rüzgâr yönü ve kış stoğu kritik. ' +
+          'Skor yalnız Open-Meteo tahmin + rakım — sensör yok.';
+
+        return {
+          lat: lat,
+          lon: lon,
+          elevM: elev,
+          frost: {
+            tone: frostTone,
+            label: frostLabel,
+            note: frostNote,
+            frostDays: frostDays,
+            nearFrostDays: nearFrostDays,
+            minTempC: minT != null ? Math.round(minT * 10) / 10 : null,
+            avgMinC: avgMin != null ? Math.round(avgMin * 10) / 10 : null,
+            avgMaxC: avgMax != null ? Math.round(avgMax * 10) / 10 : null
+          },
+          wind: {
+            tone: windTone,
+            label: windLabel,
+            note: windNote,
+            maxKmh: maxWind != null ? Math.round(maxWind) : null,
+            avgMaxKmh: avgWind != null ? Math.round(avgWind) : null,
+            available: maxWind != null
+          },
+          wintering: {
+            score: winterScore,
+            tone: winterTone,
+            label: winterLabel,
+            note: winterNote,
+            breed: 'Karniyol'
+          },
+          precipSum14Mm: precip14,
+          source: 'open-meteo-forecast-14d',
+          fetchedAt: new Date().toISOString()
+        };
+      });
+  }
+
+  function renderSeasonPanelHtml(season, escapeHtml) {
+    escapeHtml =
+      escapeHtml ||
+      function (s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      };
+    if (!season) {
+      return (
+        '<div class="season-panel is-empty">' +
+          '<p>Konum kaydedilince don riski, rüzgâr ve Karniyol kışlama burada görünür.</p>' +
+        '</div>'
+      );
+    }
+    var f = season.frost || {};
+    var w = season.wind || {};
+    var wi = season.wintering || {};
+    return (
+      '<div class="season-panel" data-winter="' +
+      escapeHtml(String(wi.score != null ? wi.score : '')) +
+      '">' +
+        '<div class="season-head">' +
+          '<strong>Mevsim / kışlama</strong>' +
+          '<span class="season-badge tone-' +
+          escapeHtml(wi.tone || 'mid') +
+          '">' +
+          escapeHtml(String(wi.score != null ? wi.score : '—')) +
+          ' · Karniyol</span>' +
+        '</div>' +
+        '<p class="season-sub">Canlı Open-Meteo 14 günlük tahmin — sensör yok.</p>' +
+        '<div class="season-row">' +
+          '<div class="season-k">Don riski <span class="season-tag tone-' +
+          escapeHtml(f.tone || 'mid') +
+          '">' +
+          escapeHtml(f.label || '—') +
+          '</span></div>' +
+          '<div class="season-v">' +
+          escapeHtml(f.note || '') +
+          (f.minTempC != null ? ' · min ' + escapeHtml(String(f.minTempC)) + ' °C' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="season-row">' +
+          '<div class="season-k">Rüzgâr <span class="season-tag tone-' +
+          escapeHtml(w.tone || 'mid') +
+          '">' +
+          escapeHtml(w.label || '—') +
+          '</span></div>' +
+          '<div class="season-v">' +
+          escapeHtml(w.note || '') +
+          '</div>' +
+        '</div>' +
+        '<div class="season-row">' +
+          '<div class="season-k">Kışlama <span class="season-tag tone-' +
+          escapeHtml(wi.tone || 'mid') +
+          '">' +
+          escapeHtml(wi.label || '—') +
+          '</span></div>' +
+          '<div class="season-v">' +
+          escapeHtml(wi.note || '') +
+          (season.elevM != null ? ' · rakım ' + escapeHtml(String(season.elevM)) + ' m' : '') +
+          '</div>' +
+        '</div>' +
+        (season.precipSum14Mm != null
+          ? '<div class="season-row"><div class="season-k">14g yağış <span class="season-tag">tahmin</span></div><div class="season-v">' +
+            escapeHtml(String(season.precipSum14Mm) + ' mm') +
+            '</div></div>'
+          : '') +
+        '<p class="season-disc">Kaynak: Open-Meteo Forecast. Uydu NDVI / sahte sensör yok.</p>' +
+      '</div>'
+    );
   }
 
   /** Leaflet circle helper — Arılık sayfaları Yandex için SuperAriYandexMap.attachRadar kullanır. */
@@ -1246,7 +1527,26 @@
     '.forage-tag.tone-good{color:#3d5a2a;}',
     '.forage-tag.tone-ok{color:#4a2f1a;}',
     '.forage-tag.tone-mid{color:#6a4220;}',
-    '.forage-tag.tone-bad{color:#8a2e1c;}'
+    '.forage-tag.tone-bad{color:#8a2e1c;}',
+    '.season-panel{margin-top:10px;padding:12px;border-radius:14px;background:#f4f7fb;border:1px solid #a8b8d0;}',
+    '.season-panel.is-empty{color:#6b635a;font-size:12px;font-weight:600;}',
+    '.season-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}',
+    '.season-head strong{font-size:13px;color:#1e2a3a;}',
+    '.season-badge{font-size:11px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff;border:1px solid #a8b8d0;color:#1e2a3a;white-space:nowrap;}',
+    '.season-badge.tone-good{border-color:#9bb87a;color:#3d5a2a;}',
+    '.season-badge.tone-ok{border-color:#e0c56a;}',
+    '.season-badge.tone-mid{border-color:#d4a574;color:#6a4220;}',
+    '.season-badge.tone-bad{border-color:#e0a090;color:#8a2e1c;}',
+    '.season-sub{font-size:11px;color:#5a6570;font-weight:600;margin:0 0 8px;}',
+    '.season-row{display:grid;gap:2px;margin-top:6px;}',
+    '.season-k{font-size:11px;font-weight:700;color:#5a6570;}',
+    '.season-tag{font-weight:700;opacity:.9;}',
+    '.season-tag.tone-good{color:#3d5a2a;}',
+    '.season-tag.tone-ok{color:#4a2f1a;}',
+    '.season-tag.tone-mid{color:#6a4220;}',
+    '.season-tag.tone-bad{color:#8a2e1c;}',
+    '.season-v{font-size:12px;font-weight:700;color:#1e2a3a;line-height:1.35;}',
+    '.season-disc{margin:8px 0 0;font-size:10px;color:#7a8490;line-height:1.35;font-weight:560;}'
   ].join('');
 
   function injectStyles() {
@@ -1271,8 +1571,10 @@
     hiveDensityPressure: hiveDensityPressure,
     vehicleDensityProxy: vehicleDensityProxy,
     analyze: analyze,
+    analyzeSeason: analyzeSeason,
     attachRadar: attachRadar,
     renderPanelHtml: renderPanelHtml,
+    renderSeasonPanelHtml: renderSeasonPanelHtml,
     destination: destination,
     haversineKm: haversineKm
   };

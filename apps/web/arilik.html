@@ -301,6 +301,14 @@
   .water-auto-hint {
     margin: 4px 0 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
   }
+  .water-auto-hint.water-unsuitable {
+    color: #8a2e1c;
+    background: #fff0ec;
+    border: 1px solid #e0a090;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-weight: 700;
+  }
   .fs-block { margin-top: 8px; display: grid; gap: 4px; }
   .fs-block .forage-auto-hint,
   .fs-block .water-auto-hint,
@@ -715,10 +723,10 @@
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=place-admin-1"></script>
+<script src="demo-data.js?v=mevsim-geo-1"></script>
 <script src="rapor-store.js"></script>
-<script src="forage-analysis.js?v=yaricap-1"></script>
-<script src="forage-yield-estimate.js?v=su-foraj-loc-1"></script>
+<script src="forage-analysis.js?v=mevsim-geo-1"></script>
+<script src="forage-yield-estimate.js?v=mevsim-geo-1"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
 (function () {
@@ -2589,7 +2597,10 @@
     var sliderM = realM != null ? clampWaterDistM(realM) : WATER_VISUAL_FALLBACK_M;
     var valLabel = realM != null ? formatWaterDistLabel(realM) : '—';
     var unknownHint = realM == null
-      ? '<p class="water-auto-hint" id="waterUnknownHint">Su mesafesi bilinmiyor — kaynak listesinden seçin veya haritadan su konumu işaretleyin.</p>'
+      ? '<p class="water-auto-hint water-unsuitable" id="waterUnknownHint">' +
+        '<strong>Bu yer arılık için henüz uygun değil</strong> — su kaynağı / gerçek mesafe yok. ' +
+        'Su ekleyin veya listeden seçin (uydurma 800 m yok). Hedef bal ve yer değerlendirmesi su girilene kadar eksik kalır.' +
+        '</p>'
       : '';
     return (
       '<div class="water-source-wrap fs-block" id="waterSourceBlock">' +
@@ -2686,6 +2697,34 @@
     waterRadar.setCenter(lat, lon);
   }
 
+  var seasonTimer = null;
+
+  function persistLiveCaches(lat, lon, foragePayload, climatePayload, seasonPayload) {
+    if (!D || !activeApiary || !D.updateApiary || !D.makeLiveCache) return;
+    var patch = {};
+    if (foragePayload) patch.forageCache = D.makeLiveCache(lat, lon, foragePayload);
+    if (climatePayload) patch.climateCache = D.makeLiveCache(lat, lon, climatePayload);
+    if (seasonPayload) patch.seasonCache = D.makeLiveCache(lat, lon, seasonPayload);
+    if (!Object.keys(patch).length) return;
+    try {
+      D.updateApiary(activeApiary.id, patch);
+      refreshActiveApiary();
+    } catch (eCache) { /* ignore */ }
+  }
+
+  function paintForageAnalysis(host, a, lat, lon) {
+    if (!host || !a || !F) return;
+    host.innerHTML = F.renderPanelHtml(a, escapeHtml);
+    bindForageTipClicks(host);
+    appendYieldEstimate(host, a, activeApiary);
+    syncTipFromAnalysis(a, lat, lon);
+  }
+
+  function paintSeasonAnalysis(seasonHost, season) {
+    if (!seasonHost || !F || !F.renderSeasonPanelHtml) return;
+    seasonHost.innerHTML = F.renderSeasonPanelHtml(season, escapeHtml);
+  }
+
   function updateRadarAndAnalyze(lat, lon) {
     if (isFinite(lat) && isFinite(lon) && !forageManual) {
       applyAutoForage(lat, lon, activeApiary);
@@ -2696,23 +2735,115 @@
     }
     syncWaterRadar(lat, lon);
     var host = document.getElementById('forageHost');
-    if (!F || !host || !isFinite(lat) || !isFinite(lon)) return;
+    var seasonHost = document.getElementById('seasonHost');
+    if (!F || !isFinite(lat) || !isFinite(lon)) return;
+
+    /* Cache: reuse last live forage/climate/season if same coords and <24h. */
+    var apiary = activeApiary;
+    var forageFresh =
+      apiary &&
+      D &&
+      D.isLiveCacheFresh &&
+      D.isLiveCacheFresh(apiary.forageCache, lat, lon);
+    var seasonFresh =
+      apiary &&
+      D &&
+      D.isLiveCacheFresh &&
+      D.isLiveCacheFresh(apiary.seasonCache, lat, lon);
+
+    var needForage = !(forageFresh && apiary.forageCache && apiary.forageCache.payload);
+    var needSeason = !!(seasonHost && F.analyzeSeason) &&
+      !(seasonFresh && apiary.seasonCache && apiary.seasonCache.payload);
+
+    if (host && !needForage) {
+      paintForageAnalysis(host, apiary.forageCache.payload, lat, lon);
+    }
+    if (seasonHost && F.analyzeSeason && !needSeason && seasonFresh) {
+      paintSeasonAnalysis(seasonHost, apiary.seasonCache.payload);
+    }
+
+    if (!needForage && !needSeason) return;
+
     if (analyzeTimer) clearTimeout(analyzeTimer);
-    host.innerHTML = '<div class="forage-panel"><p class="forage-sub">Yer analizi güncelleniyor…</p></div>';
+    if (seasonTimer) clearTimeout(seasonTimer);
+    if (host && needForage) {
+      host.innerHTML = '<div class="forage-panel"><p class="forage-sub">Yer analizi güncelleniyor…</p></div>';
+    }
+    if (seasonHost && needSeason) {
+      seasonHost.innerHTML =
+        '<div class="season-panel"><p class="season-sub">Mevsim / kışlama güncelleniyor…</p></div>';
+    }
+
     analyzeTimer = setTimeout(function () {
-      F.analyze(lat, lon, forageRadiusKm)
-        .then(function (a) {
-          host.innerHTML = F.renderPanelHtml(a, escapeHtml);
-          bindForageTipClicks(host);
-          appendYieldEstimate(host, a, activeApiary);
-          syncTipFromAnalysis(a, lat, lon);
-        })
-        .catch(function () {
-          clearTipPlacemark();
-          host.innerHTML =
-            '<div class="forage-panel is-empty"><p>Analiz alınamadı — konum yine kaydedilebilir.</p></div>';
-        });
+      var forageP = needForage
+        ? F.analyze(lat, lon, forageRadiusKm).catch(function () { return null; })
+        : Promise.resolve(null);
+      var seasonP =
+        needSeason && F.analyzeSeason
+          ? F.analyzeSeason(lat, lon).catch(function () { return null; })
+          : Promise.resolve(null);
+      Promise.all([forageP, seasonP]).then(function (pack) {
+        var a = pack[0];
+        var season = pack[1];
+        if (needForage && host) {
+          if (a) {
+            paintForageAnalysis(host, a, lat, lon);
+          } else {
+            clearTipPlacemark();
+            host.innerHTML =
+              '<div class="forage-panel is-empty"><p>Analiz alınamadı — konum yine kaydedilebilir.</p></div>';
+          }
+        }
+        if (needSeason && seasonHost) {
+          if (season) {
+            paintSeasonAnalysis(seasonHost, season);
+          } else {
+            seasonHost.innerHTML =
+              '<div class="season-panel is-empty"><p>Mevsim verisi alınamadı — konum yine kaydedilebilir.</p></div>';
+          }
+        }
+        persistLiveCaches(
+          lat,
+          lon,
+          a || null,
+          a && a.climateSnapshot ? a.climateSnapshot : null,
+          season || null
+        );
+      });
     }, 280);
+  }
+
+  /** Reverse-geocode il·ilçe·köy after location save/move; seed admin kept unless empty. */
+  function applyReverseAdminThen(lat, lon, basePatch, done) {
+    basePatch = basePatch || {};
+    if (!D || !activeApiary) {
+      if (done) done(basePatch);
+      return;
+    }
+    if (!D.reverseGeocodeAdmin) {
+      D.updateApiary(activeApiary.id, basePatch);
+      refreshActiveApiary();
+      if (done) done(basePatch);
+      return;
+    }
+    D.reverseGeocodeAdmin(lat, lon).then(function (geo) {
+      var admin =
+        D.adminPatchFromGeocode
+          ? D.adminPatchFromGeocode(activeApiary, geo)
+          : {};
+      var patch = {};
+      Object.keys(basePatch).forEach(function (k) { patch[k] = basePatch[k]; });
+      if (admin.il != null) patch.il = admin.il;
+      if (admin.ilce != null) patch.ilce = admin.ilce;
+      if (admin.koy != null) patch.koy = admin.koy;
+      D.updateApiary(activeApiary.id, patch);
+      refreshActiveApiary();
+      if (done) done(patch);
+    }).catch(function () {
+      D.updateApiary(activeApiary.id, basePatch);
+      refreshActiveApiary();
+      if (done) done(basePatch);
+    });
   }
 
   function hideSearchResults() {
@@ -3152,6 +3283,7 @@
         '</div>' +
         waterSourceBlockHtml(apiary) +
         '<div id="forageHost"></div>' +
+        '<div id="seasonHost"></div>' +
       '</section>';
 
     content.innerHTML =
@@ -3228,23 +3360,24 @@
         if (!confirm('Taşıma tamamlandı sayılacak; konum güncellenir ve gider yazılır.')) return;
         var patch = { lat: Number(plan.lat), lon: Number(plan.lon) };
         if (plan.place) patch.place = plan.place;
-        D.updateApiary(apiary.id, patch);
         forageManual = false;
-        try {
-          G.recordTransport({
-            mode: plan.mode === 'kendi_arac' ? 'kendi_arac' : 'nakliye',
-            amount: Number(plan.amount),
-            date: plan.date,
-            note: plan.note || '',
-            apiaryId: apiary.id,
-            apiaryName: (plan.place || apiary.name || apiary.place || '')
-          });
-        } catch (err) {
-          alert((err && err.message) || 'Gider yazılamadı.');
-          return;
-        }
-        clearMovePlan();
-        render();
+        applyReverseAdminThen(Number(plan.lat), Number(plan.lon), patch, function () {
+          try {
+            G.recordTransport({
+              mode: plan.mode === 'kendi_arac' ? 'kendi_arac' : 'nakliye',
+              amount: Number(plan.amount),
+              date: plan.date,
+              note: plan.note || '',
+              apiaryId: apiary.id,
+              apiaryName: (plan.place || apiary.name || apiary.place || '')
+            });
+          } catch (err) {
+            alert((err && err.message) || 'Gider yazılamadı.');
+            return;
+          }
+          clearMovePlan();
+          render();
+        });
       });
     }
     if (btnKonum) btnKonum.addEventListener('click', openLocMenu);
@@ -3321,11 +3454,12 @@
           alert('Önce ara veya haritaya dokunarak konum seçin.');
           return;
         }
-        /* Konum kaydı: su mesafesini elle taşıma — updateApiary resyncWaterForNewCoords yapar. */
-        D.updateApiary(apiary.id, { lat: c.lat, lon: c.lon });
+        /* Konum kaydı: su resync + reverse il·ilçe·köy (seed admin korunur). */
         pickMode = false;
         forageManual = false;
-        render();
+        applyReverseAdminThen(c.lat, c.lon, { lat: c.lat, lon: c.lon }, function () {
+          render();
+        });
       });
     }
 

@@ -414,10 +414,10 @@
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=place-admin-1"></script>
+<script src="demo-data.js?v=mevsim-geo-1"></script>
 <script src="rapor-store.js"></script>
-<script src="forage-analysis.js?v=yaricap-1"></script>
-<script src="forage-yield-estimate.js?v=su-foraj-loc-1"></script>
+<script src="forage-analysis.js?v=mevsim-geo-1"></script>
+<script src="forage-yield-estimate.js?v=mevsim-geo-1"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
@@ -1069,14 +1069,40 @@
       refreshMap();
       return;
     }
-    try {
-      D.addApiary({ name: name, place: place, hiveCount: hiveCount, lat: lat, lon: lon });
-    } catch (err) {
-      showError(err && err.message ? err.message : 'Kayıt başarısız.');
+    function finishAdd(extra) {
+      extra = extra || {};
+      try {
+        D.addApiary({
+          name: name,
+          place: place,
+          hiveCount: hiveCount,
+          lat: lat,
+          lon: lon,
+          il: extra.il || '',
+          ilce: extra.ilce || '',
+          koy: extra.koy || ''
+        });
+      } catch (err) {
+        showError(err && err.message ? err.message : 'Kayıt başarısız.');
+        return;
+      }
+      closeSheet();
+      render();
+    }
+    if (D && D.reverseGeocodeAdmin) {
+      D.reverseGeocodeAdmin(lat, lon).then(function (geo) {
+        var admin = D.adminPatchFromGeocode
+          ? D.adminPatchFromGeocode({ id: 'new' }, geo)
+          : {};
+        finishAdd({
+          il: admin.il || (geo && geo.il) || '',
+          ilce: admin.ilce || (geo && geo.ilce) || '',
+          koy: admin.koy || (geo && geo.koy) || ''
+        });
+      }).catch(function () { finishAdd({}); });
       return;
     }
-    closeSheet();
-    render();
+    finishAdd({});
   });
 
   render();

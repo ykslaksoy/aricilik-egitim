@@ -647,6 +647,61 @@
     return syncWaterConvenienceFromCatalog(dest);
   }
 
+  var LIVE_CACHE_KEYS = ['forageCache', 'climateCache', 'seasonCache'];
+  var LIVE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+  /** Persist live Open-Meteo snapshots on apiary (lat/lon/fetchedAt/payload). */
+  function copyLiveCaches(dest, src) {
+    if (!dest || !src) return dest;
+    LIVE_CACHE_KEYS.forEach(function (k) {
+      var c = src[k];
+      if (c && typeof c === 'object' && c.payload != null) {
+        dest[k] = {
+          lat: c.lat != null ? Number(c.lat) : null,
+          lon: c.lon != null ? Number(c.lon) : null,
+          fetchedAt: c.fetchedAt != null ? String(c.fetchedAt) : null,
+          payload: c.payload
+        };
+      }
+    });
+    return dest;
+  }
+
+  function clearLiveCaches(dest) {
+    if (!dest) return dest;
+    LIVE_CACHE_KEYS.forEach(function (k) { delete dest[k]; });
+    return dest;
+  }
+
+  function coordsMatchCache(cache, lat, lon, eps) {
+    if (!cache) return false;
+    var cla = Number(cache.lat);
+    var clo = Number(cache.lon);
+    var la = Number(lat);
+    var lo = Number(lon);
+    if (!isFinite(cla) || !isFinite(clo) || !isFinite(la) || !isFinite(lo)) return false;
+    eps = eps != null ? eps : 1e-5;
+    return Math.abs(cla - la) <= eps && Math.abs(clo - lo) <= eps;
+  }
+
+  function isLiveCacheFresh(cache, lat, lon, maxAgeMs) {
+    if (!cache || cache.payload == null || !cache.fetchedAt) return false;
+    if (!coordsMatchCache(cache, lat, lon)) return false;
+    var t = Date.parse(String(cache.fetchedAt));
+    if (!isFinite(t)) return false;
+    var maxAge = maxAgeMs != null ? maxAgeMs : LIVE_CACHE_MAX_AGE_MS;
+    return Date.now() - t <= maxAge;
+  }
+
+  function makeLiveCache(lat, lon, payload) {
+    return {
+      lat: Number(lat),
+      lon: Number(lon),
+      fetchedAt: new Date().toISOString(),
+      payload: payload
+    };
+  }
+
   /** Copy waterDistanceM + waterSourceId + type/note/label from src onto dest (load/save path). */
   function applyWaterDistance(dest, src) {
     var w = parseWaterDistanceM(src && src.waterDistanceM);
@@ -664,6 +719,7 @@
     }
     migrateLegacyWaterToCatalog(dest, src);
     syncWaterConvenienceFromCatalog(dest);
+    copyLiveCaches(dest, src);
     return dest;
   }
 
@@ -1371,10 +1427,27 @@
         var waterPatched =
           Object.prototype.hasOwnProperty.call(patch, 'waterSourceId') ||
           Object.prototype.hasOwnProperty.call(patch, 'waterDistanceM');
+        LIVE_CACHE_KEYS.forEach(function (ck) {
+          if (Object.prototype.hasOwnProperty.call(patch, ck)) {
+            var cv = patch[ck];
+            if (cv && typeof cv === 'object' && cv.payload != null) {
+              a[ck] = makeLiveCache(
+                cv.lat != null ? cv.lat : a.lat,
+                cv.lon != null ? cv.lon : a.lon,
+                cv.payload
+              );
+              if (cv.fetchedAt) a[ck].fetchedAt = String(cv.fetchedAt);
+            } else {
+              delete a[ck];
+            }
+          }
+        });
         if (coordsTouched && !waterPatched) {
           /* Konum değişti: eski su bağını / mesafeyi yerel katalog + haversine ile yenile. */
           var locSync = resyncWaterForNewCoords(a);
           a = locSync.apiary;
+          /* Coords changed → drop stale live analyses (refetch on next paint). */
+          clearLiveCaches(a);
         } else {
           /* Su kaynağı seçildi veya yalnız mesafe: haritadan mesafeyi yenile (uydurma yok). */
           var refreshedOne = refreshWaterDistancesFromMap([a]);
@@ -1463,6 +1536,131 @@
       'https://yandex.com/maps/?pt=' + lo + ',' + la +
       '&z=' + z + '&l=map'
     );
+  }
+
+  function isSeedApiaryId(id) {
+    var key = String(id || '');
+    return SEED_APIARIES.some(function (s) { return s.id === key; });
+  }
+
+  /**
+   * Open-Meteo Geocoding has no reverse endpoint (404) — prefer it when available,
+   * else Nominatim (User-Agent SuperAri). Never invent provinces.
+   * Resolves { il, ilce, koy, place, source, label } — empty strings when unknown.
+   */
+  function reverseGeocodeAdmin(lat, lon) {
+    var la = Number(lat);
+    var lo = Number(lon);
+    var empty = { il: '', ilce: '', koy: '', place: '', source: '', label: '', lat: la, lon: lo };
+    if (!isFinite(la) || !isFinite(lo)) return Promise.resolve(empty);
+
+    function parseNominatim(j) {
+      var addr = (j && j.address) || {};
+      var il = trimAdmin(addr.province || addr.state || '');
+      var ilce = trimAdmin(
+        addr.town || addr.municipality || addr.county || addr.city_district || addr.district || ''
+      );
+      var koy = trimAdmin(
+        addr.village || addr.suburb || addr.neighbourhood || addr.hamlet || addr.quarter || ''
+      );
+      /* Do not invent: only keep real admin strings from the response. */
+      var label = trimAdmin(j && j.display_name);
+      var place = koy || ilce || il || '';
+      return {
+        il: il,
+        ilce: ilce,
+        koy: koy,
+        place: place,
+        source: 'nominatim',
+        label: label,
+        lat: la,
+        lon: lo
+      };
+    }
+
+    function nominatim() {
+      var url =
+        'https://nominatim.openstreetmap.org/reverse?lat=' +
+        encodeURIComponent(String(la)) +
+        '&lon=' +
+        encodeURIComponent(String(lo)) +
+        '&format=json&addressdetails=1&accept-language=tr&zoom=14';
+      return fetch(url, {
+        headers: { Accept: 'application/json', 'User-Agent': 'SuperAri' }
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('nominatim_' + r.status);
+          return r.json();
+        })
+        .then(parseNominatim)
+        .catch(function () { return empty; });
+    }
+
+    /* Probe Open-Meteo reverse; fall through to Nominatim on 404/empty. */
+    var omUrl =
+      'https://geocoding-api.open-meteo.com/v1/reverse?latitude=' +
+      encodeURIComponent(String(la)) +
+      '&longitude=' +
+      encodeURIComponent(String(lo)) +
+      '&language=tr&format=json&count=1';
+    return fetch(omUrl)
+      .then(function (r) {
+        if (!r.ok) return nominatim();
+        return r.json().then(function (j) {
+          var row = j && j.results && j.results[0];
+          if (!row) return nominatim();
+          var il = trimAdmin(row.admin1 || '');
+          var ilce = trimAdmin(row.admin2 || row.admin3 || '');
+          var koy = trimAdmin(row.name || row.admin4 || '');
+          if (!il && !ilce && !koy) return nominatim();
+          return {
+            il: il,
+            ilce: ilce,
+            koy: koy,
+            place: koy || ilce || il || '',
+            source: 'open-meteo',
+            label: [koy, ilce, il].filter(Boolean).join(', '),
+            lat: la,
+            lon: lo
+          };
+        });
+      })
+      .catch(function () { return nominatim(); });
+  }
+
+  /**
+   * Merge reverse-geocode into apiary admin fields.
+   * Seed apiaries: keep seed il/ilce/koy unless empty.
+   * Never invent — only apply non-empty geo fields.
+   */
+  function adminPatchFromGeocode(apiary, geo) {
+    geo = geo || {};
+    var patch = {};
+    var seed = null;
+    if (apiary && isSeedApiaryId(apiary.id)) {
+      for (var i = 0; i < SEED_APIARIES.length; i++) {
+        if (SEED_APIARIES[i].id === String(apiary.id)) { seed = SEED_APIARIES[i]; break; }
+      }
+    }
+    function pick(field) {
+      var seedV = seed ? trimAdmin(seed[field]) : '';
+      var curV = trimAdmin(apiary && apiary[field]);
+      var geoV = trimAdmin(geo[field]);
+      if (seed) {
+        /* Seed keep seed admin unless empty — then allow geo fill. */
+        if (seedV) return seedV;
+        if (curV) return curV;
+        return geoV || '';
+      }
+      return geoV || curV || '';
+    }
+    var il = pick('il');
+    var ilce = pick('ilce');
+    var koy = pick('koy');
+    if (il) patch.il = il; else patch.il = '';
+    if (ilce) patch.ilce = ilce; else patch.ilce = '';
+    if (koy) patch.koy = koy; else patch.koy = '';
+    return patch;
   }
 
   /** Open-Meteo geocoder (no API key) — place/address search for map picker. */
@@ -1589,6 +1787,13 @@
       yandexMapsUrl: yandexMapsUrl,
       yandexSearchUrl: yandexSearchUrl,
       geocodeSearch: geocodeSearch,
+      reverseGeocodeAdmin: reverseGeocodeAdmin,
+      adminPatchFromGeocode: adminPatchFromGeocode,
+      isSeedApiaryId: isSeedApiaryId,
+      isLiveCacheFresh: isLiveCacheFresh,
+      makeLiveCache: makeLiveCache,
+      clearLiveCaches: clearLiveCaches,
+      LIVE_CACHE_MAX_AGE_MS: LIVE_CACHE_MAX_AGE_MS,
       parseCoordsFromText: parseCoordsFromText
     }
   });

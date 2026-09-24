@@ -1,34 +1,36 @@
 /**
  * Hedef bal (kg) tahmini + uyumsuz kovan / takas önerisi.
  *
- * Product formula (documented):
+ * Product formula (documented — «neden» breakdown mirrors these factors):
  *   S     = location suitability 0–100 (forage score; prefer recommended radius)
- *   Hprev = prior completed season harvest kg for this apiary (null if missing)
+ *   Hprev = prior completed season harvest kg for this apiary (null if missing — never fabricate)
  *   n     = hive count
- *   Per hive: strengthFactor · healthFactor · breedFactor (defaults 1.0)
+ *   Per hive: strengthFactor · healthFactor · breedFactor (defaults 1.0; all colonies Karniyol)
  *
  * Weights:
  *   W_HARVEST = 0.45 when Hprev known; else score+colony path only (weight 1.0)
  *
- * Score baseline kg/hive:
- *   S≥80 → mid 30 (±8); S≥65 → 24 (±7); S≥45 → 16 (±6); else → 10 (±5)
+ * Score baseline kg/hive (beekeeper-facing; thin-data band ~20–35 kg):
+ *   S≥80 → mid 33 (±5); S≥65 → 28 (±5); S≥50 → 24 (±4); S≥35 → 21 (±4); else → 18 (±4)
+ *   When data thin (no Hprev / sparse colony): mid clamped into 20–35 kg.
  *
  * With harvest:
  *   priorPerHive = Hprev / max(n,1)
  *   locationFactor = clamp(0.7 + (S/100)*0.5, 0.75, 1.25)
  *   colonyAvg = avg(strength*health*breed) or 1.0
  *   waterFactor(waterDistanceM) — user-reported distance to local water (metres):
- *     null/missing → 1.0 (do not invent); type/note are display-only
+ *     null/missing → 1.0 (do not invent distance); site flagged waterUnsuitable
  *     ≤150 → 1.05; ≤500 → 1.02; ≤1000 → 1.0;
  *     ≤2000 → 0.95; ≤3000 → 0.88; >3000 → 0.82
+ *   Karniyol breedFactor: cool/highland / cold-short → mild boost (≤1.08); else ~1.03
  *   factorProduct = clamp(locationFactor * colonyAvg * waterFactor, 0.5, 1.6)
  *   scoreProduct  = clamp(colonyAvg * waterFactor, 0.5, 1.5)
  *   blendedMid = W_HARVEST*(priorPerHive*factorProduct)
  *              + (1-W_HARVEST)*(scoreMid*scoreProduct)
  *   Without harvest: mid = scoreMid * scoreProduct
- *   range = mid ± max(4, mid*0.25)
+ *   range = mid ± max(4, mid*0.22)
  *
- * Label badge: «Yaklaşık»; su mesafesi notu ayrı satırda (garanti değil).
+ * Label badge: «Yaklaşık»; su yoksa «yer uygun değil» uyarısı; «neden» faktör dökümü.
  */
 (function (global) {
   var W_HARVEST = 0.45;
@@ -67,10 +69,20 @@
 
   function scoreBaseline(S) {
     S = Number(S) || 0;
-    if (S >= 80) return { mid: 30, half: 8 };
-    if (S >= 65) return { mid: 24, half: 7 };
-    if (S >= 45) return { mid: 16, half: 6 };
-    return { mid: 10, half: 5 };
+    /* Realistic beekeeper band ~20–35 kg when site/colony data is thin. */
+    if (S >= 80) return { mid: 33, half: 5 };
+    if (S >= 65) return { mid: 28, half: 5 };
+    if (S >= 50) return { mid: 24, half: 4 };
+    if (S >= 35) return { mid: 21, half: 4 };
+    return { mid: 18, half: 4 };
+  }
+
+  /** Thin-data realism: keep mid inside ~20–35 kg when harvest/colony sparse. */
+  function clampThinBand(mid, thin) {
+    mid = Number(mid);
+    if (!isFinite(mid)) return mid;
+    if (!thin) return mid;
+    return Math.max(20, Math.min(35, mid));
   }
 
   /** Mid kg/hive from score bands — for tip % deltas (yaklaşık hedef farkı). */
@@ -152,8 +164,10 @@
       if (siteClass.humidCoast) f = 0.92;
       else if (siteClass.humidCoolHighland) f = 0.97;
     } else if (key === 'karniyol') {
-      /* Karniyol soğuk/ılıman için uygun; ceza yok. */
-      f = 1.0;
+      /* Karniyol: soğuk/yayla dostu — hafif pozitif; ceza yok. */
+      if (siteClass.coldShortSeason || siteClass.humidCoolHighland) f = 1.08;
+      else if (siteClass.humidCoast) f = 1.02;
+      else f = 1.03;
     } else if (key === 'italyan') {
       if (siteClass.coldShortSeason) f = 0.88;
     }
@@ -329,6 +343,15 @@
     var locationFactor = null;
     var factorProduct = null;
 
+    var waterUnsuitable = wDist == null;
+    var hasSource =
+      (opts.waterSourceType != null && String(opts.waterSourceType).trim()) ||
+      (opts.waterSourceLabel != null && String(opts.waterSourceLabel).trim()) ||
+      (opts.waterSourceId != null && String(opts.waterSourceId).trim());
+    if (!hasSource && wDist == null) waterUnsuitable = true;
+
+    var dataThin = !usedHarvest || colonyDataSparse;
+
     if (usedHarvest) {
       priorPerHive = Hprev / Math.max(n, 1);
       locationFactor = clamp(0.7 + ((S != null ? S : 50) / 100) * 0.5, 0.75, 1.25);
@@ -336,13 +359,20 @@
       mid =
         W_HARVEST * (priorPerHive * factorProduct) +
         (1 - W_HARVEST) * (scoreMid * scoreProduct);
-      var halfH = Math.max(4, mid * 0.25);
+      mid = clampThinBand(mid, dataThin && !usedHarvest);
+      var halfH = Math.max(4, mid * 0.22);
       lo = Math.max(0, mid - halfH);
       hi = mid + halfH;
     } else {
       mid = scoreMid * scoreProduct;
-      lo = Math.max(0, (base.mid - base.half) * scoreProduct);
-      hi = (base.mid + base.half) * scoreProduct;
+      mid = clampThinBand(mid, true);
+      var halfThin = Math.max(4, mid * 0.22);
+      lo = Math.max(0, mid - halfThin);
+      hi = mid + halfThin;
+      /* Keep band inside baseline wings when score known. */
+      lo = Math.max(lo, Math.max(0, (base.mid - base.half) * Math.min(scoreProduct, 1.15) - 2));
+      hi = Math.min(hi, (base.mid + base.half) * Math.max(scoreProduct, 0.85) + 2);
+      if (hi < lo + 4) hi = lo + 4;
     }
 
     var perHiveMid = round1(mid);
@@ -352,6 +382,23 @@
     var totalLo = round0(lo * Math.max(n, 0));
     var totalHi = round0(hi * Math.max(n, 0));
 
+    var why = buildWhyBreakdown({
+      S: S,
+      scoreMid: scoreMid,
+      colonyAvg: colonyAvg,
+      waterFactor: wF,
+      waterDistanceM: wDist,
+      waterUnsuitable: waterUnsuitable,
+      locationFactor: locationFactor,
+      usedHarvest: usedHarvest,
+      Hprev: Hprev,
+      priorPerHive: priorPerHive,
+      siteClass: siteClass,
+      hives: hives,
+      dataThin: dataThin,
+      perHiveMid: perHiveMid
+    });
+
     return {
       S: S,
       n: n,
@@ -360,7 +407,7 @@
       harvestWeightPct: usedHarvest ? Math.round(W_HARVEST * 100) : 0,
       harvestNoteTr: usedHarvest
         ? 'Geçen sezon hasat ağırlığı %' + Math.round(W_HARVEST * 100)
-        : 'Hasat yok — yer+koloni tahmini',
+        : 'Hasat yok — yer+koloni tahmini (uydurma hasat yok)',
       labelTr: 'Yaklaşık',
       perHive: { mid: perHiveMid, lo: perHiveLo, hi: perHiveHi },
       total: { mid: totalMid, lo: totalLo, hi: totalHi },
@@ -371,6 +418,7 @@
       locationFactor: locationFactor != null ? round1(locationFactor) : null,
       waterDistanceM: wDist != null ? round0(wDist) : null,
       waterFactor: Math.round(wF * 100) / 100,
+      waterUnsuitable: !!waterUnsuitable,
       waterSourceType:
         opts.waterSourceType != null && String(opts.waterSourceType).trim()
           ? String(opts.waterSourceType).trim().toLowerCase()
@@ -393,8 +441,82 @@
         opts.recommendedRadiusKm != null ? clampRadius(opts.recommendedRadiusKm) : null,
       analysisRadiusKm:
         opts.analysisRadiusKm != null ? clampRadius(opts.analysisRadiusKm) : null,
-      dataNotes: buildDataNotes(hives, Hprev, colonyDataSparse)
+      dataNotes: buildDataNotes(hives, Hprev, colonyDataSparse),
+      why: why
     };
+  }
+
+  /** Documented factor list for «neden» UI — no fabricated harvest. */
+  function buildWhyBreakdown(ctx) {
+    ctx = ctx || {};
+    var rows = [];
+    rows.push({
+      k: 'Yer skoru',
+      v:
+        (ctx.S != null ? ctx.S + '/100' : '—') +
+        (ctx.scoreMid != null ? ' → taban ~' + ctx.scoreMid + ' kg/kovan' : '')
+    });
+    rows.push({
+      k: 'Su',
+      v: ctx.waterUnsuitable
+        ? 'kaynak/mesafe yok — yer arılık için henüz uygun değil (çarpan 1.0, uydurma mesafe yok)'
+        : (ctx.waterDistanceM != null ? ctx.waterDistanceM + ' m' : '—') +
+          ' · çarpan ' +
+          (Math.round(Number(ctx.waterFactor) * 100) / 100)
+    });
+    var brAvg = 1;
+    var stKnown = 0;
+    var heKnown = 0;
+    var brKnown = 0;
+    var brKarn = 0;
+    (ctx.hives || []).forEach(function (h) {
+      var p = hiveColonyProduct(h, ctx.siteClass || classifySite(null));
+      if (p.strength && p.strength.known) stKnown++;
+      if (p.health && p.health.known) heKnown++;
+      if (p.breed && p.breed.known) {
+        brKnown++;
+        if (p.breed.key === 'karniyol') brKarn++;
+      }
+    });
+    rows.push({
+      k: 'Koloni (güç×sağlık×ırk)',
+      v:
+        'ortalama çarpan ' +
+        (Math.round(Number(ctx.colonyAvg) * 100) / 100) +
+        (brKarn ? ' · Karniyol dostu' : '') +
+        (ctx.dataThin ? ' · veri ince → 20–35 kg bandı' : '')
+    });
+    if (ctx.usedHarvest && ctx.Hprev != null) {
+      rows.push({
+        k: 'Hasat',
+        v:
+          'geçen sezon ' +
+          round0(ctx.Hprev) +
+          ' kg' +
+          (ctx.priorPerHive != null ? ' (~' + round1(ctx.priorPerHive) + ' kg/kovan)' : '') +
+          ' · ağırlık %' +
+          Math.round(W_HARVEST * 100)
+      });
+    } else {
+      rows.push({
+        k: 'Hasat',
+        v: 'kayıt yok — uydurma hasat sayısı yok; yalnız yer+koloni'
+      });
+    }
+    if (ctx.locationFactor != null) {
+      rows.push({
+        k: 'Konum çarpanı',
+        v: String(Math.round(Number(ctx.locationFactor) * 100) / 100)
+      });
+    }
+    rows.push({
+      k: 'Sonuç',
+      v:
+        'kovan başı ≈ ' +
+        (ctx.perHiveMid != null ? ctx.perHiveMid : '—') +
+        ' kg (yaklaşık; garanti değil)'
+    });
+    return rows;
   }
 
   function buildDataNotes(hives, Hprev, sparse) {
@@ -615,7 +737,7 @@
         ? ' · geçen sezon ' + escapeHtml(String(round0(estimate.Hprev))) + ' kg'
         : '') +
       '</p>' +
-      '<p class="fy-notes">Su mesafesi hedefi çarpan olarak girer (garanti değil).</p>' +
+      '<p class="fy-notes">Su mesafesi hedefi çarpan olarak girer (garanti değil; uydurma 800 m yok).</p>' +
       (function () {
         var typeLab = waterTypeLabel(estimate.waterSourceType);
         var label = estimate.waterSourceLabel
@@ -638,13 +760,38 @@
         }
         if (noteShort && noteShort !== label) parts.push(noteShort);
         parts.push('çarpan ' + String(estimate.waterFactor));
-        if (estimate.waterDistanceM == null && !head) {
-          return '<p class="fy-water">Su kaynağı seçilmedi — çarpan 1.0 (arıcı girişi)</p>';
+        if (estimate.waterUnsuitable || (estimate.waterDistanceM == null && !head)) {
+          return (
+            '<p class="fy-water fy-water-bad">' +
+            'Bu yer arılık için henüz uygun değil — su kaynağı / gerçek mesafe yok. ' +
+            'Su ekleyin veya listeden seçin (uydurma mesafe yok).' +
+            '</p>'
+          );
         }
         return (
           '<p class="fy-water">Su: ' +
           escapeHtml(parts.join(' · ')) +
           '</p>'
+        );
+      })() +
+      (function () {
+        if (!estimate.why || !estimate.why.length) return '';
+        return (
+          '<div class="fy-neden">' +
+          '<div class="fy-neden-head">Neden bu hedef?</div>' +
+          '<ul class="fy-neden-list">' +
+          estimate.why
+            .map(function (w) {
+              return (
+                '<li><span class="fy-neden-k">' +
+                escapeHtml(w.k) +
+                ':</span> ' +
+                escapeHtml(w.v) +
+                '</li>'
+              );
+            })
+            .join('') +
+          '</ul></div>'
         );
       })() +
       (function () {
@@ -890,6 +1037,11 @@
     '.fy-range{font-weight:650;color:#5a6a4a;}',
     '.fy-meta{margin:0;font-size:11px;font-weight:650;color:#4a5a3a;line-height:1.35;}',
     '.fy-water{margin:4px 0 0;font-size:11px;font-weight:700;color:#1e4a6a;line-height:1.35;overflow-wrap:anywhere;word-break:break-word;}',
+    '.fy-water-bad{color:#8a2e1c;background:#fff0ec;border:1px solid #e0a090;border-radius:10px;padding:8px 10px;}',
+    '.fy-neden{margin:8px 0 0;padding:8px 10px;border-radius:10px;background:#fff;border:1px dashed #c9a227;}',
+    '.fy-neden-head{font-size:11px;font-weight:800;color:#4a2f1a;margin:0 0 4px;}',
+    '.fy-neden-list{margin:0;padding:0 0 0 1.1em;list-style:disc;font-size:10px;font-weight:600;color:#5a4634;line-height:1.45;}',
+    '.fy-neden-k{font-weight:800;color:#4a2f1a;}',
     '.fy-better{margin:6px 0 0;font-size:11px;font-weight:750;color:#3d5a2a;line-height:1.35;}',
     '.fy-notes{margin:6px 0 0;font-size:10px;font-weight:560;color:#6b735a;line-height:1.35;}',
     '.fy-empty{margin:0;font-size:11px;font-weight:650;color:#6b635a;}',
