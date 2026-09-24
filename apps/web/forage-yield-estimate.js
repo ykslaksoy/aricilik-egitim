@@ -34,19 +34,35 @@
     if (s.indexOf('karniyol') !== -1 || s.indexOf('carn') !== -1) return 'karniyol';
     return s;
   }
+  /* Sis/çise: Kafkas toplar (ceza yok, hafif artı). Karniyol kapalı kalır + stoğu yer. */
   function liveFactors(apiary, hiveBreed) {
     var fog = foggyPlace(apiary);
     var key = breedKey(hiveBreed || placeBreed(apiary));
     var breedF = 1;
-    if (fog && key === 'karniyol') breedF = 0.88;
-    else if (fog && (key === 'kafkas' || key === 'kafkas_karadeniz')) breedF = 1.12;
-    else if (fog && key === 'kafkas_karniyol') breedF = 1.02;
-    else if (!fog && key === 'karniyol') breedF = 1.08;
-    else if (!fog && key === 'kafkas_karniyol') breedF = 1.06;
-    else if (!fog && key === 'mugla') breedF = 1.05;
-    else if (!fog && key === 'kafkas') breedF = 0.97;
-    var fogF = fog ? 0.9 : 1;
-    return { fog: fog, key: key, breedF: breedF, fogF: fogF, product: Math.round(breedF * fogF * 1000) / 1000 };
+    var fogF = 1;
+    var eatF = 1;
+    if (key === 'karniyol') {
+      breedF = fog ? 0.88 : 1.08;
+      if (fog) {
+        fogF = 0.9;
+        eatF = 0.92;
+      }
+    } else if (key === 'kafkas' || key === 'kafkas_karadeniz') {
+      breedF = fog ? 1.14 : 0.97;
+      fogF = 1;
+      eatF = 1;
+    } else if (key === 'kafkas_karniyol') {
+      breedF = fog ? 1.02 : 1.06;
+      if (fog) fogF = 0.97;
+    } else if (key === 'mugla') {
+      breedF = fog ? 0.86 : 1.05;
+      if (fog) {
+        fogF = 0.9;
+        eatF = 0.92;
+      }
+    }
+    var product = Math.round(breedF * fogF * eatF * 1000) / 1000;
+    return { fog: fog, key: key, breedF: breedF, fogF: fogF, eatF: eatF, product: product };
   }
   function kg(n) {
     return n == null || !isFinite(Number(n)) ? null : Math.round(Number(n) * 10) / 10;
@@ -71,8 +87,7 @@
     var next = hives.map(function (h) {
       if (!h) return h;
       var want = byId[String(h.apiaryId)] || '';
-      if (!want) return h;
-      if (String(h.breed || '') === want) return h;
+      if (!want || String(h.breed || '') === want) return h;
       changed = true;
       var c = {};
       for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) c[k] = h[k];
@@ -99,7 +114,7 @@
 
   function patchYield() {
     var Y = global.SuperAriForageYield;
-    if (!Y || Y.__liveBreed) return;
+    if (!Y || Y.__liveBreed2) return;
     if (Y.estimateYield) {
       var raw = Y.estimateYield;
       Y.estimateYield = function (opts) {
@@ -108,21 +123,28 @@
         var est = raw(opts);
         if (!est || !a) return est;
         var fac = liveFactors(a, placeBreed(a));
-        function sc(n) {
-          return n == null || !isFinite(Number(n)) ? n : kg(Number(n) * fac.product / 0.9);
-        }
-        /* raw may already include old Karniyol; replace with live product vs 1.0 baseline-ish */
         ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
-          if (est[k] != null) est[k] = kg(Number(est[k]) * fac.breedF * fac.fogF);
+          if (est[k] != null) est[k] = kg(Number(est[k]) * fac.product);
         });
         var mid = est.kgPerHive != null ? est.kgPerHive : est.midKg;
         var n = est.n || (a && a.hiveCount) || 0;
         if (mid != null && n) est.totalKg = kg(mid * n);
+        var karniyolIf = mid != null ? kg(Number(mid) / fac.product * liveFactors(a, 'Karniyol').product) : null;
         est.why = est.why || [];
-        est.why.push({ k: 'İrk', v: placeBreed(a) + ' · çarpan ' + fac.breedF });
-        if (fac.fog) est.why.push({ k: 'Sis · çiseleme', v: 'çarpan ' + fac.fogF });
+        est.why.push({ k: 'İrk', v: placeBreed(a) + ' · çarpan ' + fac.breedF + ' (canlı)' });
         if (fac.key === 'kafkas' || fac.key === 'kafkas_karadeniz') {
-          est.why.push({ k: 'Kafkas beklenti', v: (mid != null ? mid + ' kg/kovan' : '—') + ' (canlı)' });
+          est.why.push({
+            k: 'Sis · çiseleme',
+            v: 'Kafkas uçtu, nektar aldı · yemedi · ceza yok'
+          });
+        } else if (fac.fog && fac.key === 'karniyol') {
+          est.why.push({
+            k: 'Sis · çiseleme',
+            v: 'Karniyol kovanda kaldı + stoğu yedi · çarpan ' + kg(fac.fogF * fac.eatF)
+          });
+        }
+        if (karniyolIf != null && fac.key !== 'karniyol') {
+          est.why.push({ k: 'Karniyol olsaydı', v: karniyolIf + ' kg/kovan (kapalı + yedi)' });
         }
         global.__saLastEst = est;
         return est;
@@ -134,18 +156,16 @@
         var pack = rawM(opts) || { items: [] };
         var a = (opts && opts.apiary) || apiary();
         var fac = liveFactors(a, placeBreed(a));
-        if (fac.key === 'kafkas' || fac.key === 'kafkas_karadeniz' || fac.key === 'mugla' || fac.key === 'kafkas_karniyol') {
+        if (fac.key === 'kafkas' || fac.key === 'kafkas_karadeniz' || fac.key === 'mugla') {
           pack.items = (pack.items || []).filter(function (it) {
-            return !(it.reasonTr && it.reasonTr.indexOf('Karniyol') !== -1);
+            return !(it.reasonTr && /Karniyol/.test(it.reasonTr));
           });
-          if (fac.key === 'kafkas' || fac.key === 'kafkas_karadeniz') {
-            pack.tipTr = placeBreed(a) + ' bu yer için uygun. Karniyol uyarısı yok.';
-          }
+          pack.tipTr = placeBreed(a) + ' bu iklime uygun.';
         }
         return pack;
       };
     }
-    Y.__liveBreed = true;
+    Y.__liveBreed2 = true;
   }
 
   function start() {
