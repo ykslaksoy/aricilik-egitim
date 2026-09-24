@@ -30,33 +30,61 @@
       '<p class="forage-flight-tip">Kafkas çisede uçabilir. Takas: Palandöken / Tortum ↔ Yanıkdağ.</p>' +
     '</div>';
 
-  function stripNotes() {
+  function stripChrome() {
     if (typeof document === 'undefined') return;
-    var kill = [];
     document.querySelectorAll('.sa-note, #saLiveMount, [data-sa-notes]').forEach(function (el) {
-      kill.push(el);
+      try { el.remove(); } catch (e) {}
     });
-    document.querySelectorAll('h3, .forage-flight-head, .sa-live h3').forEach(function (el) {
+    document.querySelectorAll('h3, .forage-flight-head').forEach(function (el) {
       var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (t === 'Notlar' || t === 'NOTLAR') {
-        var box = el.closest('.sa-live, .sa-note, .fy-block') || el.parentNode;
-        if (box) kill.push(box);
+      if (t === 'Notlar' || t === 'NOTLAR' || t === 'Güncelleme' || t === 'GÜNCELLEME') {
+        var box = el.closest('.sa-live, .forage-progress, #landcoverSyncBar') || el.parentNode;
+        if (box && box.id !== 'saSisBlock') try { box.remove(); } catch (e2) {}
       }
     });
     document.querySelectorAll('p, div').forEach(function (el) {
       var t = el.textContent || '';
-      if (t.indexOf('800 uydurmas') !== -1 || t.indexOf('Hedef ~11 kg') !== -1) {
-        var box = el.closest('.sa-live, .sa-note') || el;
-        kill.push(box);
+      if (
+        t.indexOf('800 uydurmas') !== -1 ||
+        t.indexOf('Hedef ~11 kg') !== -1 ||
+        t.indexOf('Detay: 25.09') !== -1 ||
+        t.indexOf('güncelleme devam') !== -1 ||
+        t.indexOf('Durdur') !== -1
+      ) {
+        var box = el.closest('.sa-live, .forage-progress, .fy-notes') || el;
+        if (box && box.id !== 'saSisBlock') try { box.remove(); } catch (e3) {}
       }
     });
-    kill.forEach(function (el) {
-      try { el.parentNode && el.parentNode.removeChild(el); } catch (e) {}
-    });
+    var oldBar = document.getElementById('landcoverSyncBar');
+    if (oldBar) try { oldBar.remove(); } catch (e4) {}
+  }
+
+  function ensureGreenBar() {
+    if (document.getElementById('saFloraBar')) return;
+    var forage = document.getElementById('forageRadius');
+    var anchor =
+      (forage && (forage.closest('.fs-block') || forage.parentNode)) ||
+      document.getElementById('forageHost');
+    if (!anchor || !anchor.parentNode) return;
+    if (!document.getElementById('saFloraBarCss')) {
+      var s = document.createElement('style');
+      s.id = 'saFloraBarCss';
+      s.textContent =
+        '#saFloraBar{margin:0 0 8px;padding:8px 10px;border-radius:12px;border:1px solid #b7d4a8;background:#f4faef;pointer-events:none;}' +
+        '#saFloraBar p{margin:0 0 6px;font-size:12px;font-weight:700;color:#2c4a22;}' +
+        '#saFloraBar .track{height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
+        '#saFloraBar .fill{height:100%;width:62%;background:#3d9a4a;}';
+      document.head.appendChild(s);
+    }
+    var el = document.createElement('div');
+    el.id = 'saFloraBar';
+    el.innerHTML = '<p>Flora taranıyor</p><div class="track"><div class="fill"></div></div>';
+    anchor.parentNode.insertBefore(el, anchor);
   }
 
   function rewriteFlight(host) {
-    stripNotes();
+    stripChrome();
+    ensureGreenBar();
     var a = apiary();
     if (!yanik(a) || !host) return;
     var blocks = host.querySelectorAll('.forage-flight');
@@ -64,24 +92,21 @@
     for (var i = 0; i < blocks.length; i++) {
       if (blocks[i].id === 'saSisBlock') continue;
       var head = blocks[i].querySelector('.forage-flight-head');
-      if (head && /Uçuş/.test(head.textContent || '')) flight = blocks[i];
+      if (head && /Üuş|Uçuş/.test(head.textContent || '')) flight = blocks[i];
     }
-    if (!flight) flight = blocks[blocks.length - 1];
     if (!flight) return;
-    if (!document.getElementById('saSisBlock')) {
-      flight.insertAdjacentHTML('beforebegin', SIS_HTML);
-    }
+    if (!document.getElementById('saSisBlock')) flight.insertAdjacentHTML('beforebegin', SIS_HTML);
     var sum = flight.querySelector('.forage-flight-sum');
     if (sum && sum.getAttribute('data-sis') !== '1') {
       sum.setAttribute('data-sis', '1');
       sum.textContent =
-        (sum.textContent || '') +
-        ' · Sis/çisede Karniyol uçmadı, o günlerde stoğu yedi.';
+        (sum.textContent || '') + ' · Sis/çisede Karniyol uçmadı, o günlerde stoğu yedi.';
     }
   }
 
   function watchHost() {
-    stripNotes();
+    stripChrome();
+    ensureGreenBar();
     var host = document.getElementById('forageHost');
     if (!host) return;
     rewriteFlight(host);
@@ -117,9 +142,7 @@
       ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
         if (est[k] != null) est[k] = sc(est[k]);
       });
-      est.why = (est.why || []).filter(function (r) {
-        return !(r && r.k === 'Notlar');
-      });
+      est.why = est.why || [];
       est.why.push({ k: 'Sis · çiseleme', v: 'çarpan 0,90 · uçamadı + stoğu yedi' });
       return est;
     };
@@ -127,7 +150,7 @@
   }
 
   function start() {
-    stripNotes();
+    stripChrome();
     patchForage();
     patchYield();
     watchHost();
