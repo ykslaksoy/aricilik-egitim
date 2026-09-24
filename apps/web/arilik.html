@@ -1663,10 +1663,11 @@
       'Konum',
       mapsLabel(a) + ' · ' + fmtCoord(a.lat) + ', ' + fmtCoord(a.lon),
       [
-        { label: 'Konuma git (yol tarifi)', action: 'goto' },
+        { label: 'Bu konuma git (yol tarifi)', action: 'goto' },
         { label: 'Konumu gönder', action: 'share' },
         { label: 'Yandex’te aç', action: 'yandex' },
         { label: 'Diğer haritalarda aç', action: 'other' },
+        { label: 'Haritada ortala', action: 'center' },
         { label: 'Konumu değiştir', action: 'pick' }
       ]
     );
@@ -1680,7 +1681,10 @@
           var pin = currentDetailPin();
           if (pin && Y) Y.openExternal('yandex', pin.lat, pin.lon, 14);
         } else if (act === 'other') openOtherMapsSheet();
-        else if (act === 'pick') {
+        else if (act === 'center') {
+          closeLocSheet();
+          centerOnSavedLocation();
+        } else if (act === 'pick') {
           closeLocSheet();
           startPickMode();
         }
@@ -2965,10 +2969,10 @@
         (coordsOk
           ? (
               '<div class="map-coords-row">' +
-                '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Koordinatlar">' +
+                '<button type="button" class="map-coords-line" id="pickCoords" aria-label="Konum işlemleri">' +
                   fmtCoord(apiary.lat) + ', ' + fmtCoord(apiary.lon) +
                 '</button>' +
-                '<button type="button" class="map-btn icon-gear" id="btnKonumMenu" aria-label="Kayıtlı konumu ortala" title="Kayıtlı konumu ortala">' +
+                '<button type="button" class="map-btn icon-gear" id="btnKonumMenu" aria-label="Konum işlemleri" title="Bu konuma git, gönder…">' +
                   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>' +
                 '</button>' +
               '</div>'
@@ -3124,7 +3128,7 @@
         render();
       });
     }
-    if (btnKonum) btnKonum.addEventListener('click', centerOnSavedLocation);
+    if (btnKonum) btnKonum.addEventListener('click', openLocMenu);
     if (coordsBtn && coordsBtn.tagName === 'BUTTON') {
       coordsBtn.addEventListener('click', openLocMenu);
     }
