@@ -13,11 +13,11 @@
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
-    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 36.58141, lon: 29.08886, hiveCount: 42 },
-    { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.257866, lon: 41.613415, hiveCount: 35 },
-    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 39.90, lon: 41.27, hiveCount: 23 },
-    { id: 'a4', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 41.080781, lon: 40.753956, hiveCount: 20 },
-    { id: 'a5', name: 'Cimil Yaylası Arılığı', place: 'Cimil Yaylası', lat: 40.733, lon: 40.789, hiveCount: 25 }
+    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', il: 'Muğla', ilce: 'Fethiye', koy: 'Kayaköy', lat: 36.58141, lon: 29.08886, hiveCount: 42 },
+    { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', il: 'Erzurum', ilce: 'Tortum', koy: 'Tortum', lat: 40.257866, lon: 41.613415, hiveCount: 35 },
+    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', il: 'Erzurum', ilce: 'Palandöken', koy: 'Palandöken', lat: 39.90, lon: 41.27, hiveCount: 23 },
+    { id: 'a4', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', il: 'Rize', ilce: 'Çayeli', koy: 'Yanıkdağ Baluğundüzü', lat: 41.080781, lon: 40.753956, hiveCount: 20 },
+    { id: 'a5', name: 'Cimil Yaylası Arılığı', place: 'Cimil Yaylası', il: 'Rize', ilce: 'İkizdere', koy: 'Cimil Yaylası', lat: 40.733, lon: 40.789, hiveCount: 25 }
   ];
 
   /* Named demo hives used by alerts / tasks — included inside full per-apiary fleets. */
@@ -50,15 +50,80 @@
 
   function cloneSeed() {
     return SEED_APIARIES.map(function (a) {
-      return {
+      return copyAdminFields({
         id: a.id,
         name: a.name,
         place: a.place,
         lat: a.lat,
         lon: a.lon,
         hiveCount: a.hiveCount
-      };
+      }, a);
     });
+  }
+
+  function trimAdmin(v) {
+    if (v == null || v === '') return '';
+    return String(v).trim();
+  }
+
+  /** il · ilçe · köy (tekrarları atlar). */
+  function formatPlaceSubtitle(a) {
+    if (!a) return '—';
+    var parts = [];
+    var seen = {};
+    function push(v) {
+      var s = trimAdmin(v);
+      if (!s || s === '—') return;
+      var key = s.toLocaleLowerCase('tr');
+      if (seen[key]) return;
+      seen[key] = true;
+      parts.push(s);
+    }
+    push(a.il);
+    push(a.ilce);
+    push(a.koy);
+    if (!parts.length) push(a.place);
+    return parts.length ? parts.join(' · ') : '—';
+  }
+
+  function copyAdminFields(dest, src) {
+    if (!dest) return dest;
+    var il = trimAdmin(src && src.il);
+    var ilce = trimAdmin(src && src.ilce);
+    var koy = trimAdmin(src && src.koy);
+    if (il) dest.il = il; else delete dest.il;
+    if (ilce) dest.ilce = ilce; else delete dest.ilce;
+    if (koy) dest.koy = koy; else delete dest.koy;
+    return dest;
+  }
+
+  /** Seed arılıklarında eksik il/ilçe/köy doldur. */
+  function migratePlaceAdmin(list) {
+    var changed = false;
+    var bySeed = {};
+    SEED_APIARIES.forEach(function (s) { bySeed[s.id] = s; });
+    var out = (list || []).map(function (a) {
+      if (!a) return a;
+      var seed = bySeed[String(a.id)];
+      if (!seed) return a;
+      var nextIl = trimAdmin(a.il) || trimAdmin(seed.il);
+      var nextIlce = trimAdmin(a.ilce) || trimAdmin(seed.ilce);
+      var nextKoy = trimAdmin(a.koy) || trimAdmin(seed.koy);
+      if (trimAdmin(a.il) === nextIl && trimAdmin(a.ilce) === nextIlce && trimAdmin(a.koy) === nextKoy) {
+        return a;
+      }
+      changed = true;
+      var copy = applyWaterDistance({
+        id: a.id,
+        name: a.name,
+        place: a.place,
+        lat: a.lat,
+        lon: a.lon,
+        hiveCount: a.hiveCount
+      }, a);
+      return copyAdminFields(copy, { il: nextIl, ilce: nextIlce, koy: nextKoy });
+    });
+    return { list: out, changed: changed };
   }
 
 
@@ -765,14 +830,14 @@
       if (byId[seed.id]) return;
       if (deleted[seed.id]) return; /* user deleted this seed — do not resurrect */
       changed = true;
-      out.push({
+      out.push(copyAdminFields({
         id: seed.id,
         name: seed.name,
         place: seed.place,
         lat: seed.lat,
         lon: seed.lon,
         hiveCount: seed.hiveCount
-      });
+      }, seed));
     });
     return { list: out, changed: changed };
   }
@@ -877,23 +942,24 @@
         var parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length) {
           var mapped = parsed.map(function (a) {
-            return applyWaterDistance({
+            return copyAdminFields(applyWaterDistance({
               id: String(a.id),
               name: String(a.name || '').trim() || 'Arılık',
               place: String(a.place || '').trim() || '—',
               lat: a.lat != null && a.lat !== '' ? Number(a.lat) : null,
               lon: a.lon != null && a.lon !== '' ? Number(a.lon) : null,
               hiveCount: Math.max(0, Number(a.hiveCount) || 0)
-            }, a);
+            }, a), a);
           });
           var rest = restoreKayakoyA1(mapped);
           var mig = migrateApiaryNames(rest.list);
           var coordMig = migrateApiaryCoordinates(mig.list);
           var ens = ensureSeedApiariesPresent(coordMig.list);
           var ded = dedupeYanikBalugApiaries(ens.list);
-          var waterDist = refreshWaterDistancesFromMap(ded.list);
+          var adminMig = migratePlaceAdmin(ded.list);
+          var waterDist = refreshWaterDistancesFromMap(adminMig.list);
           var out = waterDist.list;
-          if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed || waterDist.changed) {
+          if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed || adminMig.changed || waterDist.changed) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
             } catch (eMig) { /* ignore */ }
@@ -1123,14 +1189,14 @@
     if (!isFinite(lat) || !isFinite(lon)) {
       throw new Error('Arılık için haritadan konum seçilmeli (enlem/boylam).');
     }
-    var item = applyWaterDistance({
+    var item = copyAdminFields(applyWaterDistance({
       id: 'a' + Date.now(),
       name: name,
       place: place,
       lat: lat,
       lon: lon,
       hiveCount: hiveCount
-    }, input || {});
+    }, input || {}), input || {});
     list.push(item);
 
     var used = {};
@@ -1166,6 +1232,18 @@
         }
         if (patch.hiveCount != null && patch.hiveCount !== '') {
           a.hiveCount = Math.max(0, Number(patch.hiveCount) || 0);
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'il')) {
+          var ilV = trimAdmin(patch.il);
+          if (ilV) a.il = ilV; else delete a.il;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'ilce')) {
+          var ilceV = trimAdmin(patch.ilce);
+          if (ilceV) a.ilce = ilceV; else delete a.ilce;
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'koy')) {
+          var koyV = trimAdmin(patch.koy);
+          if (koyV) a.koy = koyV; else delete a.koy;
         }
         if (Object.prototype.hasOwnProperty.call(patch, 'waterDistanceM')) {
           var wd = parseWaterDistanceM(patch.waterDistanceM);

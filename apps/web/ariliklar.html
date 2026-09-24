@@ -925,7 +925,7 @@
           '<div class="apiary-ico">' + pinSvg + '</div>' +
           '<div class="apiary-body">' +
             '<h2>' + escapeHtml(a.name) + '</h2>' +
-            '<p>' + escapeHtml(a.place) + '</p>' +
+            '<p>' + escapeHtml((D.formatPlaceSubtitle && D.formatPlaceSubtitle(a)) || a.place || '—') + '</p>' +
           '</div>' +
           '<span class="apiary-badge">' + n + ' kovan</span>' +
           '<span class="apiary-chev" aria-hidden="true">›</span>' +
