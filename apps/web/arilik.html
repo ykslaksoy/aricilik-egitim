@@ -3327,12 +3327,27 @@
       return currentDetailPin() || (hasCoords(apiary) ? { lat: Number(apiary.lat), lon: Number(apiary.lon) } : null);
     }
     if (radiusInput) {
+      /* Kaydırıcı yalnızca harita dairesini gösterir; skor/analiz forageRadiusKm (otomatik) ile kalır. */
       radiusInput.addEventListener('input', function () {
-        forageManual = true;
-        forageRadiusKm = F ? F.clampRadius(radiusInput.value) : Number(radiusInput.value) || 3;
-        if (radiusVal) radiusVal.textContent = forageRadiusKm + ' km';
+        var previewKm = F ? F.clampRadius(radiusInput.value) : Number(radiusInput.value) || 3;
+        radiusInput.value = String(previewKm);
+        if (radiusVal) radiusVal.textContent = previewKm + ' km';
         var pin = currentPin();
-        if (pin) updateRadarAndAnalyze(pin.lat, pin.lon);
+        if (radar && pin) {
+          radar.setRadiusKm(previewKm);
+          radar.setCenter(pin.lat, pin.lon);
+        }
+      });
+      radiusInput.addEventListener('change', function () {
+        /* Bırakınca önerilen / kilitli mesafeye dön */
+        var locked = forageRadiusKm;
+        radiusInput.value = String(locked);
+        if (radiusVal) radiusVal.textContent = locked + ' km';
+        var pin = currentPin();
+        if (radar && pin) {
+          radar.setRadiusKm(locked);
+          radar.setCenter(pin.lat, pin.lon);
+        }
       });
     }
     var waterRadius = document.getElementById('waterRadius');
