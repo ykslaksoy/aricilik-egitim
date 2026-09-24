@@ -487,7 +487,7 @@
       colonyScore: Math.max(40, score - 6 + (i % 5)),
       swarmRisk: SWARMS[i % SWARMS.length],
       strength: STRENGTHS[i % STRENGTHS.length],
-      breed: BREEDS[i % BREEDS.length]
+      breed: String(apiaryId) === 'a4' ? 'Karniyol' : BREEDS[i % BREEDS.length]
     });
   }
 
@@ -959,9 +959,28 @@
     return null;
   }
 
+  /** Yanıkdağ (a4): tüm kovanlar Karniyol (Carniyol / A. m. carnica). */
+  function applyYanikKarniyolBreeds(hives) {
+    var changed = false;
+    var out = (hives || []).map(function (h) {
+      if (!h || String(h.apiaryId) !== 'a4') return h;
+      var cur = String(h.breed || '').trim();
+      if (cur === 'Karniyol') return h;
+      changed = true;
+      var copy = {};
+      for (var k in h) {
+        if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
+      }
+      copy.breed = 'Karniyol';
+      return copy;
+    });
+    return { list: out, changed: changed };
+  }
+
   function loadHives() {
     var apiaries = loadApiaries();
     var raw = readRawHives();
+    var reconciled;
     if (!raw) {
       /* Fresh seed: exactly SEED hiveCounts worth of records. */
       var used = {};
@@ -969,10 +988,18 @@
       apiaries.forEach(function (a) {
         seeded = seeded.concat(makeExactFleet(a.id, a.hiveCount, used));
       });
-      var fresh = reconcile(apiaries, seeded);
-      return fresh.hives;
+      reconciled = reconcile(apiaries, seeded);
+    } else {
+      reconciled = reconcile(apiaries, raw);
     }
-    return reconcile(apiaries, raw).hives;
+    var breedMig = applyYanikKarniyolBreeds(reconciled.hives);
+    if (breedMig.changed) {
+      try {
+        saveHives(breedMig.list);
+      } catch (eBreed) { /* ignore */ }
+      return breedMig.list;
+    }
+    return reconciled.hives;
   }
 
   function addApiary(input) {
