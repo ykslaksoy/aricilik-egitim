@@ -28,7 +28,7 @@
  *   Without harvest: mid = scoreMid * scoreProduct
  *   range = mid ± max(4, mid*0.25)
  *
- * Label: «Yaklaşık hedef; su mesafesi düzenleyici çarpan (garanti değil)» + harvest note.
+ * Label badge: «Yaklaşık»; su mesafesi notu ayrı satırda (garanti değil).
  */
 (function (global) {
   var W_HARVEST = 0.45;
@@ -360,7 +360,7 @@
       harvestNoteTr: usedHarvest
         ? 'Geçen sezon hasat ağırlığı %' + Math.round(W_HARVEST * 100)
         : 'Hasat yok — yer+koloni tahmini',
-      labelTr: 'Yaklaşık hedef; su mesafesi düzenleyici çarpan (garanti değil)',
+      labelTr: 'Yaklaşık',
       perHive: { mid: perHiveMid, lo: perHiveLo, hi: perHiveHi },
       total: { mid: totalMid, lo: totalLo, hi: totalHi },
       colonyAvg: round1(colonyAvg),
@@ -576,7 +576,7 @@
       '">' +
       '<div class="fy-head"><strong>Hedef bal</strong>' +
       '<span class="fy-badge">' +
-      escapeHtml(estimate.labelTr) +
+      escapeHtml(estimate.labelTr || 'Yaklaşık') +
       '</span></div>' +
       '<p class="fy-sum">' +
       'Kovan başı ≈ <strong>' +
@@ -609,6 +609,7 @@
         ? ' · geçen sezon ' + escapeHtml(String(round0(estimate.Hprev))) + ' kg'
         : '') +
       '</p>' +
+      '<p class="fy-notes">Su mesafesi hedefi çarpan olarak girer (garanti değil).</p>' +
       (function () {
         var typeLab = waterTypeLabel(estimate.waterSourceType);
         var label = estimate.waterSourceLabel
@@ -874,15 +875,15 @@
   }
 
   var css = [
-    '.fy-block{margin-top:10px;padding:10px 11px;border-radius:12px;background:#f7fff4;border:1px solid #9bb87a;}',
+    '.fy-block{margin-top:10px;padding:10px 11px;border-radius:12px;background:#f7fff4;border:1px solid #9bb87a;overflow:hidden;min-width:0;}',
     '.fy-swap-block{background:#fff8f5;border-color:#e0a090;}',
-    '.fy-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}',
+    '.fy-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;min-width:0;flex-wrap:wrap;}',
     '.fy-head strong{font-size:12px;font-weight:800;color:#2c241c;}',
-    '.fy-badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px;background:#fff;border:1px solid #9bb87a;color:#3d5a2a;white-space:nowrap;}',
-    '.fy-sum{margin:0 0 4px;font-size:12px;font-weight:700;color:#2c241c;line-height:1.4;}',
+    '.fy-badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:999px;background:#fff;border:1px solid #9bb87a;color:#3d5a2a;}',
+    '.fy-sum{margin:0 0 4px;font-size:12px;font-weight:700;color:#2c241c;line-height:1.4;overflow-wrap:anywhere;word-break:break-word;}',
     '.fy-range{font-weight:650;color:#5a6a4a;}',
     '.fy-meta{margin:0;font-size:11px;font-weight:650;color:#4a5a3a;line-height:1.35;}',
-    '.fy-water{margin:4px 0 0;font-size:11px;font-weight:700;color:#1e4a6a;line-height:1.35;}',
+    '.fy-water{margin:4px 0 0;font-size:11px;font-weight:700;color:#1e4a6a;line-height:1.35;overflow-wrap:anywhere;word-break:break-word;}',
     '.fy-better{margin:6px 0 0;font-size:11px;font-weight:750;color:#3d5a2a;line-height:1.35;}',
     '.fy-notes{margin:6px 0 0;font-size:10px;font-weight:560;color:#6b735a;line-height:1.35;}',
     '.fy-empty{margin:0;font-size:11px;font-weight:650;color:#6b635a;}',
