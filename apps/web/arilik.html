@@ -306,12 +306,35 @@
     margin: 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
   }
   .fs-hint[hidden] { display: none !important; }
-  .fs-hint-toggle {
-    justify-self: start;
+  .fs-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .fs-row label { font-size: 11px; font-weight: 700; color: #6b635a; }
+  .fs-row input[type=range] { width: 100%; }
+  .fs-row .val {
+    font-size: 11px; font-weight: 800; color: #4a2f1a;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .fs-chev {
+    flex: 0 0 auto;
+    width: 28px; height: 28px; min-width: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
     margin: 0; padding: 0;
-    border: 0; background: none; cursor: pointer;
-    font: inherit; font-size: 10px; font-weight: 700; color: #8a6a3a;
-    text-decoration: underline; text-underline-offset: 2px;
+    border: 0; border-radius: 8px;
+    background: transparent; color: #8a8278;
+    font: inherit; font-size: 14px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+  }
+  .fs-chev:hover { background: #f3efe6; color: #4a2f1a; }
+  .fs-chev .fs-chev-ico {
+    display: inline-block;
+    transition: transform .15s ease;
+  }
+  .fs-chev[aria-expanded="true"] .fs-chev-ico {
+    transform: rotate(90deg);
   }
   .water-expand-panel {
     display: grid; gap: 8px;
@@ -2443,13 +2466,15 @@
     return (
       '<div class="water-source-wrap fs-block" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
-        '<div class="forage-radius">' +
+        '<div class="fs-row">' +
           '<label for="waterRadius">Su</label>' +
           '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
             '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(formatWaterDistLabel(sliderM)) + '" />' +
           '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
+          '<button type="button" class="fs-chev" id="btnWaterHint" aria-expanded="false" aria-controls="waterAutoHint" aria-label="Su notu">' +
+            '<span class="fs-chev-ico" aria-hidden="true">›</span>' +
+          '</button>' +
         '</div>' +
-        '<button type="button" class="fs-hint-toggle" id="btnWaterHint" aria-expanded="false" aria-controls="waterAutoHint">Not</button>' +
         '<p class="water-auto-hint fs-hint" id="waterAutoHint" hidden>' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
         '<button type="button" class="map-btn ghost" id="btnWaterSources" style="justify-self:start;min-height:32px;font-size:11px;margin-top:4px;">Kaynak listesi</button>' +
         '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
@@ -2984,12 +3009,14 @@
           '</div>' +
         '</div>' +
         '<div class="fs-block" id="forageCollapse">' +
-          '<div class="forage-radius">' +
+          '<div class="fs-row">' +
             '<label for="forageRadius">Foraj</label>' +
             '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" aria-valuetext="' + forageRadiusKm + ' km" />' +
             '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
+            '<button type="button" class="fs-chev" id="btnForageHint" aria-expanded="false" aria-controls="forageAutoHint" aria-label="Foraj notu">' +
+              '<span class="fs-chev-ico" aria-hidden="true">›</span>' +
+            '</button>' +
           '</div>' +
-          '<button type="button" class="fs-hint-toggle" id="btnForageHint" aria-expanded="false" aria-controls="forageAutoHint">Not</button>' +
           '<p class="forage-auto-hint fs-hint" id="forageAutoHint" hidden>' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
         '</div>' +
         waterSourceBlockHtml(apiary) +
@@ -3208,7 +3235,6 @@
         var open = hint.hidden;
         hint.hidden = !open;
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-        btn.textContent = open ? 'Notu gizle' : 'Not';
       });
     }
     bindHintToggle('btnForageHint', 'forageAutoHint');
