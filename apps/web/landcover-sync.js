@@ -1,5 +1,6 @@
 /**
- * SüperArı — örtü + sürekli su senkronu. Çubuk bu dosyada üretilir.
+ * SüperArı — örtü + sürekli su senkronu.
+ * Çubuk özeti gösterir; tıklayınca adım adım detay açılır.
  */
 (function (global) {
   var BAR_ID = 'landcoverSyncBar';
@@ -10,6 +11,8 @@
   ];
   var WATER_SCAN_M = [300, 800, 1500];
   var running = false;
+  var logLines = [];
+  var barOpen = false;
 
   function injectCss() {
     if (typeof document === 'undefined') return;
@@ -17,10 +20,16 @@
     var s = document.createElement('style');
     s.id = 'landcover-sync-css';
     s.textContent =
-      '.forage-progress{margin:8px 0 12px;padding:8px 10px;border-radius:12px;background:#fff8df;border:1px solid #e0c56a;}' +
+      '.forage-progress{margin:8px 0 12px;padding:8px 10px;border-radius:12px;background:#fff8df;border:1px solid #e0c56a;cursor:pointer;-webkit-tap-highlight-color:transparent;}' +
       '.forage-progress-label{display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:750;color:#4a2f1a;margin-bottom:6px;}' +
+      '.forage-progress-now{font-size:11px;font-weight:650;color:#6b635a;margin:0 0 6px;line-height:1.35;}' +
       '.forage-progress-track{height:8px;border-radius:999px;background:#efe6c8;overflow:hidden;}' +
-      '.forage-progress-bar{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f0c43a,#b8860b);transition:width .25s ease;}';
+      '.forage-progress-bar{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f0c43a,#b8860b);transition:width .25s ease;}' +
+      '.forage-progress-hint{margin:6px 0 0;font-size:10px;font-weight:600;color:#8a8278;}' +
+      '.forage-progress-detail{display:none;margin:8px 0 0;padding:8px;max-height:160px;overflow:auto;border-radius:10px;background:#fff;border:1px solid #e0c56a;font-size:11px;line-height:1.4;color:#4a2f1a;}' +
+      '.forage-progress.is-open .forage-progress-detail{display:block;}' +
+      '.forage-progress-detail div{padding:3px 0;border-bottom:1px solid #f3ead0;}' +
+      '.forage-progress-detail div:last-child{border-bottom:0;}';
     document.head.appendChild(s);
   }
 
@@ -44,6 +53,22 @@
     return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(a))));
   }
 
+  function addLog(line) {
+    var t = new Date();
+    var hh = String(t.getHours()).padStart(2, '0');
+    var mm = String(t.getMinutes()).padStart(2, '0');
+    var ss = String(t.getSeconds()).padStart(2, '0');
+    logLines.push(hh + ':' + mm + ':' + ss + ' · ' + line);
+    if (logLines.length > 40) logLines = logLines.slice(-40);
+    var box = document.querySelector('#' + BAR_ID + ' [data-lc-detail]');
+    if (box) {
+      box.innerHTML = logLines.map(function (x) {
+        return '<div>' + x.replace(/</g, '&lt;') + '</div>';
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }
+  }
+
   function ensureBar() {
     if (typeof document === 'undefined') return null;
     injectCss();
@@ -52,9 +77,21 @@
     el = document.createElement('div');
     el.id = BAR_ID;
     el.className = 'forage-progress';
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-expanded', 'false');
     el.innerHTML =
       '<div class="forage-progress-label"><span data-lc-msg>Örtü / su güncelleniyor</span><span data-lc-pct>0%</span></div>' +
-      '<div class="forage-progress-track"><div class="forage-progress-bar" data-lc-bar></div></div>';
+      '<p class="forage-progress-now" data-lc-now>Şu an: bekleniyor</p>' +
+      '<div class="forage-progress-track"><div class="forage-progress-bar" data-lc-bar></div></div>' +
+      '<p class="forage-progress-hint" data-lc-hint>Detay için çubuğa dokun</p>' +
+      '<div class="forage-progress-detail" data-lc-detail></div>';
+    el.addEventListener('click', function () {
+      barOpen = !barOpen;
+      el.classList.toggle('is-open', barOpen);
+      el.setAttribute('aria-expanded', barOpen ? 'true' : 'false');
+      var hint = el.querySelector('[data-lc-hint]');
+      if (hint) hint.textContent = barOpen ? 'Gizlemek için tekrar dokun' : 'Detay için çubuğa dokun';
+    });
     var host =
       document.getElementById('apiaryList') ||
       document.getElementById('forageHost') ||
@@ -65,7 +102,7 @@
     return el;
   }
 
-  function setBar(visible, pct, msg) {
+  function setBar(visible, pct, msg, now) {
     var el = ensureBar();
     if (!el) return;
     el.hidden = !visible;
@@ -74,9 +111,12 @@
     var bar = el.querySelector('[data-lc-bar]');
     var lab = el.querySelector('[data-lc-pct]');
     var m = el.querySelector('[data-lc-msg]');
+    var n = el.querySelector('[data-lc-now]');
     if (bar) bar.style.width = p + '%';
     if (lab) lab.textContent = p + '%';
     if (m && msg) m.textContent = msg;
+    if (n && (now || msg)) n.textContent = 'Şu an: ' + (now || msg);
+    if (now || msg) addLog(now || msg);
   }
 
   function isSeasonal(tags) {
@@ -158,6 +198,7 @@
     function next() {
       if (i >= WATER_SCAN_M.length) return Promise.resolve(null);
       var r = WATER_SCAN_M[i++];
+      addLog('Su taraması ' + r + ' m');
       return fetchOverpass(overpassQuery(lat, lon, r)).then(function (j) {
         var hit = nearestFromElements(lat, lon, (j && j.elements) || []);
         if (hit && !hit.seasonal) return hit;
@@ -203,18 +244,27 @@
     if (!apiary) return Promise.resolve(null);
     var lat = Number(apiary.lat), lon = Number(apiary.lon);
     if (!isFinite(lat) || !isFinite(lon)) return Promise.resolve(null);
+    var name = apiary.name || apiary.etiket || 'Arılık';
     var radius = F && F.clampRadius ? F.clampRadius(apiary.forageRadiusKm || apiary.forageKm || 3) : 3;
-    if (onStep) onStep({ message: 'Sürekli temiz su aranıyor', pct: 15 });
+    if (onStep) onStep({ message: name + ' · sürekli su aranıyor', pct: 15 });
     var waterP = findNearestWater(lat, lon).then(function (hit) {
-      if (hit) saveWater(apiary, hit);
+      if (hit) {
+        saveWater(apiary, hit);
+        addLog(name + ' · su ' + Math.round(hit.metres) + ' m · ' + waterLabelFromTags(hit.tags, hit.lat, hit.lon));
+      } else {
+        addLog(name + ' · OSM’de su çizgisi yok');
+      }
       return hit;
-    }).catch(function () { return null; });
+    }).catch(function () { addLog(name + ' · su sorgusu hata'); return null; });
     var forageP = F && F.analyze ? F.analyze(lat, lon, radius, {
       onProgress: function (ev) { if (onStep) onStep(ev); }
     }).then(function (analysis) {
-      if (analysis) saveForageCache(apiary, lat, lon, analysis);
+      if (analysis) {
+        saveForageCache(apiary, lat, lon, analysis);
+        addLog(name + ' · örtü / iklim yazıldı');
+      } else addLog(name + ' · örtü alınamadı');
       return analysis;
-    }).catch(function () { return null; }) : Promise.resolve(null);
+    }).catch(function () { addLog(name + ' · örtü hata'); return null; }) : Promise.resolve(null);
     return Promise.all([waterP, forageP]).then(function (pack) {
       return { water: pack[0], forage: pack[1] };
     });
@@ -222,28 +272,34 @@
   function refreshAll() {
     if (running) return Promise.resolve({ total: 0, ok: 0, skipped: true });
     running = true;
+    logLines = [];
     var list = apiaries().filter(function (a) {
       return a && isFinite(Number(a.lat)) && isFinite(Number(a.lon));
     });
     if (!list.length) {
-      setBar(true, 100, 'Koordinatı olan arılık yok');
+      setBar(true, 100, 'Koordinatı olan arılık yok', 'Liste boş');
       running = false;
       return Promise.resolve({ total: 0, ok: 0 });
     }
-    setBar(true, 3, 'Tüm arılıklar: örtü + su');
+    setBar(true, 3, list.length + ' arılık güncelleniyor', 'Örtü + sürekli su taraması başladı');
     var i = 0, ok = 0;
     function next() {
       if (i >= list.length) {
-        setBar(true, 100, 'Tamam (' + ok + '/' + list.length + ')');
+        setBar(true, 100, 'Tamam (' + ok + '/' + list.length + ')', 'Tüm arılıklar işlendi');
         running = false;
-        setTimeout(function () { setBar(false, 100, ''); }, 2500);
         return { total: list.length, ok: ok };
       }
       var a = list[i];
+      var name = a.name || a.etiket || 'Arılık';
       var base = Math.round((i / list.length) * 100);
-      setBar(true, Math.max(3, base), (a.name || a.etiket || 'Arılık') + ' · ' + (i + 1) + '/' + list.length);
+      setBar(true, Math.max(3, base), name + ' · ' + (i + 1) + '/' + list.length, name + ' · su + örtü çekiliyor');
       return refreshOne(a, function (ev) {
-        setBar(true, Math.min(99, base + Math.round(((ev && ev.pct) || 0) / list.length)), ev && ev.message ? (a.name || 'Arılık') + ' · ' + ev.message : null);
+        setBar(
+          true,
+          Math.min(99, base + Math.round(((ev && ev.pct) || 0) / list.length)),
+          name + ' · ' + (i + 1) + '/' + list.length,
+          ev && ev.message ? name + ' · ' + ev.message : name + ' işleniyor'
+        );
       }).then(function (res) {
         if (res && (res.water || res.forage)) ok += 1;
       }).catch(function () {}).then(function () {
@@ -254,23 +310,23 @@
     return Promise.resolve().then(next).catch(function () { running = false; });
   }
   function refreshNew(apiary) {
-    setBar(true, 8, (apiary && (apiary.name || apiary.etiket) || 'Yeni arılık') + ' ölçülüyor');
+    var name = (apiary && (apiary.name || apiary.etiket)) || 'Yeni arılık';
+    setBar(true, 8, name + ' ekleniyor', name + ' · su + örtü ölçülüyor');
     return refreshOne(apiary, function (ev) {
-      setBar(true, ev && ev.pct != null ? ev.pct : 30, ev && ev.message);
+      setBar(true, ev && ev.pct != null ? ev.pct : 30, name, ev && ev.message);
     }).then(function (res) {
-      var msg = 'Kayıt güncellendi';
+      var now = name + ' yazıldı';
       if (res && res.water && res.water.metres != null) {
-        msg = (res.water.seasonal ? 'Mevsimlik su ' : 'Sürekli su ') + Math.round(res.water.metres) + ' m';
+        now = name + ' · ' + (res.water.seasonal ? 'mevsimlik ' : 'sürekli ') + Math.round(res.water.metres) + ' m';
       }
-      setBar(true, 100, msg);
-      setTimeout(function () { setBar(false, 100, ''); }, 2000);
+      setBar(true, 100, now, now);
       return res;
     });
   }
 
   function start() {
     ensureBar();
-    setBar(true, 1, 'Güncelleme başlıyor…');
+    setBar(true, 1, 'Güncelleme başlıyor', 'Kuyruk hazırlanıyor');
     setTimeout(function () { refreshAll(); }, 400);
   }
   if (typeof document !== 'undefined') {
