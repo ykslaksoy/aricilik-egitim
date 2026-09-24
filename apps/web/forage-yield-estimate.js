@@ -9,6 +9,7 @@
     a4: 'Kafkas',
     a5: 'Kafkas × Karadeniz'
   };
+  var SEASON_DAYS_DEFAULT = 153;
 
   function placeBreed(a) {
     if (!a) return '';
@@ -34,35 +35,66 @@
     if (s.indexOf('karniyol') !== -1 || s.indexOf('carn') !== -1) return 'karniyol';
     return s;
   }
-  /* Sis/çise: Kafkas toplar (ceza yok, hafif artı). Karniyol kapalı kalır + stoğu yer. */
-  function liveFactors(apiary, hiveBreed) {
-    var fog = foggyPlace(apiary);
+  function climateDays(opts, apiary) {
+    var site = (opts && opts.site) || {};
+    var analysis = (opts && opts.analysis) || (apiary && apiary.forageCache && apiary.forageCache.payload) || {};
+    var here = analysis.here || analysis;
+    var flight = analysis.flight || {};
+    var season =
+      Number(flight.seasonDayCount || here.seasonDayCount || site.seasonDayCount || SEASON_DAYS_DEFAULT) ||
+      SEASON_DAYS_DEFAULT;
+    var poor = Number(flight.poorFlightDays != null ? flight.poorFlightDays : here.poorFlightDays);
+    var precipDays = Number(flight.precipDays != null ? flight.precipDays : here.precipDays || site.precipDays);
+    var drizzle;
+    if (isFinite(precipDays) && isFinite(poor)) drizzle = Math.max(0, precipDays - poor);
+    else if (isFinite(precipDays)) drizzle = Math.round(precipDays * 0.45);
+    else if (foggyPlace(apiary)) drizzle = 45;
+    else drizzle = 0;
+    if (!isFinite(season) || season < 30) season = SEASON_DAYS_DEFAULT;
+    if (drizzle > season) drizzle = season;
+    return { season: Math.round(season), drizzle: Math.round(drizzle), poor: isFinite(poor) ? Math.round(poor) : null, precipDays: isFinite(precipDays) ? Math.round(precipDays) : null };
+  }
+  function liveFactors(apiary, hiveBreed, days) {
+    days = days || { season: SEASON_DAYS_DEFAULT, drizzle: foggyPlace(apiary) ? 45 : 0 };
     var key = breedKey(hiveBreed || placeBreed(apiary));
+    var S = days.season;
+    var D = days.drizzle;
+    var share = S ? D / S : 0;
     var breedF = 1;
-    var fogF = 1;
+    var flyF = 1;
     var eatF = 1;
+    var note = '';
     if (key === 'karniyol') {
-      breedF = fog ? 0.88 : 1.08;
-      if (fog) {
-        fogF = 0.9;
-        eatF = 0.92;
-      }
+      breedF = foggyPlace(apiary) ? 1 : 1.08;
+      flyF = 1 - share;
+      eatF = Math.max(0.82, 1 - 0.0018 * D);
+      note = 'Karniyol ' + D + '/' + S + ' gün kapalı + stoğu yedi';
     } else if (key === 'kafkas' || key === 'kafkas_karadeniz') {
-      breedF = fog ? 1.14 : 0.97;
-      fogF = 1;
+      breedF = foggyPlace(apiary) ? 1.08 : 0.97;
+      flyF = 1 - share * 0.25;
       eatF = 1;
+      note = 'Kafkas ' + D + '/' + S + ' çise gününde de topladı, yemedi';
     } else if (key === 'kafkas_karniyol') {
-      breedF = fog ? 1.02 : 1.06;
-      if (fog) fogF = 0.97;
+      breedF = 1.04;
+      flyF = 1 - share * 0.55;
+      eatF = Math.max(0.9, 1 - 0.0008 * D);
+      note = 'Melez ' + D + '/' + S + ' gün kısmi uçuş';
     } else if (key === 'mugla') {
-      breedF = fog ? 0.86 : 1.05;
-      if (fog) {
-        fogF = 0.9;
-        eatF = 0.92;
-      }
+      breedF = foggyPlace(apiary) ? 0.95 : 1.05;
+      flyF = 1 - share;
+      eatF = Math.max(0.82, 1 - 0.0018 * D);
+      note = 'Muğla ıslak günlerde zayıf';
     }
-    var product = Math.round(breedF * fogF * eatF * 1000) / 1000;
-    return { fog: fog, key: key, breedF: breedF, fogF: fogF, eatF: eatF, product: product };
+    var product = Math.round(breedF * flyF * eatF * 1000) / 1000;
+    return {
+      key: key,
+      breedF: Math.round(breedF * 1000) / 1000,
+      flyF: Math.round(flyF * 1000) / 1000,
+      eatF: Math.round(eatF * 1000) / 1000,
+      product: product,
+      days: days,
+      note: note
+    };
   }
   function kg(n) {
     return n == null || !isFinite(Number(n)) ? null : Math.round(Number(n) * 10) / 10;
@@ -92,12 +124,9 @@
       var c = {};
       for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) c[k] = h[k];
       c.breed = want;
-      c.irk = want;
       return c;
     });
-    if (changed) {
-      try { D.saveHives(next); } catch (e2) {}
-    }
+    if (changed) try { D.saveHives(next); } catch (e2) {}
   }
 
   function apiary() {
@@ -106,15 +135,13 @@
     var list = D.loadApiaries() || [];
     var id = '';
     try { id = new URLSearchParams(location.search).get('id') || ''; } catch (e) {}
-    for (var i = 0; i < list.length; i++) {
-      if (id && String(list[i].id) === String(id)) return list[i];
-    }
+    for (var i = 0; i < list.length; i++) if (id && String(list[i].id) === String(id)) return list[i];
     return list[0] || null;
   }
 
   function patchYield() {
     var Y = global.SuperAriForageYield;
-    if (!Y || Y.__liveBreed2) return;
+    if (!Y || Y.__dayFormula) return;
     if (Y.estimateYield) {
       var raw = Y.estimateYield;
       Y.estimateYield = function (opts) {
@@ -122,50 +149,44 @@
         var a = opts.apiary || apiary();
         var est = raw(opts);
         if (!est || !a) return est;
-        var fac = liveFactors(a, placeBreed(a));
+        var days = climateDays(opts, a);
+        var fac = liveFactors(a, placeBreed(a), days);
         ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
           if (est[k] != null) est[k] = kg(Number(est[k]) * fac.product);
         });
         var mid = est.kgPerHive != null ? est.kgPerHive : est.midKg;
         var n = est.n || (a && a.hiveCount) || 0;
         if (mid != null && n) est.totalKg = kg(mid * n);
-        var karniyolIf = mid != null ? kg(Number(mid) / fac.product * liveFactors(a, 'Karniyol').product) : null;
+        var altK = liveFactors(a, 'Karniyol', days);
+        var karniyolKg = mid != null ? kg(Number(mid) / fac.product * altK.product) : null;
         est.why = est.why || [];
-        est.why.push({ k: 'İrk', v: placeBreed(a) + ' · çarpan ' + fac.breedF + ' (canlı)' });
-        if (fac.key === 'kafkas' || fac.key === 'kafkas_karadeniz') {
-          est.why.push({
-            k: 'Sis · çiseleme',
-            v: 'Kafkas uçtu, nektar aldı · yemedi · ceza yok'
-          });
-        } else if (fac.fog && fac.key === 'karniyol') {
-          est.why.push({
-            k: 'Sis · çiseleme',
-            v: 'Karniyol kovanda kaldı + stoğu yedi · çarpan ' + kg(fac.fogF * fac.eatF)
-          });
+        est.why.push({
+          k: 'İrk formül',
+          v:
+            placeBreed(a) +
+            ' · ırk ' +
+            fac.breedF +
+            ' × uçuş ' +
+            fac.flyF +
+            ' × stok ' +
+            fac.eatF +
+            ' = ' +
+            fac.product
+        });
+        est.why.push({
+          k: 'Çise / sis günü',
+          v: days.drizzle + ' / ' + days.season + ' gün' + (days.precipDays != null ? ' · yağışlı ' + days.precipDays : '')
+        });
+        est.why.push({ k: 'Uçuş notu', v: fac.note });
+        if (karniyolKg != null && fac.key !== 'karniyol') {
+          est.why.push({ k: 'Karniyol olsaydı', v: karniyolKg + ' kg/kovan (kapalı + yedi)' });
         }
-        if (karniyolIf != null && fac.key !== 'karniyol') {
-          est.why.push({ k: 'Karniyol olsaydı', v: karniyolIf + ' kg/kovan (kapalı + yedi)' });
-        }
+        est.liveFactors = fac;
         global.__saLastEst = est;
         return est;
       };
     }
-    if (Y.findMismatchedHives) {
-      var rawM = Y.findMismatchedHives;
-      Y.findMismatchedHives = function (opts) {
-        var pack = rawM(opts) || { items: [] };
-        var a = (opts && opts.apiary) || apiary();
-        var fac = liveFactors(a, placeBreed(a));
-        if (fac.key === 'kafkas' || fac.key === 'kafkas_karadeniz' || fac.key === 'mugla') {
-          pack.items = (pack.items || []).filter(function (it) {
-            return !(it.reasonTr && /Karniyol/.test(it.reasonTr));
-          });
-          pack.tipTr = placeBreed(a) + ' bu iklime uygun.';
-        }
-        return pack;
-      };
-    }
-    Y.__liveBreed2 = true;
+    Y.__dayFormula = true;
   }
 
   function start() {
@@ -173,7 +194,6 @@
     patchYield();
     setTimeout(pinBreeds, 600);
   }
-
   if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) start();
   else {
     var s = document.createElement('script');
