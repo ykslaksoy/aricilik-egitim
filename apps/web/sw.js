@@ -1,4 +1,4 @@
-const CACHE = "koloni-v1";
+const CACHE = "koloni-v3";
 const ASSETS = ["/", "/index.html", "/styles.css", "/app.js", "/offline-sync.js", "/manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -16,6 +16,21 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.pathname.startsWith("/api/")) return;
+  const isCode = /\.(js|css|html)$/i.test(url.pathname);
+  if (isCode) {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (e.request.method === "GET" && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then((hit) =>
       hit ||
