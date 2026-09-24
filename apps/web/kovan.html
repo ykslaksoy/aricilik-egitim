@@ -300,6 +300,49 @@
       height: auto; min-height: 44px; padding-bottom: 4px;
     }
   }
+
+  .kd-sec {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 12px 12px 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(40,30,10,.04);
+  }
+  .kd-sec h2 {
+    font-size: 12px; font-weight: 800; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px;
+  }
+  .kd-kv { display: grid; gap: 6px; }
+  .kd-kv-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    font-size: 13px; min-width: 0;
+  }
+  .kd-kv-row .k { color: var(--muted); font-weight: 650; flex: 0 1 auto; }
+  .kd-kv-row .v {
+    color: var(--text); font-weight: 750; text-align: right;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  }
+  .kd-kv-row .v.warn { color: var(--warn); }
+  .kd-kv-row .v.bad { color: var(--danger); }
+  .kd-kv-row .v.ok { color: var(--green); }
+  .kd-note {
+    margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.35;
+  }
+  .kd-empty {
+    font-size: 12px; font-weight: 650; color: var(--muted); line-height: 1.4;
+  }
+  .kd-links { display: grid; gap: 6px; }
+  .kd-link {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 12px; border-radius: 12px;
+    background: #f7f8fa; border: 1px solid var(--card-border);
+    color: var(--text); text-decoration: none; font-size: 13px; font-weight: 700;
+  }
+  .kd-link span.meta { font-size: 11px; font-weight: 650; color: var(--muted); }
+  .kd-cta {
+    display: inline-flex; margin-top: 8px; padding: 8px 12px; border-radius: 999px;
+    background: #fff4e0; color: #9a5b00; border: 1px solid #ffe0a8;
+    font-size: 12px; font-weight: 750; text-decoration: none;
+  }
 </style>
 </head>
 <body>
@@ -338,25 +381,9 @@
 </div>
 
 <script src="demo-data.js"></script>
+<script src="device-runtime.js"></script>
 <script>
 (function () {
-  var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-  var WIND_DIRS = ['K','KD','D','GD','G','GB','B','KB'];
-  var METRICS = {
-    tarti: { key: 'tarti', label: 'Tartı', unit: 'kg', color: '#2f9e44' },
-    sicaklik: { key: 'sicaklik', label: 'Sıcaklık', unit: '°C', color: '#e67700', fixedMax: 45 },
-    nem: { key: 'nem', label: 'Nem', unit: '%', color: '#1c7ed6', fixedMax: 100 },
-    ses: { key: 'ses', label: 'Ses', unit: '', color: '#7048e8', fixedMax: 1 },
-    titresim: { key: 'titresim', label: 'Titreşim', unit: '', color: '#e03131', fixedMax: 1 },
-    ir: { key: 'ir', label: 'IR', unit: '/saat', color: '#0ca678' }
-  };
-
-  var chartState = {
-    series: [],
-    primary: 'tarti',
-    overlays: { sicaklik: false, nem: false, ses: false, titresim: false, ir: false }
-  };
-
   function $(id) { return document.getElementById(id); }
 
   function tickClock() {
@@ -378,283 +405,79 @@
     var h = String(health || '');
     if (h === 'Kritik' || score < 50) return 'bad';
     if (h === 'Dikkat' || score < 70) return 'warn';
-    return '';
+    return 'ok';
   }
   function toneSwarm(risk) {
     var r = String(risk || '');
     if (r === 'Yüksek') return 'bad';
     if (r === 'Orta') return 'warn';
-    return '';
+    return 'ok';
   }
   function toneWeight(delta) {
     if (delta <= -1.5) return 'bad';
     if (delta < -0.3 || delta > 2.5) return 'warn';
-    return '';
+    return 'ok';
   }
-  function sensorsPill(hive) {
-    var t = toneHealth(hive.health, hive.healthScore);
-    if (t === 'bad') return { cls: 'bad', label: '⚠ Sensör uyarısı' };
-    if (t === 'warn') return { cls: 'warn', label: '◐ Kısmi uyarı' };
-    return { cls: '', label: '✔ Sensörler OK' };
+  function cls(t) { return t ? ' ' + t : ''; }
+
+  function fmtDelta(d) {
+    var n = Number(d);
+    if (!isFinite(n)) return '—';
+    var s = (n > 0 ? '+' : '') + n.toFixed(1) + ' kg';
+    return s;
   }
 
-  function deriveSensors(hive) {
-    var id = Number(hive.id) || 0;
-    var score = Number(hive.healthScore) || 80;
-    var seed = (id * 17 + Math.round((Number(hive.weightKg) || 30) * 10)) % 97;
-    var temp = 32.4 + (seed % 30) / 10;
-    var humid = 55 + (seed % 18);
-    var ir = 90 + (seed % 60) + Math.round(score / 5);
-    var batt = Math.max(42, Math.min(98, 70 + Math.round(score / 5) - (seed % 8)));
-    var soundOk = score >= 55;
-    var vibOk = score >= 50;
-    var tempTone = (temp < 30 || temp > 36.5 || score < 50) ? 'warn' : '';
-    var humidTone = (humid < 50 || humid > 75 || score < 50) ? 'warn' : '';
-    return {
-      temp: { value: temp.toFixed(1) + '°C', tone: tempTone, badge: tempTone ? 'Dikkat' : 'Normal' },
-      humid: { value: '%' + humid, tone: humidTone, badge: humidTone ? 'Dikkat' : 'Normal' },
-      sound: { value: soundOk ? 'Normal' : 'Yüksek', tone: soundOk ? '' : 'warn', badge: soundOk ? 'Normal' : 'Dikkat' },
-      vib: { value: vibOk ? 'Normal' : 'Yüksek', tone: vibOk ? '' : 'warn', badge: vibOk ? 'Normal' : 'Dikkat' },
-      ir: { value: ir + '/saat', tone: '', badge: 'Normal' },
-      batt: { value: '%' + batt, tone: batt < 55 ? 'warn' : '', badge: batt < 55 ? 'Düşük' : 'Normal' }
-    };
+  function strengthLabel(s) {
+    var t = String(s || '').trim();
+    if (!t) return 'Kayıt yok';
+    return t.charAt(0).toUpperCase() + t.slice(1);
   }
 
-  function demoWeather(hive, apiary) {
-    var id = Number(hive.id) || 0;
-    var seed = (id * 13 + (apiary && apiary.lat ? Math.round(apiary.lat * 10) : 0)) % 40;
-    var conds = ['Güneşli', 'Az bulutlu', 'Parçalı bulutlu', 'Açık'];
-    return {
-      temp: 18 + (seed % 12),
-      cond: conds[seed % conds.length],
-      humid: 35 + (seed % 30),
-      wind: 4 + (seed % 10),
-      dir: WIND_DIRS[seed % WIND_DIRS.length]
-    };
+  function fieldOrNone(v) {
+    var t = v != null ? String(v).trim() : '';
+    return t || 'Kayıt yok';
   }
 
-  function buildSeries(hive) {
-    var base = Number(hive.weightKg) || 35;
-    var delta = Number(hive.deltaKg) || 0;
-    var id = Number(hive.id) || 1;
-    var days = [];
-    var now = new Date();
-    for (var i = 9; i >= 0; i--) {
-      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      var t = (9 - i) / 9;
-      var wobble = Math.sin((id + i) * 0.7) * 0.55 + Math.cos((id * 0.3) + i) * 0.35;
-      days.push({
-        date: d,
-        label: d.getDate() + ' ' + TR_MONTHS[d.getMonth()],
-        tarti: +(base - delta * (1 - t) + wobble).toFixed(2),
-        sicaklik: +(33.2 + Math.sin((id + i) * 0.5) * 1.4 + (i % 3) * 0.2).toFixed(1),
-        nem: Math.round(58 + Math.cos((id + i) * 0.4) * 6 + (i % 2)),
-        ses: +(0.35 + Math.abs(Math.sin((id + i) * 0.6)) * 0.25).toFixed(2),
-        titresim: +(0.2 + Math.abs(Math.cos((id + i) * 0.55)) * 0.3).toFixed(2),
-        ir: Math.round(100 + Math.sin((id + i) * 0.45) * 25 + i * 2)
+  function devicesForHive(hiveId) {
+    var Dev = window.SuperAriDevices;
+    if (!Dev || !Dev.listDevices) return [];
+    var idNum = Number(hiveId);
+    var idStr = String(hiveId);
+    try {
+      return (Dev.listDevices() || []).filter(function (d) {
+        if (d == null || d.hiveId == null) return false;
+        return Number(d.hiveId) === idNum || String(d.hiveId) === idStr;
       });
+    } catch (e) {
+      return [];
     }
-    days[days.length - 1].tarti = +base.toFixed(2);
-    return days;
   }
 
-  function niceMax(v) {
-    if (v <= 0) return 1;
-    var p = Math.pow(10, Math.floor(Math.log10(v)));
-    var n = Math.ceil(v / p);
-    if (n <= 2) return 2 * p;
-    if (n <= 5) return 5 * p;
-    return 10 * p;
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2;
-    if (h < 2 * r) r = h / 2;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-  }
-
-  function drawChart() {
-    var canvas = $('trendChart');
-    if (!canvas || !chartState.series.length) return;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var cssW = canvas.clientWidth || 340;
-    var cssH = canvas.clientHeight || 148;
-    canvas.width = Math.round(cssW * dpr);
-    canvas.height = Math.round(cssH * dpr);
-    var ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, cssW, cssH);
-
-    var pad = { t: 18, r: 12, b: 28, l: 40 };
-    var plotW = cssW - pad.l - pad.r;
-    var plotH = cssH - pad.t - pad.b;
-    var series = chartState.series;
-    var n = series.length;
-    var primary = METRICS[chartState.primary] || METRICS.tarti;
-    var values = series.map(function (d) { return d[primary.key]; });
-    var maxV = Math.max.apply(null, values.concat([0.01]));
-    var yMax = primary.fixedMax != null ? primary.fixedMax : niceMax(maxV * 1.15);
-    if (yMax < maxV) yMax = niceMax(maxV * 1.15);
-
-    ctx.strokeStyle = '#e9ecef';
-    ctx.lineWidth = 1;
-    ctx.fillStyle = '#adb5bd';
-    ctx.font = '600 10px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    for (var ti = 0; ti <= 3; ti++) {
-      var yv = (yMax * ti) / 3;
-      var y = pad.t + plotH - (plotH * ti) / 3;
-      ctx.beginPath();
-      ctx.moveTo(pad.l, y);
-      ctx.lineTo(pad.l + plotW, y);
-      ctx.stroke();
-      var label;
-      if (primary.unit === 'kg') label = Math.round(yv) + ' kg';
-      else if (primary.unit === '°C') label = Math.round(yv) + '°';
-      else if (primary.unit === '%') label = '%' + Math.round(yv);
-      else if (primary.unit === '/saat') label = String(Math.round(yv));
-      else label = yv < 1 ? yv.toFixed(1) : String(Math.round(yv));
-      ctx.fillText(label, pad.l - 6, y);
-    }
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#868e96';
-    for (var xi = 0; xi < n; xi++) {
-      if (xi !== 0 && xi !== n - 1 && xi % 3 !== 0) continue;
-      ctx.fillText(series[xi].label, pad.l + (plotW * xi) / (n - 1), pad.t + plotH + 8);
-    }
-
-    function xAt(i) { return pad.l + (plotW * i) / (n - 1); }
-    function yAt(v) { return pad.t + plotH - (plotH * Math.max(0, Math.min(v, yMax))) / yMax; }
-
-    Object.keys(chartState.overlays).forEach(function (k) {
-      if (!chartState.overlays[k] || k === chartState.primary) return;
-      var m = METRICS[k];
-      if (!m) return;
-      var ov = series.map(function (d) { return d[m.key]; });
-      var oMax = Math.max.apply(null, ov.concat([0.01]));
-      ctx.beginPath();
-      for (var i = 0; i < n; i++) {
-        var yy = pad.t + plotH - (plotH * (ov[i] / oMax)) * 0.92;
-        if (i === 0) ctx.moveTo(xAt(i), yy); else ctx.lineTo(xAt(i), yy);
-      }
-      ctx.strokeStyle = m.color;
-      ctx.globalAlpha = 0.55;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 3]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-    });
-
-    ctx.beginPath();
-    for (var i = 0; i < n; i++) {
-      var xx = xAt(i);
-      var yy = yAt(series[i][primary.key]);
-      if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
-    }
-    ctx.strokeStyle = primary.color;
-    ctx.lineWidth = 2.4;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    ctx.lineTo(xAt(n - 1), pad.t + plotH);
-    ctx.lineTo(xAt(0), pad.t + plotH);
-    ctx.closePath();
-    ctx.fillStyle = primary.color + '28';
-    ctx.fill();
-
-    for (var pi = 0; pi < n; pi++) {
-      var px = xAt(pi);
-      var py = yAt(series[pi][primary.key]);
-      ctx.beginPath();
-      ctx.arc(px, py, pi === n - 1 ? 5 : 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
-      ctx.strokeStyle = primary.color;
-      ctx.lineWidth = pi === n - 1 ? 2.5 : 1.6;
-      ctx.stroke();
-    }
-
-    var last = series[n - 1][primary.key];
-    var lx = xAt(n - 1);
-    var ly = yAt(last);
-    var tag;
-    if (primary.unit === 'kg') tag = last.toFixed(1) + ' kg';
-    else if (primary.unit === '°C') tag = last.toFixed(1) + '°C';
-    else if (primary.unit === '%') tag = '%' + Math.round(last);
-    else if (primary.unit === '/saat') tag = Math.round(last) + '/saat';
-    else tag = String(last);
-    ctx.font = '700 10px -apple-system, BlinkMacSystemFont, sans-serif';
-    var tw = ctx.measureText(tag).width;
-    var bx = Math.min(lx - tw / 2 - 6, cssW - pad.r - tw - 14);
-    bx = Math.max(pad.l, bx);
-    var by = Math.max(pad.t + 2, ly - 22);
-    ctx.fillStyle = primary.color;
-    roundRect(ctx, bx, by - 10, tw + 12, 18, 8);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tag, bx + 6, by - 1);
-  }
-
-  function sensorTile(ico, label, s) {
-    var t = s.tone || '';
+  function kvRow(label, value, tone) {
     return (
-      '<div class="sensor-tile">' +
-        '<div class="s-ico" aria-hidden="true">' + ico + '</div>' +
-        '<div>' +
-          '<div class="s-lbl">' + label + '</div>' +
-          '<div class="s-val' + (t ? ' ' + t : '') + '">' + escapeHtml(s.value) + '</div>' +
-        '</div>' +
-        '<span class="s-badge' + (t ? ' ' + t : '') + '">' + escapeHtml(s.badge) + '</span>' +
+      '<div class="kd-kv-row">' +
+        '<span class="k">' + escapeHtml(label) + '</span>' +
+        '<span class="v' + cls(tone) + '">' + escapeHtml(value) + '</span>' +
       '</div>'
     );
   }
 
-  function toggleHtml(key, label) {
-    return (
-      '<label class="tog" data-key="' + key + '">' +
-        '<input type="checkbox" data-overlay="' + key + '" />' +
-        '<span class="tog-sw" aria-hidden="true"></span>' +
-        label +
-      '</label>'
-    );
+  function healthPill(hive) {
+    var t = toneHealth(hive.health, hive.healthScore);
+    var label = String(hive.health || '—');
+    if (hive.healthScore != null && isFinite(Number(hive.healthScore))) {
+      label += ' · ' + Math.round(Number(hive.healthScore));
+    }
+    return { cls: t === 'ok' ? '' : t, label: label };
   }
 
-  function bindChartControls() {
-    var sel = $('metricSelect');
-    if (sel) {
-      sel.onchange = function () {
-        chartState.primary = sel.value;
-        drawChart();
-      };
-    }
-    var root = $('chartToggles');
-    if (!root) return;
-    root.querySelectorAll('input[data-overlay]').forEach(function (inp) {
-      inp.onchange = function () {
-        var k = inp.getAttribute('data-overlay');
-        chartState.overlays[k] = !!inp.checked;
-        var lab = inp.closest('.tog');
-        if (lab) lab.classList.toggle('is-on', inp.checked);
-        drawChart();
-      };
+  function countForHive(list, hiveId) {
+    var idNum = Number(hiveId);
+    var n = 0;
+    (list || []).forEach(function (x) {
+      if (x && (Number(x.hiveId) === idNum || String(x.hiveId) === String(hiveId))) n++;
     });
+    return n;
   }
 
   function render(hive, apiary) {
@@ -670,24 +493,43 @@
       return;
     }
 
-    var place = apiary ? (apiary.place || apiary.name) : '—';
+    var place = apiary ? (apiary.name || apiary.place) : '—';
+    var placeShort = apiary ? (apiary.place || apiary.name) : '—';
     var backHref = apiary
       ? 'arilik.html?id=' + encodeURIComponent(apiary.id)
       : 'kovanlar.html';
     document.title = 'SüperArı · ' + hive.name;
 
-    var ok = sensorsPill(hive);
     var wt = toneWeight(Number(hive.deltaKg) || 0);
     var ht = toneHealth(hive.health, hive.healthScore);
     var st = toneSwarm(hive.swarmRisk);
-    var sensors = deriveSensors(hive);
-    var wx = demoWeather(hive, apiary);
-    chartState.series = buildSeries(hive);
-    chartState.primary = 'tarti';
-    chartState.overlays = { sicaklik: false, nem: false, ses: false, titresim: false, ir: false };
+    var pill = healthPill(hive);
+    var devices = devicesForHive(hive.id);
+    var Dev = window.SuperAriDevices;
+    var D = window.SuperAriDemo;
+    var alertN = countForHive(D && D.alerts, hive.id);
+    var taskN = countForHive(D && D.tasks, hive.id);
 
-    function cls(t) { return t ? ' ' + t : ''; }
-    var swarmTone = st || 'warn';
+    var queen = fieldOrNone(hive.queenStatus || hive.anaDurum);
+    var frames = fieldOrNone(hive.framesNote || hive.cerceve);
+    var lastInsp = fieldOrNone(hive.lastInspectionAt || hive.sonMuayene);
+    var inspNote = hive.inspectionNote || hive.muayeneNotu || '';
+
+    var sensorBody;
+    if (!devices.length) {
+      sensorBody = '<p class="kd-empty">Bu kovana bağlı cihaz yok. Sensör değerleri uydurulmaz.</p>';
+    } else {
+      sensorBody =
+        '<div class="kd-kv">' +
+        devices.map(function (d) {
+          var tip = (Dev && Dev.tipLabel) ? Dev.tipLabel(d.tip || d.type) : (d.tip || d.type || 'Cihaz');
+          var stLab = (Dev && Dev.statusLabel) ? Dev.statusLabel(d.status) : (d.status || '—');
+          var name = d.name || tip;
+          return kvRow(name, stLab, '');
+        }).join('') +
+        '</div>' +
+        '<p class="kd-note">Canlı sıcaklık / nem / ses okuması cihaz bağlanınca burada görünür; şimdilik yalnız bağlantı durumu.</p>';
+    }
 
     content.innerHTML =
       '<header class="kd-head">' +
@@ -696,78 +538,69 @@
         '</a>' +
         '<div class="kd-titles">' +
           '<h1>' + escapeHtml(hive.name) + '</h1>' +
-          '<p>' + escapeHtml(place) + '</p>' +
+          '<p>' + escapeHtml(placeShort) + '</p>' +
         '</div>' +
-        '<span class="ok-pill' + cls(ok.cls) + '">' + escapeHtml(ok.label) + '</span>' +
+        '<span class="ok-pill' + cls(pill.cls) + '">' + escapeHtml(pill.label) + '</span>' +
       '</header>' +
 
-      '<div class="wx-strip" aria-label="Hava">' +
-        '<div class="wx-cell"><div class="wx-ico">☀️</div><div class="wx-val">' + wx.temp + '°C</div><div class="wx-lbl">' + escapeHtml(wx.cond) + '</div></div>' +
-        '<div class="wx-cell"><div class="wx-ico">💧</div><div class="wx-val">%' + wx.humid + '</div><div class="wx-lbl">Nem</div></div>' +
-        '<div class="wx-cell"><div class="wx-ico">💨</div><div class="wx-val">' + wx.wind + ' km/sa</div><div class="wx-lbl">Rüzgar</div></div>' +
-        '<div class="wx-cell"><div class="wx-ico">🧭</div><div class="wx-val">' + escapeHtml(wx.dir) + '</div><div class="wx-lbl">Rüzgar Yönü</div></div>' +
-      '</div>' +
-
-      '<div class="sum-row">' +
-        '<div class="sum-card">' +
-          '<div class="sum-top"><span class="sum-ico' + cls(wt) + '">⚖</span><span class="sum-lbl">Tartı</span></div>' +
-          '<div class="sum-val' + cls(wt) + '">' + Number(hive.weightKg).toFixed(1) + ' kg</div>' +
-          '<span class="sum-badge' + cls(wt) + '">' + (wt === 'bad' ? 'Kritik' : wt === 'warn' ? 'Dikkat' : 'Normal') + '</span>' +
+      '<section class="kd-sec" aria-label="Özet">' +
+        '<h2>Özet</h2>' +
+        '<div class="kd-kv">' +
+          kvRow('Arılık', place, '') +
+          kvRow('Irk', fieldOrNone(hive.breed), '') +
+          kvRow('Koloni gücü', strengthLabel(hive.strength), '') +
+          kvRow('Tartı', (isFinite(Number(hive.weightKg)) ? Number(hive.weightKg).toFixed(1) + ' kg' : '—'), wt) +
+          kvRow('Günlük değişim', fmtDelta(hive.deltaKg), wt) +
+          kvRow('Sağlık', String(hive.health || '—') + (hive.healthScore != null ? (' · ' + Math.round(Number(hive.healthScore))) : ''), ht) +
+          kvRow('Koloni skoru', hive.colonyScore != null ? String(Math.round(Number(hive.colonyScore))) : '—', '') +
+          kvRow('Oğul riski', String(hive.swarmRisk || '—'), st) +
         '</div>' +
-        '<div class="sum-card">' +
-          '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +
-          '<div class="sum-val' + cls(ht) + '">' + escapeHtml(hive.health) + '</div>' +
-          '<span class="sum-badge' + cls(ht) + '">' + escapeHtml(hive.health) + '</span>' +
-        '</div>' +
-        '<div class="sum-card">' +
-          '<div class="sum-top"><span class="sum-ico' + cls(swarmTone) + '">◎</span><span class="sum-lbl">Oğul riski</span></div>' +
-          '<div class="sum-val' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</div>' +
-          '<span class="sum-badge' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</span>' +
-        '</div>' +
-      '</div>' +
+      '</section>' +
 
-      '<div class="hive-photo">' +
-        '<img src="assets/hive-clean.jpg" alt="' + escapeHtml(hive.name) + ' görseli" width="780" height="520" decoding="async" />' +
-      '</div>' +
-
-      '<div class="sensor-grid" aria-label="Sensörler">' +
-        sensorTile('🌡', 'Sıcaklık', sensors.temp) +
-        sensorTile('💧', 'Nem', sensors.humid) +
-        sensorTile('🔊', 'Ses', sensors.sound) +
-        sensorTile('📳', 'Titreşim', sensors.vib) +
-        sensorTile('👁', 'IR', sensors.ir) +
-        sensorTile('🔋', 'Batarya', sensors.batt) +
-      '</div>' +
-
-      '<section class="chart-card">' +
-        '<div class="chart-head">' +
-          '<h2>Son 10 gün</h2>' +
-          '<select class="metric-select" id="metricSelect" aria-label="Grafik metriği">' +
-            '<option value="tarti" selected>Tartı</option>' +
-            '<option value="sicaklik">Sıcaklık</option>' +
-            '<option value="nem">Nem</option>' +
-            '<option value="ses">Ses</option>' +
-            '<option value="titresim">Titreşim</option>' +
-            '<option value="ir">IR</option>' +
-          '</select>' +
+      '<section class="kd-sec" aria-label="Koloni">' +
+        '<h2>Koloni</h2>' +
+        '<div class="kd-kv">' +
+          kvRow('Ana', queen, queen === 'Kayıt yok' ? '' : '') +
+          kvRow('Çerçeve / yavru / bal', frames, '') +
+          kvRow('Son muayene', lastInsp, '') +
         '</div>' +
-        '<div class="chart-wrap"><canvas id="trendChart" aria-label="Son 10 gün grafiği"></canvas></div>' +
-        '<div class="chart-toggles" id="chartToggles">' +
-          toggleHtml('sicaklik', 'Sıcaklık') +
-          toggleHtml('nem', 'Nem') +
-          toggleHtml('ses', 'Ses') +
-          toggleHtml('titresim', 'Titreşim') +
-          toggleHtml('ir', 'IR') +
+        (inspNote
+          ? '<p class="kd-note">' + escapeHtml(inspNote) + '</p>'
+          : '<p class="kd-note">Muayene notu yok. Sahada yazınca burada görünür.</p>') +
+      '</section>' +
+
+      '<section class="kd-sec" aria-label="Petek ve muayene">' +
+        '<h2>Petek / muayene</h2>' +
+        '<p class="kd-empty">Son petek tarama özeti yok (kayıt gelince burada gösterilir).</p>' +
+        '<a class="kd-cta" href="petek-tarama.html?hiveId=' + encodeURIComponent(hive.id) + '">Petek tarama</a>' +
+      '</section>' +
+
+      '<section class="kd-sec" aria-label="Sensörler">' +
+        '<h2>Sensör</h2>' +
+        sensorBody +
+      '</section>' +
+
+      '<section class="kd-sec" aria-label="Trend">' +
+        '<h2>Trend (7–14 gün)</h2>' +
+        '<p class="kd-empty">Tartı / sıcaklık geçmişi henüz yok. Gerçek kayıt gelmeden grafik çizilmez.</p>' +
+      '</section>' +
+
+      '<section class="kd-sec" aria-label="Bağlantılar">' +
+        '<h2>Bağlantılar</h2>' +
+        '<div class="kd-links">' +
+          '<a class="kd-link" href="uyarilar.html?hiveId=' + encodeURIComponent(hive.id) + '">' +
+            '<span>Uyarılar</span><span class="meta">' + alertN + ' kayıt</span></a>' +
+          '<a class="kd-link" href="gorevler.html?hiveId=' + encodeURIComponent(hive.id) + '">' +
+            '<span>Görevler</span><span class="meta">' + taskN + ' kayıt</span></a>' +
+          '<a class="kd-link" href="giderler.html?hiveId=' + encodeURIComponent(hive.id) + '">' +
+            '<span>Gider / hasat</span><span class="meta">Bu kovan</span></a>' +
+          '<a class="kd-link" href="' + backHref + '">' +
+            '<span>Arılık konumu</span><span class="meta">' + escapeHtml(placeShort) + '</span></a>' +
+          '<a class="kd-link" href="kovanlar.html?apiary=' + encodeURIComponent(hive.apiaryId || '') + '">' +
+            '<span>Kovan listesi</span><span class="meta">Arılık</span></a>' +
         '</div>' +
       '</section>';
-
-    requestAnimationFrame(function () {
-      drawChart();
-      bindChartControls();
-    });
   }
-
-  window.addEventListener('resize', function () { drawChart(); }, { passive: true });
 
   var D = window.SuperAriDemo;
   var params = new URLSearchParams(location.search);
@@ -780,6 +613,7 @@
   }
   render(hive, apiary);
 })();
+</script>
 </script>
 </body>
 </html>
