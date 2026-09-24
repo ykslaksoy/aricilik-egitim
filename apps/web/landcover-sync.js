@@ -1,5 +1,5 @@
 /**
- * SüperArı — örtü + su senkronu. Kısa çubuk metni.
+ * SüperArı — örtü + su senkronu. Çubuk kısa; detayda tarih+saat.
  */
 (function (global) {
   var BAR_ID = 'landcoverSyncBar';
@@ -15,6 +15,12 @@
   var barOpen = false;
   var insightOpen = false;
   var lastInsights = [];
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function stamp() {
+    var t = new Date();
+    return pad(t.getDate()) + '.' + pad(t.getMonth() + 1) + ' ' + pad(t.getHours()) + ':' + pad(t.getMinutes());
+  }
 
   function injectCss() {
     if (typeof document === 'undefined') return;
@@ -58,13 +64,12 @@
   }
   function addLog(line) {
     if (!line) return;
-    if (logLines.length && logLines[logLines.length - 1] === line) return;
-    logLines.push(line);
+    var lastMsg = logLines.length ? String(logLines[logLines.length - 1]).split(' · ').slice(1).join(' · ') : '';
+    if (lastMsg === line) return;
+    logLines.push(stamp() + ' · ' + line);
     if (logLines.length > 16) logLines = logLines.slice(-16);
     var box = document.querySelector('#' + BAR_ID + ' [data-lc-detail]');
-    if (box) {
-      box.innerHTML = logLines.map(function (x) { return '<div>' + x.replace(/</g, '&lt;') + '</div>'; }).join('');
-    }
+    if (box) box.innerHTML = logLines.map(function (x) { return '<div>' + x.replace(/</g, '&lt;') + '</div>'; }).join('');
   }
   function interpretOne(apiary, waterHit, analysis) {
     var metres = waterHit && waterHit.metres != null ? Math.round(waterHit.metres) : (apiary && apiary.waterDistanceM != null ? Number(apiary.waterDistanceM) : null);
