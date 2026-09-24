@@ -312,28 +312,38 @@
     gap: 8px;
     align-items: center;
   }
-  .fs-row label { font-size: 11px; font-weight: 700; color: #6b635a; }
-  .fs-row input[type=range] { width: 100%; }
+  .fs-row label {
+    font-size: 11px; font-weight: 700; color: #6b635a;
+    line-height: 1; display: flex; align-items: center;
+  }
+  .fs-row input[type=range] {
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    align-self: center;
+  }
   .fs-row .val {
     font-size: 11px; font-weight: 800; color: #4a2f1a;
     font-variant-numeric: tabular-nums; white-space: nowrap;
+    line-height: 1; display: flex; align-items: center;
   }
   .fs-chev {
-    flex: 0 0 auto;
     width: 28px; height: 28px; min-width: 28px;
     display: inline-flex; align-items: center; justify-content: center;
     margin: 0; padding: 0;
-    border: 0; border-radius: 8px;
-    background: transparent; color: #8a8278;
-    font: inherit; font-size: 14px; font-weight: 700; line-height: 1;
+    border: 1px solid #e4e0d8; border-radius: 999px;
+    background: #faf8f4; color: #6b635a;
     cursor: pointer;
+    align-self: center;
   }
-  .fs-chev:hover { background: #f3efe6; color: #4a2f1a; }
-  .fs-chev .fs-chev-ico {
-    display: inline-block;
-    transition: transform .15s ease;
+  .fs-chev:hover { background: #f3efe6; border-color: #d4cfc4; color: #4a2f1a; }
+  .fs-chev:active { transform: scale(0.96); }
+  .fs-chev svg {
+    width: 14px; height: 14px;
+    display: block;
+    transition: transform .18s ease;
   }
-  .fs-chev[aria-expanded="true"] .fs-chev-ico {
+  .fs-chev[aria-expanded="true"] svg {
     transform: rotate(90deg);
   }
   .water-expand-panel {
@@ -2472,7 +2482,7 @@
             '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(formatWaterDistLabel(sliderM)) + '" />' +
           '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
           '<button type="button" class="fs-chev" id="btnWaterHint" aria-expanded="false" aria-controls="waterDetailPanel" aria-label="Su notu">' +
-            '<span class="fs-chev-ico" aria-hidden="true">›</span>' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z"/></svg>' +
           '</button>' +
         '</div>' +
         '<div class="fs-hint" id="waterDetailPanel" hidden>' +
@@ -3016,7 +3026,7 @@
             '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" aria-valuetext="' + forageRadiusKm + ' km" />' +
             '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
             '<button type="button" class="fs-chev" id="btnForageHint" aria-expanded="false" aria-controls="forageAutoHint" aria-label="Foraj notu">' +
-              '<span class="fs-chev-ico" aria-hidden="true">›</span>' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z"/></svg>' +
             '</button>' +
           '</div>' +
           '<p class="forage-auto-hint fs-hint" id="forageAutoHint" hidden>' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
