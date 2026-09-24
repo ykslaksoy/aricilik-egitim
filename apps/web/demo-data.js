@@ -1194,7 +1194,7 @@
     var url =
       'https://geocoding-api.open-meteo.com/v1/search?name=' +
       encodeURIComponent(q) +
-      '&count=6&language=tr&format=json';
+      '&count=6&language=tr&format=json&countryCode=TR';
     return fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('geocode_' + r.status);

@@ -153,10 +153,17 @@
       var s = document.createElement('script');
       s.async = true;
       s.dataset.superariYmaps = '1';
+      var suggestKey = '';
+      try {
+        var cfgS = global.__YANDEX_MAPS_CONFIG__;
+        if (cfgS && trim(cfgS.suggestApiKey)) suggestKey = trim(cfgS.suggestApiKey);
+        else if (trim(global.YANDEX_SUGGEST_API_KEY)) suggestKey = trim(global.YANDEX_SUGGEST_API_KEY);
+      } catch (eSug) { /* ignore */ }
       s.src =
         'https://api-maps.yandex.ru/2.1/?apikey=' +
         encodeURIComponent(key) +
-        '&lang=tr_TR';
+        '&lang=tr_TR' +
+        (suggestKey ? ('&suggest_apikey=' + encodeURIComponent(suggestKey)) : '');
       s.onload = function () {
         if (!global.ymaps || !global.ymaps.ready) {
           reject(new Error('ymaps_missing'));
@@ -515,6 +522,25 @@
       .catch(function () { return empty; });
   }
 
+  /** Turkey-biased geocode; retries with «, Türkiye» if first pass empty. */
+  function geocodeQuery(ymaps, q) {
+    var opts = {
+      results: 6,
+      boundedBy: [[35.5, 25.5], [42.5, 45.0]],
+      strictBounds: false
+    };
+    function run(text) {
+      return ymaps.geocode(text, opts).then(function (res) {
+        return geoResultToList(res);
+      });
+    }
+    return run(q).then(function (list) {
+      if (list && list.length) return list;
+      if (/türkiye|turkey|turkiye/i.test(q)) return list || [];
+      return run(q + ', Türkiye');
+    });
+  }
+
   /**
    * Yandex suggest + geocode search. Falls back to empty on failure.
    * Returns Promise<[{name,label,lat,lon}]>
@@ -544,12 +570,7 @@
           function (items) {
             items = items || [];
             if (!items.length) {
-              ymaps.geocode(q, { results: 6 }).then(
-                function (res) {
-                  resolve(geoResultToList(res));
-                },
-                onGeocodeFail
-              );
+              geocodeQuery(ymaps, q).then(resolve, onGeocodeFail);
               return;
             }
             var pending = items.map(function (it) {
@@ -591,10 +612,7 @@
               reject(Object.assign(new Error('yandex_quota_or_busy'), { cause: err }));
               return;
             }
-            ymaps.geocode(q, { results: 6 }).then(
-              function (res) { resolve(geoResultToList(res)); },
-              onGeocodeFail
-            );
+            geocodeQuery(ymaps, q).then(resolve, onGeocodeFail);
           }
         );
       });

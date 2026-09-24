@@ -2602,20 +2602,27 @@
       btn.disabled = true;
       btn.textContent = '…';
     }
+    function openMeteoSearch() {
+      return D && D.geocodeSearch ? D.geocodeSearch(q) : Promise.resolve([]);
+    }
     var searchPromise =
       Y && Y.hasApiKey()
-        ? Y.searchPlaces(q).catch(function (err) {
-            if (
-              (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
-              (err && String(err.message || '').indexOf('yandex_quota') >= 0)
-            ) {
-              return Promise.reject(err);
-            }
-            return D.geocodeSearch ? D.geocodeSearch(q) : [];
-          })
-        : D.geocodeSearch
-          ? D.geocodeSearch(q)
-          : Promise.resolve([]);
+        ? Y.searchPlaces(q)
+            .then(function (items) {
+              if (items && items.length) return items;
+              /* Yandex boş (suggest anahtarı / geocoder kotası) → Open-Meteo yedek */
+              return openMeteoSearch();
+            })
+            .catch(function (err) {
+              if (
+                (Y && Y.isBusyOrQuotaError && Y.isBusyOrQuotaError(err)) ||
+                (err && String(err.message || '').indexOf('yandex_quota') >= 0)
+              ) {
+                return Promise.reject(err);
+              }
+              return openMeteoSearch();
+            })
+        : openMeteoSearch();
     searchPromise
       .then(function (items) {
         showSearchResults(items);
