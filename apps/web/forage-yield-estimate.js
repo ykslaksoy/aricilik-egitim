@@ -1,8 +1,6 @@
 (function (global) {
   var SRC_Y =
     'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-yield-estimate.js';
-  var SRC_F =
-    'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-analysis.js';
 
   function yanik(a) {
     if (!a) return false;
@@ -32,38 +30,58 @@
       '<p class="forage-flight-tip">Kafkas çisede uçabilir. Takas: Palandöken / Tortum ↔ Yanıkdağ.</p>' +
     '</div>';
 
+  function stripNotes() {
+    if (typeof document === 'undefined') return;
+    var kill = [];
+    document.querySelectorAll('.sa-note, #saLiveMount, [data-sa-notes]').forEach(function (el) {
+      kill.push(el);
+    });
+    document.querySelectorAll('h3, .forage-flight-head, .sa-live h3').forEach(function (el) {
+      var t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (t === 'Notlar' || t === 'NOTLAR') {
+        var box = el.closest('.sa-live, .sa-note, .fy-block') || el.parentNode;
+        if (box) kill.push(box);
+      }
+    });
+    document.querySelectorAll('p, div').forEach(function (el) {
+      var t = el.textContent || '';
+      if (t.indexOf('800 uydurmas') !== -1 || t.indexOf('Hedef ~11 kg') !== -1) {
+        var box = el.closest('.sa-live, .sa-note') || el;
+        kill.push(box);
+      }
+    });
+    kill.forEach(function (el) {
+      try { el.parentNode && el.parentNode.removeChild(el); } catch (e) {}
+    });
+  }
+
   function rewriteFlight(host) {
+    stripNotes();
     var a = apiary();
     if (!yanik(a) || !host) return;
-    var flight = host.querySelector('.forage-flight');
+    var blocks = host.querySelectorAll('.forage-flight');
+    var flight = null;
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].id === 'saSisBlock') continue;
+      var head = blocks[i].querySelector('.forage-flight-head');
+      if (head && /Uçuş/.test(head.textContent || '')) flight = blocks[i];
+    }
+    if (!flight) flight = blocks[blocks.length - 1];
     if (!flight) return;
-    if (!host.querySelector('#saSisBlock')) {
+    if (!document.getElementById('saSisBlock')) {
       flight.insertAdjacentHTML('beforebegin', SIS_HTML);
     }
     var sum = flight.querySelector('.forage-flight-sum');
     if (sum && sum.getAttribute('data-sis') !== '1') {
       sum.setAttribute('data-sis', '1');
-      var old = sum.textContent || '';
       sum.textContent =
-        old +
-        ' · Sis/çisede Karniyol uçmadı, o günlerde stoğu yedi. Kafkas aynı günlerde tarlayabilir.';
+        (sum.textContent || '') +
+        ' · Sis/çisede Karniyol uçmadı, o günlerde stoğu yedi.';
     }
-    var tip = flight.querySelector('.forage-flight-tip');
-    if (tip && tip.getAttribute('data-sis') !== '1') {
-      tip.setAttribute('data-sis', '1');
-      tip.textContent =
-        'Elverişsiz gün = yağış + sis/çise. Karniyol için bu günler hem hasat yok hem tüketim var.';
-    }
-    var rows = flight.querySelectorAll('.forage-v');
-    rows.forEach(function (v) {
-      if (v.textContent.indexOf('elverişsiz') !== -1 && v.getAttribute('data-sis') !== '1') {
-        v.setAttribute('data-sis', '1');
-        v.textContent = v.textContent + ' · çisede stoğu yer';
-      }
-    });
   }
 
   function watchHost() {
+    stripNotes();
     var host = document.getElementById('forageHost');
     if (!host) return;
     rewriteFlight(host);
@@ -81,15 +99,7 @@
       var html = raw(analysis, escapeHtml);
       if (!yanik(apiary())) return html;
       if (html.indexOf('forage-flight') === -1) return html;
-      html = html.replace(
-        '<div class="forage-flight">',
-        SIS_HTML + '<div class="forage-flight">'
-      );
-      html = html.replace(
-        /(<p class="forage-flight-sum">)([^<]*)(<\/p>)/,
-        '$1$2 · Sis/çisede Karniyol uçmadı, stoğu yedi.$3'
-      );
-      return html;
+      return html.replace('<div class="forage-flight">', SIS_HTML + '<div class="forage-flight">');
     };
     F.__sisRender = true;
   }
@@ -104,53 +114,33 @@
       function sc(n) {
         return n == null || !isFinite(Number(n)) ? n : Math.round(Number(n) * 0.9 * 10) / 10;
       }
-      ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg', 'totalLowKg', 'totalHighKg'].forEach(function (k) {
+      ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
         if (est[k] != null) est[k] = sc(est[k]);
       });
-      est.why = est.why || [];
-      est.why.push({
-        k: 'Sis · çiseleme',
-        v: 'çarpan 0,90 · uçamadı + o günlerde kovan balını yedi'
+      est.why = (est.why || []).filter(function (r) {
+        return !(r && r.k === 'Notlar');
       });
+      est.why.push({ k: 'Sis · çiseleme', v: 'çarpan 0,90 · uçamadı + stoğu yedi' });
       return est;
     };
-    if (Y.renderBlocksHtml) {
-      var rr = Y.renderBlocksHtml;
-      Y.renderBlocksHtml = function (estimate, mismatches, escapeHtml, tip) {
-        var html = rr(estimate, mismatches, escapeHtml, tip);
-        if (!yanik(apiary())) return html;
-        return (
-          '<p class="fy-notes">Sis/çise: hem uçuş yok hem stok erir. Hedef buna göre düştü.</p>' +
-          html
-        );
-      };
-    }
     Y.__eatPatch = true;
   }
 
   function start() {
+    stripNotes();
     patchForage();
     patchYield();
     watchHost();
-    setTimeout(watchHost, 500);
-    setTimeout(watchHost, 1500);
+    setTimeout(watchHost, 400);
+    setTimeout(watchHost, 1400);
   }
 
-  function load(src, done) {
+  if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) start();
+  else {
     var s = document.createElement('script');
-    s.src = src;
-    s.onload = done;
+    s.src = SRC_Y;
+    s.onload = start;
     (document.head || document.documentElement).appendChild(s);
+    setTimeout(start, 900);
   }
-
-  function boot() {
-    if (!global.SuperAriForageYield) {
-      load(SRC_Y, function () {
-        if (!global.SuperAriForage) load(SRC_F, start);
-        else start();
-      });
-    } else start();
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
 })(window);
