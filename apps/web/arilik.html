@@ -715,7 +715,7 @@
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=su-foraj-loc-1"></script>
+<script src="demo-data.js?v=place-admin-1"></script>
 <script src="rapor-store.js"></script>
 <script src="forage-analysis.js?v=yaricap-1"></script>
 <script src="forage-yield-estimate.js?v=su-foraj-loc-1"></script>
@@ -3162,14 +3162,14 @@
           '</div>' +
           '<div>' +
             '<div class="hero-title">' + escapeHtml(apiary.name) + '</div>' +
-            '<div class="hero-place">' + escapeHtml(apiary.place) + '</div>' +
+            '<div class="hero-place">' + escapeHtml((D.formatPlaceSubtitle && D.formatPlaceSubtitle(apiary)) || apiary.place || '—') + '</div>' +
           '</div>' +
         '</div>' +
         '<div class="stat-grid">' +
           '<a class="stat stat-link" href="' + filterHref + '" aria-label="' + hiveN + ' kovanı listele">' +
             '<div class="k">Kovan</div><div class="v">' + hiveN + '</div>' +
           '</a>' +
-          '<div class="stat"><div class="k">Konum</div><div class="v">' + escapeHtml(apiary.place) + '</div></div>' +
+          '<div class="stat"><div class="k">Konum</div><div class="v">' + escapeHtml((D.formatPlaceSubtitle && D.formatPlaceSubtitle(apiary)) || apiary.place || '—') + '</div></div>' +
           (coordsOk
             ? (
                 '<button type="button" class="stat stat-tap" id="statLat">' +

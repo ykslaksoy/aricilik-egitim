@@ -106,9 +106,10 @@
       if (!a) return a;
       var seed = bySeed[String(a.id)];
       if (!seed) return a;
-      var nextIl = trimAdmin(a.il) || trimAdmin(seed.il);
-      var nextIlce = trimAdmin(a.ilce) || trimAdmin(seed.ilce);
-      var nextKoy = trimAdmin(a.koy) || trimAdmin(seed.koy);
+      /* Seed arılıklarında il/ilçe/köy kaynağı seed (yerel eksik veya eski değer düzelir). */
+      var nextIl = trimAdmin(seed.il) || trimAdmin(a.il);
+      var nextIlce = trimAdmin(seed.ilce) || trimAdmin(a.ilce);
+      var nextKoy = trimAdmin(seed.koy) || trimAdmin(a.koy);
       if (trimAdmin(a.il) === nextIl && trimAdmin(a.ilce) === nextIlce && trimAdmin(a.koy) === nextKoy) {
         return a;
       }
