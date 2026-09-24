@@ -2471,12 +2471,14 @@
           '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
             '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(formatWaterDistLabel(sliderM)) + '" />' +
           '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
-          '<button type="button" class="fs-chev" id="btnWaterHint" aria-expanded="false" aria-controls="waterAutoHint" aria-label="Su notu">' +
+          '<button type="button" class="fs-chev" id="btnWaterHint" aria-expanded="false" aria-controls="waterDetailPanel" aria-label="Su notu">' +
             '<span class="fs-chev-ico" aria-hidden="true">›</span>' +
           '</button>' +
         '</div>' +
-        '<p class="water-auto-hint fs-hint" id="waterAutoHint" hidden>' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
-        '<button type="button" class="map-btn ghost" id="btnWaterSources" style="justify-self:start;min-height:32px;font-size:11px;margin-top:4px;">Kaynak listesi</button>' +
+        '<div class="fs-hint" id="waterDetailPanel" hidden>' +
+          '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
+          '<button type="button" class="map-btn ghost" id="btnWaterSources" style="justify-self:start;min-height:32px;font-size:11px;margin-top:6px;">Kaynak listesi</button>' +
+        '</div>' +
         '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
           waterCatalogListHtml(apiary) +
           '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle</button>' +
@@ -3235,10 +3237,14 @@
         var open = hint.hidden;
         hint.hidden = !open;
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (hintId === 'waterDetailPanel' && !open) {
+          var ep = document.getElementById('waterExpandPanel');
+          if (ep) ep.hidden = true;
+        }
       });
     }
     bindHintToggle('btnForageHint', 'forageAutoHint');
-    bindHintToggle('btnWaterHint', 'waterAutoHint');
+    bindHintToggle('btnWaterHint', 'waterDetailPanel');
 
     var btnWaterSources = document.getElementById('btnWaterSources');
     if (btnWaterSources && expandPanel) {
