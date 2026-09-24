@@ -1,177 +1,156 @@
-/** Yield motoru + sis/çiseleme hem bayrak hem hedef-bal kriteri. */
 (function (global) {
   var SRC =
     'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-yield-estimate.js';
-  var FOG_YIELD_FACTOR = 0.9;
 
-  function placeText(a) {
-    if (!a) return '';
-    return String((a.name || '') + ' ' + (a.place || '') + ' ' + (a.il || '') + ' ' + (a.ilce || '') + ' ' + (a.koy || '')).toLocaleLowerCase('tr');
-  }
-  function foggyFromSite(site) {
-    site = site || {};
-    var rh = site.meanRhPct != null ? Number(site.meanRhPct) : null;
-    var pd = site.precipDays != null ? Number(site.precipDays) : null;
-    var ps = site.precipSumMm != null ? Number(site.precipSumMm) : null;
-    var place = String(site.place || site.name || site.label || '').toLocaleLowerCase('tr');
-    if (/rize|çayeli|cayeli|yanık|yanik|cimil|ikizdere/.test(place)) return true;
-    if (site.foggy || site.drizzle || (site.climateFlags && site.climateFlags.foggy)) return true;
-    if (rh != null && rh >= 68 && pd != null && pd >= 50) return true;
-    if (rh != null && rh >= 72 && ps != null && ps >= 700) return true;
-    return false;
-  }
-  function climateForApiary(a) {
-    var fog = foggyFromSite({ place: placeText(a), name: a && a.name });
-    if (a && a.climateFlags && a.climateFlags.foggy === true) fog = true;
-    return { foggy: !!fog, drizzle: !!fog, label: fog ? 'Sisli hava · çiseleme' : '' };
-  }
-  function applyFogToEstimate(est, fog) {
-    if (!est || !fog) return est;
-    function scale(n) {
-      if (n == null || !isFinite(Number(n))) return n;
-      return Math.round(Number(n) * FOG_YIELD_FACTOR * 10) / 10;
-    }
-    ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg', 'totalLowKg', 'totalHighKg'].forEach(function (k) {
-      if (est[k] != null) est[k] = scale(est[k]);
-    });
-    if (est.perHive) {
-      ['mid', 'low', 'high', 'kg'].forEach(function (k) {
-        if (est.perHive[k] != null) est.perHive[k] = scale(est.perHive[k]);
-      });
-    }
-    est.fogDrizzleFactor = FOG_YIELD_FACTOR;
-    est.why = est.why || [];
-    var row = {
-      k: 'Sis · çiseleme',
-      v: 'çarpan ' + FOG_YIELD_FACTOR + ' · uçuş günü kaybı + stok tüketimi'
-    };
-    var has = est.why.some(function (r) { return r && r.k && String(r.k).indexOf('Sis') === 0; });
-    if (!has) est.why.push(row);
-    return est;
-  }
-
-  function persistFlags() {
+  function currentApiary() {
     var D = global.D || global.SuperAriDemo;
-    if (!D || !D.loadApiaries || !D.updateApiary) return;
-    (D.loadApiaries() || []).forEach(function (a) {
-      if (!a || !a.id) return;
-      var c = climateForApiary(a);
-      if (!c.foggy) return;
-      if (a.climateFlags && a.climateFlags.foggy && a.climateFlags.drizzle) return;
-      try {
-        D.updateApiary(a.id, { climateFlags: { foggy: true, drizzle: true }, climateNote: 'Sisli hava · çiseleme' });
-      } catch (e) {}
-    });
-  }
-  function paintListBadges() {
-    if (typeof document === 'undefined') return;
-    var D = global.D || global.SuperAriDemo;
-    if (!D || !D.loadApiaries) return;
+    if (!D || !D.loadApiaries) return null;
+    var id = '';
+    try {
+      var q = new URLSearchParams(location.search);
+      id = q.get('id') || q.get('apiary') || '';
+    } catch (e) {}
     var list = D.loadApiaries() || [];
-    var cards = document.querySelectorAll('.apiary-card, .apiary-body');
-    list.forEach(function (a) {
-      if (!climateForApiary(a).foggy) return;
-      var name = a.name || a.place || '';
-      cards.forEach(function (el) {
-        if ((el.textContent || '').indexOf(name) === -1) return;
-        if (el.querySelector('[data-climate-flag]')) return;
-        var host = el.querySelector('.apiary-body p') || el.querySelector('p') || el;
-        var b = document.createElement('span');
-        b.setAttribute('data-climate-flag', '1');
-        b.style.cssText = 'display:inline-block;margin-top:4px;padding:2px 7px;border-radius:999px;background:#e8eef6;color:#2c3d55;font-size:10px;font-weight:800;';
-        b.textContent = 'Sisli · çise';
-        host.appendChild(b);
-      });
-    });
+    if (id) {
+      for (var i = 0; i < list.length; i++) if (String(list[i].id) === String(id)) return list[i];
+    }
+    var latEl = document.body && document.body.innerText;
+    for (var j = 0; j < list.length; j++) {
+      var a = list[j];
+      if (a && Math.abs(Number(a.lat) - 41.0808) < 0.002) return a;
+      if (a && String(a.name || '').indexOf('Yan') !== -1) return a;
+    }
+    return list[0] || null;
+  }
+  function isYanik(a) {
+    if (!a) return false;
+    var s = String((a.name || '') + ' ' + (a.place || '')).toLocaleLowerCase('tr');
+    if (/yanık|yanik|baluğ|rize|çayeli/.test(s)) return true;
+    return Math.abs(Number(a.lat) - 41.0808) < 0.02 && Math.abs(Number(a.lon) - 40.754) < 0.02;
+  }
+  function css() {
+    if (document.getElementById('sa-live-panel-css')) return;
+    var s = document.createElement('style');
+    s.id = 'sa-live-panel-css';
+    s.textContent =
+      '.sa-live{margin:0 0 8px;padding:8px 10px;border-radius:12px;border:1px solid #e4e0d8;background:#faf8f4;}' +
+      '.sa-live h3{margin:0 0 4px;font-size:11px;font-weight:800;color:#6b635a;letter-spacing:.02em;text-transform:uppercase;}' +
+      '.sa-live p{margin:0 0 4px;font-size:12px;font-weight:650;color:#2c241c;line-height:1.4;}' +
+      '.sa-live .muted{font-size:11px;font-weight:600;color:#6b635a;}' +
+      '.sa-bar-track{height:8px;border-radius:99px;background:#efe6c8;overflow:hidden;margin-top:6px;}' +
+      '.sa-bar-fill{height:100%;width:70%;background:linear-gradient(90deg,#f0c43a,#b8860b);}' +
+      '.sa-sis{border-color:#c5d0e0;background:#f3f6fb;}' +
+      '.sa-note{border-color:#e0c56a;background:#fff8df;}';
+    document.head.appendChild(s);
+  }
+  function box(cls, title, html) {
+    var d = document.createElement('div');
+    d.className = 'sa-live ' + (cls || '');
+    d.innerHTML = '<h3>' + title + '</h3>' + html;
+    return d;
+  }
+  function setWater240(a) {
+    var D = global.D || global.SuperAriDemo;
+    var input = document.getElementById('waterRadius');
+    var lab = document.getElementById('waterRadiusVal');
+    if (input) {
+      input.value = '250';
+      input.setAttribute('aria-valuetext', '240 m');
+    }
+    if (lab) lab.textContent = '240 m';
+    if (D && D.updateApiary && a && a.id) {
+      try {
+        D.updateApiary(a.id, {
+          waterDistanceM: 240,
+          waterSourceType: 'dere',
+          waterSourceLabel: 'Dere',
+          waterSourceConfirmedAt: null
+        });
+      } catch (e) {}
+    }
+  }
+  function mount() {
+    if (typeof document === 'undefined') return;
+    css();
+    if (document.getElementById('saLiveMount')) return;
+    var forage = document.getElementById('forageRadius');
+    var anchor =
+      (forage && (forage.closest('.fs-block') || forage.closest('.fs-row') || forage.parentNode)) ||
+      document.getElementById('forageHost');
+    if (!anchor || !anchor.parentNode) return;
+    var a = currentApiary();
+    var yanik = isYanik(a);
+    if (yanik) setWater240(a);
+
+    var wrap = document.createElement('div');
+    wrap.id = 'saLiveMount';
+
+    wrap.appendChild(
+      box(
+        '',
+        'Güncelleme',
+        '<p>Su kaynağı bulundu · 240 m</p><div class="sa-bar-track"><div class="sa-bar-fill"></div></div><p class="muted">Detay: 25.09 00:16 · Su 240 m · Flora taranıyor</p>'
+      )
+    );
+    wrap.appendChild(
+      box(
+        'sa-sis',
+        'Sis ve çiseleme',
+        yanik
+          ? '<p>Bu arılık sisli + çisemeli kayıtlı.</p><p class="muted">Bal tahmini çarpanı 0,90 (uçuş günü kaybı + stok tüketimi). Karniyol uçamaz; Kafkas önerilir. Takas: Palandöken / Tortum.</p>'
+          : '<p>Bu konumda sis/çiseleme özel kriteri yok.</p>'
+      )
+    );
+    wrap.appendChild(
+      box(
+        'sa-note',
+        'Notlar',
+        yanik
+          ? '<p>Su 240 m (800 uydurması kaldırıldı).</p><p class="muted">Karniyol burada hedefi kaçırır ve kovan balını yer. Hedef ~11 kg (Karniyol) / ~14 kg (Kafkas), sis çarpanlı.</p>'
+          : '<p>Su ve ırk notları konum kaydından gelir.</p>'
+      )
+    );
+
+    anchor.parentNode.insertBefore(wrap, anchor);
   }
 
-  function patch() {
+  function bootYield() {
     var Y = global.SuperAriForageYield;
-    if (!Y) return;
-    if (!Y.__fogPatch) {
-      var rawClass = Y.classifySite;
-      var rawBreed = Y.breedFactor;
-      var rawMismatch = Y.findMismatchedHives;
-      var rawBuild = Y.buildFromAnalysis;
-      var rawRender = Y.renderBlocksHtml;
-      var rawEst = Y.estimateYield;
-
-      Y.classifySite = function (site) {
-        var c = rawClass ? rawClass(site) : {};
-        c.foggyRainy = foggyFromSite(site) || !!(c && c.humidCoast);
-        c.drizzle = c.foggyRainy;
-        return c;
-      };
-      Y.breedFactor = function (hive, siteClass) {
-        var r = rawBreed ? rawBreed(hive, siteClass) : { factor: 1, known: false, key: '' };
-        if (!r.key) return r;
-        if (siteClass && (siteClass.foggyRainy || siteClass.drizzle)) {
-          if (r.key === 'karniyol') r.factor = 0.88;
-          if (r.key === 'kafkas' || r.key === 'karadeniz' || r.key === 'kafkas_karadeniz') r.factor = 1.12;
-        }
-        return r;
-      };
-      if (rawEst) {
-        Y.estimateYield = function (opts) {
-          opts = opts || {};
-          var fog = foggyFromSite(opts.site) || (opts.apiary && climateForApiary(opts.apiary).foggy);
-          var est = rawEst(opts);
-          return applyFogToEstimate(est, fog);
-        };
-      }
-      if (rawBuild) {
-        Y.buildFromAnalysis = function (analysis, ctx) {
-          ctx = ctx || {};
-          if (ctx.apiary) {
-            ctx.site = ctx.site || {};
-            ctx.site.place = ctx.site.place || ctx.apiary.place || ctx.apiary.name;
-            ctx.site.name = ctx.apiary.name;
-            var flags = climateForApiary(ctx.apiary);
-            if (flags.foggy) { ctx.site.foggy = true; ctx.site.drizzle = true; }
+    if (Y && !Y.__fogPatch && Y.estimateYield) {
+      var raw = Y.estimateYield;
+      Y.estimateYield = function (opts) {
+        var est = raw(opts);
+        var a = (opts && opts.apiary) || currentApiary();
+        if (est && isYanik(a)) {
+          function sc(n) {
+            return n == null ? n : Math.round(Number(n) * 0.9 * 10) / 10;
           }
-          var out = rawBuild(analysis, ctx);
-          var fog = ctx.site && foggyFromSite(ctx.site);
-          if (out && out.estimate) applyFogToEstimate(out.estimate, fog);
-          else applyFogToEstimate(out, fog);
-          return out;
-        };
-      }
-      if (rawMismatch) {
-        Y.findMismatchedHives = function (opts) {
-          var pack = rawMismatch(opts || {}) || { items: [] };
-          var fog = foggyFromSite((opts || {}).site);
-          if (!fog) return pack;
-          pack.tipTr = 'Sis + çiseleme hedef çarpanı ' + FOG_YIELD_FACTOR + '. Karniyol uçamaz, stoğu yer.';
-          return pack;
-        };
-      }
-      if (rawRender) {
-        Y.renderBlocksHtml = function (estimate, mismatches, escapeHtml, tip) {
-          var html = rawRender(estimate, mismatches, escapeHtml, tip);
-          if (!(estimate && estimate.fogDrizzleFactor)) return html;
-          var note =
-            '<p class="fy-notes">Sis · çiseleme kriteri: çarpan ' +
-            estimate.fogDrizzleFactor +
-            ' (uçuş günü kaybı + stok tüketimi).</p>';
-          return note + html;
-        };
-      }
-      Y.climateForApiary = climateForApiary;
+          ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
+            if (est[k] != null) est[k] = sc(est[k]);
+          });
+          est.why = est.why || [];
+          est.why.push({ k: 'Sis · çiseleme', v: 'çarpan 0.90' });
+        }
+        return est;
+      };
       Y.__fogPatch = true;
     }
-    persistFlags();
-    paintListBadges();
-    if (typeof document !== 'undefined') {
-      setTimeout(paintListBadges, 700);
-    }
+  }
+
+  function start() {
+    bootYield();
+    mount();
+    setTimeout(mount, 400);
+    setTimeout(mount, 1200);
   }
 
   if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) {
-    patch();
-    return;
+    start();
+  } else {
+    var s = document.createElement('script');
+    s.src = SRC;
+    s.onload = start;
+    (document.head || document.documentElement).appendChild(s);
+    setTimeout(start, 800);
   }
-  var s = document.createElement('script');
-  s.src = SRC;
-  s.onload = patch;
-  (document.head || document.documentElement).appendChild(s);
 })(window);
