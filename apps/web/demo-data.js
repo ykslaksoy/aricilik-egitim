@@ -324,6 +324,12 @@
     }
     if (!found) return null;
     saveWaterCatalog(list);
+    /* Su iğnesi konumu değişince bağlı arılık mesafelerini haritadan yenile. */
+    try {
+      var ap = loadApiaries();
+      var wd = refreshWaterDistancesFromMap(ap);
+      if (wd.changed) saveApiaries(wd.list);
+    } catch (eWd) { /* ignore */ }
     return found;
   }
 
@@ -352,12 +358,50 @@
   }
 
   function effectiveWaterDistanceM(apiary, catalogItem) {
+    var item = catalogItem || (apiary && apiary.waterSourceId ? waterCatalogById(apiary.waterSourceId) : null);
+    /* Harita mesafesi varsa her zaman onu kullan — elle/uydurma değer skor/hedef balı şişirmesin. */
+    var auto = computedWaterDistanceM(apiary, item);
+    if (auto != null) {
+      return { metres: Math.round(auto), source: 'haversine' };
+    }
     var override = parseWaterDistanceM(apiary && apiary.waterDistanceM);
     if (override != null) return { metres: override, source: 'manual' };
-    var item = catalogItem || (apiary && apiary.waterSourceId ? waterCatalogById(apiary.waterSourceId) : null);
-    var auto = computedWaterDistanceM(apiary, item);
-    if (auto != null) return { metres: auto, source: 'haversine' };
     return { metres: null, source: 'none' };
+  }
+
+  /**
+   * Tüm arılıklarda su mesafesini güncelle: su iğnesi + arılık koordinatı varsa
+   * haversine (m) yaz; uydurma varsayılan (ör. 800) atma. Koordinat yoksa mesafeyi silme /
+   * uydurma ekleme — yalnız elle girilmiş değer kalır.
+   */
+  function refreshWaterDistancesFromMap(list) {
+    var changed = false;
+    var out = (list || []).map(function (a) {
+      if (!a) return a;
+      var sid = a.waterSourceId != null ? String(a.waterSourceId).trim() : '';
+      if (!sid) return a;
+      var item = waterCatalogById(sid);
+      var auto = computedWaterDistanceM(a, item);
+      if (auto == null || !isFinite(auto)) return a;
+      var metres = Math.round(auto);
+      if (parseWaterDistanceM(a.waterDistanceM) === metres) {
+        syncWaterConvenienceFromCatalog(a);
+        return a;
+      }
+      changed = true;
+      var copy = applyWaterDistance({
+        id: a.id,
+        name: a.name,
+        place: a.place,
+        lat: a.lat,
+        lon: a.lon,
+        hiveCount: a.hiveCount
+      }, a);
+      copy.waterDistanceM = metres;
+      syncWaterConvenienceFromCatalog(copy);
+      return copy;
+    });
+    return { list: out, changed: changed };
   }
 
   /**
@@ -826,8 +870,9 @@
           var coordMig = migrateApiaryCoordinates(mig.list);
           var ens = ensureSeedApiariesPresent(coordMig.list);
           var ded = dedupeYanikBalugApiaries(ens.list);
-          var out = ded.list;
-          if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed) {
+          var waterDist = refreshWaterDistancesFromMap(ded.list);
+          var out = waterDist.list;
+          if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed || waterDist.changed) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
             } catch (eMig) { /* ignore */ }
@@ -1102,6 +1147,9 @@
         }
         /* Keep type/note/label aligned with catalog when id is set. */
         if (a.waterSourceId) syncWaterConvenienceFromCatalog(a);
+        /* Konum veya su kaynağı değişince mesafeyi haritadan güncelle (uydurma yok). */
+        var refreshedOne = refreshWaterDistancesFromMap([a]);
+        if (refreshedOne.list[0]) a = refreshedOne.list[0];
       }
       list[i] = a;
       found = a;
@@ -1303,6 +1351,7 @@
       nearestWaterSourceWithCoords: nearestWaterSourceWithCoords,
       computedWaterDistanceM: computedWaterDistanceM,
       effectiveWaterDistanceM: effectiveWaterDistanceM,
+      refreshWaterDistancesFromMap: refreshWaterDistancesFromMap,
       yandexMapsUrl: yandexMapsUrl,
       yandexSearchUrl: yandexSearchUrl,
       geocodeSearch: geocodeSearch,

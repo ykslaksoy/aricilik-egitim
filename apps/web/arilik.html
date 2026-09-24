@@ -2332,7 +2332,7 @@
     'Su, yavruya mama seyreltme ve sıcak günde kovan soğutma (buharlaşma) için şarttır; ' +
     'kaynak uzaklaştıkça su toplayıcı arı daha çok enerji harcar, nektar toplayıcı sayısı görece azalır. ' +
     'Yakın su (yaklaşık ≤1 km) koloninin dinlenmesini ve bal verimini destekler; 2–3 km hâlâ mümkün ama maliyetlidir (garanti değil). ' +
-    'Kaydırarak 100 m–3 km ayarlayın · başlangıç 800 m.';
+    'Su iğnesi varsa mesafe haritadan hesaplanır (uydurma yok); kaydırıcı yalnız önizleme / elle kayıt içindir.';
   function clampWaterDistM(v) {
     var n = Math.round(Number(v));
     if (!isFinite(n)) n = WATER_DEFAULT_M;
@@ -2356,16 +2356,17 @@
   }
 
   function initialWaterSliderM(apiary) {
-    if (apiary && apiary.waterDistanceM != null && apiary.waterDistanceM !== '') {
-      var o = Number(apiary.waterDistanceM);
-      if (isFinite(o) && o >= 0) return clampWaterDistM(o);
-    }
+    /* Önce harita mesafesi; yoksa elle kayıt; yoksa yalnız görsel daire (hesaba yazılmaz). */
     if (apiary && apiary.waterSourceId && D && D.waterCatalogById) {
       var item = D.waterCatalogById(apiary.waterSourceId);
       var eff = effectiveDistInfo(apiary, item);
       if (eff && eff.metres != null && isFinite(Number(eff.metres))) {
         return clampWaterDistM(eff.metres);
       }
+    }
+    if (apiary && apiary.waterDistanceM != null && apiary.waterDistanceM !== '') {
+      var o = Number(apiary.waterDistanceM);
+      if (isFinite(o) && o >= 0) return clampWaterDistM(o);
     }
     return WATER_DEFAULT_M;
   }
