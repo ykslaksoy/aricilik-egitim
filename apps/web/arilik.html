@@ -715,10 +715,10 @@
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=all-karniyol-1"></script>
+<script src="demo-data.js?v=su-foraj-loc-1"></script>
 <script src="rapor-store.js"></script>
-<script src="forage-analysis.js"></script>
-<script src="forage-yield-estimate.js?v=karniyol-fit-1"></script>
+<script src="forage-analysis.js?v=su-foraj-loc-1"></script>
+<script src="forage-yield-estimate.js?v=su-foraj-loc-1"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
 (function () {
@@ -1920,7 +1920,8 @@
       renderWaterSuggestBanner(null);
       return null;
     }
-    var hit = D.nearestWaterSourceWithCoords(la, lo);
+    var maxLocal = (D && D.WATER_LOCAL_MAX_M) || 15000;
+    var hit = D.nearestWaterSourceWithCoords(la, lo, { maxMetres: maxLocal });
     if (!hit || !hit.item) {
       clearWaterPlacemark();
       renderWaterSuggestBanner(null);
@@ -2480,14 +2481,16 @@
   var WATER_MIN_M = 100;
   var WATER_MAX_M = 3000;
   var WATER_STEP_M = 50;
-  var WATER_DEFAULT_M = 800;
+  /* Yalnız harita dairesi için görsel yedek — kayıtlı Su mesafesi değildir (uydurma 800 yok). */
+  var WATER_VISUAL_FALLBACK_M = 1000;
   var WATER_AUTO_HINT_TR =
     'Su, yavruya mama seyreltme ve sıcak günde kovan soğutma (buharlaşma) için şarttır; ' +
     'kaynak uzaklaştıkça su toplayıcı arı daha çok enerji harcar, nektar toplayıcı sayısı görece azalır. ' +
-    'Yakın su (yaklaşık ≤1 km) koloninin dinlenmesini ve bal verimini destekler; 2–3 km hâlâ mümkün ama maliyetlidir (garanti değil).';
+    'Yakın su (yaklaşık ≤1 km) koloninin dinlenmesini ve bal verimini destekler; 2–3 km hâlâ mümkün ama maliyetlidir (garanti değil). ' +
+    'Katalogda yerel kaynak yoksa mesafe «—» kalır; haritadan su seçin.';
   function clampWaterDistM(v) {
     var n = Math.round(Number(v));
-    if (!isFinite(n)) n = WATER_DEFAULT_M;
+    if (!isFinite(n)) n = WATER_VISUAL_FALLBACK_M;
     if (n < WATER_MIN_M) n = WATER_MIN_M;
     if (n > WATER_MAX_M) n = WATER_MAX_M;
     var step = WATER_STEP_M;
@@ -2507,20 +2510,28 @@
     return m + ' m';
   }
 
-  function initialWaterSliderM(apiary) {
-    /* Önce harita mesafesi; yoksa elle kayıt; yoksa yalnız görsel daire (hesaba yazılmaz). */
-    if (apiary && apiary.waterSourceId && D && D.waterCatalogById) {
+  /** Gerçek Su mesafesi (m) veya null — uydurma varsayılan yok. */
+  function realWaterMetres(apiary) {
+    if (!apiary) return null;
+    if (apiary.waterSourceId && D && D.waterCatalogById) {
       var item = D.waterCatalogById(apiary.waterSourceId);
       var eff = effectiveDistInfo(apiary, item);
       if (eff && eff.metres != null && isFinite(Number(eff.metres))) {
-        return clampWaterDistM(eff.metres);
+        return Math.round(Number(eff.metres));
       }
     }
-    if (apiary && apiary.waterDistanceM != null && apiary.waterDistanceM !== '') {
+    if (apiary.waterDistanceM != null && apiary.waterDistanceM !== '') {
       var o = Number(apiary.waterDistanceM);
-      if (isFinite(o) && o >= 0) return clampWaterDistM(o);
+      if (isFinite(o) && o >= 0) return Math.round(o);
     }
-    return WATER_DEFAULT_M;
+    return null;
+  }
+
+  function initialWaterSliderM(apiary) {
+    /* Önce harita/elle mesafe; yoksa yalnız görsel daire (hesaba / etikete yazılmaz). */
+    var real = realWaterMetres(apiary);
+    if (real != null) return clampWaterDistM(real);
+    return WATER_VISUAL_FALLBACK_M;
   }
 
   function waterTypeSummary(apiary) {
@@ -2574,20 +2585,26 @@
     );
     /* Elle mesafe yalnız konum yoksa; konum varsa harita mesafesi kullanılır. */
     var showManualDist = !!(apiary && apiary.waterSourceId && !waterHasCoords);
-    var sliderM = initialWaterSliderM(apiary);
+    var realM = realWaterMetres(apiary);
+    var sliderM = realM != null ? clampWaterDistM(realM) : WATER_VISUAL_FALLBACK_M;
+    var valLabel = realM != null ? formatWaterDistLabel(realM) : '—';
+    var unknownHint = realM == null
+      ? '<p class="water-auto-hint" id="waterUnknownHint">Su mesafesi bilinmiyor — kaynak listesinden seçin veya haritadan su konumu işaretleyin.</p>'
+      : '';
     return (
       '<div class="water-source-wrap fs-block" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
         '<div class="fs-row">' +
           '<label for="waterRadius">Su</label>' +
           '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
-            '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(formatWaterDistLabel(sliderM)) + '" />' +
-          '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
+            '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(valLabel) + '" />' +
+          '<span class="val" id="waterRadiusVal">' + escapeHtml(valLabel) + '</span>' +
           '<button type="button" class="fs-chev" id="btnWaterHint" aria-expanded="false" aria-controls="waterDetailPanel" aria-label="Su notu">' +
             '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z"/></svg>' +
           '</button>' +
         '</div>' +
         '<div class="fs-hint" id="waterDetailPanel" hidden>' +
+          unknownHint +
           '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
           '<button type="button" class="map-btn ghost" id="btnWaterSources" style="justify-self:start;min-height:32px;font-size:11px;margin-top:6px;">Kaynak listesi</button>' +
         '</div>' +
@@ -2658,7 +2675,7 @@
       return clampWaterDistM(input.value);
     }
     if (activeApiary) return initialWaterSliderM(activeApiary);
-    return WATER_DEFAULT_M;
+    return WATER_VISUAL_FALLBACK_M;
   }
 
   function syncWaterRadar(lat, lon) {
@@ -3212,6 +3229,7 @@
         var patch = { lat: Number(plan.lat), lon: Number(plan.lon) };
         if (plan.place) patch.place = plan.place;
         D.updateApiary(apiary.id, patch);
+        forageManual = false;
         try {
           G.recordTransport({
             mode: plan.mode === 'kendi_arac' ? 'kendi_arac' : 'nakliye',
@@ -3303,11 +3321,10 @@
           alert('Önce ara veya haritaya dokunarak konum seçin.');
           return;
         }
-        var locPatch = { lat: c.lat, lon: c.lon };
-        var wdSave = readWaterDistanceMFromInput();
-        if (wdSave !== undefined) locPatch.waterDistanceM = wdSave;
-        D.updateApiary(apiary.id, locPatch);
+        /* Konum kaydı: su mesafesini elle taşıma — updateApiary resyncWaterForNewCoords yapar. */
+        D.updateApiary(apiary.id, { lat: c.lat, lon: c.lon });
         pickMode = false;
+        forageManual = false;
         render();
       });
     }

@@ -470,13 +470,25 @@
   }
 
   /**
+   * Max metres for a catalog water source to count as "local" to an apiary.
+   * Beyond this (göçer taşınma / başka bölge) link is cleared — no fake 800 m.
+   */
+  var WATER_LOCAL_MAX_M = 15000;
+
+  /**
    * Nearest catalog water source that has finite lat/lon (haversine).
+   * @param {number} lat
+   * @param {number} lon
+   * @param {{ maxMetres?: number }|} [opts] - optional max distance filter
    * @returns {{ item: object, metres: number }|null}
    */
-  function nearestWaterSourceWithCoords(lat, lon) {
+  function nearestWaterSourceWithCoords(lat, lon, opts) {
     var a = Number(lat);
     var b = Number(lon);
     if (!isFinite(a) || !isFinite(b)) return null;
+    opts = opts || {};
+    var maxM = opts.maxMetres != null ? Number(opts.maxMetres) : Infinity;
+    if (!isFinite(maxM) || maxM < 0) maxM = Infinity;
     var list = loadWaterCatalog();
     var best = null;
     var bestM = Infinity;
@@ -487,6 +499,7 @@
       if (!isFinite(wlat) || !isFinite(wlon)) continue;
       var m = haversineMetres(a, b, wlat, wlon);
       if (m == null) continue;
+      if (m > maxM) continue;
       if (m < bestM) {
         bestM = m;
         best = item;
@@ -494,6 +507,100 @@
     }
     if (!best) return null;
     return { item: best, metres: bestM };
+  }
+
+  function clearApiaryWaterLink(dest) {
+    if (!dest) return dest;
+    delete dest.waterSourceId;
+    delete dest.waterSourceLabel;
+    delete dest.waterSourceType;
+    delete dest.waterSourceNote;
+    delete dest.waterSourceConfirmedAt;
+    delete dest.waterDistanceM;
+    return dest;
+  }
+
+  /**
+   * After apiary lat/lon change or new apiary: drop stale waterDistanceM,
+   * keep linked catalog source only if still within WATER_LOCAL_MAX_M (refresh haversine),
+   * else clear and auto-bind nearest local catalog source (if any).
+   * Never invents a default distance (no 800 m).
+   * @returns {{ apiary: object, changed: boolean, nearest: object|null, status: string }}
+   */
+  function resyncWaterForNewCoords(apiary, opts) {
+    opts = opts || {};
+    if (!apiary) return { apiary: apiary, changed: false, nearest: null, status: 'none' };
+    var lat = Number(apiary.lat);
+    var lon = Number(apiary.lon);
+    if (!isFinite(lat) || !isFinite(lon)) {
+      return { apiary: apiary, changed: false, nearest: null, status: 'no_coords' };
+    }
+    var maxM = opts.maxMetres != null ? Number(opts.maxMetres) : WATER_LOCAL_MAX_M;
+    if (!isFinite(maxM) || maxM <= 0) maxM = WATER_LOCAL_MAX_M;
+
+    var before = JSON.stringify({
+      sid: apiary.waterSourceId || null,
+      wd: apiary.waterDistanceM != null ? apiary.waterDistanceM : null,
+      lab: apiary.waterSourceLabel || null
+    });
+
+    var copy = applyWaterDistance({
+      id: apiary.id,
+      name: apiary.name,
+      place: apiary.place,
+      lat: apiary.lat,
+      lon: apiary.lon,
+      hiveCount: apiary.hiveCount
+    }, apiary);
+    /* Location move invalidates manual override — haversine or honest empty. */
+    delete copy.waterDistanceM;
+
+    var sid = copy.waterSourceId != null ? String(copy.waterSourceId).trim() : '';
+    var linkedItem = sid ? waterCatalogById(sid) : null;
+    var linkedAuto = computedWaterDistanceM(copy, linkedItem);
+
+    if (linkedItem && linkedAuto != null && linkedAuto <= maxM) {
+      copy.waterDistanceM = Math.round(linkedAuto);
+      syncWaterConvenienceFromCatalog(copy);
+      var keptAfter = JSON.stringify({
+        sid: copy.waterSourceId || null,
+        wd: copy.waterDistanceM != null ? copy.waterDistanceM : null,
+        lab: copy.waterSourceLabel || null
+      });
+      return {
+        apiary: copy,
+        changed: before !== keptAfter,
+        nearest: { item: linkedItem, metres: linkedAuto },
+        status: 'kept'
+      };
+    }
+
+    if (sid) clearApiaryWaterLink(copy);
+
+    var hit = nearestWaterSourceWithCoords(lat, lon, { maxMetres: maxM });
+    if (hit && hit.item && hit.metres != null && hit.metres <= maxM) {
+      copy.waterSourceId = hit.item.id;
+      copy.waterDistanceM = Math.round(hit.metres);
+      syncWaterConvenienceFromCatalog(copy);
+      return {
+        apiary: copy,
+        changed: true,
+        nearest: hit,
+        status: 'bound'
+      };
+    }
+
+    var after = JSON.stringify({
+      sid: copy.waterSourceId || null,
+      wd: copy.waterDistanceM != null ? copy.waterDistanceM : null,
+      lab: copy.waterSourceLabel || null
+    });
+    return {
+      apiary: copy,
+      changed: before !== after,
+      nearest: hit,
+      status: hit ? 'too_far' : 'empty'
+    };
   }
 
   /** Sync convenience fields from active catalog item onto dest. */
@@ -1158,6 +1265,11 @@
       lon: lon,
       hiveCount: hiveCount
     }, input || {}), input || {});
+    /* Yeni konum → yerel katalog su kaynağını haversine ile bağla (uydurma mesafe yok). */
+    if (!(input && input.waterSourceId)) {
+      var addSync = resyncWaterForNewCoords(item);
+      item = addSync.apiary;
+    }
     list.push(item);
 
     var used = {};
@@ -1183,13 +1295,22 @@
       if (patch) {
         if (patch.name != null) a.name = String(patch.name).trim() || a.name;
         if (patch.place != null) a.place = String(patch.place).trim() || a.place;
+        var prevLat = Number(a.lat);
+        var prevLon = Number(a.lon);
+        var coordsTouched = false;
         if (patch.lat != null && patch.lat !== '') {
           var la = Number(patch.lat);
-          if (isFinite(la)) a.lat = la;
+          if (isFinite(la)) {
+            if (!isFinite(prevLat) || Math.abs(prevLat - la) > 1e-7) coordsTouched = true;
+            a.lat = la;
+          }
         }
         if (patch.lon != null && patch.lon !== '') {
           var lo = Number(patch.lon);
-          if (isFinite(lo)) a.lon = lo;
+          if (isFinite(lo)) {
+            if (!isFinite(prevLon) || Math.abs(prevLon - lo) > 1e-7) coordsTouched = true;
+            a.lon = lo;
+          }
         }
         if (patch.hiveCount != null && patch.hiveCount !== '') {
           a.hiveCount = Math.max(0, Number(patch.hiveCount) || 0);
@@ -1246,9 +1367,18 @@
         }
         /* Keep type/note/label aligned with catalog when id is set. */
         if (a.waterSourceId) syncWaterConvenienceFromCatalog(a);
-        /* Konum veya su kaynağı değişince mesafeyi haritadan güncelle (uydurma yok). */
-        var refreshedOne = refreshWaterDistancesFromMap([a]);
-        if (refreshedOne.list[0]) a = refreshedOne.list[0];
+        var waterPatched =
+          Object.prototype.hasOwnProperty.call(patch, 'waterSourceId') ||
+          Object.prototype.hasOwnProperty.call(patch, 'waterDistanceM');
+        if (coordsTouched && !waterPatched) {
+          /* Konum değişti: eski su bağını / mesafeyi yerel katalog + haversine ile yenile. */
+          var locSync = resyncWaterForNewCoords(a);
+          a = locSync.apiary;
+        } else {
+          /* Su kaynağı seçildi veya yalnız mesafe: haritadan mesafeyi yenile (uydurma yok). */
+          var refreshedOne = refreshWaterDistancesFromMap([a]);
+          if (refreshedOne.list[0]) a = refreshedOne.list[0];
+        }
       }
       list[i] = a;
       found = a;
@@ -1447,7 +1577,10 @@
       updateWaterCatalogItem: updateWaterCatalogItem,
       removeWaterCatalogItem: removeWaterCatalogItem,
       haversineMetres: haversineMetres,
+      WATER_LOCAL_MAX_M: WATER_LOCAL_MAX_M,
       nearestWaterSourceWithCoords: nearestWaterSourceWithCoords,
+      resyncWaterForNewCoords: resyncWaterForNewCoords,
+      clearApiaryWaterLink: clearApiaryWaterLink,
       computedWaterDistanceM: computedWaterDistanceM,
       effectiveWaterDistanceM: effectiveWaterDistanceM,
       formatPlaceSubtitle: formatPlaceSubtitle,
