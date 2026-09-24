@@ -1,156 +1,156 @@
 (function (global) {
-  var SRC =
+  var SRC_Y =
     'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-yield-estimate.js';
+  var SRC_F =
+    'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-analysis.js';
 
-  function currentApiary() {
+  function yanik(a) {
+    if (!a) return false;
+    var s = String((a.name || '') + ' ' + (a.place || '') + ' ' + (a.il || '')).toLocaleLowerCase('tr');
+    if (/yanık|yanik|cimil|rize|çayeli|ikizdere/.test(s)) return true;
+    var lat = Number(a.lat), lon = Number(a.lon);
+    return isFinite(lat) && Math.abs(lat - 41.0808) < 0.03 && Math.abs(lon - 40.754) < 0.03;
+  }
+  function apiary() {
     var D = global.D || global.SuperAriDemo;
     if (!D || !D.loadApiaries) return null;
-    var id = '';
-    try {
-      var q = new URLSearchParams(location.search);
-      id = q.get('id') || q.get('apiary') || '';
-    } catch (e) {}
     var list = D.loadApiaries() || [];
-    if (id) {
-      for (var i = 0; i < list.length; i++) if (String(list[i].id) === String(id)) return list[i];
-    }
-    var latEl = document.body && document.body.innerText;
-    for (var j = 0; j < list.length; j++) {
-      var a = list[j];
-      if (a && Math.abs(Number(a.lat) - 41.0808) < 0.002) return a;
-      if (a && String(a.name || '').indexOf('Yan') !== -1) return a;
+    var id = '';
+    try { id = new URLSearchParams(location.search).get('id') || ''; } catch (e) {}
+    for (var i = 0; i < list.length; i++) {
+      if (id && String(list[i].id) === String(id)) return list[i];
+      if (yanik(list[i])) return list[i];
     }
     return list[0] || null;
   }
-  function isYanik(a) {
-    if (!a) return false;
-    var s = String((a.name || '') + ' ' + (a.place || '')).toLocaleLowerCase('tr');
-    if (/yanık|yanik|baluğ|rize|çayeli/.test(s)) return true;
-    return Math.abs(Number(a.lat) - 41.0808) < 0.02 && Math.abs(Number(a.lon) - 40.754) < 0.02;
-  }
-  function css() {
-    if (document.getElementById('sa-live-panel-css')) return;
-    var s = document.createElement('style');
-    s.id = 'sa-live-panel-css';
-    s.textContent =
-      '.sa-live{margin:0 0 8px;padding:8px 10px;border-radius:12px;border:1px solid #e4e0d8;background:#faf8f4;}' +
-      '.sa-live h3{margin:0 0 4px;font-size:11px;font-weight:800;color:#6b635a;letter-spacing:.02em;text-transform:uppercase;}' +
-      '.sa-live p{margin:0 0 4px;font-size:12px;font-weight:650;color:#2c241c;line-height:1.4;}' +
-      '.sa-live .muted{font-size:11px;font-weight:600;color:#6b635a;}' +
-      '.sa-bar-track{height:8px;border-radius:99px;background:#efe6c8;overflow:hidden;margin-top:6px;}' +
-      '.sa-bar-fill{height:100%;width:70%;background:linear-gradient(90deg,#f0c43a,#b8860b);}' +
-      '.sa-sis{border-color:#c5d0e0;background:#f3f6fb;}' +
-      '.sa-note{border-color:#e0c56a;background:#fff8df;}';
-    document.head.appendChild(s);
-  }
-  function box(cls, title, html) {
-    var d = document.createElement('div');
-    d.className = 'sa-live ' + (cls || '');
-    d.innerHTML = '<h3>' + title + '</h3>' + html;
-    return d;
-  }
-  function setWater240(a) {
-    var D = global.D || global.SuperAriDemo;
-    var input = document.getElementById('waterRadius');
-    var lab = document.getElementById('waterRadiusVal');
-    if (input) {
-      input.value = '250';
-      input.setAttribute('aria-valuetext', '240 m');
+
+  var SIS_HTML =
+    '<div class="forage-flight sa-sis-block" id="saSisBlock">' +
+      '<div class="forage-flight-head">Sis ve çiseleme</div>' +
+      '<p class="forage-flight-sum">Bu yer sisli + çisemeli. Karniyol o günlerde dışarı çıkamaz; kovan içindeki balı yer.</p>' +
+      '<div class="forage-row"><div class="forage-k">Etki</div><div class="forage-v">Uçuş yok + stok tüketimi · hedef çarpan 0,90 × ırk 0,88 (Karniyol)</div></div>' +
+      '<p class="forage-flight-tip">Kafkas çisede uçabilir. Takas: Palandöken / Tortum ↔ Yanıkdağ.</p>' +
+    '</div>';
+
+  function rewriteFlight(host) {
+    var a = apiary();
+    if (!yanik(a) || !host) return;
+    var flight = host.querySelector('.forage-flight');
+    if (!flight) return;
+    if (!host.querySelector('#saSisBlock')) {
+      flight.insertAdjacentHTML('beforebegin', SIS_HTML);
     }
-    if (lab) lab.textContent = '240 m';
-    if (D && D.updateApiary && a && a.id) {
-      try {
-        D.updateApiary(a.id, {
-          waterDistanceM: 240,
-          waterSourceType: 'dere',
-          waterSourceLabel: 'Dere',
-          waterSourceConfirmedAt: null
-        });
-      } catch (e) {}
+    var sum = flight.querySelector('.forage-flight-sum');
+    if (sum && sum.getAttribute('data-sis') !== '1') {
+      sum.setAttribute('data-sis', '1');
+      var old = sum.textContent || '';
+      sum.textContent =
+        old +
+        ' · Sis/çisede Karniyol uçmadı, o günlerde stoğu yedi. Kafkas aynı günlerde tarlayabilir.';
     }
-  }
-  function mount() {
-    if (typeof document === 'undefined') return;
-    css();
-    if (document.getElementById('saLiveMount')) return;
-    var forage = document.getElementById('forageRadius');
-    var anchor =
-      (forage && (forage.closest('.fs-block') || forage.closest('.fs-row') || forage.parentNode)) ||
-      document.getElementById('forageHost');
-    if (!anchor || !anchor.parentNode) return;
-    var a = currentApiary();
-    var yanik = isYanik(a);
-    if (yanik) setWater240(a);
-
-    var wrap = document.createElement('div');
-    wrap.id = 'saLiveMount';
-
-    wrap.appendChild(
-      box(
-        '',
-        'Güncelleme',
-        '<p>Su kaynağı bulundu · 240 m</p><div class="sa-bar-track"><div class="sa-bar-fill"></div></div><p class="muted">Detay: 25.09 00:16 · Su 240 m · Flora taranıyor</p>'
-      )
-    );
-    wrap.appendChild(
-      box(
-        'sa-sis',
-        'Sis ve çiseleme',
-        yanik
-          ? '<p>Bu arılık sisli + çisemeli kayıtlı.</p><p class="muted">Bal tahmini çarpanı 0,90 (uçuş günü kaybı + stok tüketimi). Karniyol uçamaz; Kafkas önerilir. Takas: Palandöken / Tortum.</p>'
-          : '<p>Bu konumda sis/çiseleme özel kriteri yok.</p>'
-      )
-    );
-    wrap.appendChild(
-      box(
-        'sa-note',
-        'Notlar',
-        yanik
-          ? '<p>Su 240 m (800 uydurması kaldırıldı).</p><p class="muted">Karniyol burada hedefi kaçırır ve kovan balını yer. Hedef ~11 kg (Karniyol) / ~14 kg (Kafkas), sis çarpanlı.</p>'
-          : '<p>Su ve ırk notları konum kaydından gelir.</p>'
-      )
-    );
-
-    anchor.parentNode.insertBefore(wrap, anchor);
+    var tip = flight.querySelector('.forage-flight-tip');
+    if (tip && tip.getAttribute('data-sis') !== '1') {
+      tip.setAttribute('data-sis', '1');
+      tip.textContent =
+        'Elverişsiz gün = yağış + sis/çise. Karniyol için bu günler hem hasat yok hem tüketim var.';
+    }
+    var rows = flight.querySelectorAll('.forage-v');
+    rows.forEach(function (v) {
+      if (v.textContent.indexOf('elverişsiz') !== -1 && v.getAttribute('data-sis') !== '1') {
+        v.setAttribute('data-sis', '1');
+        v.textContent = v.textContent + ' · çisede stoğu yer';
+      }
+    });
   }
 
-  function bootYield() {
+  function watchHost() {
+    var host = document.getElementById('forageHost');
+    if (!host) return;
+    rewriteFlight(host);
+    if (host.__sisObs) return;
+    var obs = new MutationObserver(function () { rewriteFlight(host); });
+    obs.observe(host, { childList: true, subtree: true });
+    host.__sisObs = obs;
+  }
+
+  function patchForage() {
+    var F = global.SuperAriForage;
+    if (!F || !F.renderPanelHtml || F.__sisRender) return;
+    var raw = F.renderPanelHtml;
+    F.renderPanelHtml = function (analysis, escapeHtml) {
+      var html = raw(analysis, escapeHtml);
+      if (!yanik(apiary())) return html;
+      if (html.indexOf('forage-flight') === -1) return html;
+      html = html.replace(
+        '<div class="forage-flight">',
+        SIS_HTML + '<div class="forage-flight">'
+      );
+      html = html.replace(
+        /(<p class="forage-flight-sum">)([^<]*)(<\/p>)/,
+        '$1$2 · Sis/çisede Karniyol uçmadı, stoğu yedi.$3'
+      );
+      return html;
+    };
+    F.__sisRender = true;
+  }
+
+  function patchYield() {
     var Y = global.SuperAriForageYield;
-    if (Y && !Y.__fogPatch && Y.estimateYield) {
-      var raw = Y.estimateYield;
-      Y.estimateYield = function (opts) {
-        var est = raw(opts);
-        var a = (opts && opts.apiary) || currentApiary();
-        if (est && isYanik(a)) {
-          function sc(n) {
-            return n == null ? n : Math.round(Number(n) * 0.9 * 10) / 10;
-          }
-          ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
-            if (est[k] != null) est[k] = sc(est[k]);
-          });
-          est.why = est.why || [];
-          est.why.push({ k: 'Sis · çiseleme', v: 'çarpan 0.90' });
-        }
-        return est;
+    if (!Y || !Y.estimateYield || Y.__eatPatch) return;
+    var raw = Y.estimateYield;
+    Y.estimateYield = function (opts) {
+      var est = raw(opts);
+      if (!est || !yanik((opts && opts.apiary) || apiary())) return est;
+      function sc(n) {
+        return n == null || !isFinite(Number(n)) ? n : Math.round(Number(n) * 0.9 * 10) / 10;
+      }
+      ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg', 'totalLowKg', 'totalHighKg'].forEach(function (k) {
+        if (est[k] != null) est[k] = sc(est[k]);
+      });
+      est.why = est.why || [];
+      est.why.push({
+        k: 'Sis · çiseleme',
+        v: 'çarpan 0,90 · uçamadı + o günlerde kovan balını yedi'
+      });
+      return est;
+    };
+    if (Y.renderBlocksHtml) {
+      var rr = Y.renderBlocksHtml;
+      Y.renderBlocksHtml = function (estimate, mismatches, escapeHtml, tip) {
+        var html = rr(estimate, mismatches, escapeHtml, tip);
+        if (!yanik(apiary())) return html;
+        return (
+          '<p class="fy-notes">Sis/çise: hem uçuş yok hem stok erir. Hedef buna göre düştü.</p>' +
+          html
+        );
       };
-      Y.__fogPatch = true;
     }
+    Y.__eatPatch = true;
   }
 
   function start() {
-    bootYield();
-    mount();
-    setTimeout(mount, 400);
-    setTimeout(mount, 1200);
+    patchForage();
+    patchYield();
+    watchHost();
+    setTimeout(watchHost, 500);
+    setTimeout(watchHost, 1500);
   }
 
-  if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) {
-    start();
-  } else {
+  function load(src, done) {
     var s = document.createElement('script');
-    s.src = SRC;
-    s.onload = start;
+    s.src = src;
+    s.onload = done;
     (document.head || document.documentElement).appendChild(s);
-    setTimeout(start, 800);
   }
+
+  function boot() {
+    if (!global.SuperAriForageYield) {
+      load(SRC_Y, function () {
+        if (!global.SuperAriForage) load(SRC_F, start);
+        else start();
+      });
+    } else start();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })(window);
