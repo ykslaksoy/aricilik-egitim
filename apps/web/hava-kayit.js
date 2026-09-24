@@ -12,6 +12,9 @@
   var MAX_DAYS = 200; /* bal sezonu 15 May–15 Eyl = 124 gün; en az 130+ */
   var DEFAULT_BACKFILL_DAYS = 30;
   var PAST_DAYS_LIMIT = 92; /* Open-Meteo forecast past_days üst sınırı */
+  /* ERA5 arşiv ~5 gün gecikmeli; forecast past_days=92 kabul eder ama eski günlerde
+   * sıcaklık null döner → hibrit eşik 92 iken sezon ~94/124'te takılıyordu. */
+  var ARCHIVE_LAG_DAYS = 7;
   var ARCHIVE_CHUNK_DAYS = 90;
   var RAIN_HOUR_THRESHOLD_MM = 0.1; /* saatlik yağış ≥ bu → yağış saati sayılır */
   var DEFAULT_APIARIES = [
@@ -811,9 +814,10 @@
       var t = String(hourly.time[i] || '');
       if (t.length < 10) continue;
       var date = t.slice(0, 10);
+      if (map[date] == null) map[date] = 0;
       var p = precipArr[i] != null ? Number(precipArr[i]) : 0;
       if (!isFinite(p)) p = 0;
-      if (p >= thr) map[date] = (map[date] || 0) + 1;
+      if (p >= thr) map[date] += 1;
     }
     return map;
   }
@@ -1239,12 +1243,14 @@
               return filledSoFar;
             }
 
-            /* past_days ~92; daha eski → archive (chunk). Karışık aralıkta hibrit. */
-            var recentCutoff = addDaysKey(today, -(PAST_DAYS_LIMIT - 1));
+            /* Arşiv (ERA5) asıl kaynak; forecast yalnızca ARCHIVE_LAG_DAYS içi.
+             * Eski eşik PAST_DAYS_LIMIT=92 idi → forecast eski günlerde null temp
+             * döndürüp ~94/124'te bırakıyordu. */
+            var recentCutoff = addDaysKey(today, -ARCHIVE_LAG_DAYS);
             var archiveKeys = [];
             var pastKeys = [];
             for (var w = 0; w < wantKeys.length; w++) {
-              if (wantKeys[w] < recentCutoff) archiveKeys.push(wantKeys[w]);
+              if (wantKeys[w] <= recentCutoff) archiveKeys.push(wantKeys[w]);
               else pastKeys.push(wantKeys[w]);
             }
 
@@ -1263,6 +1269,10 @@
                     sortRecords(list);
                     saveRecords(list);
                     return n0 + n;
+                  })
+                  .catch(function () {
+                    /* Arşiv hatası — past / gap-fill denensin */
+                    return n0;
                   });
               });
             }
@@ -1279,25 +1289,57 @@
                   .then(function (meteo) {
                     list = prune(loadRecords());
                     var srcLabel =
-                      meteo && meteo.daily && meteo.daily.time && pastKeys[0] >= recentCutoff
+                      meteo && meteo.daily && meteo.daily.time && pastKeys[0] > recentCutoff
                         ? 'open_meteo_past'
                         : 'open_meteo_archive';
                     var n = applyMeteoPayload(list, apiary, meteo, pWant, srcLabel);
                     sortRecords(list);
                     saveRecords(list);
                     return n0 + n;
+                  })
+                  .catch(function () {
+                    return n0;
                   });
               });
             }
 
             return steps
               .then(function (n) {
-                meta[apiary.id] = today;
-                saveBackfillMeta(meta);
-                return filledSoFar + (n || 0);
+                /* Forecast null / arşiv gecikmesi boşluklarını arşivle kapat */
+                list = prune(loadRecords());
+                var still = missingDatesForApiary(apiary.id, fromKey, toKey, list).filter(function (dk) {
+                  return !!wantSet[dk];
+                });
+                if (!still.length) {
+                  meta[apiary.id] = today;
+                  saveBackfillMeta(meta);
+                  return filledSoFar + (n || 0);
+                }
+                var gWant = {};
+                for (var gi = 0; gi < still.length; gi++) gWant[still[gi]] = true;
+                return fetchArchiveRangeChunked(apiary, still[0], still[still.length - 1])
+                  .then(function (meteo) {
+                    list = prune(loadRecords());
+                    var n2 = applyMeteoPayload(list, apiary, meteo, gWant, 'open_meteo_archive');
+                    sortRecords(list);
+                    saveRecords(list);
+                    list = prune(loadRecords());
+                    var still2 = missingDatesForApiary(apiary.id, fromKey, toKey, list).filter(function (dk) {
+                      return !!wantSet[dk];
+                    });
+                    if (!still2.length) {
+                      meta[apiary.id] = today;
+                      saveBackfillMeta(meta);
+                    }
+                    return filledSoFar + (n || 0) + (n2 || 0);
+                  })
+                  .catch(function () {
+                    /* Eksik kaldı — meta yazma; sonraki Güncelle tekrar dener */
+                    return filledSoFar + (n || 0);
+                  });
               })
               .catch(function () {
-                /* Ağ hatası — sessizce atla */
+                /* Ağ hatası — sessizce atla; meta tamamlanmış sayılmaz */
                 return filledSoFar;
               });
             });
@@ -1541,6 +1583,7 @@
     MAX_DAYS: MAX_DAYS,
     DEFAULT_BACKFILL_DAYS: DEFAULT_BACKFILL_DAYS,
     PAST_DAYS_LIMIT: PAST_DAYS_LIMIT,
+    ARCHIVE_LAG_DAYS: ARCHIVE_LAG_DAYS,
     daysBetweenKeys: daysBetweenKeys,
     dateKeysInclusive: dateKeysInclusive,
     rainHoursFromHourly: rainHoursFromHourly,
