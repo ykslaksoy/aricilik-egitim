@@ -23,8 +23,8 @@
   /* Named demo hives used by alerts / tasks — included inside full per-apiary fleets. */
   var FEATURED_HIVES = [
     { id: 101, name: 'Kovan 101', apiaryId: 'a1', weightKg: 38.2, deltaKg: 1.2, health: 'İyi', healthScore: 88, colonyScore: 82, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Anadolu' },
-    { id: 102, name: 'Kovan 102', apiaryId: 'a1', weightKg: 35.6, deltaKg: 0.4, health: 'İyi', healthScore: 84, colonyScore: 79, swarmRisk: 'Düşük', strength: 'orta', breed: 'Karniyol' },
-    { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta', strength: 'orta', breed: 'İtalyan' },
+    { id: 102, name: 'Kovan 102', apiaryId: 'a1', weightKg: 35.6, deltaKg: 0.4, health: 'İyi', healthScore: 84, colonyScore: 79, swarmRisk: 'Düşük', strength: 'orta', breed: 'Anadolu' },
+    { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta', strength: 'orta', breed: 'Anadolu' },
     { id: 204, name: 'Kovan 204', apiaryId: 'a2', weightKg: 33.1, deltaKg: -0.3, health: 'İyi', healthScore: 90, colonyScore: 86, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas' },
     { id: 211, name: 'Kovan 211', apiaryId: 'a2', weightKg: 29.4, deltaKg: 0.1, health: 'Kritik', healthScore: 41, colonyScore: 48, swarmRisk: 'Yüksek', strength: 'zayıf', breed: 'Karniyol' },
     { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas × Karniyol' }
@@ -531,7 +531,7 @@
       colonyScore: Math.max(40, score - 6 + (i % 5)),
       swarmRisk: SWARMS[i % SWARMS.length],
       strength: STRENGTHS[i % STRENGTHS.length],
-      breed: String(apiaryId) === 'a4' ? 'Karniyol' : BREEDS[i % BREEDS.length]
+      breed: String(apiaryId) === 'a4' ? 'Karniyol' : (String(apiaryId) === 'a1' ? 'Anadolu' : BREEDS[i % BREEDS.length])
     });
   }
 
@@ -1022,6 +1022,24 @@
     return { list: out, changed: changed };
   }
 
+  /** Kayaköy (a1): tüm kovanlar Anadolu. */
+  function applyKayakoyAnadoluBreeds(hives) {
+    var changed = false;
+    var out = (hives || []).map(function (h) {
+      if (!h || String(h.apiaryId) !== 'a1') return h;
+      var cur = String(h.breed || '').trim();
+      if (cur === 'Anadolu') return h;
+      changed = true;
+      var copy = {};
+      for (var k in h) {
+        if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
+      }
+      copy.breed = 'Anadolu';
+      return copy;
+    });
+    return { list: out, changed: changed };
+  }
+
   function loadHives() {
     var apiaries = loadApiaries();
     var raw = readRawHives();
@@ -1038,11 +1056,12 @@
       reconciled = reconcile(apiaries, raw);
     }
     var breedMig = applyYanikKarniyolBreeds(reconciled.hives);
-    if (breedMig.changed) {
+    var kayakoyMig = applyKayakoyAnadoluBreeds(breedMig.list);
+    if (breedMig.changed || kayakoyMig.changed) {
       try {
-        saveHives(breedMig.list);
+        saveHives(kayakoyMig.list);
       } catch (eBreed) { /* ignore */ }
-      return breedMig.list;
+      return kayakoyMig.list;
     }
     return reconciled.hives;
   }
