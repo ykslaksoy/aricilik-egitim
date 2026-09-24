@@ -1,6 +1,6 @@
 /**
  * SüperArı — örtü + sürekli su senkronu.
- * Çubuk özeti gösterir; tıklayınca adım adım detay açılır.
+ * Çubuk Foraj kaydırıcısının hemen üstünde; tıklayınca detay.
  */
 (function (global) {
   var BAR_ID = 'landcoverSyncBar';
@@ -20,17 +20,28 @@
     var s = document.createElement('style');
     s.id = 'landcover-sync-css';
     s.textContent =
-      '.forage-progress{margin:8px 0 12px;padding:8px 10px;border-radius:12px;background:#fff8df;border:1px solid #e0c56a;cursor:pointer;-webkit-tap-highlight-color:transparent;}' +
-      '.forage-progress-label{display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:750;color:#4a2f1a;margin-bottom:6px;}' +
+      '.forage-progress{margin:0 0 8px;padding:8px 10px;border-radius:12px;background:#faf8f4;border:1px solid #e4e0d8;cursor:pointer;-webkit-tap-highlight-color:transparent;}' +
+      '.forage-progress-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;color:#6b635a;margin-bottom:6px;}' +
+      '.forage-progress-label [data-lc-msg]{color:#4a2f1a;font-weight:800;}' +
+      '.forage-progress-label [data-lc-pct]{font-variant-numeric:tabular-nums;color:#4a2f1a;font-weight:800;white-space:nowrap;}' +
       '.forage-progress-now{font-size:11px;font-weight:650;color:#6b635a;margin:0 0 6px;line-height:1.35;}' +
       '.forage-progress-track{height:8px;border-radius:999px;background:#efe6c8;overflow:hidden;}' +
       '.forage-progress-bar{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f0c43a,#b8860b);transition:width .25s ease;}' +
       '.forage-progress-hint{margin:6px 0 0;font-size:10px;font-weight:600;color:#8a8278;}' +
-      '.forage-progress-detail{display:none;margin:8px 0 0;padding:8px;max-height:160px;overflow:auto;border-radius:10px;background:#fff;border:1px solid #e0c56a;font-size:11px;line-height:1.4;color:#4a2f1a;}' +
+      '.forage-progress-detail{display:none;margin:8px 0 0;padding:8px;max-height:160px;overflow:auto;border-radius:10px;background:#fff;border:1px solid #e4e0d8;font-size:11px;line-height:1.4;color:#4a2f1a;}' +
       '.forage-progress.is-open .forage-progress-detail{display:block;}' +
       '.forage-progress-detail div{padding:3px 0;border-bottom:1px solid #f3ead0;}' +
-      '.forage-progress-detail div:last-child{border-bottom:0;}';
+      '.forage-progress-detail div:last-child{border-bottom:0;}' +
+      '.fs-block .forage-progress,.forage-radius .forage-progress{margin:0 0 8px;}';
     document.head.appendChild(s);
+  }
+
+  function forageAnchor() {
+    var radius = document.getElementById('forageRadius');
+    if (radius) {
+      return radius.closest('.fs-block') || radius.closest('.forage-radius') || radius.parentNode;
+    }
+    return document.querySelector('.fs-block') || document.querySelector('.forage-radius') || document.getElementById('forageHost');
   }
 
   function apiaries() {
@@ -73,32 +84,41 @@
     if (typeof document === 'undefined') return null;
     injectCss();
     var el = document.getElementById(BAR_ID);
-    if (el) return el;
+    var anchor = forageAnchor();
+    if (el) {
+      if (anchor && el.nextElementSibling !== anchor && el.parentNode !== anchor) {
+        anchor.parentNode.insertBefore(el, anchor);
+      }
+      return el;
+    }
     el = document.createElement('div');
     el.id = BAR_ID;
     el.className = 'forage-progress';
     el.setAttribute('role', 'button');
     el.setAttribute('aria-expanded', 'false');
     el.innerHTML =
-      '<div class="forage-progress-label"><span data-lc-msg>Örtü / su güncelleniyor</span><span data-lc-pct>0%</span></div>' +
+      '<div class="forage-progress-label"><span>Güncelleme</span><span data-lc-pct>0%</span></div>' +
       '<p class="forage-progress-now" data-lc-now>Şu an: bekleniyor</p>' +
       '<div class="forage-progress-track"><div class="forage-progress-bar" data-lc-bar></div></div>' +
-      '<p class="forage-progress-hint" data-lc-hint>Detay için çubuğa dokun</p>' +
+      '<p class="forage-progress-hint" data-lc-hint>Detay için dokun</p>' +
       '<div class="forage-progress-detail" data-lc-detail></div>';
     el.addEventListener('click', function () {
       barOpen = !barOpen;
       el.classList.toggle('is-open', barOpen);
       el.setAttribute('aria-expanded', barOpen ? 'true' : 'false');
       var hint = el.querySelector('[data-lc-hint]');
-      if (hint) hint.textContent = barOpen ? 'Gizlemek için tekrar dokun' : 'Detay için çubuğa dokun';
+      if (hint) hint.textContent = barOpen ? 'Gizlemek için tekrar dokun' : 'Detay için dokun';
     });
-    var host =
-      document.getElementById('apiaryList') ||
-      document.getElementById('forageHost') ||
-      document.querySelector('.summary-row') ||
-      document.querySelector('.screen');
-    if (host && host.parentNode) host.parentNode.insertBefore(el, host);
-    else if (document.body) document.body.insertBefore(el, document.body.firstChild);
+    if (anchor && anchor.parentNode) {
+      anchor.parentNode.insertBefore(el, anchor);
+    } else {
+      var host =
+        document.getElementById('forageHost') ||
+        document.getElementById('apiaryList') ||
+        document.querySelector('.screen');
+      if (host && host.parentNode) host.parentNode.insertBefore(el, host);
+      else if (document.body) document.body.insertBefore(el, document.body.firstChild);
+    }
     return el;
   }
 
@@ -110,12 +130,10 @@
     var p = Math.max(0, Math.min(100, Math.round(pct || 0)));
     var bar = el.querySelector('[data-lc-bar]');
     var lab = el.querySelector('[data-lc-pct]');
-    var m = el.querySelector('[data-lc-msg]');
     var n = el.querySelector('[data-lc-now]');
     if (bar) bar.style.width = p + '%';
     if (lab) lab.textContent = p + '%';
-    if (m && msg) m.textContent = msg;
-    if (n && (now || msg)) n.textContent = 'Şu an: ' + (now || msg);
+    if (n && (now || msg)) n.textContent = now || msg;
     if (now || msg) addLog(now || msg);
   }
 
@@ -251,9 +269,7 @@
       if (hit) {
         saveWater(apiary, hit);
         addLog(name + ' · su ' + Math.round(hit.metres) + ' m · ' + waterLabelFromTags(hit.tags, hit.lat, hit.lon));
-      } else {
-        addLog(name + ' · OSM’de su çizgisi yok');
-      }
+      } else addLog(name + ' · OSM’de su çizgisi yok');
       return hit;
     }).catch(function () { addLog(name + ' · su sorgusu hata'); return null; });
     var forageP = F && F.analyze ? F.analyze(lat, lon, radius, {
