@@ -1489,6 +1489,7 @@
       nearestWaterSourceWithCoords: nearestWaterSourceWithCoords,
       computedWaterDistanceM: computedWaterDistanceM,
       effectiveWaterDistanceM: effectiveWaterDistanceM,
+      formatPlaceSubtitle: formatPlaceSubtitle,
       refreshWaterDistancesFromMap: refreshWaterDistancesFromMap,
       yandexMapsUrl: yandexMapsUrl,
       yandexSearchUrl: yandexSearchUrl,
