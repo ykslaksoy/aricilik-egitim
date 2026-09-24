@@ -21,6 +21,16 @@
     }
     return list[0] || null;
   }
+  function breedKey(h) {
+    var s = String((h && (h.breed || h.irk || h.ırk || h.breedKey)) || '').toLocaleLowerCase('tr');
+    if (s.indexOf('kafkas') !== -1) return 'kafkas';
+    if (s.indexOf('karniyol') !== -1 || s.indexOf('carn') !== -1) return 'karniyol';
+    return s || '';
+  }
+  function kg(n) {
+    if (n == null || !isFinite(Number(n))) return null;
+    return Math.round(Number(n) * 10) / 10;
+  }
 
   var SIS_HTML =
     '<div class="forage-flight sa-sis-block" id="saSisBlock">' +
@@ -30,13 +40,39 @@
       '<p class="forage-flight-tip">Kafkas çisede uçabilir. Takas: Palandöken / Tortum ↔ Yanıkdağ.</p>' +
     '</div>';
 
+  function breedWarnHtml(karniyolKg, kafkasKg, nHives) {
+    var totK = kafkasKg != null && nHives ? Math.round(kafkasKg * nHives) : null;
+    return (
+      '<div class="fy-block fy-swap-block" id="saBreedWarn">' +
+        '<div class="fy-head"><strong>Kovan uygun değil · ırk</strong></div>' +
+        '<p class="fy-why">Karniyol sis/çisede uçamaz, hedefi kaçırır ve kovan balını yer.</p>' +
+        '<p class="fy-swap">Kafkas olursa beklenen verim ≈ <strong>' +
+        (kafkasKg != null ? kafkasKg + ' kg/kovan' : '—') +
+        '</strong>' +
+        (totK != null ? ' · ' + nHives + ' kovan ≈ ' + totK + ' kg' : '') +
+        (karniyolKg != null ? ' <span class="fy-why">(Karniyol şimdi ≈ ' + karniyolKg + ' kg/kovan)</span>' : '') +
+        '</p>' +
+        '<p class="fy-tip">Öneri: bu kovanları Palandöken / Tortum Karniyol ile takas; buraya Kafkas.</p>' +
+      '</div>'
+    );
+  }
+
+  function injectBreedWarn(host, est) {
+    if (!host || document.getElementById('saBreedWarn')) return;
+    var mid = est && (est.kgPerHive != null ? est.kgPerHive : est.midKg);
+    var kaf = mid != null ? kg(Number(mid) * (1.12 / 0.88)) : 14.2;
+    var n = (est && (est.n || est.hiveCount)) || 20;
+    var box = document.createElement('div');
+    box.innerHTML = breedWarnHtml(kg(mid), kaf, n);
+    var swap = host.querySelector('.fy-swap-block');
+    if (swap) swap.insertAdjacentElement('beforebegin', box.firstChild);
+    else host.appendChild(box.firstChild || box);
+  }
+
   function stripOld() {
-    if (typeof document === 'undefined') return;
     document.querySelectorAll('.sa-note, #saLiveMount').forEach(function (el) {
       try { el.remove(); } catch (e) {}
     });
-    var old = document.getElementById('landcoverSyncBar');
-    if (old) try { old.remove(); } catch (e2) {}
   }
 
   function ensureBar() {
@@ -51,8 +87,9 @@
         '#saFloraBar .fill{height:100%;width:62%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{border:0;background:transparent;padding:4px;color:#4a6b3a;}' +
         '#saFloraBar.is-open .fs-chev{transform:rotate(90deg);}' +
-        '#saFloraBar .sa-flora-detail{display:none;margin-top:8px;font-size:12px;line-height:1.45;color:#2c4a22;}' +
-        '#saFloraBar.is-open .sa-flora-detail{display:block;}';
+        '#saFloraBar .sa-flora-detail{display:none;margin-top:8px;font-size:12px;color:#2c4a22;}' +
+        '#saFloraBar.is-open .sa-flora-detail{display:block;}' +
+        '#saBreedWarn{margin:8px 0;padding:10px;border-radius:12px;border:1px solid #e0a090;background:#fff8f5;}';
       document.head.appendChild(s);
     }
     if (document.getElementById('saFloraBar')) return;
@@ -65,29 +102,19 @@
     el.id = 'saFloraBar';
     el.className = 'fs-block';
     el.innerHTML =
-      '<div class="fs-row">' +
-        '<p>Flora taranıyor</p>' +
-        '<button type="button" class="fs-chev" id="btnFloraHint" aria-expanded="false" aria-controls="saFloraDetail" aria-label="Flora notu">' +
-          '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z"/></svg>' +
-        '</button>' +
-      '</div>' +
+      '<div class="fs-row"><p>Flora taranıyor</p>' +
+      '<button type="button" class="fs-chev" id="btnFloraHint" aria-expanded="false">›</button></div>' +
       '<div class="track"><div class="fill"></div></div>' +
       '<div class="sa-flora-detail fs-hint" id="saFloraDetail" hidden>' +
-        '<p>Su kaynağı bulundu · 240 m</p>' +
-        '<p>Flora taranıyor — örtü OSM üzerinden alınıyor.</p>' +
-        '<p>Sis/çiseleme hedef çarpanı 0,90 (uçuş yok + stok tüketimi).</p>' +
-      '</div>';
-    el.addEventListener('click', function (ev) {
-      if (ev.target && ev.target.closest('input, a')) return;
+      '<p>Su kaynağı bulundu · 240 m</p><p>Flora taranıyor.</p></div>';
+    el.addEventListener('click', function () {
       var open = !el.classList.contains('is-open');
       el.classList.toggle('is-open', open);
-      var panel = document.getElementById('saFloraDetail');
-      var btn = document.getElementById('btnFloraHint');
-      if (panel) {
-        if (open) panel.removeAttribute('hidden');
-        else panel.setAttribute('hidden', '');
+      var p = document.getElementById('saFloraDetail');
+      if (p) {
+        if (open) p.removeAttribute('hidden');
+        else p.setAttribute('hidden', '');
       }
-      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
     anchor.parentNode.insertBefore(el, anchor);
   }
@@ -104,25 +131,18 @@
       var head = blocks[i].querySelector('.forage-flight-head');
       if (head && /Uçuş/.test(head.textContent || '')) flight = blocks[i];
     }
-    if (!flight) return;
-    if (!document.getElementById('saSisBlock')) flight.insertAdjacentHTML('beforebegin', SIS_HTML);
-    var sum = flight.querySelector('.forage-flight-sum');
-    if (sum && sum.getAttribute('data-sis') !== '1') {
-      sum.setAttribute('data-sis', '1');
-      sum.textContent = (sum.textContent || '') + ' · Sis/çisede Karniyol uçmadı, stoğu yedi.';
-    }
+    if (flight && !document.getElementById('saSisBlock')) flight.insertAdjacentHTML('beforebegin', SIS_HTML);
+    var fy = host.querySelector('.fy-swap-block, .fy-block');
+    if (fy) injectBreedWarn(host, global.__saLastEst || { kgPerHive: 11.2, n: 20 });
   }
 
   function watchHost() {
-    stripOld();
-    ensureBar();
     var host = document.getElementById('forageHost');
     if (!host) return;
     rewriteFlight(host);
     if (host.__sisObs) return;
-    var obs = new MutationObserver(function () { rewriteFlight(host); });
-    obs.observe(host, { childList: true, subtree: true });
-    host.__sisObs = obs;
+    host.__sisObs = new MutationObserver(function () { rewriteFlight(host); });
+    host.__sisObs.observe(host, { childList: true, subtree: true });
   }
 
   function patchForage() {
@@ -140,21 +160,87 @@
 
   function patchYield() {
     var Y = global.SuperAriForageYield;
-    if (!Y || !Y.estimateYield || Y.__eatPatch) return;
-    var raw = Y.estimateYield;
-    Y.estimateYield = function (opts) {
-      var est = raw(opts);
-      if (!est || !yanik((opts && opts.apiary) || apiary())) return est;
-      function sc(n) {
-        return n == null || !isFinite(Number(n)) ? n : Math.round(Number(n) * 0.9 * 10) / 10;
-      }
-      ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
-        if (est[k] != null) est[k] = sc(est[k]);
-      });
-      est.why = est.why || [];
-      est.why.push({ k: 'Sis · çiseleme', v: 'çarpan 0,90 · uçamadı + stoğu yedi' });
-      return est;
-    };
+    if (!Y || Y.__eatPatch) return;
+    if (Y.estimateYield) {
+      var raw = Y.estimateYield;
+      Y.estimateYield = function (opts) {
+        var est = raw(opts);
+        if (!est || !yanik((opts && opts.apiary) || apiary())) return est;
+        function sc(n) {
+          return n == null || !isFinite(Number(n)) ? n : Math.round(Number(n) * 0.9 * 10) / 10;
+        }
+        ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
+          if (est[k] != null) est[k] = sc(est[k]);
+        });
+        var mid = est.kgPerHive != null ? est.kgPerHive : est.midKg;
+        est.kafkasKgPerHive = mid != null ? kg(Number(mid) * (1.12 / 0.88)) : null;
+        est.why = est.why || [];
+        est.why.push({ k: 'Sis · çiseleme', v: 'çarpan 0,90 · uçamadı + stoğu yedi' });
+        if (est.kafkasKgPerHive != null) {
+          est.why.push({
+            k: 'Kafkas beklenti',
+            v: est.kafkasKgPerHive + ' kg/kovan (çisede uçar)'
+          });
+        }
+        global.__saLastEst = est;
+        return est;
+      };
+    }
+    if (Y.findMismatchedHives) {
+      var rawM = Y.findMismatchedHives;
+      Y.findMismatchedHives = function (opts) {
+        var pack = rawM(opts) || { items: [] };
+        var a = (opts && opts.apiary) || apiary();
+        if (!yanik(a)) return pack;
+        var hives = (opts && opts.hives) || [];
+        var est = global.__saLastEst || {};
+        var mid = est.kgPerHive != null ? est.kgPerHive : 11.2;
+        var kaf = kg(Number(mid) * (1.12 / 0.88));
+        hives.forEach(function (h) {
+          if (breedKey(h) !== 'karniyol') return;
+          var id = h.id;
+          var reason =
+            'Irk Karniyol · sis/çisede uçamaz, stoğu yer · Kafkas olsa ≈ ' +
+            kaf +
+            ' kg/kovan';
+          var found = (pack.items || []).some(function (it) {
+            return String(it.hiveId) === String(id);
+          });
+          if (found) {
+            pack.items.forEach(function (it) {
+              if (String(it.hiveId) === String(id)) {
+                it.reasonTr = reason;
+                it.reasons = [reason];
+              }
+            });
+          } else {
+            pack.items = pack.items || [];
+            pack.items.push({
+              hiveId: id,
+              hiveName: h.name || ('Kovan ' + id),
+              reasons: [reason],
+              reasonTr: reason,
+              swap: { apiaryName: 'Palandöken / Tortum', hiveName: 'Kafkas kovan' }
+            });
+          }
+        });
+        pack.tipTr =
+          'Uyarı ırka göre. Karniyol bu yerde uygun değil. Kafkas beklenti ≈ ' +
+          kaf +
+          ' kg/kovan.';
+        return pack;
+      };
+    }
+    if (Y.renderBlocksHtml) {
+      var rawR = Y.renderBlocksHtml;
+      Y.renderBlocksHtml = function (estimate, mismatches, escapeHtml, tip) {
+        var html = rawR(estimate, mismatches, escapeHtml, tip);
+        if (!yanik(apiary())) return html;
+        var mid = estimate && (estimate.kgPerHive != null ? estimate.kgPerHive : estimate.midKg);
+        var kaf = estimate && estimate.kafkasKgPerHive != null ? estimate.kafkasKgPerHive : kg(Number(mid) * 1.27);
+        return breedWarnHtml(kg(mid), kaf, (estimate && estimate.n) || 20) + html;
+      };
+    }
     Y.__eatPatch = true;
   }
 
