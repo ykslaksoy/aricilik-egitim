@@ -23,6 +23,35 @@
   ];
 
   var backfillInFlight = null;
+  var backfillPaused = false;
+  var backfillPauseWaiters = [];
+
+  function setBackfillPaused(on) {
+    backfillPaused = !!on;
+    if (!backfillPaused && backfillPauseWaiters.length) {
+      var waiters = backfillPauseWaiters.slice();
+      backfillPauseWaiters = [];
+      for (var i = 0; i < waiters.length; i++) {
+        try { waiters[i](); } catch (e) { /* ignore */ }
+      }
+    }
+    return backfillPaused;
+  }
+
+  function isBackfillPaused() {
+    return !!backfillPaused;
+  }
+
+  function isBackfillRunning() {
+    return !!backfillInFlight;
+  }
+
+  function waitIfBackfillPaused() {
+    if (!backfillPaused) return Promise.resolve();
+    return new Promise(function (resolve) {
+      backfillPauseWaiters.push(resolve);
+    });
+  }
 
   function roundC(v) {
     var n = Math.round(Number(v));
@@ -1029,8 +1058,10 @@
     var chain = Promise.resolve({ daily: emptyDaily() });
     segments.forEach(function (seg) {
       chain = chain.then(function (acc) {
-        return fetchArchiveRange(apiary, seg.start, seg.end).then(function (meteo) {
-          return mergeDaily(acc, meteo);
+        return waitIfBackfillPaused().then(function () {
+          return fetchArchiveRange(apiary, seg.start, seg.end).then(function (meteo) {
+            return mergeDaily(acc, meteo);
+          });
         });
       });
     });
@@ -1168,6 +1199,7 @@
 
         apiaries.forEach(function (apiary) {
           chain = chain.then(function (filledSoFar) {
+            return waitIfBackfillPaused().then(function () {
             var list = prune(loadRecords());
             var missing = missingDatesForApiary(apiary.id, fromKey, toKey, list);
             /* Meta bugün değilse seed'leri de yenilemek için tüm aralığı iste */
@@ -1268,6 +1300,7 @@
                 /* Ağ hatası — sessizce atla */
                 return filledSoFar;
               });
+            });
           });
         });
 
@@ -1275,10 +1308,12 @@
       })
       .then(function (filled) {
         if (backfillInFlight === run) backfillInFlight = null;
+        setBackfillPaused(false);
         return { filled: filled || 0, apiaries: apiaries.length, from: fromKey, to: toKey, days: days };
       })
       .catch(function (err) {
         if (backfillInFlight === run) backfillInFlight = null;
+        setBackfillPaused(false);
         return { filled: 0, apiaries: apiaries.length, error: String(err && err.message || err) };
       });
 
@@ -1536,6 +1571,9 @@
     ensureHistory: ensureHistory,
     clearRangeRecords: clearRangeRecords,
     backfillMissing: backfillMissing,
+    setBackfillPaused: setBackfillPaused,
+    isBackfillPaused: isBackfillPaused,
+    isBackfillRunning: isBackfillRunning,
     recordFromMeteo: recordFromMeteo,
     filterRecords: filterRecords,
     sumRainHoursFromRecords: sumRainHoursFromRecords,

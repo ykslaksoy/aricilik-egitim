@@ -383,6 +383,32 @@
     color: #1e4a6e; font-weight: 750; background: #e8f2fb;
     padding: 6px 8px; border-radius: 8px; border: 1px solid #7aafd4;
   }
+  .water-update-ask {
+    display: grid; gap: 8px; margin-top: 10px; padding: 10px 11px;
+    border-radius: 12px; background: #e8f2fb; border: 1px solid #7aafd4;
+    font-size: 12px; font-weight: 700; color: #1e4a6e;
+  }
+  .water-update-ask[hidden] { display: none !important; }
+  .water-update-ask-title {
+    margin: 0; font-size: 13px; font-weight: 850; color: #143a58;
+  }
+  .water-update-ask-remind {
+    margin: 0; font-size: 11px; font-weight: 700; color: #1e4a6e; line-height: 1.4;
+    padding: 6px 8px; border-radius: 8px; background: #fff; border: 1px dashed #7aafd4;
+  }
+  .water-update-ask label {
+    display: grid; gap: 4px; font-size: 11px; font-weight: 700; color: #5a6a7a;
+  }
+  .water-update-ask select,
+  .water-update-ask input {
+    width: 100%; border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
+    background: #fff; font-family: inherit; box-sizing: border-box;
+  }
+  .water-update-ask-dist-hint {
+    margin: 0; font-size: 10px; font-weight: 650; color: #5a6a7a; line-height: 1.35;
+  }
+  .water-update-ask .water-add-actions { margin-top: 2px; }
   .water-coord-row {
     display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
   }
@@ -1259,6 +1285,150 @@
     if (!el) return;
     el.hidden = !on;
   }
+  function setWaterUpdateAsk(on) {
+    var el = document.getElementById('waterUpdateAsk');
+    if (!el) return;
+    el.hidden = !on;
+  }
+
+  function prefillWaterUpdateAsk() {
+    var typeEl = document.getElementById('waterAskType');
+    var labelEl = document.getElementById('waterAskLabel');
+    var distEl = document.getElementById('waterAskDist');
+    var hint = document.getElementById('waterAskDistHint');
+    var remind = document.getElementById('waterAskRemind');
+    var item = null;
+    if (activeApiary && activeApiary.waterSourceId && D && D.waterCatalogById) {
+      item = D.waterCatalogById(activeApiary.waterSourceId);
+    }
+    if (typeEl) {
+      typeEl.value = (item && item.typeKey) ? String(item.typeKey) : 'dere';
+    }
+    if (labelEl) {
+      labelEl.value = item ? String(item.label || '').trim() : '';
+    }
+    var distM = null;
+    if (activeApiary && activeApiary.waterDistanceM != null && activeApiary.waterDistanceM !== '') {
+      distM = Number(activeApiary.waterDistanceM);
+    } else if (item) {
+      var eff = effectiveDistInfo(activeApiary, item);
+      if (eff && eff.metres != null) distM = Number(eff.metres);
+    }
+    if (distEl) {
+      distEl.value = (distM != null && isFinite(distM)) ? String(Math.round(distM)) : '';
+    }
+    if (hint) {
+      hint.textContent =
+        'Mesafe: haritadan konum seçince otomatik dolar; yoksa elle girin (hedef bal çarpanı için).';
+    }
+    if (remind) {
+      remind.textContent =
+        'Haritaya dokunarak su noktasını seçin. Konum seçilmeden kaydetmeyin. Arılık iğnesi yerinde kalır.';
+    }
+  }
+
+  function syncWaterAskFromPick(lat, lon) {
+    var distEl = document.getElementById('waterAskDist');
+    var hint = document.getElementById('waterAskDistHint');
+    var remind = document.getElementById('waterAskRemind');
+    var m = null;
+    if (activeApiary && hasCoords(activeApiary) && D && D.haversineMetres) {
+      m = D.haversineMetres(activeApiary.lat, activeApiary.lon, lat, lon);
+    }
+    if (distEl && m != null && isFinite(m)) {
+      distEl.value = String(Math.round(m));
+    }
+    if (hint) {
+      hint.textContent = m != null
+        ? ('Haritadan seçildi · arılığa yaklaşık ' + Math.round(m) + ' m. İstersen mesafeyi düzeltebilirsin.')
+        : 'Konum seçildi. Arılığa mesafeyi metre olarak girin.';
+    }
+    if (remind) {
+      remind.textContent =
+        'Konum seçildi (mavi Su iğnesi). Türü / mesafeyi kontrol edip Kaydet’e basın. Yeniden seçmek için haritaya tekrar dokunun.';
+    }
+    setWaterUpdateAsk(true);
+  }
+
+  function saveWaterUpdateAsk() {
+    if (!activeApiary || !D) return;
+    var latIn = document.getElementById('waterAddLat');
+    var lonIn = document.getElementById('waterAddLon');
+    var la = latIn ? Number(latIn.value) : NaN;
+    var lo = lonIn ? Number(lonIn.value) : NaN;
+    if ((!isFinite(la) || !isFinite(lo)) && waterDraftPlacemark && Y && Y.placemarkCoords) {
+      var c = Y.placemarkCoords(waterDraftPlacemark);
+      if (c && isFinite(c.lat) && isFinite(c.lon)) {
+        setWaterAddCoords(c.lat, c.lon);
+        la = Number(latIn && latIn.value);
+        lo = Number(lonIn && lonIn.value);
+      }
+    }
+    la = latIn ? Number(latIn.value) : NaN;
+    lo = lonIn ? Number(lonIn.value) : NaN;
+    if (!isFinite(la) || !isFinite(lo)) {
+      alert('Önce haritadan su konumunu seçin.');
+      var rem = document.getElementById('waterAskRemind');
+      if (rem) {
+        rem.textContent =
+          'Henüz konum seçilmedi — haritaya dokunarak su noktasını seçin, sonra mesafeyi kontrol edip kaydedin.';
+      }
+      return;
+    }
+    var typeEl = document.getElementById('waterAskType');
+    var labelEl = document.getElementById('waterAskLabel');
+    var distEl = document.getElementById('waterAskDist');
+    var typeKey = typeEl ? String(typeEl.value || 'dere') : 'dere';
+    var label = labelEl ? String(labelEl.value || '').trim() : '';
+    if (!label) label = waterTypeLabelTr(typeKey) || 'Su';
+    var distRaw = distEl ? String(distEl.value || '').trim() : '';
+    var distM = distRaw === '' ? null : Number(distRaw);
+    if (distM != null && (!isFinite(distM) || distM < 0)) {
+      alert('Mesafe metre olarak 0 veya pozitif sayı olmalı.');
+      return;
+    }
+    if (distM == null && D.haversineMetres && hasCoords(activeApiary)) {
+      distM = D.haversineMetres(activeApiary.lat, activeApiary.lon, la, lo);
+    }
+    if (distM == null || !isFinite(distM)) {
+      alert('Mesafeyi girin veya haritadan konum seçerek otomatik hesaplatın.');
+      return;
+    }
+    distM = Math.round(distM);
+
+    var sid = activeApiary.waterSourceId ? String(activeApiary.waterSourceId) : '';
+    var item = null;
+    if (sid && D.updateWaterCatalogItem && D.waterCatalogById && D.waterCatalogById(sid)) {
+      item = D.updateWaterCatalogItem(sid, {
+        label: label,
+        typeKey: typeKey,
+        lat: la,
+        lon: lo
+      });
+    }
+    if (!item && D.addWaterCatalogItem) {
+      item = D.addWaterCatalogItem({
+        label: label,
+        typeKey: typeKey,
+        lat: la,
+        lon: lo
+      });
+    }
+    if (!item) {
+      alert('Su kaynağı kaydedilemedi.');
+      return;
+    }
+    D.updateApiary(activeApiary.id, {
+      waterSourceId: item.id,
+      waterSourceConfirmedAt: new Date().toISOString(),
+      waterDistanceM: distM
+    });
+    refreshActiveApiary();
+    exitWaterPickMode({ keepDraft: false });
+    setWaterUpdateAsk(false);
+    render();
+  }
+
 
   function clearWaterDraftPlacemark() {
     if (waterDraftPlacemark && Y && Y.removePlacemark && detailMapCtrl) {
@@ -1303,6 +1473,7 @@
     opts = opts || {};
     waterPickMode = false;
     setWaterPickStatus(false);
+    if (!opts.keepAsk) setWaterUpdateAsk(false);
     setMapTapHint(MAP_TAP_HINT_DEFAULT, true);
     var btn = document.getElementById('btnWaterPickMap');
     if (btn) {
@@ -1320,7 +1491,7 @@
   function startWaterPickMode() {
     if (moveDestPickMode) exitMoveDestPick({ keepMarker: false });
     var expand = document.getElementById('waterExpandPanel');
-    if (expand) expand.hidden = false;
+    if (expand) expand.hidden = true;
     var panel = document.getElementById('waterAddPanel');
     if (panel) panel.hidden = false;
     var showBtn = document.getElementById('btnShowWaterAdd');
@@ -1331,6 +1502,8 @@
       if (detailPlacemark) detailPlacemark.options.set('draggable', false);
     } catch (e0) {}
     waterPickMode = true;
+    prefillWaterUpdateAsk();
+    setWaterUpdateAsk(true);
     setWaterPickStatus(true);
     setMapTapHint(MAP_TAP_HINT_WATER, true);
     var btn = document.getElementById('btnWaterPickMap');
@@ -1354,7 +1527,8 @@
 
   function applyWaterPickFromMap(lat, lon) {
     if (!setWaterAddCoords(lat, lon)) return;
-    exitWaterPickMode({ keepDraft: true });
+    syncWaterAskFromPick(lat, lon);
+    setWaterUpdateAsk(true);
   }
 
   function fillWaterAddFromMapPin() {
@@ -2730,6 +2904,28 @@
           '<button type="button" class="map-btn" id="btnConfirmMoveDest" hidden>Bu konumu hedef al</button>' +
           '<button type="button" class="map-btn ghost" id="btnCancelMoveDest" hidden>Hedef seçimini iptal</button>' +
         '</div>' +
+        '<div class="water-update-ask" id="waterUpdateAsk" hidden>' +
+          '<p class="water-update-ask-title">Su konumunu güncelle</p>' +
+          '<p class="water-update-ask-remind" id="waterAskRemind">' +
+            'Haritaya dokunarak su noktasını seçin. Konum seçilmeden kaydetmeyin. Arılık iğnesi yerinde kalır.' +
+          '</p>' +
+          '<label for="waterAskType">Bu konum ne? (tür)' +
+            '<select id="waterAskType">' + waterSourceSelectHtml('dere', false) + '</select>' +
+          '</label>' +
+          '<label for="waterAskLabel">Kısa ad (isteğe bağlı)' +
+            '<input type="text" id="waterAskLabel" maxlength="80" placeholder="örn. Dere / kuzey oluk" />' +
+          '</label>' +
+          '<label for="waterAskDist">Arılığa mesafe (m)' +
+            '<input type="number" id="waterAskDist" inputmode="numeric" min="0" step="1" placeholder="örn. 800" />' +
+          '</label>' +
+          '<p class="water-update-ask-dist-hint" id="waterAskDistHint">' +
+            'Mesafe: haritadan seçince otomatik dolar; yoksa elle girin (hedef bal çarpanı için).' +
+          '</p>' +
+          '<div class="water-add-actions">' +
+            '<button type="button" class="map-btn" id="btnWaterAskSave">Kaydet</button>' +
+            '<button type="button" class="map-btn ghost" id="btnWaterAskCancel">Vazgeç</button>' +
+          '</div>' +
+        '</div>' +
         '<div class="forage-radius">' +
           '<label for="forageRadius">Foraj</label>' +
           '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" />' +
@@ -2866,6 +3062,16 @@
           return;
         }
         startWaterPickMode();
+      });
+    }
+    var btnWaterAskSave = document.getElementById('btnWaterAskSave');
+    var btnWaterAskCancel = document.getElementById('btnWaterAskCancel');
+    if (btnWaterAskSave) {
+      btnWaterAskSave.addEventListener('click', saveWaterUpdateAsk);
+    }
+    if (btnWaterAskCancel) {
+      btnWaterAskCancel.addEventListener('click', function () {
+        exitWaterPickMode({ keepDraft: false });
       });
     }
     var btnConfirmMoveDest = document.getElementById('btnConfirmMoveDest');

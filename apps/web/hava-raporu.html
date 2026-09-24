@@ -251,6 +251,37 @@
     border: 1px solid #9fd6a8;
     color: #1f6b2e;
   }
+  .sync-status.is-paused {
+    background: #fff8df;
+    border: 1px solid #e0c56a;
+    color: #6a4a10;
+  }
+  .sync-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+  .sync-controls .sync-btn {
+    min-height: 40px;
+    border-radius: 12px;
+    border: 1px solid #e0c56a;
+    background: #fff;
+    color: var(--brown);
+    font-size: 12px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sync-controls .sync-btn:active { transform: scale(.98); }
+  .sync-controls .sync-btn.is-primary {
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
+  }
+  .sync-controls .sync-btn:disabled {
+    opacity: .45;
+    cursor: default;
+  }
   .hist-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; margin: 4px 0 0; padding: 14px 16px;
@@ -330,6 +361,11 @@
     </div>
     <p class="range-note" id="rangeNote" hidden>Sezon arılık bölgesine göre belirlenir.</p>
     <div class="sync-status" id="syncStatus" hidden role="status" aria-live="polite"></div>
+    <div class="sync-controls" id="syncControls" role="group" aria-label="Veri güncelleme">
+      <button type="button" class="sync-btn is-primary" id="btnSyncUpdate">Güncelle</button>
+      <button type="button" class="sync-btn" id="btnSyncPause" disabled>Dur</button>
+      <button type="button" class="sync-btn" id="btnSyncResume" disabled>Devam et</button>
+    </div>
 
     <div class="stats" id="stats" aria-label="Özet"></div>
 
@@ -366,7 +402,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="hava-kayit.js?v=rain902"></script>
+<script src="hava-kayit.js?v=sync-ctrl-1"></script>
 <script>
 (function () {
   var H = window.SuperAriHava;
@@ -386,6 +422,11 @@
   var rangeNoteEl = document.getElementById('rangeNote');
   var syncStatusEl = document.getElementById('syncStatus');
   var syncInFlight = false;
+  var syncUserPaused = false;
+  var syncControlsEl = document.getElementById('syncControls');
+  var btnSyncUpdate = document.getElementById('btnSyncUpdate');
+  var btnSyncPause = document.getElementById('btnSyncPause');
+  var btnSyncResume = document.getElementById('btnSyncResume');
   var syncDoneTimer = null;
 
   function selectedSeasonCoords() {
@@ -517,7 +558,28 @@
     }
   }
 
+  function updateSyncControls() {
+    var running = !!syncInFlight || (H && typeof H.isBackfillRunning === 'function' && H.isBackfillRunning());
+    var paused = !!syncUserPaused || (H && typeof H.isBackfillPaused === 'function' && H.isBackfillPaused());
+    if (btnSyncUpdate) btnSyncUpdate.disabled = running && !paused;
+    if (btnSyncPause) btnSyncPause.disabled = !running || paused;
+    if (btnSyncResume) btnSyncResume.disabled = !running || !paused;
+  }
+
   function showCoverageStatus() {
+    updateSyncControls();
+    if (syncInFlight && syncUserPaused) {
+      var covP = coverageForCurrent();
+      setSyncStatus(
+        'paused',
+        'Güncelleme duraklatıldı' +
+          (covP.expected
+            ? ' (' + covP.filled + '/' + covP.expected + ' gün, yağış saati ' + covP.withRain + '/' + covP.expected + ')'
+            : '') +
+          ' — Devam et ile sürdür.'
+      );
+      return;
+    }
     if (syncInFlight) {
       var covU = coverageForCurrent();
       setSyncStatus(
@@ -537,7 +599,7 @@
     if (!cov.complete) {
       setSyncStatus(
         'incomplete',
-        'Eksik veri var — güncelleniyor olabilir (' +
+        'Eksik veri var (' +
           cov.filled +
           '/' +
           cov.expected +
@@ -545,7 +607,7 @@
           cov.withRain +
           '/' +
           cov.expected +
-          ').'
+          '). Güncelle ile tamamlayın.'
       );
       return;
     }
@@ -576,6 +638,9 @@
     function finishOk() {
       clearInterval(progressTick);
       syncInFlight = false;
+      syncUserPaused = false;
+      if (H && typeof H.setBackfillPaused === 'function') H.setBackfillPaused(false);
+      updateSyncControls();
       fillApiaries();
       refresh();
       var cov = coverageForCurrent();
@@ -608,8 +673,11 @@
       .catch(function () {
         clearInterval(progressTick);
         syncInFlight = false;
+        syncUserPaused = false;
+        if (H && typeof H.setBackfillPaused === 'function') H.setBackfillPaused(false);
+        updateSyncControls();
         refresh();
-        setSyncStatus('incomplete', 'Veri güncellemesi tamamlanamadı. Sayfayı yenileyip tekrar deneyin.');
+        setSyncStatus('incomplete', 'Veri güncellemesi tamamlanamadı. Güncelle ile tekrar deneyin.');
       });
   }
 
@@ -940,6 +1008,36 @@
   refresh();
 
   /* Tüm seçili aralığı Open-Meteo’dan zorla çek; eksikte uyarı göster */
+  if (btnSyncUpdate) {
+    btnSyncUpdate.addEventListener('click', function () {
+      if (syncInFlight && !syncUserPaused) return;
+      if (syncUserPaused) {
+        syncUserPaused = false;
+        if (H && typeof H.setBackfillPaused === 'function') H.setBackfillPaused(false);
+        showCoverageStatus();
+        return;
+      }
+      runFullFetch();
+    });
+  }
+  if (btnSyncPause) {
+    btnSyncPause.addEventListener('click', function () {
+      if (!syncInFlight) return;
+      syncUserPaused = true;
+      if (H && typeof H.setBackfillPaused === 'function') H.setBackfillPaused(true);
+      showCoverageStatus();
+    });
+  }
+  if (btnSyncResume) {
+    btnSyncResume.addEventListener('click', function () {
+      if (!syncInFlight || !syncUserPaused) return;
+      syncUserPaused = false;
+      if (H && typeof H.setBackfillPaused === 'function') H.setBackfillPaused(false);
+      showCoverageStatus();
+    });
+  }
+  updateSyncControls();
+
   runFullFetch();
 
   var clock = document.getElementById('clock');
