@@ -1,6 +1,6 @@
 /**
  * SüperArı — tüm arılıklar için canlı örtü + en yakın su senkronu.
- * Yeni arılık kaydında otomatik çeker; yüzde çubuğu gösterir.
+ * Su: ana dere şart değil. Sürekli (yıl boyu) en yakın temiz su yeter.
  */
 (function (global) {
   var BAR_ID = 'landcoverSyncBar';
@@ -70,20 +70,38 @@
     if (m && msg) m.textContent = msg;
   }
 
+  function isSeasonal(tags) {
+    tags = tags || {};
+    return tags.intermittent === 'yes' || tags.seasonal === 'yes' || tags.waterway === 'drain' || tags.waterway === 'ditch';
+  }
+
   function waterTypeFromTags(tags) {
     tags = tags || {};
     if (tags.natural === 'spring' || tags.amenity === 'drinking_water') return 'cesme';
-    if (tags.natural === 'water' || tags.landuse === 'reservoir' || tags.water === 'lake' || tags.water === 'pond') return 'golet';
-    if (tags.intermittent === 'yes' || tags.waterway === 'drain' || tags.waterway === 'ditch') return 'mevsimlik_dere';
+    if (tags.natural === 'water' || tags.landuse === 'reservoir' || tags.water === 'pond' || tags.water === 'lake') return 'golet';
+    if (isSeasonal(tags)) return 'mevsimlik_dere';
+    if (tags.waterway === 'stream' || tags.waterway === 'brook') return 'dere';
     if (tags.waterway) return 'dere';
     return 'diger';
+  }
+
+  /* Düşük skor daha iyi. Ana nehir şişirilir; kaynak / küçük sürekli dere öne alınır. */
+  function waterRank(tags, metres) {
+    tags = tags || {};
+    var score = metres;
+    if (tags.natural === 'spring' || tags.amenity === 'drinking_water') score -= 80;
+    else if (tags.waterway === 'stream' || tags.waterway === 'brook') score -= 40;
+    else if (tags.water === 'pond' || tags.natural === 'water') score -= 10;
+    else if (tags.waterway === 'river') score += 220;
+    if (isSeasonal(tags)) score += 400;
+    return score;
   }
 
   function waterLabelFromTags(tags, lat, lon) {
     tags = tags || {};
     if (tags.name) return String(tags.name);
     var t = waterTypeFromTags(tags);
-    var map = { dere: 'Dere', cesme: 'Kaynak', golet: 'Gölet', mevsimlik_dere: 'Mevsimlik dere', diger: 'Su' };
+    var map = { dere: 'Küçük dere', cesme: 'Kaynak', golet: 'Gölet', mevsimlik_dere: 'Mevsimlik dere', diger: 'Su' };
     return (map[t] || 'Su') + ' ' + Number(lat).toFixed(4) + ',' + Number(lon).toFixed(4);
   }
 
@@ -91,10 +109,12 @@
     var around = '(around:' + Math.round(radiusM) + ',' + lat + ',' + lon + ')';
     return (
       '[out:json][timeout:18];\n(' +
-      'way["waterway"]' + around + ';' +
-      'way["natural"="water"]' + around + ';' +
       'node["natural"="spring"]' + around + ';' +
       'node["amenity"="drinking_water"]' + around + ';' +
+      'way["waterway"~"^(stream|brook)$"]' + around + ';' +
+      'way["waterway"="river"]' + around + ';' +
+      'way["natural"="water"]' + around + ';' +
+      'node["natural"="water"]' + around + ';' +
       ');\nout tags center;'
     );
   }
@@ -131,23 +151,27 @@
   }
 
   function nearestFromElements(lat, lon, elements) {
-    var best = null;
+    var bestPerm = null;
+    var bestAny = null;
     (elements || []).forEach(function (e) {
       var c = e.center || {};
       var elat = c.lat != null ? c.lat : e.lat;
       var elon = c.lon != null ? c.lon : e.lon;
       if (!isFinite(Number(elat)) || !isFinite(Number(elon))) return;
+      var tags = e.tags || {};
       var d = haversineM(lat, lon, Number(elat), Number(elon));
-      if (!best || d < best.metres) {
-        best = {
-          metres: d,
-          lat: Number(elat),
-          lon: Number(elon),
-          tags: e.tags || {}
-        };
-      }
+      var cand = {
+        metres: d,
+        lat: Number(elat),
+        lon: Number(elon),
+        tags: tags,
+        rank: waterRank(tags, d),
+        seasonal: isSeasonal(tags)
+      };
+      if (!bestAny || cand.rank < bestAny.rank) bestAny = cand;
+      if (!cand.seasonal && (!bestPerm || cand.rank < bestPerm.rank)) bestPerm = cand;
     });
-    return best;
+    return bestPerm || bestAny;
   }
 
   function findNearestWater(lat, lon) {
@@ -159,8 +183,13 @@
       return fetchOverpass(overpassQuery(lat, lon, r))
         .then(function (j) {
           var hit = nearestFromElements(lat, lon, (j && j.elements) || []);
-          if (hit) return hit;
-          return next();
+          if (hit && !hit.seasonal) return hit;
+          if (hit && r === WATER_SCAN_M[WATER_SCAN_M.length - 1]) return hit;
+          return next().then(function (later) {
+            if (later && !later.seasonal) return later;
+            if (later && hit) return later.rank < hit.rank ? later : hit;
+            return later || hit;
+          });
         })
         .catch(function () {
           return next();
@@ -176,6 +205,10 @@
     var typeKey = waterTypeFromTags(hit.tags);
     var label = waterLabelFromTags(hit.tags, hit.lat, hit.lon);
     var item = null;
+    var note =
+      (hit.seasonal ? 'Mevsimlik · ' : 'Sürekli temiz su · ') +
+      Math.round(hit.metres) +
+      ' m · OSM otomatik';
     try {
       if (D.addWaterCatalogItem) {
         item = D.addWaterCatalogItem({
@@ -183,7 +216,7 @@
           typeKey: typeKey,
           lat: hit.lat,
           lon: hit.lon,
-          note: 'OSM otomatik · ' + hit.metres + ' m'
+          note: note
         });
       }
     } catch (e) {}
@@ -193,7 +226,7 @@
         waterDistanceM: Math.round(hit.metres),
         waterSourceType: typeKey,
         waterSourceLabel: label,
-        waterSourceNote: 'OSM otomatik · ' + Math.round(hit.metres) + ' m'
+        waterSourceNote: note
       });
     } catch (e2) {}
     return hit;
@@ -217,7 +250,7 @@
     if (!isFinite(lat) || !isFinite(lon)) return Promise.resolve(null);
     var radius =
       F && F.clampRadius ? F.clampRadius(apiary.forageRadiusKm || apiary.forageKm || 3) : 3;
-    if (onStep) onStep({ message: 'En yakın su ölçülüyor', pct: 15 });
+    if (onStep) onStep({ message: 'Sürekli temiz su aranıyor', pct: 15 });
     var waterP = findNearestWater(lat, lon).then(function (hit) {
       if (hit) saveWater(apiary, hit);
       return hit;
@@ -246,7 +279,7 @@
       setBar(false, 0, '');
       return Promise.resolve({ total: 0, ok: 0 });
     }
-    setBar(true, 2, 'Tüm arılıklar: örtü + su…');
+    setBar(true, 2, 'Tüm arılıklar: örtü + sürekli su…');
     var i = 0;
     var ok = 0;
     function next() {
@@ -286,7 +319,10 @@
     }).then(function (res) {
       var msg = 'Kayıt güncellendi';
       if (res && res.water && res.water.metres != null) {
-        msg = 'En yakın su ' + Math.round(res.water.metres) + ' m';
+        msg =
+          (res.water.seasonal ? 'Mevsimlik su ' : 'Sürekli su ') +
+          Math.round(res.water.metres) +
+          ' m';
       }
       setBar(true, 100, msg);
       setTimeout(function () { setBar(false, 100, ''); }, 1600);
