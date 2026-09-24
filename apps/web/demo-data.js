@@ -22,12 +22,12 @@
 
   /* Named demo hives used by alerts / tasks — included inside full per-apiary fleets. */
   var FEATURED_HIVES = [
-    { id: 101, name: 'Kovan 101', apiaryId: 'a1', weightKg: 38.2, deltaKg: 1.2, health: 'İyi', healthScore: 88, colonyScore: 82, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Muğla Arısı' },
-    { id: 102, name: 'Kovan 102', apiaryId: 'a1', weightKg: 35.6, deltaKg: 0.4, health: 'İyi', healthScore: 84, colonyScore: 79, swarmRisk: 'Düşük', strength: 'orta', breed: 'Muğla Arısı' },
-    { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta', strength: 'orta', breed: 'Muğla Arısı' },
-    { id: 204, name: 'Kovan 204', apiaryId: 'a2', weightKg: 33.1, deltaKg: -0.3, health: 'İyi', healthScore: 90, colonyScore: 86, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas × Karadeniz' },
-    { id: 211, name: 'Kovan 211', apiaryId: 'a2', weightKg: 29.4, deltaKg: 0.1, health: 'Kritik', healthScore: 41, colonyScore: 48, swarmRisk: 'Yüksek', strength: 'zayıf', breed: 'Kafkas × Karadeniz' },
-    { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas × Karniyol' }
+    { id: 101, name: 'Kovan 101', apiaryId: 'a1', weightKg: 38.2, deltaKg: 1.2, health: 'İyi', healthScore: 88, colonyScore: 82, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Karniyol' },
+    { id: 102, name: 'Kovan 102', apiaryId: 'a1', weightKg: 35.6, deltaKg: 0.4, health: 'İyi', healthScore: 84, colonyScore: 79, swarmRisk: 'Düşük', strength: 'orta', breed: 'Karniyol' },
+    { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta', strength: 'orta', breed: 'Karniyol' },
+    { id: 204, name: 'Kovan 204', apiaryId: 'a2', weightKg: 33.1, deltaKg: -0.3, health: 'İyi', healthScore: 90, colonyScore: 86, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Karniyol' },
+    { id: 211, name: 'Kovan 211', apiaryId: 'a2', weightKg: 29.4, deltaKg: 0.1, health: 'Kritik', healthScore: 41, colonyScore: 48, swarmRisk: 'Yüksek', strength: 'zayıf', breed: 'Karniyol' },
+    { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Karniyol' }
   ];
 
   var alerts = [
@@ -596,7 +596,7 @@
       colonyScore: Math.max(40, score - 6 + (i % 5)),
       swarmRisk: SWARMS[i % SWARMS.length],
       strength: STRENGTHS[i % STRENGTHS.length],
-      breed: String(apiaryId) === 'a4' ? 'Karniyol' : (String(apiaryId) === 'a1' ? 'Muğla Arısı' : (String(apiaryId) === 'a2' ? 'Kafkas × Karadeniz' : BREEDS[i % BREEDS.length]))
+      breed: 'Karniyol'
     });
   }
 
@@ -1091,12 +1091,12 @@
     return null;
   }
 
-  /** Yanıkdağ (a4): tüm kovanlar Karniyol (Carniyol / A. m. carnica). */
-  function applyYanikKarniyolBreeds(hives) {
+  /** Tüm kovanlar Karniyol (Carniyol / A. m. carnica) — yerel kayıtları da günceller. */
+  function applyAllKarniyolBreeds(hives) {
     var changed = false;
     var out = (hives || []).map(function (h) {
-      if (!h || String(h.apiaryId) !== 'a4') return h;
-      var cur = String(h.breed || '').trim();
+      if (!h) return h;
+      var cur = String(h.breed || h.irk || '').trim();
       if (cur === 'Karniyol') return h;
       changed = true;
       var copy = {};
@@ -1104,43 +1104,6 @@
         if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
       }
       copy.breed = 'Karniyol';
-      return copy;
-    });
-    return { list: out, changed: changed };
-  }
-
-  /** Kayaköy (a1): tüm kovanlar Muğla Arısı. */
-  function applyKayakoyMuglaBreeds(hives) {
-    var changed = false;
-    var out = (hives || []).map(function (h) {
-      if (!h || String(h.apiaryId) !== 'a1') return h;
-      var cur = String(h.breed || '').trim();
-      if (cur === 'Muğla Arısı') return h;
-      changed = true;
-      var copy = {};
-      for (var k in h) {
-        if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
-      }
-      copy.breed = 'Muğla Arısı';
-      return copy;
-    });
-    return { list: out, changed: changed };
-  }
-
-
-  /** Tortum (a2): tüm kovanlar Kafkas × Karadeniz. */
-  function applyTortumKafkasKaradenizBreeds(hives) {
-    var changed = false;
-    var out = (hives || []).map(function (h) {
-      if (!h || String(h.apiaryId) !== 'a2') return h;
-      var cur = String(h.breed || '').trim();
-      if (cur === 'Kafkas × Karadeniz') return h;
-      changed = true;
-      var copy = {};
-      for (var k in h) {
-        if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
-      }
-      copy.breed = 'Kafkas × Karadeniz';
       return copy;
     });
     return { list: out, changed: changed };
@@ -1161,14 +1124,12 @@
     } else {
       reconciled = reconcile(apiaries, raw);
     }
-    var breedMig = applyYanikKarniyolBreeds(reconciled.hives);
-    var kayakoyMig = applyKayakoyMuglaBreeds(breedMig.list);
-    var tortumMig = applyTortumKafkasKaradenizBreeds(kayakoyMig.list);
-    if (breedMig.changed || kayakoyMig.changed || tortumMig.changed) {
+    var breedMig = applyAllKarniyolBreeds(reconciled.hives);
+    if (breedMig.changed) {
       try {
-        saveHives(tortumMig.list);
+        saveHives(breedMig.list);
       } catch (eBreed) { /* ignore */ }
-      return tortumMig.list;
+      return breedMig.list;
     }
     return reconciled.hives;
   }

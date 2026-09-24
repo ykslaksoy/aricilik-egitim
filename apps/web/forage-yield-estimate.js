@@ -152,7 +152,8 @@
       if (siteClass.humidCoast) f = 0.92;
       else if (siteClass.humidCoolHighland) f = 0.97;
     } else if (key === 'karniyol') {
-      if (siteClass.coldShortSeason) f = 0.9;
+      /* Karniyol soğuk/ılıman için uygun; ceza yok. */
+      f = 1.0;
     } else if (key === 'italyan') {
       if (siteClass.coldShortSeason) f = 0.88;
     }
@@ -480,7 +481,12 @@
         reasons.push('yüksek oğul eğilimi · kısa/soğuk sezon');
       }
       var br = breedFactor(h, siteClass);
-      if (br.known && br.factor <= 0.92 && (siteClass.humidCoast || siteClass.coldShortSeason)) {
+      if (
+        br.known &&
+        br.key !== 'karniyol' &&
+        br.factor <= 0.92 &&
+        (siteClass.humidCoast || siteClass.coldShortSeason)
+      ) {
         reasons.push('ırk bu iklime daha az uyumlu');
       }
       if (!reasons.length) return;
