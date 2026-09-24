@@ -312,12 +312,23 @@
   .fs-summary .fs-chevron { flex: 0 0 auto; font-size: 11px; color: #8a8278; transition: transform .15s ease; }
   .fs-summary[aria-expanded="true"] .fs-chevron { transform: rotate(180deg); }
   .fs-detail {
-    display: grid; gap: 4px;
-    padding: 8px 10px 10px; border-radius: 12px;
-    background: #f7f8fa; border: 1px solid #e4e0d8;
+    display: grid; gap: 6px;
+    padding: 10px 12px 12px; border-radius: 12px;
+    background: #fff; border: 1px solid #e4e0d8;
   }
   .fs-detail[hidden] { display: none !important; }
-  .fs-detail .forage-radius { margin-top: 0; }
+  .fs-detail .forage-radius {
+    margin-top: 0;
+    grid-template-columns: 1fr auto;
+  }
+  .fs-detail .forage-radius label.sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+  .fs-detail .forage-auto-hint,
+  .fs-detail .water-auto-hint {
+    margin: 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
+  }
   .water-expand-panel {
     display: grid; gap: 8px;
     font-size: 12px; font-weight: 700; color: var(--muted);
@@ -2454,9 +2465,9 @@
         '</button>' +
         '<div class="fs-detail" id="waterDetail" hidden>' +
           '<div class="forage-radius">' +
-            '<label for="waterRadius">Mesafe</label>' +
+            '<label class="sr-only" for="waterRadius">Su mesafesi</label>' +
             '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
-              '" step="' + WATER_STEP_M + '" value="' + sliderM + '" />' +
+              '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(formatWaterDistLabel(sliderM)) + '" />' +
             '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
           '</div>' +
           '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
@@ -3001,8 +3012,8 @@
           '</button>' +
           '<div class="fs-detail" id="forageDetail" hidden>' +
             '<div class="forage-radius">' +
-              '<label for="forageRadius">Yarıçap</label>' +
-              '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" />' +
+              '<label class="sr-only" for="forageRadius">Foraj yarıçap</label>' +
+              '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" aria-valuetext="' + forageRadiusKm + ' km" />' +
               '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
             '</div>' +
             '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
