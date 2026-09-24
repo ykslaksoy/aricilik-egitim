@@ -305,6 +305,14 @@
   .water-source-wrap .water-auto-hint {
     margin: 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
   }
+  .fs-hint[hidden] { display: none !important; }
+  .fs-hint-toggle {
+    justify-self: start;
+    margin: 0; padding: 0;
+    border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 10px; font-weight: 700; color: #8a6a3a;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
   .water-expand-panel {
     display: grid; gap: 8px;
     font-size: 12px; font-weight: 700; color: var(--muted);
@@ -2441,7 +2449,8 @@
             '" step="' + WATER_STEP_M + '" value="' + sliderM + '" aria-valuetext="' + escapeHtml(formatWaterDistLabel(sliderM)) + '" />' +
           '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
         '</div>' +
-        '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
+        '<button type="button" class="fs-hint-toggle" id="btnWaterHint" aria-expanded="false" aria-controls="waterAutoHint">Not</button>' +
+        '<p class="water-auto-hint fs-hint" id="waterAutoHint" hidden>' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
         '<button type="button" class="map-btn ghost" id="btnWaterSources" style="justify-self:start;min-height:32px;font-size:11px;margin-top:4px;">Kaynak listesi</button>' +
         '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
           waterCatalogListHtml(apiary) +
@@ -2980,7 +2989,8 @@
             '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" aria-valuetext="' + forageRadiusKm + ' km" />' +
             '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
           '</div>' +
-          '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
+          '<button type="button" class="fs-hint-toggle" id="btnForageHint" aria-expanded="false" aria-controls="forageAutoHint">Not</button>' +
+          '<p class="forage-auto-hint fs-hint" id="forageAutoHint" hidden>' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
         '</div>' +
         waterSourceBlockHtml(apiary) +
         '<label class="map-paste">Koordinat — tek satır (enlem, boylam)' +
@@ -3188,6 +3198,22 @@
     var addPanel = document.getElementById('waterAddPanel');
     var btnSaveAdd = document.getElementById('btnSaveWaterAdd');
     var expandPanel = document.getElementById('waterExpandPanel');
+    function bindHintToggle(btnId, hintId) {
+      var btn = document.getElementById(btnId);
+      var hint = document.getElementById(hintId);
+      if (!btn || !hint) return;
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var open = hint.hidden;
+        hint.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.textContent = open ? 'Notu gizle' : 'Not';
+      });
+    }
+    bindHintToggle('btnForageHint', 'forageAutoHint');
+    bindHintToggle('btnWaterHint', 'waterAutoHint');
+
     var btnWaterSources = document.getElementById('btnWaterSources');
     if (btnWaterSources && expandPanel) {
       btnWaterSources.addEventListener('click', function () {
