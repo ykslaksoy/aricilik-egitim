@@ -299,6 +299,25 @@
   .water-auto-hint {
     margin: 4px 0 0; font-size: 10px; color: #8a8278; line-height: 1.35; font-weight: 560;
   }
+  .fs-collapse { margin-top: 8px; display: grid; gap: 6px; }
+  .fs-summary {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    min-height: 36px; padding: 8px 11px; border-radius: 12px;
+    border: 1px solid #e4e0d8; background: #faf8f4; color: #4a2f1a;
+    font: inherit; font-size: 12px; font-weight: 750; text-align: left; cursor: pointer;
+  }
+  .fs-summary:hover { background: #f3efe6; }
+  .fs-summary .fs-label { flex: 0 0 auto; color: #6b635a; font-weight: 700; }
+  .fs-summary .fs-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
+  .fs-summary .fs-chevron { flex: 0 0 auto; font-size: 11px; color: #8a8278; transition: transform .15s ease; }
+  .fs-summary[aria-expanded="true"] .fs-chevron { transform: rotate(180deg); }
+  .fs-detail {
+    display: grid; gap: 4px;
+    padding: 8px 10px 10px; border-radius: 12px;
+    background: #f7f8fa; border: 1px solid #e4e0d8;
+  }
+  .fs-detail[hidden] { display: none !important; }
+  .fs-detail .forage-radius { margin-top: 0; }
   .water-expand-panel {
     display: grid; gap: 8px;
     font-size: 12px; font-weight: 700; color: var(--muted);
@@ -767,6 +786,8 @@
     var radiusVal = document.getElementById('forageRadiusVal');
     if (radiusInput) radiusInput.value = String(forageRadiusKm);
     if (radiusVal) radiusVal.textContent = forageRadiusKm + ' km';
+    var forageSum = document.getElementById('forageSummaryVal');
+    if (forageSum) forageSum.textContent = forageRadiusKm + ' km';
     return forageRadiusKm;
   }
 
@@ -2331,8 +2352,7 @@
   var WATER_AUTO_HINT_TR =
     'Su, yavruya mama seyreltme ve sıcak günde kovan soğutma (buharlaşma) için şarttır; ' +
     'kaynak uzaklaştıkça su toplayıcı arı daha çok enerji harcar, nektar toplayıcı sayısı görece azalır. ' +
-    'Yakın su (yaklaşık ≤1 km) koloninin dinlenmesini ve bal verimini destekler; 2–3 km hâlâ mümkün ama maliyetlidir (garanti değil). ' +
-    'Su iğnesi varsa mesafe haritadan hesaplanır (uydurma yok); kaydırıcı yalnız önizleme / elle kayıt içindir.';
+    'Yakın su (yaklaşık ≤1 km) koloninin dinlenmesini ve bal verimini destekler; 2–3 km hâlâ mümkün ama maliyetlidir (garanti değil).';
   function clampWaterDistM(v) {
     var n = Math.round(Number(v));
     if (!isFinite(n)) n = WATER_DEFAULT_M;
@@ -2423,16 +2443,25 @@
     /* Elle mesafe yalnız konum yoksa; konum varsa harita mesafesi kullanılır. */
     var showManualDist = !!(apiary && apiary.waterSourceId && !waterHasCoords);
     var sliderM = initialWaterSliderM(apiary);
+    var waterSum = waterSummaryText(apiary);
     return (
-      '<div class="water-source-wrap" id="waterSourceBlock">' +
+      '<div class="water-source-wrap fs-collapse" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
-        '<div class="forage-radius">' +
-          '<label for="waterRadius">Su</label>' +
-          '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
-            '" step="' + WATER_STEP_M + '" value="' + sliderM + '" />' +
-          '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
+        '<button type="button" class="fs-summary" id="btnWaterToggle" aria-expanded="false" aria-controls="waterDetail">' +
+          '<span class="fs-label">Su</span>' +
+          '<span class="fs-val" id="waterSummaryVal">' + escapeHtml(waterSum) + '</span>' +
+          '<span class="fs-chevron" aria-hidden="true">▾</span>' +
+        '</button>' +
+        '<div class="fs-detail" id="waterDetail" hidden>' +
+          '<div class="forage-radius">' +
+            '<label for="waterRadius">Mesafe</label>' +
+            '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
+              '" step="' + WATER_STEP_M + '" value="' + sliderM + '" />' +
+            '<span class="val" id="waterRadiusVal">' + escapeHtml(formatWaterDistLabel(sliderM)) + '</span>' +
+          '</div>' +
+          '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
+          '<button type="button" class="map-btn ghost" id="btnWaterSources" style="justify-self:start;min-height:32px;font-size:11px;">Kaynak listesi</button>' +
         '</div>' +
-        '<p class="water-auto-hint" id="waterAutoHint">' + escapeHtml(WATER_AUTO_HINT_TR) + '</p>' +
         '<div class="water-expand-panel" id="waterExpandPanel" hidden>' +
           waterCatalogListHtml(apiary) +
           '<button type="button" class="map-btn ghost" id="btnShowWaterAdd">Listeye ekle</button>' +
@@ -2964,12 +2993,21 @@
             '<button type="button" class="map-btn ghost" id="btnWaterAskCancel">Vazgeç</button>' +
           '</div>' +
         '</div>' +
-        '<div class="forage-radius">' +
-          '<label for="forageRadius">Foraj</label>' +
-          '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" />' +
-          '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
+        '<div class="fs-collapse" id="forageCollapse">' +
+          '<button type="button" class="fs-summary" id="btnForageToggle" aria-expanded="false" aria-controls="forageDetail">' +
+            '<span class="fs-label">Foraj</span>' +
+            '<span class="fs-val" id="forageSummaryVal">' + forageRadiusKm + ' km</span>' +
+            '<span class="fs-chevron" aria-hidden="true">▾</span>' +
+          '</button>' +
+          '<div class="fs-detail" id="forageDetail" hidden>' +
+            '<div class="forage-radius">' +
+              '<label for="forageRadius">Yarıçap</label>' +
+              '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" />' +
+              '<span class="val" id="forageRadiusVal">' + forageRadiusKm + ' km</span>' +
+            '</div>' +
+            '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
+          '</div>' +
         '</div>' +
-        '<p class="forage-auto-hint" id="forageAutoHint">' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
         waterSourceBlockHtml(apiary) +
         '<label class="map-paste">Koordinat — tek satır (enlem, boylam)' +
           '<div class="map-search-row map-paste-row">' +
@@ -3176,15 +3214,22 @@
     var addPanel = document.getElementById('waterAddPanel');
     var btnSaveAdd = document.getElementById('btnSaveWaterAdd');
     var expandPanel = document.getElementById('waterExpandPanel');
+    var waterDetail = document.getElementById('waterDetail');
     var btnWaterToggle = document.getElementById('btnWaterToggle');
-    if (btnWaterToggle && expandPanel) {
+    if (btnWaterToggle && waterDetail) {
       btnWaterToggle.addEventListener('click', function () {
+        var opening = waterDetail.hidden;
+        waterDetail.hidden = !opening;
+        btnWaterToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (!opening && expandPanel) expandPanel.hidden = true;
+      });
+    }
+    var btnWaterSources = document.getElementById('btnWaterSources');
+    if (btnWaterSources && expandPanel) {
+      btnWaterSources.addEventListener('click', function () {
         var opening = expandPanel.hidden;
         expandPanel.hidden = !opening;
-        if (!opening) {
-          /* collapsing — leave add panel as-is for next open */
-          return;
-        }
+        if (!opening) return;
         var list = catalogList();
         if (!list.length) {
           if (addPanel) addPanel.hidden = false;
@@ -3192,6 +3237,15 @@
           var lab = document.getElementById('waterAddLabel');
           if (lab) lab.focus();
         }
+      });
+    }
+    var forageDetail = document.getElementById('forageDetail');
+    var btnForageToggle = document.getElementById('btnForageToggle');
+    if (btnForageToggle && forageDetail) {
+      btnForageToggle.addEventListener('click', function () {
+        var opening = forageDetail.hidden;
+        forageDetail.hidden = !opening;
+        btnForageToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
       });
     }
 
@@ -3351,6 +3405,8 @@
         var locked = forageRadiusKm;
         radiusInput.value = String(locked);
         if (radiusVal) radiusVal.textContent = locked + ' km';
+        var forageSum = document.getElementById('forageSummaryVal');
+        if (forageSum) forageSum.textContent = locked + ' km';
         var pin = currentPin();
         if (radar && pin) {
           radar.setRadiusKm(locked);
@@ -3361,10 +3417,18 @@
     var waterRadius = document.getElementById('waterRadius');
     var waterRadiusVal = document.getElementById('waterRadiusVal');
     if (waterRadius) {
+      function syncWaterSummaryLabel(m) {
+        var sum = document.getElementById('waterSummaryVal');
+        if (!sum) return;
+        var type = waterTypeSummary(activeApiary);
+        var dist = formatWaterDistLabel(m);
+        sum.textContent = type ? (type + ' · ' + dist) : dist;
+      }
       waterRadius.addEventListener('input', function () {
         var m = clampWaterDistM(waterRadius.value);
         waterRadius.value = String(m);
         if (waterRadiusVal) waterRadiusVal.textContent = formatWaterDistLabel(m);
+        syncWaterSummaryLabel(m);
         var pinW = currentPin();
         if (pinW) syncWaterRadar(pinW.lat, pinW.lon);
       });
@@ -3372,6 +3436,7 @@
         var m = clampWaterDistM(waterRadius.value);
         waterRadius.value = String(m);
         if (waterRadiusVal) waterRadiusVal.textContent = formatWaterDistLabel(m);
+        syncWaterSummaryLabel(m);
         openWaterAskFromSlider(m);
       });
     }
