@@ -13,9 +13,9 @@
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
   var SEED_APIARIES = [
-    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 39.92, lon: 41.27, hiveCount: 42 },
+    { id: 'a1', name: 'Kayaköy Ana Arılık', place: 'Kayaköy', lat: 36.58141, lon: 29.08886, hiveCount: 42 },
     { id: 'a2', name: 'Tortum Yayla Arılığı', place: 'Tortum', lat: 40.257866, lon: 41.613415, hiveCount: 35 },
-    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 40.45, lon: 41.4, hiveCount: 23 },
+    { id: 'a3', name: 'Palandöken Yayla Arılığı', place: 'Palandöken', lat: 39.90, lon: 41.27, hiveCount: 23 },
     { id: 'a4', name: 'Yanıkdağ Baluğundüzü Arılığı', place: 'Yanıkdağ Baluğundüzü', lat: 41.080781, lon: 40.753956, hiveCount: 20 },
     { id: 'a5', name: 'Cimil Yaylası Arılığı', place: 'Cimil Yaylası', lat: 40.733, lon: 40.789, hiveCount: 25 }
   ];
@@ -581,6 +581,12 @@
   var YANIK_TARGET_LON = 40.753956;
   var TORTUM_TARGET_LAT = 40.257866;
   var TORTUM_TARGET_LON = 41.613415;
+  /* Fethiye Kayaköy (Muğla) — Muğla Arısı için doğru bölge; eski Erzurum 39.92/41.27 değil. */
+  var KAYAKOY_TARGET_LAT = 36.58141;
+  var KAYAKOY_TARGET_LON = 29.08886;
+  /* Erzurum–Palandöken kenarı (~1920 m mera/yayla bandı; kayak zirvesi değil). */
+  var PALANDOKEN_TARGET_LAT = 39.90;
+  var PALANDOKEN_TARGET_LON = 41.27;
   var YANIK_LEGACY_COORDS = [
     { lat: 39.95, lon: 41.30 },
     { lat: 41.072, lon: 40.743 }
@@ -623,10 +629,25 @@
     var out = (list || []).map(function (a) {
       if (!a) return a;
       var id = String(a.id);
-      var isYanik = id === 'a4' || (id !== 'a2' && (looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place)));
-      var isTortum = id === 'a2' || (id !== 'a4' && (/tortum/i.test(String(a.name || '')) || /tortum/i.test(String(a.place || ''))));
-      var targetLat = isYanik ? YANIK_TARGET_LAT : (isTortum ? TORTUM_TARGET_LAT : null);
-      var targetLon = isYanik ? YANIK_TARGET_LON : (isTortum ? TORTUM_TARGET_LON : null);
+      var isYanik = id === 'a4' || (id !== 'a1' && id !== 'a2' && id !== 'a3' && (looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place)));
+      var isTortum = id === 'a2' || (id !== 'a1' && id !== 'a4' && id !== 'a3' && (/tortum/i.test(String(a.name || '')) || /tortum/i.test(String(a.place || ''))));
+      var isPalandoken = id === 'a3' || (/paland[oö]ken/i.test(String(a.name || '')) || /paland[oö]ken/i.test(String(a.place || '')));
+      var isKayakoy = id === 'a1' || (/kayaköy/i.test(String(a.name || '')) || /kayaköy/i.test(String(a.place || '')) || /kayakoy/i.test(String(a.name || '')) || /kayakoy/i.test(String(a.place || '')));
+      var targetLat = null;
+      var targetLon = null;
+      if (isYanik) {
+        targetLat = YANIK_TARGET_LAT;
+        targetLon = YANIK_TARGET_LON;
+      } else if (isTortum) {
+        targetLat = TORTUM_TARGET_LAT;
+        targetLon = TORTUM_TARGET_LON;
+      } else if (isPalandoken) {
+        targetLat = PALANDOKEN_TARGET_LAT;
+        targetLon = PALANDOKEN_TARGET_LON;
+      } else if (isKayakoy) {
+        targetLat = KAYAKOY_TARGET_LAT;
+        targetLon = KAYAKOY_TARGET_LON;
+      }
       if (targetLat == null || isNearCoordinateTarget(a, targetLat, targetLon)) return a;
       changed = true;
       var copy = {};
@@ -671,8 +692,8 @@
         id: a.id,
         name: NAME_A1,
         place: PLACE_A1,
-        lat: a.lat != null && isFinite(Number(a.lat)) ? Number(a.lat) : 39.92,
-        lon: a.lon != null && isFinite(Number(a.lon)) ? Number(a.lon) : 41.27,
+        lat: a.lat != null && isFinite(Number(a.lat)) ? Number(a.lat) : KAYAKOY_TARGET_LAT,
+        lon: a.lon != null && isFinite(Number(a.lon)) ? Number(a.lon) : KAYAKOY_TARGET_LON,
         hiveCount: a.hiveCount
       }, a);
     });

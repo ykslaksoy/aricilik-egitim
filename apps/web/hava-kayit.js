@@ -15,9 +15,9 @@
   var ARCHIVE_CHUNK_DAYS = 90;
   var RAIN_HOUR_THRESHOLD_MM = 0.1; /* saatlik yağış ≥ bu → yağış saati sayılır */
   var DEFAULT_APIARIES = [
-    { id: 'a1', label: 'Kayaköy', lat: 39.92, lon: 41.27 },
+    { id: 'a1', label: 'Kayaköy', lat: 36.58141, lon: 29.08886 },
     { id: 'a2', label: 'Tortum', lat: 40.257866, lon: 41.613415 },
-    { id: 'a3', label: 'Palandöken', lat: 40.45, lon: 41.4 },
+    { id: 'a3', label: 'Palandöken', lat: 39.90, lon: 41.27 },
     { id: 'a4', label: 'Yanıkdağ Baluğundüzü', lat: 41.080781, lon: 40.753956 },
     { id: 'a5', label: 'Cimil Yaylası', lat: 40.733, lon: 40.789 }
   ];
