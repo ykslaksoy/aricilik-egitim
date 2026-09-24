@@ -1,9 +1,10 @@
 /**
- * SüperArı — örtü + sürekli su senkronu.
- * Çubuk Foraj kaydırıcısının hemen üstünde; tıklayınca detay.
+ * SüperArı — örtü + su senkronu + yorum özeti.
+ * Çubuk Foraj’ın üstünde; tıklayınca günlük ve yorum detayı.
  */
 (function (global) {
   var BAR_ID = 'landcoverSyncBar';
+  var INSIGHT_ID = 'forageInsightCard';
   var OVERPASS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
@@ -13,6 +14,8 @@
   var running = false;
   var logLines = [];
   var barOpen = false;
+  var insightOpen = false;
+  var lastInsights = [];
 
   function injectCss() {
     if (typeof document === 'undefined') return;
@@ -20,27 +23,28 @@
     var s = document.createElement('style');
     s.id = 'landcover-sync-css';
     s.textContent =
-      '.forage-progress{margin:0 0 8px;padding:8px 10px;border-radius:12px;background:#faf8f4;border:1px solid #e4e0d8;cursor:pointer;-webkit-tap-highlight-color:transparent;}' +
-      '.forage-progress-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;color:#6b635a;margin-bottom:6px;}' +
-      '.forage-progress-label [data-lc-msg]{color:#4a2f1a;font-weight:800;}' +
-      '.forage-progress-label [data-lc-pct]{font-variant-numeric:tabular-nums;color:#4a2f1a;font-weight:800;white-space:nowrap;}' +
-      '.forage-progress-now{font-size:11px;font-weight:650;color:#6b635a;margin:0 0 6px;line-height:1.35;}' +
+      '.forage-progress,.forage-insight{margin:0 0 8px;padding:8px 10px;border-radius:12px;background:#faf8f4;border:1px solid #e4e0d8;-webkit-tap-highlight-color:transparent;}' +
+      '.forage-progress{cursor:pointer;}' +
+      '.forage-progress-label,.forage-insight-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;color:#6b635a;margin-bottom:6px;}' +
+      '.forage-progress-label [data-lc-pct],.forage-insight-grade{font-variant-numeric:tabular-nums;color:#4a2f1a;font-weight:800;white-space:nowrap;}' +
+      '.forage-progress-now,.forage-insight-sum{font-size:12px;font-weight:650;color:#2c241c;margin:0 0 6px;line-height:1.4;}' +
       '.forage-progress-track{height:8px;border-radius:999px;background:#efe6c8;overflow:hidden;}' +
       '.forage-progress-bar{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f0c43a,#b8860b);transition:width .25s ease;}' +
-      '.forage-progress-hint{margin:6px 0 0;font-size:10px;font-weight:600;color:#8a8278;}' +
-      '.forage-progress-detail{display:none;margin:8px 0 0;padding:8px;max-height:160px;overflow:auto;border-radius:10px;background:#fff;border:1px solid #e4e0d8;font-size:11px;line-height:1.4;color:#4a2f1a;}' +
-      '.forage-progress.is-open .forage-progress-detail{display:block;}' +
-      '.forage-progress-detail div{padding:3px 0;border-bottom:1px solid #f3ead0;}' +
-      '.forage-progress-detail div:last-child{border-bottom:0;}' +
-      '.fs-block .forage-progress,.forage-radius .forage-progress{margin:0 0 8px;}';
+      '.forage-progress-hint,.forage-insight-hint{margin:6px 0 0;font-size:10px;font-weight:600;color:#8a8278;}' +
+      '.forage-progress-detail,.forage-insight-detail{display:none;margin:8px 0 0;padding:8px;max-height:220px;overflow:auto;border-radius:10px;background:#fff;border:1px solid #e4e0d8;font-size:11px;line-height:1.45;color:#4a2f1a;}' +
+      '.forage-progress.is-open .forage-progress-detail,.forage-insight.is-open .forage-insight-detail{display:block;}' +
+      '.forage-progress-detail div,.forage-insight-detail p{padding:3px 0;border-bottom:1px solid #f3ead0;margin:0;}' +
+      '.forage-insight-detail p:last-child{border-bottom:0;}' +
+      '.forage-insight{cursor:pointer;}' +
+      '.forage-insight.tone-good{border-color:#b7d4a8;background:#f4faef;}' +
+      '.forage-insight.tone-mid{border-color:#e0c56a;background:#fff8df;}' +
+      '.forage-insight.tone-bad{border-color:#e0b4a8;background:#fff4f0;}';
     document.head.appendChild(s);
   }
 
   function forageAnchor() {
     var radius = document.getElementById('forageRadius');
-    if (radius) {
-      return radius.closest('.fs-block') || radius.closest('.forage-radius') || radius.parentNode;
-    }
+    if (radius) return radius.closest('.fs-block') || radius.closest('.forage-radius') || radius.parentNode;
     return document.querySelector('.fs-block') || document.querySelector('.forage-radius') || document.getElementById('forageHost');
   }
 
@@ -49,8 +53,7 @@
     if (!D) return [];
     try {
       if (typeof D.loadApiaries === 'function') return D.loadApiaries() || [];
-      if (D.apiaries) return D.apiaries || [];
-      return [];
+      return D.apiaries || [];
     } catch (e) { return []; }
   }
 
@@ -80,6 +83,123 @@
     }
   }
 
+  function interpretOne(apiary, waterHit, analysis) {
+    var name = (apiary && (apiary.name || apiary.etiket)) || 'Arılık';
+    var metres = waterHit && waterHit.metres != null ? Math.round(waterHit.metres) : null;
+    if (metres == null && apiary && apiary.waterDistanceM != null) metres = Number(apiary.waterDistanceM);
+    var lc = analysis && (analysis.landCover || analysis.payload && analysis.payload.landCover);
+    var here = analysis && (analysis.here || (analysis.payload && analysis.payload.here));
+    var flight = analysis && (analysis.flight || (analysis.payload && analysis.payload.flight));
+    var waterCl = analysis && (analysis.water || (analysis.payload && analysis.payload.water));
+    var details = [];
+    var score = 0;
+    var max = 0;
+
+    var waterLine;
+    max += 2;
+    if (metres != null && isFinite(metres)) {
+      if (metres <= 300) { score += 2; waterLine = 'Su ' + metres + ' m — ideal (≤300 m).'; }
+      else if (metres <= 800) { score += 1; waterLine = 'Su ' + metres + ' m — kabul edilebilir; 300 m altı daha iyi.'; }
+      else { waterLine = 'Su ' + metres + ' m — uzak; arı uçuşu suya fazla gider.'; }
+    } else {
+      waterLine = 'Haritada çizili su yok — yakın kaynak iğnesi koy.';
+    }
+    details.push(waterLine);
+
+    max += 2;
+    var coverLine = 'Bitki örtüsü ölçülmedi.';
+    if (lc && (lc.summaryTr || lc.goodPct != null)) {
+      var g = Math.round(Number(lc.goodPct) || 0);
+      if (g >= 45) { score += 2; coverLine = 'Örtü güçlü (çayır/tarım ~%' + g + '). Nektar tabanı yeterli.'; }
+      else if (g >= 20) { score += 1; coverLine = 'Örtü karışık (~%' + g + ' iyi foraj). Yayla + tarım mozaik.'; }
+      else coverLine = 'Örtü zayıf (~%' + g + ' iyi foraj). Taşıma veya ek kaynak düşün.';
+      if (lc.summaryTr) details.push(lc.summaryTr);
+      else details.push(coverLine);
+    } else details.push(coverLine);
+
+    max += 1;
+    if (flight && flight.summary) {
+      if (flight.tone === 'good') score += 1;
+      details.push('Uçuş: ' + flight.summary);
+    } else if (here && here.precipDays != null) {
+      details.push('Sezon yağışlı gün: ' + here.precipDays);
+    }
+
+    if (waterCl && waterCl.droughtLabel) {
+      details.push('Nem/su dengesi: ' + waterCl.droughtLabel + (waterCl.rhNote ? ' · ' + waterCl.rhNote : ''));
+    }
+    if (here && here.elevM != null) details.push('Rakım ~' + Math.round(here.elevM) + ' m.');
+
+    var ratio = max ? score / max : 0;
+    var tone = ratio >= 0.7 ? 'good' : ratio >= 0.4 ? 'mid' : 'bad';
+    var grade = tone === 'good' ? 'Uygun' : tone === 'mid' ? 'Orta' : 'Zayıf';
+    var summary = name + ' · ' + waterLine.split(' — ')[0] + ' · ' + coverLine.split('.')[0] + '.';
+
+    var action;
+    if (metres != null && metres > 300) action = 'Kovanı suya 300 m içine kaydırmak veya oluk koymak bal verimini destekler.';
+    else if (lc && Number(lc.goodPct) < 20) action = 'Bu noktada nektar dar; çiçek dönemi kısa süreli konak veya ek tarla kenarı dene.';
+    else action = 'Konum su ve örtü açısından tutulabilir; mevsim penceresini izle.';
+    details.push(action);
+
+    return { name: name, tone: tone, grade: grade, summary: summary, details: details, metres: metres };
+  }
+
+  function ensureInsight() {
+    injectCss();
+    var el = document.getElementById(INSIGHT_ID);
+    var bar = document.getElementById(BAR_ID);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = INSIGHT_ID;
+      el.className = 'forage-insight tone-mid';
+      el.innerHTML =
+        '<div class="forage-insight-label"><span>Yorum</span><span class="forage-insight-grade" data-ins-grade>—</span></div>' +
+        '<p class="forage-insight-sum" data-ins-sum>Veri gelince özet burada.</p>' +
+        '<p class="forage-insight-hint" data-ins-hint>Detay için dokun</p>' +
+        '<div class="forage-insight-detail" data-ins-detail></div>';
+      el.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        insightOpen = !insightOpen;
+        el.classList.toggle('is-open', insightOpen);
+        var hint = el.querySelector('[data-ins-hint]');
+        if (hint) hint.textContent = insightOpen ? 'Gizlemek için tekrar dokun' : 'Detay için dokun';
+      });
+    }
+    if (bar && bar.parentNode && el.previousElementSibling !== bar) {
+      bar.parentNode.insertBefore(el, bar.nextSibling);
+    } else if (!el.parentNode) {
+      var a = forageAnchor();
+      if (a && a.parentNode) a.parentNode.insertBefore(el, a);
+    }
+    return el;
+  }
+
+  function paintInsights() {
+    var el = ensureInsight();
+    if (!lastInsights.length) return;
+    var first = lastInsights[0];
+    var good = lastInsights.filter(function (x) { return x.tone === 'good'; }).length;
+    var mid = lastInsights.filter(function (x) { return x.tone === 'mid'; }).length;
+    var bad = lastInsights.filter(function (x) { return x.tone === 'bad'; }).length;
+    var tone = bad && !good ? 'bad' : good >= lastInsights.length / 2 ? 'good' : 'mid';
+    el.className = 'forage-insight tone-' + tone + (insightOpen ? ' is-open' : '');
+    var grade = el.querySelector('[data-ins-grade]');
+    var sum = el.querySelector('[data-ins-sum]');
+    var det = el.querySelector('[data-ins-detail]');
+    if (grade) grade.textContent = lastInsights.length === 1 ? first.grade : (good + ' uygun / ' + lastInsights.length);
+    if (sum) {
+      sum.textContent = lastInsights.length === 1
+        ? first.summary
+        : lastInsights.map(function (x) { return x.name + ': ' + x.grade; }).join(' · ');
+    }
+    if (det) {
+      det.innerHTML = lastInsights.map(function (x) {
+        return '<p><strong>' + x.name + ' — ' + x.grade + '</strong></p>' +
+          x.details.map(function (d) { return '<p>' + String(d).replace(/</g, '&lt;') + '</p>'; }).join('');
+      }).join('');
+    }
+  }
+
   function ensureBar() {
     if (typeof document === 'undefined') return null;
     injectCss();
@@ -89,13 +209,13 @@
       if (anchor && el.nextElementSibling !== anchor && el.parentNode !== anchor) {
         anchor.parentNode.insertBefore(el, anchor);
       }
+      ensureInsight();
       return el;
     }
     el = document.createElement('div');
     el.id = BAR_ID;
     el.className = 'forage-progress';
     el.setAttribute('role', 'button');
-    el.setAttribute('aria-expanded', 'false');
     el.innerHTML =
       '<div class="forage-progress-label"><span>Güncelleme</span><span data-lc-pct>0%</span></div>' +
       '<p class="forage-progress-now" data-lc-now>Şu an: bekleniyor</p>' +
@@ -105,20 +225,16 @@
     el.addEventListener('click', function () {
       barOpen = !barOpen;
       el.classList.toggle('is-open', barOpen);
-      el.setAttribute('aria-expanded', barOpen ? 'true' : 'false');
       var hint = el.querySelector('[data-lc-hint]');
       if (hint) hint.textContent = barOpen ? 'Gizlemek için tekrar dokun' : 'Detay için dokun';
     });
-    if (anchor && anchor.parentNode) {
-      anchor.parentNode.insertBefore(el, anchor);
-    } else {
-      var host =
-        document.getElementById('forageHost') ||
-        document.getElementById('apiaryList') ||
-        document.querySelector('.screen');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor);
+    else {
+      var host = document.getElementById('forageHost') || document.getElementById('apiaryList') || document.querySelector('.screen');
       if (host && host.parentNode) host.parentNode.insertBefore(el, host);
       else if (document.body) document.body.insertBefore(el, document.body.firstChild);
     }
+    ensureInsight();
     return el;
   }
 
@@ -282,13 +398,17 @@
       return analysis;
     }).catch(function () { addLog(name + ' · örtü hata'); return null; }) : Promise.resolve(null);
     return Promise.all([waterP, forageP]).then(function (pack) {
-      return { water: pack[0], forage: pack[1] };
+      var insight = interpretOne(apiary, pack[0], pack[1]);
+      lastInsights = lastInsights.filter(function (x) { return x.name !== insight.name; }).concat([insight]);
+      paintInsights();
+      return { water: pack[0], forage: pack[1], insight: insight };
     });
   }
   function refreshAll() {
     if (running) return Promise.resolve({ total: 0, ok: 0, skipped: true });
     running = true;
     logLines = [];
+    lastInsights = [];
     var list = apiaries().filter(function (a) {
       return a && isFinite(Number(a.lat)) && isFinite(Number(a.lon));
     });
@@ -302,6 +422,7 @@
     function next() {
       if (i >= list.length) {
         setBar(true, 100, 'Tamam (' + ok + '/' + list.length + ')', 'Tüm arılıklar işlendi');
+        paintInsights();
         running = false;
         return { total: list.length, ok: ok };
       }
