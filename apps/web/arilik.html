@@ -312,10 +312,12 @@
   .fs-summary .fs-chevron { flex: 0 0 auto; font-size: 11px; color: #8a8278; transition: transform .15s ease; }
   .fs-summary[aria-expanded="true"] .fs-chevron { transform: rotate(180deg); }
   .fs-detail {
-    display: grid; gap: 6px;
+    display: none;
+    gap: 6px;
     padding: 10px 12px 12px; border-radius: 12px;
     background: #fff; border: 1px solid #e4e0d8;
   }
+  .fs-detail.is-open { display: grid; }
   .fs-detail[hidden] { display: none !important; }
   .fs-detail .forage-radius {
     margin-top: 0;
@@ -2426,10 +2428,10 @@
   }
 
   function waterSummaryText(apiary) {
-    var type = waterTypeSummary(apiary);
-    if (!type) return 'Seçilmedi';
     var dist = waterDistSummary(apiary);
-    return dist && dist !== '—' ? (type + ' · ' + dist) : type;
+    if (dist && dist !== '—') return dist;
+    var type = waterTypeSummary(apiary);
+    return type || 'Seçilmedi';
   }
 
   function waterSourceBlockHtml(apiary) {
@@ -2458,12 +2460,12 @@
     return (
       '<div class="water-source-wrap fs-collapse" id="waterSourceBlock">' +
         '<div class="water-suggest-banner" id="waterSuggestBanner" hidden></div>' +
-        '<button type="button" class="fs-summary" id="btnWaterToggle" aria-expanded="false" aria-controls="waterDetail">' +
+        '<button type="button" class="fs-summary" id="btnWaterToggle" aria-expanded="true" aria-controls="waterDetail">' +
           '<span class="fs-label">Su</span>' +
           '<span class="fs-val" id="waterSummaryVal">' + escapeHtml(waterSum) + '</span>' +
           '<span class="fs-chevron" aria-hidden="true">▾</span>' +
         '</button>' +
-        '<div class="fs-detail" id="waterDetail" hidden>' +
+        '<div class="fs-detail is-open" id="waterDetail">' +
           '<div class="forage-radius">' +
             '<label class="sr-only" for="waterRadius">Su mesafesi</label>' +
             '<input type="range" id="waterRadius" min="' + WATER_MIN_M + '" max="' + WATER_MAX_M +
@@ -3005,12 +3007,12 @@
           '</div>' +
         '</div>' +
         '<div class="fs-collapse" id="forageCollapse">' +
-          '<button type="button" class="fs-summary" id="btnForageToggle" aria-expanded="false" aria-controls="forageDetail">' +
+          '<button type="button" class="fs-summary" id="btnForageToggle" aria-expanded="true" aria-controls="forageDetail">' +
             '<span class="fs-label">Foraj</span>' +
             '<span class="fs-val" id="forageSummaryVal">' + forageRadiusKm + ' km</span>' +
             '<span class="fs-chevron" aria-hidden="true">▾</span>' +
           '</button>' +
-          '<div class="fs-detail" id="forageDetail" hidden>' +
+          '<div class="fs-detail is-open" id="forageDetail">' +
             '<div class="forage-radius">' +
               '<label class="sr-only" for="forageRadius">Foraj yarıçap</label>' +
               '<input type="range" id="forageRadius" min="' + ((F && F.MIN_RADIUS_KM) || 0.5) + '" max="' + ((F && F.MAX_RADIUS_KM) || 10) + '" step="' + ((F && F.RADIUS_STEP_KM) || 0.5) + '" value="' + forageRadiusKm + '" aria-valuetext="' + forageRadiusKm + ' km" />' +
@@ -3228,8 +3230,11 @@
     var waterDetail = document.getElementById('waterDetail');
     var btnWaterToggle = document.getElementById('btnWaterToggle');
     if (btnWaterToggle && waterDetail) {
-      btnWaterToggle.addEventListener('click', function () {
-        var opening = waterDetail.hidden;
+      btnWaterToggle.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var opening = !waterDetail.classList.contains('is-open');
+        waterDetail.classList.toggle('is-open', opening);
         waterDetail.hidden = !opening;
         btnWaterToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
         if (!opening && expandPanel) expandPanel.hidden = true;
@@ -3253,8 +3258,11 @@
     var forageDetail = document.getElementById('forageDetail');
     var btnForageToggle = document.getElementById('btnForageToggle');
     if (btnForageToggle && forageDetail) {
-      btnForageToggle.addEventListener('click', function () {
-        var opening = forageDetail.hidden;
+      btnForageToggle.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var opening = !forageDetail.classList.contains('is-open');
+        forageDetail.classList.toggle('is-open', opening);
         forageDetail.hidden = !opening;
         btnForageToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
       });
@@ -3431,9 +3439,7 @@
       function syncWaterSummaryLabel(m) {
         var sum = document.getElementById('waterSummaryVal');
         if (!sum) return;
-        var type = waterTypeSummary(activeApiary);
-        var dist = formatWaterDistLabel(m);
-        sum.textContent = type ? (type + ' · ' + dist) : dist;
+        sum.textContent = formatWaterDistLabel(m);
       }
       waterRadius.addEventListener('input', function () {
         var m = clampWaterDistM(waterRadius.value);
