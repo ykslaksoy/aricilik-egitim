@@ -838,7 +838,7 @@
         insights.push({
           k: 'Foraj yarıçapı',
           v: here.radiusKm + ' km',
-          note: 'arılar bu çapta geziyor'
+          note: 'arılar bu yarıçapta geziyor'
         });
         if (climateOk && here.meanTempC != null) {
           insights.push({
@@ -1110,7 +1110,7 @@
       '</div>' +
       '<p class="forage-sub">Arılar ~' +
       analysis.radiusKm +
-      ' km çapta geziyor (foraj çemberi).' +
+      ' km yarıçapta geziyor (foraj çemberi).' +
       (analysis.demo
         ? ' <span class="forage-tag">iklim yok · rakım/eğim</span>'
         : '') +
