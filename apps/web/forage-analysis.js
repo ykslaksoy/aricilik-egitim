@@ -16,7 +16,8 @@
   var MAX_RADIUS_KM = 10;
   var RADIUS_STEP_KM = 0.5;
   var AUTO_HINT_TR =
-    'Otomatik foraj: yakın kovan yoğunluğu yüksekse daraltır; yerleşim/araç proxy (yol-kent tahmini, trafik API yok) yüksekse daraltır. Kaydırarak elle değiştirebilirsiniz (0,5–10 km).';
+    'Otomatik foraj (~2–4 km): yakın kovan yoğunluğu veya yerleşim/araç proxy yüksekse daraltır. ' +
+    'Yanıkdağ / yayla gibi seyrek yerlerde ~3 km civarı önerilir. Kaydırarak elle değiştirebilirsiniz (0,5–10 km).';
   var DIRS = [
     { key: 'N', label: 'kuzeye', bearing: 0 },
     { key: 'NE', label: 'kuzeydoğuya', bearing: 45 },
@@ -130,9 +131,12 @@
     opts = opts || {};
     var hiveP = hiveDensityPressure(lat, lon, opts);
     var vehP = vehicleDensityProxy(lat, lon);
-    var raw = 7 - hiveP * 5 - vehP * 3;
-    if (hiveP > 0.8) raw -= 0.6;
-    if (hiveP < 0.15 && vehP < 0.28) raw += 2.2;
+    /* Üretken foraj ~2–3 km; eski taban 7 km kırsalda 5–9 km şişiriyordu. */
+    var raw = 4 - hiveP * 2 - vehP * 1.5;
+    if (hiveP > 0.8) raw -= 0.4;
+    if (hiveP < 0.15 && vehP < 0.28) raw += 0.5;
+    /* Otomatik öneri tavanı: elle kaydırıcı 10 km’ye kadar açılabilir. */
+    if (raw > 4) raw = 4;
     var km = clampRadius(raw);
     return {
       km: km,
