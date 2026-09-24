@@ -278,6 +278,10 @@
     padding: 10px 12px; font-size: 13px; font-weight: 560; color: var(--text);
     background: #f7f8fa; font-family: inherit;
   }
+  .sheet-list .map-paste.sheet-coord {
+    display: block; margin: 4px 0 8px; background: transparent; border: 0; padding: 0;
+  }
+  .sheet-list .map-paste.sheet-coord .map-paste-row { margin-top: 8px; }
   .water-source-wrap {
     margin-top: 8px; display: grid; gap: 6px;
   }
@@ -1316,13 +1320,81 @@
     setMapTapHint('Haritaya dokunarak arılık konumunu seç', true);
   }
 
-  function showCoordPastePanel() {
-    var block = document.getElementById('mapPasteBlock');
-    var input = document.getElementById('mapPaste');
-    if (block) block.hidden = false;
+  function applyApiaryCoordFromText(raw) {
+    if (!D || !D.parseCoordsFromText) return false;
+    var parsed = D.parseCoordsFromText(raw);
+    if (!parsed) {
+      if (String(raw || '').trim()) {
+        alert('Geçersiz koordinat. Tek satır: 39.92, 41.27 veya 39.92 41.27 veya Yandex linki.');
+      }
+      return false;
+    }
+    if (moveDestPickMode) exitMoveDestPick({ keepMarker: false });
+    if (waterPickMode) exitWaterPickMode({ keepDraft: true });
+    pickMode = true;
+    var btnSave = document.getElementById('btnSaveLoc');
+    var btnPick = document.getElementById('btnPickLoc');
+    var editTools = document.getElementById('mapEditTools');
+    function afterMap() {
+      placeDetailMarker(parsed.lat, parsed.lon, pendingSearchName);
+      if (detailMapCtrl) detailMapCtrl.setView(parsed.lat, parsed.lon, 14);
+      if (btnSave) {
+        btnSave.hidden = false;
+        btnSave.textContent = 'Bu konumu kaydet';
+      }
+      if (btnPick) btnPick.hidden = false;
+      if (editTools) editTools.classList.add('is-on');
+      try {
+        if (detailPlacemark) detailPlacemark.options.set('draggable', true);
+      } catch (eDrag) {}
+      setMapTapHint('Haritaya dokunarak arılık konumunu seç', true);
+    }
+    if (detailMapCtrl) {
+      afterMap();
+      return true;
+    }
+    if (detailMapReady) {
+      detailMapReady.then(afterMap).catch(function () {
+        alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
+      });
+      return true;
+    }
+    alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
+    return false;
+  }
+
+  function openCoordPasteSheet() {
+    locSheetTitle.textContent = 'Koordinatla gir';
+    locSheetSub.textContent = 'Enlem, boylam veya Yandex linki yapıştır.';
+    locSheetList.innerHTML =
+      '<label class="map-paste sheet-coord">' +
+        'Koordinat — tek satır (enlem, boylam)' +
+        '<div class="map-search-row map-paste-row">' +
+          '<input type="text" id="sheetCoordPaste" maxlength="240" placeholder="39.92, 41.27  ·  39.92 41.27  ·  Yandex linki" autocomplete="off" inputmode="decimal" />' +
+          '<button type="button" class="btn-ara" id="sheetCoordPasteBtn">Uygula</button>' +
+        '</div>' +
+      '</label>';
+    locSheet.hidden = false;
+    requestAnimationFrame(function () {
+      locSheet.classList.add('is-open');
+      var input = document.getElementById('sheetCoordPaste');
+      if (input) {
+        try { input.focus(); } catch (eF) {}
+      }
+    });
+    var input = document.getElementById('sheetCoordPaste');
+    var pasteBtn = document.getElementById('sheetCoordPasteBtn');
+    function go() {
+      if (applyApiaryCoordFromText(input && input.value)) closeLocSheet();
+    }
+    if (pasteBtn) pasteBtn.addEventListener('click', go);
     if (input) {
-      try { input.focus(); } catch (eF) {}
-      try { input.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (eS) {}
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          go();
+        }
+      });
     }
   }
 
@@ -1338,9 +1410,12 @@
     locSheetList.querySelectorAll('.sheet-item').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var act = btn.getAttribute('data-action');
-        closeLocSheet();
-        if (act === 'apiary-map') startPickMode();
-        else if (act === 'apiary-coord') showCoordPastePanel();
+        if (act === 'apiary-map') {
+          closeLocSheet();
+          startPickMode();
+        } else if (act === 'apiary-coord') {
+          openCoordPasteSheet();
+        }
       });
     });
   }
@@ -3059,12 +3134,6 @@
           '<p class="forage-auto-hint fs-hint" id="forageAutoHint" hidden>' + escapeHtml((F && F.AUTO_HINT_TR) || '') + '</p>' +
         '</div>' +
         waterSourceBlockHtml(apiary) +
-        '<label class="map-paste" id="mapPasteBlock" hidden>Koordinat — tek satır (enlem, boylam)' +
-          '<div class="map-search-row map-paste-row">' +
-            '<input type="text" id="mapPaste" maxlength="240" placeholder="39.92, 41.27  ·  39.92 41.27  ·  Yandex linki" autocomplete="off" inputmode="decimal" />' +
-            '<button type="button" class="btn-ara" id="mapPasteBtn">Uygula</button>' +
-          '</div>' +
-        '</label>' +
         '<div id="forageHost"></div>' +
       '</section>';
 
@@ -3424,7 +3493,6 @@
     var searchInput = document.getElementById('mapSearch');
     var radiusInput = document.getElementById('forageRadius');
     var radiusVal = document.getElementById('forageRadiusVal');
-    var pasteInput = document.getElementById('mapPaste');
     if (searchBtn) searchBtn.addEventListener('click', runDetailSearch);
     if (searchInput) {
       searchInput.addEventListener('keydown', function (e) {
@@ -3478,48 +3546,6 @@
         openWaterAskFromSlider(m);
       });
     }
-    if (pasteInput && D.parseCoordsFromText) {
-      function applyPaste() {
-        var raw = pasteInput.value;
-        var parsed = D.parseCoordsFromText(raw);
-        if (!parsed) {
-          if (String(raw || '').trim()) {
-            alert('Geçersiz koordinat. Tek satır: 39.92, 41.27 veya 39.92 41.27 veya Yandex linki.');
-          }
-          return;
-        }
-        pickMode = true;
-        function afterMap() {
-          placeDetailMarker(parsed.lat, parsed.lon, pendingSearchName);
-          if (detailMapCtrl) detailMapCtrl.setView(parsed.lat, parsed.lon, 14);
-          if (btnSave) {
-            btnSave.hidden = false;
-            btnSave.textContent = 'Bu konumu kaydet';
-          }
-          if (btnPick) btnPick.hidden = true;
-        }
-        if (detailMapCtrl) {
-          afterMap();
-        } else if (detailMapReady) {
-          detailMapReady.then(afterMap).catch(function () {
-            alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
-          });
-        } else {
-          alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
-        }
-      }
-      var pasteBtn = document.getElementById('mapPasteBtn');
-      if (pasteBtn) pasteBtn.addEventListener('click', applyPaste);
-      pasteInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          applyPaste();
-        }
-      });
-      pasteInput.addEventListener('change', applyPaste);
-      pasteInput.addEventListener('paste', function () { setTimeout(applyPaste, 0); });
-    }
-
   }
 
   render();
