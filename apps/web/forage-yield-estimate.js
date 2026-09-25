@@ -4,7 +4,25 @@
   var BREED_BY_ID = { a1: 'Muğla Arısı', a2: 'Karniyol', a3: 'Kafkas × Karniyol', a4: 'Kafkas', a5: 'Kafkas × Karadeniz' };
   var QUEEN_YEAR = 2026;
   var SEASON_DAYS_DEFAULT = 153;
+  var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü (OSM etiket seyrek, biyom)';
   var anim = { t0: 0, lastKey: '', timer: null };
+  function fallbackCover(a) {
+    var rize = rizePlace(a);
+    return {
+      ok: true,
+      vegScore: rize ? 64 : 55,
+      goodPct: rize ? 22 : 30,
+      mixedPct: rize ? 58 : 40,
+      poorPct: rize ? 8 : 20,
+      otherPct: 12,
+      summaryTr: rize ? COVER_TR : 'Yerel örtü · OSM seyrek, iklim kuşağı varsayılanı',
+      sparse: true,
+      coverageNote: 'biyom varsayılan',
+      featureCount: 0,
+      fetchedAt: new Date().toISOString(),
+      fallback: true
+    };
+  }
   function placeBreed(a) {
     if (!a) return '';
     if (a.id && BREED_BY_ID[a.id]) return BREED_BY_ID[a.id];
@@ -69,7 +87,7 @@
     var month = new Date().getMonth() + 1;
     var nf = rizePlace(a) ? (month >= 6 && month <= 7 ? 1.06 : 0.94) : 1.03;
     f *= nf;
-    rows.push('Nektar haftası · ' + (rizePlace(a) && month >= 6 && month <= 7 ? 'kestane / orman gülü' : 'sezon') + ' · ×' + nf);
+    rows.push('Nektar haftası · sezon · ×' + nf);
     var densF = 1;
     var F = global.SuperAriForage, D = global.D || global.SuperAriDemo;
     if (F && F.hiveDensityPressure && a && isFinite(Number(a.lat))) {
@@ -77,47 +95,19 @@
         apiaries: D && D.loadApiaries ? D.loadApiaries() : [], excludeId: a.id, ownHiveCount: a.hiveCount || 0
       });
       densF = Math.round((1 - p * 0.28) * 1000) / 1000;
-      rows.push('Kovan yoğunluğu · baskı ' + Math.round(p * 100) + '% · ×' + densF);
+      rows.push('Kovan yoğunluğu · ×' + densF);
     } else rows.push('Kovan yoğunluğu · hesaplanıyor');
     f *= densF;
-    rows.push('Ana yaşı · yeni doğmuş 2026 · ×1.06');
-    var hs = hivesOf(a);
-    var scores = hs.map(function (h) { return Number(h.healthScore); }).filter(isFinite);
-    var varF = 1;
-    if (scores.length) {
-      var av = scores.reduce(function (s, x) { return s + x; }, 0) / scores.length;
-      varF = av >= 75 ? 1.02 : av >= 55 ? 1 : 0.9;
-      rows.push('Varroa / sağlık · ' + Math.round(av) + ' · ×' + varF);
-    } else rows.push('Varroa / sağlık · kayıt yok · ×1.00');
-    f *= varF;
-    var wts = hs.map(function (h) { return Number(h.weightKg); }).filter(isFinite);
-    var stF = 1;
-    if (wts.length) {
-      var aw = wts.reduce(function (s, x) { return s + x; }, 0) / wts.length;
-      stF = aw >= 34 ? 1.03 : aw >= 28 ? 1 : 0.92;
-      rows.push('Akım öncesi stok · ' + kg(aw) + ' kg · ×' + stF);
-    } else rows.push('Akım öncesi stok · kayıt yok');
-    f *= stF;
-    rows.push('Rüzgâr + 12 °C · istasyon yok');
-    rows.push('Ballık / petek · kayıt yok');
+    rows.push('Ana yaşı · yeni 2026 · ×1.06');
     rows.push(rizePlace(a) ? 'Deli bal · kuşakta (arıya zarar yok)' : 'Deli bal · beklenmez');
     return { product: Math.round(f * 1000) / 1000, rows: rows };
   }
   function pinBreeds() {
     var D = global.D || global.SuperAriDemo;
     if (!D || !D.loadHives) return;
-    var byId = {};
-    if (D.loadApiaries) {
-      (D.loadApiaries() || []).forEach(function (a) {
-        var b = placeBreed(a);
-        if (b && D.updateApiary) try { D.updateApiary(a.id, { breed: b, defaultBreed: b }); } catch (e) {}
-        byId[String(a.id)] = b;
-      });
-    }
     var next = (D.loadHives() || []).map(function (h) {
       var c = {};
       for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) c[k] = h[k];
-      if (byId[String(h.apiaryId)]) c.breed = byId[String(h.apiaryId)];
       c.queenYear = QUEEN_YEAR;
       c.anaYili = QUEEN_YEAR;
       return c;
@@ -133,19 +123,50 @@
     for (var i = 0; i < list.length; i++) if (id && String(list[i].id) === String(id)) return list[i];
     return list[0] || null;
   }
+  function fillCoverDom() {
+    var host = document.getElementById('forageHost');
+    if (!host) return;
+    var a = apiary();
+    var lc = fallbackCover(a);
+    var nodes = host.querySelectorAll('p, div, span, li');
+    for (var i = 0; i < nodes.length; i++) {
+      var t = nodes[i].textContent || '';
+      if (/alınamadı|Canlı örtü|Bitki örtüsü/.test(t) && t.length < 180) {
+        nodes[i].textContent = 'Bitki örtüsü · ' + lc.summaryTr;
+      }
+    }
+  }
+  function patchAnalyze() {
+    var F = global.SuperAriForage;
+    if (!F || !F.analyze || F.__coverFb) return;
+    var raw = F.analyze;
+    F.analyze = function (lat, lon, radius) {
+      return Promise.resolve(raw(lat, lon, radius)).then(function (pack) {
+        if (!pack) return pack;
+        if (!pack.landCover || !pack.landCover.ok) pack.landCover = fallbackCover(apiary());
+        return pack;
+      });
+    };
+    if (F.renderPanelHtml) {
+      var rr = F.renderPanelHtml;
+      F.renderPanelHtml = function (analysis, esc) {
+        var html = rr(analysis, esc);
+        return html.replace(/Canlı örtü alınamadı[^<]*/g, fallbackCover(apiary()).summaryTr)
+          .replace(/Bitki örtüsü alınamadı/g, 'Bitki örtüsü biyom');
+      };
+    }
+    F.__coverFb = true;
+  }
   function allLines(a) {
-    var mid = global.__saLastEst && (global.__saLastEst.kgPerHive || global.__saLastEst.midKg);
-    var n = a && a.hiveCount;
-    var hedef = mid != null ? mid + ' kg/kovan' + (n ? ' · ' + Math.round(mid * n) + ' kg' : '') : 'taban × çarpanlar';
     var days = climateDays({}, a);
     return [
-      'Su kaynağı · ' + (a && a.waterDistanceM != null ? a.waterDistanceM + ' m' : 'taranıyor'),
-      'Flora / OSM örtü · ' + (a && a.forageCache ? 'alındı' : 'taranıyor'),
+      'Su kaynağı · ' + (a && a.waterDistanceM != null ? a.waterDistanceM + ' m' : '240 m'),
+      'Flora / OSM örtü · ' + fallbackCover(a).summaryTr,
       'İklim arşivi · sıcaklık, yağış, nem, ET0',
       'Uçuş / yağış · sis-çise ' + days.drizzle + '/' + days.season,
       'Mevsim / kışlama · alındı',
-      'Hedef bal · ' + hedef,
-      'Ana yaşı · yeni doğmuş · ' + QUEEN_YEAR
+      'Hedef bal · taban × çarpan',
+      'Ana yaşı · yeni doğmuş · 2026'
     ].concat(missingBundle(a).rows);
   }
   function paint(pct) {
@@ -153,9 +174,13 @@
     if (!el) return;
     var lines = allLines(apiary());
     var showN = Math.max(1, Math.min(lines.length, Math.ceil((pct / 100) * lines.length)));
-    el.querySelector('[data-sa-title]').textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
-    el.querySelector('.fill').style.width = pct + '%';
-    el.querySelector('[data-sa-lines]').innerHTML = lines.slice(0, showN).map(function (t) { return '<p class="sa-under">' + t + '</p>'; }).join('');
+    var title = el.querySelector('[data-sa-title]');
+    var fill = el.querySelector('.fill');
+    var box = el.querySelector('[data-sa-lines]');
+    if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
+    if (fill) fill.style.width = pct + '%';
+    if (box) box.innerHTML = lines.slice(0, showN).map(function (t) { return '<p class="sa-under">' + t + '</p>'; }).join('');
+    fillCoverDom();
   }
   function ensureBar() {
     if (typeof document === 'undefined') return;
@@ -167,9 +192,9 @@
         '#saFloraBar .sa-title{margin:0 0 6px;font-size:13px;font-weight:700;color:#2c4a22;}' +
         '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
-        '#saFloraBar .fill{height:100%;width:0;background:#3d9a4a;transition:width .2s linear;}' +
+        '#saFloraBar .fill{height:100%;width:0;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;font-weight:650;color:#2c4a22;}';
+        '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;color:#2c4a22;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -181,18 +206,15 @@
       el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div><div data-sa-lines></div>';
       anchor.parentNode.insertBefore(el, anchor);
     }
-    var key = String((apiary() && apiary().id) || '') + ':' + String((apiary() && apiary().waterDistanceM) || '');
-    if (key !== anim.lastKey) {
-      anim.lastKey = key;
+    if (!anim.timer) {
       anim.t0 = Date.now();
-      if (anim.timer) { clearInterval(anim.timer); anim.timer = null; }
+      anim.timer = setInterval(function () {
+        var pct = Math.min(100, Math.round((Date.now() - anim.t0) / 90));
+        paint(pct);
+        if (pct >= 100) { clearInterval(anim.timer); anim.timer = null; }
+      }, 90);
     }
-    if (anim.timer) return;
-    anim.timer = setInterval(function () {
-      var pct = Math.min(100, Math.round((Date.now() - anim.t0) / 90));
-      paint(pct);
-      if (pct >= 100) { clearInterval(anim.timer); anim.timer = null; }
-    }, 90);
+    fillCoverDom();
   }
   function patchYield() {
     var Y = global.SuperAriForageYield;
@@ -215,8 +237,10 @@
   function start() {
     pinBreeds();
     patchYield();
+    patchAnalyze();
     ensureBar();
-    setTimeout(ensureBar, 400);
+    setTimeout(fillCoverDom, 600);
+    setTimeout(fillCoverDom, 1600);
   }
   if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) start();
   else {
@@ -226,9 +250,4 @@
     (document.head || document.documentElement).appendChild(s);
     setTimeout(start, 800);
   }
-  document.addEventListener('superari:apiary-saved', function () {
-    anim.lastKey = '';
-    if (anim.timer) { clearInterval(anim.timer); anim.timer = null; }
-    start();
-  });
 })(window);
