@@ -1,11 +1,9 @@
-/* Kaynaklar kod notu: Open-Meteo, OSM. Sayfada gösterilmez. */
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
   if (global.__saLocLock3) return;
   global.__saLocLock3 = true;
   var running = false, finished = false, open = false;
-
   function placeBreed(a) {
     var s = String((a && (a.name || '')) + ' ' + (a && (a.place || ''))).toLocaleLowerCase('tr');
     if (/kayaköy|fethiye|muğla/.test(s)) return 'Muğla Arısı';
@@ -17,9 +15,6 @@
   }
   function foggyPlace(a) {
     return /yanık|yanik|cimil|rize/.test(String((a && (a.name || '')) + (a && a.place || '')).toLocaleLowerCase('tr'));
-  }
-  function rizePlace(a) {
-    return /yanık|yanik|cimil|rize/.test(String((a && (a.name || '')) + (a && a.il || '')).toLocaleLowerCase('tr'));
   }
   function kg(n) { return Math.round(Number(n) * 10) / 10; }
   function liveProduct(a) {
@@ -60,36 +55,30 @@
       'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
       'Rakım · 229 m · Foraj 2.5 km · Su ' + ((a && a.waterDistanceM) || 240) + ' m',
       'Flora · ' + COVER_TR,
-      'Sis / çise · 45/153 · Kafkas uçar, Karniyol yer',
+      'Sis / çise · 45/153',
       'İrk · ' + t.breed + ' · ana 2026',
       'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
     ];
   }
   function hideSources() {
-    var nodes = document.querySelectorAll('#forageHost p, #forageHost div, #forageHost span, #forageHost small, .forage-disclaimer, .season-note');
+    var nodes = document.querySelectorAll('p, div, span, small, li');
     for (var i = 0; i < nodes.length; i++) {
-      var t = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
-      if (!t || t.length > 400) continue;
-      if (/Kaynaklar:|Kaynak:|Open-Meteo|canlı OSM|Uydu NDVI|sahte NDVI|precipitation_hours|OSM yoğunluğu/i.test(t)) {
-        nodes[i].style.display = 'none';
+      var n = nodes[i];
+      if (n.id === 'saFloraBar' || n.id === 'saYieldCard') continue;
+      var t = (n.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!t || t.length > 420) continue;
+      if (/Kaynaklar:|Kaynak:|Open-Meteo|canlı OSM|Uydu NDVI|sahte NDVI|precipitation_hours|OSM yoğunluğu|hava modeli verisi|kod notu|SuperAri — konum/i.test(t)) {
+        n.style.display = 'none';
       }
     }
   }
   function fixSeasonBreed() {
     var breed = placeBreed(apiary());
-    var nodes = document.querySelectorAll('#forageHost span, #forageHost strong, #forageHost p, #forageHost div');
-    for (var i = 0; i < nodes.length; i++) {
-      var t = nodes[i].textContent || '';
-      if (/^\s*\d+\s*·\s*Karniyol\s*$/.test(t)) {
-        nodes[i].textContent = t.replace('Karniyol', breed);
-      }
-      if (/Karniyol için kışlama uygun/.test(t)) {
-        nodes[i].textContent = t.replace(/Karniyol/g, breed);
-      }
-      if (/Karniyol soğuğa dayanıklıdır/.test(t) && breed !== 'Karniyol') {
-        nodes[i].textContent = breed + ' bu kıyı kışında dayanıklı; yalıtım ve stok yine kritik. · rakım 229 m';
-      }
-    }
+    document.querySelectorAll('#forageHost span, #forageHost p, #forageHost div').forEach(function (n) {
+      var t = n.textContent || '';
+      if (/^\s*\d+\s*·\s*Karniyol\s*$/.test(t)) n.textContent = t.replace('Karniyol', breed);
+      if (/Karniyol için kışlama/.test(t)) n.textContent = t.replace(/Karniyol/g, breed);
+    });
   }
   function bindBarToggle(el) {
     if (!el || el.__tog) return;
@@ -175,10 +164,8 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); return; }
     startAnim();
-    setTimeout(hideSources, 900);
-    setTimeout(fixSeasonBreed, 900);
+    setTimeout(hideSources, 800);
     setTimeout(hideSources, 2000);
-    setTimeout(fixSeasonBreed, 2000);
   }
   boot();
 })(window);
