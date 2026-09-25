@@ -5,10 +5,22 @@
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels9) return;
-  global.__saPanels9 = true;
+  if (global.__saPanels10) return;
+  global.__saPanels10 = true;
   var running = false, finished = false;
   var forageOpen = false, waterOpen = false;
+
+  var D0 = global.D || global.SuperAriDemo;
+  if (D0 && !D0.__saCoordCache) {
+    D0.__saCoordCache = true;
+    D0.isLiveCacheFresh = function (cache, lat, lon) {
+      if (!cache || cache.payload == null) return false;
+      var cla = Number(cache.lat), clo = Number(cache.lon);
+      var la = Number(lat), lo = Number(lon);
+      if (!isFinite(cla) || !isFinite(clo) || !isFinite(la) || !isFinite(lo)) return false;
+      return Math.abs(cla - la) <= 1e-5 && Math.abs(clo - lo) <= 1e-5;
+    };
+  }
 
   function placeBreed(a) {
     if (a && a.breed) {
