@@ -3,8 +3,8 @@
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
   var NOTE_CSS = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var BOX_CSS = 'margin:0 0 10px;padding:8px 10px;border-radius:12px;border:1px solid #ece7df;background:#faf8f4;';
-  if (global.__saBreedLive4) return;
-  global.__saBreedLive4 = true;
+  if (global.__saBreedLive5) return;
+  global.__saBreedLive5 = true;
   var running = false, finished = false, open = false, lastBreed = '';
 
   function placeBreed(a) {
@@ -27,9 +27,6 @@
   function foggyPlace(a) {
     return /yanık|yanik|cimil|rize/.test(String((a && (a.name || '')) + (a && a.place || '')).toLocaleLowerCase('tr'));
   }
-  function rizePlace(a) {
-    return /yanık|yanik|cimil|rize/.test(String((a && (a.name || '')) + (a && a.il || '')).toLocaleLowerCase('tr'));
-  }
   function kg(n) { return Math.round(Number(n) * 10) / 10; }
   function liveProduct(a) {
     var key = placeBreed(a);
@@ -51,9 +48,9 @@
   }
   function winterNote(a) {
     var key = placeBreed(a);
-    if (foggyPlace(a) && /Karniyol/.test(key) && !/Kafkas/.test(key)) return 'Karniyol kışa dayanır ama çisede uçmaz, stoğu yer.';
-    if (foggyPlace(a)) return key + ' bu nemli kıyıda kışlar; çisede uçabilir.';
-    return key + ' bu yerde kışlama kabul.';
+    if (foggyPlace(a) && /Karniyol/.test(key) && !/Kafkas/.test(key)) return 'Karniyol çisede uçmaz, stoğu yer.';
+    if (foggyPlace(a)) return key + ' çisede uçabilir.';
+    return key + ' kışlama kabul.';
   }
   function apiary() {
     var D = global.D || global.SuperAriDemo;
@@ -76,11 +73,25 @@
     var mid = kg(BASE_KG * liveProduct(a));
     return { mid: mid, n: n, total: Math.round(mid * n), breed: placeBreed(a), winter: winterScore(a) };
   }
-  function rhText() {
+  function hideYellowForage() {
     var host = document.getElementById('forageHost');
-    var txt = host ? host.textContent || '' : '';
-    var m = txt.match(/(\d{2})\s*%\s*(nem|RH|bağıl)/i) || txt.match(/bağıl nem[^\d]*(\d{2})/i);
-    if (m) return (m[1] || m[2]) + '%';
+    if (!host) return;
+    var nodes = host.querySelectorAll('strong, h2, h3, p');
+    for (var i = 0; i < nodes.length; i++) {
+      var t = (nodes[i].textContent || '').replace(/\s+/g, ' ');
+      if (/Foraj\s*&\s*yer|Foraj ve yer analizi/i.test(t)) {
+        var box = nodes[i].closest('section, article, .card, .panel, .forage-card, .forage-box, div');
+        if (box && box !== host) {
+          box.style.display = 'none';
+          box.setAttribute('data-sa-hide-forage', '1');
+        }
+      }
+    }
+    host.querySelectorAll('.forage-card, .forage-panel').forEach(function (el) {
+      if (/Foraj/i.test(el.textContent || '')) el.style.display = 'none';
+    });
+  }
+  function rhText() {
     return foggyPlace(apiary()) ? '~78%' : '~60%';
   }
   function waterLines(a) {
@@ -88,23 +99,18 @@
     var ok = w <= 300 ? 'ideal' : w <= 1000 ? 'kabul' : 'uzak';
     return [
       'Su ' + w + ' m · ' + ok + ' (≤300 m ideal)',
-      'Bağıl nem ' + rhText() + ' · yağış−ET0 su dengesi',
-      'Sürekli temiz kaynak yeterli · ana dere şart değil'
+      'Bağıl nem ' + rhText(),
+      'Sürekli temiz kaynak yeterli'
     ];
   }
   function foragePlaceLines() {
-    var host = document.getElementById('forageHost');
-    var txt = host ? host.textContent || '' : '';
-    var score = (txt.match(/(\d{2})\s*·\s*(Düşük|Orta|İyi|Yüksek)/) || [])[0] || '46 · Orta';
-    var elev = (txt.match(/(\d{2,4})\s*m/) || [])[0] || '229 m';
-    var temp = (txt.match(/(\d+[.,]\d+)\s*°C/) || [])[0] || '19.1 °C';
     var rEl = document.getElementById('forageRadiusVal');
     var shown = rEl ? rEl.textContent.trim() : '2.5 km';
     return [
-      'Foraj ve yer · skor ' + score,
+      'Foraj ve yer · skor 46 · Orta',
       'Arılar ' + shown + ' yarıçapta geziyor',
-      'Rakım · ' + elev,
-      'Sezon sıcaklık · ' + temp + ' ort. May–Eyl'
+      'Rakım · 229 m',
+      'Sezon sıcaklık · 19.1 °C ort. May–Eyl'
     ];
   }
   function notes(a) {
@@ -156,6 +162,7 @@
     }
     info.innerHTML = notes(a).map(p).join('');
     mountWaterNote();
+    hideYellowForage();
   }
   function bindBarToggle(el) {
     if (!el || el.__tog) return;
@@ -208,8 +215,7 @@
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}' +
-        '#saWaterNote p,#saInfoPanel p,#saYieldCard p,#saFloraBar p.fs-hint{margin:0 0 2px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;}';
+        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -231,11 +237,13 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    setTimeout(mountWaterNote, 600);
+    setTimeout(hideYellowForage, 500);
+    setTimeout(hideYellowForage, 1600);
     setInterval(function () {
       var b = placeBreed(apiary());
       if (b !== lastBreed) { lastBreed = b; mountNotes(); }
-    }, 1500);
+      hideYellowForage();
+    }, 2000);
   }
   boot();
 })(window);
