@@ -3,16 +3,6 @@
     'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-yield-estimate.js';
   var BREED_BY_ID = { a1: 'Muğla Arısı', a2: 'Karniyol', a3: 'Kafkas × Karniyol', a4: 'Kafkas', a5: 'Kafkas × Karadeniz' };
   var SEASON_DAYS_DEFAULT = 153;
-  var LIVE_STEPS = ['Su kaynağı', 'Flora / OSM örtü', 'İklim arşivi'];
-  var NEW_STEPS = [
-    'Su kaynağı',
-    'Flora / OSM örtü',
-    'İklim arşivi (sıcaklık, yağış, nem, ET0)',
-    'Uçuş / yağış özeti · sis-çise',
-    'Mevsim / kışlama',
-    'İrk ve hedef bal',
-    'Yer skoru ve foraj yarıçapı'
-  ];
   function placeBreed(a) {
     if (!a) return '';
     if (a.id && BREED_BY_ID[a.id]) return BREED_BY_ID[a.id];
@@ -90,16 +80,48 @@
     for (var i = 0; i < list.length; i++) if (id && String(list[i].id) === String(id)) return list[i];
     return list[0] || null;
   }
-  function isNewApiary(a) {
-    if (!a) return false;
-    return !a.forageCache && a.waterDistanceM == null;
+  function textOf(sel) {
+    var el = document.querySelector(sel);
+    return el && el.textContent ? el.textContent.replace(/\s+/g, ' ').trim() : '';
   }
-  function livePct(a) {
-    var n = 0;
-    if (a && a.waterDistanceM != null) n += 1;
-    if (a && a.forageCache) n += 1;
-    if (document.querySelector('#forageHost .forage-k, .forage-flight, .forage-water')) n += 1;
-    return Math.round((n / 3) * 100);
+  function pickRows() {
+    var a = apiary();
+    var host = document.getElementById('forageHost');
+    var water = a && a.waterDistanceM != null ? a.waterDistanceM + ' m' : 'taranıyor';
+    var flora = 'taranıyor';
+    if (host && /bitki örtü|landcover|orman|çayır|OSM/i.test(host.textContent || '')) flora = 'alındı';
+    if (a && a.forageCache && a.forageCache.payload && a.forageCache.payload.landCover) flora = 'alındı';
+    var clim = textOf('#forageHost .forage-k');
+    var climate = clim ? 'alındı' : 'taranıyor';
+    var temp = '';
+    var hostT = host ? host.textContent || '' : '';
+    var tm = hostT.match(/(\d+[.,]\d+)\s*°C/);
+    if (tm) temp = tm[1] + ' °C';
+    var flight = document.querySelector('.forage-flight-sum');
+    var flightV = flight ? flight.textContent.replace(/\s+/g, ' ').trim() : 'taranıyor';
+    var season = /kış|May–Eyl|sezon/i.test(hostT) ? 'alındı' : 'taranıyor';
+    var mid = global.__saLastEst && (global.__saLastEst.kgPerHive || global.__saLastEst.midKg);
+    var n = a && a.hiveCount;
+    var hedef = mid != null ? mid + ' kg/kovan' + (n ? ' · ' + Math.round(mid * n) + ' kg' : '') : 'hesaplanıyor';
+    var days = climateDays({}, a);
+    var done = 0;
+    if (water !== 'taranıyor') done++;
+    if (flora !== 'taranıyor') done++;
+    if (climate !== 'taranıyor') done++;
+    if (flightV !== 'taranıyor') done++;
+    if (season !== 'taranıyor') done++;
+    if (hedef !== 'hesaplanıyor') done++;
+    return {
+      pct: Math.round((done / 6) * 100),
+      lines: [
+        'Su kaynağı · ' + water,
+        'Flora / OSM örtü · ' + flora,
+        'İklim arşivi · sıcaklık, yağış, nem, ET0' + (temp ? ' · ' + temp : ' · ' + climate),
+        'Uçuş / yağış özeti · sis-çise ' + days.drizzle + '/' + days.season + (flightV !== 'taranıyor' ? ' · ' + flightV.slice(0, 80) : ' · taranıyor'),
+        'Mevsim / kışlama · ' + season,
+        'Hedef bal · ' + hedef
+      ]
+    };
   }
   function chevronSvg() {
     return '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z"/></svg>';
@@ -114,50 +136,26 @@
         '#saFloraBar .fs-row{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .fs-row p{margin:0;flex:1;font-size:13px;font-weight:700;color:#2c4a22;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;margin-left:auto;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar.is-open .fs-chev{transform:rotate(90deg);}' +
         '#saFloraBar .track{height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;margin:6px 0;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;transition:width .3s;}' +
-        '#saFloraBar .sa-under{margin:0;font-size:12px;font-weight:650;color:#2c4a22;line-height:1.4;}' +
-        '#saFloraBar .sa-flora-detail{display:none;margin-top:8px;font-size:12px;color:#2c4a22;}' +
-        '#saFloraBar.is-open .sa-flora-detail{display:block;}' +
-        '#saFloraBar .sa-flora-detail p{margin:0 0 4px;}';
+        '#saFloraBar .sa-under{margin:0 0 3px;font-size:12px;font-weight:650;color:#2c4a22;line-height:1.4;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
     var anchor = (forage && (forage.closest('.fs-block') || forage.parentNode)) || document.getElementById('forageHost');
     if (!anchor || !anchor.parentNode) return;
-    var a = apiary();
-    var pct = livePct(a);
-    var wd = a && a.waterDistanceM != null ? a.waterDistanceM + ' m' : 'taranıyor';
-    var title = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
-    var neu = isNewApiary(a);
+    var rows = pickRows();
+    var title = (rows.pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + rows.pct + '%';
     var el = document.getElementById('saFloraBar');
     if (!el) {
       el = document.createElement('div');
       el.id = 'saFloraBar';
       anchor.parentNode.insertBefore(el, anchor);
-      el.addEventListener('click', function () {
-        el.classList.toggle('is-open');
-        var d = el.querySelector('.sa-flora-detail');
-        if (d) {
-          if (el.classList.contains('is-open')) d.removeAttribute('hidden');
-          else d.setAttribute('hidden', '');
-        }
-      });
     }
-    var open = el.classList.contains('is-open');
     el.innerHTML =
       '<div class="fs-row"><p>' + title + '</p><button type="button" class="fs-chev">' + chevronSvg() + '</button></div>' +
-      '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
-      '<p class="sa-under">Su ' + wd + '</p>' +
-      '<p class="sa-under">Flora ' + (a && a.forageCache ? 'alındı' : 'taranıyor') + '</p>' +
-      '<p class="sa-under">İklim ' + (document.querySelector('#forageHost .forage-k') ? 'alındı' : 'taranıyor') + '</p>' +
-      '<div class="sa-flora-detail"' + (open ? '' : ' hidden') + '>' +
-        '<p style="font-weight:800">Canlı konum</p>' +
-        LIVE_STEPS.map(function (t) { return '<p>• ' + t + '</p>'; }).join('') +
-        (neu ? '<p style="font-weight:800;margin-top:8px">Yeni konumda gelecekler</p>' + NEW_STEPS.map(function (t) { return '<p>• ' + t + '</p>'; }).join('') : '') +
-      '</div>';
-    if (open) el.classList.add('is-open');
+      '<div class="track"><div class="fill" style="width:' + rows.pct + '%"></div></div>' +
+      rows.lines.map(function (t) { return '<p class="sa-under">' + t + '</p>'; }).join('');
   }
   function patchYield() {
     var Y = global.SuperAriForageYield;
@@ -172,6 +170,7 @@
       ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
         if (est[k] != null) est[k] = kg(Number(est[k]) * fac.product);
       });
+      global.__saLastEst = est;
       return est;
     };
     Y.__hetero2 = true;
@@ -180,8 +179,9 @@
     pinBreeds();
     patchYield();
     ensureUpdateBar();
-    setTimeout(ensureUpdateBar, 500);
-    setTimeout(ensureUpdateBar, 1600);
+    setTimeout(ensureUpdateBar, 400);
+    setTimeout(ensureUpdateBar, 1200);
+    setTimeout(ensureUpdateBar, 2500);
   }
   if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) start();
   else {
