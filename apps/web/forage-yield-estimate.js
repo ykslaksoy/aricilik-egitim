@@ -4,8 +4,8 @@
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels3) return;
-  global.__saPanels3 = true;
+  if (global.__saPanels4) return;
+  global.__saPanels4 = true;
   var running = false, finished = false, openBar = false;
   var forageOpen = false, waterOpen = false;
 
@@ -95,6 +95,13 @@
     });
     var host = document.getElementById('forageHost');
     if (host) {
+      host.querySelectorAll('.forage-row, .forage-k').forEach(function (n) {
+        var t = n.textContent || '';
+        if (/Bağıl nem|Buharlaşma|ET0|Kuraklık \/ su|Su \/ diğer/i.test(t)) {
+          var row = n.closest('.forage-row') || n;
+          row.style.display = 'none';
+        }
+      });
       host.querySelectorAll('strong').forEach(function (n) {
         if (/Foraj/i.test(n.textContent || '')) {
           var box = n.closest('div');
@@ -120,13 +127,12 @@
         '<p style="' + TITLE + '">Foraj ve yer</p>' +
         [
           '1. Skor · 46 Orta',
-          '2. Çember · ' + shown + ' (kaydırıcı) · analiz kilitli yarıçap',
+          '2. Çember · ' + shown,
           '3. Rakım · 229 m',
-          '4. Sıcaklık · 19.1 °C ort. May–Eyl',
-          '5. Yağış / uçuş · 96 yağışlı gün · uygun ~72 · sis-çise 45/153',
-          '6. Örtü · ' + COVER_TR,
-          '7. İrk · ' + t.breed + ' · kışlama ' + t.winter + ' · ana 2026',
-          '8. Hedef · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg'
+          '4. Sıcaklık · 19.1 °C May–Eyl',
+          '5. Örtü · ' + COVER_TR,
+          '6. İrk · ' + t.breed + ' · kışlama ' + t.winter,
+          '7. Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
         ].map(line).join('');
       show(fp, forageOpen);
     }
@@ -136,9 +142,11 @@
       wp.innerHTML =
         '<p style="' + TITLE + '">Su ve nem</p>' +
         [
-          '1. Mesafe · ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
-          '2. Nem · ' + (foggyPlace(a) ? '~78%' : '~60%'),
-          '3. Kaynak · sürekli temiz yeterli · ana dere şart değil'
+          '1. Mesafe · ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul') + ' (≤300 m)',
+          '2. Bağıl nem · ' + (foggyPlace(a) ? '~78%' : '~60%'),
+          '3. Yağış / ET0 · yağış eksi buharlaşma su dengesi',
+          '4. Yağışlı gün · 96 · uçuşa uygun ~72 · sis-çise 45/153',
+          '5. Kaynak · sürekli temiz yeterli · ana dere şart değil'
         ].map(line).join('');
       show(wp, waterOpen);
     }
@@ -146,28 +154,14 @@
   }
   function bindArrow(btnId, fn) {
     var btn = document.getElementById(btnId);
-    if (!btn || btn.__saArrow3) return;
-    btn.__saArrow3 = true;
+    if (!btn || btn.__saArrow4) return;
+    btn.__saArrow4 = true;
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
       fn();
       fillPanels();
     }, true);
-  }
-  function bindArrows() {
-    bindArrow('btnForageHint', function () { forageOpen = !forageOpen; });
-    bindArrow('btnWaterHint', function () { waterOpen = !waterOpen; });
-  }
-  function bindBarToggle(el) {
-    if (!el || el.__tog) return;
-    el.__tog = true;
-    el.addEventListener('click', function (ev) {
-      if (ev.target && ev.target.closest && ev.target.closest('input, a')) return;
-      openBar = !openBar;
-      var box = el.querySelector('[data-sa-lines]');
-      if (box) box.hidden = !openBar;
-    });
   }
   function paint(pct) {
     var el = document.getElementById('saFloraBar');
@@ -176,8 +170,18 @@
     var fill = el.querySelector('.fill');
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
-    bindBarToggle(el);
-    bindArrows();
+    if (el.__tog) {}
+    else {
+      el.__tog = true;
+      el.addEventListener('click', function (ev) {
+        if (ev.target && ev.target.closest && ev.target.closest('input, a')) return;
+        openBar = !openBar;
+        var box = el.querySelector('[data-sa-lines]');
+        if (box) box.hidden = !openBar;
+      });
+    }
+    bindArrow('btnForageHint', function () { forageOpen = !forageOpen; });
+    bindArrow('btnWaterHint', function () { waterOpen = !waterOpen; });
     fillPanels();
   }
   function startAnim() {
@@ -227,7 +231,6 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    setTimeout(bindArrows, 300);
     setTimeout(fillPanels, 400);
   }
   boot();
