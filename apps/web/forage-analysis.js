@@ -1,4 +1,4 @@
-/** Loader: foraj / yer / uçuş / bal hedefi ayrı kart. */
+/** Loader: foraj kartı slider altında, detay aç/kapa. */
 (function (global) {
   var SRC =
     'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-analysis.js';
@@ -10,9 +10,7 @@
     'Örtü özeti': 1,
     'Uygunluk skoru': 1
   };
-  var FLIGHT_KEYS = {
-    'Uçuş penceresi': 1
-  };
+  var FLIGHT_KEYS = { 'Uçuş penceresi': 1 };
 
   function fmtTrDate(iso) {
     if (!iso) return '';
@@ -167,7 +165,7 @@
       'forageOnlyPanel',
       'Foraj',
       'Arılar ~' + analysis.radiusKm + ' km yarıçapta geziyor.',
-      '<div class="forage-grid">' + forageRows + '</div>',
+      '<div class="sa-forage-detail"><div class="forage-grid">' + forageRows + '</div></div>',
       badge
     );
 
@@ -209,8 +207,7 @@
     var flightBody = '<div class="forage-grid">' + flightRows + '</div>';
     if (analysis.flight) {
       var f = analysis.flight;
-      flightBody +=
-        '<p class="forage-sub">' + escapeHtml(f.summary || '') + '</p>';
+      flightBody += '<p class="forage-sub">' + escapeHtml(f.summary || '') + '</p>';
       if (f.precipDays != null) {
         flightBody += rowHtml({ k: 'Yağışlı gün', v: f.precipDays + ' gün', note: 'sezon' }, escapeHtml);
       }
@@ -240,6 +237,45 @@
     return forage + place + flight + yieldCard(escapeHtml);
   }
 
+  function toggleForageCard(ev) {
+    var card = document.getElementById('forageOnlyPanel');
+    if (!card) return;
+    if (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    var open = card.classList.toggle('is-open');
+    var btn = document.getElementById('btnForageHint');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function mountForageUnderSlider() {
+    var card = document.getElementById('forageOnlyPanel');
+    var block = document.getElementById('forageCollapse');
+    if (!card || !block || !block.parentNode) return;
+    if (card.previousElementSibling !== block) {
+      block.parentNode.insertBefore(card, block.nextSibling);
+    }
+    if (!card.__saToggle) {
+      card.__saToggle = true;
+      var head = card.querySelector('.forage-head');
+      if (head) {
+        head.style.cursor = 'pointer';
+        head.addEventListener('click', toggleForageCard);
+      }
+    }
+    var btn = document.getElementById('btnForageHint');
+    if (btn && !btn.__saForageCard) {
+      btn.__saForageCard = true;
+      btn.addEventListener('click', toggleForageCard, true);
+    }
+    var hint = document.getElementById('forageAutoHint');
+    if (hint) {
+      hint.hidden = true;
+      hint.style.display = 'none';
+    }
+  }
+
   function ensureSplitCss() {
     if (document.getElementById('saSplitCardCss')) return;
     var s = document.createElement('style');
@@ -247,7 +283,12 @@
     s.textContent =
       '.sa-split-card{margin:10px 0 0;}' +
       '#saYieldCard{border-color:#e6d7a8;background:#fffaf0;}' +
-      '#flightOnlyPanel{border-color:#d7e3f0;background:#f7fafc;}';
+      '#flightOnlyPanel{border-color:#d7e3f0;background:#f7fafc;}' +
+      '#forageOnlyPanel .sa-forage-detail,#forageOnlyPanel .forage-sub{display:none;}' +
+      '#forageOnlyPanel.is-open .sa-forage-detail,#forageOnlyPanel.is-open .forage-sub{display:block;}' +
+      '#forageOnlyPanel .forage-head{cursor:pointer;}' +
+      '#forageOnlyPanel .forage-head strong:after{content:" ›";opacity:.45;}' +
+      '#forageOnlyPanel.is-open .forage-head strong:after{content:" \25be";}';
     (document.head || document.documentElement).appendChild(s);
   }
 
@@ -258,7 +299,10 @@
     var rawAnalyze = F.analyzeSeason;
     var rawSeasonRender = F.renderSeasonPanelHtml;
     F.renderPanelHtml = function (analysis, escapeHtml) {
-      return splitRender(analysis, escapeHtml);
+      var html = splitRender(analysis, escapeHtml);
+      setTimeout(mountForageUnderSlider, 0);
+      setTimeout(mountForageUnderSlider, 80);
+      return html;
     };
     if (typeof rawAnalyze === 'function') {
       F.analyzeSeason = function (lat, lon) {
@@ -306,6 +350,8 @@
         return html.replace('</div>', block + '</div>');
       };
     }
+    if (document.readyState === 'complete') mountForageUnderSlider();
+    else document.addEventListener('DOMContentLoaded', mountForageUnderSlider);
   }
 
   if (global.SuperAriForage && global.SuperAriForage.analyze) {
