@@ -1,3 +1,48 @@
+/*
+ * SuperAri — konum / hedef / örtü kaynak notları
+ *
+ * Koordinat, kovan sayısı, ırk, ana yılı
+ *   Kayıt: SuperAriDemo (localStorage). Irk sabiti: Kayaköy Muğla,
+ *   Tortum Karniyol, Palandöken Kafkas×Karniyol, Yanıkdağ Kafkas,
+ *   Cimil Kafkas×Karadeniz. Ana yılı 2026 = yeni doğmuş.
+ *
+ * Rakım
+ *   Open-Meteo Elevation API (forage-analysis.js). Yanıkdağ kartı ~229 m.
+ *
+ * İklim (sıcaklık, yağış, nem, ET0, precipitation_hours)
+ *   Open-Meteo Archive, May–Eyl sezon. Yanıkdağ örnek: 19.1 °C,
+ *   96 yağışlı gün, ~1205 yağışlı saat, uçuşa uygun ~72 gün.
+ *   Sezon günü S ≈ 153 (1 May–30 Eyl).
+ *
+ * Su mesafesi
+ *   OSM Overpass: waterway / natural=water / spring. Haversine, arılık pinine.
+ *   Yanıkdağ ölçüm ~240 m. Üst sınır 1 km, ideal <300 m.
+ *
+ * Flora / bitki örtüsü
+ *   OSM landuse + natural (Overpass). Etiket seyrekse biyom varsayılanı:
+ *   Rize — Karadeniz karışık orman (kestane, gürgen, orman gülü).
+ *   NDVI / uydu yok.
+ *
+ * Sis-çise günü D
+ *   D ≈ yağışlı gün − sert yağışlı (poorFlightDays); yoksa 0.45×yağışlı.
+ *   Yanıkdağ varsayılan D=45. Formül:
+ *   Karniyol uçuş = 1−D/S, stok = 1−0.0018D (kapalı + yer).
+ *   Kafkas uçuş = 1−0.25×D/S, stok = 1 (çisede toplar, yemez).
+ *   Melez heterosis: Kafkas×Karadeniz 1.22, Kafkas×Karniyol 1.20.
+ *   Ana yeni ×1.06. Taban hedef Yanıkdağ kartı 13.8 kg/kovan.
+ *
+ * Kovan yoğunluğu
+ *   SuperAriForage.hiveDensityPressure — 10 km haversine + kendi kovan.
+ *
+ * Deli bal / grayanotoksin
+ *   İnsan riski, arıya zarar yok. Kuşak: R. ponticum Doğu Karadeniz.
+ *   Ölçüm: laboratuvar LC-MS/MS GTX-I ve GTX-III (Dönmez & Kaya 2020;
+ *   JAFC 2014 dilute-and-shoot; EFSA 2023 nicelik ≤0.01 mg/kg öneri).
+ *   Polen analizi destekler, miktar vermez.
+ *
+ * Harita
+ *   Yandex / OSM görünüm; pin kullanıcı kaydı.
+ */
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
