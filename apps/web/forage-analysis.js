@@ -1,4 +1,4 @@
-/** Loader: foraj kartı slider altında, detay aç/kapa. */
+/** Loader: foraj slider altı, yer su altı, detay aç/kapa. */
 (function (global) {
   var SRC =
     'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-analysis.js';
@@ -200,7 +200,11 @@
       'placeOnlyPanel',
       'Yer analizi',
       'Rakım, sıcaklık, nem ve yağış — bu konum.',
-      '<div class="forage-grid">' + placeRows + '</div>' + tip,
+      '<div class="sa-place-detail"><div class="forage-grid">' +
+        placeRows +
+        '</div>' +
+        tip +
+        '</div>',
       ''
     );
 
@@ -237,16 +241,33 @@
     return forage + place + flight + yieldCard(escapeHtml);
   }
 
-  function toggleForageCard(ev) {
-    var card = document.getElementById('forageOnlyPanel');
+  function toggleCard(id, btnId, ev) {
+    var card = document.getElementById(id);
     if (!card) return;
     if (ev) {
       ev.preventDefault();
       ev.stopPropagation();
     }
     var open = card.classList.toggle('is-open');
-    var btn = document.getElementById('btnForageHint');
+    var btn = document.getElementById(btnId);
     if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleForageCard(ev) {
+    toggleCard('forageOnlyPanel', 'btnForageHint', ev);
+  }
+  function togglePlaceCard(ev) {
+    toggleCard('placeOnlyPanel', 'btnWaterHint', ev);
+  }
+
+  function wireToggle(card, onToggle) {
+    if (!card || card.__saToggle) return;
+    card.__saToggle = true;
+    var head = card.querySelector('.forage-head');
+    if (head) {
+      head.style.cursor = 'pointer';
+      head.addEventListener('click', onToggle);
+    }
   }
 
   function mountForageUnderSlider() {
@@ -256,14 +277,7 @@
     if (card.previousElementSibling !== block) {
       block.parentNode.insertBefore(card, block.nextSibling);
     }
-    if (!card.__saToggle) {
-      card.__saToggle = true;
-      var head = card.querySelector('.forage-head');
-      if (head) {
-        head.style.cursor = 'pointer';
-        head.addEventListener('click', toggleForageCard);
-      }
-    }
+    wireToggle(card, toggleForageCard);
     var btn = document.getElementById('btnForageHint');
     if (btn && !btn.__saForageCard) {
       btn.__saForageCard = true;
@@ -276,6 +290,31 @@
     }
   }
 
+  function mountPlaceUnderWater() {
+    var card = document.getElementById('placeOnlyPanel');
+    var block = document.getElementById('waterSourceBlock');
+    if (!card || !block || !block.parentNode) return;
+    if (card.previousElementSibling !== block) {
+      block.parentNode.insertBefore(card, block.nextSibling);
+    }
+    wireToggle(card, togglePlaceCard);
+    var btn = document.getElementById('btnWaterHint');
+    if (btn && !btn.__saPlaceCard) {
+      btn.__saPlaceCard = true;
+      btn.addEventListener('click', togglePlaceCard, true);
+    }
+    var hint = document.getElementById('waterDetailPanel');
+    if (hint) {
+      hint.hidden = true;
+      hint.style.display = 'none';
+    }
+  }
+
+  function mountSplitCards() {
+    mountForageUnderSlider();
+    mountPlaceUnderWater();
+  }
+
   function ensureSplitCss() {
     if (document.getElementById('saSplitCardCss')) return;
     var s = document.createElement('style');
@@ -286,9 +325,11 @@
       '#flightOnlyPanel{border-color:#d7e3f0;background:#f7fafc;}' +
       '#forageOnlyPanel .sa-forage-detail,#forageOnlyPanel .forage-sub{display:none;}' +
       '#forageOnlyPanel.is-open .sa-forage-detail,#forageOnlyPanel.is-open .forage-sub{display:block;}' +
-      '#forageOnlyPanel .forage-head{cursor:pointer;}' +
-      '#forageOnlyPanel .forage-head strong:after{content:" ›";opacity:.45;}' +
-      '#forageOnlyPanel.is-open .forage-head strong:after{content:" \25be";}';
+      '#placeOnlyPanel .sa-place-detail,#placeOnlyPanel .forage-sub{display:none;}' +
+      '#placeOnlyPanel.is-open .sa-place-detail,#placeOnlyPanel.is-open .forage-sub{display:block;}' +
+      '#forageOnlyPanel .forage-head,#placeOnlyPanel .forage-head{cursor:pointer;}' +
+      '#forageOnlyPanel .forage-head strong:after,#placeOnlyPanel .forage-head strong:after{content:" ›";opacity:.45;}' +
+      '#forageOnlyPanel.is-open .forage-head strong:after,#placeOnlyPanel.is-open .forage-head strong:after{content:" \25be";}';
     (document.head || document.documentElement).appendChild(s);
   }
 
@@ -300,8 +341,8 @@
     var rawSeasonRender = F.renderSeasonPanelHtml;
     F.renderPanelHtml = function (analysis, escapeHtml) {
       var html = splitRender(analysis, escapeHtml);
-      setTimeout(mountForageUnderSlider, 0);
-      setTimeout(mountForageUnderSlider, 80);
+      setTimeout(mountSplitCards, 0);
+      setTimeout(mountSplitCards, 80);
       return html;
     };
     if (typeof rawAnalyze === 'function') {
@@ -350,8 +391,8 @@
         return html.replace('</div>', block + '</div>');
       };
     }
-    if (document.readyState === 'complete') mountForageUnderSlider();
-    else document.addEventListener('DOMContentLoaded', mountForageUnderSlider);
+    if (document.readyState === 'complete') mountSplitCards();
+    else document.addEventListener('DOMContentLoaded', mountSplitCards);
   }
 
   if (global.SuperAriForage && global.SuperAriForage.analyze) {
