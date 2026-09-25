@@ -3,8 +3,8 @@
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
   var NOTE_CSS = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var BOX_CSS = 'margin:0 0 10px;padding:8px 10px;border-radius:12px;border:1px solid #ece7df;background:#faf8f4;';
-  if (global.__saBreedLive5) return;
-  global.__saBreedLive5 = true;
+  if (global.__saBreedLive6) return;
+  global.__saBreedLive6 = true;
   var running = false, finished = false, open = false, lastBreed = '';
 
   function placeBreed(a) {
@@ -76,54 +76,74 @@
   function hideYellowForage() {
     var host = document.getElementById('forageHost');
     if (!host) return;
-    var nodes = host.querySelectorAll('strong, h2, h3, p');
-    for (var i = 0; i < nodes.length; i++) {
-      var t = (nodes[i].textContent || '').replace(/\s+/g, ' ');
-      if (/Foraj\s*&\s*yer|Foraj ve yer analizi/i.test(t)) {
-        var box = nodes[i].closest('section, article, .card, .panel, .forage-card, .forage-box, div');
-        if (box && box !== host) {
-          box.style.display = 'none';
-          box.setAttribute('data-sa-hide-forage', '1');
-        }
+    host.querySelectorAll('strong, h2, h3').forEach(function (n) {
+      if (/Foraj\s*&\s*yer|Foraj ve yer/i.test(n.textContent || '')) {
+        var box = n.closest('section, article, .card, .panel, div');
+        if (box && box !== host) box.style.display = 'none';
       }
-    }
-    host.querySelectorAll('.forage-card, .forage-panel').forEach(function (el) {
-      if (/Foraj/i.test(el.textContent || '')) el.style.display = 'none';
     });
   }
-  function rhText() {
-    return foggyPlace(apiary()) ? '~78%' : '~60%';
-  }
-  function waterLines(a) {
-    var w = (a && a.waterDistanceM) || 240;
-    var ok = w <= 300 ? 'ideal' : w <= 1000 ? 'kabul' : 'uzak';
-    return [
-      'Su ' + w + ' m · ' + ok + ' (≤300 m ideal)',
-      'Bağıl nem ' + rhText(),
-      'Sürekli temiz kaynak yeterli'
-    ];
-  }
-  function foragePlaceLines() {
+  function forageDetailHtml() {
+    var a = apiary();
+    var t = targetOf(a);
     var rEl = document.getElementById('forageRadiusVal');
     var shown = rEl ? rEl.textContent.trim() : '2.5 km';
-    return [
+    var lines = [
       'Foraj ve yer · skor 46 · Orta',
-      'Arılar ' + shown + ' yarıçapta geziyor',
+      'Gösterilen çember ' + shown + ' (kaydırıcı). Skor kilitli otomatik yarıçapta.',
+      'Arılar bu dairede gezer. Yoğunluk / yerleşim daraltır; yayla ~3 km.',
       'Rakım · 229 m',
-      'Sezon sıcaklık · 19.1 °C ort. May–Eyl'
+      'Sezon sıcaklık · 19.1 °C ort. May–Eyl',
+      '96 yağışlı gün · uçuşa uygun ~72 gün · sis-çise 45/153',
+      'Flora · ' + COVER_TR,
+      'İrk · ' + t.breed + ' · kışlama ' + t.winter + ' · ' + winterNote(a),
+      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
     ];
+    return lines.map(function (x) {
+      return '<p class="fs-hint" style="' + NOTE_CSS + 'display:block;">' + x + '</p>';
+    }).join('');
+  }
+  function bindForageDetail() {
+    var btn = document.getElementById('btnForageHint');
+    if (!btn) return;
+    var hint = document.getElementById('forageAutoHint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.id = 'forageAutoHint';
+      hint.className = 'forage-auto-hint fs-hint';
+      hint.hidden = true;
+      var block = btn.closest('.fs-block') || btn.parentNode;
+      if (block && block.parentNode) block.parentNode.insertBefore(hint, block.nextSibling);
+    }
+    hint.className = 'forage-auto-hint';
+    if (btn.__saDet) return;
+    btn.__saDet = true;
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      var on = hint.hidden || hint.hasAttribute('hidden');
+      if (on) {
+        hint.hidden = false;
+        hint.removeAttribute('hidden');
+        hint.style.display = 'block';
+        hint.innerHTML = forageDetailHtml();
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        hint.hidden = true;
+        hint.setAttribute('hidden', '');
+        hint.style.display = 'none';
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    }, true);
   }
   function notes(a) {
     var t = targetOf(a);
     return [
-      'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
-      'Su · ' + ((a && a.waterDistanceM) || 240) + ' m · nem ' + rhText(),
-      'Flora · ' + COVER_TR,
-      'Sis / çise · ' + (foggyPlace(a) ? '45/153' : 'yok'),
-      'Kışlama · ' + t.winter + ' · ' + t.breed,
+      'Su · ' + ((a && a.waterDistanceM) || 240) + ' m',
       'İrk · ' + t.breed + ' · ana 2026',
-      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
-    ].concat(foragePlaceLines()).concat(waterLines(a));
+      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg',
+      foggyPlace(a) ? 'Sis / çise · 45/153' : 'Sis yok'
+    ];
   }
   function p(txt) { return '<p class="fs-hint" style="' + NOTE_CSS + 'display:block;">' + txt + '</p>'; }
   function mountWaterNote() {
@@ -138,7 +158,8 @@
       if (hint && hint.parentNode) hint.parentNode.insertBefore(el, hint.nextSibling);
       else block.parentNode.insertBefore(el, block.nextSibling);
     }
-    el.innerHTML = waterLines(apiary()).map(p).join('');
+    var w = (apiary() && apiary().waterDistanceM) || 240;
+    el.innerHTML = p('Su ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul') + ' · nem ' + (foggyPlace(apiary()) ? '~78%' : '~60%'));
   }
   function mountNotes() {
     var bar = document.getElementById('saFloraBar');
@@ -153,14 +174,7 @@
       bar.parentNode.insertBefore(card, bar.nextSibling);
     }
     card.innerHTML = p('Hedef bal · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg · ' + t.breed);
-    var info = document.getElementById('saInfoPanel');
-    if (!info) {
-      info = document.createElement('div');
-      info.id = 'saInfoPanel';
-      info.style.cssText = BOX_CSS;
-      card.parentNode.insertBefore(info, card.nextSibling);
-    }
-    info.innerHTML = notes(a).map(p).join('');
+    bindForageDetail();
     mountWaterNote();
     hideYellowForage();
   }
@@ -175,7 +189,6 @@
         box.hidden = !open;
         if (open) box.innerHTML = notes(apiary()).map(p).join('');
       }
-      el.classList.toggle('is-open', open);
     });
   }
   function paint(pct) {
@@ -215,7 +228,8 @@
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
+        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}' +
+        '#forageAutoHint{margin:6px 0 8px;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -228,6 +242,7 @@
       anchor.parentNode.insertBefore(el, anchor);
       bindBarToggle(el);
     }
+    bindForageDetail();
     return true;
   }
   function boot() {
@@ -237,13 +252,8 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    setTimeout(hideYellowForage, 500);
-    setTimeout(hideYellowForage, 1600);
-    setInterval(function () {
-      var b = placeBreed(apiary());
-      if (b !== lastBreed) { lastBreed = b; mountNotes(); }
-      hideYellowForage();
-    }, 2000);
+    setTimeout(bindForageDetail, 500);
+    setTimeout(hideYellowForage, 800);
   }
   boot();
 })(window);
