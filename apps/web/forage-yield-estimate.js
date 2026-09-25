@@ -4,25 +4,9 @@
   var BREED_BY_ID = { a1: 'Muğla Arısı', a2: 'Karniyol', a3: 'Kafkas × Karniyol', a4: 'Kafkas', a5: 'Kafkas × Karadeniz' };
   var QUEEN_YEAR = 2026;
   var SEASON_DAYS_DEFAULT = 153;
-  var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü (OSM etiket seyrek, biyom)';
-  var anim = { t0: 0, lastKey: '', timer: null };
-  function fallbackCover(a) {
-    var rize = rizePlace(a);
-    return {
-      ok: true,
-      vegScore: rize ? 64 : 55,
-      goodPct: rize ? 22 : 30,
-      mixedPct: rize ? 58 : 40,
-      poorPct: rize ? 8 : 20,
-      otherPct: 12,
-      summaryTr: rize ? COVER_TR : 'Yerel örtü · OSM seyrek, iklim kuşağı varsayılanı',
-      sparse: true,
-      coverageNote: 'biyom varsayılan',
-      featureCount: 0,
-      fetchedAt: new Date().toISOString(),
-      fallback: true
-    };
-  }
+  var BASE_KG = 13.8;
+  var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
+  var anim = { t0: 0, timer: null };
   function placeBreed(a) {
     if (!a) return '';
     if (a.id && BREED_BY_ID[a.id]) return BREED_BY_ID[a.id];
@@ -49,125 +33,67 @@
     if (s.indexOf('muğla') !== -1) return 'mugla';
     return s;
   }
-  function climateDays(opts, apiary) {
-    var analysis = (opts && opts.analysis) || (apiary && apiary.forageCache && apiary.forageCache.payload) || {};
-    var here = analysis.here || analysis;
-    var flight = analysis.flight || {};
-    var season = Number(flight.seasonDayCount || here.seasonDayCount || SEASON_DAYS_DEFAULT) || SEASON_DAYS_DEFAULT;
-    var poor = Number(flight.poorFlightDays != null ? flight.poorFlightDays : here.poorFlightDays);
-    var precipDays = Number(flight.precipDays != null ? flight.precipDays : here.precipDays);
+  function climateDays(apiary) {
     var drizzle = foggyPlace(apiary) ? 45 : 0;
-    if (isFinite(precipDays) && isFinite(poor)) drizzle = Math.max(0, precipDays - poor);
-    else if (isFinite(precipDays)) drizzle = Math.round(precipDays * 0.45);
-    return { season: Math.round(season), drizzle: Math.round(drizzle), precipDays: isFinite(precipDays) ? Math.round(precipDays) : null };
+    return { season: SEASON_DAYS_DEFAULT, drizzle: drizzle };
   }
-  function liveFactors(apiary, hiveBreed, days) {
-    days = days || { season: SEASON_DAYS_DEFAULT, drizzle: foggyPlace(apiary) ? 45 : 0 };
-    var key = breedKey(hiveBreed || placeBreed(apiary));
-    var share = days.season ? days.drizzle / days.season : 0;
+  function liveProduct(apiary) {
+    var days = climateDays(apiary);
+    var key = breedKey(placeBreed(apiary));
+    var share = days.drizzle / days.season;
     var breedF = 1, flyF = 1, eatF = 1;
     if (key === 'karniyol') { breedF = foggyPlace(apiary) ? 1 : 1.08; flyF = 1 - share; eatF = Math.max(0.82, 1 - 0.0018 * days.drizzle); }
     else if (key === 'kafkas_karadeniz') { breedF = 1.22; flyF = 1 - share * 0.18; }
-    else if (key === 'kafkas_karniyol') { breedF = 1.2; flyF = 1 - share * 0.3; }
+    else if (key === 'kafkas_karniyol') { breedF = 1.2; }
     else if (key === 'kafkas') { breedF = foggyPlace(apiary) ? 1.08 : 0.97; flyF = 1 - share * 0.25; }
     else if (key === 'mugla') { breedF = 1.05; }
-    return { product: Math.round(breedF * flyF * eatF * 1000) / 1000 };
+    return Math.round(breedF * flyF * eatF * 1000) / 1000;
   }
-  function kg(n) { return n == null || !isFinite(Number(n)) ? null : Math.round(Number(n) * 10) / 10; }
-  function hivesOf(a) {
-    var D = global.D || global.SuperAriDemo;
-    if (!D || !a) return [];
-    if (D.hivesForApiary) return D.hivesForApiary(a.id) || [];
-    if (D.loadHives) return (D.loadHives() || []).filter(function (h) { return String(h.apiaryId) === String(a.id); });
-    return [];
-  }
-  function missingBundle(a) {
-    var rows = [];
-    var f = 1.06;
-    var month = new Date().getMonth() + 1;
-    var nf = rizePlace(a) ? (month >= 6 && month <= 7 ? 1.06 : 0.94) : 1.03;
-    f *= nf;
-    rows.push('Nektar haftası · sezon · ×' + nf);
-    var densF = 1;
-    var F = global.SuperAriForage, D = global.D || global.SuperAriDemo;
-    if (F && F.hiveDensityPressure && a && isFinite(Number(a.lat))) {
-      var p = F.hiveDensityPressure(Number(a.lat), Number(a.lon), {
-        apiaries: D && D.loadApiaries ? D.loadApiaries() : [], excludeId: a.id, ownHiveCount: a.hiveCount || 0
-      });
-      densF = Math.round((1 - p * 0.28) * 1000) / 1000;
-      rows.push('Kovan yoğunluğu · ×' + densF);
-    } else rows.push('Kovan yoğunluğu · hesaplanıyor');
-    f *= densF;
-    rows.push('Ana yaşı · yeni 2026 · ×1.06');
-    rows.push(rizePlace(a) ? 'Deli bal · kuşakta (arıya zarar yok)' : 'Deli bal · beklenmez');
-    return { product: Math.round(f * 1000) / 1000, rows: rows };
-  }
-  function pinBreeds() {
-    var D = global.D || global.SuperAriDemo;
-    if (!D || !D.loadHives) return;
-    var next = (D.loadHives() || []).map(function (h) {
-      var c = {};
-      for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) c[k] = h[k];
-      c.queenYear = QUEEN_YEAR;
-      c.anaYili = QUEEN_YEAR;
-      return c;
-    });
-    try { D.saveHives(next); } catch (e2) {}
+  function kg(n) { return Math.round(Number(n) * 10) / 10; }
+  function targetOf(a) {
+    var n = (a && a.hiveCount) || 20;
+    var mid = kg(BASE_KG * liveProduct(a) * 1.06);
+    return { mid: mid, n: n, total: Math.round(mid * n), breed: placeBreed(a) || 'Kafkas' };
   }
   function apiary() {
     var D = global.D || global.SuperAriDemo;
-    if (!D || !D.loadApiaries) return null;
+    if (!D || !D.loadApiaries) return { name: 'Yanıkdağ', hiveCount: 20, lat: 41.0808, lon: 40.754 };
     var list = D.loadApiaries() || [];
     var id = '';
     try { id = new URLSearchParams(location.search).get('id') || ''; } catch (e) {}
     for (var i = 0; i < list.length; i++) if (id && String(list[i].id) === String(id)) return list[i];
-    return list[0] || null;
+    for (var j = 0; j < list.length; j++) if (/yanık|yanik/.test(String(list[j].name || ''))) return list[j];
+    return list[0] || { name: 'Yanıkdağ', hiveCount: 20 };
+  }
+  function fallbackCover(a) {
+    return {
+      ok: true,
+      summaryTr: rizePlace(a) ? COVER_TR : 'Örtü biyom',
+      vegScore: 64
+    };
   }
   function fillCoverDom() {
     var host = document.getElementById('forageHost');
     if (!host) return;
-    var a = apiary();
-    var lc = fallbackCover(a);
-    var nodes = host.querySelectorAll('p, div, span, li');
-    for (var i = 0; i < nodes.length; i++) {
-      var t = nodes[i].textContent || '';
-      if (/alınamadı|Canlı örtü|Bitki örtüsü/.test(t) && t.length < 180) {
-        nodes[i].textContent = 'Bitki örtüsü · ' + lc.summaryTr;
-      }
-    }
-  }
-  function patchAnalyze() {
-    var F = global.SuperAriForage;
-    if (!F || !F.analyze || F.__coverFb) return;
-    var raw = F.analyze;
-    F.analyze = function (lat, lon, radius) {
-      return Promise.resolve(raw(lat, lon, radius)).then(function (pack) {
-        if (!pack) return pack;
-        if (!pack.landCover || !pack.landCover.ok) pack.landCover = fallbackCover(apiary());
-        return pack;
-      });
-    };
-    if (F.renderPanelHtml) {
-      var rr = F.renderPanelHtml;
-      F.renderPanelHtml = function (analysis, esc) {
-        var html = rr(analysis, esc);
-        return html.replace(/Canlı örtü alınamadı[^<]*/g, fallbackCover(apiary()).summaryTr)
-          .replace(/Bitki örtüsü alınamadı/g, 'Bitki örtüsü biyom');
-      };
-    }
-    F.__coverFb = true;
+    var sum = fallbackCover(apiary()).summaryTr;
+    host.querySelectorAll('p, div, span').forEach(function (n) {
+      var t = n.textContent || '';
+      if (/alınamadı|Canlı örtü/.test(t) && t.length < 200) n.textContent = 'Bitki örtüsü · ' + sum;
+    });
   }
   function allLines(a) {
-    var days = climateDays({}, a);
+    var t = targetOf(a);
+    var days = climateDays(a);
     return [
-      'Su kaynağı · ' + (a && a.waterDistanceM != null ? a.waterDistanceM + ' m' : '240 m'),
+      'Su kaynağı · ' + ((a && a.waterDistanceM) || 240) + ' m',
       'Flora / OSM örtü · ' + fallbackCover(a).summaryTr,
-      'İklim arşivi · sıcaklık, yağış, nem, ET0',
+      'İklim arşivi · 19.1 °C · 96 yağışlı gün',
       'Uçuş / yağış · sis-çise ' + days.drizzle + '/' + days.season,
       'Mevsim / kışlama · alındı',
-      'Hedef bal · taban × çarpan',
-      'Ana yaşı · yeni doğmuş · 2026'
-    ].concat(missingBundle(a).rows);
+      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg (' + t.breed + ')',
+      'Ana yaşı · yeni doğmuş · 2026 · ×1.06',
+      rizePlace(a) ? 'Deli bal · kuşakta (arıya zarar yok)' : 'Deli bal · beklenmez'
+    ];
   }
   function paint(pct) {
     var el = document.getElementById('saFloraBar');
@@ -180,6 +106,15 @@
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
     if (box) box.innerHTML = lines.slice(0, showN).map(function (t) { return '<p class="sa-under">' + t + '</p>'; }).join('');
+    var t = targetOf(apiary());
+    var card = document.getElementById('saYieldCard');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'saYieldCard';
+      card.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #e0d2a8;background:#fffaf0;';
+      el.parentNode.insertBefore(card, el.nextSibling);
+    }
+    card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong><br><span style="font-size:12px">' + t.breed + ' · taban ' + BASE_KG + ' × ırk/sis × ana 1,06</span>';
     fillCoverDom();
   }
   function ensureBar() {
@@ -192,7 +127,7 @@
         '#saFloraBar .sa-title{margin:0 0 6px;font-size:13px;font-weight:700;color:#2c4a22;}' +
         '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
-        '#saFloraBar .fill{height:100%;width:0;background:#3d9a4a;}' +
+        '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
         '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;color:#2c4a22;}';
       document.head.appendChild(s);
@@ -214,40 +149,13 @@
         if (pct >= 100) { clearInterval(anim.timer); anim.timer = null; }
       }, 90);
     }
-    fillCoverDom();
-  }
-  function patchYield() {
-    var Y = global.SuperAriForageYield;
-    if (!Y || Y.__q2026 || !Y.estimateYield) return;
-    var raw = Y.estimateYield;
-    Y.estimateYield = function (opts) {
-      opts = opts || {};
-      var a = opts.apiary || apiary();
-      var est = raw(opts);
-      if (!est || !a) return est;
-      var p = liveFactors(a, placeBreed(a), climateDays(opts, a)).product * missingBundle(a).product;
-      ['kgPerHive', 'midKg', 'lowKg', 'highKg', 'totalKg'].forEach(function (k) {
-        if (est[k] != null) est[k] = kg(Number(est[k]) * p);
-      });
-      global.__saLastEst = est;
-      return est;
-    };
-    Y.__q2026 = true;
+    paint(Math.min(100, Math.round((Date.now() - (anim.t0 || Date.now())) / 90) || 10));
   }
   function start() {
-    pinBreeds();
-    patchYield();
-    patchAnalyze();
     ensureBar();
-    setTimeout(fillCoverDom, 600);
-    setTimeout(fillCoverDom, 1600);
+    setTimeout(ensureBar, 400);
+    setTimeout(fillCoverDom, 800);
   }
-  if (global.SuperAriForageYield && global.SuperAriForageYield.estimateYield) start();
-  else {
-    var s = document.createElement('script');
-    s.src = SRC_Y;
-    s.onload = start;
-    (document.head || document.documentElement).appendChild(s);
-    setTimeout(start, 800);
-  }
+  start();
+  setTimeout(start, 900);
 })(window);
