@@ -5,9 +5,9 @@
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels5) return;
-  global.__saPanels5 = true;
-  var running = false, finished = false, openBar = false;
+  if (global.__saPanels6) return;
+  global.__saPanels6 = true;
+  var running = false, finished = false;
   var forageOpen = false, waterOpen = false;
 
   function placeBreed(a) {
@@ -73,10 +73,7 @@
   function lockForageKm() {
     var input = document.getElementById('forageRadius');
     var val = document.getElementById('forageRadiusVal');
-    if (input) {
-      input.value = String(FORAGE_KM);
-      input.setAttribute('aria-valuetext', FORAGE_KM + ' km');
-    }
+    if (input) input.value = String(FORAGE_KM);
     if (val) val.textContent = FORAGE_KM + ' km';
   }
   function line(t) { return '<p style="' + NOTE + '">' + t + '</p>'; }
@@ -102,6 +99,8 @@
     lockForageKm();
     var a = apiary();
     var t = targetOf(a);
+    var month = new Date().getMonth() + 1;
+    var nectar = foggyPlace(a) && month >= 6 && month <= 7 ? 'kestane / orman gülü' : 'sezon';
     var forageBlock = document.getElementById('forageRadius');
     forageBlock = forageBlock && (forageBlock.closest('.fs-block') || forageBlock.parentNode);
     var waterEl = document.getElementById('waterRadius') || document.getElementById('btnWaterHint');
@@ -115,9 +114,13 @@
           '2. Çember · ' + FORAGE_KM + ' km',
           '3. Rakım · 229 m',
           '4. Sıcaklık · 19.1 °C May–Eyl',
-          '5. Örtü · ' + COVER_TR,
-          '6. İrk · ' + t.breed + ' · kışlama ' + t.winter,
-          '7. Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
+          '5. Uçuş penceresi · ~72 gün (sis-çise ayrı, Su detayında)',
+          '6. Örtü · ' + COVER_TR,
+          '7. İyi foraj · düşük · orman / karışık yüksek · zayıf örtü az',
+          '8. Yoğunluk · kendi ' + t.n + ' kovan · 10 km seyrek',
+          '9. Nektar · ' + nectar,
+          '10. İrk · ' + t.breed + ' · kışlama ' + t.winter + ' · ana 2026',
+          '11. Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
         ].map(line).join('');
       show(fp, forageOpen);
     }
@@ -130,7 +133,7 @@
           '1. Mesafe · ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
           '2. Bağıl nem · ' + (foggyPlace(a) ? '~78%' : '~60%'),
           '3. Yağış / ET0 · su dengesi',
-          '4. 96 yağışlı gün · uçuşa uygun ~72 · sis-çise 45/153',
+          '4. 96 yağışlı gün · sis-çise 45/153',
           '5. Sürekli temiz kaynak yeterli'
         ].map(line).join('');
       show(wp, waterOpen);
@@ -140,8 +143,8 @@
   }
   function bindArrow(btnId, fn) {
     var btn = document.getElementById(btnId);
-    if (!btn || btn.__saArrow5) return;
-    btn.__saArrow5 = true;
+    if (!btn || btn.__saArrow6) return;
+    btn.__saArrow6 = true;
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
@@ -187,8 +190,7 @@
         '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
-        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
+        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -197,7 +199,7 @@
     if (!document.getElementById('saFloraBar')) {
       var el = document.createElement('div');
       el.id = 'saFloraBar';
-      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div><div data-sa-lines hidden></div>';
+      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div>';
       anchor.parentNode.insertBefore(el, anchor);
     }
     return true;
@@ -209,8 +211,6 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    setTimeout(lockForageKm, 300);
-    setTimeout(lockForageKm, 1200);
   }
   boot();
 })(window);
