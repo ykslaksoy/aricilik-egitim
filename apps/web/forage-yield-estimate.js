@@ -3,11 +3,12 @@
   var FORAGE_KM = 2.5;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
-  var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;display:block;';
+  var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels7) return;
-  global.__saPanels7 = true;
+  if (global.__saPanels8) return;
+  global.__saPanels8 = true;
   var running = false, finished = false;
+  var forageOpen = false, waterOpen = false;
 
   function placeBreed(a) {
     if (a && a.breed) {
@@ -76,17 +77,21 @@
     if (val) val.textContent = FORAGE_KM + ' km';
   }
   function line(t) { return '<p style="' + NOTE + '">' + t + '</p>'; }
+  function show(el, on) {
+    if (!el) return;
+    el.style.display = on ? 'block' : 'none';
+    if (on) el.removeAttribute('hidden');
+    else el.setAttribute('hidden', '');
+  }
   function placeAfter(block, id) {
     var el = document.getElementById(id);
     if (!el && block && block.parentNode) {
       el = document.createElement('div');
       el.id = id;
       el.style.cssText = PANEL;
+      el.hidden = true;
+      el.style.display = 'none';
       block.parentNode.insertBefore(el, block.nextSibling);
-    }
-    if (el) {
-      el.style.cssText = PANEL;
-      el.removeAttribute('hidden');
     }
     return el;
   }
@@ -105,18 +110,19 @@
       fp.innerHTML =
         '<p style="' + TITLE + '">Foraj ve yer</p>' +
         [
-          'Skor · 46 Orta',
-          'Çember · ' + FORAGE_KM + ' km',
-          'Rakım · 229 m',
-          'Sıcaklık · 19.1 °C May–Eyl',
-          'Uçuş · ~72 gün',
-          'Örtü · ' + COVER_TR,
-          'İyi foraj düşük · orman yüksek · zayıf örtü az',
-          'Yoğunluk · ' + t.n + ' kovan · 10 km seyrek',
-          'Nektar · ' + nectar,
-          'İrk · ' + t.breed + ' · kışlama ' + t.winter,
-          'Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
+          '1. Skor · 46 Orta',
+          '2. Çember · ' + FORAGE_KM + ' km',
+          '3. Rakım · 229 m',
+          '4. Sıcaklık · 19.1 °C May–Eyl',
+          '5. Uçuş penceresi · ~72 gün (sis-çise ayrı, Su detayında)',
+          '6. Örtü · ' + COVER_TR,
+          '7. İyi foraj · düşük · orman / karışık yüksek · zayıf örtü az',
+          '8. Yoğunluk · kendi ' + t.n + ' kovan · 10 km seyrek',
+          '9. Nektar · ' + nectar,
+          '10. İrk · ' + t.breed + ' · kışlama ' + t.winter + ' · ana 2026',
+          '11. Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
         ].map(line).join('');
+      show(fp, forageOpen);
     }
     var w = (a && a.waterDistanceM) || 240;
     var wp = placeAfter(waterBlock, 'saWaterPanel');
@@ -124,24 +130,27 @@
       wp.innerHTML =
         '<p style="' + TITLE + '">Su ve nem</p>' +
         [
-          'Mesafe · ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
-          'Bağıl nem · ' + (foggyPlace(a) ? '~78%' : '~60%'),
-          'Yağış / ET0 · su dengesi',
-          '96 yağışlı gün · sis-çise 45/153',
-          'Sürekli temiz kaynak yeterli'
+          '1. Mesafe · ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
+          '2. Bağıl nem · ' + (foggyPlace(a) ? '~78%' : '~60%'),
+          '3. Yağış / ET0 · su dengesi',
+          '4. 96 yağışlı gün · sis-çise 45/153',
+          '5. Sürekli temiz kaynak yeterli'
         ].map(line).join('');
+      show(wp, waterOpen);
     }
-    var bar = document.getElementById('saFloraBar');
-    if (bar && bar.parentNode) {
-      var card = document.getElementById('saYieldCard');
-      if (!card) {
-        card = document.createElement('div');
-        card.id = 'saYieldCard';
-        bar.parentNode.insertBefore(card, bar.nextSibling);
-      }
-      card.style.cssText = PANEL;
-      card.innerHTML = '<p style="' + TITLE + '">Hedef bal</p>' + line(t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg · ' + t.breed);
-    }
+    show(document.getElementById('forageAutoHint'), false);
+    show(document.getElementById('waterDetailPanel'), false);
+  }
+  function bindArrow(btnId, fn) {
+    var btn = document.getElementById(btnId);
+    if (!btn || btn.__saArrow8) return;
+    btn.__saArrow8 = true;
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      fn();
+      fillPanels();
+    }, true);
   }
   function paint(pct) {
     var el = document.getElementById('saFloraBar');
@@ -151,6 +160,8 @@
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
     lockForageKm();
+    bindArrow('btnForageHint', function () { forageOpen = !forageOpen; });
+    bindArrow('btnWaterHint', function () { waterOpen = !waterOpen; });
     fillPanels();
   }
   function startAnim() {
@@ -195,6 +206,7 @@
   }
   function boot() {
     if (!ensureBar()) { setTimeout(boot, 400); return; }
+    lockForageKm();
     var done = '';
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
