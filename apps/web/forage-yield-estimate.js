@@ -5,8 +5,8 @@
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels8) return;
-  global.__saPanels8 = true;
+  if (global.__saPanels9) return;
+  global.__saPanels9 = true;
   var running = false, finished = false;
   var forageOpen = false, waterOpen = false;
 
@@ -61,9 +61,19 @@
   }
   function locKey() {
     var a = apiary();
-    var lat = Number(a && a.lat), lon = Number(a && a.lon), w = Number(a && a.waterDistanceM);
-    if (!isFinite(w)) w = 240;
-    return String(a && a.id || '') + '|' + (isFinite(lat) ? lat.toFixed(4) : '') + '|' + (isFinite(lon) ? lon.toFixed(4) : '') + '|' + Math.round(w);
+    var lat = Number(a && a.lat), lon = Number(a && a.lon);
+    return String(a && a.id || '') + '|' + (isFinite(lat) ? lat.toFixed(4) : '') + '|' + (isFinite(lon) ? lon.toFixed(4) : '');
+  }
+  function cacheFresh() {
+    var a = apiary();
+    var D = global.D || global.SuperAriDemo;
+    var lat = Number(a && a.lat), lon = Number(a && a.lon);
+    if (!a || !isFinite(lat) || !isFinite(lon)) return false;
+    if (D && D.isLiveCacheFresh && D.isLiveCacheFresh(a.forageCache, lat, lon)) return true;
+    try { return (localStorage.getItem('saLocCoord') || '') === locKey(); } catch (e) { return false; }
+  }
+  function markFresh() {
+    try { localStorage.setItem('saLocCoord', locKey()); } catch (e) {}
   }
   function targetOf(a) {
     var n = (a && a.hiveCount) || 20;
@@ -165,17 +175,19 @@
     fillPanels();
   }
   function startAnim() {
-    if (running || finished) { paint(100); return; }
+    if (running || finished || cacheFresh()) { finished = true; markFresh(); paint(100); return; }
     running = true;
     var t0 = Date.now();
     var iv = setInterval(function () {
-      var pct = Math.min(100, Math.round((Date.now() - t0) / 90));
+      var ready = cacheFresh();
+      var pct = ready ? 100 : Math.min(99, Math.round((Date.now() - t0) / 90));
+      if (Date.now() - t0 > 18000) pct = 100;
       paint(pct);
       if (pct >= 100) {
         clearInterval(iv);
         running = false;
         finished = true;
-        try { sessionStorage.setItem('saLocDone', locKey()); } catch (e) {}
+        markFresh();
       }
     }, 120);
   }
@@ -207,9 +219,7 @@
   function boot() {
     if (!ensureBar()) { setTimeout(boot, 400); return; }
     lockForageKm();
-    var done = '';
-    try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
-    if (done === locKey() || finished) { finished = true; paint(100); }
+    if (finished || cacheFresh()) { finished = true; markFresh(); paint(100); }
     else startAnim();
   }
   boot();
