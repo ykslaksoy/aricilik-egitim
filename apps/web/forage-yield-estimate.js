@@ -1,8 +1,8 @@
 (function (global) {
   var FORAGE_KM = 2.5;
-  if (global.__saPanels14) return;
-  global.__saPanels14 = true;
-  var running = false, finished = false, locOpen = false;
+  if (global.__saPanels15) return;
+  global.__saPanels15 = true;
+  var running = false, finished = false, locOpen = false, forageOpen = false;
 
   var D0 = global.D || global.SuperAriDemo;
   if (D0 && !D0.__saCoordCache) {
@@ -49,22 +49,23 @@
     if (val) val.textContent = FORAGE_KM + ' km';
   }
   function injectCss() {
-    if (document.getElementById('saSplitCss')) return;
+    if (document.getElementById('saRowCss')) return;
     var s = document.createElement('style');
-    s.id = 'saSplitCss';
+    s.id = 'saRowCss';
     s.textContent =
-      '.sa-split-card .sa-forage-detail,.sa-split-card .sa-place-detail,.sa-split-card .sa-flight-detail,#saFloraBar .sa-loc-detail{display:none;}' +
-      '.sa-split-card.is-open .sa-forage-detail,.sa-split-card.is-open .sa-place-detail,.sa-split-card.is-open .sa-flight-detail,#saFloraBar.is-open .sa-loc-detail{display:block;}' +
-      '.sa-split-card .forage-head,#saFloraBar .forage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;}' +
-      '.sa-split-chev,.fs-chev{width:28px;height:28px;min-width:28px;border:1px solid #e4e0d8;border-radius:999px;background:#faf8f4;color:#6b635a;}' +
-      '.sa-split-card.is-open .sa-split-chev,#saFloraBar.is-open .sa-split-chev{transform:rotate(90deg);}' +
-      '#saFloraBar{margin:0 0 10px;padding:12px 14px;border-radius:18px;border:1px solid #e4d3a8;background:#fbf6ea;}' +
-      '#saFloraBar .forage-head strong{font-size:15px;font-weight:800;color:#1c1916;}' +
-      '#saFloraBar .sa-badge{border:1px solid #c4a574;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;color:#6b4a28;background:#fff;}' +
-      '#saFloraBar .sa-loc-detail{margin-top:8px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;}' +
-      '#saFloraBar .track,.sa-mini-track{height:6px;border-radius:99px;background:#e8e0d2;overflow:hidden;margin-top:8px;}' +
-      '#saFloraBar .fill,.sa-mini-fill{height:100%;background:#3d9a4a;}' +
-      '.fs-row input[type=range]{height:28px;}';
+      '#saFloraBar{margin:8px 0;background:transparent;border:0;padding:0;}' +
+      '#saFloraBar .fs-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;}' +
+      '#saFloraBar label{font-size:11px;font-weight:700;color:#6b635a;}' +
+      '#saFloraBar .val{font-size:11px;font-weight:800;color:#4a2f1a;}' +
+      '#saFloraBar .sa-range{position:relative;height:28px;display:flex;align-items:center;}' +
+      '#saFloraBar .sa-range .track{position:absolute;left:0;right:0;height:4px;border-radius:99px;background:#d8dde3;}' +
+      '#saFloraBar .sa-range .fill{position:absolute;left:0;height:4px;border-radius:99px;background:#0a84ff;}' +
+      '#saFloraBar .sa-range .thumb{position:absolute;top:50%;width:20px;height:20px;margin-top:-10px;margin-left:-10px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);}' +
+      '#saFloraBar .fs-chev{width:28px;height:28px;border:1px solid #e4e0d8;border-radius:999px;background:#faf8f4;color:#6b635a;}' +
+      '#saFloraBar .sa-loc-detail{display:none;margin:6px 0 0;font-size:10px;color:#8a8278;line-height:1.35;}' +
+      '#saFloraBar.is-open .sa-loc-detail{display:block;}' +
+      '#forageOnlyPanel:not(.is-open) .sa-forage-detail,#forageOnlyPanel:not(.is-open) .forage-grid,#forageOnlyPanel:not(.is-open) .forage-sub{display:none !important;}' +
+      '#forageOnlyPanel:not(.is-open){display:none !important;}';
     document.head.appendChild(s);
   }
   function locDetail() {
@@ -73,64 +74,56 @@
       'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
       'Su · ' + ((a && a.waterDistanceM) || 240) + ' m',
       'Çember · ' + FORAGE_KM + ' km'
-    ].map(function (t) { return '<p style="margin:0 0 4px">' + t + '</p>'; }).join('');
+    ].map(function (t) { return '<p style="margin:0 0 3px">' + t + '</p>'; }).join('');
   }
-  function restyleLocBar(pct) {
+  function paintLoc(pct) {
     var el = document.getElementById('saFloraBar');
     if (!el) return;
     el.classList.toggle('is-open', locOpen);
-    var done = pct >= 100;
+    var left = Math.max(8, Math.min(100, pct));
     el.innerHTML =
-      '<div class="forage-head">' +
-        '<strong>Konum</strong>' +
-        '<span class="sa-badge">' + (done ? '100 · Güncel' : pct + ' · Tarama') + '</span>' +
-        '<button type="button" class="sa-split-chev" aria-label="Detay">›</button>' +
+      '<div class="fs-row">' +
+        '<label>Konum</label>' +
+        '<div class="sa-range"><div class="track"></div><div class="fill" style="width:' + pct + '%"></div><div class="thumb" style="left:' + left + '%"></div></div>' +
+        '<span class="val">' + pct + '%</span>' +
+        '<button type="button" class="fs-chev" id="btnLocHint" aria-expanded="' + locOpen + '">›</button>' +
       '</div>' +
-      '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
       '<div class="sa-loc-detail">' + locDetail() + '</div>';
-    var head = el.querySelector('.forage-head');
-    if (head && !head.__saLoc) {
-      head.__saLoc = true;
-      head.addEventListener('click', function (ev) {
+    var btn = document.getElementById('btnLocHint');
+    if (btn && !btn.__sa) {
+      btn.__sa = true;
+      btn.addEventListener('click', function (ev) {
         ev.preventDefault();
+        ev.stopPropagation();
         locOpen = !locOpen;
-        el.classList.toggle('is-open', locOpen);
+        paintLoc(pct);
       });
     }
   }
-  function wireCard(card) {
-    if (!card || card.__saOpen) return;
-    card.__saOpen = true;
-    var head = card.querySelector('.forage-head, .season-head');
-    if (!head) return;
-    if (!head.querySelector('.sa-split-chev')) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'sa-split-chev';
-      b.textContent = '\u203a';
-      head.appendChild(b);
+  function wireForageChevron() {
+    var btn = document.getElementById('btnForageHint');
+    var card = document.getElementById('forageOnlyPanel');
+    if (card) {
+      card.classList.toggle('is-open', forageOpen);
+      card.style.display = forageOpen ? '' : 'none';
     }
-    head.addEventListener('click', function (ev) {
+    if (!btn || btn.__saF) return;
+    btn.__saF = true;
+    btn.addEventListener('click', function (ev) {
       ev.preventDefault();
-      ev.stopPropagation();
-      card.classList.toggle('is-open');
-    });
-  }
-  function wireAll() {
-    injectCss();
-    lockForageKm();
-    ['forageOnlyPanel', 'placeOnlyPanel', 'flightOnlyPanel'].forEach(function (id) {
-      wireCard(document.getElementById(id));
-    });
-    document.querySelectorAll('.sa-split-card').forEach(wireCard);
-    ['saForagePanel', 'saWaterPanel'].forEach(function (id) {
-      var n = document.getElementById(id);
-      if (n) { n.hidden = true; n.style.display = 'none'; }
-    });
+      ev.stopImmediatePropagation();
+      forageOpen = !forageOpen;
+      if (card) {
+        card.classList.toggle('is-open', forageOpen);
+        card.style.display = forageOpen ? '' : 'none';
+      }
+      btn.setAttribute('aria-expanded', forageOpen ? 'true' : 'false');
+    }, true);
   }
   function paint(pct) {
-    restyleLocBar(pct);
-    if (pct >= 70) wireAll();
+    lockForageKm();
+    paintLoc(pct);
+    wireForageChevron();
   }
   function startAnim() {
     if (running || finished || cacheFresh()) { finished = true; markFresh(); paint(100); return; }
@@ -146,7 +139,6 @@
         running = false;
         finished = true;
         markFresh();
-        wireAll();
       }
     }, 120);
   }
@@ -165,10 +157,9 @@
   }
   function boot() {
     if (!ensureBar()) { setTimeout(boot, 400); return; }
-    lockForageKm();
     if (finished || cacheFresh()) { finished = true; markFresh(); paint(100); }
     else startAnim();
-    setTimeout(wireAll, 700);
+    setTimeout(wireForageChevron, 600);
   }
   boot();
 })(window);
