@@ -1,10 +1,11 @@
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
-  var NOTE_CSS = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
-  var BOX_CSS = 'margin:0 0 10px;padding:8px 10px;border-radius:12px;border:1px solid #ece7df;background:#faf8f4;';
-  if (global.__saBreedLive7) return;
-  global.__saBreedLive7 = true;
+  var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
+  var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
+  var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
+  if (global.__saPanels1) return;
+  global.__saPanels1 = true;
   var running = false, finished = false, open = false;
 
   function placeBreed(a) {
@@ -46,12 +47,6 @@
     if (/Muğla/.test(key)) return fog ? 58 : 74;
     return fog ? 80 : 76;
   }
-  function winterNote(a) {
-    var key = placeBreed(a);
-    if (foggyPlace(a) && /Karniyol/.test(key) && !/Kafkas/.test(key)) return 'Karniyol çisede uçmaz, stoğu yer.';
-    if (foggyPlace(a)) return key + ' çisede uçabilir.';
-    return key + ' kışlama kabul.';
-  }
   function apiary() {
     var D = global.D || global.SuperAriDemo;
     var fallback = { name: 'Yanıkdağ', hiveCount: 20, waterDistanceM: 240, lat: 41.0808, lon: 40.754, id: 'a4', breed: 'Kafkas' };
@@ -73,114 +68,73 @@
     var mid = kg(BASE_KG * liveProduct(a));
     return { mid: mid, n: n, total: Math.round(mid * n), breed: placeBreed(a), winter: winterScore(a) };
   }
-  function p(txt) { return '<p class="fs-hint" style="' + NOTE_CSS + 'display:block;">' + txt + '</p>'; }
-  function hideYellowForage() {
+  function line(t) { return '<p style="' + NOTE + '">' + t + '</p>'; }
+  function panelHtml(title, lines) {
+    return '<p style="' + TITLE + '">' + title + '</p>' + lines.map(line).join('');
+  }
+  function hideYellow() {
     var host = document.getElementById('forageHost');
     if (!host) return;
-    host.querySelectorAll('strong, h2, h3').forEach(function (n) {
-      if (/Foraj\s*&\s*yer|Foraj ve yer/i.test(n.textContent || '')) {
-        var box = n.closest('section, article, .card, .panel, div');
+    host.querySelectorAll('strong').forEach(function (n) {
+      if (/Foraj/i.test(n.textContent || '')) {
+        var box = n.closest('div');
         if (box && box !== host) box.style.display = 'none';
       }
     });
   }
-  function forageDetailHtml() {
+  function placeAfter(block, id) {
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      el.style.cssText = PANEL;
+      if (block && block.parentNode) block.parentNode.insertBefore(el, block.nextSibling);
+    }
+    return el;
+  }
+  function mountPanels() {
     var a = apiary();
     var t = targetOf(a);
     var rEl = document.getElementById('forageRadiusVal');
     var shown = rEl ? rEl.textContent.trim() : '2.5 km';
-    return [
-      'Foraj ve yer · skor 46 · Orta',
-      'Çember ' + shown + ' · skor kilitli otomatik yarıçapta',
-      'Rakım · 229 m · 19.1 °C May–Eyl',
+    var forageBlock = document.getElementById('forageRadius');
+    forageBlock = forageBlock && (forageBlock.closest('.fs-block') || forageBlock.parentNode);
+    var waterEl = document.getElementById('waterRadius') || document.getElementById('btnWaterHint');
+    var waterBlock = waterEl && (waterEl.closest('.fs-block') || waterEl.parentNode);
+    var fp = placeAfter(forageBlock, 'saForagePanel');
+    fp.innerHTML = panelHtml('Foraj ve yer', [
+      'Skor 46 · Orta',
+      'Çember ' + shown + ' · skor kilitli yarıçap',
+      'Rakım 229 m · 19.1 °C May–Eyl',
       '96 yağışlı gün · uçuşa uygun ~72 · sis-çise 45/153',
       'Flora · ' + COVER_TR,
       'İrk · ' + t.breed + ' · kışlama ' + t.winter,
-      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
-    ].map(p).join('');
-  }
-  function waterDetailHtml() {
-    var a = apiary();
+      'Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
+    ]);
     var w = (a && a.waterDistanceM) || 240;
-    var ok = w <= 300 ? 'ideal' : w <= 1000 ? 'kabul' : 'uzak';
-    var rh = foggyPlace(a) ? '~78%' : '~60%';
-    return [
-      'Su kaynağı · ' + w + ' m · ' + ok + ' (≤300 m ideal, ≤1 km üst)',
-      'Bağıl nem ' + rh + ' · yağış−ET0 su dengesi',
+    var wp = placeAfter(waterBlock, 'saWaterPanel');
+    wp.innerHTML = panelHtml('Su ve nem', [
+      'Kaynak ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul') + ' (≤300 m / ≤1 km)',
+      'Bağıl nem ' + (foggyPlace(a) ? '~78%' : '~60%'),
       'Sürekli temiz kaynak yeterli · ana dere şart değil',
-      foggyPlace(a) ? 'Nemli kıyı · çise günlerinde kaynak yakın durur' : 'Kurak yerde mesafe daha kritik'
-    ].map(p).join('');
-  }
-  function bindForageDetail() {
-    var btn = document.getElementById('btnForageHint');
-    if (!btn || btn.__saDet) return;
+      foggyPlace(a) ? 'Nemli kıyı · çisede kaynak yakın kalır' : 'Kurakta mesafe daha kritik'
+    ]);
+    var old = document.getElementById('saWaterNote');
+    if (old) old.style.display = 'none';
     var hint = document.getElementById('forageAutoHint');
-    if (!hint) {
-      hint = document.createElement('div');
-      hint.id = 'forageAutoHint';
-      hint.hidden = true;
-      var block = btn.closest('.fs-block') || btn.parentNode;
-      if (block && block.parentNode) block.parentNode.insertBefore(hint, block.nextSibling);
-    }
-    btn.__saDet = true;
-    btn.addEventListener('click', function (ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      var on = hint.hidden || hint.hasAttribute('hidden');
-      hint.hidden = !on;
-      if (on) {
-        hint.removeAttribute('hidden');
-        hint.style.display = 'block';
-        hint.innerHTML = forageDetailHtml();
-      } else {
-        hint.setAttribute('hidden', '');
-        hint.style.display = 'none';
-      }
-    }, true);
-  }
-  function mountWaterUnder() {
-    var water = document.getElementById('waterRadius') || document.getElementById('btnWaterHint');
-    var block = water && (water.closest('.fs-block') || water.parentNode);
-    if (!block) return;
-    var el = document.getElementById('saWaterNote');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'saWaterNote';
-      var hint = document.getElementById('waterDetailPanel');
-      if (hint && hint.parentNode) hint.parentNode.insertBefore(el, hint);
-      else if (block.parentNode) block.parentNode.insertBefore(el, block.nextSibling);
-      else block.appendChild(el);
-    }
-    el.innerHTML = waterDetailHtml();
-    var panel = document.getElementById('waterDetailPanel');
-    if (panel) {
-      panel.innerHTML = waterDetailHtml();
-    }
-  }
-  function bindWaterDetail() {
-    var btn = document.getElementById('btnWaterHint');
-    if (!btn || btn.__saWat) return;
-    btn.__saWat = true;
-    btn.addEventListener('click', function () {
-      setTimeout(mountWaterUnder, 0);
-    }, true);
-  }
-  function mountNotes() {
+    if (hint) hint.style.display = 'none';
+    hideYellow();
     var bar = document.getElementById('saFloraBar');
-    if (!bar || !bar.parentNode) return;
-    var t = targetOf(apiary());
-    var card = document.getElementById('saYieldCard');
-    if (!card) {
-      card = document.createElement('div');
-      card.id = 'saYieldCard';
-      card.style.cssText = BOX_CSS;
-      bar.parentNode.insertBefore(card, bar.nextSibling);
+    if (bar && bar.parentNode) {
+      var card = document.getElementById('saYieldCard');
+      if (!card) {
+        card = document.createElement('div');
+        card.id = 'saYieldCard';
+        card.style.cssText = PANEL;
+        bar.parentNode.insertBefore(card, bar.nextSibling);
+      }
+      card.innerHTML = panelHtml('Hedef bal', [t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg · ' + t.breed]);
     }
-    card.innerHTML = p('Hedef bal · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg · ' + t.breed);
-    bindForageDetail();
-    bindWaterDetail();
-    mountWaterUnder();
-    hideYellowForage();
   }
   function bindBarToggle(el) {
     if (!el || el.__tog) return;
@@ -200,7 +154,7 @@
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
     bindBarToggle(el);
-    mountNotes();
+    mountPanels();
   }
   function startAnim() {
     if (running || finished) { paint(100); return; }
@@ -229,8 +183,7 @@
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}' +
-        '#saWaterNote,#forageAutoHint{margin:4px 0 8px;}';
+        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -241,7 +194,6 @@
       el.id = 'saFloraBar';
       el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div><div data-sa-lines hidden></div>';
       anchor.parentNode.insertBefore(el, anchor);
-      bindBarToggle(el);
     }
     return true;
   }
@@ -251,8 +203,7 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    setTimeout(mountWaterUnder, 400);
-    setTimeout(bindForageDetail, 400);
+    setTimeout(mountPanels, 500);
   }
   boot();
 })(window);
