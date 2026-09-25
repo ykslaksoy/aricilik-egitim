@@ -1,47 +1,7 @@
 /*
- * SuperAri — konum / hedef / örtü kaynak notları
- *
- * Koordinat, kovan sayısı, ırk, ana yılı
- *   Kayıt: SuperAriDemo (localStorage). Irk sabiti: Kayaköy Muğla,
- *   Tortum Karniyol, Palandöken Kafkas×Karniyol, Yanıkdağ Kafkas,
- *   Cimil Kafkas×Karadeniz. Ana yılı 2026 = yeni doğmuş.
- *
- * Rakım
- *   Open-Meteo Elevation API (forage-analysis.js). Yanıkdağ kartı ~229 m.
- *
- * İklim (sıcaklık, yağış, nem, ET0, precipitation_hours)
- *   Open-Meteo Archive, May–Eyl sezon. Yanıkdağ örnek: 19.1 °C,
- *   96 yağışlı gün, ~1205 yağışlı saat, uçuşa uygun ~72 gün.
- *   Sezon günü S ≈ 153 (1 May–30 Eyl).
- *
- * Su mesafesi
- *   OSM Overpass: waterway / natural=water / spring. Haversine, arılık pinine.
- *   Yanıkdağ ölçüm ~240 m. Üst sınır 1 km, ideal <300 m.
- *
- * Flora / bitki örtüsü
- *   OSM landuse + natural (Overpass). Etiket seyrekse biyom varsayılanı:
- *   Rize — Karadeniz karışık orman (kestane, gürgen, orman gülü).
- *   NDVI / uydu yok.
- *
- * Sis-çise günü D
- *   D ≈ yağışlı gün − sert yağışlı (poorFlightDays); yoksa 0.45×yağışlı.
- *   Yanıkdağ varsayılan D=45. Formül:
- *   Karniyol uçuş = 1−D/S, stok = 1−0.0018D (kapalı + yer).
- *   Kafkas uçuş = 1−0.25×D/S, stok = 1 (çisede toplar, yemez).
- *   Melez heterosis: Kafkas×Karadeniz 1.22, Kafkas×Karniyol 1.20.
- *   Ana yeni ×1.06. Taban hedef Yanıkdağ kartı 13.8 kg/kovan.
- *
- * Kovan yoğunluğu
- *   SuperAriForage.hiveDensityPressure — 10 km haversine + kendi kovan.
- *
- * Deli bal / grayanotoksin
- *   İnsan riski, arıya zarar yok. Kuşak: R. ponticum Doğu Karadeniz.
- *   Ölçüm: laboratuvar LC-MS/MS GTX-I ve GTX-III (Dönmez & Kaya 2020;
- *   JAFC 2014 dilute-and-shoot; EFSA 2023 nicelik ≤0.01 mg/kg öneri).
- *   Polen analizi destekler, miktar vermez.
- *
- * Harita
- *   Yandex / OSM görünüm; pin kullanıcı kaydı.
+ * SuperAri kaynak notları (yalnız kod; sayfada gösterilmez)
+ * Rakım/iklim: Open-Meteo. Su/örtü: OSM Overpass. Sis-çise formülü ve ırk çarpanları
+ * bu dosyada. Deli bal: LC-MS/MS literatür; arıya zarar yok.
  */
 (function (global) {
   var BASE_KG = 13.8;
@@ -107,13 +67,24 @@
       'Rakım · 229 m',
       'Foraj · 2.5 km',
       'Su kaynağı · ' + ((a && a.waterDistanceM) || 240) + ' m',
-      'Flora / OSM örtü · ' + COVER_TR,
+      'Flora · ' + COVER_TR,
       'İklim · 19.1 °C · 96 yağışlı gün · uçuşa uygun ~72 gün',
       'Sis / çise · 45/153 · Kafkas uçar, Karniyol yer',
-      'İrk · ' + t.breed + ' · ana 2026',
+      'Irk · ' + t.breed + ' · ana 2026',
       'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg',
       rizePlace(a) ? 'Deli bal · kuşakta (arıya zarar yok)' : 'Deli bal · beklenmez'
     ];
+  }
+  function hideSources() {
+    var root = document.getElementById('forageHost') || document;
+    var nodes = root.querySelectorAll('p, div, span, li, small');
+    for (var i = 0; i < nodes.length; i++) {
+      var t = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
+      if (!t || t.length > 280) continue;
+      if (/Kaynak:|Open-Meteo|Overpass|OSM örtü|OSM landuse|disclaimer|canlı OSM|bitki örtüsü \(OSM\)|Archive alındı|uydu|NDVI/i.test(t)) {
+        nodes[i].style.display = 'none';
+      }
+    }
   }
   function bindBarToggle(el) {
     if (!el || el.__tog) return;
@@ -122,10 +93,8 @@
       if (ev.target && ev.target.closest && ev.target.closest('input, a')) return;
       open = !open;
       var box = el.querySelector('[data-sa-lines]');
-      var chev = el.querySelector('.fs-chev');
       if (box) box.hidden = !open;
       el.classList.toggle('is-open', open);
-      if (chev) chev.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
   }
   function bindForageArrow() {
@@ -170,6 +139,7 @@
     }
     bindBarToggle(el);
     bindForageArrow();
+    hideSources();
     var t = targetOf(apiary());
     var card = document.getElementById('saYieldCard');
     if (!card && el.parentNode) {
@@ -195,6 +165,7 @@
         running = false;
         finished = true;
         try { sessionStorage.setItem('saLocDone', locKey()); } catch (e) {}
+        hideSources();
       }
     }, 120);
   }
@@ -209,7 +180,7 @@
         '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
-        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;transition:transform .15s;}' +
+        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
         '#saFloraBar.is-open .fs-chev{transform:rotate(90deg);}' +
         '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;color:#2c4a22;}' +
         '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
@@ -221,7 +192,7 @@
     if (!document.getElementById('saFloraBar')) {
       var el = document.createElement('div');
       el.id = 'saFloraBar';
-      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev" aria-expanded="false">›</button></div><div data-sa-lines hidden></div>';
+      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div><div data-sa-lines hidden></div>';
       anchor.parentNode.insertBefore(el, anchor);
       bindBarToggle(el);
     }
@@ -237,20 +208,12 @@
     if (done === locKey() || finished) {
       finished = true;
       paint(100);
+      hideSources();
       return;
     }
     startAnim();
+    setTimeout(hideSources, 800);
+    setTimeout(hideSources, 1800);
   }
   boot();
-  document.addEventListener('click', function (ev) {
-    var t = ev.target && ev.target.closest && ev.target.closest('button');
-    if (!t) return;
-    var lab = (t.textContent || '') + (t.getAttribute('aria-label') || '');
-    if (/konumu güncelle|Su konumunu/i.test(lab)) {
-      finished = false;
-      running = false;
-      try { sessionStorage.removeItem('saLocDone'); } catch (e) {}
-      setTimeout(startAnim, 600);
-    }
-  });
 })(window);
