@@ -1,10 +1,11 @@
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
-  if (global.__saLocLock) return;
-  global.__saLocLock = true;
+  if (global.__saLocLock2) return;
+  global.__saLocLock2 = true;
   var running = false;
   var finished = false;
+  var open = false;
 
   function placeBreed(a) {
     var s = String((a && (a.name || '')) + ' ' + (a && (a.place || ''))).toLocaleLowerCase('tr');
@@ -45,9 +46,7 @@
   }
   function locKey() {
     var a = apiary();
-    var lat = Number(a && a.lat);
-    var lon = Number(a && a.lon);
-    var w = Number(a && a.waterDistanceM);
+    var lat = Number(a && a.lat), lon = Number(a && a.lon), w = Number(a && a.waterDistanceM);
     if (!isFinite(w)) w = 240;
     return String(a && a.id || '') + '|' + (isFinite(lat) ? lat.toFixed(4) : '') + '|' + (isFinite(lon) ? lon.toFixed(4) : '') + '|' + Math.round(w);
   }
@@ -71,6 +70,19 @@
       rizePlace(a) ? 'Deli bal · kuşakta (arıya zarar yok)' : 'Deli bal · beklenmez'
     ];
   }
+  function bindBarToggle(el) {
+    if (!el || el.__tog) return;
+    el.__tog = true;
+    el.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.closest && ev.target.closest('input, a')) return;
+      open = !open;
+      var box = el.querySelector('[data-sa-lines]');
+      var chev = el.querySelector('.fs-chev');
+      if (box) box.hidden = !open;
+      el.classList.toggle('is-open', open);
+      if (chev) chev.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
   function bindForageArrow() {
     var btn = document.getElementById('btnForageHint');
     if (!btn || btn.__saBound) return;
@@ -87,9 +99,9 @@
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
       ev.stopPropagation();
-      var open = hint.hidden || hint.hasAttribute('hidden');
-      hint.hidden = !open;
-      if (open) {
+      var on = hint.hidden || hint.hasAttribute('hidden');
+      hint.hidden = !on;
+      if (on) {
         hint.removeAttribute('hidden');
         hint.style.display = 'block';
         hint.textContent = 'Gösterilen çember kaydırıcıdaki km. Skor kilitli yarıçapta.';
@@ -99,45 +111,35 @@
       }
     });
   }
-  function mountInfo() {
-    var bar = document.getElementById('saFloraBar');
-    if (!bar || !bar.parentNode) return;
-    var a = apiary();
-    var t = targetOf(a);
-    var card = document.getElementById('saYieldCard');
-    if (!card) {
-      card = document.createElement('div');
-      card.id = 'saYieldCard';
-      card.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #e0d2a8;background:#fffaf0;';
-      bar.parentNode.insertBefore(card, bar.nextSibling);
-    }
-    card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong>';
-    var info = document.getElementById('saInfoPanel');
-    if (!info) {
-      info = document.createElement('div');
-      info.id = 'saInfoPanel';
-      info.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #d7ead0;background:#f7fbf4;font-size:12px;color:#2c4a22;';
-      card.parentNode.insertBefore(info, card.nextSibling);
-    }
-    info.innerHTML = '<p style="margin:0 0 6px;font-weight:800">Arılık özeti</p>' +
-      fullLines(a).map(function (x) { return '<p style="margin:0 0 4px">' + x + '</p>'; }).join('');
-    bindForageArrow();
-  }
   function paint(pct) {
     var el = document.getElementById('saFloraBar');
     if (!el) return;
-    var lines = fullLines(apiary());
-    var showN = pct >= 100 ? Math.min(6, lines.length) : Math.max(1, Math.ceil((pct / 100) * 6));
     var title = el.querySelector('[data-sa-title]');
     var fill = el.querySelector('.fill');
     var box = el.querySelector('[data-sa-lines]');
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
-    if (box) box.innerHTML = lines.slice(0, showN).map(function (x) { return '<p class="sa-under">' + x + '</p>'; }).join('');
-    if (pct >= 100) mountInfo();
+    if (box) {
+      box.innerHTML = fullLines(apiary()).map(function (x) { return '<p class="sa-under">' + x + '</p>'; }).join('');
+      box.hidden = !open;
+    }
+    bindBarToggle(el);
+    bindForageArrow();
+    var t = targetOf(apiary());
+    var card = document.getElementById('saYieldCard');
+    if (!card && el.parentNode) {
+      card = document.createElement('div');
+      card.id = 'saYieldCard';
+      card.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #e0d2a8;background:#fffaf0;';
+      el.parentNode.insertBefore(card, el.nextSibling);
+    }
+    if (card) card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong>';
   }
   function startAnim() {
-    if (running || finished) return;
+    if (running || finished) {
+      paint(100);
+      return;
+    }
     running = true;
     var t0 = Date.now();
     var iv = setInterval(function () {
@@ -148,12 +150,11 @@
         running = false;
         finished = true;
         try { sessionStorage.setItem('saLocDone', locKey()); } catch (e) {}
-        mountInfo();
       }
     }, 120);
   }
   function ensureBar() {
-    if (typeof document === 'undefined') return;
+    if (typeof document === 'undefined') return false;
     if (!document.getElementById('saFloraBarCss')) {
       var s = document.createElement('style');
       s.id = 'saFloraBarCss';
@@ -163,8 +164,10 @@
         '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
-        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;color:#2c4a22;}';
+        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;transition:transform .15s;}' +
+        '#saFloraBar.is-open .fs-chev{transform:rotate(90deg);}' +
+        '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;color:#2c4a22;}' +
+        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -173,8 +176,9 @@
     if (!document.getElementById('saFloraBar')) {
       var el = document.createElement('div');
       el.id = 'saFloraBar';
-      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div><div data-sa-lines></div>';
+      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev" aria-expanded="false">›</button></div><div data-sa-lines hidden></div>';
       anchor.parentNode.insertBefore(el, anchor);
+      bindBarToggle(el);
     }
     return true;
   }
@@ -183,30 +187,25 @@
       setTimeout(boot, 400);
       return;
     }
-    var key = locKey();
     var done = '';
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
-    if (done === key || finished) {
+    if (done === locKey() || finished) {
       finished = true;
       paint(100);
-      mountInfo();
       return;
     }
-    startAnim();
-  }
-  function onUserLocationChange() {
-    finished = false;
-    running = false;
-    try { sessionStorage.removeItem('saLocDone'); } catch (e) {}
     startAnim();
   }
   boot();
   document.addEventListener('click', function (ev) {
     var t = ev.target && ev.target.closest && ev.target.closest('button');
     if (!t) return;
-    var lab = (t.textContent || '') + ' ' + (t.getAttribute('aria-label') || '');
+    var lab = (t.textContent || '') + (t.getAttribute('aria-label') || '');
     if (/konumu güncelle|Su konumunu/i.test(lab)) {
-      setTimeout(onUserLocationChange, 800);
+      finished = false;
+      running = false;
+      try { sessionStorage.removeItem('saLocDone'); } catch (e) {}
+      setTimeout(startAnim, 600);
     }
   });
 })(window);
