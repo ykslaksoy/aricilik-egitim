@@ -1,16 +1,10 @@
-/*
- * SuperAri kaynak notları (yalnız kod; sayfada gösterilmez)
- * Rakım/iklim: Open-Meteo. Su/örtü: OSM Overpass. Sis-çise formülü ve ırk çarpanları
- * bu dosyada. Deli bal: LC-MS/MS literatür; arıya zarar yok.
- */
+/* Kaynaklar kod notu: Open-Meteo, OSM. Sayfada gösterilmez. */
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
-  if (global.__saLocLock2) return;
-  global.__saLocLock2 = true;
-  var running = false;
-  var finished = false;
-  var open = false;
+  if (global.__saLocLock3) return;
+  global.__saLocLock3 = true;
+  var running = false, finished = false, open = false;
 
   function placeBreed(a) {
     var s = String((a && (a.name || '')) + ' ' + (a && (a.place || ''))).toLocaleLowerCase('tr');
@@ -64,25 +58,36 @@
     var t = targetOf(a);
     return [
       'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
-      'Rakım · 229 m',
-      'Foraj · 2.5 km',
-      'Su kaynağı · ' + ((a && a.waterDistanceM) || 240) + ' m',
+      'Rakım · 229 m · Foraj 2.5 km · Su ' + ((a && a.waterDistanceM) || 240) + ' m',
       'Flora · ' + COVER_TR,
-      'İklim · 19.1 °C · 96 yağışlı gün · uçuşa uygun ~72 gün',
       'Sis / çise · 45/153 · Kafkas uçar, Karniyol yer',
-      'Irk · ' + t.breed + ' · ana 2026',
-      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg',
-      rizePlace(a) ? 'Deli bal · kuşakta (arıya zarar yok)' : 'Deli bal · beklenmez'
+      'İrk · ' + t.breed + ' · ana 2026',
+      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
     ];
   }
   function hideSources() {
-    var root = document.getElementById('forageHost') || document;
-    var nodes = root.querySelectorAll('p, div, span, li, small');
+    var nodes = document.querySelectorAll('#forageHost p, #forageHost div, #forageHost span, #forageHost small, .forage-disclaimer, .season-note');
     for (var i = 0; i < nodes.length; i++) {
       var t = (nodes[i].textContent || '').replace(/\s+/g, ' ').trim();
-      if (!t || t.length > 280) continue;
-      if (/Kaynak:|Open-Meteo|Overpass|OSM örtü|OSM landuse|disclaimer|canlı OSM|bitki örtüsü \(OSM\)|Archive alındı|uydu|NDVI/i.test(t)) {
+      if (!t || t.length > 400) continue;
+      if (/Kaynaklar:|Kaynak:|Open-Meteo|canlı OSM|Uydu NDVI|sahte NDVI|precipitation_hours|OSM yoğunluğu/i.test(t)) {
         nodes[i].style.display = 'none';
+      }
+    }
+  }
+  function fixSeasonBreed() {
+    var breed = placeBreed(apiary());
+    var nodes = document.querySelectorAll('#forageHost span, #forageHost strong, #forageHost p, #forageHost div');
+    for (var i = 0; i < nodes.length; i++) {
+      var t = nodes[i].textContent || '';
+      if (/^\s*\d+\s*·\s*Karniyol\s*$/.test(t)) {
+        nodes[i].textContent = t.replace('Karniyol', breed);
+      }
+      if (/Karniyol için kışlama uygun/.test(t)) {
+        nodes[i].textContent = t.replace(/Karniyol/g, breed);
+      }
+      if (/Karniyol soğuğa dayanıklıdır/.test(t) && breed !== 'Karniyol') {
+        nodes[i].textContent = breed + ' bu kıyı kışında dayanıklı; yalıtım ve stok yine kritik. · rakım 229 m';
       }
     }
   }
@@ -95,34 +100,6 @@
       var box = el.querySelector('[data-sa-lines]');
       if (box) box.hidden = !open;
       el.classList.toggle('is-open', open);
-    });
-  }
-  function bindForageArrow() {
-    var btn = document.getElementById('btnForageHint');
-    if (!btn || btn.__saBound) return;
-    var hint = document.getElementById('forageAutoHint');
-    if (!hint) {
-      hint = document.createElement('p');
-      hint.id = 'forageAutoHint';
-      hint.className = 'fs-hint';
-      hint.hidden = true;
-      var block = btn.closest('.fs-block') || btn.parentNode;
-      if (block && block.parentNode) block.parentNode.insertBefore(hint, block.nextSibling);
-    }
-    btn.__saBound = true;
-    btn.addEventListener('click', function (ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      var on = hint.hidden || hint.hasAttribute('hidden');
-      hint.hidden = !on;
-      if (on) {
-        hint.removeAttribute('hidden');
-        hint.style.display = 'block';
-        hint.textContent = 'Gösterilen çember kaydırıcıdaki km. Skor kilitli yarıçapta.';
-      } else {
-        hint.setAttribute('hidden', '');
-        hint.style.display = 'none';
-      }
     });
   }
   function paint(pct) {
@@ -138,8 +115,8 @@
       box.hidden = !open;
     }
     bindBarToggle(el);
-    bindForageArrow();
     hideSources();
+    fixSeasonBreed();
     var t = targetOf(apiary());
     var card = document.getElementById('saYieldCard');
     if (!card && el.parentNode) {
@@ -151,10 +128,7 @@
     if (card) card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong>';
   }
   function startAnim() {
-    if (running || finished) {
-      paint(100);
-      return;
-    }
+    if (running || finished) { paint(100); return; }
     running = true;
     var t0 = Date.now();
     var iv = setInterval(function () {
@@ -165,7 +139,6 @@
         running = false;
         finished = true;
         try { sessionStorage.setItem('saLocDone', locKey()); } catch (e) {}
-        hideSources();
       }
     }, 120);
   }
@@ -181,8 +154,6 @@
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar.is-open .fs-chev{transform:rotate(90deg);}' +
-        '#saFloraBar .sa-under{margin:6px 0 0;font-size:12px;color:#2c4a22;}' +
         '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
       document.head.appendChild(s);
     }
@@ -199,21 +170,15 @@
     return true;
   }
   function boot() {
-    if (!ensureBar()) {
-      setTimeout(boot, 400);
-      return;
-    }
+    if (!ensureBar()) { setTimeout(boot, 400); return; }
     var done = '';
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
-    if (done === locKey() || finished) {
-      finished = true;
-      paint(100);
-      hideSources();
-      return;
-    }
+    if (done === locKey() || finished) { finished = true; paint(100); return; }
     startAnim();
-    setTimeout(hideSources, 800);
-    setTimeout(hideSources, 1800);
+    setTimeout(hideSources, 900);
+    setTimeout(fixSeasonBreed, 900);
+    setTimeout(hideSources, 2000);
+    setTimeout(fixSeasonBreed, 2000);
   }
   boot();
 })(window);
