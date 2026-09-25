@@ -4,8 +4,8 @@
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels2) return;
-  global.__saPanels2 = true;
+  if (global.__saPanels3) return;
+  global.__saPanels3 = true;
   var running = false, finished = false, openBar = false;
   var forageOpen = false, waterOpen = false;
 
@@ -70,9 +70,6 @@
     return { mid: mid, n: n, total: Math.round(mid * n), breed: placeBreed(a), winter: winterScore(a) };
   }
   function line(t) { return '<p style="' + NOTE + '">' + t + '</p>'; }
-  function panelHtml(title, lines) {
-    return '<p style="' + TITLE + '">' + title + '</p>' + lines.map(line).join('');
-  }
   function show(el, on) {
     if (!el) return;
     el.style.display = on ? 'block' : 'none';
@@ -91,6 +88,23 @@
     }
     return el;
   }
+  function hideDupes() {
+    ['saYieldCard', 'saInfoPanel', 'saSisBlock', 'saWaterNote'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.style.display = 'none';
+    });
+    var host = document.getElementById('forageHost');
+    if (host) {
+      host.querySelectorAll('strong').forEach(function (n) {
+        if (/Foraj/i.test(n.textContent || '')) {
+          var box = n.closest('div');
+          if (box && box !== host) box.style.display = 'none';
+        }
+      });
+    }
+    show(document.getElementById('forageAutoHint'), false);
+    show(document.getElementById('waterDetailPanel'), false);
+  }
   function fillPanels() {
     var a = apiary();
     var t = targetOf(a);
@@ -102,40 +116,42 @@
     var waterBlock = waterEl && (waterEl.closest('.fs-block') || waterEl.parentNode);
     var fp = placeAfter(forageBlock, 'saForagePanel');
     if (fp) {
-      fp.innerHTML = panelHtml('Foraj ve yer', [
-        'Skor 46 · Orta',
-        'Çember ' + shown + ' · skor kilitli yarıçap',
-        'Rakım 229 m · 19.1 °C May–Eyl',
-        '96 yağışlı gün · uçuşa uygun ~72 · sis-çise 45/153',
-        'Flora · ' + COVER_TR,
-        'İrk · ' + t.breed + ' · kışlama ' + t.winter,
-        'Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
-      ]);
+      fp.innerHTML =
+        '<p style="' + TITLE + '">Foraj ve yer</p>' +
+        [
+          '1. Skor · 46 Orta',
+          '2. Çember · ' + shown + ' (kaydırıcı) · analiz kilitli yarıçap',
+          '3. Rakım · 229 m',
+          '4. Sıcaklık · 19.1 °C ort. May–Eyl',
+          '5. Yağış / uçuş · 96 yağışlı gün · uygun ~72 · sis-çise 45/153',
+          '6. Örtü · ' + COVER_TR,
+          '7. İrk · ' + t.breed + ' · kışlama ' + t.winter + ' · ana 2026',
+          '8. Hedef · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg'
+        ].map(line).join('');
       show(fp, forageOpen);
     }
     var w = (a && a.waterDistanceM) || 240;
     var wp = placeAfter(waterBlock, 'saWaterPanel');
     if (wp) {
-      wp.innerHTML = panelHtml('Su ve nem', [
-        'Kaynak ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
-        'Bağıl nem ' + (foggyPlace(a) ? '~78%' : '~60%'),
-        'Sürekli temiz kaynak yeterli · ana dere şart değil'
-      ]);
+      wp.innerHTML =
+        '<p style="' + TITLE + '">Su ve nem</p>' +
+        [
+          '1. Mesafe · ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
+          '2. Nem · ' + (foggyPlace(a) ? '~78%' : '~60%'),
+          '3. Kaynak · sürekli temiz yeterli · ana dere şart değil'
+        ].map(line).join('');
       show(wp, waterOpen);
     }
-    var nativeF = document.getElementById('forageAutoHint');
-    if (nativeF) show(nativeF, false);
-    var nativeW = document.getElementById('waterDetailPanel');
-    if (nativeW) show(nativeW, false);
+    hideDupes();
   }
-  function bindArrow(btnId, toggleFn) {
+  function bindArrow(btnId, fn) {
     var btn = document.getElementById(btnId);
-    if (!btn || btn.__saArrow) return;
-    btn.__saArrow = true;
+    if (!btn || btn.__saArrow3) return;
+    btn.__saArrow3 = true;
     btn.addEventListener('click', function (ev) {
       ev.preventDefault();
       ev.stopImmediatePropagation();
-      toggleFn();
+      fn();
       fillPanels();
     }, true);
   }
