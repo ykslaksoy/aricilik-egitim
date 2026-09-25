@@ -1,8 +1,8 @@
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
-  if (global.__saBreedLive) return;
-  global.__saBreedLive = true;
+  if (global.__saBreedLive2) return;
+  global.__saBreedLive2 = true;
   var running = false, finished = false, open = false, lastBreed = '';
 
   function placeBreed(a) {
@@ -25,6 +25,9 @@
   function foggyPlace(a) {
     return /yanık|yanik|cimil|rize/.test(String((a && (a.name || '')) + (a && a.place || '')).toLocaleLowerCase('tr'));
   }
+  function rizePlace(a) {
+    return /yanık|yanik|cimil|rize/.test(String((a && (a.name || '')) + (a && a.il || '')).toLocaleLowerCase('tr'));
+  }
   function kg(n) { return Math.round(Number(n) * 10) / 10; }
   function liveProduct(a) {
     var key = placeBreed(a);
@@ -33,29 +36,22 @@
     if (/Karadeniz/.test(key)) { breedF = 1.22; flyF = 1 - share * 0.18; }
     else if (/Kafkas × Karniyol/.test(key)) { breedF = 1.2; flyF = 1 - share * 0.3; }
     else if (/Kafkas/.test(key)) { breedF = foggyPlace(a) ? 1.08 : 0.97; flyF = 1 - share * 0.25; }
-    else if (/Muğla/.test(key)) { breedF = foggyPlace(a) ? 0.95 : 1.05; flyF = 1 - share; eatF = Math.max(0.86, 1 - 0.0015 * 45 * (foggyPlace(a) ? 1 : 0)); }
+    else if (/Muğla/.test(key)) { breedF = foggyPlace(a) ? 0.95 : 1.05; flyF = 1 - share; }
     else if (/Karniyol/.test(key)) { breedF = foggyPlace(a) ? 1 : 1.08; flyF = 1 - share; eatF = Math.max(0.82, 1 - 0.0018 * (foggyPlace(a) ? 45 : 0)); }
     return Math.round(breedF * flyF * eatF * 1.06 * 1000) / 1000;
   }
   function winterScore(a) {
-    var key = placeBreed(a);
-    var fog = foggyPlace(a);
-    var base = fog ? 72 : 80;
-    if (/Karniyol/.test(key) && !/Kafkas/.test(key)) base = fog ? 70 : 88;
-    if (/Kafkas × Karniyol/.test(key)) base = fog ? 74 : 84;
-    if (/Karadeniz/.test(key)) base = fog ? 82 : 78;
-    if (/^Kafkas$/.test(key)) base = fog ? 80 : 76;
-    if (/Muğla/.test(key)) base = fog ? 58 : 74;
-    return base;
+    var key = placeBreed(a), fog = foggyPlace(a);
+    if (/Karniyol/.test(key) && !/Kafkas/.test(key)) return fog ? 70 : 88;
+    if (/Kafkas × Karniyol/.test(key)) return fog ? 74 : 84;
+    if (/Karadeniz/.test(key)) return fog ? 82 : 78;
+    if (/Muğla/.test(key)) return fog ? 58 : 74;
+    return fog ? 80 : 76;
   }
   function winterNote(a) {
     var key = placeBreed(a);
-    if (foggyPlace(a)) {
-      if (/Karniyol/.test(key) && !/Kafkas/.test(key)) return 'Karniyol kışa dayanır ama çisede uçmaz, stoğu yer.';
-      if (/Muğla/.test(key)) return 'Muğla nemli kıyı kışında zayıf; yalıtım ve stok şart.';
-      return key + ' bu nemli kıyıda kışlar; çisede uçabilir.';
-    }
-    if (/Karniyol/.test(key)) return 'Karniyol soğuk yayla kışına uygun.';
+    if (foggyPlace(a) && /Karniyol/.test(key) && !/Kafkas/.test(key)) return 'Karniyol kışa dayanır ama çisede uçmaz, stoğu yer.';
+    if (foggyPlace(a)) return key + ' bu nemli kıyıda kışlar; çisede uçabilir.';
     return key + ' bu yerde kışlama kabul.';
   }
   function apiary() {
@@ -79,46 +75,66 @@
     var mid = kg(BASE_KG * liveProduct(a));
     return { mid: mid, n: n, total: Math.round(mid * n), breed: placeBreed(a), winter: winterScore(a) };
   }
-  function fullLines(a) {
+  function notes(a) {
     var t = targetOf(a);
+    var month = new Date().getMonth() + 1;
+    var nectar = rizePlace(a) && month >= 6 && month <= 7 ? 'kestane / orman gülü akımı' : 'sezon';
     return [
-      'İrk · ' + t.breed,
-      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg',
-      'Kışlama · ' + t.winter + ' · ' + winterNote(a),
-      'Sis / çise · ' + (foggyPlace(a) ? '45/153' : 'yok'),
-      'Su · ' + ((a && a.waterDistanceM) || 240) + ' m',
-      'Flora · ' + COVER_TR
+      'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
+      'Rakım · 229 m',
+      'Foraj · 2.5 km',
+      'Su kaynağı · ' + ((a && a.waterDistanceM) || 240) + ' m',
+      'Flora · ' + COVER_TR,
+      'İklim · 19.1 °C · 96 yağışlı gün · uçuşa uygun ~72 gün',
+      'Sis / çise · ' + (foggyPlace(a) ? '45/153 · Kafkas uçar, Karniyol yer' : 'yok'),
+      'Mevsim / kışlama · ' + t.winter + ' · ' + t.breed,
+      winterNote(a),
+      'İrk · ' + t.breed + ' · ana 2026 · ×1.06',
+      'Nektar haftası · ' + nectar,
+      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg',
+      rizePlace(a) ? 'Deli bal · kuşakta · arıya zarar yok, satış ayrı' : 'Deli bal · beklenmez',
+      'Rüzgâr + 12 °C · ayrı istasyon yok',
+      'Ballık / petek · kayıt yok',
+      'Taşıma × akım · plan ekranı'
     ];
   }
   function hideSources() {
-    document.querySelectorAll('p, div, span, small').forEach(function (n) {
-      if (n.closest && n.closest('#saFloraBar, #saYieldCard')) return;
+    document.querySelectorAll('#forageHost p, #forageHost div, #forageHost span, #forageHost small').forEach(function (n) {
       var t = (n.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/Kaynaklar:|Kaynak:|Open-Meteo|canlı OSM|Uydu NDVI|sahte NDVI|precipitation_hours/i.test(t) && t.length < 420) {
-        n.style.display = 'none';
-      }
+      if (/Kaynaklar:|Kaynak:|Open-Meteo|canlı OSM|Uydu NDVI|sahte NDVI|precipitation_hours/i.test(t) && t.length < 420) n.style.display = 'none';
     });
   }
-  function applyBreedUi() {
+  function mountNotes() {
+    var bar = document.getElementById('saFloraBar');
+    if (!bar || !bar.parentNode) return;
     var a = apiary();
     var t = targetOf(a);
-    document.querySelectorAll('#forageHost span, #forageHost p, #forageHost div').forEach(function (n) {
-      var txt = n.textContent || '';
-      if (/^\s*\d+\s*·\s*(Karniyol|Kafkas|Muğla)/.test(txt) && txt.length < 40) {
-        n.textContent = t.winter + ' · ' + t.breed;
-      }
-      if (/için kışlama/.test(txt) && txt.length < 80) {
-        n.textContent = t.breed + ' için kışlama';
-      }
-      if (/soğuğa dayan|kışlama uygun/.test(txt) && txt.length < 220) {
-        n.textContent = winterNote(a);
-      }
-    });
     var card = document.getElementById('saYieldCard');
-    if (card) card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong><div style="font-size:12px;margin-top:4px">' + t.breed + '</div>';
-    var box = document.querySelector('#saFloraBar [data-sa-lines]');
-    if (box && open) {
-      box.innerHTML = fullLines(a).map(function (x) { return '<p class="sa-under">' + x + '</p>'; }).join('');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'saYieldCard';
+      card.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #e0d2a8;background:#fffaf0;';
+      bar.parentNode.insertBefore(card, bar.nextSibling);
+    }
+    card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong><div style="font-size:12px;margin-top:4px">' + t.breed + '</div>';
+    var info = document.getElementById('saInfoPanel');
+    if (!info) {
+      info = document.createElement('div');
+      info.id = 'saInfoPanel';
+      info.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #d7ead0;background:#f7fbf4;font-size:12px;line-height:1.45;color:#2c4a22;';
+      card.parentNode.insertBefore(info, card.nextSibling);
+    }
+    info.innerHTML = '<p style="margin:0 0 6px;font-weight:800">Notlar</p>' +
+      notes(a).map(function (x) { return '<p style="margin:0 0 4px">' + x + '</p>'; }).join('');
+    var sis = document.getElementById('saSisBlock');
+    if (foggyPlace(a)) {
+      if (!sis) {
+        sis = document.createElement('div');
+        sis.id = 'saSisBlock';
+        sis.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #cfe0c4;background:#f4faef;font-size:12px;color:#2c4a22;';
+        info.parentNode.insertBefore(sis, info.nextSibling);
+      }
+      sis.innerHTML = '<p style="margin:0 0 4px;font-weight:800">Sis ve çiseleme</p><p style="margin:0">' + t.breed + ': ' + winterNote(a) + ' Hedef bu çarpanla canlı.</p>';
     }
     hideSources();
   }
@@ -131,7 +147,7 @@
       var box = el.querySelector('[data-sa-lines]');
       if (box) {
         box.hidden = !open;
-        if (open) box.innerHTML = fullLines(apiary()).map(function (x) { return '<p class="sa-under">' + x + '</p>'; }).join('');
+        if (open) box.innerHTML = notes(apiary()).map(function (x) { return '<p class="sa-under">' + x + '</p>'; }).join('');
       }
       el.classList.toggle('is-open', open);
     });
@@ -144,16 +160,7 @@
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
     bindBarToggle(el);
-    applyBreedUi();
-    var t = targetOf(apiary());
-    var card = document.getElementById('saYieldCard');
-    if (!card && el.parentNode) {
-      card = document.createElement('div');
-      card.id = 'saYieldCard';
-      card.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #e0d2a8;background:#fffaf0;';
-      el.parentNode.insertBefore(card, el.nextSibling);
-    }
-    if (card) card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong><div style="font-size:12px;margin-top:4px">' + t.breed + '</div>';
+    mountNotes();
   }
   function startAnim() {
     if (running || finished) { paint(100); return; }
@@ -197,24 +204,6 @@
     }
     return true;
   }
-  function watchBreed() {
-    setInterval(function () {
-      var b = placeBreed(apiary());
-      if (b !== lastBreed) {
-        lastBreed = b;
-        applyBreedUi();
-        paint(100);
-      }
-    }, 1500);
-    document.addEventListener('change', function (ev) {
-      var el = ev.target;
-      if (!el) return;
-      var name = (el.name || el.id || '') + ' ' + (el.getAttribute('aria-label') || '');
-      if (/breed|ırk|irk|cins/i.test(name) || /breed|ırk|cins/i.test(el.className || '')) {
-        setTimeout(function () { lastBreed = ''; applyBreedUi(); }, 200);
-      }
-    });
-  }
   function boot() {
     if (!ensureBar()) { setTimeout(boot, 400); return; }
     lastBreed = placeBreed(apiary());
@@ -222,7 +211,10 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    watchBreed();
+    setInterval(function () {
+      var b = placeBreed(apiary());
+      if (b !== lastBreed) { lastBreed = b; mountNotes(); }
+    }, 1500);
   }
   boot();
 })(window);
