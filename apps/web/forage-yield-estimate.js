@@ -1,7 +1,7 @@
 (function (global) {
   var FORAGE_KM = 2.5;
-  if (global.__saPanels11) return;
-  global.__saPanels11 = true;
+  if (global.__saPanels12) return;
+  global.__saPanels12 = true;
   var running = false, finished = false;
 
   var D0 = global.D || global.SuperAriDemo;
@@ -18,7 +18,7 @@
 
   function apiary() {
     var D = global.D || global.SuperAriDemo;
-    var fallback = { name: 'Yanıkdağ', hiveCount: 20, waterDistanceM: 240, lat: 41.0808, lon: 40.754, id: 'a4', breed: 'Kafkas' };
+    var fallback = { name: 'Yanikdag', hiveCount: 20, waterDistanceM: 240, lat: 41.0808, lon: 40.754, id: 'a4', breed: 'Kafkas' };
     if (!D || !D.loadApiaries) return fallback;
     var list = D.loadApiaries() || [];
     var id = '';
@@ -59,7 +59,6 @@
     lockForageKm();
     hideDup('saForagePanel');
     hideDup('saWaterPanel');
-    hideDup('saYieldCard');
     var h1 = document.getElementById('forageAutoHint');
     if (h1) { h1.hidden = true; h1.style.display = 'none'; }
   }
@@ -68,7 +67,7 @@
     if (!el) return;
     var title = el.querySelector('[data-sa-title]');
     var fill = el.querySelector('.fill');
-    if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
+    if (title) title.textContent = (pct >= 100 ? 'Konum verisi guncel' : 'Konum verisi guncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
     fillPanels();
   }
@@ -100,8 +99,7 @@
         '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
-        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#placeOnlyPanel{margin-top:10px;}';
+        '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
@@ -110,7 +108,7 @@
     if (!document.getElementById('saFloraBar')) {
       var el = document.createElement('div');
       el.id = 'saFloraBar';
-      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi güncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div>';
+      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi guncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div><button type="button" class="fs-chev">›</button></div>';
       anchor.parentNode.insertBefore(el, anchor);
     }
     return true;
