@@ -3,8 +3,8 @@
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
   var NOTE_CSS = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var BOX_CSS = 'margin:0 0 10px;padding:8px 10px;border-radius:12px;border:1px solid #ece7df;background:#faf8f4;';
-  if (global.__saBreedLive2) return;
-  global.__saBreedLive2 = true;
+  if (global.__saBreedLive3) return;
+  global.__saBreedLive3 = true;
   var running = false, finished = false, open = false, lastBreed = '';
 
   function placeBreed(a) {
@@ -76,23 +76,38 @@
     var mid = kg(BASE_KG * liveProduct(a));
     return { mid: mid, n: n, total: Math.round(mid * n), breed: placeBreed(a), winter: winterScore(a) };
   }
+  function foragePlaceLines() {
+    var host = document.getElementById('forageHost');
+    var txt = host ? host.textContent || '' : '';
+    var score = (txt.match(/(\d{2})\s*·\s*(Düşük|Orta|İyi|Yüksek)/) || [])[0] || '46 · Orta';
+    var elev = (txt.match(/(\d{2,4})\s*m/) || [])[0] || '229 m';
+    var temp = (txt.match(/(\d+[.,]\d+)\s*°C/) || [])[0] || '19.1 °C';
+    var rEl = document.getElementById('forageRadiusVal');
+    var shown = rEl ? rEl.textContent.trim() : '2.5 km';
+    return [
+      'Foraj ve yer · skor ' + score,
+      'Arılar ' + shown + ' yarıçapta geziyor',
+      'Rakım · ' + elev,
+      'Sezon sıcaklık · ' + temp + ' ort. May–Eyl',
+      'Yer: nemli kıyı orman · foraj çemberi kilitli skor yarıçapında'
+    ];
+  }
   function notes(a) {
     var t = targetOf(a);
     var month = new Date().getMonth() + 1;
     var nectar = rizePlace(a) && month >= 6 && month <= 7 ? 'kestane / orman gülü akımı' : 'sezon';
     return [
       'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
-      'Rakım · 229 m · Foraj 2.5 km · Su ' + ((a && a.waterDistanceM) || 240) + ' m',
+      'Su kaynağı · ' + ((a && a.waterDistanceM) || 240) + ' m',
       'Flora · ' + COVER_TR,
-      'İklim · 19.1 °C · 96 yağışlı gün · uçuşa uygun ~72 gün',
+      'İklim · 96 yağışlı gün · uçuşa uygun ~72 gün',
       'Sis / çise · ' + (foggyPlace(a) ? '45/153 · Kafkas uçar, Karniyol yer' : 'yok'),
       'Kışlama · ' + t.winter + ' · ' + t.breed + ' · ' + winterNote(a),
       'İrk · ' + t.breed + ' · ana 2026',
       'Nektar haftası · ' + nectar,
       'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg',
-      rizePlace(a) ? 'Deli bal · kuşakta · arıya zarar yok' : 'Deli bal · beklenmez',
-      'Rüzgâr + ballık · kayıt yok · Taşıma plan ekranı'
-    ];
+      rizePlace(a) ? 'Deli bal · kuşakta · arıya zarar yok' : 'Deli bal · beklenmez'
+    ].concat(foragePlaceLines());
   }
   function p(txt) { return '<p style="' + NOTE_CSS + '">' + txt + '</p>'; }
   function mountNotes() {
@@ -115,7 +130,9 @@
       info.style.cssText = BOX_CSS;
       card.parentNode.insertBefore(info, card.nextSibling);
     }
-    info.innerHTML = notes(a).map(p).join('');
+    var base = notes(a);
+    var extra = foragePlaceLines();
+    info.innerHTML = base.map(p).join('') + extra.map(p).join('');
     var sis = document.getElementById('saSisBlock');
     if (foggyPlace(a)) {
       if (!sis) {
