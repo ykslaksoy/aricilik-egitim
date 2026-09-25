@@ -1,6 +1,8 @@
 (function (global) {
   var BASE_KG = 13.8;
   var COVER_TR = 'Karadeniz karışık orman · kestane, gürgen, orman gülü';
+  var NOTE_CSS = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
+  var BOX_CSS = 'margin:0 0 10px;padding:8px 10px;border-radius:12px;border:1px solid #ece7df;background:#faf8f4;';
   if (global.__saBreedLive2) return;
   global.__saBreedLive2 = true;
   var running = false, finished = false, open = false, lastBreed = '';
@@ -43,7 +45,6 @@
   function winterScore(a) {
     var key = placeBreed(a), fog = foggyPlace(a);
     if (/Karniyol/.test(key) && !/Kafkas/.test(key)) return fog ? 70 : 88;
-    if (/Kafkas × Karniyol/.test(key)) return fog ? 74 : 84;
     if (/Karadeniz/.test(key)) return fog ? 82 : 78;
     if (/Muğla/.test(key)) return fog ? 58 : 74;
     return fog ? 80 : 76;
@@ -81,29 +82,19 @@
     var nectar = rizePlace(a) && month >= 6 && month <= 7 ? 'kestane / orman gülü akımı' : 'sezon';
     return [
       'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
-      'Rakım · 229 m',
-      'Foraj · 2.5 km',
-      'Su kaynağı · ' + ((a && a.waterDistanceM) || 240) + ' m',
+      'Rakım · 229 m · Foraj 2.5 km · Su ' + ((a && a.waterDistanceM) || 240) + ' m',
       'Flora · ' + COVER_TR,
       'İklim · 19.1 °C · 96 yağışlı gün · uçuşa uygun ~72 gün',
       'Sis / çise · ' + (foggyPlace(a) ? '45/153 · Kafkas uçar, Karniyol yer' : 'yok'),
-      'Mevsim / kışlama · ' + t.winter + ' · ' + t.breed,
-      winterNote(a),
-      'İrk · ' + t.breed + ' · ana 2026 · ×1.06',
+      'Kışlama · ' + t.winter + ' · ' + t.breed + ' · ' + winterNote(a),
+      'İrk · ' + t.breed + ' · ana 2026',
       'Nektar haftası · ' + nectar,
-      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg',
-      rizePlace(a) ? 'Deli bal · kuşakta · arıya zarar yok, satış ayrı' : 'Deli bal · beklenmez',
-      'Rüzgâr + 12 °C · ayrı istasyon yok',
-      'Ballık / petek · kayıt yok',
-      'Taşıma × akım · plan ekranı'
+      'Hedef bal · ' + t.mid + ' kg/kovan · ' + t.total + ' kg',
+      rizePlace(a) ? 'Deli bal · kuşakta · arıya zarar yok' : 'Deli bal · beklenmez',
+      'Rüzgâr + ballık · kayıt yok · Taşıma plan ekranı'
     ];
   }
-  function hideSources() {
-    document.querySelectorAll('#forageHost p, #forageHost div, #forageHost span, #forageHost small').forEach(function (n) {
-      var t = (n.textContent || '').replace(/\s+/g, ' ').trim();
-      if (/Kaynaklar:|Kaynak:|Open-Meteo|canlı OSM|Uydu NDVI|sahte NDVI|precipitation_hours/i.test(t) && t.length < 420) n.style.display = 'none';
-    });
-  }
+  function p(txt) { return '<p style="' + NOTE_CSS + '">' + txt + '</p>'; }
   function mountNotes() {
     var bar = document.getElementById('saFloraBar');
     if (!bar || !bar.parentNode) return;
@@ -113,30 +104,28 @@
     if (!card) {
       card = document.createElement('div');
       card.id = 'saYieldCard';
-      card.style.cssText = 'margin:8px 0;padding:10px 12px;border-radius:12px;border:1px solid #e0d2a8;background:#fffaf0;';
+      card.style.cssText = BOX_CSS;
       bar.parentNode.insertBefore(card, bar.nextSibling);
     }
-    card.innerHTML = '<strong>Hedef bal</strong> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · <strong>' + t.total + ' kg</strong><div style="font-size:12px;margin-top:4px">' + t.breed + '</div>';
+    card.innerHTML = p('<span style="font-weight:700">Hedef bal</span> · ' + t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg · ' + t.breed);
     var info = document.getElementById('saInfoPanel');
     if (!info) {
       info = document.createElement('div');
       info.id = 'saInfoPanel';
-      info.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #d7ead0;background:#f7fbf4;font-size:12px;line-height:1.45;color:#2c4a22;';
+      info.style.cssText = BOX_CSS;
       card.parentNode.insertBefore(info, card.nextSibling);
     }
-    info.innerHTML = '<p style="margin:0 0 6px;font-weight:800">Notlar</p>' +
-      notes(a).map(function (x) { return '<p style="margin:0 0 4px">' + x + '</p>'; }).join('');
+    info.innerHTML = notes(a).map(p).join('');
     var sis = document.getElementById('saSisBlock');
     if (foggyPlace(a)) {
       if (!sis) {
         sis = document.createElement('div');
         sis.id = 'saSisBlock';
-        sis.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #cfe0c4;background:#f4faef;font-size:12px;color:#2c4a22;';
+        sis.style.cssText = BOX_CSS;
         info.parentNode.insertBefore(sis, info.nextSibling);
       }
-      sis.innerHTML = '<p style="margin:0 0 4px;font-weight:800">Sis ve çiseleme</p><p style="margin:0">' + t.breed + ': ' + winterNote(a) + ' Hedef bu çarpanla canlı.</p>';
+      sis.innerHTML = p('Sis ve çiseleme · ' + t.breed + ' · ' + winterNote(a));
     }
-    hideSources();
   }
   function bindBarToggle(el) {
     if (!el || el.__tog) return;
@@ -147,7 +136,7 @@
       var box = el.querySelector('[data-sa-lines]');
       if (box) {
         box.hidden = !open;
-        if (open) box.innerHTML = notes(apiary()).map(function (x) { return '<p class="sa-under">' + x + '</p>'; }).join('');
+        if (open) box.innerHTML = notes(apiary()).map(p).join('');
       }
       el.classList.toggle('is-open', open);
     });
@@ -189,7 +178,8 @@
         '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
         '#saFloraBar .fill{height:100%;background:#3d9a4a;}' +
         '#saFloraBar .fs-chev{flex:0 0 28px;border:0;background:transparent;color:#8a8278;}' +
-        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}';
+        '#saFloraBar [data-sa-lines][hidden]{display:none !important;}' +
+        '#saFloraBar .sa-under,#saInfoPanel p,#saYieldCard p,#saSisBlock p{margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;}';
       document.head.appendChild(s);
     }
     var forage = document.getElementById('forageRadius');
