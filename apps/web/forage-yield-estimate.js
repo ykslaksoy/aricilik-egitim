@@ -4,9 +4,10 @@
   var NOTE = 'margin:0 0 4px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;font-family:inherit;';
   var PANEL = 'margin:8px 0 12px;padding:12px;border-radius:16px;border:1px solid #ece7df;background:#fff;';
   var TITLE = 'margin:0 0 8px;font-size:13px;font-weight:800;color:#1c1916;font-family:inherit;';
-  if (global.__saPanels1) return;
-  global.__saPanels1 = true;
-  var running = false, finished = false, open = false;
+  if (global.__saPanels2) return;
+  global.__saPanels2 = true;
+  var running = false, finished = false, openBar = false;
+  var forageOpen = false, waterOpen = false;
 
   function placeBreed(a) {
     if (a && a.breed) {
@@ -72,27 +73,25 @@
   function panelHtml(title, lines) {
     return '<p style="' + TITLE + '">' + title + '</p>' + lines.map(line).join('');
   }
-  function hideYellow() {
-    var host = document.getElementById('forageHost');
-    if (!host) return;
-    host.querySelectorAll('strong').forEach(function (n) {
-      if (/Foraj/i.test(n.textContent || '')) {
-        var box = n.closest('div');
-        if (box && box !== host) box.style.display = 'none';
-      }
-    });
+  function show(el, on) {
+    if (!el) return;
+    el.style.display = on ? 'block' : 'none';
+    if (on) el.removeAttribute('hidden');
+    else el.setAttribute('hidden', '');
   }
   function placeAfter(block, id) {
     var el = document.getElementById(id);
-    if (!el) {
+    if (!el && block && block.parentNode) {
       el = document.createElement('div');
       el.id = id;
       el.style.cssText = PANEL;
-      if (block && block.parentNode) block.parentNode.insertBefore(el, block.nextSibling);
+      el.hidden = true;
+      el.style.display = 'none';
+      block.parentNode.insertBefore(el, block.nextSibling);
     }
     return el;
   }
-  function mountPanels() {
+  function fillPanels() {
     var a = apiary();
     var t = targetOf(a);
     var rEl = document.getElementById('forageRadiusVal');
@@ -102,48 +101,56 @@
     var waterEl = document.getElementById('waterRadius') || document.getElementById('btnWaterHint');
     var waterBlock = waterEl && (waterEl.closest('.fs-block') || waterEl.parentNode);
     var fp = placeAfter(forageBlock, 'saForagePanel');
-    fp.innerHTML = panelHtml('Foraj ve yer', [
-      'Skor 46 · Orta',
-      'Çember ' + shown + ' · skor kilitli yarıçap',
-      'Rakım 229 m · 19.1 °C May–Eyl',
-      '96 yağışlı gün · uçuşa uygun ~72 · sis-çise 45/153',
-      'Flora · ' + COVER_TR,
-      'İrk · ' + t.breed + ' · kışlama ' + t.winter,
-      'Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
-    ]);
+    if (fp) {
+      fp.innerHTML = panelHtml('Foraj ve yer', [
+        'Skor 46 · Orta',
+        'Çember ' + shown + ' · skor kilitli yarıçap',
+        'Rakım 229 m · 19.1 °C May–Eyl',
+        '96 yağışlı gün · uçuşa uygun ~72 · sis-çise 45/153',
+        'Flora · ' + COVER_TR,
+        'İrk · ' + t.breed + ' · kışlama ' + t.winter,
+        'Hedef · ' + t.mid + ' kg/kovan · ' + t.total + ' kg'
+      ]);
+      show(fp, forageOpen);
+    }
     var w = (a && a.waterDistanceM) || 240;
     var wp = placeAfter(waterBlock, 'saWaterPanel');
-    wp.innerHTML = panelHtml('Su ve nem', [
-      'Kaynak ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul') + ' (≤300 m / ≤1 km)',
-      'Bağıl nem ' + (foggyPlace(a) ? '~78%' : '~60%'),
-      'Sürekli temiz kaynak yeterli · ana dere şart değil',
-      foggyPlace(a) ? 'Nemli kıyı · çisede kaynak yakın kalır' : 'Kurakta mesafe daha kritik'
-    ]);
-    var old = document.getElementById('saWaterNote');
-    if (old) old.style.display = 'none';
-    var hint = document.getElementById('forageAutoHint');
-    if (hint) hint.style.display = 'none';
-    hideYellow();
-    var bar = document.getElementById('saFloraBar');
-    if (bar && bar.parentNode) {
-      var card = document.getElementById('saYieldCard');
-      if (!card) {
-        card = document.createElement('div');
-        card.id = 'saYieldCard';
-        card.style.cssText = PANEL;
-        bar.parentNode.insertBefore(card, bar.nextSibling);
-      }
-      card.innerHTML = panelHtml('Hedef bal', [t.mid + ' kg/kovan · ' + t.n + ' kovan · ' + t.total + ' kg · ' + t.breed]);
+    if (wp) {
+      wp.innerHTML = panelHtml('Su ve nem', [
+        'Kaynak ' + w + ' m · ' + (w <= 300 ? 'ideal' : 'kabul'),
+        'Bağıl nem ' + (foggyPlace(a) ? '~78%' : '~60%'),
+        'Sürekli temiz kaynak yeterli · ana dere şart değil'
+      ]);
+      show(wp, waterOpen);
     }
+    var nativeF = document.getElementById('forageAutoHint');
+    if (nativeF) show(nativeF, false);
+    var nativeW = document.getElementById('waterDetailPanel');
+    if (nativeW) show(nativeW, false);
+  }
+  function bindArrow(btnId, toggleFn) {
+    var btn = document.getElementById(btnId);
+    if (!btn || btn.__saArrow) return;
+    btn.__saArrow = true;
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      toggleFn();
+      fillPanels();
+    }, true);
+  }
+  function bindArrows() {
+    bindArrow('btnForageHint', function () { forageOpen = !forageOpen; });
+    bindArrow('btnWaterHint', function () { waterOpen = !waterOpen; });
   }
   function bindBarToggle(el) {
     if (!el || el.__tog) return;
     el.__tog = true;
     el.addEventListener('click', function (ev) {
       if (ev.target && ev.target.closest && ev.target.closest('input, a')) return;
-      open = !open;
+      openBar = !openBar;
       var box = el.querySelector('[data-sa-lines]');
-      if (box) box.hidden = !open;
+      if (box) box.hidden = !openBar;
     });
   }
   function paint(pct) {
@@ -154,7 +161,8 @@
     if (title) title.textContent = (pct >= 100 ? 'Konum verisi güncel' : 'Konum verisi güncelleniyor') + ' · ' + pct + '%';
     if (fill) fill.style.width = pct + '%';
     bindBarToggle(el);
-    mountPanels();
+    bindArrows();
+    fillPanels();
   }
   function startAnim() {
     if (running || finished) { paint(100); return; }
@@ -203,7 +211,8 @@
     try { done = sessionStorage.getItem('saLocDone') || ''; } catch (e) {}
     if (done === locKey() || finished) { finished = true; paint(100); }
     else startAnim();
-    setTimeout(mountPanels, 500);
+    setTimeout(bindArrows, 300);
+    setTimeout(fillPanels, 400);
   }
   boot();
 })(window);
