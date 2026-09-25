@@ -1,8 +1,8 @@
 (function (global) {
   var FORAGE_KM = 2.5;
-  if (global.__saPanels13) return;
-  global.__saPanels13 = true;
-  var running = false, finished = false;
+  if (global.__saPanels14) return;
+  global.__saPanels14 = true;
+  var running = false, finished = false, locOpen = false;
 
   var D0 = global.D || global.SuperAriDemo;
   if (D0 && !D0.__saCoordCache) {
@@ -53,17 +53,50 @@
     var s = document.createElement('style');
     s.id = 'saSplitCss';
     s.textContent =
-      '.sa-split-card .sa-forage-detail,.sa-split-card .sa-place-detail,.sa-split-card .sa-flight-detail{display:none;}' +
-      '.sa-split-card.is-open .sa-forage-detail,.sa-split-card.is-open .sa-place-detail,.sa-split-card.is-open .sa-flight-detail{display:block;}' +
-      '.sa-split-card .forage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;}' +
-      '.sa-split-chev{flex:0 0 28px;height:28px;border:0;border-radius:999px;background:#f3eee6;color:#8a8278;font-size:16px;}' +
-      '.sa-split-card.is-open .sa-split-chev{transform:rotate(90deg);}' +
-      '#saFloraBar{margin:0 0 8px;padding:8px 10px;border-radius:12px;border:1px solid #b7d4a8;background:#f4faef;}' +
-      '#saFloraBar .sa-title{margin:0 0 6px;font-size:13px;font-weight:700;color:#2c4a22;}' +
-      '#saFloraBar .sa-barrow{display:flex;align-items:center;gap:8px;}' +
-      '#saFloraBar .track{flex:1;height:8px;border-radius:99px;background:#d7ead0;overflow:hidden;}' +
-      '#saFloraBar .fill{height:100%;background:#3d9a4a;}';
+      '.sa-split-card .sa-forage-detail,.sa-split-card .sa-place-detail,.sa-split-card .sa-flight-detail,#saFloraBar .sa-loc-detail{display:none;}' +
+      '.sa-split-card.is-open .sa-forage-detail,.sa-split-card.is-open .sa-place-detail,.sa-split-card.is-open .sa-flight-detail,#saFloraBar.is-open .sa-loc-detail{display:block;}' +
+      '.sa-split-card .forage-head,#saFloraBar .forage-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;}' +
+      '.sa-split-chev,.fs-chev{width:28px;height:28px;min-width:28px;border:1px solid #e4e0d8;border-radius:999px;background:#faf8f4;color:#6b635a;}' +
+      '.sa-split-card.is-open .sa-split-chev,#saFloraBar.is-open .sa-split-chev{transform:rotate(90deg);}' +
+      '#saFloraBar{margin:0 0 10px;padding:12px 14px;border-radius:18px;border:1px solid #e4d3a8;background:#fbf6ea;}' +
+      '#saFloraBar .forage-head strong{font-size:15px;font-weight:800;color:#1c1916;}' +
+      '#saFloraBar .sa-badge{border:1px solid #c4a574;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;color:#6b4a28;background:#fff;}' +
+      '#saFloraBar .sa-loc-detail{margin-top:8px;font-size:10px;font-weight:560;color:#8a8278;line-height:1.35;}' +
+      '#saFloraBar .track,.sa-mini-track{height:6px;border-radius:99px;background:#e8e0d2;overflow:hidden;margin-top:8px;}' +
+      '#saFloraBar .fill,.sa-mini-fill{height:100%;background:#3d9a4a;}' +
+      '.fs-row input[type=range]{height:28px;}';
     document.head.appendChild(s);
+  }
+  function locDetail() {
+    var a = apiary();
+    return [
+      'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
+      'Su · ' + ((a && a.waterDistanceM) || 240) + ' m',
+      'Çember · ' + FORAGE_KM + ' km'
+    ].map(function (t) { return '<p style="margin:0 0 4px">' + t + '</p>'; }).join('');
+  }
+  function restyleLocBar(pct) {
+    var el = document.getElementById('saFloraBar');
+    if (!el) return;
+    el.classList.toggle('is-open', locOpen);
+    var done = pct >= 100;
+    el.innerHTML =
+      '<div class="forage-head">' +
+        '<strong>Konum</strong>' +
+        '<span class="sa-badge">' + (done ? '100 · Güncel' : pct + ' · Tarama') + '</span>' +
+        '<button type="button" class="sa-split-chev" aria-label="Detay">›</button>' +
+      '</div>' +
+      '<div class="track"><div class="fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="sa-loc-detail">' + locDetail() + '</div>';
+    var head = el.querySelector('.forage-head');
+    if (head && !head.__saLoc) {
+      head.__saLoc = true;
+      head.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        locOpen = !locOpen;
+        el.classList.toggle('is-open', locOpen);
+      });
+    }
   }
   function wireCard(card) {
     if (!card || card.__saOpen) return;
@@ -91,18 +124,12 @@
     });
     document.querySelectorAll('.sa-split-card').forEach(wireCard);
     ['saForagePanel', 'saWaterPanel'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) { el.hidden = true; el.style.display = 'none'; }
+      var n = document.getElementById(id);
+      if (n) { n.hidden = true; n.style.display = 'none'; }
     });
   }
   function paint(pct) {
-    var el = document.getElementById('saFloraBar');
-    if (el) {
-      var title = el.querySelector('[data-sa-title]');
-      var fill = el.querySelector('.fill');
-      if (title) title.textContent = (pct >= 100 ? 'Konum verisi guncel' : 'Konum verisi guncelleniyor') + ' · ' + pct + '%';
-      if (fill) fill.style.width = pct + '%';
-    }
+    restyleLocBar(pct);
     if (pct >= 70) wireAll();
   }
   function startAnim() {
@@ -132,7 +159,6 @@
     if (!document.getElementById('saFloraBar')) {
       var el = document.createElement('div');
       el.id = 'saFloraBar';
-      el.innerHTML = '<p class="sa-title" data-sa-title>Konum verisi guncelleniyor · 0%</p><div class="sa-barrow"><div class="track"><div class="fill"></div></div></div>';
       anchor.parentNode.insertBefore(el, anchor);
     }
     return true;
@@ -143,7 +169,6 @@
     if (finished || cacheFresh()) { finished = true; markFresh(); paint(100); }
     else startAnim();
     setTimeout(wireAll, 700);
-    setTimeout(wireAll, 1800);
   }
   boot();
 })(window);
