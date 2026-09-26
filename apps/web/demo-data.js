@@ -1288,6 +1288,11 @@
     } else {
       reconciled = reconcile(apiaries, raw);
     }
+    var BREED_MIG_KEY = 'superari.breedMig.karniyol.v1';
+    var breedMigDone = false;
+    try { breedMigDone = localStorage.getItem(BREED_MIG_KEY) === '1'; } catch (eK) {}
+    if (breedMigDone) return reconciled.hives;
+    try { localStorage.setItem(BREED_MIG_KEY, '1'); } catch (eK2) {}
     var breedMig = applyAllKarniyolBreeds(reconciled.hives);
     if (breedMig.changed) {
       try {

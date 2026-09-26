@@ -68,8 +68,25 @@
     for (var i = 0; i < list.length; i++) if (id && String(list[i].id) === String(id)) return list[i];
     return list[0] || fallback;
   }
+  /** Arılıktaki kovanlarda en çok görülen ırk (çoğunluk). */
+  function majorityBreed(a) {
+    var D = global.D || global.SuperAriDemo;
+    if (!a || !D || typeof D.hivesForApiary !== 'function') return '';
+    var list = [];
+    try { list = D.hivesForApiary(a.id) || []; } catch (e) { list = []; }
+    var counts = {}, order = [];
+    list.forEach(function (h) {
+      var b = String((h && (h.breed || h.irk)) || '').trim();
+      if (!b) return;
+      if (!counts[b]) { counts[b] = 0; order.push(b); }
+      counts[b]++;
+    });
+    var best = '', n = 0;
+    order.forEach(function (b) { if (counts[b] > n) { best = b; n = counts[b]; } });
+    return best;
+  }
   function placeBreed(a) {
-    var b = String((a && a.breed) || '');
+    var b = String(majorityBreed(a) || (a && a.breed) || '');
     if (/muğla|mugla/i.test(b)) return 'Muğla Arısı';
     if (/karadeniz/i.test(b)) return 'Kafkas × Karadeniz';
     if (/kafkas/i.test(b) && /karn/i.test(b)) return 'Kafkas × Karniyol';
@@ -193,7 +210,9 @@
         var html = rawSeasonRender(season, escapeHtml);
         if (!season) return html;
         var score = season.wintering && season.wintering.score != null ? season.wintering.score : null;
-        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' · Karniyol') : '—', score != null ? score : 0, 'btnSeasonHint') +
+        var breed = placeBreed(currentApiary());
+        if (breed !== 'Karniyol') html = String(html).replace(/Karniyol/g, breed);
+        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' · ' + breed) : '—', score != null ? score : 0, 'btnSeasonHint') +
           '<div id="seasonOnlyPanel" class="sa-split-card">' + html + '</div>';
       };
     }

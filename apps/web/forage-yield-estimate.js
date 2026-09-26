@@ -114,6 +114,7 @@
     }, true);
   }
   function tidyBreed() {
+    return; /* Irk artık arılıktaki kovan çoğunluğundan geliyor (forage-analysis.js). */
     document.querySelectorAll('#seasonBar .val, #seasonOnlyPanel, .season-head').forEach(function (n) {
       if (n.childElementCount && n.querySelector('.val')) return;
       var t = n.textContent || '';
