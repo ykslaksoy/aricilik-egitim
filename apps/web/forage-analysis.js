@@ -212,7 +212,7 @@
         var score = season.wintering && season.wintering.score != null ? season.wintering.score : null;
         var breed = placeBreed(currentApiary());
         if (breed !== 'Karniyol') html = String(html).replace(/Karniyol/g, breed);
-        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' · ' + breed) : '—', score != null ? score : 0, 'btnSeasonHint') +
+        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' ·<br>' + breed) : '—', score != null ? score : 0, 'btnSeasonHint') +
           '<div id="seasonOnlyPanel" class="sa-split-card">' + html + '</div>';
       };
     }
