@@ -86,40 +86,68 @@
     document.head.appendChild(s);
   }
   function locDetail() {
-    var a = apiary();
-    var head = [
-      'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
-      'Su · ' + ((a && a.waterDistanceM) || 240) + ' m',
-      'Foraj çemberi · ' + FORAGE_KM + ' km'
-    ].map(function (t) { return '<p style="margin:0 0 3px">' + t + '</p>'; }).join('');
-    function list(title, items) {
-      return '<p style="margin:8px 0 3px;font-weight:800;color:#4a2f1a">' + title + '</p>' +
-        '<ul style="margin:0;padding-left:16px">' +
-        items.map(function (t) { return '<li style="margin:0 0 2px">' + t + '</li>'; }).join('') + '</ul>';
+    var a = apiary() || {};
+    var fc = a.forageCache || null, sc = a.seasonCache || null;
+    var f = (fc && fc.payload) || {};
+    var se = (sc && sc.payload) || {};
+    var cs = f.climateSnapshot || {};
+    var lc = f.landCover || null;
+    var fr = se.frost || {}, wi = se.wind || {}, wn = se.wintering || {};
+    function ok(v) { return v != null && v !== '' && !(typeof v === 'number' && !isFinite(v)); }
+    function n1(v) { return Math.round(Number(v) * 10) / 10; }
+    function when(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
-    return head +
-      list('Konum güncellenince çekilen veriler', [
-        'Rakım: arılık noktası ve çevredeki 8 yön',
-        'Eğim: çevre rakımlarından hesaplanır',
-        'Bal sezonu (Mayıs–Eylül) ortalama sıcaklık',
-        'Bal sezonu toplam yağış',
-        'Bal sezonu bağıl nem',
-        'Buharlaşma (su ihtiyacı için)',
-        'Yağışlı saat sayısı',
-        '14 günlük don riski',
-        '14 günlük rüzgâr',
-        '14 günlük yağış',
-        'Bitki örtüsü: orman, çayır, tarla, meyve bahçesi (OpenStreetMap)'
-      ]) +
-      list('Bu verilerle yeniden hesaplananlar', [
-        'Konum puanı',
-        'Foraj değerlendirmesi',
-        'Su / nem değerlendirmesi',
-        'Uçuş günü',
-        'Kovan başına tahmini bal',
-        'Kışlama puanı',
-        'Arı cinsi (arılıktaki kovan çoğunluğu)'
-      ]);
+    function majority() {
+      var D = global.D || global.SuperAriDemo, list = [];
+      try { list = (D && D.hivesForApiary) ? (D.hivesForApiary(a.id) || []) : []; } catch (e) {}
+      var c = {}, best = '', nb = 0, total = 0;
+      list.forEach(function (h) {
+        var b = String((h && (h.breed || h.irk)) || '').trim();
+        if (!b) return;
+        total++; c[b] = (c[b] || 0) + 1;
+        if (c[b] > nb) { best = b; nb = c[b]; }
+      });
+      return best ? (best + ' (' + nb + '/' + total + ' kovan)') : null;
+    }
+    var rows = [
+      ['Koordinat', ok(a.lat) && ok(a.lon) ? (a.lat + ', ' + a.lon) : null],
+      ['Rakım', ok(f.elevM) ? (f.elevM + ' m') : (ok(se.elevM) ? (se.elevM + ' m') : null)],
+      ['Konum puanı', ok(f.score) ? (f.score + (f.grade && f.grade.tr ? ' · ' + f.grade.tr : '')) : null],
+      ['Foraj çemberi', FORAGE_KM + ' km'],
+      ['Su mesafesi', ok(a.waterDistanceM) ? (a.waterDistanceM + ' m') : null],
+      ['Bal sezonu ort. sıcaklık', ok(cs.meanTempC) ? (n1(cs.meanTempC) + ' °C') : (ok(f.meanTempC) ? (n1(f.meanTempC) + ' °C') : null)],
+      ['Bal sezonu toplam yağış', ok(cs.precipSumMm) ? (cs.precipSumMm + ' mm') : (ok(f.precipSumMm) ? (f.precipSumMm + ' mm') : null)],
+      ['Bal sezonu yağışlı gün', ok(cs.precipDays) ? (cs.precipDays + ' gün') : null],
+      ['Bal sezonu bağıl nem', ok(cs.meanRhPct) ? ('%' + Math.round(cs.meanRhPct)) : (ok(f.meanRhPct) ? ('%' + Math.round(f.meanRhPct)) : null)],
+      ['Buharlaşma (ET0)', ok(cs.et0SumMm) ? (cs.et0SumMm + ' mm') : (ok(f.et0SumMm) ? (f.et0SumMm + ' mm') : null)],
+      ['Yağışlı saat', ok(cs.rainHoursSum) ? (cs.rainHoursSum + ' saat') : null],
+      ['Uçuşa uygun olmayan gün', ok(cs.poorFlightDays) ? (cs.poorFlightDays + ' gün') : null],
+      ['Bitki örtüsü', lc ? ('iyi %' + Math.round(lc.goodPct || 0) + ' · karışık %' + Math.round(lc.mixedPct || 0) + ' · zayıf %' + Math.round(lc.poorPct || 0) + (ok(lc.featureCount) ? ' · ' + lc.featureCount + ' alan' : '')) : null],
+      ['14 gün en düşük sıcaklık', ok(fr.minTempC) ? (fr.minTempC + ' °C') : null],
+      ['14 gün don riski', fr.label ? (fr.label + (ok(fr.frostDays) ? ' · ' + fr.frostDays + ' don günü' : '')) : null],
+      ['14 gün rüzgâr', ok(wi.maxKmh) ? ('en yüksek ' + wi.maxKmh + ' km/s' + (ok(wi.avgMaxKmh) ? ' · ort. ' + wi.avgMaxKmh + ' km/s' : '')) : null],
+      ['14 gün yağış', ok(se.precipSum14Mm) ? (n1(se.precipSum14Mm) + ' mm') : null],
+      ['Kışlama puanı', ok(wn.score) ? (wn.score + (wn.label ? ' · ' + wn.label : '')) : null],
+      ['Arı cinsi', majority()]
+    ];
+    var got = rows.filter(function (r) { return ok(r[1]); });
+    var miss = rows.filter(function (r) { return !ok(r[1]); });
+    function li(r, isMiss) {
+      return '<li style="margin:0 0 2px">' + r[0] + (isMiss ? '' : ' · <b style="color:#4a2f1a">' + r[1] + '</b>') + '</li>';
+    }
+    function title(t) { return '<p style="margin:8px 0 3px;font-weight:800;color:#4a2f1a">' + t + '</p>'; }
+    var last = when((fc && fc.fetchedAt) || (sc && sc.fetchedAt));
+    return (last ? '<p style="margin:0 0 3px">Son güncelleme · ' + last + '</p>' : '') +
+      title('Güncellenenler (' + got.length + ')') +
+      '<ul style="margin:0;padding-left:16px">' + got.map(function (r) { return li(r, false); }).join('') + '</ul>' +
+      title('Eksik kalanlar (' + miss.length + ')') +
+      (miss.length
+        ? '<ul style="margin:0;padding-left:16px;color:#8a2e1c">' + miss.map(function (r) { return li(r, true); }).join('') + '</ul>'
+        : '<p style="margin:0">Eksik veri yok.</p>');
   }
   function setOpen(card, btn, on) {
     if (card) {
