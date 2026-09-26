@@ -25,7 +25,11 @@
       'color:#8a7764;font-size:10px;font-weight:600;text-decoration:none;-webkit-tap-highlight-color:transparent;}' +
     'nav.tabbar.sa-fixed .tab.active{color:#e56f1c;}' +
     'nav.tabbar.sa-fixed .tab svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}' +
-    'body.sa-has-fixed-tabbar{padding-bottom:96px;}';
+    'body.sa-has-fixed-tabbar{padding-bottom:96px;}' +
+    'nav.tabbar .tab-bugun{position:relative;overflow:visible!important;}' +
+    'nav.tabbar .nav-badge{position:absolute;top:0;left:calc(50% + 4px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e03131;color:#fff;' +
+      'font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #fffdf8;box-sizing:border-box;}' +
+    'nav.tabbar .nav-badge[hidden]{display:none;}';
 
   function page() {
     var p = (location.pathname.split('/').pop() || 'ana.html').toLowerCase();
@@ -37,7 +41,8 @@
     }
     return a('ana', 'ana.html', 'Ana') + a('bakim', 'bakim.html', 'Bakım') +
       '<button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button>' +
-      a('bugun', 'bugun.html', 'Bugün') + a('ayarlar', 'ayarlar.html', 'Ayarlar');
+      a('bugun', 'bugun.html', 'Bugün').replace('class="tab', 'class="tab tab-bugun').replace('</svg>', '</svg><span class="nav-badge" hidden aria-hidden="true"></span>') +
+      a('ayarlar', 'ayarlar.html', 'Ayarlar');
   }
   function loadScript(src) {
     return new Promise(function (res, rej) {
@@ -58,8 +63,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-6'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-6'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-7'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-7'); });
     chain.then(go, go);
   }
   function init() {
@@ -79,12 +84,27 @@
       navs = [n];
     }
     Array.prototype.forEach.call(navs, function (n) {
-      if (!n.querySelector('[data-quick-record]')) n.innerHTML = navHtml(active);
+      n.innerHTML = navHtml(active);
       n.addEventListener('click', function (e) {
         if (e.target.closest && e.target.closest('[data-quick-record]')) { e.preventDefault(); openQuick(); }
       });
     });
+    if (global.SuperAriDemo) updateBadge();
+    else loadScript('demo-data.js?v=koloni-7').then(updateBadge, updateBadge);
   }
+  /* Bugün sekmesi: etkin uyarı sayısı (0 ise gizli). */
+  function updateBadge() {
+    var n = 0;
+    try { var D = global.SuperAriDemo; n = D && D.alerts ? D.alerts.length : 0; } catch (e) { n = 0; }
+    Array.prototype.forEach.call(document.querySelectorAll('nav.tabbar .tab-bugun'), function (t) {
+      var b = t.querySelector('.nav-badge');
+      if (!b) { b = document.createElement('span'); b.className = 'nav-badge'; t.appendChild(b); }
+      b.textContent = n > 99 ? '99+' : String(n);
+      b.hidden = !n;
+      t.setAttribute('aria-label', 'Bugün' + (n ? ', ' + n + ' etkin uyarı' : ''));
+    });
+  }
+  global.addEventListener('superari-records-changed', function () { setTimeout(updateBadge, 0); });
   global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, V: V };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);

@@ -541,7 +541,7 @@
     { key: 'hastalik', label: 'Hastalık', ready: true },
     { key: 'besleme', label: 'Besleme', ready: true },
     { key: 'bolme', label: 'Bölme / Birleştirme', ready: false },
-    { key: 'ogul', label: 'Oğul', ready: false },
+    { key: 'ogul', label: 'Oğul', ready: true },
     { key: 'tasima', label: 'Ana taşıma', ready: false },
     { key: 'uretim', label: 'Ana üretimi', ready: false }
   ];
@@ -594,16 +594,21 @@
   /** Konu başına ilgilenilmesi gereken kovan sayısı (yalnız hazır konular). */
   function topicCounts(hives) {
     var c = C(), r = R();
-    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0, besleme: 0 };
+    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0, besleme: 0, ogul: 0 };
     if (!r) return out;
     var all = r.loadAll();
+    var d0 = D();
+    var ogulHives = {};
+    ((d0 && d0.alerts) || []).forEach(function (a) { if (a && a.type === 'ogul' && a.hiveId != null) ogulHives[String(a.hiveId)] = true; });
     (hives || []).forEach(function (h) {
       if (c && c.queenStatus(h) === 'Yenile') out.ana++;
-      if (!all[String(h.id)]) return;
+      var isOgul = !!ogulHives[String(h.id)];
+      if (!all[String(h.id)]) { if (isOgul) out.ogul++; return; }
       var st = r.status(h.id, all);
       var ws = r.winterStatus(h.id, all);
       if (st.weak || (ws.rec && ws.statusKey !== 'hazir')) out.guc++;
       if (ws.storesKg != null && !ws.storesOk) out.besleme++;
+      if (isOgul || st.swarmCell) out.ogul++;
       if (st.broodIssue) out.yavru++;
       if (st.diseases.length || st.dueChecks.length) out.hastalik++;
     });

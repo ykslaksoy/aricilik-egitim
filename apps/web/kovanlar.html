@@ -57,11 +57,11 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-6"></script>
+  <script src="demo-data.js?v=koloni-7"></script>
   <script src="rapor-store.js"></script>
-  <script src="sensor-health.js?v=koloni-6"></script>
-  <script src="koloni.js?v=koloni-6"></script>
-  <script src="kovan-ara.js?v=koloni-6"></script>
+  <script src="sensor-health.js?v=koloni-7"></script>
+  <script src="koloni.js?v=koloni-7"></script>
+  <script src="kovan-ara.js?v=koloni-7"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -82,6 +82,10 @@
       var gridEl = document.getElementById('koloniGrid');
       var sub = (topic === 'guc' || topic === 'besleme') && params.get('sub') === 'kis' ? 'kis' : '';
       function topicHref(t) {
+        if (t === 'ogul') {
+          var ap = apiaryFilter || '';
+          return 'uyarilar.html?view=ogul&' + (ap ? 'mode=apiary&apiary=' + encodeURIComponent(ap) : 'mode=all');
+        }
         var q = new URLSearchParams(location.search);
         q.delete('hiveId');
         q.delete('tab');
