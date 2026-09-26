@@ -87,11 +87,39 @@
   }
   function locDetail() {
     var a = apiary();
-    return [
+    var head = [
       'Koordinat · ' + (a && a.lat || 41.0808) + ', ' + (a && a.lon || 40.754),
       'Su · ' + ((a && a.waterDistanceM) || 240) + ' m',
-      'Çember · ' + FORAGE_KM + ' km'
+      'Foraj çemberi · ' + FORAGE_KM + ' km'
     ].map(function (t) { return '<p style="margin:0 0 3px">' + t + '</p>'; }).join('');
+    function list(title, items) {
+      return '<p style="margin:8px 0 3px;font-weight:800;color:#4a2f1a">' + title + '</p>' +
+        '<ul style="margin:0;padding-left:16px">' +
+        items.map(function (t) { return '<li style="margin:0 0 2px">' + t + '</li>'; }).join('') + '</ul>';
+    }
+    return head +
+      list('Konum güncellenince çekilen veriler', [
+        'Rakım: arılık noktası ve çevredeki 8 yön',
+        'Eğim: çevre rakımlarından hesaplanır',
+        'Bal sezonu (Mayıs–Eylül) ortalama sıcaklık',
+        'Bal sezonu toplam yağış',
+        'Bal sezonu bağıl nem',
+        'Buharlaşma (su ihtiyacı için)',
+        'Yağışlı saat sayısı',
+        '14 günlük don riski',
+        '14 günlük rüzgâr',
+        '14 günlük yağış',
+        'Bitki örtüsü: orman, çayır, tarla, meyve bahçesi (OpenStreetMap)'
+      ]) +
+      list('Bu verilerle yeniden hesaplananlar', [
+        'Konum puanı',
+        'Foraj değerlendirmesi',
+        'Su / nem değerlendirmesi',
+        'Uçuş günü',
+        'Kovan başına tahmini bal',
+        'Kışlama puanı',
+        'Arı cinsi (arılıktaki kovan çoğunluğu)'
+      ]);
   }
   function setOpen(card, btn, on) {
     if (card) {
