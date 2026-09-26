@@ -414,8 +414,9 @@
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=breed-plan-5"></script>
+<script src="demo-data.js?v=koloni-1"></script>
 <script src="rapor-store.js"></script>
+<script src="koloni.js?v=koloni-1"></script>
 <script src="forage-analysis.js?v=breed-plan-2"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script>
@@ -927,6 +928,7 @@
           '<div class="apiary-body">' +
             '<h2>' + escapeHtml(a.name) + '</h2>' +
             '<p>' + escapeHtml((D.formatPlaceSubtitle && D.formatPlaceSubtitle(a)) || a.place || '—') + '</p>' +
+            (window.SuperAriKoloni ? window.SuperAriKoloni.summaryLineHtml(D.hivesForApiary(a.id)) : '') +
           '</div>' +
           '<span class="apiary-badge">' + n + ' kovan</span>' +
           '<span class="apiary-chev" aria-hidden="true">›</span>' +

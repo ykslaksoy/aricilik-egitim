@@ -50,12 +50,14 @@
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
       <p class="muted" id="summary">Demo kovan listesi…</p>
       <div class="mode-switch" id="modeSwitch"></div>
+      <div id="koloniTop"></div>
       <div class="list" id="hive-list"></div>
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=breed-plan-5"></script>
+  <script src="demo-data.js?v=koloni-1"></script>
   <script src="sensor-health.js"></script>
+  <script src="koloni.js?v=koloni-1"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -67,6 +69,30 @@
       var modeParam = params.get('mode');
       var mode = modeParam === 'all' ? 'all' : (modeParam === 'apiary' ? 'apiary' : null);
       var apiaryFilter = params.get('apiary') || '';
+      var editHiveId = view === 'koloni' ? params.get('hiveId') : null;
+      var K = window.SuperAriKoloni || null;
+      var koloniTopEl = document.getElementById('koloniTop');
+      var BULK_BTN = '<button type="button" class="kol-bulk-btn" id="btnBulkQueen">👑 Toplu ana arı değişimi</button>';
+      var bulkCtx = { apiaryId: '', onSaved: null };
+      function bindBulk(apiaryId, onSaved) {
+        bulkCtx.apiaryId = apiaryId;
+        bulkCtx.onSaved = onSaved;
+        if (!koloniTopEl || koloniTopEl.__bulkBound) return;
+        koloniTopEl.__bulkBound = true;
+        koloniTopEl.addEventListener('click', function (e) {
+          if (!e.target.closest || !e.target.closest('#btnBulkQueen')) return;
+          K.openBulkEditor({ apiaryId: bulkCtx.apiaryId, onSaved: bulkCtx.onSaved });
+        });
+      }
+      /* ?hiveId= (Düzenle bağlantıları): o kovanın arılığını aç + düzenleyiciyi göster. */
+      if (editHiveId && !hasMode && !apiaryFilter) {
+        var eh = D.hiveById(editHiveId);
+        if (eh) {
+          hasMode = true;
+          mode = 'apiary';
+          apiaryFilter = String(eh.apiaryId);
+        }
+      }
       var listEl = document.getElementById('hive-list');
       var titleEl = document.getElementById('pageTitle');
       var subEl = document.getElementById('pageSub');
@@ -188,16 +214,26 @@
 
       /* Chooser: no mode and no apiary */
       if (!hasMode && !apiaryFilter) {
+        if (view === 'koloni' && K && koloniTopEl) {
+          koloniTopEl.innerHTML = K.summaryHtml(hives, 'Tüm kovanlar · ana arı özeti') + BULK_BTN;
+          bindBulk('', function () { koloniTopEl.innerHTML = K.summaryHtml(D.loadHives(), 'Tüm kovanlar · ana arı özeti') + BULK_BTN; });
+        }
         summaryEl.textContent = hives.length + ' kovan · görünüm seçin';
         noteEl.textContent = 'Tüm kovanlar veya bir arılık seçin.';
         modeSwitchEl.innerHTML = '';
         var html = '<div class="choice-grid">' +
           choiceBtn(pageHref('mode=all'), 'Tüm kovanlar', hives.length + ' kovan tek listede');
         groups.forEach(function (g) {
+          var cMeta = g.hives.length + ' kovan';
+          if (view === 'koloni' && D.colony) {
+            var cs = D.colony.summary(g.hives);
+            cMeta += ' · ' + cs.breeds.map(function (b) { return b.breed; }).join(', ') +
+              ' · yenilenecek ana ' + cs.requeen;
+          }
           html += choiceBtn(
             pageHref('mode=apiary&apiary=' + encodeURIComponent(g.apiaryId)),
             g.apiaryName,
-            g.hives.length + ' kovan'
+            cMeta
           );
         });
         if (!groups.length) {
@@ -236,6 +272,37 @@
       modeSwitchEl.innerHTML =
         '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">Tüm kovanlar</a>' +
         '<a class="' + (effectiveMode === 'apiary' ? 'active' : '') + '" href="' + pageHref('') + '">Arılıklar</a>';
+
+      if (view === 'koloni' && K) {
+        var scopeHives = hives;
+        var renderKoloni = function () {
+          var fresh = D.loadHives();
+          var ids = {};
+          scopeHives.forEach(function (h) { ids[h.id] = true; });
+          scopeHives = fresh.filter(function (h) { return ids[h.id]; });
+          koloniTopEl.innerHTML = K.summaryHtml(scopeHives,
+            (effectiveMode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık')) + ' · ana arı özeti') + BULK_BTN;
+          listEl.innerHTML = scopeHives.map(function (h) {
+            var ap = D.apiaryById(h.apiaryId);
+            return K.hiveCardHtml(h, ap ? ap.name : '');
+          }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
+        };
+        renderKoloni();
+        bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
+        noteEl.textContent = 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi. Demo verisi.';
+        listEl.addEventListener('click', function (e) {
+          if (e.target.closest && e.target.closest('a')) return;
+          var card = e.target.closest ? e.target.closest('.kol-card') : null;
+          if (!card) return;
+          K.openEditor(card.getAttribute('data-hive'), renderKoloni);
+        });
+        if (editHiveId) {
+          var target = document.querySelector('.kol-card[data-hive="' + String(editHiveId).replace(/"/g, '') + '"]');
+          if (target && target.scrollIntoView) target.scrollIntoView({ block: 'center' });
+          K.openEditor(editHiveId, renderKoloni);
+        }
+        return;
+      }
 
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();

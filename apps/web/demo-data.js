@@ -782,7 +782,257 @@
     if (h.strength != null && String(h.strength).trim()) out.strength = String(h.strength).trim();
     if (h.breed != null && String(h.breed).trim()) out.breed = String(h.breed).trim();
     else if (h.irk != null && String(h.irk).trim()) out.breed = String(h.irk).trim();
+    copyColonyFields(out, h);
     return out;
+  }
+
+  /* ---------- Koloni: ana arı + koloni özellikleri (tek kaynak: kovan kaydı) ---------- */
+  var COLONY_BREED_OPTIONS = ['Kafkas', 'Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karadeniz', 'Karniyol', 'Muğla', 'Anadolu', 'İtalyan', 'Diğer'];
+  var SWARM_TENDENCIES = ['Düşük', 'Orta', 'Yüksek'];
+  var CALM_LABELS = { 1: 'Çok sinirli', 2: 'Sinirli', 3: 'Orta', 4: 'Sakin', 5: 'Çok sakin' };
+  /* Uluslararası ana arı renk kodu (yılın son hanesi). */
+  var QUEEN_COLORS = [
+    { name: 'Mavi', hex: '#1e6fd9' },    /* 0 */
+    { name: 'Beyaz', hex: '#f4f4f4' },   /* 1 */
+    { name: 'Sarı', hex: '#f2c500' },    /* 2 */
+    { name: 'Kırmızı', hex: '#d62828' }, /* 3 */
+    { name: 'Yeşil', hex: '#2f9e44' },   /* 4 */
+    { name: 'Mavi', hex: '#1e6fd9' },    /* 5 */
+    { name: 'Beyaz', hex: '#f4f4f4' },   /* 6 */
+    { name: 'Sarı', hex: '#f2c500' },    /* 7 */
+    { name: 'Kırmızı', hex: '#d62828' }, /* 8 */
+    { name: 'Yeşil', hex: '#2f9e44' }    /* 9 */
+  ];
+
+  function parseQueenYear(v) {
+    if (v == null || v === '') return null;
+    var n = Math.round(Number(v));
+    return isFinite(n) && n >= 1990 && n <= 2100 ? n : null;
+  }
+  function parseCalmness(v) {
+    if (v == null || v === '') return null;
+    var n = Math.round(Number(v));
+    return isFinite(n) && n >= 1 && n <= 5 ? n : null;
+  }
+  function parseSwarmTendency(v) {
+    var t = String(v == null ? '' : v).trim();
+    for (var i = 0; i < SWARM_TENDENCIES.length; i++) {
+      if (t.toLocaleLowerCase('tr') === SWARM_TENDENCIES[i].toLocaleLowerCase('tr')) return SWARM_TENDENCIES[i];
+    }
+    return null;
+  }
+  function copyColonyFields(out, h) {
+    if (!h) return out;
+    var qy = parseQueenYear(h.queenYear);
+    if (qy != null) out.queenYear = qy;
+    if (h.queenSource != null && String(h.queenSource).trim()) out.queenSource = String(h.queenSource).trim().slice(0, 120);
+    if (h.queenMarked === true || h.queenMarked === false) out.queenMarked = h.queenMarked;
+    var c = parseCalmness(h.calmness);
+    if (c != null) out.calmness = c;
+    var st = parseSwarmTendency(h.swarmTendency);
+    if (st) out.swarmTendency = st;
+    if (h.colonyNote != null && String(h.colonyNote).trim()) out.colonyNote = String(h.colonyNote).trim().slice(0, 500);
+    if (h.colonyUpdatedAt != null && String(h.colonyUpdatedAt).trim()) out.colonyUpdatedAt = String(h.colonyUpdatedAt).trim();
+    if (Array.isArray(h.queenHistory) && h.queenHistory.length) {
+      var hist = h.queenHistory.map(normalizeQueenHistoryEntry).filter(Boolean);
+      if (hist.length) out.queenHistory = hist.slice(-20);
+    }
+    return out;
+  }
+  function todayLocal() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  /** Geçmiş girdisi: { date, oldYear, oldBreed, newYear, newBreed, source, marked, note, bulk }. */
+  function normalizeQueenHistoryEntry(e) {
+    if (!e || typeof e !== 'object') return null;
+    var o = {};
+    var d = String(e.date || '').trim();
+    o.date = /^\d{4}-\d{2}-\d{2}/.test(d) ? d.slice(0, 10) : todayLocal();
+    var oy = parseQueenYear(e.oldYear != null ? e.oldYear : e.prevQueenYear);
+    if (oy != null) o.oldYear = oy;
+    var ob = e.oldBreed != null ? e.oldBreed : e.prevBreed;
+    if (ob != null && String(ob).trim()) o.oldBreed = String(ob).trim().slice(0, 60);
+    var ny = parseQueenYear(e.newYear != null ? e.newYear : e.queenYear);
+    if (ny != null) o.newYear = ny;
+    var nb = e.newBreed != null ? e.newBreed : e.breed;
+    if (nb != null && String(nb).trim()) o.newBreed = String(nb).trim().slice(0, 60);
+    if (e.source != null && String(e.source).trim()) o.source = String(e.source).trim().slice(0, 120);
+    if (e.marked === true || e.marked === false) o.marked = e.marked;
+    if (e.note != null && String(e.note).trim()) o.note = String(e.note).trim().slice(0, 300);
+    if (e.bulk === true) o.bulk = true;
+    return o;
+  }
+
+  function currentYear() { return new Date().getFullYear(); }
+  function queenAge(h) {
+    var y = parseQueenYear(h && h.queenYear);
+    if (y == null) return null;
+    return Math.max(0, currentYear() - y);
+  }
+  function queenColor(year) {
+    var y = parseQueenYear(year);
+    if (y == null) return null;
+    return QUEEN_COLORS[y % 10];
+  }
+  /** 'Yenile' (yaş ≥ 2), 'Bilinmiyor' (yıl yok) veya null (sorun yok). */
+  function queenStatus(h) {
+    var age = queenAge(h);
+    if (age == null) return 'Bilinmiyor';
+    return age >= 2 ? 'Yenile' : null;
+  }
+  function calmLabel(n) {
+    var c = parseCalmness(n);
+    return c == null ? '' : (CALM_LABELS[c] + ' (' + c + '/5)');
+  }
+  /** Kapsam özeti: ırk dağılımı, ort. ana yaşı, yenilenecek / bilinmeyen sayısı. */
+  function colonySummary(hives) {
+    var list = hives || [];
+    var counts = {}, order = [];
+    var ageSum = 0, ageN = 0, requeen = 0, unknown = 0;
+    list.forEach(function (h) {
+      var b = String((h && h.breed) || '').trim() || 'Belirtilmemiş';
+      if (!counts[b]) { counts[b] = 0; order.push(b); }
+      counts[b]++;
+      var age = queenAge(h);
+      if (age == null) unknown++;
+      else {
+        ageSum += age; ageN++;
+        if (age >= 2) requeen++;
+      }
+    });
+    var breeds = order.map(function (b, i) { return { breed: b, count: counts[b], i: i }; })
+      .sort(function (x, y) { return (y.count - x.count) || (x.i - y.i); })
+      .map(function (x) { return { breed: x.breed, count: x.count }; });
+    return {
+      total: list.length,
+      breeds: breeds,
+      avgQueenAge: ageN ? Math.round((ageSum / ageN) * 10) / 10 : null,
+      knownAges: ageN,
+      requeen: requeen,
+      unknown: unknown
+    };
+  }
+  function colonySummaryText(hives) {
+    var s = colonySummary(hives);
+    if (!s.total) return '';
+    var br = s.breeds.map(function (b) { return b.breed + ' ' + b.count; }).join(' · ');
+    return br + ' · ort. ana yaşı ' + (s.avgQueenAge != null ? String(s.avgQueenAge).replace('.', ',') : '—') +
+      ' · yenilenecek ana ' + s.requeen + (s.unknown ? ' · bilinmeyen ' + s.unknown : '');
+  }
+
+  /**
+   * Koloni düzenleyicisinden tek kovan güncelle (breed + ana/özellik alanları).
+   * Boş değer alanı siler. Diğer alanlara dokunmaz.
+   */
+  function updateHiveColony(id, patch) {
+    var n = Number(id);
+    var list = loadHives();
+    var found = null;
+    var out = list.map(function (h) {
+      if (h.id !== n) return h;
+      var copy = {};
+      for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
+      ['breed', 'queenYear', 'queenSource', 'queenMarked', 'calmness', 'swarmTendency', 'colonyNote'].forEach(function (f) {
+        if (!patch || !Object.prototype.hasOwnProperty.call(patch, f)) return;
+        delete copy[f];
+      });
+      if (patch && Object.prototype.hasOwnProperty.call(patch, 'breed')) {
+        var b = String(patch.breed == null ? '' : patch.breed).trim();
+        if (b) copy.breed = b.slice(0, 60);
+      }
+      copyColonyFields(copy, patch || {});
+      if (copy.queenYear !== h.queenYear && copy.queenYear != null) {
+        var ent = { date: todayLocal(), newYear: copy.queenYear };
+        if (h.queenYear != null) ent.oldYear = h.queenYear;
+        if (h.breed) ent.oldBreed = h.breed;
+        if (copy.breed) ent.newBreed = copy.breed;
+        if (copy.queenSource) ent.source = copy.queenSource;
+        if (copy.queenMarked === true || copy.queenMarked === false) ent.marked = copy.queenMarked;
+        copy.queenHistory = (Array.isArray(h.queenHistory) ? h.queenHistory.slice() : []).concat([ent]);
+      }
+      copy.colonyUpdatedAt = new Date().toISOString();
+      found = normalizeHive(copy);
+      return found;
+    });
+    if (!found) return null;
+    saveHives(out);
+    return found;
+  }
+
+  /**
+   * Toplu ana arı değişimi: seçili kovanların hepsine aynı değerleri yaz (tek kayıt işlemi).
+   * patch: { queenYear, breed (boş = değiştirme), queenSource, queenMarked, note, date }.
+   * Her kovana queenHistory[] girdisi eklenir. Döner: güncellenen kovan sayısı.
+   */
+  function bulkQueenReplace(ids, patch) {
+    patch = patch || {};
+    var want = {};
+    (ids || []).forEach(function (id) { want[Number(id)] = true; });
+    var qy = parseQueenYear(patch.queenYear);
+    var breed = String(patch.breed == null ? '' : patch.breed).trim().slice(0, 60);
+    var src = String(patch.queenSource == null ? '' : patch.queenSource).trim().slice(0, 120);
+    var marked = patch.queenMarked === true || patch.queenMarked === false ? patch.queenMarked : null;
+    var note = String(patch.note == null ? '' : patch.note).trim().slice(0, 300);
+    var date = String(patch.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = todayLocal();
+    var now = new Date().toISOString();
+    var updated = [];
+    var out = loadHives().map(function (h) {
+      if (!want[h.id]) return h;
+      var copy = {};
+      for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
+      var entry = { date: date, bulk: true };
+      if (h.queenYear != null) entry.oldYear = h.queenYear;
+      if (h.breed) entry.oldBreed = h.breed;
+      if (qy != null) copy.queenYear = qy; else delete copy.queenYear;
+      if (breed) copy.breed = breed;
+      if (copy.queenYear != null) entry.newYear = copy.queenYear;
+      if (copy.breed) entry.newBreed = copy.breed;
+      if (src) { copy.queenSource = src; entry.source = src; } else { delete copy.queenSource; }
+      if (marked != null) { copy.queenMarked = marked; entry.marked = marked; } else { delete copy.queenMarked; }
+      if (note) entry.note = note;
+      copy.queenHistory = (Array.isArray(h.queenHistory) ? h.queenHistory.slice() : []).concat([entry]);
+      copy.colonyUpdatedAt = now;
+      var nh = normalizeHive(copy);
+      updated.push({ id: nh.id, name: nh.name, oldYear: entry.oldYear, newYear: entry.newYear, oldBreed: entry.oldBreed, newBreed: entry.newBreed });
+      return nh;
+    });
+    if (updated.length) saveHives(out);
+    return updated;
+  }
+
+  /** Demo ana arı yılları + özellikler — tek seferlik, yalnız eksik alanları doldurur. */
+  function seedQueenTraits(hives) {
+    var changed = false;
+    var years = [2025, 2024, 2026, 2025, 2026, 2024, 2025, 2026, 2025, 2024, 2026, null];
+    var out = (hives || []).map(function (h) {
+      if (!h || !isFinite(h.id)) return h;
+      var id = Number(h.id);
+      var copy = null;
+      function set(k, v) {
+        if (!copy) {
+          copy = {};
+          for (var kk in h) if (Object.prototype.hasOwnProperty.call(h, kk)) copy[kk] = h[kk];
+        }
+        copy[k] = v;
+      }
+      var seed = (id * 7 + 3) % 12;
+      if (h.queenYear == null && years[seed] != null) set('queenYear', years[seed]);
+      if (h.calmness == null) {
+        var br = String(h.breed || '');
+        var base = /Karniyol|Kafkas/.test(br) ? 4 : (/Muğla|Anadolu/.test(br) ? 3 : 3);
+        set('calmness', Math.max(1, Math.min(5, base + ((id % 5) === 0 ? -1 : ((id % 7) === 0 ? 1 : 0)))));
+      }
+      if (h.swarmTendency == null) {
+        var sr = String(h.swarmRisk || '');
+        set('swarmTendency', sr === 'Yüksek' ? 'Yüksek' : (sr === 'Orta' ? 'Orta' : ((id % 6) === 0 ? 'Orta' : 'Düşük')));
+      }
+      if (h.queenMarked == null && h.queenYear == null && years[seed] != null) set('queenMarked', (id % 3) !== 0);
+      if (copy) { changed = true; return copy; }
+      return h;
+    });
+    return { list: out, changed: changed };
   }
 
   function synthHive(apiaryId, id, i) {
@@ -1329,7 +1579,7 @@
     return { list: out, changed: changed };
   }
 
-  function loadHives() {
+  function loadHivesBase() {
     var apiaries = loadApiaries();
     var raw = readRawHives();
     var reconciled;
@@ -1382,6 +1632,21 @@
       return breedMig.list;
     }
     return reconciled.hives;
+  }
+
+  function loadHives() {
+    var list = loadHivesBase();
+    var QUEEN_SEED_KEY = 'superari.queenSeed.v1';
+    var done = false;
+    try { done = localStorage.getItem(QUEEN_SEED_KEY) === '1'; } catch (eQ) {}
+    if (done) return list;
+    try { localStorage.setItem(QUEEN_SEED_KEY, '1'); } catch (eQ2) {}
+    var seeded = seedQueenTraits(list);
+    if (seeded.changed) {
+      try { saveHives(seeded.list); } catch (eQ3) {}
+      return seeded.list;
+    }
+    return list;
   }
 
   function addApiary(input) {
@@ -1842,6 +2107,21 @@
       apiaryById: apiaryById,
       hivesForApiary: hivesForApiary,
       BREEDS: BREEDS,
+      colony: {
+        BREED_OPTIONS: COLONY_BREED_OPTIONS,
+        SWARM_TENDENCIES: SWARM_TENDENCIES,
+        CALM_LABELS: CALM_LABELS,
+        queenAge: queenAge,
+        queenColor: queenColor,
+        queenStatus: queenStatus,
+        calmLabel: calmLabel,
+        summary: colonySummary,
+        summaryText: colonySummaryText,
+        updateHive: updateHiveColony,
+        bulkQueenReplace: bulkQueenReplace,
+        currentYear: currentYear,
+        todayLocal: todayLocal
+      },
       APIARY_BREED_PLAN: APIARY_BREED_PLAN,
       loadApiaries: loadApiaries,
       saveApiaries: saveApiaries,

@@ -23,8 +23,16 @@
       <div class="list" id="task-list"></div>
       <div class="note">Statik demo görevler. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
+
+    <section class="card stack" id="queenTasks">
+      <h2 style="margin:0;">Otomatik görevler · ana arı</h2>
+      <p class="muted" id="queenSummary">Koloni kayıtlarından hesaplanıyor…</p>
+      <div class="list" id="queen-task-list"></div>
+      <div class="note">Ana arısı 2 yaş ve üzeri olan kovanlardan otomatik üretilir. Doğum yılını güncellemek için Koloni sayfasını kullanın.</div>
+    </section>
   </main>
-  <script src="demo-data.js?v=breed-plan-5"></script>
+  <script src="demo-data.js?v=koloni-1"></script>
+  <script src="koloni.js?v=koloni-1"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -49,6 +57,34 @@
           '</article>'
         );
       }).join("");
+
+      /* Türetilmiş görevler: Koloni kaydı (queenYear) tek kaynak. */
+      var C = D.colony, K = window.SuperAriKoloni;
+      var qList = document.getElementById("queen-task-list");
+      var qSum = document.getElementById("queenSummary");
+      if (!C || !qList) return;
+      var esc = function (t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+      var hives = D.loadHives ? D.loadHives() : [];
+      var renew = hives.filter(function (h) { return C.queenStatus(h) === "Yenile"; })
+        .sort(function (a, b) { return (C.queenAge(b) - C.queenAge(a)) || (a.id - b.id); });
+      var unknownN = hives.filter(function (h) { return C.queenStatus(h) === "Bilinmiyor"; }).length;
+      qSum.textContent = renew.length + " ana arı yenilenmeli" + (unknownN ? " · " + unknownN + " kovanda ana yaşı bilinmiyor" : "");
+      qList.innerHTML = renew.map(function (h) {
+        var age = C.queenAge(h);
+        var pr = age >= 3 ? 2 : 3;
+        var ap = D.apiaryById ? D.apiaryById(h.apiaryId) : null;
+        return (
+          '<article class="item-card">' +
+            '<div class="row">' +
+              '<h3>' + (K ? K.dotHtml(h.queenYear) : "") + 'Ana arıyı yenile — ' + esc(h.name) + ' (' + age + ' yaş)</h3>' +
+              '<span class="badge priority-' + pr + '">Öncelik ' + pr + '</span>' +
+            '</div>' +
+            '<div class="meta">' + esc((ap ? ap.name + " · " : "") + (h.breed || "") + " · doğum yılı " + h.queenYear) +
+              ' · <a href="kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(h.id) + '">Düzenle</a>' +
+              ' · <a href="kovan.html?id=' + encodeURIComponent(h.id) + '">Kovana git</a></div>' +
+          '</article>'
+        );
+      }).join("") || '<p class="muted">Yenilenecek ana arı yok.</p>';
     })();
   </script>
 </body>

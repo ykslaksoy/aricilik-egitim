@@ -316,7 +316,8 @@
     font-size: 13px;
   }
   .kd-extra .kv-row .k { color: var(--muted); font-weight: 650; }
-  .kd-extra .kv-row .v { font-weight: 750; color: var(--text); text-align: right; }
+  .kd-extra .kv-row .v { font-weight: 750; color: var(--text); text-align: right; min-width: 0; overflow-wrap: anywhere; }
+  .kd-extra .kv-row .k { flex: 0 0 auto; }
   .kd-extra .hint {
     margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.35;
   }
@@ -380,7 +381,8 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=breed-plan-5"></script>
+<script src="demo-data.js?v=koloni-1"></script>
+<script src="koloni.js?v=koloni-1"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -743,6 +745,21 @@
     );
   }
 
+  var K = window.SuperAriKoloni || null;
+  function kvRowHtml(label, html) {
+    return (
+      '<div class="kv-row"><span class="k">' + escapeHtml(label) +
+      '</span><span class="v">' + html + '</span></div>'
+    );
+  }
+  /* Ana arı satırı: yaş + renk noktası + Yenile rozeti + Düzenle (Koloni sayfası tek kaynak). */
+  function queenRowHtml(hive) {
+    var edit = ' <a href="kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(hive.id) +
+      '" style="color:#2b6cb0;text-decoration:underline;font-weight:700;white-space:nowrap;">Düzenle</a>';
+    if (!K) return escapeHtml(fieldOrNone(hive.queenStatus || hive.anaDurum)) + edit;
+    return K.queenHtml(hive) + edit;
+  }
+
   function render(hive, apiary) {
     var content = $('content');
     if (!hive) {
@@ -895,13 +912,22 @@
       '<div class="kd-extra" aria-label="Koloni">' +
         '<h2>Koloni</h2>' +
         '<div class="kv">' +
-          kvRow('Ana', fieldOrNone(hive.queenStatus || hive.anaDurum)) +
+          kvRowHtml('Ana arı', queenRowHtml(hive)) +
+          kvRow('Ana kaynağı', fieldOrNone(hive.queenSource)) +
+          kvRow('İşaretli', hive.queenMarked === true ? 'Evet' : (hive.queenMarked === false ? 'Hayır' : 'Kayıt yok')) +
+          kvRow('Sakinlik', K && hive.calmness != null ? K.calmText(hive) : 'Kayıt yok') +
+          kvRow('Oğul eğilimi', fieldOrNone(hive.swarmTendency)) +
+          (hive.colonyNote ? kvRow('Koloni notu', hive.colonyNote) : '') +
+
           kvRow('Çerçeve / yavru / bal', fieldOrNone(hive.framesNote || hive.cerceve)) +
           kvRow('Son muayene', fieldOrNone(hive.lastInspectionAt || hive.sonMuayene)) +
         '</div>' +
         '<p class="hint">' +
           escapeHtml(hive.inspectionNote || hive.muayeneNotu || 'Muayene notu yok. Sahada yazınca burada görünür.') +
         '</p>' +
+        '<div class="hint" style="margin-top:10px;"><b style="color:var(--text);">Ana arı geçmişi</b>' +
+          (K && K.historyHtml(hive) ? '<div style="margin-top:4px;">' + K.historyHtml(hive, 8) + '</div>' : ' · kayıt yok') +
+        '</div>' +
       '</div>' +
 
       '<div class="kd-extra" aria-label="Petek">' +

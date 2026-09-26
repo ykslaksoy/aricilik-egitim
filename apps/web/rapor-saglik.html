@@ -39,6 +39,15 @@
       <h2>Düşük skorlu kovanlar</h2>
       <div id="riskList"></div>
     </section>
+    <section class="card-block">
+      <h2>Ana arı ve ırk</h2>
+      <div id="queenApiaryList"></div>
+    </section>
+    <section class="card-block">
+      <h2>Yenilenecek ana arılar</h2>
+      <div id="queenRenewList"></div>
+      <p class="meta" style="margin-top:6px;">Kaynak: Koloni kayıtları (demo). Düzenleme yalnız <a href="kovanlar.html?view=koloni" style="text-decoration:underline;">Koloni</a> sayfasında.</p>
+    </section>
     
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -65,9 +74,10 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=breed-plan-5"></script>
+<script src="demo-data.js?v=koloni-1"></script>
 <script src="sensor-health.js"></script>
 <script src="rapor-store.js"></script>
+<script src="koloni.js?v=koloni-1"></script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
@@ -109,6 +119,33 @@
       '<div class="meta">' + x.band.label + '</div></div>' +
       '<div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></div>';
   }).join('') || '<p class="meta">Tüm kovanlar 85+.</p>';
+
+  /* Ana arı / ırk — Koloni kaydından (tek kaynak) okunur. */
+  var C = D.colony, K = window.SuperAriKoloni;
+  if (C) {
+    var esc = function (t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+    var aps = D.loadApiaries ? D.loadApiaries() : [];
+    document.getElementById('queenApiaryList').innerHTML = aps.map(function (ap) {
+      var hs = hives.filter(function (h) { return String(h.apiaryId) === String(ap.id); });
+      var sm = C.summary(hs);
+      if (!sm.total) return '';
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(ap.name) + '</div>' +
+        '<div class="meta">' + esc(sm.breeds.map(function (b) { return b.breed + ' ' + b.count; }).join(' · ')) +
+        ' · ort. ana yaşı ' + (sm.avgQueenAge != null ? String(sm.avgQueenAge).replace('.', ',') : '—') +
+        (sm.unknown ? ' · bilinmeyen ' + sm.unknown : '') + '</div></div>' +
+        '<div class="right"><span class="badge ' + (sm.requeen ? 'bad' : 'ok') + '" title="Yenilenecek ana">' + sm.requeen + '</span></div></div>';
+    }).join('') || '<p class="meta">Kovan yok.</p>';
+    var renew = hives.filter(function (h) { return C.queenStatus(h) === 'Yenile'; })
+      .sort(function (a, b) { return (C.queenAge(b) - C.queenAge(a)) || (a.id - b.id); });
+    document.getElementById('queenRenewList').innerHTML = renew.slice(0, 20).map(function (h) {
+      var ap = D.apiaryById ? D.apiaryById(h.apiaryId) : null;
+      return '<div class="row-item"><div class="left"><div class="title">' + (K ? K.dotHtml(h.queenYear) : '') + esc(h.name) + '</div>' +
+        '<div class="meta">' + esc((ap ? ap.name + ' · ' : '') + (h.breed || '—') + ' · ' + h.queenYear) +
+        ' · <a href="kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(h.id) + '" style="text-decoration:underline;">Düzenle</a></div></div>' +
+        '<div class="right"><span class="badge bad">' + C.queenAge(h) + ' yaş</span></div></div>';
+    }).join('') + (renew.length > 20 ? '<p class="meta">+' + (renew.length - 20) + ' kovan daha</p>' : '') ||
+      '<p class="meta">Yenilenecek ana arı yok.</p>';
+  }
 })();
 </script>
 <script>
