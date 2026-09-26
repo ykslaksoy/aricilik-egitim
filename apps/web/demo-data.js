@@ -1864,7 +1864,8 @@
   var FEED_STORE_FACTOR = { surup11: 0.5, surup21: 0.8, kek: 1, polen: 0, balli: 1 };
   var WINTER_MIN_KG = 15;
   var WINTER_STATUS_LABEL = { hazir: 'Hazır', eksik: 'Eksik var', birlestir: 'Birleştirilmeli' };
-  var REC_KINDS = ['strength', 'brood', 'disease', 'feed', 'winter'];
+  var REC_KINDS = ['strength', 'brood', 'disease', 'feed', 'winter', 'harvest'];
+  var DOSE_UNIT_LABEL = { serit: 'şerit', ml: 'ml', g: 'g' };
 
   var DISEASES = [
     { key: 'varroa', label: 'Varroa' },
@@ -1946,6 +1947,11 @@
       o.amount = numIn(r.amount, 0, 500) || 0;
       return o;
     }
+    if (kind === 'harvest') {
+      o.kg = numIn(r.kg, 0, 500);
+      o.frames = intIn(r.frames, 0, 60);
+      return o;
+    }
     if (kind === 'winter') {
       o.strongEnough = pick(r.strongEnough, ['evet', 'hayir', ''], '');
       o.storesKg = numIn(r.storesKg, 0, 100);
@@ -1974,6 +1980,9 @@
         if (o.disease === 'kirec') o.frames = intIn(r.frames, 0, 30);
       }
       var tr = txt(r.treatment, 200); if (tr) o.treatment = tr;
+      o.dose = numIn(r.dose, 0, 1000);
+      if (o.dose != null) o.doseUnit = pick(r.doseUnit, ['serit', 'ml', 'g'], 'serit');
+      var by = txt(r.appliedBy, 80); if (by) o.appliedBy = by;
       o.withdrawalDays = intIn(r.withdrawalDays, 0, 365) || 0;
       var cd = isoDate(r.checkDate); if (cd) o.checkDate = cd;
       return o;
@@ -2050,7 +2059,10 @@
     var d = r.disease;
     if (d === 'varroa') {
       var p = r.infestation;
-      if (p == null) return { active: false, level: 'izle', text: (r.count != null ? r.count + ' akar' : 'sayım') + ' · ' + VARROA_METHOD_LABEL[r.method] };
+      if (p == null) {
+        if (r.count == null) return { active: false, level: r.treatment ? 'temiz' : 'izle', text: r.treatment ? 'ilaçlama' : 'sayım girilmedi' };
+        return { active: false, level: 'izle', text: r.count + ' akar · ' + VARROA_METHOD_LABEL[r.method] };
+      }
       var lvl = p > 3 ? 'yüksek' : (p >= 2 ? 'orta' : 'temiz');
       return { active: p >= 2, level: lvl, text: '%' + String(p).replace('.', ',') + ' bulaşma · ' + VARROA_METHOD_LABEL[r.method] };
     }
@@ -2224,7 +2236,7 @@
       var nm = h.name;
       var apName = aps[h.apiaryId] ? aps[h.apiaryId].name : '';
       if (st.queenless) {
-        tasksOut.push({ id: 'kr-anasiz-' + h.id, title: 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
+        tasksOut.push({ id: 'kr-anasiz-' + h.id, title: 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, due: st.brood ? st.brood.date : '', createdAt: nowIso });
         alertsOut.push({ id: 'kra-anasiz-' + h.id, title: 'Anasız koloni — ' + nm, type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
       }
       if (st.chilled) {
@@ -2253,8 +2265,27 @@
       });
       st.dueChecks.forEach(function (c) {
         var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.date);
-        tasksOut.push({ id: 'kr-kontrol-' + c.key + '-' + h.id, title: 'Kontrol: ' + c.label + ' — ' + nm + ' (kontrol tarihi ' + (m ? m[3] + '.' + m[2] + '.' + m[1] : c.date) + ')', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+        tasksOut.push({ id: 'kr-kontrol-' + c.key + '-' + h.id, title: 'Kontrol: ' + c.label + ' — ' + nm + ' (kontrol tarihi ' + (m ? m[3] + '.' + m[2] + '.' + m[1] : c.date) + ')', hiveId: h.id, priority: 2, auto: true, due: c.date, createdAt: nowIso });
       });
+      var today0 = todayLocal();
+      /* İlaç bekleme süresi bittiğinde görev (bitişten sonraki 14 gün görünür). */
+      st.records.disease.forEach(function (r) {
+        if (!r.withdrawalDays) return;
+        var until = addDays(r.date, r.withdrawalDays);
+        if (until < today0 && until >= addDays(today0, -14)) {
+          var wu = /^(\d{4})-(\d{2})-(\d{2})$/.exec(until);
+          tasksOut.push({ id: 'kr-bekleme-bitti-' + r.id + '-' + h.id, title: 'İlaç bekleme süresi bitti — ' + nm + ' (' + (wu ? wu[3] + '.' + wu[2] + '.' + wu[1] : until) + ')', hiveId: h.id, priority: 3, auto: true, due: until, createdAt: nowIso });
+        }
+      });
+      /* Varroa ilaçlamasından ~2 hafta sonra tekrar sayım (daha yeni varroa kaydı yoksa). */
+      var lastVarroa = st.latestByDisease.varroa;
+      if (lastVarroa && (lastVarroa.treatment || lastVarroa.withdrawalDays || lastVarroa.dose != null)) {
+        var rc = addDays(lastVarroa.date, 14);
+        if (rc <= addDays(today0, 2) && rc >= addDays(today0, -30)) {
+          var rm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rc);
+          tasksOut.push({ id: 'kr-varroa-sayim-' + h.id, title: 'Varroa tekrar sayımı — ' + nm + ' (ilaçlamadan 2 hafta sonra, ' + (rm ? rm[3] + '.' + rm[2] + '.' + rm[1] : rc) + ')', hiveId: h.id, priority: 2, auto: true, due: rc, createdAt: nowIso });
+        }
+      }
       var ws = winterStatus(h.id, all, st);
       if (ws.rec && ws.statusKey === 'birlestir') {
         tasksOut.push({ id: 'kr-kis-birlestir-' + h.id, title: 'Kışa girmeden birleştir — ' + nm + ' (kışlık hazırlık)', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
@@ -2371,6 +2402,8 @@
     derived: function () { seedAll(); return derivedItems(); },
     addDays: addDays,
     FEED_TYPES: FEED_TYPES,
+    DOSE_UNIT_LABEL: DOSE_UNIT_LABEL,
+    todayLocal: todayLocal,
     FEED_LABEL: FEED_LABEL,
     FEED_UNIT: FEED_UNIT,
     WINTER_MIN_KG: WINTER_MIN_KG,

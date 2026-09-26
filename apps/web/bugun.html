@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bugün · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .bg-top select{width:100%;min-width:0;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:12px;border:1px solid var(--border);background:#fff;}
+    .wx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.8rem;align-items:center;}
+    .wx-big{font-size:2.1rem;font-weight:800;line-height:1;}
+    .wx-ico{font-size:2rem;line-height:1;}
+    .wx-t{font-weight:800;font-size:.95rem;}
+    .wx-s{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere;}
+    .wx-tip{margin-top:.5rem;padding:.5rem .6rem;border-radius:10px;background:#fff8df;color:#6b5314;font-size:.8rem;font-weight:650;}
+    .bk-list{display:grid;gap:.4rem;}
+    .bk-item{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:.55rem;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.55rem .65rem;color:inherit;}
+    .bk-ico{width:30px;height:30px;border-radius:50%;background:#fff3bf;display:flex;align-items:center;justify-content:center;font-size:15px;}
+    .bk-item.red .bk-ico{background:#ffe3e3}
+    .bk-t{font-size:.86rem;font-weight:750;overflow-wrap:anywhere;}
+    .bk-s{font-size:.76rem;color:var(--muted);overflow-wrap:anywhere;margin-top:1px;}
+    .bk-d{font-size:.74rem;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;}
+    .bk-d.late{color:#c92a2a}
+    .bk-empty{font-size:.86rem;color:var(--muted);margin:0;padding:.4rem .1rem;}
+    .ql{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;}
+    .ql a,.ql button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;min-height:64px;padding:.45rem .3rem;border-radius:12px;border:1px solid var(--border);background:#fff;font:inherit;font-size:.76rem;font-weight:800;color:#5c4813;text-align:center;cursor:pointer;}
+    .ql span{font-size:1.25rem;}
+    h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
+    h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="ana.html">← Ana</a>
+      <a class="chip" href="bakim.html">Bakım</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p id="bgDate">Bugün</p></div>
+    </div>
+
+    <section class="card stack bg-top">
+      <label style="font-size:.78rem;">Arılık
+        <select id="bgApiary" aria-label="Arılık seçimi"></select>
+      </label>
+      <div id="bgWx"><p class="bk-empty">Hava durumu yükleniyor…</p></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">✅ Bugünkü ve geciken işler <small id="cTasks"></small></h2>
+      <div class="bk-list" id="bgTasks"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">⚠️ Dikkat gereken kovanlar <small id="cAtt"></small></h2>
+      <div class="bk-list" id="bgAtt"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">🔗 Hızlı bağlantılar</h2>
+      <div class="ql" id="bgLinks"></div>
+    </section>
+  </main>
+  <script src="demo-data.js?v=koloni-6"></script>
+  <script src="rapor-store.js"></script>
+  <script src="hava-kayit.js"></script>
+  <script src="koloni.js?v=koloni-6"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, K = window.SuperAriKoloni, H = window.SuperAriHava;
+    if (!D || !K || !D.records) return;
+    var R = D.records, esc = K.esc, fmt = K.fmtDate;
+    var aps = D.loadApiaries();
+    var sel = document.getElementById('bgApiary');
+    var params = new URLSearchParams(location.search);
+    var apiaryId = params.get('apiary') || K.lastApiary();
+    if (!aps.some(function (a) { return String(a.id) === String(apiaryId); })) apiaryId = aps[0] ? String(aps[0].id) : '';
+    sel.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    sel.value = apiaryId;
+    var now = new Date();
+    var DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    var MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    document.getElementById('bgDate').textContent = 'Bugün · ' + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear() + ', ' + DAYS[now.getDay()];
+
+    var WX_ICON = { acik: '☀️', bulutlu: '⛅', yagmur: '🌧️', firtina: '⛈️', kar: '❄️' };
+    function paintWx(row, daily, note) {
+      var el = document.getElementById('bgWx');
+      if (!row) { el.innerHTML = '<p class="bk-empty">' + esc(note || 'Hava verisi alınamadı (çevrimdışı olabilirsiniz). Veri uydurulmaz.') + '</p>'; return; }
+      var best = daily && H && H.bestInspectionDay ? H.bestInspectionDay(daily) : null;
+      var at = row.at ? new Date(row.at) : null;
+      el.innerHTML = '<div class="wx"><div class="wx-ico" aria-hidden="true">' + (WX_ICON[row.condition] || '🌤️') + '</div>' +
+        '<div><div class="wx-t"><span class="wx-big">' + esc(row.temp != null ? row.temp + '°' : '—') + '</span> ' + esc(row.conditions || '') + '</div>' +
+        '<div class="wx-s">En yüksek ' + esc(row.high != null ? row.high + '°' : '—') + ' · en düşük ' + esc(row.low != null ? row.low + '°' : '—') +
+        ' · yağış ' + esc(String(row.precipMm != null ? row.precipMm : 0).replace('.', ',')) + ' mm' +
+        (at ? ' · ' + String(at.getHours()).padStart(2, '0') + ':' + String(at.getMinutes()).padStart(2, '0') + ' güncellendi' : '') + '</div></div></div>' +
+        (best ? '<div class="wx-tip">🔎 Muayene için uygun gün: ' + esc(best.dayLabel) + ' · ' + esc(best.reason) + '</div>' : (daily ? '<div class="wx-tip">Önümüzdeki günlerde muayene için ideal hava görünmüyor.</div>' : ''));
+    }
+    function loadWx() {
+      var a = D.apiaryById(apiaryId);
+      if (!a || !isFinite(Number(a.lat)) || !isFinite(Number(a.lon)) || (!a.lat && !a.lon)) { paintWx(null, null, 'Bu arılığın konumu yok; hava durumu gösterilemiyor.'); return; }
+      var today = H && H.localDateKey ? H.localDateKey() : R.todayLocal();
+      var cached = null;
+      try {
+        (H && H.loadRecords ? H.loadRecords() : []).forEach(function (r) {
+          if (r && String(r.apiaryId) === String(a.id) && r.date === today && r.source === 'open_meteo') cached = r;
+        });
+      } catch (e) { cached = null; }
+      if (cached) paintWx(cached, null);
+      var fresh = cached && cached.at && (Date.now() - new Date(cached.at).getTime()) < 3 * 3600 * 1000;
+      if (fresh && navigator.onLine === false) return;
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + a.lat + '&longitude=' + a.lon +
+        '&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto&forecast_days=7';
+      var forId = apiaryId;
+      fetch(url).then(function (r) { if (!r.ok) throw new Error('meteo'); return r.json(); }).then(function (meteo) {
+        if (forId !== apiaryId) return;
+        var row = null;
+        try { row = H && H.recordFromMeteo ? H.recordFromMeteo({ apiaryId: a.id, label: a.name, lat: a.lat, lon: a.lon, meteo: meteo }) : null; } catch (e) { row = null; }
+        if (!row) {
+          var c = meteo.current || {};
+          row = { temp: c.temperature_2m != null ? Math.round(c.temperature_2m) : null, conditions: '', high: null, low: null, precipMm: null, at: new Date().toISOString() };
+        }
+        paintWx(row, meteo.daily);
+      }).catch(function () { if (forId === apiaryId && !cached) paintWx(null, null); });
+    }
+    function daysBetween(a, b) {
+      var pa = a.split('-'), pb = b.split('-');
+      return Math.round((new Date(+pb[0], pb[1] - 1, +pb[2]) - new Date(+pa[0], pa[1] - 1, +pa[2])) / 86400000);
+    }
+    function item(ico, title, sub, date, href, tone, late) {
+      return '<a class="bk-item' + (tone ? ' ' + tone : '') + '" href="' + href + '"><span class="bk-ico" aria-hidden="true">' + ico + '</span>' +
+        '<span><span class="bk-t" style="display:block;">' + esc(title) + '</span>' + (sub ? '<span class="bk-s" style="display:block;">' + esc(sub) + '</span>' : '') + '</span>' +
+        '<span class="bk-d' + (late ? ' late' : '') + '">' + esc(date) + '</span></a>';
+    }
+    function render() {
+      var hs = D.hivesForApiary(apiaryId);
+      var today = R.todayLocal();
+      var m = K.maintenance(hs);
+      var ids = {}; hs.forEach(function (h) { ids[String(h.id)] = true; });
+      var todays = m.week.filter(function (x) { return x.date === today || (!x.date && x.priority === 1); });
+      var list = m.overdue.map(function (x) {
+        var late = daysBetween(x.date, today);
+        return item('⏰', x.title, '', late > 0 ? late + ' gün gecikti' : 'Bugün', 'kovan.html?id=' + encodeURIComponent(x.hive.id) + '#btBox', 'red', true);
+      }).concat(todays.map(function (x) {
+        return item(x.priority === 1 ? '❗' : '📌', x.title, '', x.date ? 'Bugün' : 'Acil', 'kovan.html?id=' + encodeURIComponent(x.hive.id) + '#btBox', x.priority === 1 ? 'red' : '');
+      }));
+      var undated = m.week.filter(function (x) { return !x.date && x.priority !== 1; }).length;
+      var staticN = (D.tasks || []).filter(function (t) { return !t.auto && ids[String(t.hiveId)]; }).length;
+      document.getElementById('cTasks').textContent = list.length ? '(' + list.length + ')' : '';
+      document.getElementById('bgTasks').innerHTML = (list.join('') || '<p class="bk-empty">Bugün için tarihli veya geciken iş yok.</p>') +
+        ((undated || staticN) ? '<p class="bk-empty">Ayrıca ' + (undated + staticN) + ' tarihsiz açık görev var · <a href="gorevler.html" style="color:#2b6cb0;text-decoration:underline;">Görevler</a> · <a href="bakim.html?apiary=' + encodeURIComponent(apiaryId) + '" style="color:#2b6cb0;text-decoration:underline;">Bakım</a></p>' : '');
+      var att = K.attentionHives(hs);
+      document.getElementById('cAtt').textContent = att.length ? '(' + att.length + ')' : '';
+      document.getElementById('bgAtt').innerHTML = att.slice(0, 20).map(function (x) {
+        return item(x.level === 0 ? '🚨' : (x.level === 1 ? '🦠' : '🐝'), x.hive.name, x.why.join(' · '), 'No ' + K.hiveNo(x.hive), 'kovan.html?id=' + encodeURIComponent(x.hive.id), x.level === 0 ? 'red' : '');
+      }).join('') + (att.length > 20 ? '<p class="bk-empty">+' + (att.length - 20) + ' kovan daha · <a href="kovanlar.html?view=koloni&mode=apiary&apiary=' + encodeURIComponent(apiaryId) + '" style="color:#2b6cb0;text-decoration:underline;">Koloni</a></p>' : '') ||
+        '<p class="bk-empty">' + (hs.length ? 'Kayıtlara göre dikkat gereken kovan yok. Muayene kaydı girdikçe burada görünür.' : 'Bu arılıkta kovan yok.') + '</p>';
+      var ap = encodeURIComponent(apiaryId);
+      document.getElementById('bgLinks').innerHTML =
+        '<button type="button" id="bgQuick"><span>＋</span>Hızlı kayıt</button>' +
+        '<a href="bakim.html?apiary=' + ap + '"><span>🧰</span>Bakım</a>' +
+        '<a href="kovanlar.html?view=koloni&mode=apiary&apiary=' + ap + '"><span>🐝</span>Koloni</a>' +
+        '<a href="kovanlar.html?mode=apiary&apiary=' + ap + '"><span>🔎</span>Kovan ara</a>' +
+        '<a href="gorevler.html"><span>📋</span>Görevler</a>' +
+        '<a href="uyarilar.html"><span>🔔</span>Uyarılar</a>' +
+        '<a href="arilik.html?id=' + ap + '"><span>📍</span>Arılık</a>' +
+        '<a href="hava-raporu.html"><span>🌦️</span>Hava raporu</a>' +
+        '<a href="qr-etiket.html?apiary=' + ap + '"><span>🏷️</span>QR etiket</a>';
+    }
+    sel.addEventListener('change', function () {
+      apiaryId = sel.value;
+      K.setLastApiary(apiaryId);
+      history.replaceState(null, '', 'bugun.html?apiary=' + encodeURIComponent(apiaryId));
+      render(); loadWx();
+    });
+    document.getElementById('bgLinks').addEventListener('click', function (e) {
+      if (e.target.closest('#bgQuick')) K.openQuickRecord({ apiaryId: apiaryId, onSaved: render });
+    });
+    window.addEventListener('superari-records-changed', render);
+    render();
+    loadWx();
+  })();
+  </script>
+  <script src="nav.js?v=koloni-6"></script>
+</body>
+</html>

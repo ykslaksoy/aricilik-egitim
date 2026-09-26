@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bakım · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .bk-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:end;}
+    .bk-top select{width:100%;min-width:0;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:12px;border:1px solid var(--border);background:#fff;}
+    .bk-quick{font:inherit;font-weight:800;font-size:.9rem;padding:.62rem .9rem;border-radius:12px;border:1.5px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#fff3bf);color:#5c4813;cursor:pointer;white-space:nowrap;}
+    .bk-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem;}
+    .bk-stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.45rem .4rem;text-align:center;min-width:0;}
+    .bk-stat b{display:block;font-size:1.15rem;}
+    .bk-stat span{display:block;font-size:.68rem;color:var(--muted);font-weight:700;line-height:1.15;}
+    .bk-stat.red b{color:#c92a2a}.bk-stat.orange b{color:#e67700}.bk-stat.blue b{color:#1971c2}
+    .bk-list{display:grid;gap:.4rem;}
+    .bk-item{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:.55rem;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.55rem .65rem;color:inherit;}
+    .bk-ico{width:30px;height:30px;border-radius:50%;background:#fff3bf;display:flex;align-items:center;justify-content:center;font-size:15px;}
+    .bk-item.red .bk-ico{background:#ffe3e3}.bk-item.blue .bk-ico{background:#e7f5ff}
+    .bk-t{font-size:.86rem;font-weight:750;overflow-wrap:anywhere;}
+    .bk-s{font-size:.76rem;color:var(--muted);overflow-wrap:anywhere;margin-top:1px;}
+    .bk-d{font-size:.74rem;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;}
+    .bk-d.late{color:#c92a2a}
+    .bk-empty{font-size:.86rem;color:var(--muted);margin:0;padding:.5rem .1rem;}
+    .bk-chips{display:flex;flex-wrap:wrap;gap:.3rem;}
+    .bk-chips button{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .65rem;border-radius:999px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
+    .bk-chips button.on{background:#fff3bf;border-color:#e0c56a;}
+    .bk-more{font:inherit;font-size:.82rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
+    h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
+    h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="ana.html">← Ana</a>
+      <a class="chip" href="bugun.html">Bugün</a>
+      <a class="chip" href="kovanlar.html?view=koloni">Koloni</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>Bakım</p></div>
+    </div>
+
+    <section class="card stack">
+      <div class="bk-top">
+        <label style="font-size:.78rem;">Kapsam
+          <select id="bkScope" aria-label="Arılık seçimi"></select>
+        </label>
+        <button type="button" class="bk-quick" id="bkQuick">＋ Hızlı kayıt</button>
+      </div>
+      <div class="bk-stats" id="bkStats"></div>
+      <p class="muted" id="bkMode" style="margin:0;font-size:.8rem;"></p>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">⏰ Gecikenler <small id="cOverdue"></small></h2>
+      <div class="bk-list" id="bkOverdue"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">📅 Bu hafta yapılacaklar <small id="cWeek"></small></h2>
+      <div class="bk-list" id="bkWeek"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">💊 İlaç bekleme süresindeki kovanlar <small id="cWd"></small></h2>
+      <div class="bk-list" id="bkWd"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">🗂️ Son işlemler <small id="cRecent"></small></h2>
+      <div class="bk-chips" id="bkKinds"></div>
+      <div class="bk-list" id="bkRecent"></div>
+    </section>
+
+    <div class="note" style="margin-top:1rem;">Bakım, Koloni sayfasındaki kovan kayıtlarını okur (tek kaynak). Kovana dokununca kovan detayı ve bakım geçmişi açılır.</div>
+  </main>
+  <script src="demo-data.js?v=koloni-6"></script>
+  <script src="rapor-store.js"></script>
+  <script src="koloni.js?v=koloni-6"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, K = window.SuperAriKoloni;
+    if (!D || !K || !D.records) return;
+    var R = D.records;
+    var esc = K.esc, fmt = K.fmtDate;
+    var params = new URLSearchParams(location.search);
+    var scopeEl = document.getElementById('bkScope');
+    var aps = D.loadApiaries();
+    var scope = params.get('apiary') || 'all';
+    if (scope !== 'all' && !aps.some(function (a) { return String(a.id) === scope; })) scope = 'all';
+    scopeEl.innerHTML = '<option value="all">Tüm arılıklar</option>' + aps.map(function (a) {
+      return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>';
+    }).join('');
+    scopeEl.value = scope;
+    var kind = 'all';
+    var recentMax = 15;
+    var KINDS = [['all', 'Tümü'], ['disease', 'İlaçlama'], ['feed', 'Besleme'], ['strength', 'Muayene / güç'], ['brood', 'Yavru'], ['harvest', 'Hasat']];
+
+    function hivesInScope() {
+      var hs = D.loadHives();
+      return scope === 'all' ? hs : hs.filter(function (h) { return String(h.apiaryId) === scope; });
+    }
+    function daysBetween(a, b) {
+      var pa = a.split('-'), pb = b.split('-');
+      return Math.round((new Date(+pb[0], pb[1] - 1, +pb[2]) - new Date(+pa[0], pa[1] - 1, +pa[2])) / 86400000);
+    }
+    function item(ico, title, sub, date, href, tone, late) {
+      return '<a class="bk-item' + (tone ? ' ' + tone : '') + '" href="' + href + '"><span class="bk-ico" aria-hidden="true">' + ico + '</span>' +
+        '<span><span class="bk-t" style="display:block;">' + esc(title) + '</span>' + (sub ? '<span class="bk-s" style="display:block;">' + esc(sub) + '</span>' : '') + '</span>' +
+        '<span class="bk-d' + (late ? ' late' : '') + '">' + esc(date) + '</span></a>';
+    }
+    function hiveHref(h) { return 'kovan.html?id=' + encodeURIComponent(h.id) + '#btBox'; }
+    function render() {
+      var hs = hivesInScope();
+      var m = K.maintenance(hs);
+      var today = R.todayLocal();
+      var apName = {}; aps.forEach(function (a) { apName[a.id] = a.name; });
+      document.getElementById('bkStats').innerHTML =
+        '<div class="bk-stat red"><b>' + m.overdue.length + '</b><span>Geciken</span></div>' +
+        '<div class="bk-stat orange"><b>' + m.week.length + '</b><span>Bu hafta</span></div>' +
+        '<div class="bk-stat blue"><b>' + m.withdrawal.length + '</b><span>İlaç bekleme</span></div>' +
+        '<div class="bk-stat"><b>' + m.recent.length + '</b><span>Son 30 gün işlem</span></div>';
+      document.getElementById('bkMode').textContent = hs.length + ' kovan · ' + (R.workMode() === 'live' ? 'Canlı mod: yalnız sizin girdiğiniz kayıtlar.' : 'Demo mod: örnek kayıtlar «Demo» etiketlidir.');
+      document.getElementById('cOverdue').textContent = m.overdue.length ? '(' + m.overdue.length + ')' : '';
+      document.getElementById('bkOverdue').innerHTML = m.overdue.map(function (x) {
+        var late = daysBetween(x.date, today);
+        return item('⏰', x.title, apName[x.hive.apiaryId] || '', late > 0 ? late + ' gün gecikti' : fmt(x.date), hiveHref(x.hive), 'red', true);
+      }).join('') || '<p class="bk-empty">Geciken bakım yok.</p>';
+      document.getElementById('cWeek').textContent = m.week.length ? '(' + m.week.length + ')' : '';
+      document.getElementById('bkWeek').innerHTML = m.week.map(function (x) {
+        return item(x.priority === 1 ? '❗' : '📌', x.title, apName[x.hive.apiaryId] || '', x.date ? (x.date === today ? 'Bugün' : fmt(x.date)) : 'Bu hafta', hiveHref(x.hive), x.priority === 1 ? 'red' : '');
+      }).join('') || '<p class="bk-empty">Bu hafta için planlı bakım yok. Kontrol tarihi girdiğiniz kayıtlar burada görünür.</p>';
+      document.getElementById('cWd').textContent = m.withdrawal.length ? '(' + m.withdrawal.length + ')' : '';
+      document.getElementById('bkWd').innerHTML = m.withdrawal.map(function (x) {
+        var left = daysBetween(today, x.until);
+        var rec = x.rec || {};
+        return item('💊', x.hive.name + ' · hasat yapmayın', (rec.treatment || R.DISEASE_LABEL[rec.disease] || '') + (rec.date ? ' · ' + fmt(rec.date) + ' uygulandı' : ''),
+          fmt(x.until) + ' · ' + left + ' gün', hiveHref(x.hive), 'blue');
+      }).join('') || '<p class="bk-empty">İlaç bekleme süresinde kovan yok.</p>';
+      document.getElementById('bkKinds').innerHTML = KINDS.map(function (k) {
+        var n = k[0] === 'all' ? m.recent.length : m.recent.filter(function (x) { return x.kind === k[0]; }).length;
+        return '<button type="button" data-kind="' + k[0] + '" class="' + (kind === k[0] ? 'on' : '') + '">' + esc(k[1]) + ' ' + n + '</button>';
+      }).join('');
+      var rec = m.recent.filter(function (x) { return kind === 'all' || x.kind === kind; });
+      document.getElementById('cRecent').textContent = '(son 30 gün)';
+      document.getElementById('bkRecent').innerHTML = rec.slice(0, recentMax).map(function (x) {
+        return item(x.icon, x.hive.name + ' · ' + x.label + (x.demo ? ' · Demo' : ''), x.sum, fmt(x.date), hiveHref(x.hive), '');
+      }).join('') + (rec.length > recentMax ? '<button type="button" class="bk-more" id="bkMore">+' + (rec.length - recentMax) + ' işlem daha</button>' : '') ||
+        '<p class="bk-empty">Son 30 günde kayıt yok. «＋ Hızlı kayıt» ile ilaçlama, besleme veya muayene ekleyin.</p>';
+    }
+    scopeEl.addEventListener('change', function () {
+      scope = scopeEl.value;
+      if (scope !== 'all') K.setLastApiary(scope);
+      var q = new URLSearchParams(location.search);
+      if (scope === 'all') q.delete('apiary'); else q.set('apiary', scope);
+      history.replaceState(null, '', 'bakim.html' + (q.toString() ? '?' + q.toString() : ''));
+      recentMax = 15;
+      render();
+    });
+    document.getElementById('bkKinds').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-kind]'); if (!b) return;
+      kind = b.getAttribute('data-kind'); recentMax = 15; render();
+    });
+    document.getElementById('bkRecent').addEventListener('click', function (e) {
+      if (e.target.id === 'bkMore') { recentMax += 30; render(); }
+    });
+    document.getElementById('bkQuick').addEventListener('click', function () {
+      K.openQuickRecord({ apiaryId: scope !== 'all' ? scope : undefined, onSaved: render });
+    });
+    window.addEventListener('superari-records-changed', render);
+    render();
+  })();
+  </script>
+  <script src="nav.js?v=koloni-6"></script>
+</body>
+</html>

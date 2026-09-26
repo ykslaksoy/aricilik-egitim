@@ -50,16 +50,18 @@
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
       <div id="koloniGrid"></div>
       <p class="muted" id="summary">Demo kovan listesi…</p>
+      <div id="kvSearch" class="stack" style="gap:.5rem;" hidden></div>
       <div class="mode-switch" id="modeSwitch"></div>
       <div id="koloniTop"></div>
       <div class="list" id="hive-list"></div>
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-5"></script>
+  <script src="demo-data.js?v=koloni-6"></script>
   <script src="rapor-store.js"></script>
-  <script src="sensor-health.js?v=koloni-5"></script>
-  <script src="koloni.js?v=koloni-5"></script>
+  <script src="sensor-health.js?v=koloni-6"></script>
+  <script src="koloni.js?v=koloni-6"></script>
+  <script src="kovan-ara.js?v=koloni-6"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -277,6 +279,21 @@
         }
         html += '</div>';
         listEl.innerHTML = html;
+        if (view === '' && window.SuperAriKovanAra) {
+          var chooserHtml = html;
+          var kvHost = document.getElementById('kvSearch');
+          kvHost.hidden = false;
+          window.SuperAriKovanAra.create({
+            host: kvHost,
+            hives: function () { return hives; },
+            allHives: function () { return hives; },
+            apiaryId: function () { return K && K.lastApiary ? K.lastApiary() : ''; },
+            onChange: function (res, active) {
+              listEl.innerHTML = active ? (res.map(renderHiveCard).join('') || '<p class="muted">Eşleşen kovan yok.</p>') : chooserHtml;
+              modeSwitchEl.style.display = active ? 'none' : '';
+            }
+          });
+        }
         return;
       }
 
@@ -393,6 +410,22 @@
         return;
       }
 
+      if (view === '' && window.SuperAriKovanAra) {
+        var kvHost2 = document.getElementById('kvSearch');
+        kvHost2.hidden = false;
+        var allH = D.loadHives();
+        if (effectiveMode === 'apiary' && apiaryFilter && K && K.setLastApiary) K.setLastApiary(apiaryFilter);
+        window.SuperAriKovanAra.create({
+          host: kvHost2,
+          hives: function () { return hives; },
+          allHives: function () { return allH; },
+          apiaryId: function () { return effectiveMode === 'apiary' && apiaryFilter ? apiaryFilter : (K && K.lastApiary ? K.lastApiary() : ''); },
+          onChange: function (res) {
+            listEl.innerHTML = res.map(renderHiveCard).join('') || '<p class="muted">' + (hives.length ? 'Eşleşen kovan yok.' : 'Kovan bulunamadı.') + '</p>';
+          }
+        });
+        return;
+      }
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>

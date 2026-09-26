@@ -64,7 +64,17 @@
     '.kol-form .kol-check:last-child{border-bottom:0;}' +
     '.kol-form .kol-check input{width:1.1rem;height:1.1rem;flex:0 0 auto;padding:0;}' +
     '.kol-form .kol-check span{min-width:0;overflow-wrap:anywhere;}' +
-    '.kol-form .kol-check small{margin-left:auto;color:var(--muted,#6b7280);font-weight:600;white-space:nowrap;}';
+    '.kol-form .kol-check small{margin-left:auto;color:var(--muted,#6b7280);font-weight:600;white-space:nowrap;}' +
+    '.kol-sheet .btn{display:inline-flex;justify-content:center;align-items:center;gap:.4rem;width:100%;border:0;border-radius:12px;padding:.75rem 1rem;background:linear-gradient(145deg,#ffd666,#f5b700);color:#3b2b00;font:inherit;font-weight:700;font-size:.95rem;cursor:pointer;}' +
+    '.kol-sheet .btn.secondary{background:#fff;border:1px solid var(--border,#ead9b3);color:var(--ink,#1f2933);}' +
+    '.kol-sheet{color:var(--ink,#1f2933);font-family:inherit;box-sizing:border-box;}' +
+    '.kol-sheet *{box-sizing:border-box;}' +
+    '.qk-types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;margin:.3rem 0 .6rem;}' +
+    '.qk-types button{font:inherit;font-size:.78rem;font-weight:800;padding:.55rem .2rem;border-radius:10px;border:1.5px solid var(--border,#ead9b3);background:#fff;color:#5c4813;cursor:pointer;line-height:1.15;}' +
+    '.qk-types button.on{background:linear-gradient(180deg,#fff6df 0%,#fff3bf 100%);border-color:#e0c56a;}' +
+    '.qk-scope{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;}' +
+    '.qk-scope button{font:inherit;font-size:.78rem;font-weight:800;padding:.5rem .2rem;border-radius:10px;border:1.5px solid var(--border,#ead9b3);background:#fff;color:#5c4813;cursor:pointer;}' +
+    '.qk-scope button.on{background:#fff3bf;border-color:#e0c56a;}';
   function ensureCss() {
     if (!global.document || document.getElementById('koloniCss')) return;
     var s = document.createElement('style');
@@ -538,6 +548,8 @@
   var TOPIC_LABEL = {};
   TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
   TOPIC_LABEL.kis = 'Kışlık hazırlık';
+  TOPIC_LABEL.hasat = 'Hasat notu';
+  TOPIC_LABEL.ilac = 'İlaçlama';
 
   var GRID_CSS = '' +
     '.kg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}' +
@@ -667,6 +679,8 @@
     var lv = r.diseaseLevel(d);
     var parts = [fmtDate(d.date), r.DISEASE_LABEL[d.disease], lv.text];
     if (d.treatment) parts.push('önlem: ' + d.treatment);
+    if (d.dose != null) parts.push('doz ' + String(d.dose).replace('.', ',') + ' ' + (r.DOSE_UNIT_LABEL[d.doseUnit] || '') + '/kovan');
+    if (d.appliedBy) parts.push('uygulayan: ' + d.appliedBy);
     if (d.withdrawalDays) parts.push('bekleme ' + d.withdrawalDays + ' gün (' + fmtDate(r.addDays(d.date, d.withdrawalDays)) + ')');
     if (d.checkDate) parts.push('kontrol ' + fmtDate(d.checkDate));
     return parts.join(' · ');
@@ -796,6 +810,102 @@
     return '<label class="full">Derece' + sevSel + '</label>';
   }
 
+  /* Konu formları (Koloni sayfası, kovan detayı ve Hızlı kayıt ortak kullanır). */
+  var KIND_OF_TOPIC = { guc: 'strength', yavru: 'brood', hastalik: 'disease', besleme: 'feed', hasat: 'harvest', ilac: 'disease' };
+  function topicFormHtml(topic, today) {
+    var r = R();
+    var form = '';
+    if (topic === 'guc') {
+      form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Arılı çerçeve<input type="number" name="beeFrames" min="0" max="40" inputmode="numeric" required></label>' +
+        '<label>Yavrulu çerçeve<input type="number" name="broodFrames" min="0" max="30" inputmode="numeric"></label>' +
+        '<label>Ballı çerçeve<input type="number" name="honeyFrames" min="0" max="30" inputmode="numeric"></label>' +
+        '<label>Polenli çerçeve<input type="number" name="pollenFrames" min="0" max="20" inputmode="numeric"></label>' +
+        '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Sınıf: —</div>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    } else if (topic === 'besleme') {
+      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Tür<select name="type">' + r.FEED_TYPES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
+        '<label><span id="krAmtLbl">Miktar (L)</span><input type="number" name="amount" min="0" max="500" step="0.1" inputmode="decimal" required></label>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    } else if (topic === 'yavru') {
+      form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Yumurta görüldü mü<select name="eggs"><option value="1">Evet</option><option value="0">Hayır</option></select></label>' +
+        '<label>Yavru düzeni<select name="pattern"><option value="duzenli">Düzenli</option><option value="daginik">Dağınık</option></select></label>' +
+        '<label class="full">Ana hücresi<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Oğul hücresi</option><option value="yenileme">Yenileme hücresi</option></select></label>' +
+        '<label class="kr-checkline full"><input type="checkbox" name="queenless"> Anasız</label>' +
+        '<label class="kr-checkline full"><input type="checkbox" name="chilled"> Üşümüş yavru</label>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    } else if (topic === 'hasat') {
+      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Bal (kg)<input type="number" name="kg" min="0" max="500" step="0.1" inputmode="decimal"></label>' +
+        '<label>Çerçeve<input type="number" name="frames" min="0" max="60" inputmode="numeric"></label>' +
+        '<label class="full">Not<input name="note" maxlength="300" placeholder="ör. Kestane balı, 2 ballık"></label>';
+    } else {
+      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label class="full">Hastalık<select name="disease">' + r.DISEASES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
+        '<div id="krDzFields" style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:.55rem .6rem;">' + diseaseFieldsHtml('varroa') + '</div>' +
+        '<label class="full">Tedavi / önlem (ilaç)<input name="treatment" maxlength="200" placeholder="ör. Oksalik asit damlatma"></label>' +
+        '<label>Doz (kovan başına)<input type="number" name="dose" min="0" max="1000" step="0.1" inputmode="decimal"></label>' +
+        '<label>Birim<select name="doseUnit"><option value="serit">şerit</option><option value="ml">ml</option><option value="g">g</option></select></label>' +
+        '<label class="full">Uygulayan kişi<input name="appliedBy" maxlength="80" placeholder="ör. Yüksel"></label>' +
+        '<label>İlaç bekleme (gün)<input type="number" name="withdrawalDays" min="0" max="365" inputmode="numeric" placeholder="0"></label>' +
+        '<label>Kontrol tarihi<input type="date" name="checkDate"></label>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    }
+    return form;
+  }
+  function wireTopicForm(topic, f, root) {
+    var r = R();
+    if (topic === 'guc') {
+      var upd = function () {
+        var cls = r.strengthClass({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value });
+        var el = root.querySelector('#krClass'); if (el) el.textContent = 'Sınıf: ' + (f.elements.beeFrames.value === '' ? '—' : cls);
+      };
+      f.addEventListener('input', upd);
+      upd();
+    }
+    if (topic === 'besleme') {
+      var lbl = function () { var el = root.querySelector('#krAmtLbl'); if (el) el.textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')'; };
+      f.elements['type'].addEventListener('change', lbl);
+      lbl();
+    }
+    if (topic === 'hastalik' || topic === 'ilac') {
+      f.elements.disease.addEventListener('change', function () { root.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.elements.disease.value); });
+    }
+  }
+  function resetTopicForm(topic, f, root, today) {
+    var r = R();
+    f.reset();
+    if (f.elements.date) f.elements.date.value = today;
+    if (topic === 'hastalik' || topic === 'ilac') root.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.elements.disease.value);
+    if (topic === 'besleme') root.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')';
+    if (topic === 'guc') f.dispatchEvent(new Event('input'));
+  }
+  /** Formdan kayıt: { kind, rec } veya null (eksik alan: uyarı + odak). */
+  function readTopicForm(topic, f) {
+    function v(n) { return f.elements[n] ? f.elements[n].value : ''; }
+    if (topic === 'guc') {
+      if (v('beeFrames') === '') { f.elements.beeFrames.focus(); toast('Arılı çerçeve sayısını girin'); return null; }
+      return { kind: 'strength', rec: { date: v('date'), beeFrames: v('beeFrames'), broodFrames: v('broodFrames'), honeyFrames: v('honeyFrames'), pollenFrames: v('pollenFrames'), note: v('note') } };
+    }
+    if (topic === 'besleme') {
+      if (v('amount') === '') { f.elements.amount.focus(); toast('Miktarı girin'); return null; }
+      return { kind: 'feed', rec: { date: v('date'), type: v('type'), amount: v('amount'), note: v('note') } };
+    }
+    if (topic === 'yavru') {
+      return { kind: 'brood', rec: { date: v('date'), eggs: v('eggs') === '1', pattern: v('pattern'), queenCell: v('queenCell'), queenless: f.elements.queenless.checked, chilled: f.elements.chilled.checked, note: v('note') } };
+    }
+    if (topic === 'hasat') {
+      if (v('kg') === '' && v('frames') === '' && v('note') === '') { f.elements.kg.focus(); toast('Kg, çerçeve veya not girin'); return null; }
+      return { kind: 'harvest', rec: { date: v('date'), kg: v('kg'), frames: v('frames'), note: v('note') } };
+    }
+    if (topic === 'ilac' && !v('treatment')) { f.elements.treatment.focus(); toast('Uygulanan ilacı / yöntemi yazın'); return null; }
+    return { kind: 'disease', rec: { date: v('date'), disease: v('disease'), count: v('count'), method: v('method'), infestation: v('infestation'), status: v('status'), spores: v('spores'),
+      severity: v('severity'), frames: v('frames'), treatment: v('treatment'), dose: v('dose'), doseUnit: v('doseUnit'), appliedBy: v('appliedBy'),
+      withdrawalDays: v('withdrawalDays'), checkDate: v('checkDate'), note: v('note') } };
+  }
+
   /** Konu kayıt sayfası: geçmiş + yeni kayıt formu. */
   function openRecordSheet(topic, hiveId, onSaved, editRec) {
     ensureGridCss();
@@ -821,6 +931,10 @@
       } else if (topic === 'besleme') {
         items = rec.feed.map(function (x) {
           return histRow(fmtDate(x.date) + ' · ' + r.FEED_LABEL[x.type], num(x.amount) + ' ' + r.FEED_UNIT[x.type] + (x.note ? ' · ' + x.note : ''), x, 'feed', h.id);
+        }).join('');
+      } else if (topic === 'hasat') {
+        items = rec.harvest.map(function (x) {
+          return histRow(fmtDate(x.date) + ' · Hasat notu', harvestText(x), x, 'harvest', h.id);
         }).join('');
       } else if (topic === 'yavru') {
         items = rec.brood.map(function (b) {
@@ -848,42 +962,12 @@
         var ws3 = r.winterStatus(h.id);
         trend += '<div class="kr-info">Kışlık hazırlık: <b>' + esc(ws3.status ? ws3.status + (ws3.suggestedOnly ? ' (öneri)' : '') : 'kayıt yok') + '</b> · <a href="#" data-open-kis="1">Aç</a></div>';
       }
-      var cnt = topic === 'guc' ? rec.strength.length : topic === 'yavru' ? rec.brood.length : topic === 'besleme' ? rec.feed.length : rec.disease.length;
+      var cnt = topic === 'guc' ? rec.strength.length : topic === 'yavru' ? rec.brood.length : topic === 'besleme' ? rec.feed.length : topic === 'hasat' ? rec.harvest.length : rec.disease.length;
       return (topic === 'hastalik' ? withdrawalHtml(h, st) : '') + trend +
         '<div class="kr-section-title">Geçmiş (' + cnt + ')</div>' +
         '<div class="kr-hist">' + (items || '<p class="kol-sub" style="margin:0;">Henüz kayıt yok.</p>') + '</div>';
     }
-    var form;
-    if (topic === 'guc') {
-      form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
-        '<label>Arılı çerçeve<input type="number" name="beeFrames" min="0" max="40" inputmode="numeric" required></label>' +
-        '<label>Yavrulu çerçeve<input type="number" name="broodFrames" min="0" max="30" inputmode="numeric"></label>' +
-        '<label>Ballı çerçeve<input type="number" name="honeyFrames" min="0" max="30" inputmode="numeric"></label>' +
-        '<label>Polenli çerçeve<input type="number" name="pollenFrames" min="0" max="20" inputmode="numeric"></label>' +
-        '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Sınıf: —</div>' +
-        '<label class="full">Not<input name="note" maxlength="300"></label>';
-    } else if (topic === 'besleme') {
-      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
-        '<label>Tür<select name="type">' + r.FEED_TYPES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
-        '<label><span id="krAmtLbl">Miktar (L)</span><input type="number" name="amount" min="0" max="500" step="0.1" inputmode="decimal" required></label>' +
-        '<label class="full">Not<input name="note" maxlength="300"></label>';
-    } else if (topic === 'yavru') {
-      form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
-        '<label>Yumurta görüldü mü<select name="eggs"><option value="1">Evet</option><option value="0">Hayır</option></select></label>' +
-        '<label>Yavru düzeni<select name="pattern"><option value="duzenli">Düzenli</option><option value="daginik">Dağınık</option></select></label>' +
-        '<label class="full">Ana hücresi<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Oğul hücresi</option><option value="yenileme">Yenileme hücresi</option></select></label>' +
-        '<label class="kr-checkline full"><input type="checkbox" name="queenless"> Anasız</label>' +
-        '<label class="kr-checkline full"><input type="checkbox" name="chilled"> Üşümüş yavru</label>' +
-        '<label class="full">Not<input name="note" maxlength="300"></label>';
-    } else {
-      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
-        '<label class="full">Hastalık<select name="disease">' + r.DISEASES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
-        '<div id="krDzFields" style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:.55rem .6rem;">' + diseaseFieldsHtml('varroa') + '</div>' +
-        '<label class="full">Tedavi / önlem<input name="treatment" maxlength="200" placeholder="ör. Oksalik asit damlatma"></label>' +
-        '<label>İlaç bekleme (gün)<input type="number" name="withdrawalDays" min="0" max="365" inputmode="numeric" placeholder="0"></label>' +
-        '<label>Kontrol tarihi<input type="date" name="checkDate"></label>' +
-        '<label class="full">Not<input name="note" maxlength="300"></label>';
-    }
+    var form = topicFormHtml(topic, today);
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="krTitle">' +
       '<h3 id="krTitle">' + esc(h.name) + ' · ' + esc(TOPIC_LABEL[topic]) + '</h3>' +
       '<p class="kol-sub">' + esc(r.workMode() === 'live' ? 'Canlı mod' : 'Demo mod') + ' · kayıtlar bu kovana yazılır</p>' +
@@ -913,19 +997,8 @@
     document.addEventListener('keydown', onKey);
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
     back.querySelector('#krClose').addEventListener('click', close);
-    if (topic === 'guc') {
-      var upd = function () {
-        var cls = r.strengthClass({ beeFrames: f.beeFrames.value, broodFrames: f.broodFrames.value });
-        back.querySelector('#krClass').textContent = 'Sınıf: ' + (f.beeFrames.value === '' ? '—' : cls);
-      };
-      f.addEventListener('input', upd);
-    }
     fillForm(editRec);
-    if (editRec && topic === 'besleme') back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')';
-    if (editRec && topic === 'guc') setTimeout(function () { f.dispatchEvent(new Event('input')); }, 0);
-    if (topic === 'besleme') {
-      f.elements['type'].addEventListener('change', function () { back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')'; });
-    }
+    wireTopicForm(topic, f, back);
     back.querySelector('#krHist').addEventListener('click', function (e) {
       var a = e.target.closest ? e.target.closest('[data-open-kis]') : null;
       if (!a) return;
@@ -933,9 +1006,6 @@
       close();
       openWinterSheet(h.id, onSaved);
     });
-    if (topic === 'hastalik') {
-      f.disease.addEventListener('change', function () { back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.disease.value); });
-    }
     back.querySelector('#krHist').addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('[data-del]') : null;
       if (!btn) return;
@@ -945,32 +1015,14 @@
       if (typeof onSaved === 'function') onSaved();
     });
     back.querySelector('#krSave').addEventListener('click', function () {
-      var rec, kind;
-      function v(n) { return f.elements[n] ? f.elements[n].value : ''; }
-      if (topic === 'guc') {
-        if (v('beeFrames') === '') { f.beeFrames.focus(); toast('Arılı çerçeve sayısını girin'); return; }
-        kind = 'strength';
-        rec = { date: v('date'), beeFrames: v('beeFrames'), broodFrames: v('broodFrames'), honeyFrames: v('honeyFrames'), pollenFrames: v('pollenFrames'), note: v('note') };
-      } else if (topic === 'besleme') {
-        if (v('amount') === '') { f.amount.focus(); toast('Miktarı girin'); return; }
-        kind = 'feed';
-        rec = { date: v('date'), type: v('type'), amount: v('amount'), note: v('note') };
-      } else if (topic === 'yavru') {
-        kind = 'brood';
-        rec = { date: v('date'), eggs: v('eggs') === '1', pattern: v('pattern'), queenCell: v('queenCell'), queenless: f.queenless.checked, chilled: f.chilled.checked, note: v('note') };
-      } else {
-        kind = 'disease';
-        rec = { date: v('date'), disease: v('disease'), count: v('count'), method: v('method'), infestation: v('infestation'), status: v('status'), spores: v('spores'),
-          severity: v('severity'), frames: v('frames'), treatment: v('treatment'), withdrawalDays: v('withdrawalDays'), checkDate: v('checkDate'), note: v('note') };
-      }
+      var got = readTopicForm(topic, f);
+      if (!got) return;
+      var rec = got.rec, kind = got.kind;
       var saved = editRec ? r.update(h.id, kind, editRec.id, rec) : r.add(h.id, kind, rec);
       if (!saved) { toast('Kaydedilemedi'); return; }
       if (editRec) { toast('Güncellendi'); close(); if (typeof onSaved === 'function') onSaved(saved); return; }
       back.querySelector('#krHist').innerHTML = histHtml();
-      f.reset();
-      if (f.elements.date) f.elements.date.value = today;
-      if (topic === 'hastalik') back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.disease.value);
-      if (topic === 'besleme') back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')';
+      resetTopicForm(topic, f, back, today);
       var msg = 'Kaydedildi';
       if (kind === 'brood' && saved.queenless) msg = 'Kaydedildi · Anasız: görev ve uyarı açıldı';
       else if (kind === 'brood' && saved.chilled) msg = 'Kaydedildi · Zayıf koloni: «Birleştir veya çerçeve azalt» önerildi';
@@ -984,6 +1036,13 @@
   function seasonOfDate(dt) {
     var m = /^(\d{4})-(\d{2})/.exec(dt || ''); if (!m) return 0;
     return Number(m[2]) <= 2 ? Number(m[1]) - 1 : Number(m[1]);
+  }
+  function harvestText(x) {
+    var p = [];
+    if (x.kg != null) p.push(num(x.kg) + ' kg');
+    if (x.frames != null) p.push(x.frames + ' çerçeve');
+    if (x.note) p.push(x.note);
+    return p.join(' · ') || '—';
   }
   function feedText(f) {
     var r = R(); if (!f || !r) return '';
@@ -1117,6 +1176,7 @@
     disease: { icon: '💊', label: 'Hastalık / ilaçlama', topic: 'hastalik' },
     feed: { icon: '🍯', label: 'Besleme', topic: 'besleme' },
     winter: { icon: '❄️', label: 'Kışlık hazırlık', topic: 'kis' },
+    harvest: { icon: '🫙', label: 'Hasat notu', topic: 'hasat' },
     queen: { icon: '👑', label: 'Ana arı değişimi', topic: 'ana' }
   };
   var TL_CSS = '.bt-list{display:grid;gap:6px;margin-top:8px;}' +
@@ -1142,6 +1202,7 @@
     rec.strength.forEach(function (x) { out.push({ kind: 'strength', rec: x, date: x.date, sum: r.strengthClass(x) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' · bal ' + x.honeyFrames + ' · polen ' + x.pollenFrames + ' çerçeve' + (x.note ? ' · ' + x.note : '') }); });
     rec.brood.forEach(function (x) { out.push({ kind: 'brood', rec: x, date: x.date, sum: broodText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
     rec.disease.forEach(function (x) { out.push({ kind: 'disease', rec: x, date: x.date, sum: diseaseText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
+    rec.harvest.forEach(function (x) { out.push({ kind: 'harvest', rec: x, date: x.date, sum: harvestText(x) }); });
     rec.feed.forEach(function (x) { out.push({ kind: 'feed', rec: x, date: x.date, sum: r.FEED_LABEL[x.type] + ' ' + num(x.amount) + ' ' + r.FEED_UNIT[x.type] + (x.note ? ' · ' + x.note : '') }); });
     rec.winter.forEach(function (x) {
       var ws = r.winterStatus(h.id);
@@ -1173,7 +1234,7 @@
     var h = d.hiveById(hiveId); if (!h) return;
     var back = document.createElement('div');
     back.className = 'kol-back';
-    var order = ['strength', 'brood', 'disease', 'feed', 'winter', 'queen'];
+    var order = ['strength', 'brood', 'disease', 'feed', 'winter', 'harvest', 'queen'];
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true"><h3>' + esc(h.name) + ' · İşlem ekle</h3>' +
       '<p class="kol-sub">Kayıt, Koloni sayfasındaki ile aynı kovan kaydına yazılır.</p>' +
       '<div class="bt-menu">' + order.map(function (k) {
@@ -1210,6 +1271,214 @@
     });
   }
 
+
+  /* ---- Hızlı kayıt (＋): tam muayeneden bağımsız, tek / seçili / tüm arılık ---- */
+  var LAST_APIARY_KEY = 'superari.lastApiary.v1';
+  function lastApiary() {
+    var d = D(); var aps = d && d.loadApiaries ? d.loadApiaries() : [];
+    var id = ''; try { id = localStorage.getItem(LAST_APIARY_KEY) || ''; } catch (e) { id = ''; }
+    if (!aps.some(function (a) { return String(a.id) === id; })) id = aps[0] ? String(aps[0].id) : '';
+    return id;
+  }
+  function setLastApiary(id) { try { if (id) localStorage.setItem(LAST_APIARY_KEY, String(id)); } catch (e) { /* ignore */ } }
+  var QUICK_TYPES = [
+    { key: 'ilac', label: 'İlaçlama' },
+    { key: 'besleme', label: 'Besleme' },
+    { key: 'guc', label: 'Muayene / Koloni gücü' },
+    { key: 'yavru', label: 'Yavru' },
+    { key: 'hasat', label: 'Hasat notu' }
+  ];
+  function hiveNo(h) { var m = /(\d+)\s*$/.exec(String(h.name || '')); return m ? m[1] : String(h.id); }
+  function openQuickRecord(opts) {
+    opts = opts || {};
+    ensureGridCss();
+    var d = D(), r = R();
+    if (!d || !r) return;
+    var old = document.getElementById('koloniRecord');
+    if (old) old.parentNode.removeChild(old);
+    var today = C() && C().todayLocal ? C().todayLocal() : r.todayLocal();
+    var preHive = opts.hiveId != null ? d.hiveById(opts.hiveId) : null;
+    var apiaryId = preHive ? String(preHive.apiaryId) : (opts.apiaryId || lastApiary());
+    var type = opts.type || 'ilac';
+    var scope = preHive ? 'one' : (opts.scope || 'one');
+    var aps = d.loadApiaries();
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    back.id = 'koloniRecord';
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="qkTitle">' +
+      '<h3 id="qkTitle">＋ Hızlı kayıt</h3>' +
+      '<p class="kol-sub">Tam muayene gerekmez. Her kovana ayrı kayıt yazılır ve Bakım geçmişinde görünür.</p>' +
+      '<div class="kr-section-title">Tür</div>' +
+      '<div class="qk-types">' + QUICK_TYPES.map(function (t) { return '<button type="button" data-qtype="' + t.key + '">' + esc(t.label) + '</button>'; }).join('') + '</div>' +
+      '<form class="kol-form" id="qkScopeForm" autocomplete="off">' +
+        '<label class="full">Arılık<select name="apiary">' + aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('') + '</select></label>' +
+        '<div class="full qk-scope" style="grid-column:1 / -1;"><button type="button" data-scope="one">Tek kovan</button><button type="button" data-scope="sel">Seçili kovanlar</button><button type="button" data-scope="all">Tüm arılık</button></div>' +
+        '<div id="qkTargets" style="grid-column:1 / -1;display:grid;gap:.4rem;"></div>' +
+      '</form>' +
+      '<div class="kr-section-title" id="qkFormTitle" style="margin-top:.6rem;"></div>' +
+      '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;"></form>' +
+      '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
+    document.body.appendChild(back);
+    var sf = back.querySelector('#qkScopeForm');
+    var f = back.querySelector('#krForm');
+    sf.elements.apiary.value = apiaryId;
+    var selected = {};
+    if (preHive) selected[preHive.id] = true;
+    function hivesOf() { return d.hivesForApiary ? d.hivesForApiary(sf.elements.apiary.value) : d.loadHives().filter(function (h) { return String(h.apiaryId) === sf.elements.apiary.value; }); }
+    function renderTargets() {
+      back.querySelectorAll('[data-scope]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-scope') === scope); });
+      var hs = hivesOf();
+      var box = back.querySelector('#qkTargets');
+      if (!hs.length) { box.innerHTML = '<p class="kol-sub" style="margin:0;">Bu arılıkta kovan yok.</p>'; return; }
+      if (scope === 'one') {
+        var cur = preHive && String(preHive.apiaryId) === sf.elements.apiary.value ? preHive.id : (Object.keys(selected)[0] || hs[0].id);
+        box.innerHTML = '<label style="display:grid;gap:.2rem;font-size:.75rem;font-weight:700;color:#5c4813;">Kovan<select name="one">' + hs.map(function (h) {
+          return '<option value="' + esc(h.id) + '"' + (String(h.id) === String(cur) ? ' selected' : '') + '>' + esc(h.name) + ' (No ' + esc(hiveNo(h)) + ')</option>';
+        }).join('') + '</select></label>';
+      } else if (scope === 'sel') {
+        box.innerHTML = '<div class="kol-checks-head"><span id="qkSelCount"></span><span style="display:flex;gap:.3rem;"><button type="button" data-selall="1">Tümünü seç</button><button type="button" data-selnone="1">Hiçbirini seçme</button></span></div>' +
+          '<div class="kol-checks">' + hs.map(function (h) {
+            return '<label class="kol-check"><input type="checkbox" data-hid="' + esc(h.id) + '"' + (selected[h.id] ? ' checked' : '') + '><span>' + esc(h.name) + '</span><small>No ' + esc(hiveNo(h)) + '</small></label>';
+          }).join('') + '</div>';
+        updSel();
+      } else {
+        box.innerHTML = '<div class="kr-info">Arılıktaki ' + hs.length + ' kovanın her birine ayrı kayıt yazılır.</div>';
+      }
+    }
+    function updSel() {
+      var n = back.querySelectorAll('#qkTargets input[data-hid]:checked').length;
+      var el = back.querySelector('#qkSelCount'); if (el) el.textContent = n + ' kovan seçili';
+      back.querySelector('#krSave').textContent = scope === 'sel' ? 'Seçili ' + n + ' kovana kaydet' : (scope === 'all' ? 'Tüm arılığa kaydet (' + hivesOf().length + ')' : 'Kaydet');
+    }
+    function renderForm() {
+      back.querySelectorAll('[data-qtype]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-qtype') === type); });
+      var t = QUICK_TYPES.filter(function (x) { return x.key === type; })[0];
+      back.querySelector('#qkFormTitle').textContent = t.label;
+      f.innerHTML = topicFormHtml(type === 'ilac' ? 'hastalik' : type, today);
+      wireTopicForm(type, f, back);
+      if (type === 'ilac' && f.elements.treatment) f.elements.treatment.placeholder = 'ör. Oksalik asit damlatma, Amitraz şerit';
+    }
+    back.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t === back) { close(); return; }
+      var q = t.closest && t.closest('[data-qtype]');
+      if (q) { type = q.getAttribute('data-qtype'); renderForm(); return; }
+      var sc = t.closest && t.closest('[data-scope]');
+      if (sc) { scope = sc.getAttribute('data-scope'); renderTargets(); updSel(); return; }
+      if (t.closest && t.closest('[data-selall]')) { back.querySelectorAll('#qkTargets input[data-hid]').forEach(function (c) { c.checked = true; selected[c.getAttribute('data-hid')] = true; }); updSel(); return; }
+      if (t.closest && t.closest('[data-selnone]')) { back.querySelectorAll('#qkTargets input[data-hid]').forEach(function (c) { c.checked = false; }); selected = {}; updSel(); return; }
+    });
+    back.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t.name === 'apiary') { selected = {}; preHive = null; setLastApiary(t.value); renderTargets(); updSel(); }
+      if (t.getAttribute && t.getAttribute('data-hid')) { if (t.checked) selected[t.getAttribute('data-hid')] = true; else delete selected[t.getAttribute('data-hid')]; updSel(); }
+    });
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    back.querySelector('#krClose').addEventListener('click', close);
+    back.querySelector('#krSave').addEventListener('click', function () {
+      var targets;
+      if (scope === 'one') targets = [sf.querySelector('select[name=one]') ? sf.querySelector('select[name=one]').value : null].filter(Boolean);
+      else if (scope === 'sel') targets = Array.prototype.map.call(back.querySelectorAll('#qkTargets input[data-hid]:checked'), function (c) { return c.getAttribute('data-hid'); });
+      else targets = hivesOf().map(function (h) { return h.id; });
+      if (!targets.length) { toast('En az bir kovan seçin'); return; }
+      var got = readTopicForm(type, f);
+      if (!got) return;
+      var names = [];
+      targets.forEach(function (id) {
+        var copy = {}; Object.keys(got.rec).forEach(function (k) { copy[k] = got.rec[k]; });
+        if (r.add(id, got.kind, copy)) { var h = d.hiveById(id); names.push(h ? h.name : String(id)); }
+      });
+      setLastApiary(sf.elements.apiary.value);
+      if (!names.length) { toast('Kaydedilemedi'); return; }
+      close();
+      toast(names.length === 1 ? 'Kaydedildi · ' + names[0] : names.length + ' kovana kaydedildi (' + namesShort(names, 4) + ')');
+      if (typeof opts.onSaved === 'function') opts.onSaved(names.length);
+      try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+    });
+    renderForm();
+    renderTargets();
+    updSel();
+  }
+
+  /* ---- Bakım: gecikenler, bu hafta, ilaç bekleme, son işlemler ---- */
+  function maintenance(hives) {
+    var r = R(); var d = D();
+    var out = { overdue: [], week: [], withdrawal: [], recent: [] };
+    if (!r || !d) return out;
+    var today = r.todayLocal();
+    var weekEnd = r.addDays(today, 7);
+    var ids = {};
+    (hives || []).forEach(function (h) { ids[String(h.id)] = h; });
+    r.derived().tasks.forEach(function (t) {
+      var h = ids[String(t.hiveId)]; if (!h) return;
+      var item = { hive: h, title: t.title, date: t.due || '', priority: t.priority || 3, id: t.id };
+      if (t.due && t.due < today) out.overdue.push(item);
+      else if (!t.due || t.due <= weekEnd) out.week.push(item);
+    });
+    var all = r.loadAll();
+    Object.keys(ids).forEach(function (key) {
+      if (!all[key]) return;
+      var h = ids[key];
+      var st = r.status(h.id, all);
+      Object.keys(st.latestByDisease).forEach(function (k) {
+        var x = st.latestByDisease[k];
+        if (x.checkDate && x.checkDate > today && x.checkDate <= weekEnd) {
+          out.week.push({ hive: h, title: 'Kontrol: ' + r.DISEASE_LABEL[k] + ' — ' + h.name, date: x.checkDate, priority: 2, id: 'up-k-' + x.id });
+        }
+      });
+      var lv = st.latestByDisease.varroa;
+      if (lv && (lv.treatment || lv.withdrawalDays || lv.dose != null)) {
+        var rc = r.addDays(lv.date, 14);
+        if (rc > r.addDays(today, 2) && rc <= weekEnd) out.week.push({ hive: h, title: 'Varroa tekrar sayımı — ' + h.name, date: rc, priority: 2, id: 'up-v-' + h.id });
+      }
+      if (st.withdrawalUntil) {
+        out.withdrawal.push({ hive: h, until: st.withdrawalUntil, rec: st.withdrawalRec });
+        if (st.withdrawalUntil <= weekEnd) out.week.push({ hive: h, title: 'İlaç bekleme süresi bitiyor — ' + h.name, date: st.withdrawalUntil, priority: 3, id: 'up-w-' + h.id });
+      }
+      var since = r.addDays(today, -30);
+      var rec = st.records;
+      [['disease', '💊', 'İlaçlama / hastalık'], ['feed', '🍯', 'Besleme'], ['strength', '💪', 'Muayene / koloni gücü'], ['brood', '🥚', 'Yavru'], ['harvest', '🫙', 'Hasat notu']].forEach(function (k) {
+        (rec[k[0]] || []).forEach(function (x) {
+          if (x.date < since) return;
+          var sum = k[0] === 'disease' ? diseaseText(x).split(' · ').slice(1).join(' · ') : k[0] === 'feed' ? feedText(x).split(' · ').slice(1).join(' · ') :
+            k[0] === 'strength' ? r.strengthClass(x) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' çerçeve' : k[0] === 'brood' ? broodText(x).split(' · ').slice(1).join(' · ') : harvestText(x);
+          out.recent.push({ hive: h, kind: k[0], icon: k[1], label: k[2], date: x.date, sum: sum, demo: !!x.demo, id: x.id });
+        });
+      });
+    });
+    function byDate(a, b) { return (a.date || '9999') < (b.date || '9999') ? -1 : ((a.date || '9999') > (b.date || '9999') ? 1 : a.priority - b.priority); }
+    out.overdue.sort(byDate);
+    out.week.sort(byDate);
+    out.withdrawal.sort(function (a, b) { return a.until < b.until ? -1 : 1; });
+    out.recent.sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+    return out;
+  }
+  /** Dikkat gereken kovanlar (Koloni rozetleriyle aynı ölçüt). */
+  function attentionHives(hives) {
+    var r = R(); if (!r) return [];
+    var all = r.loadAll();
+    var out = [];
+    (hives || []).forEach(function (h) {
+      if (!all[String(h.id)]) return;
+      var st = r.status(h.id, all);
+      var ws = r.winterStatus(h.id, all);
+      var why = [];
+      if (st.queenless) why.push('anasız');
+      if (st.afb === 'dogrulandi') why.push('AYÇ doğrulandı');
+      st.diseases.forEach(function (x) { if (x.key !== 'ayc') why.push(x.label.toLocaleLowerCase('tr')); });
+      if (st.dueChecks.length) why.push('kontrol tarihi geçti');
+      if (st.weak) why.push(st.chilled ? 'zayıf koloni (üşümüş yavru)' : 'zayıf koloni');
+      if (st.swarmCell) why.push('oğul hücresi');
+      if (ws.storesKg != null && !ws.storesOk) why.push('kışlık stok yetersiz');
+      if (ws.rec && ws.statusKey === 'birlestir') why.push('birleştirilmeli');
+      if (why.length) out.push({ hive: h, why: why, level: st.queenless || st.afb === 'dogrulandi' ? 0 : (st.diseases.length ? 1 : 2) });
+    });
+    out.sort(function (a, b) { return a.level - b.level; });
+    return out;
+  }
+
   /** Kovan detayı için son kayıt özetleri (salt okunur). */
   function latestRowsData(h) {
     var r = R(); if (!r || !h) return null;
@@ -1241,6 +1510,14 @@
     openRecordSheet: openRecordSheet,
     openWinterSheet: openWinterSheet,
     timelineHtml: timelineHtml,
+    openQuickRecord: openQuickRecord,
+    maintenance: maintenance,
+    attentionHives: attentionHives,
+    lastApiary: lastApiary,
+    setLastApiary: setLastApiary,
+    hiveNo: hiveNo,
+    fmtDate: fmtDate,
+    esc: esc,
     openAddAction: openAddAction,
     bindTimeline: bindTimeline,
     winterLineHtml: winterLineHtml,

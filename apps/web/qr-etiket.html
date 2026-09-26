@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR kovan etiketleri · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .qe-ctrl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:end;}
+    .qe-ctrl select{width:100%;min-width:0;font:inherit;font-size:.95rem;padding:.6rem .7rem;border-radius:12px;border:1px solid var(--border);background:#fff;}
+    .qe-print{font:inherit;font-weight:800;font-size:.9rem;padding:.62rem .9rem;border-radius:12px;border:0;background:linear-gradient(145deg,#ffd666,#f4b400);color:#3b2b00;cursor:pointer;white-space:nowrap;}
+    .qe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:1rem;}
+    @media (min-width:640px){.qe-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+    .qe-label{background:#fff;border:1px dashed #b9a57a;border-radius:10px;padding:.5rem;display:grid;justify-items:center;gap:.2rem;text-align:center;break-inside:avoid;page-break-inside:avoid;min-width:0;}
+    .qe-label svg{width:100%;max-width:150px;height:auto;display:block;}
+    .qe-name{font-weight:800;font-size:.95rem;overflow-wrap:anywhere;}
+    .qe-no{font-weight:900;font-size:1.3rem;letter-spacing:.02em;}
+    .qe-ap{font-size:.7rem;color:#555;overflow-wrap:anywhere;}
+    .qe-url{font-size:.58rem;color:#777;overflow-wrap:anywhere;}
+    @media print{
+      @page{size:A4;margin:10mm;}
+      body{background:#fff!important;}
+      .no-print,nav.tabbar{display:none!important;}
+      .wrap{width:100%;padding:0;}
+      .qe-grid{grid-template-columns:repeat(3,1fr);gap:4mm;margin:0;}
+      .qe-label{border:1px dashed #999;border-radius:2mm;padding:3mm;}
+      .qe-label svg{max-width:42mm;}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav no-print">
+      <a class="chip" href="kovanlar.html">← Kovanlar</a>
+      <a class="chip" href="ana.html">Ana</a>
+    </div>
+    <div class="brand no-print">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>QR kovan etiketleri</p></div>
+    </div>
+    <section class="card stack no-print">
+      <div class="qe-ctrl">
+        <label style="font-size:.78rem;">Arılık
+          <select id="qeApiary"></select>
+        </label>
+        <button type="button" class="qe-print" id="qePrint">🖨️ Yazdır</button>
+      </div>
+      <p class="muted" id="qeInfo" style="margin:0;font-size:.82rem;"></p>
+      <div class="note" style="margin:0;">QR kodları bu cihazda üretilir (dış servis yok). Her etiket <b>kovan.html?id=…</b> adresine gider; SüperArı’daki «QR okut» veya telefonun kamerası ile açılır. Suya dayanıklı etiket kâğıdı veya laminasyon önerilir.</div>
+    </section>
+    <div class="qe-grid" id="qeGrid"></div>
+  </main>
+  <script src="demo-data.js?v=koloni-6"></script>
+  <script src="vendor/qrcode.js"></script>
+  <script src="koloni.js?v=koloni-6"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, K = window.SuperAriKoloni;
+    if (!D || !K) return;
+    var esc = K.esc;
+    var aps = D.loadApiaries();
+    var sel = document.getElementById('qeApiary');
+    var params = new URLSearchParams(location.search);
+    var apiaryId = params.get('apiary') || K.lastApiary();
+    if (!aps.some(function (a) { return String(a.id) === String(apiaryId); })) apiaryId = aps[0] ? String(aps[0].id) : '';
+    sel.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    sel.value = apiaryId;
+    var base = location.href.replace(/[?#].*$/, '').replace(/[^\/]*$/, '');
+    function qrSvg(text) {
+      if (typeof window.qrcode !== 'function') return '<p class="muted">QR üretilemedi.</p>';
+      var q = window.qrcode(0, 'M');
+      q.addData(text);
+      q.make();
+      var n = q.getModuleCount(), m = 2, size = n + m * 2, path = '';
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) path += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
+      return '<svg viewBox="0 0 ' + size + ' ' + size + '" shape-rendering="crispEdges" role="img" aria-label="QR kodu"><rect width="' + size + '" height="' + size + '" fill="#fff"/><path d="' + path + '" fill="#000"/></svg>';
+    }
+    function render() {
+      var a = D.apiaryById(apiaryId);
+      var hs = D.hivesForApiary(apiaryId);
+      document.getElementById('qeInfo').textContent = hs.length + ' kovan etiketi · ' + (a ? a.name : '');
+      document.getElementById('qeGrid').innerHTML = hs.map(function (h) {
+        var url = base + 'kovan.html?id=' + encodeURIComponent(h.id);
+        return '<div class="qe-label">' + qrSvg(url) +
+          '<div class="qe-no">No ' + esc(K.hiveNo(h)) + '</div>' +
+          '<div class="qe-name">' + esc(h.name) + '</div>' +
+          '<div class="qe-ap">' + esc(a ? a.name : '') + '</div>' +
+          '<div class="qe-url">' + esc(url.replace(/^https?:\/\//, '')) + '</div></div>';
+      }).join('') || '<p class="muted">Bu arılıkta kovan yok.</p>';
+    }
+    sel.addEventListener('change', function () {
+      apiaryId = sel.value; K.setLastApiary(apiaryId);
+      history.replaceState(null, '', 'qr-etiket.html?apiary=' + encodeURIComponent(apiaryId));
+      render();
+    });
+    document.getElementById('qePrint').addEventListener('click', function () { window.print(); });
+    render();
+  })();
+  </script>
+</body>
+</html>
