@@ -67,8 +67,9 @@
       '.fs-chev[aria-expanded="true"]{transform:none!important;}' +
       '.fs-chev svg{width:14px;height:14px;display:block;transition:transform .18s ease;transform:rotate(0deg);}' +
       '.fs-chev[aria-expanded="true"] svg{transform:rotate(90deg);}' +
-      '.fs-row{grid-template-columns:52px 1fr 86px 28px!important;gap:8px!important;}' +
+      '.fs-row{grid-template-columns:52px 1fr 64px 28px!important;gap:8px!important;}' +
       '.fs-row .val{justify-content:flex-end;text-align:right;}' +
+      '#yieldBar .val{display:block!important;line-height:1.15!important;text-align:right;}' +
       '.sa-mini-track{height:4px!important;background:#dfe2e6!important;min-width:0!important;}' +
       '#saFloraBar .sa-range .track{background:#dfe2e6!important;}' +
       '#saFloraBar .sa-range .fill{background:#2463a6!important;}' +

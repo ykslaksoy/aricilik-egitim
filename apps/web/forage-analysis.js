@@ -97,7 +97,7 @@
       rowHtml({ k: 'Kovan başı', v: mid + ' kg', note: 'hedef' }, escapeHtml) +
       rowHtml({ k: 'Toplam', v: Math.round(mid * n) + ' kg · ' + n + ' kovan', note: 'hedef' }, escapeHtml) +
       rowHtml({ k: 'İrk', v: placeBreed(a), note: 'koloni' }, escapeHtml) + '</div>';
-    return infoBar('yieldBar', 'Bal', mid + ' kg/kovan', Math.max(8, Math.min(100, Math.round((mid / 25) * 100))), 'btnYieldHint') +
+    return infoBar('yieldBar', 'Bal', mid + ' kg/<br>kovan', Math.max(8, Math.min(100, Math.round((mid / 25) * 100))), 'btnYieldHint') +
       card('saYieldCard', 'Bal hedefi', '', '<div class="sa-yield-detail">' + body + '</div>', '');
   }
   function splitRender(analysis, escapeHtml) {
