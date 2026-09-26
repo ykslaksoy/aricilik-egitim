@@ -27,7 +27,7 @@
     { id: 118, name: 'Kovan 118', apiaryId: 'a1', weightKg: 41.0, deltaKg: 1.8, health: 'Dikkat', healthScore: 62, colonyScore: 71, swarmRisk: 'Orta', strength: 'orta', breed: 'Muğla' },
     { id: 204, name: 'Kovan 204', apiaryId: 'a2', weightKg: 33.1, deltaKg: -0.3, health: 'İyi', healthScore: 90, colonyScore: 86, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas' },
     { id: 211, name: 'Kovan 211', apiaryId: 'a2', weightKg: 29.4, deltaKg: 0.1, health: 'Kritik', healthScore: 41, colonyScore: 48, swarmRisk: 'Yüksek', strength: 'zayıf', breed: 'Karadeniz' },
-    { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas' }
+    { id: 305, name: 'Kovan 305', apiaryId: 'a3', weightKg: 36.8, deltaKg: 0.9, health: 'İyi', healthScore: 85, colonyScore: 80, swarmRisk: 'Düşük', strength: 'güçlü', breed: 'Kafkas × Karniyol' }
   ];
 
   var alerts = [
@@ -728,13 +728,13 @@
   /*
    * Arılık başına ırk planı (seed + tek seferlik göç):
    *  a1 Kayaköy → hepsi Muğla · a2 Tortum → yarı Kafkas / yarı Karadeniz (sırayla)
-   *  a3 Palandöken → yarı Kafkas / yarı Karniyol (sırayla) · a4 Yanıkdağ Baluğundüzü → hepsi Kafkas
+   *  a3 Palandöken → hepsi Kafkas × Karniyol (melez, tek ırk) · a4 Yanıkdağ Baluğundüzü → hepsi Kafkas
    *  a5 Cimil Yaylası → hepsi Kafkas × Karadeniz (melez, tek ırk)
    */
   var APIARY_BREED_PLAN = {
     a1: ['Muğla'],
     a2: ['Kafkas', 'Karadeniz'],
-    a3: ['Kafkas', 'Karniyol'],
+    a3: ['Kafkas × Karniyol'],
     a4: ['Kafkas'],
     a5: ['Kafkas × Karadeniz']
   };
@@ -1346,25 +1346,32 @@
     }
     /*
      * Irk göçleri (tek seferlik):
-     *  v2 — tüm arılık planı (a1..a4 + a5). v2 hiç çalışmadıysa tam plan uygulanır, v3 de işaretlenir.
-     *  v3 — v2'yi zaten çalıştırmış kullanıcılar için yalnız a5 Cimil → Kafkas × Karadeniz
-     *       (diğer arılıklardaki sonradan yapılan elle düzenlemelere dokunmaz).
+     *  v2 — tüm arılık planı. v2 hiç çalışmadıysa tam plan uygulanır, sonraki anahtarlar da işaretlenir.
+     *  v3 — v2'yi çalıştırmış kullanıcılar için yalnız a5 Cimil → Kafkas × Karadeniz.
+     *  v4 — v2/v3'ü çalıştırmış kullanıcılar için yalnız a3 Palandöken → Kafkas × Karniyol.
+     *  (Diğer arılıklardaki sonradan yapılan elle düzenlemelere dokunulmaz.)
      */
     var MIG_V2 = 'superari.breedMig.v2';
-    var MIG_V3 = 'superari.breedMig.v3';
-    var v2Done = false, v3Done = false;
+    var LATER_MIGS = [
+      { key: 'superari.breedMig.v3', apiary: 'a5' },
+      { key: 'superari.breedMig.v4', apiary: 'a3' }
+    ];
+    var v2Done = false;
+    var onlyKeys = [];
     try {
       v2Done = localStorage.getItem(MIG_V2) === '1';
-      v3Done = localStorage.getItem(MIG_V3) === '1';
+      LATER_MIGS.forEach(function (m) {
+        if (localStorage.getItem(m.key) !== '1') onlyKeys.push(m.apiary);
+      });
     } catch (eK) {}
-    if (v2Done && v3Done) return reconciled.hives;
+    if (v2Done && !onlyKeys.length) return reconciled.hives;
     try {
       localStorage.setItem(MIG_V2, '1');
-      localStorage.setItem(MIG_V3, '1');
+      LATER_MIGS.forEach(function (m) { localStorage.setItem(m.key, '1'); });
       localStorage.removeItem('superari.breedMig.karniyol.v1');
     } catch (eK2) {}
     var breedMig = v2Done
-      ? applyApiaryBreedPlan(reconciled.apiaries, reconciled.hives, ['a5'])
+      ? applyApiaryBreedPlan(reconciled.apiaries, reconciled.hives, onlyKeys)
       : applyApiaryBreedPlan(reconciled.apiaries, reconciled.hives);
     if (breedMig.changed) {
       try {
