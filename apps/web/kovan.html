@@ -381,8 +381,8 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-1"></script>
-<script src="koloni.js?v=koloni-1"></script>
+<script src="demo-data.js?v=koloni-2"></script>
+<script src="koloni.js?v=koloni-2"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -913,6 +913,7 @@
         '<h2>Koloni</h2>' +
         '<div class="kv">' +
           kvRowHtml('Ana arı', queenRowHtml(hive)) +
+          kvRow('Ana kimliği', fieldOrNone(hive.currentQueenId)) +
           kvRow('Ana kaynağı', fieldOrNone(hive.queenSource)) +
           kvRow('İşaretli', hive.queenMarked === true ? 'Evet' : (hive.queenMarked === false ? 'Hayır' : 'Kayıt yok')) +
           kvRow('Sakinlik', K && hive.calmness != null ? K.calmText(hive) : 'Kayıt yok') +

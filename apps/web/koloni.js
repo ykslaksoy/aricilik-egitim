@@ -37,6 +37,18 @@
     '.kol-form label{display:grid;gap:.2rem;font-size:.75rem;font-weight:700;color:#5c4813;min-width:0;}' +
     '.kol-form .full{grid-column:1 / -1;}' +
     '.kol-form [hidden]{display:none!important;}' +
+    '.kol-seg{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin:.2rem 0 .35rem;}' +
+    '.kol-seg button{font:inherit;font-size:.85rem;font-weight:800;padding:.55rem .4rem;border-radius:10px;border:1.5px solid var(--border,#ead9b3);background:#fff;color:#5c4813;cursor:pointer;}' +
+    '.kol-seg button.on{background:linear-gradient(180deg,#fff6df 0%,#fff3bf 100%);border-color:#e0c56a;}' +
+    '.kol-queen{padding:.7rem .8rem;}' +
+    '.kol-queen summary{cursor:pointer;list-style:none;display:grid;gap:.2rem;}' +
+    '.kol-queen summary::-webkit-details-marker{display:none;}' +
+    '.kol-queen .qid{font-weight:800;font-size:.95rem;}' +
+    '.kol-queen .qmeta{font-size:.82rem;color:var(--muted,#6b7280);overflow-wrap:anywhere;}' +
+    '.kol-queen ol{margin:.5rem 0 0;padding-left:1.2em;font-size:.82rem;display:grid;gap:.25rem;}' +
+    '.kol-tabs{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.6rem;}' +
+    '.kol-tabs a{display:flex;justify-content:center;padding:.6rem .5rem;border-radius:12px;border:1.5px solid var(--border,#ead9b3);background:#fff;font-size:.88rem;font-weight:800;color:#5c4813;}' +
+    '.kol-tabs a.on{background:linear-gradient(180deg,#fff6df 0%,#fff3bf 100%);border-color:#e0c56a;}' +
     '.kol-form input,.kol-form select,.kol-form textarea{width:100%;min-width:0;font:inherit;font-size:.95rem;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--border,#ead9b3);background:#fff;color:var(--ink,#1f2933);}' +
     '.kol-form textarea{min-height:64px;resize:vertical;}' +
     '.kol-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.8rem;}' +
@@ -159,6 +171,7 @@
     if (!h) return;
     var existing = document.getElementById('koloniEditor');
     if (existing) existing.parentNode.removeChild(existing);
+    var q = h.currentQueenId && c.queenById ? c.queenById(h.currentQueenId) : null;
     var yr = c.currentYear();
     var opts = c.BREED_OPTIONS.slice();
     var curBreed = String(h.breed || '');
@@ -188,16 +201,23 @@
     back.innerHTML =
       '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="kolTitle">' +
         '<h3 id="kolTitle">' + esc(h.name) + ' · Koloni</h3>' +
-        '<p class="kol-sub">' + esc(ap ? ap.name : '') + ' · Ana arı ve koloni özellikleri</p>' +
+        '<p class="kol-sub">' + esc(ap ? ap.name : '') + ' · Mevcut ana: <b>' + esc(q ? q.id : '—') + '</b></p>' +
+        '<div class="kol-seg" role="tablist">' +
+          '<button type="button" data-mode="correct" class="on" aria-selected="true">Bilgileri düzelt</button>' +
+          '<button type="button" data-mode="replace" aria-selected="false">Ana arıyı değiştir</button>' +
+        '</div>' +
+        '<p class="kol-sub" id="kolModeHint">Aynı ana arının bilgilerini düzeltir; yeni ana kaydı oluşturmaz.</p>' +
         '<form class="kol-form" id="kolForm" autocomplete="off">' +
+          '<label class="full" id="kolDateWrap" hidden>Değişim tarihi<input type="date" name="date" value="' + esc(c.todayLocal ? c.todayLocal() : '') + '"></label>' +
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
           '<label class="full" id="kolOtherWrap"' + (isOther ? '' : ' hidden') + '>Irk adı<input name="breedOther" maxlength="60" value="' + esc(isOther ? curBreed : '') + '" placeholder="ör. Yerel melez"></label>' +
-          '<label class="full">Ana arı doğum yılı<select name="queenYear">' + yearSel + '</select></label>' +
+          '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
           '<label class="full">Kaynak / üretici<input name="queenSource" maxlength="120" value="' + esc(h.queenSource || '') + '" placeholder="ör. Kendi üretimim, ana arı yetiştiricisi"></label>' +
           '<label>İşaretli mi<select name="queenMarked">' + markSel + '</select></label>' +
           '<label>Sakinlik<select name="calmness">' + calmSel + '</select></label>' +
           '<label class="full">Oğul eğilimi<select name="swarmTendency">' + swSel + '</select></label>' +
-          '<label class="full">Not<textarea name="colonyNote" maxlength="500" placeholder="Koloni notu">' + esc(h.colonyNote || '') + '</textarea></label>' +
+          '<label class="full">Ana arı notu<input name="queenNote" maxlength="300" value="' + esc(q && q.note ? q.note : '') + '" placeholder="Bu ana arıya özel not"></label>' +
+          '<label class="full">Koloni notu<textarea name="colonyNote" maxlength="500" placeholder="Koloni notu">' + esc(h.colonyNote || '') + '</textarea></label>' +
         '</form>' +
         '<div class="kol-actions">' +
           '<button type="button" class="btn secondary" id="kolCancel">Vazgeç</button>' +
@@ -207,6 +227,41 @@
     document.body.appendChild(back);
     var form = back.querySelector('#kolForm');
     var otherWrap = back.querySelector('#kolOtherWrap');
+    var saveBtn = back.querySelector('#kolSave');
+    var mode = 'correct';
+    var snapshot = {
+      queenYear: form.queenYear.value, queenSource: form.queenSource.value,
+      queenMarked: form.queenMarked.value, queenNote: form.queenNote.value
+    };
+    function setMode(m) {
+      mode = m;
+      Array.prototype.forEach.call(back.querySelectorAll('.kol-seg button'), function (btn) {
+        var on = btn.getAttribute('data-mode') === m;
+        btn.classList.toggle('on', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      back.querySelector('#kolDateWrap').hidden = m !== 'replace';
+      back.querySelector('#kolYearLbl').textContent = m === 'replace' ? 'Yeni ana arı doğum yılı' : 'Ana arı doğum yılı';
+      back.querySelector('#kolModeHint').textContent = m === 'replace'
+        ? 'Eski ana arının bu kovandaki kaydı kapanır («Değiştirildi»), yeni ana kaydı oluşturulur ve kovan geçmişine yazılır.'
+        : 'Aynı ana arının bilgilerini düzeltir; yeni ana kaydı oluşturmaz.';
+      if (m === 'replace') {
+        form.queenYear.value = String(yr);
+        form.queenSource.value = '';
+        form.queenMarked.value = '1';
+        form.queenNote.value = '';
+        saveBtn.textContent = 'Ana arıyı değiştir';
+      } else {
+        form.queenYear.value = snapshot.queenYear;
+        form.queenSource.value = snapshot.queenSource;
+        form.queenMarked.value = snapshot.queenMarked;
+        form.queenNote.value = snapshot.queenNote;
+        saveBtn.textContent = 'Kaydet';
+      }
+    }
+    Array.prototype.forEach.call(back.querySelectorAll('.kol-seg button'), function (btn) {
+      btn.addEventListener('click', function () { setMode(btn.getAttribute('data-mode')); });
+    });
     form.breed.addEventListener('change', function () {
       otherWrap.hidden = form.breed.value !== 'Diğer';
     });
@@ -215,24 +270,35 @@
     document.addEventListener('keydown', onKey);
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
     back.querySelector('#kolCancel').addEventListener('click', close);
-    back.querySelector('#kolSave').addEventListener('click', function () {
+    saveBtn.addEventListener('click', function () {
       var breed = form.breed.value;
       if (breed === 'Diğer') breed = String(form.breedOther.value || '').trim() || 'Diğer';
+      var marked = form.queenMarked.value === '' ? null : form.queenMarked.value === '1';
       var patch = {
         breed: breed || h.breed || '',
         queenYear: form.queenYear.value,
         queenSource: form.queenSource.value,
-        queenMarked: form.queenMarked.value === '' ? null : form.queenMarked.value === '1',
+        queenMarked: marked,
         calmness: form.calmness.value,
         swarmTendency: form.swarmTendency.value,
         colonyNote: form.colonyNote.value
       };
-      var saved = c.updateHive(h.id, patch);
+      if (mode === 'replace') { patch.note = form.queenNote.value; patch.date = form.date.value; }
+      else patch.queenNote = form.queenNote.value;
+      var saved = c.updateHive(h.id, patch, mode);
       close();
-      toast(saved ? 'Kaydedildi' : 'Kaydedilemedi');
-      if (saved && typeof onSaved === 'function') onSaved(saved);
+      if (!saved) { toast('Kaydedilemedi'); return; }
+      if (typeof onSaved === 'function') onSaved(saved);
+      if (mode === 'replace') {
+        var last = saved.queenHistory && saved.queenHistory[saved.queenHistory.length - 1];
+        showResult(saved.name + ' · ana arı değiştirildi', [{
+          name: saved.name, oldYear: last && last.oldYear, newYear: last && last.newYear,
+          newBreed: last && last.newBreed, oldQueenId: last && last.oldQueenId, newQueenId: last && last.newQueenId
+        }]);
+      } else toast('Kaydedildi');
     });
   }
+
 
   function fmtDate(dt) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dt || ''));
@@ -247,6 +313,7 @@
     else if (e.newBreed || e.oldBreed) parts.push(e.newBreed || e.oldBreed);
     if (e.source) parts.push(e.source);
     if (e.marked === true) parts.push('işaretli');
+    if (e.oldQueenId || e.newQueenId) parts.push((e.oldQueenId || '?') + ' → ' + (e.newQueenId || '?'));
     if (e.bulk) parts.push('toplu');
     if (e.note) parts.push(e.note);
     return parts.join(' · ');
@@ -281,7 +348,8 @@
           '<span style="font-weight:700;">' + esc(u.name) + '</span>' +
           '<small style="margin-left:auto;color:var(--muted,#6b7280);text-align:right;">' +
             (u.oldYear != null ? esc(u.oldYear) : '?') + ' → ' + dotHtml(u.newYear) + esc(u.newYear != null ? u.newYear : '?') +
-            (u.newBreed ? ' · ' + esc(u.newBreed) : '') + '</small></div>';
+            (u.newBreed ? ' · ' + esc(u.newBreed) : '') +
+            (u.newQueenId ? '<br>' + esc((u.oldQueenId || '?') + ' → ' + u.newQueenId) : '') + '</small></div>';
       }).join('') + '</div>' +
       '<button type="button" class="btn" id="kolResOk">Tamam</button></div>';
     document.body.appendChild(back);
@@ -400,7 +468,51 @@
     });
   }
 
+  function placementText(p, hiveMap, apMap) {
+    var hv = hiveMap[p.hiveId];
+    var name = hv ? hv.name : ('Kovan ' + p.hiveId + ' (kaldırıldı)');
+    var ap = hv ? apMap[hv.apiaryId] : null;
+    return name + (ap ? ' · ' + ap.name : '') + ' · ' + (p.from ? fmtDate(p.from) : 'başlangıç bilinmiyor') +
+      ' → ' + (p.to ? fmtDate(p.to) : 'halen') + (p.endReason ? ' · ' + p.endReason : '');
+  }
+  /** «Ana arılar» listesi: kapsamdaki kovanlarda bulunan / bulunmuş ana kayıtları. */
+  function queensListHtml(hives) {
+    ensureCss();
+    var d = D(); var c = C();
+    if (!d || !c || !c.queensForHives) return '';
+    var res = c.queensForHives((hives || []).map(function (h) { return h.id; }));
+    var hiveMap = {}, apMap = {};
+    d.loadHives().forEach(function (h) { hiveMap[h.id] = h; });
+    d.loadApiaries().forEach(function (a) { apMap[a.id] = a; });
+    function card(q, isCurrent) {
+      var op = c.openPlacement(q);
+      var hv = op ? hiveMap[op.hiveId] : null;
+      var age = q.year != null ? (c.currentYear() - q.year) : null;
+      var col = c.queenColor(q.year);
+      var ps = q.placements.slice().reverse();
+      return '<details class="item-card kol-queen">' +
+        '<summary>' +
+          '<div class="row"><span class="qid">' + dotHtml(q.year) + esc(q.id) + '</span>' +
+            (isCurrent ? (age != null && age >= 2 ? '<span class="qbadge renew">Yenile</span>' : (age == null ? '<span class="qbadge unk">Bilinmiyor</span>' : '<span class="badge ok">Aktif</span>'))
+              : '<span class="badge cevrimdisi">Geçmiş</span>') + '</div>' +
+          '<div class="qmeta">' + esc((q.year != null ? q.year + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '') : 'Yıl bilinmiyor') +
+            ' · ' + (q.breed || 'Irk yok') + (q.source ? ' · ' + q.source : '') + (q.marked === true ? ' · işaretli' : '')) + '</div>' +
+          '<div class="qmeta">' + (hv ? 'Şu an: <b style="color:var(--ink,#1f2933)">' + esc(hv.name) + '</b>' : 'Şu an bir kovanda değil') +
+            ' · ' + ps.length + ' yerleşim · ayrıntı için dokunun</div>' +
+        '</summary>' +
+        '<ol>' + ps.map(function (p) { return '<li>' + esc(placementText(p, hiveMap, apMap)) + '</li>'; }).join('') + '</ol>' +
+        (q.note ? '<div class="qmeta" style="margin-top:.35rem;">Not: ' + esc(q.note) + '</div>' : '') +
+        (hv ? '<div class="qmeta" style="margin-top:.35rem;"><a href="' + editHref(hv.id) + '" style="color:#2b6cb0;text-decoration:underline;">Düzenle</a></div>' : '') +
+      '</details>';
+    }
+    return '<h3 style="margin:.2rem 0 0;font-size:1rem;">Mevcut ana arılar (' + res.current.length + ')</h3>' +
+      (res.current.map(function (q) { return card(q, true); }).join('') || '<p class="muted">Kayıt yok.</p>') +
+      '<h3 style="margin:.6rem 0 0;font-size:1rem;">Önceki ana arılar (' + res.past.length + ')</h3>' +
+      (res.past.map(function (q) { return card(q, false); }).join('') || '<p class="muted">Henüz değiştirilen ana arı yok.</p>');
+  }
+
   global.SuperAriKoloni = {
+    queensListHtml: queensListHtml,
     lastChangeText: lastChangeText,
     historyHtml: historyHtml,
     historyEntryText: historyEntryText,

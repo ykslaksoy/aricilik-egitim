@@ -55,9 +55,9 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-1"></script>
+  <script src="demo-data.js?v=koloni-2"></script>
   <script src="sensor-health.js"></script>
-  <script src="koloni.js?v=koloni-1"></script>
+  <script src="koloni.js?v=koloni-2"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -275,6 +275,15 @@
 
       if (view === 'koloni' && K) {
         var scopeHives = hives;
+        var tab = params.get('tab') === 'queens' ? 'queens' : '';
+        var tabHref = function (t) {
+          var q = new URLSearchParams(location.search);
+          q.delete('hiveId');
+          if (!q.get('mode')) q.set('mode', effectiveMode || 'all');
+          if (effectiveMode === 'apiary' && apiaryFilter) q.set('apiary', apiaryFilter);
+          if (t) q.set('tab', t); else q.delete('tab');
+          return 'kovanlar.html?' + q.toString();
+        };
         var renderKoloni = function () {
           var fresh = D.loadHives();
           var ids = {};
@@ -282,9 +291,17 @@
           scopeHives = fresh.filter(function (h) { return ids[h.id]; });
           koloniTopEl.innerHTML = K.summaryHtml(scopeHives,
             (effectiveMode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık')) + ' · ana arı özeti') + BULK_BTN;
+          var apNames = {};
+          D.loadApiaries().forEach(function (a) { apNames[a.id] = a.name; });
+          koloniTopEl.innerHTML += '<div class="kol-tabs">' +
+            '<a class="' + (tab !== 'queens' ? 'on' : '') + '" href="' + tabHref('') + '">Kovanlar</a>' +
+            '<a class="' + (tab === 'queens' ? 'on' : '') + '" href="' + tabHref('queens') + '">Ana arılar</a></div>';
+          if (tab === 'queens') {
+            listEl.innerHTML = K.queensListHtml(scopeHives);
+            return;
+          }
           listEl.innerHTML = scopeHives.map(function (h) {
-            var ap = D.apiaryById(h.apiaryId);
-            return K.hiveCardHtml(h, ap ? ap.name : '');
+            return K.hiveCardHtml(h, apNames[h.apiaryId] || '');
           }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
         };
         renderKoloni();

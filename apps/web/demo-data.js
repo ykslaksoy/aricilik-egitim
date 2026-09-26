@@ -8,6 +8,7 @@
 (function (global) {
   var STORAGE_KEY = 'superari.ariliklar.v1';
   var HIVES_KEY = 'superari.kovanlar.v1';
+  var QUEENS_KEY = 'superari.anaArilar.v1';
   var DELETED_SEEDS_KEY = 'superari.ariliklar.deletedSeeds.v1';
   var WATER_CATALOG_KEY = 'superari.waterSources.catalog.v1';
 
@@ -833,6 +834,7 @@
     if (st) out.swarmTendency = st;
     if (h.colonyNote != null && String(h.colonyNote).trim()) out.colonyNote = String(h.colonyNote).trim().slice(0, 500);
     if (h.colonyUpdatedAt != null && String(h.colonyUpdatedAt).trim()) out.colonyUpdatedAt = String(h.colonyUpdatedAt).trim();
+    if (h.currentQueenId != null && String(h.currentQueenId).trim()) out.currentQueenId = String(h.currentQueenId).trim().slice(0, 32);
     if (Array.isArray(h.queenHistory) && h.queenHistory.length) {
       var hist = h.queenHistory.map(normalizeQueenHistoryEntry).filter(Boolean);
       if (hist.length) out.queenHistory = hist.slice(-20);
@@ -861,6 +863,8 @@
     if (e.marked === true || e.marked === false) o.marked = e.marked;
     if (e.note != null && String(e.note).trim()) o.note = String(e.note).trim().slice(0, 300);
     if (e.bulk === true) o.bulk = true;
+    if (e.oldQueenId) o.oldQueenId = String(e.oldQueenId).slice(0, 32);
+    if (e.newQueenId) o.newQueenId = String(e.newQueenId).slice(0, 32);
     return o;
   }
 
@@ -921,85 +925,267 @@
       ' · yenilenecek ana ' + s.requeen + (s.unknown ? ' · bilinmeyen ' + s.unknown : '');
   }
 
-  /**
-   * Koloni düzenleyicisinden tek kovan güncelle (breed + ana/özellik alanları).
-   * Boş değer alanı siler. Diğer alanlara dokunmaz.
+  /* ---------- Ana arı kayıtları (kovandan bağımsız, ayrı depo) ----------
+   * Queen: { id:'Q-2026-0012', year, breed, source, marked, note, createdAt,
+   *          placements:[{ hiveId, from, to|null, endReason }] }
+   * Kovan: currentQueenId → mevcut ana; hive.breed/queenYear/queenSource/queenMarked
+   * mevcut anadan türetilen aynalardır (majorityBreed / kışlama kodu hive.breed okur).
    */
-  function updateHiveColony(id, patch) {
+  function normalizeQueen(q) {
+    if (!q || typeof q !== 'object' || !q.id) return null;
+    var o = { id: String(q.id).slice(0, 32) };
+    var y = parseQueenYear(q.year);
+    o.year = y;
+    o.breed = q.breed != null && String(q.breed).trim() ? String(q.breed).trim().slice(0, 60) : '';
+    if (q.source != null && String(q.source).trim()) o.source = String(q.source).trim().slice(0, 120);
+    if (q.marked === true || q.marked === false) o.marked = q.marked;
+    if (q.note != null && String(q.note).trim()) o.note = String(q.note).trim().slice(0, 300);
+    o.createdAt = String(q.createdAt || new Date().toISOString());
+    if (q.migrated === true) o.migrated = true;
+    o.placements = (Array.isArray(q.placements) ? q.placements : []).map(function (p) {
+      if (!p || p.hiveId == null) return null;
+      return {
+        hiveId: Number(p.hiveId),
+        from: p.from ? String(p.from).slice(0, 10) : null,
+        to: p.to ? String(p.to).slice(0, 10) : null,
+        endReason: p.endReason ? String(p.endReason).slice(0, 60) : null
+      };
+    }).filter(Boolean);
+    return o;
+  }
+  function loadQueens() {
+    try {
+      var raw = localStorage.getItem(QUEENS_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.map(normalizeQueen).filter(Boolean) : [];
+    } catch (e) { return []; }
+  }
+  function saveQueens(list) {
+    try { localStorage.setItem(QUEENS_KEY, JSON.stringify(list || [])); } catch (e) { /* ignore */ }
+  }
+  function queenSeq(id) {
+    var m = /-(\d+)$/.exec(String(id || ''));
+    return m ? Number(m[1]) : 0;
+  }
+  function makeQueenIdGen(queens) {
+    var max = 0;
+    (queens || []).forEach(function (q) { max = Math.max(max, queenSeq(q.id)); });
+    return function (year) {
+      max++;
+      return 'Q-' + (year || currentYear()) + '-' + String(max).padStart(4, '0');
+    };
+  }
+  function openPlacement(q) {
+    var ps = q && q.placements ? q.placements : [];
+    for (var i = ps.length - 1; i >= 0; i--) if (!ps[i].to) return ps[i];
+    return null;
+  }
+  function queenById(id, queens) {
+    var list = queens || loadQueens();
+    for (var i = 0; i < list.length; i++) if (list[i].id === String(id)) return list[i];
+    return null;
+  }
+  /** Kovan aynası ← mevcut ana (breed, queenYear, queenSource, queenMarked). */
+  function mirrorQueenToHive(hive, q) {
+    delete hive.queenYear; delete hive.queenSource; delete hive.queenMarked;
+    if (!q) { delete hive.currentQueenId; return hive; }
+    hive.currentQueenId = q.id;
+    if (q.year != null) hive.queenYear = q.year;
+    if (q.breed) hive.breed = q.breed;
+    if (q.source) hive.queenSource = q.source;
+    if (q.marked === true || q.marked === false) hive.queenMarked = q.marked;
+    return hive;
+  }
+  function sameMirror(h, q) {
+    return h.currentQueenId === q.id &&
+      (h.queenYear == null ? null : h.queenYear) === q.year &&
+      (!q.breed || h.breed === q.breed) &&
+      (h.queenSource || '') === (q.source || '') &&
+      (h.queenMarked == null ? null : h.queenMarked) === (q.marked == null ? null : q.marked);
+  }
+  function cloneObj(h) {
+    var c = {};
+    for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) c[k] = h[k];
+    return c;
+  }
+
+  /**
+   * Her kovanın bir ana kaydı olmasını sağla (ilk çalışmada: mevcut queenYear/breed'den aktarım),
+   * kovan aynalarını anadan eşitle, kaldırılan kovanlardaki açık yerleşimleri kapat.
+   */
+  function ensureQueens(hives) {
+    var queens = loadQueens();
+    var byId = {};
+    queens.forEach(function (q) { byId[q.id] = q; });
+    var gen = makeQueenIdGen(queens);
+    var qChanged = false, hChanged = false;
+    var hiveIds = {};
+    var nowIso = new Date().toISOString();
+    var out = (hives || []).map(function (h) {
+      hiveIds[h.id] = true;
+      var q = h.currentQueenId ? byId[h.currentQueenId] : null;
+      if (!q) {
+        q = normalizeQueen({
+          id: gen(h.queenYear),
+          year: h.queenYear, breed: h.breed, source: h.queenSource, marked: h.queenMarked,
+          createdAt: nowIso, migrated: true,
+          placements: [{ hiveId: h.id, from: null, to: null, endReason: null }]
+        });
+        queens.push(q); byId[q.id] = q; qChanged = true;
+      } else {
+        var op = openPlacement(q);
+        if (!op || op.hiveId !== h.id) {
+          if (op) { op.to = todayLocal(); op.endReason = 'Başka kovana taşındı'; }
+          q.placements.push({ hiveId: h.id, from: todayLocal(), to: null, endReason: null });
+          qChanged = true;
+        }
+      }
+      if (sameMirror(h, q)) return h;
+      hChanged = true;
+      return normalizeHive(mirrorQueenToHive(cloneObj(h), q));
+    });
+    queens.forEach(function (q) {
+      var op = openPlacement(q);
+      if (op && !hiveIds[op.hiveId]) { op.to = todayLocal(); op.endReason = 'Kovan kaldırıldı'; qChanged = true; }
+    });
+    if (qChanged) saveQueens(queens);
+    return { list: out, changed: hChanged };
+  }
+
+  /** Değişim: eski ananın yerleşimini kapat, yeni ana kaydı oluştur ve yerleştir. (queens dizisini değiştirir) */
+  function replaceQueenInMemory(hive, patch, queens, gen, opts) {
+    opts = opts || {};
+    var date = /^\d{4}-\d{2}-\d{2}$/.test(String(patch.date || '')) ? patch.date : todayLocal();
+    var old = hive.currentQueenId ? queenById(hive.currentQueenId, queens) : null;
+    if (old) {
+      var op = openPlacement(old);
+      if (op && op.hiveId === hive.id) { op.to = date; op.endReason = 'Değiştirildi'; }
+    }
+    var y = parseQueenYear(patch.queenYear);
+    var breed = String(patch.breed == null ? '' : patch.breed).trim().slice(0, 60) || hive.breed || '';
+    var nq = normalizeQueen({
+      id: gen(y),
+      year: y, breed: breed,
+      source: patch.queenSource, marked: patch.queenMarked, note: patch.note,
+      createdAt: new Date().toISOString(),
+      placements: [{ hiveId: hive.id, from: date, to: null, endReason: null }]
+    });
+    queens.push(nq);
+    var copy = cloneObj(hive);
+    var entry = { date: date, oldQueenId: old ? old.id : hive.currentQueenId, newQueenId: nq.id };
+    if (hive.queenYear != null) entry.oldYear = hive.queenYear;
+    if (hive.breed) entry.oldBreed = hive.breed;
+    if (nq.year != null) entry.newYear = nq.year;
+    if (nq.breed) entry.newBreed = nq.breed;
+    if (nq.source) entry.source = nq.source;
+    if (nq.marked === true || nq.marked === false) entry.marked = nq.marked;
+    if (nq.note) entry.note = nq.note;
+    if (opts.bulk) entry.bulk = true;
+    copy.queenHistory = (Array.isArray(hive.queenHistory) ? hive.queenHistory.slice() : []).concat([entry]);
+    mirrorQueenToHive(copy, nq);
+    copy.colonyUpdatedAt = new Date().toISOString();
+    return { hive: copy, queen: nq, oldQueen: old, entry: entry };
+  }
+
+  function applyColonyTraits(copy, patch) {
+    ['calmness', 'swarmTendency', 'colonyNote'].forEach(function (f) {
+      if (patch && Object.prototype.hasOwnProperty.call(patch, f)) delete copy[f];
+    });
+    var tmp = {};
+    ['calmness', 'swarmTendency', 'colonyNote'].forEach(function (f) { if (patch && patch[f] != null) tmp[f] = patch[f]; });
+    copyColonyFields(copy, tmp);
+  }
+
+  /**
+   * Tek kovan (Koloni düzenleyicisi).
+   * mode 'correct' (Bilgileri düzelt): mevcut ana kaydını günceller, yeni kayıt yok.
+   * mode 'replace' (Ana arıyı değiştir): eski yerleşimi kapatır, yeni ana oluşturur, kovan geçmişine yazar.
+   * Koloni özellikleri (sakinlik, oğul eğilimi, koloni notu) her iki modda kovana yazılır.
+   */
+  function updateHiveColony(id, patch, mode) {
+    patch = patch || {};
     var n = Number(id);
     var list = loadHives();
+    var queens = loadQueens();
+    var gen = makeQueenIdGen(queens);
     var found = null;
     var out = list.map(function (h) {
       if (h.id !== n) return h;
-      var copy = {};
-      for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
-      ['breed', 'queenYear', 'queenSource', 'queenMarked', 'calmness', 'swarmTendency', 'colonyNote'].forEach(function (f) {
-        if (!patch || !Object.prototype.hasOwnProperty.call(patch, f)) return;
-        delete copy[f];
-      });
-      if (patch && Object.prototype.hasOwnProperty.call(patch, 'breed')) {
-        var b = String(patch.breed == null ? '' : patch.breed).trim();
-        if (b) copy.breed = b.slice(0, 60);
+      var copy;
+      if (mode === 'replace') {
+        copy = replaceQueenInMemory(h, patch, queens, gen).hive;
+      } else {
+        copy = cloneObj(h);
+        var q = h.currentQueenId ? queenById(h.currentQueenId, queens) : null;
+        if (q) {
+          if (Object.prototype.hasOwnProperty.call(patch, 'queenYear')) q.year = parseQueenYear(patch.queenYear);
+          if (patch.breed != null && String(patch.breed).trim()) q.breed = String(patch.breed).trim().slice(0, 60);
+          if (Object.prototype.hasOwnProperty.call(patch, 'queenSource')) {
+            var src = String(patch.queenSource == null ? '' : patch.queenSource).trim();
+            if (src) q.source = src.slice(0, 120); else delete q.source;
+          }
+          if (Object.prototype.hasOwnProperty.call(patch, 'queenMarked')) {
+            if (patch.queenMarked === true || patch.queenMarked === false) q.marked = patch.queenMarked; else delete q.marked;
+          }
+          if (Object.prototype.hasOwnProperty.call(patch, 'queenNote')) {
+            var qn = String(patch.queenNote == null ? '' : patch.queenNote).trim();
+            if (qn) q.note = qn.slice(0, 300); else delete q.note;
+          }
+          mirrorQueenToHive(copy, q);
+        }
       }
-      copyColonyFields(copy, patch || {});
-      if (copy.queenYear !== h.queenYear && copy.queenYear != null) {
-        var ent = { date: todayLocal(), newYear: copy.queenYear };
-        if (h.queenYear != null) ent.oldYear = h.queenYear;
-        if (h.breed) ent.oldBreed = h.breed;
-        if (copy.breed) ent.newBreed = copy.breed;
-        if (copy.queenSource) ent.source = copy.queenSource;
-        if (copy.queenMarked === true || copy.queenMarked === false) ent.marked = copy.queenMarked;
-        copy.queenHistory = (Array.isArray(h.queenHistory) ? h.queenHistory.slice() : []).concat([ent]);
-      }
+      applyColonyTraits(copy, patch);
       copy.colonyUpdatedAt = new Date().toISOString();
       found = normalizeHive(copy);
       return found;
     });
     if (!found) return null;
+    saveQueens(queens);
     saveHives(out);
     return found;
   }
 
   /**
-   * Toplu ana arı değişimi: seçili kovanların hepsine aynı değerleri yaz (tek kayıt işlemi).
-   * patch: { queenYear, breed (boş = değiştirme), queenSource, queenMarked, note, date }.
-   * Her kovana queenHistory[] girdisi eklenir. Döner: güncellenen kovan sayısı.
+   * Toplu ana arı değişimi: seçili her kovan için ayrı yeni ana kaydı + kovan geçmişi.
+   * Döner: [{ id, name, oldYear, newYear, oldBreed, newBreed, oldQueenId, newQueenId }]
    */
   function bulkQueenReplace(ids, patch) {
     patch = patch || {};
     var want = {};
     (ids || []).forEach(function (id) { want[Number(id)] = true; });
-    var qy = parseQueenYear(patch.queenYear);
-    var breed = String(patch.breed == null ? '' : patch.breed).trim().slice(0, 60);
-    var src = String(patch.queenSource == null ? '' : patch.queenSource).trim().slice(0, 120);
-    var marked = patch.queenMarked === true || patch.queenMarked === false ? patch.queenMarked : null;
-    var note = String(patch.note == null ? '' : patch.note).trim().slice(0, 300);
-    var date = String(patch.date || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = todayLocal();
-    var now = new Date().toISOString();
+    var queens = loadQueens();
+    var gen = makeQueenIdGen(queens);
     var updated = [];
     var out = loadHives().map(function (h) {
       if (!want[h.id]) return h;
-      var copy = {};
-      for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) copy[k] = h[k];
-      var entry = { date: date, bulk: true };
-      if (h.queenYear != null) entry.oldYear = h.queenYear;
-      if (h.breed) entry.oldBreed = h.breed;
-      if (qy != null) copy.queenYear = qy; else delete copy.queenYear;
-      if (breed) copy.breed = breed;
-      if (copy.queenYear != null) entry.newYear = copy.queenYear;
-      if (copy.breed) entry.newBreed = copy.breed;
-      if (src) { copy.queenSource = src; entry.source = src; } else { delete copy.queenSource; }
-      if (marked != null) { copy.queenMarked = marked; entry.marked = marked; } else { delete copy.queenMarked; }
-      if (note) entry.note = note;
-      copy.queenHistory = (Array.isArray(h.queenHistory) ? h.queenHistory.slice() : []).concat([entry]);
-      copy.colonyUpdatedAt = now;
-      var nh = normalizeHive(copy);
-      updated.push({ id: nh.id, name: nh.name, oldYear: entry.oldYear, newYear: entry.newYear, oldBreed: entry.oldBreed, newBreed: entry.newBreed });
+      var r = replaceQueenInMemory(h, patch, queens, gen, { bulk: true });
+      var nh = normalizeHive(r.hive);
+      updated.push({
+        id: nh.id, name: nh.name,
+        oldYear: r.entry.oldYear, newYear: r.entry.newYear,
+        oldBreed: r.entry.oldBreed, newBreed: r.entry.newBreed,
+        oldQueenId: r.entry.oldQueenId, newQueenId: r.entry.newQueenId
+      });
       return nh;
     });
-    if (updated.length) saveHives(out);
+    if (updated.length) { saveQueens(queens); saveHives(out); }
     return updated;
+  }
+
+  /** Kapsamdaki ana arılar: mevcut (açık yerleşimi kapsamda) + önceki (geçmiş yerleşimi kapsamda). */
+  function queensForHives(hiveIds) {
+    var set = {};
+    (hiveIds || []).forEach(function (id) { set[Number(id)] = true; });
+    var current = [], past = [];
+    loadQueens().forEach(function (q) {
+      var op = openPlacement(q);
+      if (op && set[op.hiveId]) current.push(q);
+      else if (q.placements.some(function (p) { return set[p.hiveId]; })) past.push(q);
+    });
+    var bySeq = function (a, b) { return queenSeq(b.id) - queenSeq(a.id); };
+    current.sort(function (a, b) { return (openPlacement(a).hiveId - openPlacement(b).hiveId); });
+    past.sort(bySeq);
+    return { current: current, past: past };
   }
 
   /** Demo ana arı yılları + özellikler — tek seferlik, yalnız eksik alanları doldurur. */
@@ -1639,14 +1825,21 @@
     var QUEEN_SEED_KEY = 'superari.queenSeed.v1';
     var done = false;
     try { done = localStorage.getItem(QUEEN_SEED_KEY) === '1'; } catch (eQ) {}
-    if (done) return list;
-    try { localStorage.setItem(QUEEN_SEED_KEY, '1'); } catch (eQ2) {}
-    var seeded = seedQueenTraits(list);
-    if (seeded.changed) {
-      try { saveHives(seeded.list); } catch (eQ3) {}
-      return seeded.list;
+    if (!done) {
+      try { localStorage.setItem(QUEEN_SEED_KEY, '1'); } catch (eQ2) {}
+      var seeded = seedQueenTraits(list);
+      if (seeded.changed) {
+        try { saveHives(seeded.list); } catch (eQ3) {}
+        list = seeded.list;
+      }
     }
-    return list;
+    /* Ana arı deposu: ilk çalışmada her kovan için ana kaydı oluşturur (superari.anaArilar.v1),
+       sonra kovan aynalarını (breed/queenYear/…) mevcut anadan eşitler. */
+    var eq = ensureQueens(list);
+    if (eq.changed) {
+      try { saveHives(eq.list); } catch (eQ4) {}
+    }
+    return eq.list;
   }
 
   function addApiary(input) {
@@ -2119,6 +2312,11 @@
         summaryText: colonySummaryText,
         updateHive: updateHiveColony,
         bulkQueenReplace: bulkQueenReplace,
+        loadQueens: loadQueens,
+        queenById: function (id) { return queenById(id); },
+        openPlacement: openPlacement,
+        queensForHives: queensForHives,
+        QUEENS_KEY: QUEENS_KEY,
         currentYear: currentYear,
         todayLocal: todayLocal
       },
