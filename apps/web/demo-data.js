@@ -729,12 +729,14 @@
    * Arılık başına ırk planı (seed + tek seferlik göç):
    *  a1 Kayaköy → hepsi Muğla · a2 Tortum → yarı Kafkas / yarı Karadeniz (sırayla)
    *  a3 Palandöken → yarı Kafkas / yarı Karniyol (sırayla) · a4 Yanıkdağ Baluğundüzü → hepsi Kafkas
+   *  a5 Cimil Yaylası → hepsi Kafkas × Karadeniz (melez, tek ırk)
    */
   var APIARY_BREED_PLAN = {
     a1: ['Muğla'],
     a2: ['Kafkas', 'Karadeniz'],
     a3: ['Kafkas', 'Karniyol'],
-    a4: ['Kafkas']
+    a4: ['Kafkas'],
+    a5: ['Kafkas × Karadeniz']
   };
   var DEFAULT_SEED_BREED = 'Karniyol';
 
@@ -748,6 +750,7 @@
     if (/tortum/i.test(txt)) return 'a2';
     if (/paland[oö]ken/i.test(txt)) return 'a3';
     if (/kayak[oö]y/i.test(txt)) return 'a1';
+    if (/cimil/i.test(txt)) return 'a5';
     return '';
   }
 
@@ -1296,11 +1299,11 @@
    * Arılık başına ırk planını uygula (Kayaköy Muğla, Tortum Kafkas/Karadeniz,
    * Palandöken Kafkas/Karniyol, Yanıkdağ Baluğundüzü Kafkas). Plan dışı arılıklar dokunulmaz.
    */
-  function applyApiaryBreedPlan(apiaries, hives) {
+  function applyApiaryBreedPlan(apiaries, hives, onlyKeys) {
     var planByApiary = {};
     (apiaries || []).forEach(function (a) {
       var k = breedPlanKeyFor(a);
-      if (k) planByApiary[String(a.id)] = k;
+      if (k && (!onlyKeys || onlyKeys.indexOf(k) !== -1)) planByApiary[String(a.id)] = k;
     });
     var idx = {};
     var changed = false;
@@ -1341,13 +1344,28 @@
     } else {
       reconciled = reconcile(apiaries, raw);
     }
-    var BREED_MIG_KEY = 'superari.breedMig.v2';
-    var breedMigDone = false;
-    try { breedMigDone = localStorage.getItem(BREED_MIG_KEY) === '1'; } catch (eK) {}
-    if (breedMigDone) return reconciled.hives;
-    try { localStorage.setItem(BREED_MIG_KEY, '1'); } catch (eK2) {}
-    try { localStorage.removeItem('superari.breedMig.karniyol.v1'); } catch (eK3) {}
-    var breedMig = applyApiaryBreedPlan(reconciled.apiaries, reconciled.hives);
+    /*
+     * Irk göçleri (tek seferlik):
+     *  v2 — tüm arılık planı (a1..a4 + a5). v2 hiç çalışmadıysa tam plan uygulanır, v3 de işaretlenir.
+     *  v3 — v2'yi zaten çalıştırmış kullanıcılar için yalnız a5 Cimil → Kafkas × Karadeniz
+     *       (diğer arılıklardaki sonradan yapılan elle düzenlemelere dokunmaz).
+     */
+    var MIG_V2 = 'superari.breedMig.v2';
+    var MIG_V3 = 'superari.breedMig.v3';
+    var v2Done = false, v3Done = false;
+    try {
+      v2Done = localStorage.getItem(MIG_V2) === '1';
+      v3Done = localStorage.getItem(MIG_V3) === '1';
+    } catch (eK) {}
+    if (v2Done && v3Done) return reconciled.hives;
+    try {
+      localStorage.setItem(MIG_V2, '1');
+      localStorage.setItem(MIG_V3, '1');
+      localStorage.removeItem('superari.breedMig.karniyol.v1');
+    } catch (eK2) {}
+    var breedMig = v2Done
+      ? applyApiaryBreedPlan(reconciled.apiaries, reconciled.hives, ['a5'])
+      : applyApiaryBreedPlan(reconciled.apiaries, reconciled.hives);
     if (breedMig.changed) {
       try {
         saveHives(breedMig.list);
