@@ -2016,6 +2016,24 @@
     saveRecordsAll(all);
     return r;
   }
+  function updateRecord(hiveId, kind, id, rec) {
+    if (REC_KINDS.indexOf(kind) === -1) return null;
+    var all = loadRecordsAll();
+    var key = String(Number(hiveId));
+    if (!all[key] || !Array.isArray(all[key][kind])) return null;
+    var idx = -1;
+    all[key][kind].forEach(function (x, i) { if (x && x.id === id) idx = i; });
+    if (idx < 0) return null;
+    var merged = {};
+    Object.keys(rec || {}).forEach(function (k) { merged[k] = rec[k]; });
+    merged.id = id;
+    if (all[key][kind][idx].demo) merged.demo = true;
+    var r = normalizeRecord(kind, merged);
+    if (!r) return null;
+    all[key][kind][idx] = r;
+    saveRecordsAll(all);
+    return r;
+  }
   function removeRecord(hiveId, kind, id) {
     var all = loadRecordsAll();
     var key = String(Number(hiveId));
@@ -2346,6 +2364,7 @@
     loadAll: function () { seedAll(); return loadRecordsAll(); },
     add: addRecord,
     remove: removeRecord,
+    update: updateRecord,
     diseaseLevel: diseaseLevel,
     status: function (id, all) { seedAll(); return colonyStatus(id, all); },
     healthFlags: function (id) { seedAll(); return healthFlags(id); },

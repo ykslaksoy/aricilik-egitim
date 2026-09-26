@@ -797,7 +797,7 @@
   }
 
   /** Konu kayıt sayfası: geçmiş + yeni kayıt formu. */
-  function openRecordSheet(topic, hiveId, onSaved) {
+  function openRecordSheet(topic, hiveId, onSaved, editRec) {
     ensureGridCss();
     if (topic === 'kis') return openWinterSheet(hiveId, onSaved);
     var d = D(), r = R();
@@ -888,11 +888,26 @@
       '<h3 id="krTitle">' + esc(h.name) + ' · ' + esc(TOPIC_LABEL[topic]) + '</h3>' +
       '<p class="kol-sub">' + esc(r.workMode() === 'live' ? 'Canlı mod' : 'Demo mod') + ' · kayıtlar bu kovana yazılır</p>' +
       '<div id="krHist">' + histHtml() + '</div>' +
-      '<div class="kr-section-title">Yeni kayıt</div>' +
+      '<div class="kr-section-title">' + (editRec ? 'Kaydı düzenle · ' + esc(fmtDate(editRec.date)) : 'Yeni kayıt') + '</div>' +
       '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;">' + form + '</form>' +
-      '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
+      '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">' + (editRec ? 'Güncelle' : 'Kaydet') + '</button></div></div>';
     document.body.appendChild(back);
     var f = back.querySelector('#krForm');
+    function fillForm(rec) {
+      if (!rec) return;
+      if (topic === 'hastalik' && rec.disease) {
+        f.elements.disease.value = rec.disease;
+        back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(rec.disease);
+      }
+      Object.keys(rec).forEach(function (k) {
+        var el = f.elements[k];
+        if (!el || k === 'disease') return;
+        var val = rec[k];
+        if (el.type === 'checkbox') el.checked = !!val;
+        else if (k === 'eggs') el.value = val ? '1' : '0';
+        else el.value = val == null ? '' : String(val);
+      });
+    }
     function close() { if (back.parentNode) back.parentNode.removeChild(back); document.removeEventListener('keydown', onKey); }
     function onKey(e) { if (e.key === 'Escape') close(); }
     document.addEventListener('keydown', onKey);
@@ -905,6 +920,9 @@
       };
       f.addEventListener('input', upd);
     }
+    fillForm(editRec);
+    if (editRec && topic === 'besleme') back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')';
+    if (editRec && topic === 'guc') setTimeout(function () { f.dispatchEvent(new Event('input')); }, 0);
     if (topic === 'besleme') {
       f.elements['type'].addEventListener('change', function () { back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')'; });
     }
@@ -945,8 +963,9 @@
         rec = { date: v('date'), disease: v('disease'), count: v('count'), method: v('method'), infestation: v('infestation'), status: v('status'), spores: v('spores'),
           severity: v('severity'), frames: v('frames'), treatment: v('treatment'), withdrawalDays: v('withdrawalDays'), checkDate: v('checkDate'), note: v('note') };
       }
-      var saved = r.add(h.id, kind, rec);
+      var saved = editRec ? r.update(h.id, kind, editRec.id, rec) : r.add(h.id, kind, rec);
       if (!saved) { toast('Kaydedilemedi'); return; }
+      if (editRec) { toast('Güncellendi'); close(); if (typeof onSaved === 'function') onSaved(saved); return; }
       back.querySelector('#krHist').innerHTML = histHtml();
       f.reset();
       if (f.elements.date) f.elements.date.value = today;
@@ -1091,6 +1110,106 @@
     });
   }
 
+  /* ---- Bakım geçmişi (kovan detayı): tüm kayıtlar tek zaman çizelgesinde ---- */
+  var TL_KIND = {
+    strength: { icon: '💪', label: 'Koloni gücü / muayene', topic: 'guc' },
+    brood: { icon: '🥚', label: 'Yavru durumu', topic: 'yavru' },
+    disease: { icon: '💊', label: 'Hastalık / ilaçlama', topic: 'hastalik' },
+    feed: { icon: '🍯', label: 'Besleme', topic: 'besleme' },
+    winter: { icon: '❄️', label: 'Kışlık hazırlık', topic: 'kis' },
+    queen: { icon: '👑', label: 'Ana arı değişimi', topic: 'ana' }
+  };
+  var TL_CSS = '.bt-list{display:grid;gap:6px;margin-top:8px;}' +
+    '.bt-item{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:start;width:100%;text-align:left;font:inherit;color:inherit;background:#fff;border:1px solid var(--border,#ead9b3);border-radius:12px;padding:8px 10px;cursor:pointer;}' +
+    '.bt-ico{width:30px;height:30px;border-radius:50%;background:#fff3bf;display:flex;align-items:center;justify-content:center;font-size:15px;}' +
+    '.bt-top{display:flex;justify-content:space-between;gap:6px;font-size:.84rem;font-weight:800;}' +
+    '.bt-top .dt{color:var(--muted,#6b7280);font-weight:700;white-space:nowrap;}' +
+    '.bt-sum{font-size:.8rem;color:var(--muted,#6b7280);overflow-wrap:anywhere;margin-top:2px;}' +
+    '.bt-add{width:100%;margin-top:8px;padding:.7rem;border-radius:12px;border:1.5px dashed #d9a520;background:#fffaf0;color:#7a5a12;font:inherit;font-weight:800;cursor:pointer;}' +
+    '.bt-menu{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:.6rem 0;}' +
+    '.bt-menu button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:.7rem .4rem;border-radius:12px;border:1px solid var(--border,#ead9b3);background:#fff;font:inherit;font-size:.82rem;font-weight:800;color:#5c4813;cursor:pointer;}' +
+    '.bt-menu button span{font-size:20px;}';
+  function ensureTlCss() {
+    ensureGridCss();
+    if (document.getElementById('koloniTlCss')) return;
+    var st = document.createElement('style'); st.id = 'koloniTlCss'; st.textContent = TL_CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function timelineEntries(h) {
+    var r = R(); if (!r || !h) return [];
+    var rec = r.recordsFor(h.id);
+    var out = [];
+    rec.strength.forEach(function (x) { out.push({ kind: 'strength', rec: x, date: x.date, sum: r.strengthClass(x) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' · bal ' + x.honeyFrames + ' · polen ' + x.pollenFrames + ' çerçeve' + (x.note ? ' · ' + x.note : '') }); });
+    rec.brood.forEach(function (x) { out.push({ kind: 'brood', rec: x, date: x.date, sum: broodText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
+    rec.disease.forEach(function (x) { out.push({ kind: 'disease', rec: x, date: x.date, sum: diseaseText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
+    rec.feed.forEach(function (x) { out.push({ kind: 'feed', rec: x, date: x.date, sum: r.FEED_LABEL[x.type] + ' ' + num(x.amount) + ' ' + r.FEED_UNIT[x.type] + (x.note ? ' · ' + x.note : '') }); });
+    rec.winter.forEach(function (x) {
+      var ws = r.winterStatus(h.id);
+      var cur = ws.rec && ws.rec.id === x.id;
+      out.push({ kind: 'winter', rec: x, date: x.date, sum: x.season + ' kışı' + (cur ? ' · ' + ws.status + (ws.missing.length ? ' · eksik: ' + ws.missing.join(', ') : '') : '') + (x.note ? ' · ' + x.note : '') });
+    });
+    (Array.isArray(h.queenHistory) ? h.queenHistory : []).forEach(function (e, i) {
+      out.push({ kind: 'queen', rec: { id: 'q' + i }, date: String(e.date || '').slice(0, 10), sum: historyEntryText(e).split(' · ').slice(1).join(' · ') });
+    });
+    out.sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+    return out;
+  }
+  function timelineHtml(h) {
+    ensureTlCss();
+    var list = timelineEntries(h);
+    var items = list.map(function (e) {
+      var k = TL_KIND[e.kind];
+      return '<button type="button" class="bt-item" data-bt-kind="' + e.kind + '" data-bt-id="' + esc(e.rec.id) + '" aria-label="' + esc(k.label + ' ' + fmtDate(e.date) + ' düzenle') + '">' +
+        '<span class="bt-ico" aria-hidden="true">' + k.icon + '</span><span><span class="bt-top"><span>' + esc(k.label) +
+        (e.rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span><span class="dt">' + esc(fmtDate(e.date)) + '</span></span>' +
+        '<span class="bt-sum" style="display:block;">' + esc(e.sum) + '</span></span></button>';
+    }).join('');
+    return '<button type="button" class="bt-add" data-bt-add="1">+ İşlem ekle</button>' +
+      '<div class="bt-list">' + (items || '<p class="kol-sub" style="margin:0;">Henüz bakım kaydı yok. «+ İşlem ekle» ile başlayın; tüm kovanları Koloni sayfasından da takip edebilirsiniz.</p>') + '</div>';
+  }
+  function openAddAction(hiveId, onSaved) {
+    ensureTlCss();
+    var d = D(); if (!d) return;
+    var h = d.hiveById(hiveId); if (!h) return;
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    var order = ['strength', 'brood', 'disease', 'feed', 'winter', 'queen'];
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true"><h3>' + esc(h.name) + ' · İşlem ekle</h3>' +
+      '<p class="kol-sub">Kayıt, Koloni sayfasındaki ile aynı kovan kaydına yazılır.</p>' +
+      '<div class="bt-menu">' + order.map(function (k) {
+        return '<button type="button" data-add-kind="' + k + '"><span aria-hidden="true">' + TL_KIND[k].icon + '</span>' + esc(TL_KIND[k].label) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="kol-actions"><button type="button" class="btn secondary" data-close="1">Kapat</button></div></div>';
+    document.body.appendChild(back);
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); }
+    back.addEventListener('click', function (e) {
+      if (e.target === back || (e.target.closest && e.target.closest('[data-close]'))) { close(); return; }
+      var b = e.target.closest ? e.target.closest('[data-add-kind]') : null;
+      if (!b) return;
+      close();
+      var k = b.getAttribute('data-add-kind');
+      if (k === 'queen') openEditor(h.id, onSaved);
+      else if (k === 'winter') openWinterSheet(h.id, onSaved);
+      else openRecordSheet(TL_KIND[k].topic, h.id, onSaved);
+    });
+  }
+  /** Kovan detayındaki bakım geçmişi kutusunu bağlar (tek seferlik). */
+  function bindTimeline(container, hiveId, onSaved) {
+    if (!container || container.__btBound) return;
+    container.__btBound = true;
+    container.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-bt-add]')) { openAddAction(hiveId, onSaved); return; }
+      var it = e.target.closest ? e.target.closest('.bt-item') : null;
+      if (!it) return;
+      var kind = it.getAttribute('data-bt-kind'), id = it.getAttribute('data-bt-id');
+      if (kind === 'queen') { openEditor(hiveId, onSaved); return; }
+      if (kind === 'winter') { openWinterSheet(hiveId, onSaved); return; }
+      var r = R(); if (!r) return;
+      var rec = (r.recordsFor(hiveId)[kind] || []).filter(function (x) { return x.id === id; })[0];
+      openRecordSheet(TL_KIND[kind].topic, hiveId, onSaved, rec || null);
+    });
+  }
+
   /** Kovan detayı için son kayıt özetleri (salt okunur). */
   function latestRowsData(h) {
     var r = R(); if (!r || !h) return null;
@@ -1121,6 +1240,9 @@
     topicListHtml: topicListHtml,
     openRecordSheet: openRecordSheet,
     openWinterSheet: openWinterSheet,
+    timelineHtml: timelineHtml,
+    openAddAction: openAddAction,
+    bindTimeline: bindTimeline,
     winterLineHtml: winterLineHtml,
     possSuffix: possSuffix,
     recordChipsHtml: recordChipsHtml,

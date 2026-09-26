@@ -381,10 +381,10 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-4"></script>
+<script src="demo-data.js?v=koloni-5"></script>
 <script src="rapor-store.js"></script>
-<script src="sensor-health.js?v=koloni-4"></script>
-<script src="koloni.js?v=koloni-4"></script>
+<script src="sensor-health.js?v=koloni-5"></script>
+<script src="koloni.js?v=koloni-5"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -950,6 +950,13 @@
         '</div>' +
       '</div>' +
 
+      (K && K.timelineHtml
+        ? '<div class="kd-extra" aria-label="Bakım geçmişi" id="btBox">' +
+            '<h2>Bakım geçmişi</h2>' +
+            '<p class="hint" style="margin:0;">Tüm kayıtlar yeniden eskiye; düzenlemek için dokunun. Tüm kovanların takibi: <a href="kovanlar.html?view=koloni">Koloni</a>.</p>' +
+            K.timelineHtml(hive) +
+          '</div>'
+        : '') +
       '<div class="kd-extra" aria-label="Petek">' +
         '<h2>Petek / muayene</h2>' +
         '<p class="hint">Son petek tarama özeti yok (kayıt gelince burada gösterilir).</p>' +
@@ -973,6 +980,14 @@
         '</div>' +
       '</div>';
 
+    if (K && K.bindTimeline) {
+      K.bindTimeline(document.getElementById('btBox'), hive.id, function () {
+        var fresh = window.SuperAriDemo.hiveById(hive.id) || hive;
+        var y = window.scrollY;
+        render(fresh, apiary);
+        window.scrollTo(0, y);
+      });
+    }
     if (hasRealTrend) {
       requestAnimationFrame(function () {
         drawChart();
