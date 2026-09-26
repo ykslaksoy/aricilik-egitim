@@ -139,7 +139,7 @@
       (apiaryId ? ' · <a href="' + href + '" onclick="event.stopPropagation();">Koloni</a>' : '') + '</div>';
   }
 
-  function hiveCardHtml(h, apiaryName) {
+  function hiveCardHtml(h, apiaryName, extraHtml) {
     ensureCss();
     var sw = h.swarmTendency || '—';
     var swTone = sw === 'Yüksek' ? ' style="color:#c92a2a;font-weight:800"' : (sw === 'Orta' ? ' style="color:#e67700;font-weight:800"' : '');
@@ -150,7 +150,7 @@
         '<div><span class="k">Ana arı yaşı</span>' + queenHtml(h) + '</div>' +
         '<div><span class="k">Sakinlik</span>' + esc(calmText(h)) + '</div>' +
         '<div><span class="k">Oğul eğilimi</span><span' + swTone + '>' + esc(sw) + '</span></div>' +
-      '</div>' +
+      '</div>' + (extraHtml || '') +
       '<div class="kol-links">' + esc(apiaryName || '') + ' · Düzenlemek için dokunun · <a href="kovan.html?id=' + encodeURIComponent(h.id) + '" onclick="event.stopPropagation();">Kovan detayı</a></div>' +
     '</button>';
   }
@@ -511,7 +511,423 @@
       (res.past.map(function (q) { return card(q, false); }).join('') || '<p class="muted">Henüz değiştirilen ana arı yok.</p>');
   }
 
+  /* ================= Koloni 3×3 menü + muayene kayıtları (güç / yavru / hastalık) ================= */
+  function R() { var d = D(); return d && d.records ? d.records : null; }
+  var TOPIC_ICONS = {
+    ana: '<path d="M6.6 9.4 8.9 11.6 12 7.2l3.1 4.4 2.3-2.2-1.2 6.3H7.8z"/><path d="M7.8 17.8h8.4"/>',
+    guc: '<path d="M7.2 17.2v-5.4M10.4 17.2V8.6M13.6 17.2v-6.8M16.8 17.2V7"/><path d="M6 17.8h12"/>',
+    yavru: '<path d="M12 6.3l4.6 2.65v5.3L12 16.9l-4.6-2.65v-5.3z"/><circle cx="12" cy="11.6" r="1.7"/>',
+    hastalik: '<path d="M12 5.4l5.3 2v4c0 3.2-2.2 5.6-5.3 7-3.1-1.4-5.3-3.8-5.3-7v-4z"/><path d="M12 9v5.2M9.4 11.6h5.2"/>',
+    besleme: '<path d="M12 5.6c2.5 3.2 3.9 5.4 3.9 7.4a3.9 3.9 0 0 1-7.8 0c0-2 1.4-4.2 3.9-7.4z"/><path d="M10.4 13.4a1.7 1.7 0 0 0 1.6 1.5"/>',
+    bolme: '<path d="M12 18.2v-5.1M12 13.1 7.7 7.6M12 13.1l4.3-5.5"/><path d="M7.4 10.3V7.4h2.9M16.6 10.3V7.4h-2.9"/>',
+    ogul: '<ellipse cx="9.3" cy="10" rx="1.7" ry="1.1"/><ellipse cx="14.2" cy="8.6" rx="1.7" ry="1.1"/><ellipse cx="12.4" cy="13.2" rx="1.7" ry="1.1"/><ellipse cx="8.6" cy="15" rx="1.4" ry="0.9"/><ellipse cx="15.6" cy="14.4" rx="1.4" ry="0.9"/>',
+    tasima: '<rect x="5.8" y="9" width="8.2" height="6.4" rx="0.8"/><path d="M8.4 9v6.4M11.2 9v6.4"/><path d="M15.4 12.2h3.2M17.2 10.7l1.5 1.5-1.5 1.5"/>',
+    uretim: '<path d="M12 5.4c1.9 0 3 1.7 3 4.2 0 3.6-1.4 7.8-3 8.8-1.6-1-3-5.2-3-8.8 0-2.5 1.1-4.2 3-4.2z"/><path d="M10.2 9.6h3.6M10.1 12.2h3.8"/>'
+  };
+  var TOPICS = [
+    { key: 'ana', label: 'Ana arı', ready: true },
+    { key: 'guc', label: 'Koloni gücü', ready: true },
+    { key: 'yavru', label: 'Yavru durumu', ready: true },
+    { key: 'hastalik', label: 'Hastalık', ready: true },
+    { key: 'besleme', label: 'Besleme', ready: false },
+    { key: 'bolme', label: 'Bölme / Birleştirme', ready: false },
+    { key: 'ogul', label: 'Oğul', ready: false },
+    { key: 'tasima', label: 'Ana taşıma', ready: false },
+    { key: 'uretim', label: 'Ana üretimi', ready: false }
+  ];
+  var TOPIC_LABEL = {};
+  TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
+
+  var GRID_CSS = '' +
+    '.kg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}' +
+    '.kg-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:84px;padding:6px 3px 7px;border-radius:14px;border:1px solid #e4e6ea;background:#f4f5f7;color:#5c3a1f;font:inherit;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0;}' +
+    '.kg-tile:active{transform:scale(.985);}' +
+    '.kg-tile.on{border-color:#e0c56a;background:linear-gradient(180deg,#fff6df 0%,#fff3bf 100%);}' +
+    '.kg-tile.soon{opacity:.62;}' +
+    '.kg-hive{position:relative;width:42px;height:40px;flex:0 0 auto;}' +
+    '.kg-lid{position:absolute;left:0;right:0;top:0;height:5px;border-radius:2px 2px 1px 1px;background:linear-gradient(180deg,#f4f5f7 0%,#c8ccd2 48%,#9aa1aa 100%);box-shadow:0 1px 0 #7c828a;}' +
+    '.kg-box{position:absolute;left:3px;right:3px;height:15px;background-color:#e8c48e;background-image:repeating-linear-gradient(90deg,rgba(90,52,16,.07) 0 1px,transparent 1px 6px),linear-gradient(180deg,rgba(255,248,230,.35),transparent 42%,rgba(90,50,14,.16));border:1px solid #8a6030;box-sizing:border-box;}' +
+    '.kg-box.t{top:5px;border-bottom:0;}.kg-box.b{top:20px;}' +
+    '.kg-feet{position:absolute;left:5px;right:5px;top:36px;display:flex;justify-content:space-between;}.kg-feet span{width:6px;height:3px;background:#c99755;border-radius:1px;}' +
+    '.kg-ico{position:absolute;left:50%;top:20px;transform:translate(-50%,-50%);width:26px;height:26px;}' +
+    '.kg-ico svg{width:100%;height:100%;display:block;fill:none;stroke:#1a0c06;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;mix-blend-mode:multiply;}' +
+    '.kg-ico .burn-ring{fill:none;stroke:#160a05;stroke-width:1.55;}' +
+    '.kg-lbl{font-size:10.5px;font-weight:750;line-height:1.12;text-align:center;overflow-wrap:anywhere;max-width:100%;}' +
+    '.kg-soon{font-size:9px;font-weight:800;color:#7a5a32;background:#efe2cb;border-radius:999px;padding:1px 6px;}' +
+    '.kg-count{position:absolute;top:4px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e03131;color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.2);}' +
+    '.kg-count.zero{background:#d3f9d8;color:#2b8a3e;}' +
+    '.kr-chips{display:flex;flex-wrap:wrap;gap:.25rem;}' +
+    '.kr-chip{display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .45rem;border-radius:999px;font-size:.7rem;font-weight:800;white-space:nowrap;background:#e9ecef;color:#495057;}' +
+    '.kr-chip.red{background:#ffe3e3;color:#c92a2a;}.kr-chip.orange{background:#fff3bf;color:#e67700;}.kr-chip.green{background:#d3f9d8;color:#2b8a3e;}.kr-chip.blue{background:#e7f5ff;color:#1971c2;}' +
+    '.kr-hist{display:grid;gap:.35rem;margin:.4rem 0 .6rem;}' +
+    '.kr-hrow{border:1px solid var(--border,#ead9b3);border-radius:10px;background:#fff;padding:.45rem .55rem;font-size:.82rem;display:grid;gap:.15rem;}' +
+    '.kr-hrow .top{display:flex;justify-content:space-between;align-items:center;gap:.4rem;font-weight:800;}' +
+    '.kr-hrow .top button{font:inherit;font-size:.72rem;font-weight:700;border:0;background:none;color:#c92a2a;text-decoration:underline;cursor:pointer;padding:0;}' +
+    '.kr-hrow .sub{color:var(--muted,#6b7280);overflow-wrap:anywhere;}' +
+    '.kr-warn{padding:.5rem .6rem;border-radius:10px;background:#ffe3e3;color:#a61e1e;font-size:.8rem;font-weight:700;line-height:1.35;}' +
+    '.kr-info{padding:.5rem .6rem;border-radius:10px;background:#fff8df;color:#6b5314;font-size:.8rem;font-weight:650;line-height:1.35;}' +
+    '.kol-form .kr-checkline{display:flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:700;color:var(--ink,#1f2933);}' +
+    '.kol-form .kr-checkline input{width:1.15rem;height:1.15rem;padding:0;flex:0 0 auto;}' +
+    '.kr-section-title{margin:.2rem 0 0;font-size:.95rem;font-weight:800;color:#5c4813;}';
+  function ensureGridCss() {
+    ensureCss();
+    if (document.getElementById('koloniGridCss')) return;
+    var s = document.createElement('style');
+    s.id = 'koloniGridCss';
+    s.textContent = GRID_CSS;
+    (document.head || document.documentElement).appendChild(s);
+  }
+
+  /** Konu başına ilgilenilmesi gereken kovan sayısı (yalnız hazır konular). */
+  function topicCounts(hives) {
+    var c = C(), r = R();
+    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0 };
+    if (!r) return out;
+    var all = r.loadAll();
+    (hives || []).forEach(function (h) {
+      if (c && c.queenStatus(h) === 'Yenile') out.ana++;
+      if (!all[String(h.id)]) return;
+      var st = r.status(h.id, all);
+      if (st.weak) out.guc++;
+      if (st.broodIssue) out.yavru++;
+      if (st.diseases.length || st.dueChecks.length) out.hastalik++;
+    });
+    return out;
+  }
+
+  function gridHtml(hives, activeTopic, hrefFor) {
+    ensureGridCss();
+    var counts = topicCounts(hives);
+    return '<div class="kg-grid" role="navigation" aria-label="Koloni konuları">' + TOPICS.map(function (t) {
+      var icon = '<div class="kg-hive" aria-hidden="true"><div class="kg-lid"></div><div class="kg-box t"></div><div class="kg-box b"></div>' +
+        '<div class="kg-feet"><span></span><span></span></div>' +
+        '<div class="kg-ico"><svg viewBox="0 0 24 24"><circle class="burn-ring" cx="12" cy="12" r="10.2"/>' + TOPIC_ICONS[t.key] + '</svg></div></div>';
+      if (!t.ready) {
+        return '<button type="button" class="kg-tile soon" data-soon="' + esc(t.label) + '" aria-label="' + esc(t.label) + ' — yakında">' +
+          icon + '<span class="kg-lbl">' + esc(t.label) + '</span><span class="kg-soon">Yakında</span></button>';
+      }
+      var n = counts[t.key] || 0;
+      return '<a class="kg-tile' + (activeTopic === t.key ? ' on' : '') + '" href="' + hrefFor(t.key) + '" aria-label="' + esc(t.label) + (n ? ', ' + n + ' kovan ilgi bekliyor' : '') + '">' +
+        '<span class="kg-count' + (n ? '' : ' zero') + '">' + n + '</span>' +
+        icon + '<span class="kg-lbl">' + esc(t.label) + '</span></a>';
+    }).join('') + '</div>';
+  }
+
+  function openSoon(label) {
+    ensureGridCss();
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true"><h3>' + esc(label) + '</h3>' +
+      '<p class="kol-sub" style="margin:.4rem 0 .9rem;">Bu bölüm yakında. Henüz kayıt tutulmuyor ve örnek veri gösterilmiyor.</p>' +
+      '<button type="button" class="btn">Tamam</button></div>';
+    document.body.appendChild(back);
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); }
+    back.querySelector('.btn').addEventListener('click', close);
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+  }
+
+  function chip(text, tone) { return '<span class="kr-chip ' + (tone || '') + '">' + esc(text) + '</span>'; }
+  function levelTone(level) {
+    return level === 'kritik' || level === 'yüksek' ? 'red' : (level === 'orta' ? 'orange' : (level === 'izle' ? 'blue' : 'green'));
+  }
+  /** Kovan kartı rozetleri: güç sınıfı, anasız, üşümüş, hastalık, ilaç bekleme. */
+  function recordChipsHtml(h, all) {
+    var r = R(); if (!r) return '';
+    var st = r.status(h.id, all);
+    var out = [];
+    if (st.strengthClass) out.push(chip('Güç: ' + st.strengthClass, st.strengthClass === 'Zayıf' ? 'red' : (st.strengthClass === 'Güçlü' ? 'green' : 'orange')));
+    if (st.chilled) out.push(chip('Zayıf koloni', 'red'));
+    if (st.queenless) out.push(chip('Anasız', 'red'));
+    if (st.swarmCell) out.push(chip('Oğul hücresi', 'orange'));
+    st.diseases.forEach(function (d) { out.push(chip('🦠 ' + d.label, levelTone(d.level))); });
+    if (st.withdrawalUntil) out.push(chip('İlaç bekleme', 'blue'));
+    return out.length ? '<div class="kr-chips">' + out.join('') + '</div>' : '';
+  }
+
+  function strengthText(s) {
+    if (!s) return 'Kayıt yok';
+    return fmtDate(s.date) + ' · ' + strengthClassOf(s) + ' · arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve';
+  }
+  function strengthClassOf(s) { var r = R(); return r ? r.strengthClass(s) : ''; }
+  function broodText(b) {
+    var r = R(); if (!b || !r) return 'Kayıt yok';
+    var parts = [fmtDate(b.date), 'yumurta ' + (b.eggs ? 'görüldü' : 'görülmedi'), 'düzen ' + r.PATTERN_LABEL[b.pattern].toLocaleLowerCase('tr'),
+      'ana hücresi: ' + r.QUEEN_CELL_LABEL[b.queenCell].toLocaleLowerCase('tr')];
+    if (b.queenless) parts.push('ANASIZ');
+    if (b.chilled) parts.push('üşümüş yavru');
+    return parts.join(' · ');
+  }
+  function diseaseText(d) {
+    var r = R(); if (!d || !r) return '';
+    var lv = r.diseaseLevel(d);
+    var parts = [fmtDate(d.date), r.DISEASE_LABEL[d.disease], lv.text];
+    if (d.treatment) parts.push('önlem: ' + d.treatment);
+    if (d.withdrawalDays) parts.push('bekleme ' + d.withdrawalDays + ' gün (' + fmtDate(r.addDays(d.date, d.withdrawalDays)) + ')');
+    if (d.checkDate) parts.push('kontrol ' + fmtDate(d.checkDate));
+    return parts.join(' · ');
+  }
+
+  /** Hasat çakışması: ilaç bekleme süresi içinde arılıkta hasat kaydı (rapor deposu varsa). */
+  function harvestConflicts(h, st) {
+    var out = [];
+    var Rp = global.SuperAriRapor || global.SuperAriReports || null;
+    if (!Rp || typeof Rp.harvestSummary !== 'function' || !st || !st.records) return out;
+    var r = R();
+    st.records.disease.forEach(function (d) {
+      if (!d.withdrawalDays) return;
+      var until = r.addDays(d.date, d.withdrawalDays);
+      [Number(d.date.slice(0, 4)), Number(until.slice(0, 4))].filter(function (y, i, a) { return a.indexOf(y) === i; }).forEach(function (y) {
+        var s; try { s = Rp.harvestSummary(y, h.apiaryId); } catch (e) { s = null; }
+        (s && s.rows || []).forEach(function (row) {
+          if (row.date >= d.date && row.date <= until) out.push({ date: row.date, until: until, disease: r.DISEASE_LABEL[d.disease] });
+        });
+      });
+    });
+    return out;
+  }
+  function withdrawalHtml(h, st) {
+    if (!st) return '';
+    var html = '';
+    if (st.withdrawalUntil) {
+      html += '<div class="kr-info">💊 İlaç bekleme süresi: <b>' + esc(fmtDate(st.withdrawalUntil)) + '</b> tarihine kadar bu kovandan bal hasadı yapmayın.</div>';
+    }
+    harvestConflicts(h, st).forEach(function (c) {
+      html += '<div class="kr-warn">⚠️ Bekleme süresi içinde hasat kaydı var: ' + esc(fmtDate(c.date)) + ' (' + esc(c.disease) + ', bitiş ' + esc(fmtDate(c.until)) + ').</div>';
+    });
+    return html;
+  }
+
+  /** Konu listesi (güç / yavru / hastalık) — kovan satırları. */
+  function topicListHtml(topic, hives) {
+    ensureGridCss();
+    var r = R(); if (!r) return '';
+    var all = r.loadAll();
+    var withRec = 0;
+    var rows = (hives || []).map(function (h) {
+      var st = r.status(h.id, all);
+      var line, chips = [];
+      if (topic === 'guc') {
+        line = st.strength ? strengthText(st.strength) : 'Kayıt yok';
+        if (st.strength) withRec++;
+        if (st.strengthClass) chips.push(chip(st.strengthClass, st.strengthClass === 'Zayıf' ? 'red' : (st.strengthClass === 'Güçlü' ? 'green' : 'orange')));
+        if (st.chilled) chips.push(chip('Zayıf koloni', 'red'));
+      } else if (topic === 'yavru') {
+        line = st.brood ? broodText(st.brood) : 'Kayıt yok';
+        if (st.brood) withRec++;
+        if (st.queenless) chips.push(chip('Anasız', 'red'));
+        if (st.chilled) chips.push(chip('Üşümüş yavru', 'red'));
+        if (st.swarmCell) chips.push(chip('Oğul hücresi', 'orange'));
+        if (st.brood && st.brood.queenCell === 'yenileme') chips.push(chip('Yenileme hücresi', 'blue'));
+      } else {
+        var n = st.records.disease.length;
+        if (n) withRec++;
+        line = st.diseases.length ? st.diseases.map(function (d) { return d.label + ' (' + d.text + ')'; }).join(' · ') :
+          (n ? 'Etkin hastalık yok · ' + n + ' kayıt' : 'Kayıt yok');
+        st.diseases.forEach(function (d) { chips.push(chip('🦠 ' + d.label, levelTone(d.level))); });
+        st.dueChecks.forEach(function (c) { chips.push(chip('Kontrol: ' + c.label, 'orange')); });
+        if (st.withdrawalUntil) chips.push(chip('İlaç bekleme · ' + fmtDate(st.withdrawalUntil), 'blue'));
+      }
+      var has = topic === 'guc' ? !!st.strength : (topic === 'yavru' ? !!st.brood : st.records.disease.length > 0);
+      var rank = chips.length && (topic !== 'guc' || st.weak) ? 0 : (has ? 1 : 2);
+      if (topic === 'hastalik' && !st.diseases.length && !st.dueChecks.length) rank = has ? 1 : 2;
+      return { rank: rank, html: '<button type="button" class="item-card kol-card kr-row" data-hive="' + esc(h.id) + '" data-topic="' + topic + '">' +
+        '<div class="row"><h3>' + esc(h.name) + '</h3>' + (chips.length ? '<span class="kr-chips">' + chips.join('') + '</span>' : '') + '</div>' +
+        '<div class="kol-links" style="color:var(--ink,#1f2933);font-size:.84rem;">' + esc(line) + '</div>' +
+        '<div class="kol-links">Kayıt eklemek ve geçmişi görmek için dokunun</div></button>' };
+    }).map(function (x, i) { x.i = i; return x; }).sort(function (a, b) { return a.rank - b.rank || a.i - b.i; })
+      .map(function (x) { return x.html; });
+    var mode = r.workMode() === 'live' ? 'Canlı mod: yalnız sizin girdiğiniz kayıtlar.' : 'Demo mod: birkaç örnek kayıt «Demo» etiketiyle gösterilir.';
+    return '<p class="kol-sub" style="margin:0;">' + withRec + ' / ' + (hives || []).length + ' kovanda kayıt var. ' + mode + '</p>' +
+      (rows.join('') || '<p class="muted">Kovan bulunamadı.</p>');
+  }
+
+  function histRow(title, sub, rec, kind, hiveId) {
+    return '<div class="kr-hrow"><div class="top"><span>' + esc(title) + (rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span>' +
+      '<button type="button" data-del="' + esc(rec.id) + '" data-kind="' + kind + '" data-hive="' + esc(hiveId) + '">Sil</button></div>' +
+      (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div>';
+  }
+
+  function sevOptions(labels, keys, cur) {
+    return keys.map(function (k) { return '<option value="' + k + '"' + (k === cur ? ' selected' : '') + '>' + esc(labels[k]) + '</option>'; }).join('');
+  }
+
+  function diseaseFieldsHtml(key) {
+    var r = R();
+    var sevSel = '<select name="severity">' + sevOptions(r.SEVERITY_LABEL, r.SEVERITY, 'yok') + '</select>';
+    if (key === 'varroa') {
+      return '<label>Akar sayısı<input type="number" name="count" min="0" max="5000" inputmode="numeric" placeholder="ör. 6"></label>' +
+        '<label>Yöntem<select name="method">' + sevOptions(r.VARROA_METHOD_LABEL, ['seker', 'alkol', 'tabla'], 'seker') + '</select></label>' +
+        '<label class="full">Bulaşma %<input type="number" name="infestation" min="0" max="100" step="0.1" inputmode="decimal" placeholder="Boşsa otomatik hesaplanır"></label>';
+    }
+    if (key === 'nosema') {
+      return '<label>Durum<select name="status">' + sevOptions(r.NOSEMA_LABEL, ['yok', 'suphe', 'dogrulandi'], 'yok') + '</select></label>' +
+        '<label>Spor sayısı (isteğe bağlı)<input type="number" name="spores" min="0" inputmode="numeric"></label>';
+    }
+    if (key === 'kirec') {
+      return '<label>Derece' + sevSel + '</label><label>Etkilenen çerçeve<input type="number" name="frames" min="0" max="30" inputmode="numeric"></label>';
+    }
+    if (key === 'ayc') {
+      return '<label class="full">Durum<select name="status">' + sevOptions(r.AYC_LABEL, ['temiz', 'suphe', 'dogrulandi'], 'temiz') + '</select></label>' +
+        '<div class="kr-warn full" style="grid-column:1 / -1;">Amerikan yavru çürüğü ihbarı zorunlu bir hastalıktır. Doğrulanırsa İl/İlçe Tarım ve Orman Müdürlüğüne bildirin; kovan «Müdahale» durumuna geçer ve arılıktaki diğer kovanlar için kontrol görevi açılır.</div>';
+    }
+    return '<label class="full">Derece' + sevSel + '</label>';
+  }
+
+  /** Konu kayıt sayfası: geçmiş + yeni kayıt formu. */
+  function openRecordSheet(topic, hiveId, onSaved) {
+    ensureGridCss();
+    var d = D(), r = R();
+    if (!d || !r) return;
+    var h = d.hiveById(hiveId);
+    if (!h) return;
+    var old = document.getElementById('koloniRecord');
+    if (old) old.parentNode.removeChild(old);
+    var today = C() && C().todayLocal ? C().todayLocal() : '';
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    back.id = 'koloniRecord';
+    function histHtml() {
+      var st = r.status(h.id);
+      var rec = st.records;
+      var items = '';
+      if (topic === 'guc') {
+        items = rec.strength.map(function (s) {
+          return histRow(fmtDate(s.date) + ' · ' + r.strengthClass(s), 'Arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve' + (s.note ? ' · ' + s.note : ''), s, 'strength', h.id);
+        }).join('');
+      } else if (topic === 'yavru') {
+        items = rec.brood.map(function (b) {
+          return histRow(fmtDate(b.date) + (b.queenless ? ' · Anasız' : '') + (b.chilled ? ' · Üşümüş yavru' : ''), broodText(b).split(' · ').slice(1).join(' · ') + (b.note ? ' · ' + b.note : ''), b, 'brood', h.id);
+        }).join('');
+      } else {
+        items = rec.disease.map(function (x) {
+          var lv = r.diseaseLevel(x);
+          return histRow(fmtDate(x.date) + ' · ' + r.DISEASE_LABEL[x.disease] + ' · ' + lv.text, diseaseText(x).split(' · ').slice(3).join(' · ') + (x.note ? ' · ' + x.note : ''), x, 'disease', h.id);
+        }).join('');
+      }
+      var trend = '';
+      if (topic === 'guc' && rec.strength.length > 1) {
+        var a = rec.strength[rec.strength.length - 1], z = rec.strength[0];
+        var diff = z.beeFrames - a.beeFrames;
+        trend = '<div class="kr-info">Eğilim: ' + fmtDate(a.date) + ' → ' + fmtDate(z.date) + ' arılı çerçeve ' + a.beeFrames + ' → ' + z.beeFrames + ' (' + (diff > 0 ? '+' : '') + diff + ').</div>';
+      }
+      return (topic === 'hastalik' ? withdrawalHtml(h, st) : '') + trend +
+        '<div class="kr-section-title">Geçmiş (' + (topic === 'guc' ? rec.strength.length : topic === 'yavru' ? rec.brood.length : rec.disease.length) + ')</div>' +
+        '<div class="kr-hist">' + (items || '<p class="kol-sub" style="margin:0;">Henüz kayıt yok.</p>') + '</div>';
+    }
+    var form;
+    if (topic === 'guc') {
+      form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Arılı çerçeve<input type="number" name="beeFrames" min="0" max="40" inputmode="numeric" required></label>' +
+        '<label>Yavrulu çerçeve<input type="number" name="broodFrames" min="0" max="30" inputmode="numeric"></label>' +
+        '<label>Ballı çerçeve<input type="number" name="honeyFrames" min="0" max="30" inputmode="numeric"></label>' +
+        '<label>Polenli çerçeve<input type="number" name="pollenFrames" min="0" max="20" inputmode="numeric"></label>' +
+        '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Sınıf: —</div>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    } else if (topic === 'yavru') {
+      form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Yumurta görüldü mü<select name="eggs"><option value="1">Evet</option><option value="0">Hayır</option></select></label>' +
+        '<label>Yavru düzeni<select name="pattern"><option value="duzenli">Düzenli</option><option value="daginik">Dağınık</option></select></label>' +
+        '<label class="full">Ana hücresi<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Oğul hücresi</option><option value="yenileme">Yenileme hücresi</option></select></label>' +
+        '<label class="kr-checkline full"><input type="checkbox" name="queenless"> Anasız</label>' +
+        '<label class="kr-checkline full"><input type="checkbox" name="chilled"> Üşümüş yavru</label>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    } else {
+      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label class="full">Hastalık<select name="disease">' + r.DISEASES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
+        '<div id="krDzFields" style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:.55rem .6rem;">' + diseaseFieldsHtml('varroa') + '</div>' +
+        '<label class="full">Tedavi / önlem<input name="treatment" maxlength="200" placeholder="ör. Oksalik asit damlatma"></label>' +
+        '<label>İlaç bekleme (gün)<input type="number" name="withdrawalDays" min="0" max="365" inputmode="numeric" placeholder="0"></label>' +
+        '<label>Kontrol tarihi<input type="date" name="checkDate"></label>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    }
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="krTitle">' +
+      '<h3 id="krTitle">' + esc(h.name) + ' · ' + esc(TOPIC_LABEL[topic]) + '</h3>' +
+      '<p class="kol-sub">' + esc(r.workMode() === 'live' ? 'Canlı mod' : 'Demo mod') + ' · kayıtlar bu kovana yazılır</p>' +
+      '<div id="krHist">' + histHtml() + '</div>' +
+      '<div class="kr-section-title">Yeni kayıt</div>' +
+      '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;">' + form + '</form>' +
+      '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
+    document.body.appendChild(back);
+    var f = back.querySelector('#krForm');
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    back.querySelector('#krClose').addEventListener('click', close);
+    if (topic === 'guc') {
+      var upd = function () {
+        var cls = r.strengthClass({ beeFrames: f.beeFrames.value, broodFrames: f.broodFrames.value });
+        back.querySelector('#krClass').textContent = 'Sınıf: ' + (f.beeFrames.value === '' ? '—' : cls);
+      };
+      f.addEventListener('input', upd);
+    }
+    if (topic === 'hastalik') {
+      f.disease.addEventListener('change', function () { back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.disease.value); });
+    }
+    back.querySelector('#krHist').addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('[data-del]') : null;
+      if (!btn) return;
+      if (!confirm('Bu kayıt silinsin mi?')) return;
+      r.remove(btn.getAttribute('data-hive'), btn.getAttribute('data-kind'), btn.getAttribute('data-del'));
+      back.querySelector('#krHist').innerHTML = histHtml();
+      if (typeof onSaved === 'function') onSaved();
+    });
+    back.querySelector('#krSave').addEventListener('click', function () {
+      var rec, kind;
+      function v(n) { return f.elements[n] ? f.elements[n].value : ''; }
+      if (topic === 'guc') {
+        if (v('beeFrames') === '') { f.beeFrames.focus(); toast('Arılı çerçeve sayısını girin'); return; }
+        kind = 'strength';
+        rec = { date: v('date'), beeFrames: v('beeFrames'), broodFrames: v('broodFrames'), honeyFrames: v('honeyFrames'), pollenFrames: v('pollenFrames'), note: v('note') };
+      } else if (topic === 'yavru') {
+        kind = 'brood';
+        rec = { date: v('date'), eggs: v('eggs') === '1', pattern: v('pattern'), queenCell: v('queenCell'), queenless: f.queenless.checked, chilled: f.chilled.checked, note: v('note') };
+      } else {
+        kind = 'disease';
+        rec = { date: v('date'), disease: v('disease'), count: v('count'), method: v('method'), infestation: v('infestation'), status: v('status'), spores: v('spores'),
+          severity: v('severity'), frames: v('frames'), treatment: v('treatment'), withdrawalDays: v('withdrawalDays'), checkDate: v('checkDate'), note: v('note') };
+      }
+      var saved = r.add(h.id, kind, rec);
+      if (!saved) { toast('Kaydedilemedi'); return; }
+      back.querySelector('#krHist').innerHTML = histHtml();
+      f.reset();
+      if (f.elements.date) f.elements.date.value = today;
+      if (topic === 'hastalik') back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.disease.value);
+      var msg = 'Kaydedildi';
+      if (kind === 'brood' && saved.queenless) msg = 'Kaydedildi · Anasız: görev ve uyarı açıldı';
+      else if (kind === 'brood' && saved.chilled) msg = 'Kaydedildi · Zayıf koloni: «Birleştir veya çerçeve azalt» önerildi';
+      else if (kind === 'disease' && saved.disease === 'ayc' && saved.status === 'dogrulandi') msg = 'Kaydedildi · AYÇ: ihbarı zorunlu, komşu kovan kontrol görevi açıldı';
+      toast(msg);
+      if (typeof onSaved === 'function') onSaved(saved);
+    });
+  }
+
+  /** Kovan detayı için son kayıt özetleri (salt okunur). */
+  function latestRowsData(h) {
+    var r = R(); if (!r || !h) return null;
+    ensureGridCss();
+    var st = r.status(h.id);
+    return {
+      strengthClass: st.strengthClass || '',
+      strength: st.strength ? strengthText(st.strength) : 'Kayıt yok',
+      brood: st.brood ? broodText(st.brood) : 'Kayıt yok',
+      disease: st.diseases.length ? st.diseases.map(function (x) { return x.label + ' (' + x.text + ')'; }).join(' · ') :
+        (st.records.disease[0] ? 'Etkin hastalık yok · son: ' + diseaseText(st.records.disease[0]) : 'Kayıt yok'),
+      withdrawalHtml: withdrawalHtml(h, st),
+      afb: st.afb
+    };
+  }
+
   global.SuperAriKoloni = {
+    TOPICS: TOPICS,
+    TOPIC_LABEL: TOPIC_LABEL,
+    gridHtml: gridHtml,
+    openSoon: openSoon,
+    topicListHtml: topicListHtml,
+    openRecordSheet: openRecordSheet,
+    recordChipsHtml: recordChipsHtml,
+    latestRowsData: latestRowsData,
+    ensureGridCss: ensureGridCss,
     queensListHtml: queensListHtml,
     lastChangeText: lastChangeText,
     historyHtml: historyHtml,

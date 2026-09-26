@@ -169,12 +169,43 @@
     return actions;
   }
 
+  /* Koloni muayene kayıtları → iç düzeltme (yalnız puan/bant dışarı gösterilir). */
+  var LV = { 'temiz': 0, 'izle': 1, 'orta': 2, 'yüksek': 3, 'kritik': 4 };
+  var DZ = { varroa: [0, 2, 7, 14, 20], nosema: [0, 1, 5, 11, 15], kirec: [0, 2, 5, 10, 12], eyc: [0, 3, 7, 13, 18],
+    tulumsu: [0, 2, 5, 9, 12], dwv: [0, 2, 6, 10, 14], mumguvesi: [0, 1, 3, 6, 8], ayc: [0, 0, 0, 25, 60] };
+  function recordAdjust(h) {
+    var D = global.SuperAriDemo;
+    if (!h || !D || !D.records || typeof D.records.healthFlags !== 'function') return null;
+    var f;
+    try { f = D.records.healthFlags(h.id); } catch (e) { return null; }
+    if (!f) return null;
+    var pen = 0, cap = 100, acts = [];
+    Object.keys(DZ).forEach(function (k) {
+      if (f[k] == null) return;
+      pen += DZ[k][LV[f[k]] || 0] || 0;
+    });
+    if (f.queenless) { pen += 22; acts.push({ kind: 'yavru', title: 'Anasız koloni', detail: 'Ana arı verin veya birleştirin.' }); }
+    if (f.chilled) { pen += 8; acts.push({ kind: 'yavru', title: 'Üşümüş yavru', detail: 'Birleştirin veya çerçeve azaltın.' }); }
+    if (f.weak) pen += 6;
+    if (f.afb === 'dogrulandi') { cap = 40; acts.unshift({ kind: 'varroa', title: 'Amerikan yavru çürüğü', detail: 'İhbarı zorunludur; arılıktaki diğer kovanları kontrol edin.' }); }
+    else if (f.afb === 'suphe') { cap = Math.min(cap, 60); acts.unshift({ kind: 'varroa', title: 'AYÇ şüphesi', detail: 'Numune alın ve doğrulatın.' }); }
+    if (f.varroa === 'yüksek' || f.varroa === 'orta') acts.push({ kind: 'varroa', title: 'Varroa', detail: 'Mücadele ve kontrol sayımı planlayın.' });
+    return { pen: pen, cap: cap, actions: acts };
+  }
+
   function evaluateHive(h) {
     var devs = deviationsFromHive(h);
     var score = scoreFromDevs(devs);
+    var adj = recordAdjust(h);
+    if (adj) score = Math.round(clamp(Math.min(score - adj.pen, adj.cap), 0, 100));
     var b = band(score);
     var rules = rulesFired(devs, devs.readings);
     var actions = publicActions(h, rules, score, b.key);
+    if (adj && adj.actions.length) {
+      adj.actions.forEach(function (a) {
+        if (!actions.some(function (x) { return x.title === a.title; })) actions.unshift(a);
+      });
+    }
     var materials = materialsForActions(actions);
     return {
       hiveId: h && h.id,

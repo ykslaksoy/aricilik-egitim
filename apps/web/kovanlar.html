@@ -48,6 +48,7 @@
 
     <section class="card stack">
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
+      <div id="koloniGrid"></div>
       <p class="muted" id="summary">Demo kovan listesi…</p>
       <div class="mode-switch" id="modeSwitch"></div>
       <div id="koloniTop"></div>
@@ -55,9 +56,10 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-2"></script>
-  <script src="sensor-health.js"></script>
-  <script src="koloni.js?v=koloni-2"></script>
+  <script src="demo-data.js?v=koloni-3"></script>
+  <script src="rapor-store.js"></script>
+  <script src="sensor-health.js?v=koloni-3"></script>
+  <script src="koloni.js?v=koloni-3"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -71,6 +73,30 @@
       var apiaryFilter = params.get('apiary') || '';
       var editHiveId = view === 'koloni' ? params.get('hiveId') : null;
       var K = window.SuperAriKoloni || null;
+      var TOPIC_KEYS = ['ana', 'guc', 'yavru', 'hastalik'];
+      var topic = view === 'koloni' ? (params.get('topic') || '').toLowerCase() : '';
+      if (TOPIC_KEYS.indexOf(topic) < 0) topic = '';
+      if (!topic && view === 'koloni' && (params.get('tab') === 'queens' || editHiveId)) topic = 'ana';
+      var gridEl = document.getElementById('koloniGrid');
+      function topicHref(t) {
+        var q = new URLSearchParams(location.search);
+        q.delete('hiveId');
+        q.delete('tab');
+        if (hasMode && mode && !q.get('mode')) q.set('mode', mode);
+        if (apiaryFilter && !q.get('apiary')) q.set('apiary', apiaryFilter);
+        if (t) q.set('topic', t); else q.delete('topic');
+        return 'kovanlar.html?' + q.toString();
+      }
+      function renderGrid(list) {
+        if (view !== 'koloni' || !K || !gridEl || !K.gridHtml) return;
+        gridEl.innerHTML = K.gridHtml(list, topic, topicHref);
+        if (gridEl.__bound) return;
+        gridEl.__bound = true;
+        gridEl.addEventListener('click', function (e) {
+          var soon = e.target.closest ? e.target.closest('[data-soon]') : null;
+          if (soon) K.openSoon(soon.getAttribute('data-soon'));
+        });
+      }
       var koloniTopEl = document.getElementById('koloniTop');
       var BULK_BTN = '<button type="button" class="kol-bulk-btn" id="btnBulkQueen">👑 Toplu ana arı değişimi</button>';
       var bulkCtx = { apiaryId: '', onSaved: null };
@@ -143,6 +169,7 @@
       function pageHref(extra) {
         var parts = [];
         if (view) parts.push('view=' + encodeURIComponent(view));
+        if (topic) parts.push('topic=' + encodeURIComponent(topic));
         if (extra) parts.push(extra);
         return 'kovanlar.html' + (parts.length ? '?' + parts.join('&') : '');
       }
@@ -197,6 +224,7 @@
               '<h3>' + esc(h.name) + '</h3>' +
               '<span class="badge ' + tone + '">' + esc(badge) + '</span>' +
             '</div>' +
+            (K && K.recordChipsHtml ? K.recordChipsHtml(h) : '') +
             '<div class="meta">' + esc(meta) +
               ' · <span onclick="event.preventDefault();event.stopPropagation();location.href=\'petek-tarama.html?hiveId=' + encodeURIComponent(h.id) + '\';" style="color:#2b6cb0;text-decoration:underline;cursor:pointer;">Petek tarama</span></div>' +
           '</a>'
@@ -215,8 +243,13 @@
       /* Chooser: no mode and no apiary */
       if (!hasMode && !apiaryFilter) {
         if (view === 'koloni' && K && koloniTopEl) {
-          koloniTopEl.innerHTML = K.summaryHtml(hives, 'Tüm kovanlar · ana arı özeti') + BULK_BTN;
-          bindBulk('', function () { koloniTopEl.innerHTML = K.summaryHtml(D.loadHives(), 'Tüm kovanlar · ana arı özeti') + BULK_BTN; });
+          renderGrid(hives);
+          if (topic === 'ana' || !topic) {
+            koloniTopEl.innerHTML = K.summaryHtml(hives, 'Tüm kovanlar · ana arı özeti') + BULK_BTN;
+            bindBulk('', function () { renderGrid(D.loadHives()); koloniTopEl.innerHTML = K.summaryHtml(D.loadHives(), 'Tüm kovanlar · ana arı özeti') + BULK_BTN; });
+          } else {
+            koloniTopEl.innerHTML = '<p class="kol-sub" style="margin:0;font-weight:700;">' + esc(K.TOPIC_LABEL[topic]) + ' · kayıt için tüm kovanları veya bir arılığı seçin.</p>';
+          }
         }
         summaryEl.textContent = hives.length + ' kovan · görünüm seçin';
         noteEl.textContent = 'Tüm kovanlar veya bir arılık seçin.';
@@ -258,8 +291,9 @@
         noteEl.textContent = 'Tartı odaklı görünüm (delta kg).';
       } else if (view === 'koloni') {
         summaryEl.textContent = hives.length + ' kovan · ' +
-          (effectiveMode === 'all' ? 'Tüm kovanlar · koloni' : ((apName || 'Arılık') + ' · koloni'));
-        noteEl.textContent = 'Koloni gücü odaklı görünüm.';
+          (effectiveMode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık')) + ' · ' +
+          (topic && K ? K.TOPIC_LABEL[topic].toLocaleLowerCase('tr') : 'koloni');
+        noteEl.textContent = 'Koloni kayıtları.';
       } else if (effectiveMode === 'apiary' && apiaryFilter) {
         summaryEl.textContent = hives.length + ' kovan · ' + (apName || apiaryFilter);
         noteEl.innerHTML = '<a href="arilik.html?id=' + encodeURIComponent(apiaryFilter) + '">← Arılık detayı</a>' +
@@ -281,16 +315,24 @@
           q.delete('hiveId');
           if (!q.get('mode')) q.set('mode', effectiveMode || 'all');
           if (effectiveMode === 'apiary' && apiaryFilter) q.set('apiary', apiaryFilter);
+          q.set('topic', 'ana');
           if (t) q.set('tab', t); else q.delete('tab');
           return 'kovanlar.html?' + q.toString();
         };
+        var recTopic = topic === 'guc' || topic === 'yavru' || topic === 'hastalik';
         var renderKoloni = function () {
           var fresh = D.loadHives();
           var ids = {};
           scopeHives.forEach(function (h) { ids[h.id] = true; });
           scopeHives = fresh.filter(function (h) { return ids[h.id]; });
-          koloniTopEl.innerHTML = K.summaryHtml(scopeHives,
-            (effectiveMode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık')) + ' · ana arı özeti') + BULK_BTN;
+          renderGrid(scopeHives);
+          var scopeName = effectiveMode === 'all' ? 'Tüm kovanlar' : (apName || 'Arılık');
+          if (recTopic) {
+            koloniTopEl.innerHTML = '';
+            listEl.innerHTML = K.topicListHtml(topic, scopeHives);
+            return;
+          }
+          koloniTopEl.innerHTML = K.summaryHtml(scopeHives, scopeName + ' · ana arı özeti') + BULK_BTN;
           var apNames = {};
           D.loadApiaries().forEach(function (a) { apNames[a.id] = a.name; });
           koloniTopEl.innerHTML += '<div class="kol-tabs">' +
@@ -300,15 +342,24 @@
             listEl.innerHTML = K.queensListHtml(scopeHives);
             return;
           }
+          var allRec = D.records ? D.records.loadAll() : null;
           listEl.innerHTML = scopeHives.map(function (h) {
-            return K.hiveCardHtml(h, apNames[h.apiaryId] || '');
+            return K.hiveCardHtml(h, apNames[h.apiaryId] || '', K.recordChipsHtml ? K.recordChipsHtml(h, allRec) : '');
           }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
         };
         renderKoloni();
-        bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
-        noteEl.textContent = 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi. Demo verisi.';
+        if (!recTopic) bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
+        noteEl.textContent = recTopic
+          ? (topic === 'guc'
+            ? 'Her muayenede arılı, yavrulu, ballı ve polenli çerçeveleri girin; sınıf (Zayıf/Orta/Güçlü) otomatik hesaplanır ve geçmiş kovan bazında saklanır. Kayıtlar kovan detayı, görevler, uyarılar ve sağlık puanında kullanılır.'
+            : topic === 'yavru'
+              ? 'Anasız işaretlenirse görev ve uyarı otomatik açılır; üşümüş yavru kovanı «zayıf koloni» yapar ve «Birleştir veya çerçeve azalt» görevi önerilir.'
+              : 'Her hastalık ayrı kayıttır. İlaç bekleme süresi dolmadan hasat yapmayın; Amerikan yavru çürüğü ihbarı zorunludur. Kayıtlar sağlık puanını ve uyarıları etkiler.')
+          : 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi.';
         listEl.addEventListener('click', function (e) {
           if (e.target.closest && e.target.closest('a')) return;
+          var row = e.target.closest ? e.target.closest('.kr-row') : null;
+          if (row) { K.openRecordSheet(row.getAttribute('data-topic'), row.getAttribute('data-hive'), renderKoloni); return; }
           var card = e.target.closest ? e.target.closest('.kol-card') : null;
           if (!card) return;
           K.openEditor(card.getAttribute('data-hive'), renderKoloni);
@@ -316,7 +367,8 @@
         if (editHiveId) {
           var target = document.querySelector('.kol-card[data-hive="' + String(editHiveId).replace(/"/g, '') + '"]');
           if (target && target.scrollIntoView) target.scrollIntoView({ block: 'center' });
-          K.openEditor(editHiveId, renderKoloni);
+          if (recTopic) K.openRecordSheet(topic, editHiveId, renderKoloni);
+          else K.openEditor(editHiveId, renderKoloni);
         }
         return;
       }

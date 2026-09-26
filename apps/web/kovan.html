@@ -381,8 +381,10 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-2"></script>
-<script src="koloni.js?v=koloni-2"></script>
+<script src="demo-data.js?v=koloni-3"></script>
+<script src="rapor-store.js"></script>
+<script src="sensor-health.js?v=koloni-3"></script>
+<script src="koloni.js?v=koloni-3"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -782,7 +784,17 @@
 
     var ok = sensorsPill(hive);
     var wt = toneWeight(Number(hive.deltaKg) || 0);
-    var ht = toneHealth(hive.health, hive.healthScore);
+    var SH = window.SuperAriSensorHealth;
+    var evalH = null;
+    try { evalH = SH && SH.evaluateHive ? SH.evaluateHive(hive) : null; } catch (e) { evalH = null; }
+    var healthLabel = evalH ? evalH.band.label : hive.health;
+    var healthScore = evalH ? evalH.score : hive.healthScore;
+    var ht = evalH ? (evalH.score < 50 ? 'bad' : (evalH.score < 70 ? 'warn' : '')) : toneHealth(hive.health, hive.healthScore);
+    var krRows = K && K.latestRowsData ? K.latestRowsData(hive) : null;
+    function krEdit(t) {
+      return ' <a href="kovanlar.html?view=koloni&topic=' + t + '&hiveId=' + encodeURIComponent(hive.id) +
+        '" style="color:#2b6cb0;text-decoration:underline;font-weight:700;white-space:nowrap;">Düzenle</a>';
+    }
     var st = toneSwarm(hive.swarmRisk);
     var wx = demoWeather(hive, apiary);
     var devices = devicesForHive(hive.id);
@@ -876,9 +888,9 @@
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +
-          '<div class="sum-val' + cls(ht) + '">' + escapeHtml(hive.health) + '</div>' +
+          '<div class="sum-val' + cls(ht) + '">' + escapeHtml(healthLabel) + '</div>' +
           '<span class="sum-badge' + cls(ht) + '">' +
-            escapeHtml(hive.healthScore != null ? ('Skor ' + Math.round(Number(hive.healthScore))) : hive.health) +
+            escapeHtml(healthScore != null ? ('Skor ' + Math.round(Number(healthScore))) : healthLabel) +
           '</span>' +
         '</div>' +
         '<div class="sum-card">' +
@@ -895,7 +907,7 @@
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico">💪</span><span class="sum-lbl">Koloni gücü</span></div>' +
-          '<div class="sum-val">' + escapeHtml(strengthLabel(hive.strength)) + '</div>' +
+          '<div class="sum-val">' + escapeHtml(krRows && krRows.strengthClass ? krRows.strengthClass : strengthLabel(hive.strength)) + '</div>' +
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico">◎</span><span class="sum-lbl">Koloni skoru</span></div>' +
@@ -919,10 +931,15 @@
           kvRow('Sakinlik', K && hive.calmness != null ? K.calmText(hive) : 'Kayıt yok') +
           kvRow('Oğul eğilimi', fieldOrNone(hive.swarmTendency)) +
           (hive.colonyNote ? kvRow('Koloni notu', hive.colonyNote) : '') +
+          (krRows ? kvRowHtml('Koloni gücü', escapeHtml(krRows.strength) + krEdit('guc')) +
+            kvRowHtml('Yavru durumu', escapeHtml(krRows.brood) + krEdit('yavru')) +
+            kvRowHtml('Hastalık', escapeHtml(krRows.disease) + krEdit('hastalik')) : '') +
 
           kvRow('Çerçeve / yavru / bal', fieldOrNone(hive.framesNote || hive.cerceve)) +
           kvRow('Son muayene', fieldOrNone(hive.lastInspectionAt || hive.sonMuayene)) +
         '</div>' +
+        (krRows && krRows.afb === 'dogrulandi' ? '<div class="kr-warn" style="margin-top:8px;">⚠️ Amerikan yavru çürüğü doğrulandı: ihbarı zorunludur (İl/İlçe Tarım ve Orman Müdürlüğü). Arılıktaki diğer kovanları kontrol edin.</div>' : '') +
+        (krRows && krRows.withdrawalHtml ? '<div style="margin-top:8px;display:grid;gap:6px;">' + krRows.withdrawalHtml + '</div>' : '') +
         '<p class="hint">' +
           escapeHtml(hive.inspectionNote || hive.muayeneNotu || 'Muayene notu yok. Sahada yazınca burada görünür.') +
         '</p>' +

@@ -1842,6 +1842,373 @@
     return eq.list;
   }
 
+  /* ================= Koloni muayene kayıtları (güç / yavru / hastalık) =================
+   * Tek kaynak: kovan başına kayıtlar, localStorage. Demo ve canlı mod ayrı depolar:
+   *   canlı: superari.koloniKayit.v1 (boş başlar) · demo: superari.koloniKayit.demo.v1
+   * Yapı: { "<hiveId>": { strength:[…], brood:[…], disease:[…] } }
+   */
+  var REC_KEY_LIVE = 'superari.koloniKayit.v1';
+  var REC_KEY_DEMO = 'superari.koloniKayit.demo.v1';
+  var REC_SEED_KEY = 'superari.koloniKayitSeed.demo.v1';
+
+  var DISEASES = [
+    { key: 'varroa', label: 'Varroa' },
+    { key: 'nosema', label: 'Nosema' },
+    { key: 'kirec', label: 'Kireç hastalığı' },
+    { key: 'ayc', label: 'Amerikan yavru çürüğü' },
+    { key: 'eyc', label: 'Avrupa yavru çürüğü' },
+    { key: 'tulumsu', label: 'Tulumsu yavru' },
+    { key: 'dwv', label: 'Kanat deformasyonu virüsü' },
+    { key: 'mumguvesi', label: 'Mum güvesi' }
+  ];
+  var DISEASE_LABEL = {};
+  DISEASES.forEach(function (d) { DISEASE_LABEL[d.key] = d.label; });
+  var SEVERITY = ['yok', 'hafif', 'orta', 'agir'];
+  var SEVERITY_LABEL = { yok: 'Yok', hafif: 'Hafif', orta: 'Orta', agir: 'Ağır' };
+  var NOSEMA_LABEL = { yok: 'Yok', suphe: 'Şüphe', dogrulandi: 'Doğrulandı' };
+  var AYC_LABEL = { temiz: 'Temiz', suphe: 'Şüphe', dogrulandi: 'Doğrulandı' };
+  var VARROA_METHOD_LABEL = { seker: 'Pudra şekeri', alkol: 'Alkol yıkama', tabla: 'Yapışkan tabla' };
+  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Oğul hücresi', yenileme: 'Yenileme hücresi' };
+  var PATTERN_LABEL = { duzenli: 'Düzenli', daginik: 'Dağınık' };
+
+  function workMode() {
+    try { return localStorage.getItem('superari.workMode') === 'live' ? 'live' : 'demo'; } catch (e) { return 'demo'; }
+  }
+  function recKey() { return workMode() === 'live' ? REC_KEY_LIVE : REC_KEY_DEMO; }
+  function isoDate(v) {
+    var s = String(v == null ? '' : v).trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+  }
+  function addDays(date, n) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date || '');
+    if (!m) return '';
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + Number(n || 0));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function intIn(v, lo, hi) {
+    if (v == null || v === '') return null;
+    var n = Math.round(Number(v));
+    return isFinite(n) ? Math.max(lo, Math.min(hi, n)) : null;
+  }
+  function numIn(v, lo, hi) {
+    if (v == null || v === '') return null;
+    var n = Number(String(v).replace(',', '.'));
+    return isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n * 10) / 10)) : null;
+  }
+  function pick(v, allowed, def) { return allowed.indexOf(v) !== -1 ? v : def; }
+  function txt(v, max) { var t = String(v == null ? '' : v).trim(); return t ? t.slice(0, max || 200) : ''; }
+
+  function strengthClass(r) {
+    if (!r) return null;
+    var bees = Number(r.beeFrames) || 0, brood = Number(r.broodFrames) || 0;
+    if (bees >= 8 && brood >= 4) return 'Güçlü';
+    if (bees <= 4 || brood <= 1) return 'Zayıf';
+    return 'Orta';
+  }
+
+  function normalizeRecord(kind, r) {
+    if (!r || typeof r !== 'object') return null;
+    var o = { id: txt(r.id, 40) || ('r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)), date: isoDate(r.date) || todayLocal() };
+    if (r.demo === true) o.demo = true;
+    var note = txt(r.note, 300); if (note) o.note = note;
+    if (kind === 'strength') {
+      o.beeFrames = intIn(r.beeFrames, 0, 40) || 0;
+      o.broodFrames = intIn(r.broodFrames, 0, 30) || 0;
+      o.honeyFrames = intIn(r.honeyFrames, 0, 30) || 0;
+      o.pollenFrames = intIn(r.pollenFrames, 0, 20) || 0;
+      return o;
+    }
+    if (kind === 'brood') {
+      o.eggs = r.eggs === true;
+      o.pattern = pick(r.pattern, ['duzenli', 'daginik'], 'duzenli');
+      o.queenCell = pick(r.queenCell, ['yok', 'ogul', 'yenileme'], 'yok');
+      o.queenless = r.queenless === true;
+      o.chilled = r.chilled === true;
+      return o;
+    }
+    if (kind === 'disease') {
+      o.disease = pick(r.disease, DISEASES.map(function (d) { return d.key; }), 'varroa');
+      if (o.disease === 'varroa') {
+        o.count = intIn(r.count, 0, 5000);
+        o.method = pick(r.method, ['seker', 'alkol', 'tabla'], 'seker');
+        o.infestation = numIn(r.infestation, 0, 100);
+        if (o.infestation == null && o.count != null && o.method !== 'tabla') o.infestation = Math.round((o.count / 300) * 1000) / 10;
+      } else if (o.disease === 'nosema') {
+        o.status = pick(r.status, ['yok', 'suphe', 'dogrulandi'], 'yok');
+        o.spores = numIn(r.spores, 0, 1e9);
+      } else if (o.disease === 'ayc') {
+        o.status = pick(r.status, ['temiz', 'suphe', 'dogrulandi'], 'temiz');
+      } else {
+        o.severity = pick(r.severity, SEVERITY, 'yok');
+        if (o.disease === 'kirec') o.frames = intIn(r.frames, 0, 30);
+      }
+      var tr = txt(r.treatment, 200); if (tr) o.treatment = tr;
+      o.withdrawalDays = intIn(r.withdrawalDays, 0, 365) || 0;
+      var cd = isoDate(r.checkDate); if (cd) o.checkDate = cd;
+      return o;
+    }
+    return null;
+  }
+
+  function loadRecordsAll() {
+    try {
+      var raw = localStorage.getItem(recKey());
+      var obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+    } catch (e) { return {}; }
+  }
+  function saveRecordsAll(obj) {
+    try { localStorage.setItem(recKey(), JSON.stringify(obj || {})); } catch (e) { /* ignore */ }
+  }
+  function byDateDesc(a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : (a.id < b.id ? 1 : -1)); }
+  function recordsFor(hiveId, all) {
+    var src = (all || loadRecordsAll())[String(Number(hiveId))] || {};
+    var out = {};
+    ['strength', 'brood', 'disease'].forEach(function (k) {
+      out[k] = (Array.isArray(src[k]) ? src[k] : []).map(function (r) { return normalizeRecord(k, r); }).filter(Boolean).sort(byDateDesc);
+    });
+    return out;
+  }
+  function addRecord(hiveId, kind, rec) {
+    if (['strength', 'brood', 'disease'].indexOf(kind) === -1) return null;
+    var r = normalizeRecord(kind, rec || {});
+    if (!r) return null;
+    var all = loadRecordsAll();
+    var key = String(Number(hiveId));
+    if (!all[key]) all[key] = {};
+    if (!Array.isArray(all[key][kind])) all[key][kind] = [];
+    all[key][kind].push(r);
+    saveRecordsAll(all);
+    return r;
+  }
+  function removeRecord(hiveId, kind, id) {
+    var all = loadRecordsAll();
+    var key = String(Number(hiveId));
+    if (!all[key] || !Array.isArray(all[key][kind])) return false;
+    var before = all[key][kind].length;
+    all[key][kind] = all[key][kind].filter(function (r) { return r && r.id !== id; });
+    saveRecordsAll(all);
+    return all[key][kind].length !== before;
+  }
+
+  /** Hastalık kaydının seviyesi: { active, level: 'temiz'|'izle'|'orta'|'yüksek'|'kritik', text } */
+  function diseaseLevel(r) {
+    if (!r) return { active: false, level: 'temiz', text: '' };
+    var d = r.disease;
+    if (d === 'varroa') {
+      var p = r.infestation;
+      if (p == null) return { active: false, level: 'izle', text: (r.count != null ? r.count + ' akar' : 'sayım') + ' · ' + VARROA_METHOD_LABEL[r.method] };
+      var lvl = p > 3 ? 'yüksek' : (p >= 2 ? 'orta' : 'temiz');
+      return { active: p >= 2, level: lvl, text: '%' + String(p).replace('.', ',') + ' bulaşma · ' + VARROA_METHOD_LABEL[r.method] };
+    }
+    if (d === 'nosema') {
+      return { active: r.status !== 'yok', level: r.status === 'dogrulandi' ? 'yüksek' : (r.status === 'suphe' ? 'orta' : 'temiz'),
+        text: NOSEMA_LABEL[r.status] + (r.spores != null ? ' · ' + r.spores + ' spor' : '') };
+    }
+    if (d === 'ayc') {
+      return { active: r.status !== 'temiz', level: r.status === 'dogrulandi' ? 'kritik' : (r.status === 'suphe' ? 'yüksek' : 'temiz'), text: AYC_LABEL[r.status] };
+    }
+    var sv = r.severity || 'yok';
+    return { active: sv !== 'yok', level: sv === 'agir' ? 'yüksek' : (sv === 'orta' ? 'orta' : (sv === 'hafif' ? 'izle' : 'temiz')),
+      text: SEVERITY_LABEL[sv] + (d === 'kirec' && r.frames != null ? ' · ' + r.frames + ' çerçeve' : '') };
+  }
+
+  /** Kovanın türetilmiş durumu (son kayıtlara göre). */
+  function colonyStatus(hiveId, all) {
+    var rec = recordsFor(hiveId, all);
+    var today = todayLocal();
+    var s = rec.strength[0] || null;
+    var b = rec.brood[0] || null;
+    var latestByDisease = {};
+    rec.disease.forEach(function (r) { if (!latestByDisease[r.disease]) latestByDisease[r.disease] = r; });
+    var active = [], dueChecks = [], withdrawalUntil = '', withdrawalRec = null;
+    Object.keys(latestByDisease).forEach(function (k) {
+      var r = latestByDisease[k];
+      var lv = diseaseLevel(r);
+      if (lv.active) active.push({ key: k, label: DISEASE_LABEL[k], level: lv.level, text: lv.text, rec: r });
+      if (r.checkDate && r.checkDate <= today && (lv.active || lv.level === 'izle')) dueChecks.push({ key: k, label: DISEASE_LABEL[k], date: r.checkDate, rec: r });
+    });
+    rec.disease.forEach(function (r) {
+      if (!r.withdrawalDays) return;
+      var until = addDays(r.date, r.withdrawalDays);
+      if (until >= today && until > withdrawalUntil) { withdrawalUntil = until; withdrawalRec = r; }
+    });
+    var cls = strengthClass(s);
+    var chilled = !!(b && b.chilled);
+    var queenless = !!(b && b.queenless);
+    var afb = latestByDisease.ayc ? latestByDisease.ayc.status : 'temiz';
+    return {
+      records: rec,
+      strength: s, strengthClass: cls,
+      brood: b,
+      weak: cls === 'Zayıf' || chilled,
+      chilled: chilled,
+      queenless: queenless,
+      swarmCell: !!(b && b.queenCell === 'ogul'),
+      broodIssue: !!(b && (b.queenless || b.chilled || b.queenCell === 'ogul' || !b.eggs || b.pattern === 'daginik')),
+      diseases: active,
+      dueChecks: dueChecks,
+      afb: afb,
+      withdrawalUntil: withdrawalUntil,
+      withdrawalRec: withdrawalRec,
+      latestByDisease: latestByDisease
+    };
+  }
+
+  /** Arka plan sağlık modeli için yalın bayraklar (formül sensor-health.js içinde). */
+  function healthFlags(hiveId) {
+    var st = colonyStatus(hiveId);
+    var f = { queenless: st.queenless, chilled: st.chilled, weak: st.strengthClass === 'Zayıf', afb: st.afb };
+    Object.keys(st.latestByDisease).forEach(function (k) { f[k] = diseaseLevel(st.latestByDisease[k]).level; });
+    return f;
+  }
+
+  function hiveNameMap(hives) {
+    var m = {};
+    (hives || loadHives()).forEach(function (h) { m[h.id] = h; });
+    return m;
+  }
+
+  /** Kayıtlardan otomatik görev ve uyarılar (yalnız etkin moddaki kayıtlar). */
+  function derivedItems() {
+    var all = loadRecordsAll();
+    var ids = Object.keys(all);
+    var tasksOut = [], alertsOut = [];
+    if (!ids.length) return { tasks: tasksOut, alerts: alertsOut };
+    var hives = hiveNameMap();
+    var aps = {};
+    loadApiaries().forEach(function (a) { aps[a.id] = a; });
+    var nowIso = new Date().toISOString();
+    ids.forEach(function (key) {
+      var h = hives[Number(key)];
+      if (!h) return;
+      var st = colonyStatus(h.id, all);
+      var nm = h.name;
+      var apName = aps[h.apiaryId] ? aps[h.apiaryId].name : '';
+      if (st.queenless) {
+        tasksOut.push({ id: 'kr-anasiz-' + h.id, title: 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
+        alertsOut.push({ id: 'kra-anasiz-' + h.id, title: 'Anasız koloni — ' + nm, type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
+      }
+      if (st.chilled) {
+        tasksOut.push({ id: 'kr-usumus-' + h.id, title: 'Birleştir veya çerçeve azalt — ' + nm + ' (zayıf koloni, üşümüş yavru)', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+        alertsOut.push({ id: 'kra-usumus-' + h.id, title: 'Üşümüş yavru — zayıf koloni (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'medium', auto: true });
+      }
+      if (st.swarmCell) {
+        tasksOut.push({ id: 'kr-ogulhucre-' + h.id, title: 'Oğul hücresi görüldü — ' + nm + ': bölme veya yer açma', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+      }
+      if (st.afb === 'dogrulandi') {
+        tasksOut.push({ id: 'kr-ayc-komsu-' + h.id, title: 'AYÇ doğrulandı (' + nm + ') — ' + (apName || 'arılıktaki') + ' diğer kovanları kontrol et', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
+        tasksOut.push({ id: 'kr-ayc-ihbar-' + h.id, title: 'AYÇ ihbarı zorunlu — İl/İlçe Tarım ve Orman Müdürlüğüne bildir (' + nm + ')', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
+        alertsOut.push({ id: 'kra-ayc-' + h.id, title: 'Amerikan yavru çürüğü doğrulandı — ihbarı zorunlu (' + nm + ')', type: 'hastalık', hiveId: h.id, severity: 'high', auto: true });
+      } else if (st.afb === 'suphe') {
+        tasksOut.push({ id: 'kr-ayc-suphe-' + h.id, title: 'AYÇ şüphesi — ' + nm + ': numune al ve doğrulat', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
+        alertsOut.push({ id: 'kra-ayc-suphe-' + h.id, title: 'Amerikan yavru çürüğü şüphesi (' + nm + ')', type: 'hastalık', hiveId: h.id, severity: 'high', auto: true });
+      }
+      st.diseases.forEach(function (d) {
+        if (d.key === 'ayc') return;
+        if (d.level === 'yüksek' || d.level === 'kritik' || d.level === 'orta') {
+          alertsOut.push({ id: 'kra-' + d.key + '-' + h.id, title: d.label + ' (' + d.text + ') — ' + nm, type: 'hastalık', hiveId: h.id, severity: d.level === 'orta' ? 'medium' : 'high', auto: true });
+        }
+        if (d.key === 'varroa' && d.level === 'yüksek') {
+          tasksOut.push({ id: 'kr-varroa-' + h.id, title: 'Varroa yüksek — ' + nm + ': mücadele planla', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+        }
+      });
+      st.dueChecks.forEach(function (c) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.date);
+        tasksOut.push({ id: 'kr-kontrol-' + c.key + '-' + h.id, title: 'Kontrol: ' + c.label + ' — ' + nm + ' (kontrol tarihi ' + (m ? m[3] + '.' + m[2] + '.' + m[1] : c.date) + ')', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+      });
+      if (st.withdrawalUntil) {
+        var w = /^(\d{4})-(\d{2})-(\d{2})$/.exec(st.withdrawalUntil);
+        alertsOut.push({ id: 'kra-bekleme-' + h.id, title: 'İlaç bekleme süresi — ' + nm + ': ' + (w ? w[3] + '.' + w[2] + '.' + w[1] : st.withdrawalUntil) + ' tarihine kadar hasat yapma', type: 'hastalık', hiveId: h.id, severity: 'low', auto: true });
+      }
+    });
+    return { tasks: tasksOut, alerts: alertsOut };
+  }
+
+  /** Demo modda bir kez örnek kayıt seti (açıkça demo: demo=true). */
+  function seedDemoRecords() {
+    if (workMode() !== 'demo') return;
+    try { if (localStorage.getItem(REC_SEED_KEY) === '1') return; localStorage.setItem(REC_SEED_KEY, '1'); } catch (e) { return; }
+    var all = loadRecordsAll();
+    if (Object.keys(all).length) return;
+    var t = todayLocal();
+    function d(n) { return addDays(t, -n); }
+    function first(aid, i) { var hs = hivesForApiary(aid); return hs[i || 0] ? hs[i || 0].id : null; }
+    function put(hid, kind, r) {
+      if (hid == null) return;
+      var key = String(hid);
+      if (!all[key]) all[key] = {};
+      if (!all[key][kind]) all[key][kind] = [];
+      r.demo = true;
+      all[key][kind].push(normalizeRecord(kind, r));
+    }
+    var h101 = first('a1', 0), h118 = first('a1', 2), h110 = first('a1', 6);
+    var h204 = first('a2', 0), h211 = first('a2', 1);
+    var h305 = first('a3', 0);
+    var h4 = first('a4', 0), h5 = first('a5', 0), h5b = first('a5', 3);
+    put(h101, 'strength', { date: d(40), beeFrames: 8, broodFrames: 5, honeyFrames: 3, pollenFrames: 1 });
+    put(h101, 'strength', { date: d(9), beeFrames: 10, broodFrames: 6, honeyFrames: 4, pollenFrames: 2 });
+    put(h101, 'brood', { date: d(9), eggs: true, pattern: 'duzenli', queenCell: 'yok' });
+    put(h118, 'strength', { date: d(12), beeFrames: 6, broodFrames: 3, honeyFrames: 2, pollenFrames: 1 });
+    put(h118, 'disease', { date: d(12), disease: 'varroa', count: 11, method: 'alkol', treatment: 'Oksalik asit damlatma', withdrawalDays: 0, checkDate: d(-9), note: 'Sonbahar sayımı' });
+    put(h110, 'disease', { date: d(15), disease: 'kirec', severity: 'hafif', frames: 1, treatment: 'Havalandırma, nemli çerçeve çıkarıldı', withdrawalDays: 0, checkDate: d(1) });
+    put(h204, 'strength', { date: d(8), beeFrames: 9, broodFrames: 5, honeyFrames: 4, pollenFrames: 2 });
+    put(h204, 'brood', { date: d(8), eggs: true, pattern: 'duzenli', queenCell: 'yenileme' });
+    put(h211, 'strength', { date: d(6), beeFrames: 4, broodFrames: 1, honeyFrames: 2, pollenFrames: 0 });
+    put(h211, 'brood', { date: d(6), eggs: false, pattern: 'daginik', queenCell: 'yok', queenless: true, note: 'Yumurta ve genç larva yok' });
+    put(h305, 'disease', { date: d(10), disease: 'nosema', status: 'suphe', treatment: 'Numune gönderildi', withdrawalDays: 0, checkDate: d(-4) });
+    put(h4, 'strength', { date: d(7), beeFrames: 7, broodFrames: 4, honeyFrames: 3, pollenFrames: 1 });
+    put(h5, 'brood', { date: d(5), eggs: true, pattern: 'daginik', queenCell: 'yok', chilled: true, note: 'Soğuk gece sonrası kenar çerçevelerde' });
+    put(h5, 'strength', { date: d(5), beeFrames: 4, broodFrames: 2, honeyFrames: 2, pollenFrames: 0 });
+    put(h5b, 'disease', { date: d(20), disease: 'varroa', count: 4, method: 'seker', treatment: 'Amitraz şerit (onaylı)', withdrawalDays: 42, checkDate: d(-20) });
+    put(h5b, 'disease', { date: d(18), disease: 'mumguvesi', severity: 'hafif', treatment: 'Boş petekler kükürtlendi', withdrawalDays: 0 });
+    saveRecordsAll(all);
+  }
+
+  var colonyRecords = {
+    DISEASES: DISEASES,
+    DISEASE_LABEL: DISEASE_LABEL,
+    SEVERITY: SEVERITY,
+    SEVERITY_LABEL: SEVERITY_LABEL,
+    NOSEMA_LABEL: NOSEMA_LABEL,
+    AYC_LABEL: AYC_LABEL,
+    VARROA_METHOD_LABEL: VARROA_METHOD_LABEL,
+    QUEEN_CELL_LABEL: QUEEN_CELL_LABEL,
+    PATTERN_LABEL: PATTERN_LABEL,
+    workMode: workMode,
+    strengthClass: strengthClass,
+    recordsFor: function (id) { seedDemoRecords(); return recordsFor(id); },
+    loadAll: function () { seedDemoRecords(); return loadRecordsAll(); },
+    add: addRecord,
+    remove: removeRecord,
+    diseaseLevel: diseaseLevel,
+    status: function (id, all) { seedDemoRecords(); return colonyStatus(id, all); },
+    healthFlags: function (id) { seedDemoRecords(); return healthFlags(id); },
+    derived: function () { seedDemoRecords(); return derivedItems(); },
+    addDays: addDays,
+    /** Hasat tarihi, arılıktaki bir kovanın ilaç bekleme süresine denk geliyor mu? */
+    withdrawalConflicts: function (apiaryId, date) {
+      seedDemoRecords();
+      var all = loadRecordsAll();
+      var out = [];
+      if (!date) return out;
+      loadHives().forEach(function (h) {
+        if (apiaryId && String(h.apiaryId) !== String(apiaryId)) return;
+        var rec = all[String(h.id)];
+        if (!rec || !rec.disease) return;
+        rec.disease.forEach(function (d) {
+          var days = Number(d.withdrawalDays) || 0;
+          if (!days || !d.date) return;
+          var until = addDays(d.date, days);
+          if (date >= d.date && date <= until) {
+            out.push({ hiveId: h.id, hiveName: h.name, disease: DISEASE_LABEL[d.disease] || d.disease, from: d.date, until: until });
+          }
+        });
+      });
+      return out;
+    }
+  };
+
   function addApiary(input) {
     var list = loadApiaries();
     /* Ensure hives store is initialized / reconciled before we append. */
@@ -2285,13 +2652,23 @@
       SEED_APIARIES: SEED_APIARIES,
       get apiaries() { return loadApiaries(); },
       get hives() { return loadHives(); },
-      alerts: alerts,
-      tasks: tasks,
+      /* Statik demo + koloni kayıtlarından türetilen otomatik uyarı/görevler. */
+      get alerts() {
+        var extra = [];
+        try { extra = colonyRecords.derived().alerts; } catch (e) { extra = []; }
+        return alerts.concat(extra);
+      },
+      get tasks() {
+        var extra = [];
+        try { extra = colonyRecords.derived().tasks; } catch (e) { extra = []; }
+        return tasks.concat(extra);
+      },
+      records: colonyRecords,
       get counts() {
         var h = loadHives();
         return {
-          alerts: alerts.length,
-          tasks: tasks.length,
+          alerts: this.alerts.length,
+          tasks: this.tasks.length,
           hives: h.length,
           apiaries: loadApiaries().length
         };
