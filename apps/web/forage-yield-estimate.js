@@ -102,6 +102,16 @@
       return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
     function majority() {
+      var F = global.SuperAriForage;
+      if (F && typeof F.breedMix === 'function') {
+        var mix = [];
+        try { mix = F.breedMix(a) || []; } catch (eM) { mix = []; }
+        if (mix.length) {
+          var tot = mix.reduce(function (s, m) { return s + m.count; }, 0);
+          var head = (typeof F.majorityBreed === 'function' && F.majorityBreed(a)) || mix[0].breed;
+          return head + ' (' + mix.map(function (m) { return m.breed + ' ' + m.count; }).join(' · ') + ' / ' + tot + ' kovan)';
+        }
+      }
       var D = global.D || global.SuperAriDemo, list = [];
       try { list = (D && D.hivesForApiary) ? (D.hivesForApiary(a.id) || []) : []; } catch (e) {}
       var c = {}, best = '', nb = 0, total = 0;
@@ -113,6 +123,14 @@
       });
       return best ? (best + ' (' + nb + '/' + total + ' kovan)') : null;
     }
+    function winterScore() {
+      var F = global.SuperAriForage;
+      if (F && typeof F.winterScoreFor === 'function' && wn.score != null) {
+        try { var v = F.winterScoreFor(a, se); if (v != null) return v; } catch (eW) {}
+      }
+      return wn.score;
+    }
+    var wScore = winterScore();
     var rows = [
       ['Koordinat', ok(a.lat) && ok(a.lon) ? (a.lat + ', ' + a.lon) : null],
       ['Rakım', ok(f.elevM) ? (f.elevM + ' m') : (ok(se.elevM) ? (se.elevM + ' m') : null)],
@@ -131,7 +149,7 @@
       ['14 gün don riski', fr.label ? (fr.label + (ok(fr.frostDays) ? ' · ' + fr.frostDays + ' don günü' : '')) : null],
       ['14 gün rüzgâr', ok(wi.maxKmh) ? ('en yüksek ' + wi.maxKmh + ' km/s' + (ok(wi.avgMaxKmh) ? ' · ort. ' + wi.avgMaxKmh + ' km/s' : '')) : null],
       ['14 gün yağış', ok(se.precipSum14Mm) ? (n1(se.precipSum14Mm) + ' mm') : null],
-      ['Kışlama puanı', ok(wn.score) ? (wn.score + (wn.label ? ' · ' + wn.label : '')) : null],
+      ['Kışlama puanı', ok(wScore) ? (wScore + (wScore === wn.score && wn.label ? ' · ' + wn.label : '')) : null],
       ['Arı cinsi', majority()]
     ];
     var got = rows.filter(function (r) { return ok(r[1]); });

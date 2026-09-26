@@ -68,44 +68,138 @@
     for (var i = 0; i < list.length; i++) if (id && String(list[i].id) === String(id)) return list[i];
     return list[0] || fallback;
   }
-  /** Arılıktaki kovanlarda en çok görülen ırk (çoğunluk). */
-  function majorityBreed(a) {
+  /** Tek ırk etiketini kanonik biçime çevir. */
+  function normBreed(b) {
+    b = String(b || '').trim();
+    if (!b) return '';
+    if (/muğla|mugla/i.test(b)) return 'Muğla';
+    if (/kafkas/i.test(b) && /karadeniz/i.test(b)) return 'Kafkas × Karadeniz';
+    if (/karadeniz/i.test(b)) return 'Karadeniz';
+    if (/kafkas/i.test(b) && /karn/i.test(b)) return 'Kafkas × Karniyol';
+    if (/kafkas/i.test(b)) return 'Kafkas';
+    if (/karniyol|carn/i.test(b)) return 'Karniyol';
+    if (/italy|i̇talyan|italyan/i.test(b)) return 'İtalyan';
+    if (/anadolu/i.test(b)) return 'Anadolu';
+    return b;
+  }
+  /** Arılıktaki ırk dağılımı: [{ breed, count }] (çoktan aza, eşitlikte ilk görülen önce). */
+  function breedMix(a) {
     var D = global.D || global.SuperAriDemo;
-    if (!a || !D || typeof D.hivesForApiary !== 'function') return '';
+    if (!a || !D || typeof D.hivesForApiary !== 'function') return [];
     var list = [];
     try { list = D.hivesForApiary(a.id) || []; } catch (e) { list = []; }
     var counts = {}, order = [];
     list.forEach(function (h) {
-      var b = String((h && (h.breed || h.irk)) || '').trim();
+      var b = normBreed(h && (h.breed || h.irk));
       if (!b) return;
       if (!counts[b]) { counts[b] = 0; order.push(b); }
       counts[b]++;
     });
-    var best = '', n = 0;
-    order.forEach(function (b) { if (counts[b] > n) { best = b; n = counts[b]; } });
-    return best;
+    return order.map(function (b, i) { return { breed: b, count: counts[b], i: i }; })
+      .sort(function (x, y) { return (y.count - x.count) || (x.i - y.i); });
+  }
+  /**
+   * Çoğunluk ırkı. Yarı yarıya (fark ≤ 1 kovan ve her biri ≥ %40) ise ikisi birden:
+   * ör. «Kafkas · Karadeniz».
+   */
+  function majorityBreed(a) {
+    var mix = breedMix(a);
+    if (!mix.length) return '';
+    var total = mix.reduce(function (s, m) { return s + m.count; }, 0);
+    var top = mix[0];
+    var out = [top.breed];
+    for (var i = 1; i < mix.length && out.length < 2; i++) {
+      if (mix[i].count >= top.count - 1 && mix[i].count >= total * 0.4) out.push(mix[i].breed);
+    }
+    return out.join(' · ');
   }
   function placeBreed(a) {
-    var b = String(majorityBreed(a) || (a && a.breed) || '');
-    if (/muğla|mugla/i.test(b)) return 'Muğla Arısı';
-    if (/karadeniz/i.test(b)) return 'Kafkas × Karadeniz';
-    if (/kafkas/i.test(b) && /karn/i.test(b)) return 'Kafkas × Karniyol';
-    if (/kafkas/i.test(b)) return 'Kafkas';
-    if (/karniyol|carn/i.test(b)) return 'Karniyol';
-    return 'Kafkas';
+    var maj = majorityBreed(a);
+    if (maj) return maj;
+    return normBreed(a && a.breed) || 'Kafkas';
   }
-  function liveProduct(a) {
-    var key = placeBreed(a);
-    var fog = /yanık|yanik|cimil|rize/.test(String((a && a.name || '') + (a && a.place || '')).toLocaleLowerCase('tr'));
-    var share = fog ? 45 / 153 : 0;
+  /** Irk → bal verimi çarpanı + sisli bölgede uçuş kaybı hassasiyeti. */
+  function breedYieldFactor(key, fog, share) {
     var breedF = 1, flyF = 1;
     if (/Karadeniz/.test(key)) { breedF = 1.22; flyF = 1 - share * 0.18; }
     else if (/Kafkas × Karniyol/.test(key)) { breedF = 1.2; flyF = 1 - share * 0.3; }
     else if (/Kafkas/.test(key)) { breedF = fog ? 1.08 : 0.97; flyF = 1 - share * 0.25; }
     else if (/Muğla/.test(key)) { breedF = fog ? 0.95 : 1.05; flyF = 1 - share; }
     else if (/Karniyol/.test(key)) { breedF = fog ? 1 : 1.08; flyF = 1 - share; }
-    return Math.round(breedF * flyF * 1.06 * 1000) / 1000;
+    return breedF * flyF;
   }
+  function liveProduct(a) {
+    var fog = /yanık|yanik|cimil|rize/.test(String((a && a.name || '') + (a && a.place || '')).toLocaleLowerCase('tr'));
+    var share = fog ? 45 / 153 : 0;
+    var mix = breedMix(a);
+    var f;
+    if (mix.length) {
+      var total = 0, sum = 0;
+      mix.forEach(function (m) { total += m.count; sum += m.count * breedYieldFactor(m.breed, fog, share); });
+      f = sum / total;
+    } else {
+      f = breedYieldFactor(placeBreed(a), fog, share);
+    }
+    return Math.round(f * 1.06 * 1000) / 1000;
+  }
+  /*
+   * Kışlama: uzak analiz puanı Karniyol tabanlıdır. Irk farkı (kovan sayısına göre ağırlıklı):
+   * Karadeniz soğuk + nemde çok iyi, Kafkas iyi, Karniyol iyi (taban), Muğla ılık Ege'ye uyumlu —
+   * soğuk / yüksek rakımda zayıf, ılık yerde cezası azalır.
+   */
+  function breedWinterOffset(key, season) {
+    var elev = season && season.elevM != null ? Number(season.elevM) : null;
+    var avgMin = season && season.frost && season.frost.avgMinC != null ? Number(season.frost.avgMinC) : null;
+    if (/Kafkas × Karadeniz/.test(key)) return 5;
+    if (/Karadeniz/.test(key)) return 6;
+    if (/Kafkas × Karniyol/.test(key)) return 2;
+    if (/Kafkas/.test(key)) return 4;
+    if (/Karniyol/.test(key)) return 0;
+    if (/Anadolu/.test(key)) return 2;
+    if (/İtalyan/.test(key)) return -6;
+    if (/Muğla/.test(key)) {
+      var o = -6;
+      if (elev != null && isFinite(elev) && elev >= 1200) o -= 4;
+      if (avgMin != null && isFinite(avgMin) && avgMin >= 5) o += 4;
+      return o;
+    }
+    return 0;
+  }
+  function winterScoreFor(a, season) {
+    var raw = season && season.wintering && season.wintering.score != null ? Number(season.wintering.score) : null;
+    if (raw == null || !isFinite(raw)) return null;
+    var mix = breedMix(a);
+    var off;
+    if (mix.length) {
+      var total = 0, sum = 0;
+      mix.forEach(function (m) { total += m.count; sum += m.count * breedWinterOffset(m.breed, season); });
+      off = sum / total;
+    } else {
+      off = breedWinterOffset(placeBreed(a), season);
+    }
+    return Math.max(20, Math.min(95, Math.round(raw + off)));
+  }
+  function winterLabelFor(score, breed) {
+    if (score >= 70) return breed + ' için kışlama uygun';
+    if (score >= 55) return breed + ' kışlama: dikkatli';
+    if (score >= 40) return 'Kışlama zorlayıcı';
+    return 'Kışlama riskli';
+  }
+  function winterNoteFor(breed) {
+    var parts = String(breed).split(' · ');
+    var notes = parts.map(function (b) {
+      if (/Karadeniz/.test(b)) return b + ' soğuğa ve neme çok dayanıklı';
+      if (/Muğla/.test(b)) return b + ' ılık Ege iklimine uyumlu, sert soğukta zorlanır';
+      if (/Kafkas/.test(b)) return b + ' soğuğa dayanıklı';
+      if (/Karniyol/.test(b)) return b + ' iyi kışlar';
+      return b;
+    });
+    return notes.join('; ') + '. Yalıtım, rüzgâr yönü ve kış stoğu kritik. Skor yalnız Open-Meteo tahmin + rakım + ırk — sensör yok.';
+  }
+  stub.breedMix = breedMix;
+  stub.majorityBreed = majorityBreed;
+  stub.placeBreed = placeBreed;
+  stub.winterScoreFor = winterScoreFor;
   function yieldCard(escapeHtml) {
     var a = currentApiary();
     var n = (a && a.hiveCount) || 20;
@@ -207,12 +301,29 @@
     var rawSeasonRender = real.renderSeasonPanelHtml;
     if (typeof rawSeasonRender === 'function') {
       stub.renderSeasonPanelHtml = function (season, escapeHtml) {
-        var html = rawSeasonRender(season, escapeHtml);
-        if (!season) return html;
-        var score = season.wintering && season.wintering.score != null ? season.wintering.score : null;
-        var breed = placeBreed(currentApiary());
-        if (breed !== 'Karniyol') html = String(html).replace(/Karniyol/g, breed);
-        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' ·<br>' + breed) : '—', score != null ? score : 0, 'btnSeasonHint') +
+        if (!season) return rawSeasonRender(season, escapeHtml);
+        var ap = currentApiary();
+        var breed = placeBreed(ap);
+        var score = winterScoreFor(ap, season);
+        var view = season;
+        if (score != null) {
+          view = {};
+          for (var k in season) if (Object.prototype.hasOwnProperty.call(season, k)) view[k] = season[k];
+          var wi = {};
+          var w0 = season.wintering || {};
+          for (var k2 in w0) if (Object.prototype.hasOwnProperty.call(w0, k2)) wi[k2] = w0[k2];
+          wi.score = score;
+          wi.tone = score >= 70 ? 'good' : score >= 55 ? 'ok' : score >= 40 ? 'mid' : 'bad';
+          wi.label = winterLabelFor(score, breed);
+          wi.note = winterNoteFor(breed);
+          wi.breed = breed;
+          view.wintering = wi;
+        }
+        var html = rawSeasonRender(view, escapeHtml);
+        /* Uzak şablonda rozet sabit « · Karniyol»; yalnız onu değiştir (ırk adı zaten label/note içinde). */
+        html = String(html).replace(' · Karniyol</span>', ' · ' + breed + '</span>');
+        if (score == null && !/Karniyol/.test(breed)) html = html.replace(/Karniyol/g, breed);
+        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' ·<br>' + breed.replace(/ · /g, ' ·<br>')) : '—', score != null ? score : 0, 'btnSeasonHint') +
           '<div id="seasonOnlyPanel" class="sa-split-card">' + html + '</div>';
       };
     }
