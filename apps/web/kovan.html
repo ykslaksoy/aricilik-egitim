@@ -381,10 +381,10 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-3"></script>
+<script src="demo-data.js?v=koloni-4"></script>
 <script src="rapor-store.js"></script>
-<script src="sensor-health.js?v=koloni-3"></script>
-<script src="koloni.js?v=koloni-3"></script>
+<script src="sensor-health.js?v=koloni-4"></script>
+<script src="koloni.js?v=koloni-4"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -933,7 +933,9 @@
           (hive.colonyNote ? kvRow('Koloni notu', hive.colonyNote) : '') +
           (krRows ? kvRowHtml('Koloni gücü', escapeHtml(krRows.strength) + krEdit('guc')) +
             kvRowHtml('Yavru durumu', escapeHtml(krRows.brood) + krEdit('yavru')) +
-            kvRowHtml('Hastalık', escapeHtml(krRows.disease) + krEdit('hastalik')) : '') +
+            kvRowHtml('Hastalık', escapeHtml(krRows.disease) + krEdit('hastalik')) +
+            kvRowHtml('Besleme', escapeHtml(krRows.feed) + krEdit('besleme')) +
+            kvRowHtml('Kışlık hazırlık', escapeHtml(krRows.winter) + krEdit('guc&sub=kis')) : '') +
 
           kvRow('Çerçeve / yavru / bal', fieldOrNone(hive.framesNote || hive.cerceve)) +
           kvRow('Son muayene', fieldOrNone(hive.lastInspectionAt || hive.sonMuayene)) +

@@ -529,7 +529,7 @@
     { key: 'guc', label: 'Koloni gücü', ready: true },
     { key: 'yavru', label: 'Yavru durumu', ready: true },
     { key: 'hastalik', label: 'Hastalık', ready: true },
-    { key: 'besleme', label: 'Besleme', ready: false },
+    { key: 'besleme', label: 'Besleme', ready: true },
     { key: 'bolme', label: 'Bölme / Birleştirme', ready: false },
     { key: 'ogul', label: 'Oğul', ready: false },
     { key: 'tasima', label: 'Ana taşıma', ready: false },
@@ -537,6 +537,7 @@
   ];
   var TOPIC_LABEL = {};
   TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
+  TOPIC_LABEL.kis = 'Kışlık hazırlık';
 
   var GRID_CSS = '' +
     '.kg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}' +
@@ -581,14 +582,16 @@
   /** Konu başına ilgilenilmesi gereken kovan sayısı (yalnız hazır konular). */
   function topicCounts(hives) {
     var c = C(), r = R();
-    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0 };
+    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0, besleme: 0 };
     if (!r) return out;
     var all = r.loadAll();
     (hives || []).forEach(function (h) {
       if (c && c.queenStatus(h) === 'Yenile') out.ana++;
       if (!all[String(h.id)]) return;
       var st = r.status(h.id, all);
-      if (st.weak) out.guc++;
+      var ws = r.winterStatus(h.id, all);
+      if (st.weak || (ws.rec && ws.statusKey !== 'hazir')) out.guc++;
+      if (ws.storesKg != null && !ws.storesOk) out.besleme++;
       if (st.broodIssue) out.yavru++;
       if (st.diseases.length || st.dueChecks.length) out.hastalik++;
     });
@@ -641,6 +644,8 @@
     if (st.swarmCell) out.push(chip('Oğul hücresi', 'orange'));
     st.diseases.forEach(function (d) { out.push(chip('🦠 ' + d.label, levelTone(d.level))); });
     if (st.withdrawalUntil) out.push(chip('İlaç bekleme', 'blue'));
+    var ws = r.winterStatus(h.id, all);
+    if (ws.rec) out.push(chip('Kış: ' + ws.status, ws.statusKey === 'hazir' ? 'green' : (ws.statusKey === 'birlestir' ? 'red' : 'orange')));
     return out.length ? '<div class="kr-chips">' + out.join('') + '</div>' : '';
   }
 
@@ -718,6 +723,18 @@
         if (st.chilled) chips.push(chip('Üşümüş yavru', 'red'));
         if (st.swarmCell) chips.push(chip('Oğul hücresi', 'orange'));
         if (st.brood && st.brood.queenCell === 'yenileme') chips.push(chip('Yenileme hücresi', 'blue'));
+      } else if (topic === 'besleme') {
+        var fl = st.records.feed;
+        if (fl.length) withRec++;
+        var ws1 = r.winterStatus(h.id, all);
+        line = fl.length ? feedText(fl[0]) + ' · sezonda ' + fl.filter(function (x) { return r.currentSeason() === seasonOfDate(x.date); }).length + ' kayıt' : 'Kayıt yok';
+        if (ws1.storesKg != null) chips.push(chip('Stok ' + num(ws1.storesKg) + ' kg', ws1.storesOk ? 'green' : 'red'));
+      } else if (topic === 'kis') {
+        var ws2 = r.winterStatus(h.id, all);
+        if (ws2.rec) withRec++;
+        line = ws2.rec ? (fmtDate(ws2.rec.date) + (ws2.missing.length ? ' · eksik: ' + ws2.missing.join(', ') : ' · tüm maddeler tamam')) :
+          (ws2.suggestedOnly ? 'Kayıt yok · son güç kaydı Zayıf' : 'Kayıt yok');
+        if (ws2.status) chips.push(chip(ws2.status + (ws2.suggestedOnly ? ' (öneri)' : ''), ws2.statusKey === 'hazir' ? 'green' : (ws2.statusKey === 'birlestir' ? 'red' : 'orange')));
       } else {
         var n = st.records.disease.length;
         if (n) withRec++;
@@ -727,9 +744,12 @@
         st.dueChecks.forEach(function (c) { chips.push(chip('Kontrol: ' + c.label, 'orange')); });
         if (st.withdrawalUntil) chips.push(chip('İlaç bekleme · ' + fmtDate(st.withdrawalUntil), 'blue'));
       }
-      var has = topic === 'guc' ? !!st.strength : (topic === 'yavru' ? !!st.brood : st.records.disease.length > 0);
+      var has = topic === 'guc' ? !!st.strength : (topic === 'yavru' ? !!st.brood : (topic === 'besleme' ? st.records.feed.length > 0 :
+        (topic === 'kis' ? !!r.winterStatus(h.id, all).rec : st.records.disease.length > 0)));
       var rank = chips.length && (topic !== 'guc' || st.weak) ? 0 : (has ? 1 : 2);
       if (topic === 'hastalik' && !st.diseases.length && !st.dueChecks.length) rank = has ? 1 : 2;
+      if (topic === 'besleme') rank = chips.length && chips[0].indexOf(' red') > 0 ? 0 : (has ? 1 : 2);
+      if (topic === 'kis') rank = has || chips.length ? (chips.length && chips[0].indexOf(' green') < 0 ? 0 : 1) : 2;
       return { rank: rank, html: '<button type="button" class="item-card kol-card kr-row" data-hive="' + esc(h.id) + '" data-topic="' + topic + '">' +
         '<div class="row"><h3>' + esc(h.name) + '</h3>' + (chips.length ? '<span class="kr-chips">' + chips.join('') + '</span>' : '') + '</div>' +
         '<div class="kol-links" style="color:var(--ink,#1f2933);font-size:.84rem;">' + esc(line) + '</div>' +
@@ -737,7 +757,10 @@
     }).map(function (x, i) { x.i = i; return x; }).sort(function (a, b) { return a.rank - b.rank || a.i - b.i; })
       .map(function (x) { return x.html; });
     var mode = r.workMode() === 'live' ? 'Canlı mod: yalnız sizin girdiğiniz kayıtlar.' : 'Demo mod: birkaç örnek kayıt «Demo» etiketiyle gösterilir.';
-    return '<p class="kol-sub" style="margin:0;">' + withRec + ' / ' + (hives || []).length + ' kovanda kayıt var. ' + mode + '</p>' +
+    var head = '';
+    if (topic === 'besleme') head = feedTotalsHtml(hives, all);
+    if (topic === 'kis') head = winterLineHtml(hives, '', true);
+    return head + '<p class="kol-sub" style="margin:0;">' + withRec + ' / ' + (hives || []).length + ' kovanda kayıt var. ' + mode + '</p>' +
       (rows.join('') || '<p class="muted">Kovan bulunamadı.</p>');
   }
 
@@ -776,6 +799,7 @@
   /** Konu kayıt sayfası: geçmiş + yeni kayıt formu. */
   function openRecordSheet(topic, hiveId, onSaved) {
     ensureGridCss();
+    if (topic === 'kis') return openWinterSheet(hiveId, onSaved);
     var d = D(), r = R();
     if (!d || !r) return;
     var h = d.hiveById(hiveId);
@@ -794,6 +818,10 @@
         items = rec.strength.map(function (s) {
           return histRow(fmtDate(s.date) + ' · ' + r.strengthClass(s), 'Arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve' + (s.note ? ' · ' + s.note : ''), s, 'strength', h.id);
         }).join('');
+      } else if (topic === 'besleme') {
+        items = rec.feed.map(function (x) {
+          return histRow(fmtDate(x.date) + ' · ' + r.FEED_LABEL[x.type], num(x.amount) + ' ' + r.FEED_UNIT[x.type] + (x.note ? ' · ' + x.note : ''), x, 'feed', h.id);
+        }).join('');
       } else if (topic === 'yavru') {
         items = rec.brood.map(function (b) {
           return histRow(fmtDate(b.date) + (b.queenless ? ' · Anasız' : '') + (b.chilled ? ' · Üşümüş yavru' : ''), broodText(b).split(' · ').slice(1).join(' · ') + (b.note ? ' · ' + b.note : ''), b, 'brood', h.id);
@@ -810,8 +838,19 @@
         var diff = z.beeFrames - a.beeFrames;
         trend = '<div class="kr-info">Eğilim: ' + fmtDate(a.date) + ' → ' + fmtDate(z.date) + ' arılı çerçeve ' + a.beeFrames + ' → ' + z.beeFrames + ' (' + (diff > 0 ? '+' : '') + diff + ').</div>';
       }
+      if (topic === 'besleme') {
+        var ws = r.winterStatus(h.id);
+        trend = '<div class="kr-info">Sonbahar beslemesi (kışlık stok önerisi): <b>' + num(ws.suggestedKg) + ' kg</b>' +
+          (ws.rec && ws.rec.storesKg != null ? ' · kayıtlı kışlık stok ' + num(ws.rec.storesKg) + ' kg' : '') +
+          ' · en az ' + r.WINTER_MIN_KG + ' kg önerilir. <a href="#" data-open-kis="1">Kışlık hazırlık</a></div>';
+      }
+      if (topic === 'guc') {
+        var ws3 = r.winterStatus(h.id);
+        trend += '<div class="kr-info">Kışlık hazırlık: <b>' + esc(ws3.status ? ws3.status + (ws3.suggestedOnly ? ' (öneri)' : '') : 'kayıt yok') + '</b> · <a href="#" data-open-kis="1">Aç</a></div>';
+      }
+      var cnt = topic === 'guc' ? rec.strength.length : topic === 'yavru' ? rec.brood.length : topic === 'besleme' ? rec.feed.length : rec.disease.length;
       return (topic === 'hastalik' ? withdrawalHtml(h, st) : '') + trend +
-        '<div class="kr-section-title">Geçmiş (' + (topic === 'guc' ? rec.strength.length : topic === 'yavru' ? rec.brood.length : rec.disease.length) + ')</div>' +
+        '<div class="kr-section-title">Geçmiş (' + cnt + ')</div>' +
         '<div class="kr-hist">' + (items || '<p class="kol-sub" style="margin:0;">Henüz kayıt yok.</p>') + '</div>';
     }
     var form;
@@ -822,6 +861,11 @@
         '<label>Ballı çerçeve<input type="number" name="honeyFrames" min="0" max="30" inputmode="numeric"></label>' +
         '<label>Polenli çerçeve<input type="number" name="pollenFrames" min="0" max="20" inputmode="numeric"></label>' +
         '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Sınıf: —</div>' +
+        '<label class="full">Not<input name="note" maxlength="300"></label>';
+    } else if (topic === 'besleme') {
+      form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
+        '<label>Tür<select name="type">' + r.FEED_TYPES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
+        '<label><span id="krAmtLbl">Miktar (L)</span><input type="number" name="amount" min="0" max="500" step="0.1" inputmode="decimal" required></label>' +
         '<label class="full">Not<input name="note" maxlength="300"></label>';
     } else if (topic === 'yavru') {
       form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
@@ -861,6 +905,16 @@
       };
       f.addEventListener('input', upd);
     }
+    if (topic === 'besleme') {
+      f.elements['type'].addEventListener('change', function () { back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')'; });
+    }
+    back.querySelector('#krHist').addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('[data-open-kis]') : null;
+      if (!a) return;
+      e.preventDefault();
+      close();
+      openWinterSheet(h.id, onSaved);
+    });
     if (topic === 'hastalik') {
       f.disease.addEventListener('change', function () { back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.disease.value); });
     }
@@ -879,6 +933,10 @@
         if (v('beeFrames') === '') { f.beeFrames.focus(); toast('Arılı çerçeve sayısını girin'); return; }
         kind = 'strength';
         rec = { date: v('date'), beeFrames: v('beeFrames'), broodFrames: v('broodFrames'), honeyFrames: v('honeyFrames'), pollenFrames: v('pollenFrames'), note: v('note') };
+      } else if (topic === 'besleme') {
+        if (v('amount') === '') { f.amount.focus(); toast('Miktarı girin'); return; }
+        kind = 'feed';
+        rec = { date: v('date'), type: v('type'), amount: v('amount'), note: v('note') };
       } else if (topic === 'yavru') {
         kind = 'brood';
         rec = { date: v('date'), eggs: v('eggs') === '1', pattern: v('pattern'), queenCell: v('queenCell'), queenless: f.queenless.checked, chilled: f.chilled.checked, note: v('note') };
@@ -893,11 +951,142 @@
       f.reset();
       if (f.elements.date) f.elements.date.value = today;
       if (topic === 'hastalik') back.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.disease.value);
+      if (topic === 'besleme') back.querySelector('#krAmtLbl').textContent = 'Miktar (' + r.FEED_UNIT[f.elements['type'].value] + ')';
       var msg = 'Kaydedildi';
       if (kind === 'brood' && saved.queenless) msg = 'Kaydedildi · Anasız: görev ve uyarı açıldı';
       else if (kind === 'brood' && saved.chilled) msg = 'Kaydedildi · Zayıf koloni: «Birleştir veya çerçeve azalt» önerildi';
       else if (kind === 'disease' && saved.disease === 'ayc' && saved.status === 'dogrulandi') msg = 'Kaydedildi · AYÇ: ihbarı zorunlu, komşu kovan kontrol görevi açıldı';
       toast(msg);
+      if (typeof onSaved === 'function') onSaved(saved);
+    });
+  }
+
+  function num(n) { return String(Math.round((Number(n) || 0) * 10) / 10).replace('.', ','); }
+  function seasonOfDate(dt) {
+    var m = /^(\d{4})-(\d{2})/.exec(dt || ''); if (!m) return 0;
+    return Number(m[2]) <= 2 ? Number(m[1]) - 1 : Number(m[1]);
+  }
+  function feedText(f) {
+    var r = R(); if (!f || !r) return '';
+    return fmtDate(f.date) + ' · ' + r.FEED_LABEL[f.type] + ' ' + num(f.amount) + ' ' + r.FEED_UNIT[f.type];
+  }
+  /** Türkçe iyelik eki: 28'i, 3'ü, 6'sı, 10'u, 40'ı … */
+  function possSuffix(n) {
+    n = Math.abs(Math.round(Number(n) || 0));
+    if (n === 0) return "'ı";
+    if (n % 1000 === 0) return "'i";
+    if (n % 100 === 0) return "'ü";
+    var last = n % 10;
+    if (last) return ["", "'i", "'si", "'ü", "'ü", "'i", "'sı", "'si", "'i", "'u"][last];
+    return { 1: "'u", 2: "'si", 3: "'u", 4: "'ı", 5: "'si", 6: "'ı", 7: "'i", 8: "'i", 9: "'ı" }[(n % 100) / 10];
+  }
+  /** «35 kovanın 28'i kışa hazır» satırı (kışlık hazırlık kayıtlarından). */
+  function winterLineHtml(hives, apiaryId, inList) {
+    var r = R(); if (!r) return '';
+    ensureGridCss();
+    var s = r.winterSummary(hives || []);
+    if (!s.total) return '';
+    var href = 'kovanlar.html?view=koloni&topic=guc&sub=kis' + (apiaryId ? '&mode=apiary&apiary=' + encodeURIComponent(apiaryId) : '&mode=all');
+    var extra = [];
+    if (s.eksik) extra.push('eksik var ' + s.eksik);
+    if (s.birlestir) extra.push('birleştirilmeli ' + s.birlestir);
+    var body = s.recorded || s.birlestir
+      ? '❄️ ' + s.total + ' kovanın ' + s.ready + possSuffix(s.ready) + ' kışa hazır' + (extra.length ? ' · ' + extra.join(' · ') : '') +
+        (s.total - s.recorded ? ' · kayıtsız ' + (s.total - s.recorded) : '')
+      : '❄️ Kışlık hazırlık: henüz kayıt yok';
+    return '<div class="kr-info kr-winter-line" style="margin:' + (inList ? '0 0 .5rem' : '.4rem 0 0') + ';">' + esc(body) +
+      (inList ? '' : ' · <a href="' + href + '" onclick="event.stopPropagation();">Kışlık hazırlık</a>') + '</div>';
+  }
+  function feedTotalsHtml(hives, all) {
+    var r = R(); if (!r) return '';
+    var t = r.feedTotals(hives, all);
+    var parts = r.FEED_TYPES.filter(function (x) { return t.byType[x.key]; }).map(function (x) { return x.label + ' ' + num(t.byType[x.key]) + ' ' + x.unit; });
+    return '<div class="kr-info" style="margin:0 0 .5rem;">🍯 ' + t.season + ' sezonu besleme toplamı: ' +
+      (parts.length ? esc(parts.join(' · ')) + ' · ' + t.hivesFed + ' kovan, ' + t.count + ' kayıt' : 'kayıt yok') + '</div>';
+  }
+
+  /** Kışlık hazırlık: kovan başına sezonda tek kayıt (Koloni gücü ve Besleme aynı kaydı açar). */
+  function openWinterSheet(hiveId, onSaved) {
+    ensureGridCss();
+    var d = D(), r = R();
+    if (!d || !r) return;
+    var h = d.hiveById(hiveId);
+    if (!h) return;
+    var old = document.getElementById('koloniRecord');
+    if (old) old.parentNode.removeChild(old);
+    var today = C() && C().todayLocal ? C().todayLocal() : '';
+    var ws = r.winterStatus(h.id);
+    var w = ws.rec || {};
+    var st = r.status(h.id);
+    function sel(name, opts, cur) {
+      return '<select name="' + name + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+    }
+    function cb(name, label, on) {
+      return '<label class="kr-checkline full"><input type="checkbox" name="' + name + '"' + (on ? ' checked' : '') + '> ' + esc(label) + '</label>';
+    }
+    var vrInfo = ws.varroaAuto
+      ? 'Hastalık kaydından: ' + fmtDate(ws.varroaAuto.date) + ' · ' + (ws.varroaAuto.treatment || 'ilaç uygulandı')
+      : 'Hastalık bölümünde son 150 günde varroa ilaç kaydı yok.';
+    var strongHint = st.strength ? 'Son güç kaydı: ' + fmtDate(st.strength.date) + ' · ' + st.strengthClass + ' (arılı çerçeve ' + st.strength.beeFrames + ')' : 'Güç kaydı yok.';
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    back.id = 'koloniRecord';
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="krTitle">' +
+      '<h3 id="krTitle">' + esc(h.name) + ' · Kışlık hazırlık</h3>' +
+      '<p class="kol-sub">' + ws.season + ' kışı · kovan başına tek kayıt; Koloni gücü ve Besleme aynı kaydı gösterir' + (w.demo ? ' · <span class="kr-chip">Demo</span>' : '') + '</p>' +
+      (ws.weakAuto ? '<div class="kr-warn" style="margin:.4rem 0;">Son güç kaydı Zayıf: durum otomatik olarak «Birleştirilmeli» önerilir.</div>' : '') +
+      '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;">' +
+        '<label class="full">Kontrol tarihi<input type="date" name="date" value="' + esc(w.date || today) + '"></label>' +
+        '<label class="full">Arı gücü yeterli mi' + sel('strongEnough', [['', 'Seçin'], ['evet', 'Evet'], ['hayir', 'Hayır']], w.strongEnough || '') + '</label>' +
+        '<div class="kol-sub" style="grid-column:1 / -1;margin:-.3rem 0 0;">' + esc(strongHint) + '</div>' +
+        '<label class="full">Kışlık bal / kek (kg)<input type="number" name="storesKg" min="0" max="100" step="0.1" inputmode="decimal" value="' + (w.storesKg != null ? esc(w.storesKg) : '') + '" placeholder="Öneri: ' + num(ws.suggestedKg) + '"></label>' +
+        '<div class="kol-sub" style="grid-column:1 / -1;margin:-.3rem 0 0;">Sonbahar beslemelerinden öneri: <b>' + num(ws.suggestedKg) + ' kg</b> (' + ws.autumnFeeds + ' kayıt; şurup şeker eşdeğeriyle) · en az ' + r.WINTER_MIN_KG + ' kg önerilir · <a href="#" id="krUseSug">Öneriyi kullan</a></div>' +
+        '<label class="full">Son varroa ilacı yapıldı mı' + sel('varroa', [['auto', 'Otomatik (Hastalık kaydından)'], ['evet', 'Evet'], ['hayir', 'Hayır']], w.varroa || 'auto') + '</label>' +
+        '<div class="kol-sub" style="grid-column:1 / -1;margin:-.3rem 0 0;">' + esc(vrInfo) + '</div>' +
+        cb('narrowed', 'Kovan daraltıldı', w.narrowed) +
+        cb('entrance', 'Giriş küçültüldü', w.entrance) +
+        cb('insulation', 'Yalıtım yapıldı', w.insulation) +
+        '<label class="full">Durum' + sel('statusChoice', [['auto', 'Otomatik'], ['hazir', 'Hazır'], ['eksik', 'Eksik var'], ['birlestir', 'Birleştirilmeli']], w.statusChoice || 'auto') + '</label>' +
+        '<div class="kr-info" id="krWinPrev" style="grid-column:1 / -1;"></div>' +
+        '<label class="full">Not<input name="note" maxlength="300" value="' + esc(w.note || '') + '"></label>' +
+      '</form>' +
+      '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
+    document.body.appendChild(back);
+    var f = back.querySelector('#krForm');
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', onKey);
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    back.querySelector('#krClose').addEventListener('click', close);
+    back.querySelector('#krUseSug').addEventListener('click', function (e) { e.preventDefault(); f.storesKg.value = ws.suggestedKg; preview(); });
+    function preview() {
+      var miss = [];
+      if (f.strongEnough.value !== 'evet') miss.push('arı gücü');
+      var kg = f.storesKg.value === '' ? (ws.autumnFeeds ? ws.suggestedKg : null) : Number(f.storesKg.value);
+      if (kg == null || kg < r.WINTER_MIN_KG) miss.push('kışlık bal/kek');
+      if (!(f.varroa.value === 'evet' || (f.varroa.value === 'auto' && ws.varroaAuto))) miss.push('varroa ilacı');
+      if (!f.narrowed.checked) miss.push('daraltma');
+      if (!f.entrance.checked) miss.push('giriş küçültme');
+      if (!f.insulation.checked) miss.push('yalıtım');
+      var auto = (ws.weakAuto || f.strongEnough.value === 'hayir') ? 'birlestir' : (miss.length ? 'eksik' : 'hazir');
+      var key = f.statusChoice.value === 'auto' ? auto : f.statusChoice.value;
+      back.querySelector('#krWinPrev').textContent = 'Durum: ' + r.WINTER_STATUS_LABEL[key] +
+        (f.statusChoice.value !== 'auto' ? ' (elle; otomatik öneri ' + r.WINTER_STATUS_LABEL[auto] + ')' : '') +
+        (miss.length ? ' · eksik: ' + miss.join(', ') : '');
+    }
+    f.addEventListener('input', preview);
+    f.addEventListener('change', preview);
+    preview();
+    back.querySelector('#krSave').addEventListener('click', function () {
+      var saved = r.add(h.id, 'winter', {
+        date: f.date.value, strongEnough: f.strongEnough.value, storesKg: f.storesKg.value, varroa: f.varroa.value,
+        narrowed: f.narrowed.checked, entrance: f.entrance.checked, insulation: f.insulation.checked,
+        statusChoice: f.statusChoice.value, note: f.note.value
+      });
+      if (!saved) { toast('Kaydedilemedi'); return; }
+      var now = r.winterStatus(h.id);
+      toast('Kaydedildi · Kışlık hazırlık: ' + (now.status || '—'));
+      close();
       if (typeof onSaved === 'function') onSaved(saved);
     });
   }
@@ -914,6 +1103,12 @@
       disease: st.diseases.length ? st.diseases.map(function (x) { return x.label + ' (' + x.text + ')'; }).join(' · ') :
         (st.records.disease[0] ? 'Etkin hastalık yok · son: ' + diseaseText(st.records.disease[0]) : 'Kayıt yok'),
       withdrawalHtml: withdrawalHtml(h, st),
+      feed: st.records.feed[0] ? feedText(st.records.feed[0]) + ' · ' + st.records.feed.length + ' kayıt' : 'Kayıt yok',
+      winter: (function () {
+        var ws = r.winterStatus(h.id);
+        if (!ws.rec) return ws.suggestedOnly ? 'Kayıt yok · öneri: Birleştirilmeli (güç Zayıf)' : 'Kayıt yok';
+        return ws.status + (ws.missing.length ? ' · eksik: ' + ws.missing.join(', ') : '') + (ws.storesKg != null ? ' · stok ' + num(ws.storesKg) + ' kg' : '');
+      })(),
       afb: st.afb
     };
   }
@@ -925,6 +1120,9 @@
     openSoon: openSoon,
     topicListHtml: topicListHtml,
     openRecordSheet: openRecordSheet,
+    openWinterSheet: openWinterSheet,
+    winterLineHtml: winterLineHtml,
+    possSuffix: possSuffix,
     recordChipsHtml: recordChipsHtml,
     latestRowsData: latestRowsData,
     ensureGridCss: ensureGridCss,

@@ -1850,6 +1850,21 @@
   var REC_KEY_LIVE = 'superari.koloniKayit.v1';
   var REC_KEY_DEMO = 'superari.koloniKayit.demo.v1';
   var REC_SEED_KEY = 'superari.koloniKayitSeed.demo.v1';
+  var REC_SEED2_KEY = 'superari.koloniKayitSeed.demo.v2';
+  var FEED_TYPES = [
+    { key: 'surup11', label: 'Şurup 1:1', unit: 'L' },
+    { key: 'surup21', label: 'Şurup 2:1', unit: 'L' },
+    { key: 'kek', label: 'Kek', unit: 'kg' },
+    { key: 'polen', label: 'Polen / katkı', unit: 'kg' },
+    { key: 'balli', label: 'Ballı çerçeve', unit: 'kg' }
+  ];
+  var FEED_LABEL = {}, FEED_UNIT = {};
+  FEED_TYPES.forEach(function (f) { FEED_LABEL[f.key] = f.label; FEED_UNIT[f.key] = f.unit; });
+  /* Kışlık stok önerisi için yaklaşık şeker/bal eşdeğeri (kg / birim). */
+  var FEED_STORE_FACTOR = { surup11: 0.5, surup21: 0.8, kek: 1, polen: 0, balli: 1 };
+  var WINTER_MIN_KG = 15;
+  var WINTER_STATUS_LABEL = { hazir: 'Hazır', eksik: 'Eksik var', birlestir: 'Birleştirilmeli' };
+  var REC_KINDS = ['strength', 'brood', 'disease', 'feed', 'winter'];
 
   var DISEASES = [
     { key: 'varroa', label: 'Varroa' },
@@ -1926,6 +1941,22 @@
       o.chilled = r.chilled === true;
       return o;
     }
+    if (kind === 'feed') {
+      o.type = pick(r.type, FEED_TYPES.map(function (f) { return f.key; }), 'surup21');
+      o.amount = numIn(r.amount, 0, 500) || 0;
+      return o;
+    }
+    if (kind === 'winter') {
+      o.strongEnough = pick(r.strongEnough, ['evet', 'hayir', ''], '');
+      o.storesKg = numIn(r.storesKg, 0, 100);
+      o.varroa = pick(r.varroa, ['auto', 'evet', 'hayir'], 'auto');
+      o.narrowed = r.narrowed === true;
+      o.entrance = r.entrance === true;
+      o.insulation = r.insulation === true;
+      o.statusChoice = pick(r.statusChoice, ['auto', 'hazir', 'eksik', 'birlestir'], 'auto');
+      o.season = seasonOf(o.date);
+      return o;
+    }
     if (kind === 'disease') {
       o.disease = pick(r.disease, DISEASES.map(function (d) { return d.key; }), 'varroa');
       if (o.disease === 'varroa') {
@@ -1964,19 +1995,23 @@
   function recordsFor(hiveId, all) {
     var src = (all || loadRecordsAll())[String(Number(hiveId))] || {};
     var out = {};
-    ['strength', 'brood', 'disease'].forEach(function (k) {
+    REC_KINDS.forEach(function (k) {
       out[k] = (Array.isArray(src[k]) ? src[k] : []).map(function (r) { return normalizeRecord(k, r); }).filter(Boolean).sort(byDateDesc);
     });
     return out;
   }
   function addRecord(hiveId, kind, rec) {
-    if (['strength', 'brood', 'disease'].indexOf(kind) === -1) return null;
+    if (REC_KINDS.indexOf(kind) === -1) return null;
     var r = normalizeRecord(kind, rec || {});
     if (!r) return null;
     var all = loadRecordsAll();
     var key = String(Number(hiveId));
     if (!all[key]) all[key] = {};
     if (!Array.isArray(all[key][kind])) all[key][kind] = [];
+    /* Kışlık hazırlık: kovan başına sezonda tek kayıt (Koloni gücü ve Besleme aynı kaydı yazar). */
+    if (kind === 'winter') {
+      all[key][kind] = all[key][kind].filter(function (x) { return x && seasonOf(x.date) !== r.season; });
+    }
     all[key][kind].push(r);
     saveRecordsAll(all);
     return r;
@@ -2011,6 +2046,91 @@
     var sv = r.severity || 'yok';
     return { active: sv !== 'yok', level: sv === 'agir' ? 'yüksek' : (sv === 'orta' ? 'orta' : (sv === 'hafif' ? 'izle' : 'temiz')),
       text: SEVERITY_LABEL[sv] + (d === 'kirec' && r.frames != null ? ' · ' + r.frames + ' çerçeve' : '') };
+  }
+
+  /** Kış sezonu yılı: Mart–Aralık → o yıl; Ocak–Şubat → önceki yıl. */
+  function seasonOf(date) {
+    var m = /^(\d{4})-(\d{2})/.exec(date || '');
+    if (!m) return new Date().getFullYear();
+    var y = Number(m[1]);
+    return Number(m[2]) <= 2 ? y - 1 : y;
+  }
+  function currentSeason() { return seasonOf(todayLocal()); }
+  function inAutumn(date, season) {
+    return !!date && date >= season + '-08-15' && date <= (season + 1) + '-02-28';
+  }
+  /** Kovanın kışlık hazırlık durumu (tek kayıt + otomatik okumalar). */
+  function winterStatus(hiveId, all, st) {
+    var rec = recordsFor(hiveId, all);
+    st = st || colonyStatus(hiveId, all);
+    var season = currentSeason();
+    var w = rec.winter.filter(function (x) { return x.season === season; })[0] || null;
+    var autumn = rec.feed.filter(function (f) { return inAutumn(f.date, season); });
+    var suggested = 0;
+    autumn.forEach(function (f) { suggested += (Number(f.amount) || 0) * (FEED_STORE_FACTOR[f.type] || 0); });
+    suggested = Math.round(suggested * 10) / 10;
+    var vr = null;
+    rec.disease.forEach(function (d) {
+      if (vr || d.disease !== 'varroa') return;
+      if ((d.treatment || d.withdrawalDays) && d.date >= addDays(todayLocal(), -150)) vr = d;
+    });
+    var storesKg = w && w.storesKg != null ? w.storesKg : (autumn.length ? suggested : null);
+    var storesOk = storesKg != null && storesKg >= WINTER_MIN_KG;
+    var weakAuto = st.strengthClass === 'Zayıf';
+    var out = { season: season, rec: w, suggestedKg: suggested, autumnFeeds: autumn.length, storesKg: storesKg, storesOk: storesOk,
+      varroaAuto: vr, weakAuto: weakAuto, status: null, statusKey: null, missing: [] };
+    if (!w) {
+      if (weakAuto) { out.statusKey = 'birlestir'; out.status = WINTER_STATUS_LABEL.birlestir; out.suggestedOnly = true; }
+      return out;
+    }
+    var varroaDone = w.varroa === 'evet' || (w.varroa === 'auto' && !!vr);
+    if (w.strongEnough !== 'evet') out.missing.push('arı gücü');
+    if (!storesOk) out.missing.push('kışlık bal/kek');
+    if (!varroaDone) out.missing.push('varroa ilacı');
+    if (!w.narrowed) out.missing.push('daraltma');
+    if (!w.entrance) out.missing.push('giriş küçültme');
+    if (!w.insulation) out.missing.push('yalıtım');
+    out.varroaDone = varroaDone;
+    var key = (weakAuto || w.strongEnough === 'hayir') ? 'birlestir' : (out.missing.length ? 'eksik' : 'hazir');
+    out.autoKey = key;
+    if (w.statusChoice !== 'auto') key = w.statusChoice;
+    out.statusKey = key;
+    out.status = WINTER_STATUS_LABEL[key];
+    return out;
+  }
+  function winterSummary(hives, all) {
+    all = all || loadRecordsAll();
+    var s = { total: 0, recorded: 0, ready: 0, eksik: 0, birlestir: 0, lowStores: 0 };
+    (hives || []).forEach(function (h) {
+      s.total++;
+      if (!all[String(h.id)]) return;
+      var w = winterStatus(h.id, all);
+      if (w.rec) s.recorded++;
+      if (w.statusKey === 'hazir') s.ready++;
+      else if (w.statusKey === 'eksik') s.eksik++;
+      else if (w.statusKey === 'birlestir') s.birlestir++;
+      if (w.storesKg != null && !w.storesOk) s.lowStores++;
+    });
+    return s;
+  }
+  function feedTotals(hives, all, season) {
+    all = all || loadRecordsAll();
+    season = season || currentSeason();
+    var by = {}, n = 0, hivesFed = 0;
+    FEED_TYPES.forEach(function (f) { by[f.key] = 0; });
+    (hives || []).forEach(function (h) {
+      var rec = all[String(h.id)];
+      if (!rec || !Array.isArray(rec.feed)) return;
+      var fed = false;
+      rec.feed.forEach(function (raw) {
+        var f = normalizeRecord('feed', raw);
+        if (!f || seasonOf(f.date) !== season) return;
+        by[f.type] += Number(f.amount) || 0; n++; fed = true;
+      });
+      if (fed) hivesFed++;
+    });
+    Object.keys(by).forEach(function (k) { by[k] = Math.round(by[k] * 10) / 10; });
+    return { season: season, byType: by, count: n, hivesFed: hivesFed };
   }
 
   /** Kovanın türetilmiş durumu (son kayıtlara göre). */
@@ -2117,6 +2237,15 @@
         var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(c.date);
         tasksOut.push({ id: 'kr-kontrol-' + c.key + '-' + h.id, title: 'Kontrol: ' + c.label + ' — ' + nm + ' (kontrol tarihi ' + (m ? m[3] + '.' + m[2] + '.' + m[1] : c.date) + ')', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
       });
+      var ws = winterStatus(h.id, all, st);
+      if (ws.rec && ws.statusKey === 'birlestir') {
+        tasksOut.push({ id: 'kr-kis-birlestir-' + h.id, title: 'Kışa girmeden birleştir — ' + nm + ' (kışlık hazırlık)', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+      } else if (ws.rec && ws.statusKey === 'eksik') {
+        tasksOut.push({ id: 'kr-kis-eksik-' + h.id, title: 'Kışlık hazırlık eksik — ' + nm + ': ' + ws.missing.join(', '), hiveId: h.id, priority: 3, auto: true, createdAt: nowIso });
+      }
+      if (ws.storesKg != null && !ws.storesOk) {
+        alertsOut.push({ id: 'kra-kisstok-' + h.id, title: 'Kışlık stok yetersiz — ' + nm + ': ' + String(ws.storesKg).replace('.', ',') + ' kg (en az ' + WINTER_MIN_KG + ' kg)', type: 'besleme', hiveId: h.id, severity: 'medium', auto: true });
+      }
       if (st.withdrawalUntil) {
         var w = /^(\d{4})-(\d{2})-(\d{2})$/.exec(st.withdrawalUntil);
         alertsOut.push({ id: 'kra-bekleme-' + h.id, title: 'İlaç bekleme süresi — ' + nm + ': ' + (w ? w[3] + '.' + w[2] + '.' + w[1] : st.withdrawalUntil) + ' tarihine kadar hasat yapma', type: 'hastalık', hiveId: h.id, severity: 'low', auto: true });
@@ -2165,6 +2294,42 @@
     saveRecordsAll(all);
   }
 
+  /** Demo: besleme + kışlık hazırlık örnekleri (ayrı bayrak, bir kez). */
+  function seedDemoRecords2() {
+    if (workMode() !== 'demo') return;
+    try { if (localStorage.getItem(REC_SEED2_KEY) === '1') return; localStorage.setItem(REC_SEED2_KEY, '1'); } catch (e) { return; }
+    var all = loadRecordsAll();
+    var t = todayLocal();
+    function d(n) { return addDays(t, -n); }
+    function hid(aid, i) { var hs = hivesForApiary(aid); return hs[i] ? hs[i].id : null; }
+    function put(id, kind, r) {
+      if (id == null) return;
+      var key = String(id);
+      if (!all[key]) all[key] = {};
+      if (!all[key][kind]) all[key][kind] = [];
+      if (all[key][kind].length) return;
+      r.demo = true;
+      all[key][kind].push(normalizeRecord(kind, r));
+    }
+    function putFeed(id, list) {
+      if (id == null) return;
+      var key = String(id);
+      if (!all[key]) all[key] = {};
+      if (all[key].feed && all[key].feed.length) return;
+      all[key].feed = list.map(function (r) { r.demo = true; return normalizeRecord('feed', r); });
+    }
+    putFeed(hid('a1', 0), [{ date: d(20), type: 'surup21', amount: 5 }, { date: d(8), type: 'surup21', amount: 5 }, { date: d(3), type: 'kek', amount: 2 }]);
+    putFeed(hid('a1', 2), [{ date: d(14), type: 'surup11', amount: 4 }, { date: d(6), type: 'polen', amount: 0.5, note: 'Polen katkılı kek' }]);
+    putFeed(hid('a2', 0), [{ date: d(18), type: 'balli', amount: 6, note: 'Güçlü kovandan 3 ballı çerçeve' }, { date: d(7), type: 'surup21', amount: 8 }]);
+    putFeed(hid('a5', 0), [{ date: d(5), type: 'kek', amount: 1 }]);
+    put(hid('a1', 0), 'winter', { date: d(2), strongEnough: 'evet', storesKg: 18, varroa: 'evet', narrowed: true, entrance: true, insulation: true });
+    put(hid('a1', 2), 'winter', { date: d(4), strongEnough: 'evet', varroa: 'auto', narrowed: true, entrance: false, insulation: false });
+    put(hid('a2', 0), 'winter', { date: d(3), strongEnough: 'evet', storesKg: 16, varroa: 'hayir', narrowed: true, entrance: true, insulation: false });
+    put(hid('a5', 0), 'winter', { date: d(4), strongEnough: 'hayir', varroa: 'auto', narrowed: false, entrance: false, insulation: false, note: 'Üşümüş yavru sonrası' });
+    saveRecordsAll(all);
+  }
+  function seedAll() { seedDemoRecords(); seedDemoRecords2(); }
+
   var colonyRecords = {
     DISEASES: DISEASES,
     DISEASE_LABEL: DISEASE_LABEL,
@@ -2177,18 +2342,27 @@
     PATTERN_LABEL: PATTERN_LABEL,
     workMode: workMode,
     strengthClass: strengthClass,
-    recordsFor: function (id) { seedDemoRecords(); return recordsFor(id); },
-    loadAll: function () { seedDemoRecords(); return loadRecordsAll(); },
+    recordsFor: function (id) { seedAll(); return recordsFor(id); },
+    loadAll: function () { seedAll(); return loadRecordsAll(); },
     add: addRecord,
     remove: removeRecord,
     diseaseLevel: diseaseLevel,
-    status: function (id, all) { seedDemoRecords(); return colonyStatus(id, all); },
-    healthFlags: function (id) { seedDemoRecords(); return healthFlags(id); },
-    derived: function () { seedDemoRecords(); return derivedItems(); },
+    status: function (id, all) { seedAll(); return colonyStatus(id, all); },
+    healthFlags: function (id) { seedAll(); return healthFlags(id); },
+    derived: function () { seedAll(); return derivedItems(); },
     addDays: addDays,
+    FEED_TYPES: FEED_TYPES,
+    FEED_LABEL: FEED_LABEL,
+    FEED_UNIT: FEED_UNIT,
+    WINTER_MIN_KG: WINTER_MIN_KG,
+    WINTER_STATUS_LABEL: WINTER_STATUS_LABEL,
+    currentSeason: currentSeason,
+    winterStatus: function (id, all) { seedAll(); return winterStatus(id, all); },
+    winterSummary: function (hives, all) { seedAll(); return winterSummary(hives, all); },
+    feedTotals: function (hives, all, season) { seedAll(); return feedTotals(hives, all, season); },
     /** Hasat tarihi, arılıktaki bir kovanın ilaç bekleme süresine denk geliyor mu? */
     withdrawalConflicts: function (apiaryId, date) {
-      seedDemoRecords();
+      seedAll();
       var all = loadRecordsAll();
       var out = [];
       if (!date) return out;

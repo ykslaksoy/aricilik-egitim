@@ -323,7 +323,10 @@
         /* Uzak şablonda rozet sabit « · Karniyol»; yalnız onu değiştir (ırk adı zaten label/note içinde). */
         html = String(html).replace(' · Karniyol</span>', ' · ' + breed + '</span>');
         if (score == null && !/Karniyol/.test(breed)) html = html.replace(/Karniyol/g, breed);
-        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' ·<br>' + breed.replace(/ · /g, ' ·<br>')) : '—', score != null ? score : 0, 'btnSeasonHint') +
+        var KD = global.SuperAriDemo, KK = global.SuperAriKoloni;
+        var winterLine = '';
+        try { if (ap && KD && KK && KK.winterLineHtml && KD.hivesForApiary) winterLine = KK.winterLineHtml(KD.hivesForApiary(ap.id), ap.id); } catch (e) { winterLine = ''; }
+        return infoBar('seasonBar', 'Kışlama', score != null ? (score + ' ·<br>' + breed.replace(/ · /g, ' ·<br>')) : '—', score != null ? score : 0, 'btnSeasonHint') + winterLine +
           '<div id="seasonOnlyPanel" class="sa-split-card">' + html + '</div>';
       };
     }
