@@ -56,7 +56,7 @@
     return '<div class="fs-block sa-info-bar" id="' + id + '"><div class="fs-row"><label>' + label + '</label>' +
       '<div class="sa-mini-track"><div class="sa-mini-fill" style="width:' + pct + '%"></div></div>' +
       '<span class="val">' + val + '</span>' +
-      '<button type="button" class="fs-chev" id="' + btnId + '" aria-expanded="false">›</button></div></div>';
+      '<button type="button" class="fs-chev" id="' + btnId + '" aria-expanded="false"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"currentColor\" d=\"M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z\"/></svg></button></div></div>';
   }
   function currentApiary() {
     var D = global.D || global.SuperAriDemo;

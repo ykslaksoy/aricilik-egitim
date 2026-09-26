@@ -63,7 +63,21 @@
       '#saFloraBar .sa-range .fill{position:absolute;left:0;top:12px;height:4px;border-radius:99px;background:#0a84ff;}' +
       '#saFloraBar .sa-range .thumb{position:absolute;top:4px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.22);}' +
       '.fs-chev{width:28px;height:28px;border:1px solid #e4e0d8;border-radius:999px;background:#faf8f4;color:#6b635a;transition:transform .18s ease;}' +
-      '.fs-chev[aria-expanded="true"]{transform:rotate(90deg);}' +
+      '.fs-chev{display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;min-width:28px;font-size:0!important;transform:none!important;}' +
+      '.fs-chev[aria-expanded="true"]{transform:none!important;}' +
+      '.fs-chev svg{width:14px;height:14px;display:block;transition:transform .18s ease;transform:rotate(0deg);}' +
+      '.fs-chev[aria-expanded="true"] svg{transform:rotate(90deg);}' +
+      '.fs-row{grid-template-columns:52px 1fr 86px 28px!important;gap:8px!important;}' +
+      '.fs-row .val{justify-content:flex-end;text-align:right;}' +
+      '.sa-mini-track{height:4px!important;background:#dfe2e6!important;min-width:0!important;}' +
+      '#saFloraBar .sa-range .track{background:#dfe2e6!important;}' +
+      '#saFloraBar .sa-range .fill{background:#2463a6!important;}' +
+      '#forageRadius{accent-color:#3f9b3a;}' +
+      '#waterRadius{accent-color:#1fb5c4;}' +
+      '#flightBar .sa-mini-fill{background:#1e3a8a!important;}' +
+      '#yieldBar .sa-mini-fill{background:#d9a21b!important;}' +
+      '#seasonBar .sa-mini-fill{background:#7657e0!important;}' +
+      
       '#saFloraBar .sa-loc-detail{display:none;margin:4px 0 2px;padding:8px 10px;border-radius:12px;background:#faf8f4;font-size:10px;color:#8a8278;}' +
       '#saFloraBar.is-open .sa-loc-detail{display:block;}' +
       '.sa-split-card:not(.is-open){display:none !important;}' +
@@ -123,7 +137,7 @@
         '<label>Konum</label>' +
         '<div class="sa-range"><div class="track"></div><div class="fill" style="width:' + pct + '%"></div><div class="thumb" style="left:' + left + '%"></div></div>' +
         '<span class="val">' + pct + '%</span>' +
-        '<button type="button" class="fs-chev" id="btnLocHint" aria-expanded="' + locOpen + '">›</button>' +
+        '<button type="button" class="fs-chev" id="btnLocHint" aria-expanded="' + locOpen + '"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path fill=\"currentColor\" d=\"M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.58a1 1 0 0 0 0-1.42L10.7 6.7a1 1 0 0 0-1.41.01z\"/></svg></button>' +
       '</div>' +
       '<div class="sa-loc-detail">' + locDetail() + '</div>';
     var btn = document.getElementById('btnLocHint');
