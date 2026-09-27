@@ -272,6 +272,94 @@
     if (!fp.need) return fp.reason;
     return (fp.weak ? 'Zayıf koloni: önce birleştirmeyi düşünün. ' : '') + SYRUP[fp.type].label + ': ' + num(fp.liters) + ' L (≈ ' + num(fp.sugarKg) + ' kg şeker + ' + num(fp.waterL) + ' L su), ' + fp.feedings + ' seferde ' + num(fp.perFeedL) + ' L · açık ≈ ' + num(fp.deficitKg) + ' kg';
   }
+  /* ---------------- ilaç önerisi (yalnız etiket kuralı) ---------------- */
+  function daysBetween(a, b) {
+    var pa = a.split('-'), pb = b.split('-');
+    return Math.round((new Date(+pb[0], pb[1] - 1, +pb[2]) - new Date(+pa[0], pa[1] - 1, +pa[2])) / 86400000);
+  }
+  /* Genel eşikler (tahmin; uygulamadaki hastalık seviyesiyle aynı): %2 altı izle, %2–3 planla, %3 üstü tedavi. */
+  function medPlan(h, st) {
+    var I = global.SuperAriIlac; st = st || hiveState(h);
+    var t = today(), out = { hive: h, blocks: [], warns: [], products: [] };
+    var v = st.varroa;
+    if (!v) { out.level = 'sayim'; out.summary = 'Varroa sayımı yok — önce sayım girin (alkol yıkama / pudra şekeri).'; }
+    else if (v.infestation == null) { out.level = 'sayim'; out.summary = 'Son sayım (' + fmt(v.date) + ') yapışkan tabla: bulaşma yüzdesi için alkol yıkama veya pudra şekeri sayımı girin.'; }
+    else {
+      var p = v.infestation, age = daysBetween(v.date, t);
+      out.infestation = p; out.countDate = v.date;
+      out.level = p > 3 ? 'tedavi' : (p >= 2 ? 'planla' : 'izle');
+      out.summary = '%' + num(p) + ' bulaşma (' + fmt(v.date) + ') → ' + (out.level === 'tedavi' ? 'tedavi önerilir' : out.level === 'planla' ? 'tedavi planlayın' : 'izleyin, 2–3 hafta sonra tekrar sayın');
+      if (age > 30) out.warns.push('Son sayım ' + age + ' gün önce; tedaviden önce yeniden sayın.');
+    }
+    var fl = flowAt(h.apiaryId, t);
+    if (fl.flow) out.blocks.push('Bal akımı sürüyor (' + fl.phase.label + ') — ilaç uygulanmaz.');
+    if (hasSuper(h.id)) out.blocks.push('Bal katı takılı — önce bal katını alın.');
+    /* süren tedavi / bekleme */
+    var lt = st.lastTreat, lastGroup = null;
+    if (lt) {
+      var det = I.detect(lt.treatment), prod = det && det.id ? I.byId(det.id) : null;
+      lastGroup = det ? det.group : null;
+      var dur = prod && prod.durationDays ? prod.durationDays[1] : 0;
+      var until = lt.checkDate && lt.checkDate > t ? lt.checkDate : (dur ? addDays(lt.date, dur) : null);
+      if (lt.withdrawalDays) { var wu = addDays(lt.date, lt.withdrawalDays); if (wu >= t && (!until || wu > until)) until = wu; }
+      if (until && until >= t) out.blocks.push('Önceki tedavi sürüyor: ' + lt.treatment + ' (' + fmt(lt.date) + ' → ' + fmt(until) + '). Aynı anda başka varroa ilacı kullanmayın.');
+      out.lastTreat = { text: lt.treatment, date: lt.date, group: lastGroup };
+    }
+    var nf = nextFlowStart(h.apiaryId, t);
+    var yr = t.slice(0, 4);
+    I.LIST.forEach(function (p) {
+      var dz = I.doseFor(p.id, st.beeFrames);
+      var o = { id: p.id, name: p.name, group: p.group, verified: !!p.dose, dose: dz, warns: [], blocks: [] };
+      if (p.dose) {
+        if (nf && p.preFlowDays && daysBetween(t, nf) < p.preFlowDays) o.blocks.push('Bal akımına ' + daysBetween(t, nf) + ' gün var; etiket en az ' + p.preFlowDays + ' gün önce bitmiş olmasını ister.');
+        else if (nf && p.durationDays && daysBetween(t, nf) < p.durationDays[0]) o.blocks.push('Tedavi (' + p.durationDays[0] + ' gün) bal akımından önce bitmez.');
+        if (lastGroup && lastGroup === p.group) o.warns.push('Son tedavi de aynı gruptan (' + I.GROUPS[p.group].label + '): rotasyon için farklı grup seçin.');
+        if (p.maxPerYear) {
+          var n = st.disease.filter(function (d) { return d.treatment && d.date.slice(0, 4) === yr && (I.detect(d.treatment) || {}).id === p.id; }).length;
+          if (n >= p.maxPerYear) o.blocks.push('Bu yıl ' + n + ' kez kullanıldı; etiket yılda en çok ' + p.maxPerYear + ' kez.');
+        }
+      }
+      out.products.push(o);
+    });
+    out.products.sort(function (a, b) {
+      function sc(x) { return (x.verified ? 0 : 100) + (x.blocks.length ? 10 : 0) + (x.warns.length ? 1 : 0) + (x.dose.ok ? 0 : 5); }
+      return sc(a) - sc(b);
+    });
+    var best = out.products.filter(function (x) { return x.verified && x.dose.ok && !x.blocks.length; })[0] || null;
+    out.best = best;
+    out.canTreat = !out.blocks.length && out.level !== 'sayim';
+    if (out.blocks.length) out.summary += ' · ⛔ ' + out.blocks[0];
+    else if (best && (out.level === 'tedavi' || out.level === 'planla')) out.summary += ' · Öneri: ' + best.name + ' ' + best.dose.text + ' şerit (etiket)';
+    return out;
+  }
+  /** Tedaviyi kaydet: hastalık kaydı + şerit çıkarma görevi + stoktan düş. */
+  function saveTreatment(hiveId, productId) {
+    var I = global.SuperAriIlac, h = D.hiveById(hiveId), p = I.byId(productId);
+    if (!h || !p) return { ok: false, msg: 'Kovan veya ürün bulunamadı' };
+    if (!p.dose) return { ok: false, msg: 'Doz doğrulanmadı; bu ürün için kayıt hesaplanmaz.' };
+    var mp = medPlan(h), po = mp.products.filter(function (x) { return x.id === p.id; })[0];
+    if (mp.blocks.length) return { ok: false, msg: mp.blocks[0] };
+    if (po.blocks.length) return { ok: false, msg: po.blocks[0] };
+    if (!po.dose.ok) return { ok: false, msg: po.dose.reason };
+    var t = today(), dur = p.durationDays[1], qty = po.dose.qty;
+    var rec = D.records.add(h.id, 'disease', { date: t, disease: 'varroa', count: mp.varroa ? mp.varroa.count : null, method: mp.varroa ? mp.varroa.method : 'alkol',
+      infestation: mp.infestation, treatment: p.name + ' (' + p.active + ')', dose: qty, doseUnit: 'serit',
+      withdrawalDays: p.withdrawal === 'tedaviBoyunca' ? dur : 0, checkDate: addDays(t, dur), note: 'Bakım planı · etiket: ' + p.dose.note.slice(0, 200) });
+    D.taskStore.add({ title: 'Şeritleri çıkar (' + p.name + ') ve varroa sayımı yap — ' + h.name + (mode() === 'demo' ? ' · Demo' : ''), hiveId: h.id,
+      due: addDays(t, dur), priority: 1, note: 'Bakım planı ilaç · ' + p.durationDays[0] + '–' + dur + ' gün' });
+    var msg = p.name + ' ' + po.dose.text + ' şerit kaydedildi; çıkarma görevi ' + fmt(addDays(t, dur)) + ' tarihine eklendi.', low = null;
+    var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+    var nm = p.name.toLocaleLowerCase('tr').split(' ')[0], act = p.active.toLocaleLowerCase('tr').split(' ')[0];
+    var it = list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(nm) >= 0; })[0] ||
+      list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(act) >= 0; })[0];
+    if (it) {
+      var after = D.stock.adjust(it.id, -qty, 'İlaçlama · ' + h.name, t);
+      if (after) { msg += ' Stoktan ' + qty + ' şerit düşüldü (' + after.name + ': ' + num(after.qty) + ').'; if (after.low) { low = after; msg += ' ⚠️ Stok azaldı.'; } }
+    } else msg += ' Stokta bu ilaç için şerit kalemi yok; düşülmedi.';
+    try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
+    return { ok: !!rec, msg: msg, low: low };
+  }
+
   /** Bakım planı ekranı için kovan listesi (HTML). */
   function hiveSummary(apId) {
     var hs = D.hivesForApiary(apId);
@@ -287,7 +375,7 @@
   }
 
   global.SuperAriPlan = {
-    SYRUP: SYRUP, KG_PER_HONEY_FRAME: KG_PER_HONEY_FRAME, hiveState: hiveState, seasonKind: seasonKind, feedPlan: feedPlan, saveFeeding: saveFeeding, feedText: feedText, hiveSummary: hiveSummary,
+    SYRUP: SYRUP, KG_PER_HONEY_FRAME: KG_PER_HONEY_FRAME, hiveState: hiveState, seasonKind: seasonKind, feedPlan: feedPlan, saveFeeding: saveFeeding, feedText: feedText, hiveSummary: hiveSummary, medPlan: medPlan, saveTreatment: saveTreatment,
     PROFILES: PROFILES, JOBS: JOBS, profileKey: profileKey, autoProfile: autoProfile, setProfile: setProfile,
     camBali: camBali, setCamBali: setCamBali, hasSuper: hasSuper, setSuper: setSuper,
     phases: phases, phaseStatus: phaseStatus, flowAt: flowAt, nextFlowStart: nextFlowStart, addPhaseTasks: addPhaseTasks,
