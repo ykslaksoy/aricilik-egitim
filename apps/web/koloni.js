@@ -796,7 +796,8 @@
     if (h.colonyState === 'birlestirildi') out.push(chip('Birleştirildi' + (h.mergedInto ? ' → Kovan ' + h.mergedInto : ''), ''));
     if (st.queenless) out.push(chip('Anasız', 'red'));
     if (st.queenCellSince) out.push(chip('Ana hücresi verildi', 'orange'));
-    if (st.swarmCell) out.push(chip('Oğul hücresi', 'orange'));
+    if (st.swarmCell) out.push(chip('Oğul memesi' + (st.cellCapped === 'kapali' ? ' (kapalı)' : ''), 'orange'));
+    if (st.emergencyCell) out.push(chip('Acil ana memesi', 'red'));
     st.diseases.forEach(function (d) { out.push(chip('🦠 ' + d.label, levelTone(d.level))); });
     if (st.withdrawalUntil) out.push(chip('İlaç bekleme', 'blue'));
     var ws = r.winterStatus(h.id, all);
@@ -812,7 +813,7 @@
   function broodText(b) {
     var r = R(); if (!b || !r) return 'Kayıt yok';
     var parts = [fmtDate(b.date), 'yumurta ' + (b.eggs ? 'görüldü' : 'görülmedi'), 'düzen ' + r.PATTERN_LABEL[b.pattern].toLocaleLowerCase('tr'),
-      'ana hücresi: ' + r.QUEEN_CELL_LABEL[b.queenCell].toLocaleLowerCase('tr')];
+      'ana memesi: ' + (b.queenCell === 'yok' ? 'yok' : (b.cellCount ? b.cellCount + ' ' : '') + (b.cellCapped && r.CELL_CAP_LABEL ? r.CELL_CAP_LABEL[b.cellCapped] + ' · ' : '') + String(r.QUEEN_CELL_LABEL[b.queenCell] || '').toLocaleLowerCase('tr'))];
     if (b.queenless) parts.push('ANASIZ');
     if (b.chilled) parts.push('üşümüş yavru');
     return parts.join(' · ');
@@ -879,8 +880,9 @@
         if (st.brood) withRec++;
         if (st.queenless) chips.push(chip('Anasız', 'red'));
         if (st.chilled) chips.push(chip('Üşümüş yavru', 'red'));
-        if (st.swarmCell) chips.push(chip('Oğul hücresi', 'orange'));
-        if (st.brood && st.brood.queenCell === 'yenileme') chips.push(chip('Yenileme hücresi', 'blue'));
+        if (st.swarmCell) chips.push(chip('Oğul memesi' + (st.cellCapped === 'kapali' ? ' (kapalı)' : ''), 'orange'));
+        if (st.brood && st.brood.queenCell === 'yenileme') chips.push(chip('Sessiz ana değiştirme', 'blue'));
+        if (st.emergencyCell) chips.push(chip('Acil ana memesi', 'red'));
       } else if (topic === 'besleme') {
         var fl = st.records.feed;
         if (fl.length) withRec++;
@@ -976,7 +978,9 @@
       form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
         '<label>Yumurta görüldü mü<select name="eggs"><option value="1">Evet</option><option value="0">Hayır</option></select></label>' +
         '<label>Yavru düzeni<select name="pattern"><option value="duzenli">Düzenli</option><option value="daginik">Dağınık</option></select></label>' +
-        '<label class="full">Ana hücresi<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Oğul hücresi</option><option value="yenileme">Yenileme hücresi</option></select></label>' +
+        '<label class="full">Ana memesi (yeri)<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Alt kenar — oğul memesi</option><option value="yenileme">Petek ortası — sessiz ana değiştirme</option><option value="acil">Acil — genç larvadan (anasız)</option></select></label>' +
+        '<label>Meme sayısı<input type="number" name="cellCount" min="1" max="60" inputmode="numeric" placeholder="—"></label>' +
+        '<label>Kapalı mı açık mı<select name="cellCapped"><option value="">—</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select></label>' +
         '<label class="kr-checkline full"><input type="checkbox" name="queenless"> Anasız</label>' +
         '<label class="kr-checkline full"><input type="checkbox" name="chilled"> Üşümüş yavru</label>' +
         '<label class="full">Not<input name="note" maxlength="300"></label>';
@@ -1117,7 +1121,7 @@
       return { kind: 'feed', rec: { date: v('date'), type: v('type'), amount: v('amount'), note: v('note') } };
     }
     if (topic === 'yavru') {
-      return { kind: 'brood', rec: { date: v('date'), eggs: v('eggs') === '1', pattern: v('pattern'), queenCell: v('queenCell'), queenless: f.elements.queenless.checked, chilled: f.elements.chilled.checked, note: v('note') } };
+      return { kind: 'brood', rec: { date: v('date'), eggs: v('eggs') === '1', pattern: v('pattern'), queenCell: v('queenCell'), cellCount: v('queenCell') === 'yok' ? '' : v('cellCount'), cellCapped: v('queenCell') === 'yok' ? '' : v('cellCapped'), queenless: f.elements.queenless.checked, chilled: f.elements.chilled.checked, note: v('note') } };
     }
     if (topic === 'hasat') {
       if (v('kg') === '' && v('frames') === '' && v('note') === '') { f.elements.kg.focus(); toast('Kg, çerçeve veya not girin'); return null; }
@@ -1264,7 +1268,10 @@
       back.querySelector('#krHist').innerHTML = histHtml();
       resetTopicForm(topic, f, back, today);
       var msg = 'Kaydedildi';
-      if (kind === 'brood' && saved.queenless) msg = 'Kaydedildi · Anasız: görev ve uyarı açıldı';
+      if (kind === 'brood' && saved.queenCell === 'acil') msg = 'Kaydedildi · Acil ana memesi: anasız akışı açıldı';
+      else if (kind === 'brood' && saved.queenless) msg = 'Kaydedildi · Anasız: görev ve uyarı açıldı';
+      else if (kind === 'brood' && saved.queenCell === 'ogul') msg = 'Kaydedildi · Oğul memesi: oğul riski güncellendi';
+      else if (kind === 'brood' && saved.queenCell === 'yenileme') msg = 'Kaydedildi · Sessiz ana değiştirme: memelere dokunmayın';
       else if (kind === 'brood' && saved.chilled) msg = 'Kaydedildi · Zayıf koloni: «Birleştir veya çerçeve azalt» önerildi';
       else if (kind === 'disease' && saved.disease === 'ayc' && saved.status === 'dogrulandi') msg = 'Kaydedildi · AYÇ: ihbarı zorunlu, komşu kovan kontrol görevi açıldı';
       toast(msg + pmsg);
@@ -1913,7 +1920,7 @@
       st.diseases.forEach(function (x) { if (x.key !== 'ayc') why.push(x.label.toLocaleLowerCase('tr')); });
       if (st.dueChecks.length) why.push('kontrol tarihi geçti');
       if (st.weak) why.push(st.chilled ? 'zayıf koloni (üşümüş yavru)' : 'zayıf koloni');
-      if (st.swarmCell) why.push('oğul hücresi');
+      if (st.swarmCell) why.push('oğul memesi');
       if (ws.storesKg != null && !ws.storesOk) why.push('kışlık stok yetersiz');
       if (ws.rec && ws.statusKey === 'birlestir') why.push('birleştirilmeli');
       if (why.length) out.push({ hive: h, why: why, level: st.queenless || st.afb === 'dogrulandi' ? 0 : (st.diseases.length ? 1 : 2) });

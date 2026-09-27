@@ -61,8 +61,8 @@
     </section>
     <div id="view"></div>
   </main>
-  <script src="demo-data.js?v=koloni-21"></script>
-  <script src="koloni.js?v=koloni-21"></script>
+  <script src="demo-data.js?v=koloni-22"></script>
+  <script src="koloni.js?v=koloni-22"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -123,7 +123,7 @@
       var mergeC = cand.filter(function (x) { return x.st.weak || x.st.queenless; });
       var html = '<section class="card stack" style="margin-top:1rem;"><div class="ki-seg"><button type="button" data-sub="bolme" class="' + (sub === 'bolme' ? 'on' : '') + '">✂️ Bölme</button><button type="button" data-sub="birlestirme" class="' + (sub === 'birlestirme' ? 'on' : '') + '">🔗 Birleştirme</button></div>';
       if (sub === 'bolme') {
-        var hint = function (x) { return x.st.swarmCell ? 'oğul hücresi' : (x.st.strengthClass === 'Güçlü' ? 'güçlü' : ''); };
+        var hint = function (x) { return x.st.swarmCell ? 'oğul memesi' : (x.st.strengthClass === 'Güçlü' ? 'güçlü' : ''); };
         html += '<form class="ki-form" id="fSplit" autocomplete="off">' +
           '<label class="full">Kaynak kovan<select name="src" required>' + splitC.map(function (x) { return hiveOpt(x.h, hint(x)); }).join('') +
             hs.filter(function (h) { return !splitC.some(function (x) { return x.h.id === h.id; }); }).map(function (h) { return hiveOpt(h); }).join('') + '</select></label>' +
@@ -159,7 +159,7 @@
       html += '</section>';
       html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">' + (sub === 'bolme' ? 'Bölme adayları' : 'Birleştirme adayları') + ' (' + (sub === 'bolme' ? splitC.length : mergeC.length) + ')</h2><div class="ki-list">' +
         ((sub === 'bolme' ? splitC : mergeC).slice(0, 15).map(function (x) {
-          var why = sub === 'bolme' ? (x.st.swarmCell ? 'Oğul hücresi görüldü — bölerek oğulu önleyin' : 'Güçlü koloni') : (x.st.queenless ? 'Anasız' : 'Zayıf koloni');
+          var why = sub === 'bolme' ? (x.st.swarmCell ? 'Oğul memesi görüldü — bölerek oğulu önleyin' : 'Güçlü koloni') : (x.st.queenless ? 'Anasız' : 'Zayıf koloni');
           return '<a class="ki-row" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '#btBox"><span><b>' + esc(x.h.name) + '</b><small>' + esc(why) + '</small></span><span class="d">No ' + esc(K.hiveNo(x.h)) + '</span></a>';
         }).join('') || '<p class="muted" style="margin:0;">Kayıtlara göre aday kovan yok. Koloni gücü ve yavru kayıtları girdikçe burada görünür.</p>') + '</div></section>';
       html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Son işlemler</h2><div class="ki-list">' + evRows(['bolme', 'birlestirme']) + '</div></section>';
@@ -378,7 +378,7 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-21"></script>
-<script src="pwa.js?v=koloni-21"></script>
+  <script src="nav.js?v=koloni-22"></script>
+<script src="pwa.js?v=koloni-22"></script>
 </body>
 </html>

@@ -1956,7 +1956,9 @@
   var NOSEMA_LABEL = { yok: 'Yok', suphe: 'Şüphe', dogrulandi: 'Doğrulandı' };
   var AYC_LABEL = { temiz: 'Temiz', suphe: 'Şüphe', dogrulandi: 'Doğrulandı' };
   var VARROA_METHOD_LABEL = { seker: 'Pudra şekeri', alkol: 'Alkol yıkama', tabla: 'Yapışkan tabla' };
-  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Oğul hücresi', yenileme: 'Yenileme hücresi' };
+  /* Ana memesi yeri: alt kenar = oğul memesi · petek ortası = sessiz ana değiştirme · acil = genç larvadan (anasız). */
+  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Alt kenar (oğul memesi)', yenileme: 'Petek ortası (sessiz ana değiştirme)', acil: 'Acil (genç larvadan, anasız)' };
+  var CELL_CAP_LABEL = { kapali: 'kapalı', acik: 'açık' };
   var PATTERN_LABEL = { duzenli: 'Düzenli', daginik: 'Dağınık' };
 
   function workMode() {
@@ -2010,7 +2012,11 @@
     if (kind === 'brood') {
       o.eggs = r.eggs === true;
       o.pattern = pick(r.pattern, ['duzenli', 'daginik'], 'duzenli');
-      o.queenCell = pick(r.queenCell, ['yok', 'ogul', 'yenileme'], 'yok');
+      o.queenCell = pick(r.queenCell, ['yok', 'ogul', 'yenileme', 'acil'], 'yok');
+      if (o.queenCell !== 'yok') {
+        var cc = intIn(r.cellCount, 1, 60); if (cc) o.cellCount = cc;
+        var cp = pick(r.cellCapped, ['kapali', 'acik', ''], ''); if (cp) o.cellCapped = cp;
+      }
       o.queenless = r.queenless === true;
       o.chilled = r.chilled === true;
       return o;
@@ -2470,7 +2476,8 @@
     var cls = strengthClass(s);
     var chilled = !!(b && b.chilled);
     var hf = hiveFlags()[String(Number(hiveId))] || {};
-    var queenless = !!(b && b.queenless && !(hf.queenGivenAt && hf.queenGivenAt >= b.date)) || (hf.queenless === true && !hf.queenCellSince);
+    var emergencyCell = !!(b && b.queenCell === 'acil');
+    var queenless = !!(b && (b.queenless || emergencyCell) && !(hf.queenGivenAt && hf.queenGivenAt >= b.date)) || (hf.queenless === true && !hf.queenCellSince);
     var afb = latestByDisease.ayc ? latestByDisease.ayc.status : 'temiz';
     return {
       records: rec,
@@ -2482,7 +2489,11 @@
       queenCellSince: hf.queenless === true && hf.queenCellSince ? hf.queenCellSince : '',
       merged: hf.colonyState === 'birlestirildi',
       swarmCell: !!(b && b.queenCell === 'ogul'),
-      broodIssue: !!(b && (b.queenless || b.chilled || b.queenCell === 'ogul' || !b.eggs || b.pattern === 'daginik')),
+      supersedureCell: !!(b && b.queenCell === 'yenileme'),
+      emergencyCell: emergencyCell && queenless,
+      cellCount: b && b.cellCount ? b.cellCount : null,
+      cellCapped: b && b.cellCapped ? b.cellCapped : '',
+      broodIssue: !!(b && (b.queenless || b.chilled || b.queenCell === 'ogul' || b.queenCell === 'acil' || !b.eggs || b.pattern === 'daginik')),
       diseases: active,
       dueChecks: dueChecks,
       afb: afb,
@@ -2624,14 +2635,34 @@
     s = Math.max(0, Math.min(100, s)) * season.factor;
     var clipped = h.queenClipped === true;
     if (clipped) R('kirpik', 'Ana arı kırpık: oğul kaçışı riski azalır', 'down');
+    /* Ana memesi kaydı (son yavru muayenesi): yer, sayı, kapalı/açık. */
     var cell = !!(st && st.swarmCell);
+    var capped = !!(st && st.cellCapped === 'kapali');
+    var cellN = st && st.cellCount ? st.cellCount : null;
+    var cd = st && st.brood && st.brood.date ? ' — muayene ' + fmtTrShort(st.brood.date) : '';
+    var nTxt = function (w) { return (cellN ? cellN + ' ' : '') + (st.cellCapped ? CELL_CAP_LABEL[st.cellCapped] + ' ' : '') + w; };
+    var quietCells = false, manyCells = false;
     if (cell) {
-      var cd = st.brood && st.brood.date ? ' (muayene ' + fmtTrShort(st.brood.date) + ')' : '';
-      s = Math.max(s, inSeason ? 85 : 40);
-      why.splice(1, 0, { key: 'meme', text: inSeason ? 'Ana memesi görüldü' + cd : 'Ana memesi görüldü' + cd + ' — mevsim dışında çoğu zaman sessiz ana değişimi', dir: 'up' });
+      s = Math.max(s, capped ? 80 : (inSeason ? 70 : 40));
+      why.splice(1, 0, { key: 'meme', text: 'Alt kenarda ' + nTxt('ana memesi (oğul memesi)') + cd, dir: 'up' });
+    } else if (st && st.supersedureCell) {
+      if (cellN != null && cellN > 3) {
+        manyCells = true;
+        s = Math.max(s, inSeason ? 45 : 25);
+        why.splice(1, 0, { key: 'meme', text: 'Petek ortasında çok sayıda ana memesi (' + cellN + ') — oğul hazırlığı olabilir' + cd, dir: 'up' });
+      } else {
+        quietCells = true;
+        why.splice(1, 0, { key: 'meme', text: 'Sessiz ana değiştirme: petek ortasında ' + nTxt('ana memesi') + cd, dir: 'down' });
+      }
     }
     var queenless = !!(st && st.queenless);
-    if (queenless) { s = Math.min(s, 5); why.splice(1, 0, { key: 'anasiz', text: 'Koloni anasız — oğul vermez', dir: 'down' }); }
+    if (queenless) {
+      s = Math.min(s, 5);
+      why = why.filter(function (x) { return ['ana', 'egilim', 'kirpik'].indexOf(x.key) === -1; }); /* ana yok: ana yaşı/eğilimi anlamsız */
+      why.splice(1, 0, st.emergencyCell
+        ? { key: 'acil', text: 'Acil ana memesi (genç larvadan' + (cellN ? ', ' + cellN + ' meme' : '') + ') — koloni anasız, yeni ana yetiştiriyor' + cd, dir: 'down' }
+        : { key: 'anasiz', text: 'Koloni anasız — oğul vermez', dir: 'down' });
+    }
     s = Math.round(Math.max(0, Math.min(100, s)));
     var lv = swarmLevelOf(s);
     if (breed) R('irk', 'Irk: ' + breed + (bf.note ? ', ' + bf.note : ''), bf.f < 0.9 ? 'down' : (bf.f > 1.1 ? 'up' : 'info'));
@@ -2639,10 +2670,20 @@
     var recs = [];
     function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }
     var elevated = lv.key === 'orta' || lv.key === 'yuksek' || lv.key === 'cok-yuksek';
-    if (!queenless && inSeason && elevated) {
-      if (cell) A('meme', 'Ana memelerini kontrol et / kır', 'Kapalı memeler varsa oğul çok yakındır: memeleri kırın ya da koloniyi bölüp memeyi bölmede kullanın.');
+    if (queenless && st && st.emergencyCell) {
+      A('anasiz', 'Anasız akışı: memelere dokunma', 'Acil memelerden ana ~1 haftada çıkar, çiftleşme ~2 hafta sürer; ~3 hafta sonra yumurta kontrolü yapın. Meme tutmazsa ana verin veya birleştirin.');
+    } else if (queenless) {
+      A('anasiz', 'Ana arı ver veya birleştir', 'Anasız koloni oğul vermez ama zayıflar; ana verin, ana memesi verin ya da birleştirin.');
+    } else if (quietCells) {
+      A('dokunma', 'Memelere dokunma, izle', 'Petek ortasındaki 1–3 meme koloninin anasını sessizce yenilediğini gösterir; memeleri kırmayın, 3 hafta sonra yumurta kontrolü yapın.');
+      if (inSeason && (lv.key === 'yuksek' || lv.key === 'cok-yuksek') && (space || strength === 'güçlü')) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
+    } else if (cell || (inSeason && elevated)) {
+      if (cell) A('meme', capped ? 'Ana memelerini kır veya bölmede kullan' : 'Ana memelerini kontrol et / kır', capped
+        ? 'Alt kenarda kapalı oğul memesi: oğul birkaç gün içinde çıkabilir. Memeleri kırın ya da koloniyi bölüp memeyi bölmede kullanın.'
+        : 'Açık oğul memeleri: 5–7 gün içinde kapanır. Kırın ya da bölme yapın; yer açın.');
+      if (cell && !(strength === 'güçlü')) A('bolme', 'Bölme yap', 'Oğul memesi olan koloniyi bölün; memeli çerçeveyi bölmeye verin.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
       if (space || strength === 'güçlü') A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir; oğul hazırlığını çoğu zaman durdurur.');
-      if (strength === 'güçlü' || cell) A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yapın.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
+      if (strength === 'güçlü') A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yapın.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
       if (space || strength === 'güçlü') A('cerceve', 'Boş çerçeve / temel petek ver', 'Kuluçka alanına 1–2 temel petek koyun; ana yumurtlayacak yer bulur.');
       if (!cell) A('meme', 'Ana memelerini kontrol et', '7–10 günde bir çerçeve altlarına ve kenarlarına bakın.');
       if (age != null && age >= 2) A('ana', 'Ana arıyı yenile', 'Genç ana oğul eğilimini azaltır.');
@@ -2651,8 +2692,8 @@
       var laying = !(st && st.queenCellSince) && ((st && st.brood && st.brood.eggs === true) || (age != null && age >= 1));
       if ((lv.key === 'yuksek' || lv.key === 'cok-yuksek') && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; ana memesi kontrolü, kat atma veya bölme ile birlikte yapın.');
     } else {
-      if (cell && !queenless) A('meme', 'Ana memesini kontrol et (kırmayın)', 'Mevsim dışında meme genelde sessiz ana değişimidir; 3 hafta sonra yumurta kontrolü yapın.');
-      if (age != null && age >= 3 && !queenless) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
+      if (manyCells) A('meme', 'Ana memelerini kontrol et', 'Memelerin yerine bakın: alt kenardaysa oğul, petek ortasındaysa sessiz ana değiştirmedir.');
+      if (age != null && age >= 3) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
       A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol edin.' : 'Oğul mevsimi dışında; olağan bakımla devam edin.');
     }
     var seasonNote = why[0].text;
@@ -2743,7 +2784,9 @@
       var nm = h.name;
       var apName = aps[h.apiaryId] ? aps[h.apiaryId].name : '';
       if (st.queenless) {
-        tasksOut.push({ id: 'kr-anasiz-' + h.id, title: 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, due: st.brood ? st.brood.date : '', createdAt: nowIso });
+        tasksOut.push({ id: 'kr-anasiz-' + h.id, title: st.emergencyCell
+            ? 'Acil ana memesi (anasız) — ' + nm + ': memelere dokunma, ~3 hafta sonra yumurta kontrolü; olmazsa ana ver veya birleştir'
+            : 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, due: st.brood ? st.brood.date : '', createdAt: nowIso });
         alertsOut.push({ id: 'kra-anasiz-' + h.id, title: 'Anasız koloni — ' + nm, type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
       }
       if (st.chilled) {
@@ -2751,7 +2794,7 @@
         alertsOut.push({ id: 'kra-usumus-' + h.id, title: 'Üşümüş yavru — zayıf koloni (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'medium', auto: true });
       }
       if (st.swarmCell) {
-        tasksOut.push({ id: 'kr-ogulhucre-' + h.id, title: 'Oğul hücresi görüldü — ' + nm + ': bölme veya yer açma', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+        tasksOut.push({ id: 'kr-ogulhucre-' + h.id, title: 'Oğul memesi görüldü' + (st.cellCapped === 'kapali' ? ' (kapalı)' : '') + ' — ' + nm + ': bölme veya meme kırma, yer açma', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
       }
       if (st.afb === 'dogrulandi') {
         tasksOut.push({ id: 'kr-ayc-komsu-' + h.id, title: 'AYÇ doğrulandı (' + nm + ') — ' + (apName || 'arılıktaki') + ' diğer kovanları kontrol et', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
@@ -2895,6 +2938,7 @@
     AYC_LABEL: AYC_LABEL,
     VARROA_METHOD_LABEL: VARROA_METHOD_LABEL,
     QUEEN_CELL_LABEL: QUEEN_CELL_LABEL,
+    CELL_CAP_LABEL: CELL_CAP_LABEL,
     PATTERN_LABEL: PATTERN_LABEL,
     workMode: workMode,
     strengthClass: strengthClass,

@@ -466,6 +466,15 @@
         return '<div class="bo-task"><span>' + esc(x.title) + (x.due ? ' <span class="bo-mut">· ' + (x.due < today() ? 'gecikti ' : '') + fmt(x.due) + '</span>' : '') + '</span><button type="button" class="bo-btn ok" data-bo-done="' + esc(x.id) + '">✓ Bitti</button></div>';
       }).join('') + '</div>');
     }
+    /* ana memesi (yavru muayenesi kaydı) */
+    var lastB = null; try { lastB = D.records.status(h.id).brood; } catch (eB) { lastB = null; }
+    H.push('<div class="bo-sec"><h3>👑 Ana memesi</h3>' +
+      (lastB && lastB.queenCell && lastB.queenCell !== 'yok' ? '<p class="bo-mut">Son kayıt ' + esc(fmt(lastB.date)) + ': ' + esc((lastB.cellCount ? lastB.cellCount + ' ' : '') + (lastB.cellCapped ? D.records.CELL_CAP_LABEL[lastB.cellCapped] + ' · ' : '') + D.records.QUEEN_CELL_LABEL[lastB.queenCell].toLocaleLowerCase('tr')) + '</p>' : '') +
+      '<div class="bo-row"><select data-bo-cell aria-label="Ana memesi yeri"><option value="yok">Meme yok</option><option value="ogul">Alt kenar — oğul memesi</option><option value="yenileme">Petek ortası — sessiz ana değiştirme</option><option value="acil">Acil — genç larvadan (anasız)</option></select></div>' +
+      '<div class="bo-row"><input type="number" inputmode="numeric" min="1" max="60" placeholder="Sayı" data-bo-celln aria-label="Meme sayısı" style="max-width:5.5rem">' +
+      '<select data-bo-cellcap aria-label="Kapalı mı açık mı"><option value="">Kapalı/açık —</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select>' +
+      '<select data-bo-eggs aria-label="Yumurta"><option value="1">Yumurta var</option><option value="0">Yumurta yok</option></select></div>' +
+      '<div class="bo-row"><button type="button" class="bo-btn" data-bo-savecell>Muayeneyi kaydet</button></div></div>');
     /* varroa */
     var V = '<div class="bo-sec"><h3>💊 Varroa</h3><p>' + esc(mp.summary.split(' · ⛔')[0].split(' · Öneri')[0]) + '</p>';
     mp.warns.forEach(function (w) { V += '<p class="bo-warn">' + esc(w) + '</p>'; });
@@ -520,6 +529,7 @@
     el.onclick = function (e) {
       var b = e.target.closest && e.target.closest('button'); if (!b) return;
       if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
+      else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cell]').value, el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
       else if (b.hasAttribute('data-bo-savecount')) say(saveCount(h.id, el.querySelector('[data-bo-count]').value, el.querySelector('[data-bo-method]').value));
       else if (b.hasAttribute('data-bo-treat')) {
         var r = saveTreatment(h.id, el.querySelector('[data-bo-prod]').value);
@@ -531,6 +541,19 @@
         say(r2);
       }
     };
+  }
+
+  /** Bakım yap › ana memesi: yavru muayenesi kaydı (yer, sayı, kapalı/açık, tarih = bugün). */
+  function saveCell(hiveId, where, n, cap, eggs) {
+    var last = null; try { last = D.records.status(hiveId).brood; } catch (e) { last = null; }
+    var rec = { date: today(), eggs: !!eggs, pattern: last ? last.pattern : 'duzenli', queenCell: where || 'yok',
+      cellCount: where && where !== 'yok' ? n : '', cellCapped: where && where !== 'yok' ? cap : '', note: 'Bakım yap' + (mode() === 'demo' ? ' · Demo' : '') };
+    if (mode() === 'demo') rec.demo = true;
+    var saved = D.records.add(hiveId, 'brood', rec);
+    if (!saved) return { ok: false, msg: 'Kaydedilemedi.' };
+    var m = where === 'ogul' ? 'Oğul memesi kaydedildi; oğul riski güncellendi.' : where === 'yenileme' ? 'Sessiz ana değiştirme kaydedildi; memelere dokunmayın.' :
+      where === 'acil' ? 'Acil ana memesi kaydedildi; anasız akışı açıldı.' : 'Muayene kaydedildi (meme yok).';
+    return { ok: true, msg: m };
   }
 
   /** Ana arı yıl rengi noktası (uluslararası kod; yıl yoksa gri/boş). */
