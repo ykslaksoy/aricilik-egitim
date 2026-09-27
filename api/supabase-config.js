@@ -4,6 +4,7 @@
  * Vercel ortam değişkenleri (Supabase Marketplace entegrasyonu bunları otomatik ekler):
  *   SUPABASE_URL | NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_ANON_KEY | NEXT_PUBLIC_SUPABASE_ANON_KEY | SUPABASE_PUBLISHABLE_KEY | NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ *   (önekli de olabilir: Repo_SUPABASE_URL, NEXT_PUBLIC_Repo_SUPABASE_ANON_KEY …)
  * Gizli anahtarlar (service_role / sb_secret_) asla döndürülmez.
  * Değerler yoksa { enabled:false } döner ve uygulama bulut olmadan (bugünkü gibi) çalışır.
  */
@@ -25,9 +26,26 @@ function isSecretKey(key) {
   }
   return false;
 }
+/* Marketplace entegrasyonu özel önekle kurulabilir (ör. «Repo_SUPABASE_URL», «NEXT_PUBLIC_Repo_SUPABASE_ANON_KEY»).
+ * Önce bilinen adlar, sonra «…SUPABASE_URL» / «…SUPABASE_ANON_KEY» / «…SUPABASE_PUBLISHABLE_KEY» ile biten herhangi bir ad. */
+function pickSuffix(env, suffixes) {
+  const keys = Object.keys(env).sort();
+  for (const sfx of suffixes) {
+    for (const k of keys) {
+      if (k === sfx || k.endsWith('_' + sfx)) {
+        const v = env[k];
+        if (typeof v === 'string' && v.trim()) return v.trim();
+      }
+    }
+  }
+  return '';
+}
 function config(env) {
-  const url = pick(env, ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL']).replace(/\/+$/, '');
-  const key = pick(env, ['SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY']);
+  const url = (pick(env, ['SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'Repo_SUPABASE_URL', 'NEXT_PUBLIC_Repo_SUPABASE_URL']) ||
+    pickSuffix(env, ['SUPABASE_URL'])).replace(/\/+$/, '');
+  const key = pick(env, ['SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    'Repo_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_Repo_SUPABASE_ANON_KEY', 'Repo_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_Repo_SUPABASE_PUBLISHABLE_KEY']) ||
+    pickSuffix(env, ['SUPABASE_ANON_KEY', 'SUPABASE_PUBLISHABLE_KEY']);
   const urlOk = /^https:\/\/[^\s/]+$/i.test(url);
   const keyOk = key.length >= 20 && !isSecretKey(key);
   if (urlOk && keyOk) return { enabled: true, url: url, anonKey: key, source: 'vercel-env' };
