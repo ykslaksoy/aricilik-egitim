@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Satış ve müşteriler</title>
+<link rel="stylesheet" href="rapor-common.css" />
+
+<style>
+  .seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
+  .seg button{font:inherit;font-size:12px;font-weight:750;padding:8px 4px;border-radius:10px;border:1px solid var(--border,#eadfbe);background:#fff;color:#5c4813;}
+  .seg button.on{background:#ffe066;border-color:#f2c200;}
+  .chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:4px;vertical-align:1px;}
+  .chip.ok{background:#d3f9d8;color:#2b8a3e;} .chip.due{background:#fff4e6;color:#d9480f;} .chip.demo{background:#e7f5ff;color:#1864ab;}
+  .row-item .acts{display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+  .row-item .acts button,.row-item .acts a{font:inherit;font-size:11px;font-weight:750;padding:4px 7px;border-radius:8px;border:1px solid var(--border,#eadfbe);background:#fff;color:#5c4813;text-decoration:none;white-space:nowrap;}
+  .row-item .acts .del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
+  .total-line{font-size:13px;font-weight:800;color:#2b2410;}
+  [hidden]{display:none !important;}
+  .newcust{display:grid;gap:8px;padding:8px;border:1px dashed #e9d8a6;border-radius:10px;background:#fffdf3;}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen">
+    <div class="brand-strip">Hardal Arıcılık</div>
+    <div class="page-head">
+      <div>
+        <h1>Satış ve müşteriler</h1>
+        <p id="pageSub">Satışlar kâr / zarar raporuna gelir olarak girer</p>
+      </div>
+      <div class="nav-chips">
+        <a class="back-chip" href="raporlar.html">← Raporlar</a>
+        <a class="back-chip" href="rapor-kar-zarar.html">Kâr / zarar</a>
+      </div>
+    </div>
+    <div class="filters"><label>Yıl <select id="yearSel"></select></label></div>
+    <div class="stats" id="stats"></div>
+    <div class="seg" role="tablist">
+      <button type="button" class="on" data-tab="yeni">Satış ekle</button>
+      <button type="button" data-tab="liste">Satışlar</button>
+      <button type="button" data-tab="musteri">Müşteriler</button>
+    </div>
+    <section class="card-block" data-panel="yeni">
+      <h2 id="formTitle">Yeni satış</h2>
+      <form class="form-grid" id="saleForm" novalidate>
+        <input type="hidden" id="sId" />
+        <label>Müşteri
+          <select id="sCust"></select>
+        </label>
+        <div class="newcust" id="newCust" hidden>
+          <label>Müşteri adı <input type="text" id="ncName" maxlength="80" placeholder="ör. Ayşe Yılmaz" /></label>
+          <div class="pair">
+            <label>Telefon <input type="tel" id="ncPhone" maxlength="30" inputmode="tel" placeholder="05xx…" /></label>
+            <label>Şehir <input type="text" id="ncCity" maxlength="60" /></label>
+          </div>
+        </div>
+        <div class="pair">
+          <label>Tarih <input type="date" id="sDate" required /></label>
+          <label>Ürün <select id="sProd"></select></label>
+        </div>
+        <label id="honeyWrap">Bal türü <select id="sHoney"></select></label>
+        <div class="pair">
+          <label>Miktar <input type="text" id="sQty" inputmode="decimal" placeholder="ör. 5" /></label>
+          <label>Birim <select id="sUnit"></select></label>
+        </div>
+        <div class="pair">
+          <label>Birim fiyat (₺) <input type="text" id="sPrice" inputmode="decimal" placeholder="ör. 450" /></label>
+          <label>Toplam (₺) <input type="text" id="sTotal" inputmode="decimal" placeholder="otomatik" /></label>
+        </div>
+        <div class="pair">
+          <label>Ödeme <select id="sPay"></select></label>
+          <label id="paidWrap" hidden>Alınan (₺) <input type="text" id="sPaid" inputmode="decimal" /></label>
+        </div>
+        <label>Arılık (kâr / zarar için) <select id="sAp"></select></label>
+        <label>Not <input type="text" id="sNote" maxlength="160" placeholder="ör. 10 kavanoz, kargo ile" /></label>
+        <p class="total-line" id="sCalc"></p>
+        <button type="submit" class="btn" id="sSave">Satışı kaydet</button>
+        <button type="button" class="btn secondary" id="sCancel" hidden>Düzenlemeyi bırak</button>
+        <p class="form-msg" id="sMsg" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="card-block" data-panel="liste" hidden>
+      <h2>Satışlar</h2>
+      <div class="filters" style="grid-template-columns:1fr 1fr;display:grid;">
+        <label>Durum <select id="fPay"><option value="">Tümü</option><option value="acik">Alacaklı (ödenmemiş)</option><option value="odendi">Ödendi</option></select></label>
+        <label>Müşteri <select id="fCust"></select></label>
+      </div>
+      <div id="saleList"></div>
+    </section>
+    <section class="card-block" data-panel="musteri" hidden>
+      <h2>Müşteriler</h2>
+      <div id="custList"></div>
+      <h2 style="margin-top:14px;" id="cfTitle">Müşteri ekle</h2>
+      <form class="form-grid" id="custForm" novalidate>
+        <input type="hidden" id="cId" />
+        <label>Ad soyad / firma <input type="text" id="cName" maxlength="80" required /></label>
+        <div class="pair">
+          <label>Telefon <input type="tel" id="cPhone" maxlength="30" inputmode="tel" /></label>
+          <label>Şehir <input type="text" id="cCity" maxlength="60" /></label>
+        </div>
+        <label>Not <input type="text" id="cNote" maxlength="160" placeholder="ör. her ay 2 kg çiçek balı" /></label>
+        <button type="submit" class="btn" id="cSave">Müşteriyi kaydet</button>
+        <p class="form-msg" id="cMsg" aria-live="polite"></p>
+      </form>
+    </section>
+    <p class="hint" id="modeHint"></p>
+  </div>
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+<script src="demo-data.js?v=koloni-47"></script>
+<script src="satis-store.js?v=koloni-47"></script>
+<script>
+(function () {
+  var S = window.SuperAriSatis, D = window.SuperAriDemo;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function money(n) { return '₺' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('tr-TR', { maximumFractionDigits: 2 }); }
+  function numTr(n) { return String(Math.round((Number(n) || 0) * 100) / 100).replace('.', ','); }
+  var AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function fmt(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY[Number(m[2]) - 1] + ' ' + m[1] : (d || ''); }
+  function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
+  function parse(v) { var s = String(v == null ? '' : v).replace(/[\s₺]/g, ''); if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, ''); var n = Number(s.replace(',', '.')); return isFinite(n) ? n : NaN; }
+  function msg(el, t, err) { el.textContent = t || ''; el.className = 'form-msg' + (err ? ' err' : ''); }
+  var tab = 'yeni';
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll('.seg button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === t); });
+    document.querySelectorAll('[data-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-panel') !== t; });
+  }
+  document.querySelector('.seg').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) setTab(b.getAttribute('data-tab')); });
+  var today = D.records.todayLocal(), thisYear = today.slice(0, 4);
+  function years() { var y = {}; y[thisYear] = 1; S.sales().forEach(function (s) { y[String(s.date).slice(0, 4)] = 1; }); return Object.keys(y).sort().reverse(); }
+  function fillYears() { var cur = $('yearSel').value || thisYear; $('yearSel').innerHTML = years().map(function (y) { return '<option>' + y + '</option>'; }).join('') + '<option value="">Tüm yıllar</option>'; $('yearSel').value = cur; }
+  function fillStatic() {
+    $('sProd').innerHTML = S.PRODUCTS.map(function (p) { return '<option value="' + p.key + '">' + esc(p.label) + '</option>'; }).join('');
+    $('sHoney').innerHTML = '<option value="">—</option>' + S.HONEY_TYPES.map(function (h) { return '<option>' + esc(h) + '</option>'; }).join('');
+    $('sUnit').innerHTML = S.UNITS.map(function (u) { return '<option>' + u + '</option>'; }).join('');
+    $('sPay').innerHTML = Object.keys(S.PAY).map(function (k) { return '<option value="' + k + '">' + esc(S.PAY[k]) + '</option>'; }).join('');
+    var aps = []; try { aps = D.loadApiaries() || []; } catch (e) { aps = []; }
+    $('sAp').innerHTML = '<option value="">Belirtilmedi</option>' + aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    if (aps.length === 1) $('sAp').value = String(aps[0].id);
+  }
+  function fillCustomers() {
+    var cs = S.customers(), cur = $('sCust').value;
+    $('sCust').innerHTML = '<option value="">Perakende (adsız)</option>' + cs.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + (c.phone ? ' · ' + esc(c.phone) : '') + '</option>'; }).join('') + '<option value="__yeni">＋ Yeni müşteri…</option>';
+    if (cur && (cur === '__yeni' || cs.some(function (c) { return c.id === cur; }))) $('sCust').value = cur;
+    $('newCust').hidden = $('sCust').value !== '__yeni';
+    var fc = $('fCust').value;
+    $('fCust').innerHTML = '<option value="">Tümü</option>' + cs.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>'; }).join('');
+    $('fCust').value = fc;
+  }
+  function prodChanged() {
+    var p = S.product($('sProd').value);
+    $('honeyWrap').hidden = !(p.key === 'bal' || p.key === 'petek');
+    $('sUnit').value = p.unit;
+    calc();
+  }
+  function calc() {
+    var q = parse($('sQty').value), pr = parse($('sPrice').value), t = parse($('sTotal').value);
+    var auto = q > 0 && pr >= 0 ? Math.round(q * pr * 100) / 100 : null;
+    $('sTotal').placeholder = auto != null ? numTr(auto) : 'otomatik';
+    var tot = t > 0 ? t : auto;
+    var pay = $('sPay').value;
+    $('paidWrap').hidden = pay !== 'kismi';
+    $('sCalc').textContent = tot > 0 ? 'Toplam ' + money(tot) + (pay === 'kismi' && parse($('sPaid').value) > 0 ? ' · alacak ' + money(Math.max(0, tot - parse($('sPaid').value))) : (pay === 'bekliyor' ? ' · tamamı alacak' : '')) : '';
+  }
+  ['sQty', 'sPrice', 'sTotal', 'sPaid'].forEach(function (id) { $(id).addEventListener('input', calc); });
+  $('sPay').addEventListener('change', calc);
+  $('sProd').addEventListener('change', prodChanged);
+  $('sCust').addEventListener('change', function () { $('newCust').hidden = $('sCust').value !== '__yeni'; if (!$('newCust').hidden) $('ncName').focus(); });
+  function resetForm() {
+    $('saleForm').reset(); $('sId').value = ''; $('sDate').value = today; $('formTitle').textContent = 'Yeni satış'; $('sSave').textContent = 'Satışı kaydet'; $('sCancel').hidden = true;
+    fillStatic(); fillCustomers(); prodChanged();
+  }
+  $('sCancel').addEventListener('click', function () { resetForm(); msg($('sMsg'), ''); });
+  $('saleForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    try {
+      var cid = $('sCust').value;
+      if (cid === '__yeni') { var nc = S.saveCustomer({ name: $('ncName').value, phone: $('ncPhone').value, city: $('ncCity').value }); cid = nc.id; }
+      var o = { customerId: cid, date: $('sDate').value, product: $('sProd').value, honeyType: $('sHoney').value, qty: $('sQty').value, unit: $('sUnit').value,
+        unitPrice: $('sPrice').value, total: $('sTotal').value, payment: $('sPay').value, paidAmount: $('sPaid').value, apiaryId: $('sAp').value, note: $('sNote').value };
+      var id = $('sId').value;
+      var row = id ? S.updateSale(id, o) : S.addSale(o);
+      resetForm();
+      msg($('sMsg'), (id ? 'Satış güncellendi' : 'Satış kaydedildi') + ': ' + row.customerName + ' · ' + S.saleLabel(row) + ' · ' + money(row.total) + '. Kâr / zarar raporuna gelir olarak eklendi.');
+      renderAll();
+    } catch (err) { msg($('sMsg'), err.message || String(err), true); }
+  });
+  function renderStats() {
+    var y = $('yearSel').value, sm = S.summary(y);
+    $('stats').innerHTML = '<div class="stat"><div class="k">Satış ' + (y || 'toplam') + '</div><div class="v pos">' + money(sm.total) + '</div></div>' +
+      '<div class="stat"><div class="k">Tahsil edilen</div><div class="v">' + money(sm.paid) + '</div></div>' +
+      '<div class="stat"><div class="k">Alacak</div><div class="v ' + (sm.due > 0 ? 'warn' : '') + '">' + money(sm.due) + '</div></div>' +
+      '<div class="stat"><div class="k">Satılan bal</div><div class="v">' + numTr(sm.honeyKg) + ' kg</div></div>';
+    return sm;
+  }
+  function renderSales() {
+    var y = $('yearSel').value, fp = $('fPay').value, fc = $('fCust').value;
+    var list = S.sales().filter(function (s) {
+      if (y && String(s.date).slice(0, 4) !== y) return false;
+      if (fc && s.customerId !== fc) return false;
+      if (fp === 'acik' && s.payment === 'odendi') return false;
+      if (fp === 'odendi' && s.payment !== 'odendi') return false;
+      return true;
+    });
+    $('saleList').innerHTML = list.map(function (s) {
+      var due = Math.max(0, s.total - (s.paidAmount || 0));
+      var chip = s.payment === 'odendi' ? '<span class="chip ok">Ödendi</span>' : '<span class="chip due">Alacak ' + esc(money(due)) + '</span>';
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(s.customerName) + chip + (s.demo ? '<span class="chip demo">Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + esc(fmt(s.date)) + ' · ' + esc(S.saleLabel(s)) + ' × ' + esc(money(s.unitPrice)) + (s.apiaryName ? ' · ' + esc(s.apiaryName) : '') + (s.note ? '<br>' + esc(s.note) : '') + '</div></div>' +
+        '<div class="acts"><b class="pos" style="font-size:13px;">' + esc(money(s.total)) + '</b>' +
+        (s.payment !== 'odendi' ? '<button type="button" data-paid="' + esc(s.id) + '">Ödendi</button>' : '') +
+        '<button type="button" data-edit="' + esc(s.id) + '">Düzenle</button><button type="button" class="del" data-del="' + esc(s.id) + '">Sil</button></div></div>';
+    }).join('') || '<p class="hint" style="margin:0;">Bu filtrede satış yok.</p>';
+  }
+  function renderCustomers(sm) {
+    var all = S.summary('').byCustomer;
+    $('custList').innerHTML = S.customers().map(function (c) {
+      var t = all[c.id] || { total: 0, due: 0, count: 0 };
+      var tel = c.phone ? String(c.phone).replace(/[^0-9+]/g, '') : '';
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(c.name) + (t.due > 0 ? '<span class="chip due">Alacak ' + esc(money(t.due)) + '</span>' : '') + (c.demo ? '<span class="chip demo">Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + (c.phone ? esc(c.phone) + ' · ' : '') + (c.city ? esc(c.city) + ' · ' : '') + t.count + ' satış · ' + esc(money(t.total)) + (c.note ? '<br>' + esc(c.note) : '') + '</div></div>' +
+        '<div class="acts">' + (tel ? '<a href="tel:' + esc(tel) + '">Ara</a>' : '') + '<button type="button" data-cedit="' + esc(c.id) + '">Düzenle</button><button type="button" class="del" data-cdel="' + esc(c.id) + '">Sil</button></div></div>';
+    }).join('') || '<p class="hint" style="margin:0;">Henüz müşteri yok. Aşağıdan ya da satış eklerken «＋ Yeni müşteri» ile ekleyin.</p>';
+  }
+  function renderAll() { fillYears(); fillCustomers(); var sm = renderStats(); renderSales(); renderCustomers(sm); }
+  $('yearSel').addEventListener('change', function () { renderStats(); renderSales(); });
+  $('fPay').addEventListener('change', renderSales); $('fCust').addEventListener('change', renderSales);
+  $('saleList').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var id = b.getAttribute('data-paid') || b.getAttribute('data-edit') || b.getAttribute('data-del');
+    if (b.hasAttribute('data-paid')) { S.markPaid(id); renderAll(); return; }
+    if (b.hasAttribute('data-del')) { if (!confirm('Satış kaydı silinsin mi? Kâr / zarar gelirinden de çıkar.')) return; S.removeSale(id); renderAll(); return; }
+    var s = S.sales().filter(function (x) { return x.id === id; })[0]; if (!s) return;
+    setTab('yeni'); fillCustomers();
+    $('sId').value = s.id; $('sCust').value = s.customerId || ''; $('newCust').hidden = true;
+    $('sDate').value = s.date; $('sProd').value = s.product; prodChanged(); $('sHoney').value = s.honeyType || ''; $('sUnit').value = s.unit;
+    $('sQty').value = numTr(s.qty); $('sPrice').value = numTr(s.unitPrice); $('sTotal').value = Math.abs(s.total - s.qty * s.unitPrice) > 0.009 ? numTr(s.total) : '';
+    $('sPay').value = s.payment; $('sPaid').value = s.payment === 'kismi' ? numTr(s.paidAmount) : ''; $('sAp').value = s.apiaryId || ''; $('sNote').value = s.note || '';
+    $('formTitle').textContent = 'Satışı düzenle'; $('sSave').textContent = 'Değişiklikleri kaydet'; $('sCancel').hidden = false; calc();
+    window.scrollTo(0, 0);
+  });
+  $('custList').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.hasAttribute('data-cdel')) {
+      if (!confirm('Müşteri silinsin mi?')) return;
+      try { S.removeCustomer(b.getAttribute('data-cdel')); msg($('cMsg'), 'Müşteri silindi.'); } catch (err) { msg($('cMsg'), err.message, true); }
+      renderAll(); return;
+    }
+    var c = S.customerById(b.getAttribute('data-cedit')); if (!c) return;
+    $('cId').value = c.id; $('cName').value = c.name; $('cPhone').value = c.phone || ''; $('cCity').value = c.city || ''; $('cNote').value = c.note || '';
+    $('cfTitle').textContent = 'Müşteriyi düzenle'; $('cName').focus();
+  });
+  $('custForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    try {
+      var c = S.saveCustomer({ id: $('cId').value, name: $('cName').value, phone: $('cPhone').value, city: $('cCity').value, note: $('cNote').value });
+      msg($('cMsg'), 'Kaydedildi: ' + c.name); $('custForm').reset(); $('cId').value = ''; $('cfTitle').textContent = 'Müşteri ekle'; renderAll();
+    } catch (err) { msg($('cMsg'), err.message, true); }
+  });
+  $('modeHint').textContent = live() ? 'Canlı mod · satış ve müşteri kayıtları buluta eşitlenir (arılık seçilen satışları ekip üyeleri de görür; müşteri listesi yalnız sizde).' : 'Demo mod · kayıtlar Demo olarak işaretlenir, buluta gitmez ve Canlı moda geçince görünmez.';
+  if (new URLSearchParams(location.search).get('tab')) setTab(new URLSearchParams(location.search).get('tab'));
+  resetForm(); renderAll();
+  window.addEventListener('superari-cloud-pulled', renderAll);
+})();
+</script>
+<script src="nav.js?v=koloni-47"></script>
+<script src="pwa.js?v=koloni-47"></script>
+</body>
+</html>

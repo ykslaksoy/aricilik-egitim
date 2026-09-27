@@ -152,10 +152,30 @@
     return readJson(HARVEST_KEY) || SEED_HARVESTS.slice();
   }
 
+  /* Satış kayıtları (satis-store.js) gelire otomatik girer: toplam tutar, satış tarihinde. */
+  var SALE_SRC = { bal: 'bal', petek: 'bal', polen: 'polen', propolis: 'propolis', balmumu: 'balmumu', ana_ari: 'ana', ogul: 'ogul', diger: 'diger' };
+  var SALE_LABEL = { bal: 'Bal', petek: 'Petek bal', polen: 'Polen', propolis: 'Propolis', balmumu: 'Balmumu', ana_ari: 'Ana arı', ogul: 'Oğul / paket arı', diger: 'Diğer' };
+  function salesIncomeRows() {
+    var list = readJson(isLive() ? 'superari.satislar.v1' : 'superari.satislar.demo.v1');
+    if (!Array.isArray(list)) return [];
+    return list.filter(function (x) { return x && x.id && Number(x.total) > 0; }).map(function (x) {
+      var aid = x.apiaryId ? String(x.apiaryId) : '';
+      var q = String(x.qty).replace('.', ',') + ' ' + (x.unit || '');
+      var row = {
+        id: 'sale:' + x.id, fromSale: true, saleId: x.id, apiaryId: aid || 'none',
+        apiaryName: aid ? (apiaryNameOf(aid) || x.apiaryName || aid) : 'Arılık belirtilmedi',
+        date: String(x.date || '').slice(0, 10), amount: Number(x.total) || 0, source: SALE_SRC[x.product] || 'diger',
+        note: 'Satış · ' + (x.customerName || 'Perakende') + ' · ' + (SALE_LABEL[x.product] || 'Ürün') + (x.honeyType ? ' (' + x.honeyType + ')' : '') + ' ' + q +
+          (x.payment && x.payment !== 'odendi' ? ' · alacak ' + fmtMoney(Math.max(0, (Number(x.total) || 0) - (Number(x.paidAmount) || 0))) : '')
+      };
+      if (!isLive()) row.demo = true;
+      return row;
+    });
+  }
   function loadIncomes() {
-    if (isLive()) return readJson(INCOME_LIVE_KEY) || [];
+    if (isLive()) return (readJson(INCOME_LIVE_KEY) || []).concat(salesIncomeRows());
     ensureSeeded();
-    return tagDemo(readJson(INCOME_KEY) || SEED_INCOMES.slice());
+    return tagDemo(readJson(INCOME_KEY) || SEED_INCOMES.slice()).concat(salesIncomeRows());
   }
 
   function apiaryNameOf(id) {

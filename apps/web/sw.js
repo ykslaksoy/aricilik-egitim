@@ -175,6 +175,8 @@ const SHELL = [
   "/saglik-canli.js",
   "/saglik-detay.html",
   "/saglik.html",
+  "/satis-store.js",
+  "/satis.html",
   "/sensor-health.js",
   "/sensorler.html",
   "/sesle-muayene.js",
