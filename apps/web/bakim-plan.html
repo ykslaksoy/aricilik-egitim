@@ -36,6 +36,16 @@
     .bp-med p{margin:.3rem 0 0;overflow-wrap:anywhere;}
     .bp-med a{color:#2b6cb0;text-decoration:underline;}
     h2.bp-h{margin:0;font-size:1.05rem;}
+    .bp-prog{height:8px;border-radius:99px;background:#f1f3f5;overflow:hidden;}
+    .bp-prog i{display:block;height:100%;background:#40c057;width:0;}
+    .bp-find{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;}
+    .bp-find input{font:inherit;font-size:.9rem;padding:.55rem .6rem;border-radius:12px;border:1px solid var(--border);min-width:0;}
+    .bp-hv.done{opacity:.55;}
+    .bp-hv.done b{text-decoration:line-through;}
+    .bp-need{grid-column:1/-1;display:grid;gap:.1rem;font-size:.78rem;}
+    .bp-need span{overflow-wrap:anywhere;}
+    .bp-need .u1{color:#c92a2a;font-weight:700;}
+    .bp-more{font:inherit;font-size:.8rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
   </style>
 </head>
 <body data-tabbar="fixed">
@@ -60,6 +70,18 @@
       <p class="muted" id="bpMode" style="margin:0;font-size:.8rem;"></p>
     </section>
 
+    <section class="card stack" style="margin-top:1rem;" id="liste">
+      <div class="bp-ph-h"><h2 class="bp-h">📋 Arılık bakım listesi</h2><b id="bpCount" style="font-size:.9rem;"></b></div>
+      <div class="bp-prog"><i id="bpBar"></i></div>
+      <div class="bp-find">
+        <input type="search" id="bpSearch" placeholder="Kovan no / adı" aria-label="Kovan ara" enterkeyhint="go" />
+        <button type="button" class="bp-btn" id="bpQr">📷 QR okut</button>
+      </div>
+      <p class="bp-msg" id="bpFindMsg" style="color:#c92a2a;"></p>
+      <div class="bp-hives" id="bpList"></div>
+      <button type="button" class="bp-more" id="bpReset">↻ Listeyi yeniden oluştur</button>
+    </section>
+
     <section class="card stack" style="margin-top:1rem;">
       <h2 class="bp-h">🗺️ Yıllık yol haritası</h2>
       <p class="muted" style="margin:0;font-size:.78rem;">Tarihler bölgeye göre <b>tahmindir</b>; hava ve çiçeklenmeye göre kaydırın. «Görevlere ekle» her kovan için Bakım ve Bugün'de görünen görev açar (aynı görev ikinci kez eklenmez).</p>
@@ -78,9 +100,10 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="demo-data.js?v=koloni-17"></script>
-  <script src="ilac-katalog.js?v=koloni-17"></script>
-  <script src="bakim-plan.js?v=koloni-17"></script>
+  <script src="demo-data.js?v=koloni-18"></script>
+  <script src="ilac-katalog.js?v=koloni-18"></script>
+  <script src="bakim-plan.js?v=koloni-18"></script>
+  <script src="kovan-ara.js?v=koloni-18"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -134,7 +157,42 @@
       if (window.SuperAriPlan.hiveSummary) el.innerHTML = window.SuperAriPlan.hiveSummary(ap);
       else document.getElementById('bpHiveCard').style.display = 'none';
     }
-    function render() { renderTop(); renderTl(); renderHives(); }
+    var ICON = { gorev: '📌', ilac: '💊', sayim: '🔬', besleme: '🍯' };
+    function renderList(reset) {
+      var tr = P.tour(ap, reset);
+      document.getElementById('bpCount').textContent = tr.total ? tr.done + '/' + tr.total + ' tamam' : '';
+      document.getElementById('bpBar').style.width = tr.total ? Math.round(tr.done / tr.total * 100) + '%' : '0';
+      document.getElementById('bpList').innerHTML = tr.rows.map(function (r) {
+        return '<a class="bp-hv' + (r.done ? ' done' : '') + '" href="bakim-yap.html?id=' + encodeURIComponent(r.hive.id) + '&apiary=' + encodeURIComponent(ap) + '"><b>' + esc(r.hive.name) + '</b>' +
+          (r.done ? '<em class="g">✓ Tamam</em>' : '<em class="' + (r.u === 1 ? 'r' : r.u === 2 ? 'o' : '') + '">' + (r.u === 1 ? 'Acil' : r.u === 2 ? 'Bu hafta' : 'İzle') + '</em>') +
+          '<span class="bp-need">' + r.needs.map(function (n) { return '<span class="' + (n.u === 1 ? 'u1' : '') + '">' + ICON[n.kind] + ' ' + esc(n.text) + (n.amount ? ' — ' + esc(n.amount) : '') + '</span>'; }).join('') + '</span></a>';
+      }).join('') || '<p class="muted" style="margin:0;font-size:.85rem;">Şu an bakım gerektiren kovan yok. Yol haritasındaki evre görevlerini ekleyebilir veya kovan açıp sayım girebilirsiniz.</p>';
+    }
+    function openHive(h) {
+      if (!h) return;
+      location.href = 'bakim-yap.html?id=' + encodeURIComponent(h.id) + '&apiary=' + encodeURIComponent(h.apiaryId === ap ? ap : h.apiaryId);
+    }
+    function findHive(q) {
+      q = String(q || '').trim().toLocaleLowerCase('tr'); if (!q) return null;
+      var hs = D.hivesForApiary(ap), all = D.loadHives();
+      function m(list) {
+        return list.filter(function (h) { return String(h.id) === q; })[0] ||
+          list.filter(function (h) { var n = String(h.name).toLocaleLowerCase('tr'); return n === q || n === 'kovan ' + q || n.replace(/\D+/g, '') === q; })[0] ||
+          list.filter(function (h) { return String(h.name).toLocaleLowerCase('tr').indexOf(q) >= 0; })[0];
+      }
+      return m(hs) || m(all);
+    }
+    document.getElementById('bpSearch').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var h = findHive(e.target.value);
+      document.getElementById('bpFindMsg').textContent = h ? '' : 'Kovan bulunamadı.';
+      openHive(h);
+    });
+    document.getElementById('bpQr').addEventListener('click', function () {
+      if (window.SuperAriKovanAra) window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: openHive });
+    });
+    document.getElementById('bpReset').addEventListener('click', function () { renderList(true); });
+    function render() { renderTop(); renderList(); renderTl(); renderHives(); }
     apEl.addEventListener('change', function () {
       ap = apEl.value; try { localStorage.setItem('superari.lastApiary.v1', ap); } catch (e) { /* ignore */ }
       history.replaceState(null, '', 'bakim-plan.html?apiary=' + encodeURIComponent(ap)); render();
@@ -148,11 +206,11 @@
       var m = document.querySelector('[data-msg="' + k + '"]');
       if (m) m.textContent = r.created ? r.created + ' görev eklendi (' + r.hives + ' kovan)' + (r.skipped ? ' · ' + r.skipped + ' zaten vardı' : '') + '.' : (r.hives ? 'Bu evrenin görevleri zaten ekli.' : 'Bu arılıkta kovan yok.');
     });
-    window.addEventListener('superari-records-changed', renderHives);
+    window.addEventListener('superari-records-changed', function () { renderList(); renderHives(); });
     renderMed(); render();
   })();
   </script>
-  <script src="nav.js?v=koloni-17"></script>
-  <script src="pwa.js?v=koloni-17"></script>
+  <script src="nav.js?v=koloni-18"></script>
+  <script src="pwa.js?v=koloni-18"></script>
 </body>
 </html>

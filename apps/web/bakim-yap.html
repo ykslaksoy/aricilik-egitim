@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bakım yap · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .by-h{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;}
+    .by-h h2{margin:0;font-size:1.25rem;overflow-wrap:anywhere;}
+    .by-h small{display:block;color:var(--muted);font-size:.8rem;font-weight:700;}
+    .by-cnt{font-size:.85rem;font-weight:800;white-space:nowrap;}
+    .by-prog{height:8px;border-radius:99px;background:#f1f3f5;overflow:hidden;}
+    .by-prog i{display:block;height:100%;background:#40c057;width:0;}
+    .by-actions{display:grid;gap:.5rem;}
+    .by-next{font:inherit;font-size:1rem;font-weight:850;padding:.85rem 1rem;border-radius:14px;border:2px solid #69db7c;background:linear-gradient(180deg,#ebfbee,#d3f9d8);color:#1b5e20;cursor:pointer;width:100%;}
+    .by-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.5rem;}
+    .by-btn{font:inherit;font-size:.85rem;font-weight:800;padding:.6rem .7rem;border-radius:12px;border:1.5px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#fff3bf);color:#5c4813;cursor:pointer;text-align:center;}
+    .by-note{font-size:.8rem;margin:0;color:#8a4b00;background:#fff4e6;border:1px solid #ffd8a8;border-radius:10px;padding:.45rem .55rem;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" id="byBack" href="bakim-plan.html#liste">← Bakım listesi</a>
+      <a class="chip" id="byKovan" href="kovan.html">Kovan detayı</a>
+    </div>
+    <section class="card stack">
+      <div class="by-h">
+        <div><h2 id="byName">Bakım yap</h2><small id="byAp"></small></div>
+        <span class="by-cnt" id="byCnt"></span>
+      </div>
+      <div class="by-prog"><i id="byBar"></i></div>
+      <p class="by-note" id="byNotInList" style="display:none;">Bu kovan bugünkü bakım listesinde yok; önerileri yine de aşağıda.</p>
+    </section>
+    <section class="card stack" style="margin-top:1rem;">
+      <div id="byCard"></div>
+    </section>
+    <section class="card stack by-actions" style="margin-top:1rem;">
+      <button type="button" class="by-next" id="byNext">✓ Bu kovan tamam · Sıradaki kovan →</button>
+      <div class="by-row">
+        <button type="button" class="by-btn" id="byQr">📷 QR okut</button>
+        <a class="by-btn" id="byList" href="bakim-plan.html#liste">📋 Listeye dön</a>
+      </div>
+    </section>
+  </main>
+  <script src="demo-data.js?v=koloni-18"></script>
+  <script src="ilac-katalog.js?v=koloni-18"></script>
+  <script src="bakim-plan.js?v=koloni-18"></script>
+  <script src="kovan-ara.js?v=koloni-18"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, P = window.SuperAriPlan;
+    if (!D || !P) return;
+    var q = new URLSearchParams(location.search);
+    var h = D.hiveById(q.get('id'));
+    if (!h) { document.getElementById('byName').textContent = 'Kovan bulunamadı'; document.getElementById('byNext').style.display = 'none'; return; }
+    var ap = q.get('apiary') || String(h.apiaryId);
+    var a = D.apiaryById(h.apiaryId);
+    var listHref = 'bakim-plan.html?apiary=' + encodeURIComponent(ap) + '#liste';
+    document.getElementById('byBack').href = listHref; document.getElementById('byList').href = listHref;
+    document.getElementById('byKovan').href = 'kovan.html?id=' + encodeURIComponent(h.id);
+    document.title = h.name + ' · Bakım yap · SüperArı';
+    document.getElementById('byName').textContent = h.name;
+    document.getElementById('byAp').textContent = (a ? a.name : '') + (P.mode() === 'demo' ? ' · Demo' : '');
+    function head() {
+      var tr = P.tour(ap);
+      document.getElementById('byCnt').textContent = tr.total ? tr.done + '/' + tr.total + ' tamam' : '';
+      document.getElementById('byBar').style.width = tr.total ? Math.round(tr.done / tr.total * 100) + '%' : '0';
+      var inList = tr.rows.some(function (r) { return String(r.hive.id) === String(h.id); });
+      document.getElementById('byNotInList').style.display = inList ? 'none' : '';
+      var nx = P.tourNext(ap, h.id);
+      document.getElementById('byNext').textContent = nx ? '✓ Bu kovan tamam · Sıradaki: ' + nx.name + ' →' : '✓ Bu kovan tamam · Listeye dön';
+    }
+    P.renderHiveCard(document.getElementById('byCard'), h.id, { onChange: head });
+    head();
+    function go(x) { location.href = 'bakim-yap.html?id=' + encodeURIComponent(x.id) + '&apiary=' + encodeURIComponent(String(x.apiaryId) === ap ? ap : x.apiaryId); }
+    document.getElementById('byNext').addEventListener('click', function () {
+      if (String(h.apiaryId) === ap) P.tourMarkDone(ap, h.id);
+      var nx = P.tourNext(ap, h.id);
+      if (nx) go(nx); else location.href = listHref;
+    });
+    document.getElementById('byQr').addEventListener('click', function () {
+      if (window.SuperAriKovanAra) window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: go });
+    });
+  })();
+  </script>
+  <script src="nav.js?v=koloni-18"></script>
+  <script src="pwa.js?v=koloni-18"></script>
+</body>
+</html>

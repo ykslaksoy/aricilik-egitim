@@ -78,6 +78,7 @@ const SHELL = [
   "/hesap.html",
   "/bakim-plan.html",
   "/bakim-plan.js",
+  "/bakim-yap.html",
   "/ilac-katalog.js",
   "/bulut.js",
   "/vendor/supabase.js",
