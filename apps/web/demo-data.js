@@ -2146,6 +2146,8 @@
       o.broodFrames = intIn(r.broodFrames, 0, 30) || 0;
       o.honeyFrames = intIn(r.honeyFrames, 0, 30) || 0;
       o.pollenFrames = intIn(r.pollenFrames, 0, 20) || 0;
+      if (r.inspection === true) o.inspection = true; /* Kolay muayene ile girildi */
+      var sp = pick(r.space, ['bol', 'dolmak', 'dolu', 'kat', ''], ''); if (sp) o.space = sp; /* muayenede gözlenen yer durumu */
       return o;
     }
     if (kind === 'brood') {
@@ -2788,6 +2790,9 @@
       if (used >= 0.9 || (used >= 0.8 && noEmpty)) { s += 25; space = true; severe = true; R('yer', 'Yer darlığı: ' + bees + '/' + capF + ' çerçeve arılı' + (noEmpty ? ', boş çerçeve yok' : ''), 'up'); }
       else if (used >= 0.8 || noEmpty) { s += 12; space = true; R('yer', noEmpty ? 'Boş çerçeve kalmamış' : 'Kovan dolmak üzere (' + bees + '/' + capF + ' çerçeve arılı)', 'up'); }
     } else if (strength === 'güçlü' && !hasSuper) { s += 8; space = true; R('yer', 'Yer darlığı olabilir (bal katı verilmemiş)', 'up'); }
+    /* Muayenede gözlenen yer durumu (Kolay muayene): sayıdan bağımsız doğrudan gözlem. */
+    if (sr && sr.space === 'dolu' && !severe) { s += space ? 13 : 25; space = true; severe = true; R('yer', 'Muayenede kovan dolu / sıkışık gözlendi', 'up'); }
+    else if (sr && sr.space === 'dolmak' && !space) { s += 12; space = true; R('yer', 'Muayenede kovan dolmak üzere gözlendi', 'up'); }
     if (hasSuper && !severe) { s -= 8; R('kat', 'Bal katı verilmiş (yer açıldı)', 'down'); }
     var age = queenAge(h);
     if (age == null) R('ana', 'Ana arı yaşı bilinmiyor', 'info');

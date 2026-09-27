@@ -63,8 +63,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-28'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-28'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-29'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-29'); });
     chain.then(go, go);
   }
   function init() {
@@ -90,7 +90,7 @@
       });
     });
     if (global.SuperAriDemo) updateBadge();
-    else loadScript('demo-data.js?v=koloni-28').then(updateBadge, updateBadge);
+    else loadScript('demo-data.js?v=koloni-29').then(updateBadge, updateBadge);
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
   function updateBadge() {

@@ -43,6 +43,18 @@
     });
     return hzP;
   }
+  /* Kolay muayene (kolay-muayene.js) gerektiğinde yüklenir. */
+  var kmP = null;
+  function openKolayMuayene(hiveId, opts) {
+    if (!kmP) kmP = global.SuperAriKolayMuayene ? Promise.resolve(global.SuperAriKolayMuayene) : new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = FOTO_SRC.replace('foto.js', 'kolay-muayene.js');
+      s.onload = function () { global.SuperAriKolayMuayene ? res(global.SuperAriKolayMuayene) : rej(new Error('km')); };
+      s.onerror = function () { kmP = null; rej(new Error('km')); };
+      document.head.appendChild(s);
+    });
+    return kmP.then(function (K) { K.open(hiveId, opts || {}); return K; }, function () { toast('Kolay muayene yüklenemedi'); });
+  }
   var thumbTimer = null;
   function scheduleThumbs() {
     if (thumbTimer) return;
@@ -1629,6 +1641,7 @@
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="qkTitle">' +
       '<h3 id="qkTitle">＋ Hızlı kayıt</h3>' +
       '<p class="kol-sub">Tam muayene gerekmez. Her kovana ayrı kayıt yazılır ve Bakım geçmişinde görünür.</p>' +
+      '<button type="button" class="btn" data-qk-km style="width:100%;margin:.2rem 0 .5rem;">🐝 Muayene — Kolay muayene (adım adım)</button>' +
       '<div class="kr-section-title">Tür</div>' +
       '<div class="qk-types">' + QUICK_TYPES.map(function (t) { return '<button type="button" data-qtype="' + t.key + '">' + esc(t.label) + '</button>'; }).join('') + '</div>' +
       '<form class="kol-form" id="qkScopeForm" autocomplete="off">' +
@@ -1748,6 +1761,14 @@
     back.addEventListener('click', function (e) {
       var t = e.target;
       if (t === back) { close(); return; }
+      if (t.closest && t.closest('[data-qk-km]')) {
+        var one = sf.querySelector('select[name=one]'), hsx = hivesOf();
+        var kid = scope === 'one' && one ? one.value : (currentTargets()[0] || (hsx[0] && hsx[0].id));
+        if (!kid) { toast('Önce kovan seçin'); return; }
+        close();
+        openKolayMuayene(kid, { onSaved: opts.onSaved });
+        return;
+      }
       var q = t.closest && t.closest('[data-qtype]');
       if (q) { type = q.getAttribute('data-qtype'); renderForm(); return; }
       var sc = t.closest && t.closest('[data-scope]');
@@ -1995,6 +2016,8 @@
     openWinterSheet: openWinterSheet,
     timelineHtml: timelineHtml,
     openQuickRecord: openQuickRecord,
+    openKolayMuayene: openKolayMuayene,
+    addMicButtons: addMicButtons,
     maintenance: maintenance,
     attentionHives: attentionHives,
     lastApiary: lastApiary,

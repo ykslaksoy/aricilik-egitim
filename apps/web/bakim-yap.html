@@ -44,10 +44,10 @@
       </div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-28"></script>
-  <script src="ilac-katalog.js?v=koloni-28"></script>
-  <script src="bakim-plan.js?v=koloni-28"></script>
-  <script src="kovan-ara.js?v=koloni-28"></script>
+  <script src="demo-data.js?v=koloni-29"></script>
+  <script src="ilac-katalog.js?v=koloni-29"></script>
+  <script src="bakim-plan.js?v=koloni-29"></script>
+  <script src="kovan-ara.js?v=koloni-29"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan;
@@ -73,20 +73,22 @@
       var nx = P.tourNext(ap, h.id);
       document.getElementById('byNext').textContent = nx ? '✓ Bu kovan tamam · Sıradaki: ' + nx.name + ' →' : '✓ Bu kovan tamam · Listeye dön';
     }
-    P.renderHiveCard(document.getElementById('byCard'), h.id, { onChange: head });
+    P.renderHiveCard(document.getElementById('byCard'), h.id, { onChange: head, apiary: ap });
     head();
-    function go(x) { location.href = 'bakim-yap.html?id=' + encodeURIComponent(x.id) + '&apiary=' + encodeURIComponent(String(x.apiaryId) === ap ? ap : x.apiaryId); }
+    /* QR / «Kaydet + Sıradaki kovan» ile gelindiyse Kolay muayene doğrudan açılır. */
+    if (q.get('km') === '1' && P.openKolayMuayene) setTimeout(function () { P.openKolayMuayene(h.id, { apiary: ap, onChange: head, rerender: function () { P.renderHiveCard(document.getElementById('byCard'), h.id, { onChange: head, apiary: ap }); } }); }, 200);
+    function go(x, km) { location.href = 'bakim-yap.html?id=' + encodeURIComponent(x.id) + '&apiary=' + encodeURIComponent(String(x.apiaryId) === ap ? ap : x.apiaryId) + (km ? '&km=1' : ''); }
     document.getElementById('byNext').addEventListener('click', function () {
       if (String(h.apiaryId) === ap) P.tourMarkDone(ap, h.id);
       var nx = P.tourNext(ap, h.id);
       if (nx) go(nx); else location.href = listHref;
     });
     document.getElementById('byQr').addEventListener('click', function () {
-      if (window.SuperAriKovanAra) window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: go });
+      if (window.SuperAriKovanAra) window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: function (x) { go(x, true); } });
     });
   })();
   </script>
-  <script src="nav.js?v=koloni-28"></script>
-  <script src="pwa.js?v=koloni-28"></script>
+  <script src="nav.js?v=koloni-29"></script>
+  <script src="pwa.js?v=koloni-29"></script>
 </body>
 </html>

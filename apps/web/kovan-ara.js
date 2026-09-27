@@ -242,6 +242,21 @@
       });
     });
   }
+  /** QR sonucu: kovanı aç veya doğrudan Kolay muayene başlat. */
+  function showFound(h) {
+    ensureCss();
+    var b = document.createElement('div');
+    b.className = 'ka-qr-back';
+    var id = encodeURIComponent(h.id);
+    b.innerHTML = '<div class="ka-qr-card" role="dialog" aria-modal="true"><h3>✓ ' + esc(h.name) + ' bulundu</h3>' +
+      '<div style="display:grid;gap:.5rem;margin-top:.4rem;">' +
+      '<a class="ka-btn" href="kovan.html?id=' + id + '&km=1" style="text-align:center;text-decoration:none;font-size:1rem;padding:.8rem;">🐝 Kolay muayene başlat</a>' +
+      '<a class="ka-btn" href="bakim-yap.html?id=' + id + '" style="text-align:center;text-decoration:none;">🧰 Bakım yap</a>' +
+      '<a class="ka-btn" href="kovan.html?id=' + id + '" style="text-align:center;text-decoration:none;">Kovanı aç</a>' +
+      '<button type="button" class="ka-btn" data-close>Kapat</button></div></div>';
+    b.addEventListener('click', function (e) { if (e.target === b || (e.target.closest && e.target.closest('[data-close]'))) b.remove(); });
+    document.body.appendChild(b);
+  }
   function openScanner(hives, opts) {
     opts = opts || {};
     ensureCss();
@@ -259,7 +274,7 @@
     function handle(raw) {
       if (raw == null) return false;
       var h = parseHiveFromText(raw, hives);
-      if (h) { close(); if (typeof opts.onHive === 'function') opts.onHive(h); else location.href = 'kovan.html?id=' + encodeURIComponent(h.id); return true; }
+      if (h) { close(); if (typeof opts.onHive === 'function') opts.onHive(h); else showFound(h); return true; }
       msg('Bu QR bir SüperArı kovanına ait değil: ' + String(raw).slice(0, 80));
       return false;
     }
@@ -334,5 +349,5 @@
     });
   }
 
-  global.SuperAriKovanAra = { create: create, openScanner: openScanner, parseHiveFromText: parseHiveFromText, facts: facts };
+  global.SuperAriKovanAra = { create: create, openScanner: openScanner, showFound: showFound, parseHiveFromText: parseHiveFromText, facts: facts };
 })(window);
