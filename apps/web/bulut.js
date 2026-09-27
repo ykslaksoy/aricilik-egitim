@@ -106,6 +106,58 @@
     return client().then(function (c) { return c.auth.getSession(); }).then(function (r) { return (r && r.data && r.data.session) || null; }).catch(function () { return null; });
   }
   function redirectUrl() { return global.location.origin + '/hesap.html'; }
+  /* E-posta bağlantısından dönüş: #access_token (implicit), ?code= (PKCE), ?token_hash=&type= (özel şablon), #error_description.
+     Adres, istemci (detectSessionInUrl) onu temizlemeden önce yükleme anında yakalanır. */
+  var BOOT = { search: String(global.location.search || ''), hash: String(global.location.hash || '') };
+  function parseAuthParams(search, hash) {
+    var q = new URLSearchParams(String(search || '').replace(/^\?/, '')), h = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+    return {
+      error: h.get('error_description') || q.get('error_description') || h.get('error') || q.get('error'),
+      errorCode: h.get('error_code') || q.get('error_code'),
+      code: q.get('code'), tokenHash: q.get('token_hash') || q.get('token'), type: q.get('type') || h.get('type'),
+      access: h.get('access_token'), refresh: h.get('refresh_token')
+    };
+  }
+  function cleanUrl() {
+    try { global.history.replaceState(null, '', global.location.pathname); } catch (e) { /* ignore */ }
+  }
+  function otpType(t) { return ({ magiclink: 'magiclink', signup: 'signup', invite: 'invite', recovery: 'recovery', email_change: 'email_change' })[t] || 'email'; }
+  function completeAuth(pr) {
+    return client().then(function (c) {
+      if (pr.error) return { error: { message: pr.errorCode === 'otp_expired' ? 'Bağlantının süresi dolmuş ya da daha önce kullanılmış. Yeni bağlantı isteyin.' : pr.error } };
+      if (pr.access && pr.refresh) {
+        return c.auth.getSession().then(function (r) {
+          if (r && r.data && r.data.session) return r;
+          return c.auth.setSession({ access_token: pr.access, refresh_token: pr.refresh });
+        });
+      }
+      if (pr.tokenHash) return c.auth.verifyOtp({ token_hash: pr.tokenHash, type: otpType(pr.type) });
+      if (pr.code) {
+        return c.auth.exchangeCodeForSession(pr.code).then(function (r) {
+          if (r && r.error) return { error: { message: 'Bağlantı başka bir tarayıcıda/uygulamada istenmiş. Bağlantıyı giriş istediğiniz tarayıcıda açın ya da e-postadaki bağlantıyı kopyalayıp «Bağlantıyla giriş yap» alanına yapıştırın.' } };
+          return r;
+        });
+      }
+      return { data: null };
+    }).then(function (r) { if (r && r.error) throw r.error; return true; });
+  }
+  /** Sayfa açılışında: adres bir giriş dönüşüyse oturumu tamamlar. { none } | { ok } | hata fırlatır. */
+  function handleRedirect() {
+    var pr = parseAuthParams(BOOT.search, BOOT.hash);
+    BOOT = { search: '', hash: '' };
+    if (!pr.error && !pr.code && !pr.tokenHash && !pr.access) return Promise.resolve({ none: true });
+    return completeAuth(pr).then(function () { cleanUrl(); return { ok: true }; }, function (e) { cleanUrl(); throw e; });
+  }
+  /** Yüklü uygulama (PWA) için: e-postadaki bağlantı kopyalanıp yapıştırılır, uygulama içinde oturum açılır. */
+  function signInWithLink(text) {
+    var m = /https?:\/\/\S+/.exec(String(text || ''));
+    if (!m) return Promise.reject(new Error('Geçerli bir bağlantı yapıştırın'));
+    var u; try { u = new URL(m[0].replace(/[)>\].,]+$/, '')); } catch (e) { return Promise.reject(new Error('Geçerli bir bağlantı yapıştırın')); }
+    var pr = parseAuthParams(u.search, u.hash);
+    if (!pr.error && !pr.code && !pr.tokenHash && !pr.access) return Promise.reject(new Error('Bu bağlantıda giriş bilgisi yok'));
+    if (pr.tokenHash && /^pkce_/.test(pr.tokenHash)) return Promise.reject(new Error('Bu bağlantı yalnız istendiği tarayıcıda açılabilir'));
+    return completeAuth(pr);
+  }
   function signInEmail(email) {
     return client().then(function (c) {
       return c.auth.signInWithOtp({ email: String(email || '').trim().toLowerCase(), options: { emailRedirectTo: redirectUrl(), shouldCreateUser: true } });
@@ -751,6 +803,8 @@
     verifyCode: verifyCode,
     signInGoogle: signInGoogle,
     signOut: signOut,
+    handleRedirect: handleRedirect,
+    signInWithLink: signInWithLink,
     status: status,
     sync: sync,
     linkApiaries: linkApiaries,

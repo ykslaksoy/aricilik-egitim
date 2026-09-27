@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="panels.css" />
   <style>
     .hb-form{display:grid;gap:.5rem;}
+    .hb-after{display:grid;gap:.6rem;}
+    .hb-code summary{cursor:pointer;font-size:.8rem;font-weight:700;color:#5c4813;padding:.2rem 0;}
+    .hb-code form{margin-top:.4rem;}
     .hb-form label{display:grid;gap:.2rem;font-size:.78rem;font-weight:700;color:#5c4813;min-width:0;}
     .hb-form input{font:inherit;font-size:.95rem;padding:.6rem .65rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
     .hb-row{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;}
@@ -46,15 +49,24 @@
 
     <section class="card stack" id="loginCard" style="margin-top:1rem;" hidden>
       <h2 style="margin:0;font-size:1.05rem;">Giriş yap</h2>
-      <p class="muted" style="margin:0;font-size:.84rem;">Şifre yok: e-postanıza gelen bağlantıya dokunun ya da e-postadaki kodu yazın.</p>
+      <p class="muted" style="margin:0;font-size:.84rem;">Şifre yok. E-postanı yaz, <b>e-postana gelen bağlantıya dokun</b> (gelmezse spam / gereksiz klasörüne de bak).</p>
       <form class="hb-form" id="emailForm" autocomplete="on">
         <label>E-posta<input type="email" name="email" autocomplete="email" inputmode="email" required placeholder="ornek@mail.com"></label>
         <button class="btn" type="submit" id="btnSend">✉️ Giriş bağlantısı gönder</button>
       </form>
-      <form class="hb-form" id="codeForm" autocomplete="off" hidden>
-        <label>E-postadaki kod<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="ör. 123456"></label>
-        <button class="btn secondary" type="submit">Kodu doğrula</button>
-      </form>
+      <div class="hb-after" id="afterSend" hidden>
+        <p class="hb-msg" style="font-size:.8rem;color:#5c4813;">Bağlantı telefonda başka bir tarayıcıda açılırsa (Gmail içi tarayıcı, ana ekrandaki uygulama yerine Safari/Chrome) giriş orada kalır. O zaman: e-postadaki bağlantıya <b>uzun basıp kopyala</b>, aşağıya yapıştır.</p>
+        <form class="hb-form" id="linkForm" autocomplete="off">
+          <label>E-postadaki bağlantı<input name="link" inputmode="url" autocomplete="off" placeholder="https://…supabase.co/auth/v1/verify?…"></label>
+          <button class="btn secondary" type="submit">🔗 Bağlantıyla giriş yap</button>
+        </form>
+        <details class="hb-code"><summary>E-postada 6 haneli kod varsa (isteğe bağlı)</summary>
+          <form class="hb-form" id="codeForm" autocomplete="off">
+            <label>E-postadaki kod<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="ör. 123456"></label>
+            <button class="btn secondary" type="submit">Kodu doğrula</button>
+          </form>
+        </details>
+      </div>
       <button class="btn secondary hb-google" type="button" id="btnGoogle"><span aria-hidden="true">G</span> Google ile giriş</button>
       <p class="hb-msg" id="loginMsg" aria-live="polite"></p>
     </section>
@@ -97,8 +109,8 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-29"></script>
-  <script src="bulut.js?v=koloni-29"></script>
+  <script src="demo-data.js?v=koloni-30"></script>
+  <script src="bulut.js?v=koloni-30"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -114,7 +126,8 @@
       var m = String((e && (e.message || e.error_description)) || e || '');
       if (/rate limit|too many/i.test(m)) return 'Çok sık denendi. Biraz bekleyip tekrar deneyin.';
       if (/provider is not enabled|unsupported provider/i.test(m)) return 'Google ile giriş henüz etkin değil (Supabase ayarı gerekli).';
-      if (/expired|invalid/i.test(m)) return 'Kod geçersiz veya süresi dolmuş.';
+      if (/Bağlantı|bağlantı|Önce|Geçerli/.test(m)) return m;
+      if (/expired|invalid|otp/i.test(m)) return 'Kod/bağlantı geçersiz veya süresi dolmuş. Yeni bağlantı isteyin.';
       if (/bulut-kapali/.test(m)) return 'Bulut henüz bağlı değil.';
       if (/Failed to fetch|NetworkError|network/i.test(m)) return 'İnternet bağlantısı yok.';
       return m || 'Bir hata oluştu.';
@@ -193,10 +206,24 @@
       $('btnSend').disabled = true;
       msg($('loginMsg'), 'Gönderiliyor…');
       B.signInEmail(em).then(function () {
-        msg($('loginMsg'), 'Bağlantı gönderildi: ' + em + '. E-postadaki bağlantıya bu cihazda dokunun ya da e-postada kod varsa aşağıya yazın.', 'ok');
-        $('codeForm').hidden = false;
-      }).catch(function (err) { msg($('loginMsg'), errText(err), 'err'); })
-        .then(function () { $('btnSend').disabled = false; });
+        msg($('loginMsg'), 'Bağlantı gönderildi: ' + em + '. E-postana gelen bağlantıya dokun (spam klasörüne de bak). Birkaç dakika sürebilir; saatte birkaç e-posta gönderilebilir, tekrar tekrar isteme.', 'ok');
+        $('afterSend').hidden = false;
+        cooldown(60);
+      }).catch(function (err) { msg($('loginMsg'), errText(err), 'err'); $('btnSend').disabled = false; });
+    });
+    function cooldown(sec) {
+      var b = $('btnSend'), t = sec; b.disabled = true;
+      (function tick() {
+        if (t <= 0) { b.disabled = false; b.textContent = '✉️ Yeni bağlantı gönder'; return; }
+        b.textContent = 'Yeniden gönder (' + t + ' sn)'; t--; setTimeout(tick, 1000);
+      })();
+    }
+    $('linkForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      msg($('loginMsg'), 'Giriş yapılıyor…');
+      B.signInWithLink(e.target.elements.link.value).then(function () {
+        msg($('loginMsg'), 'Giriş yapıldı.', 'ok'); afterLogin();
+      }).catch(function (err) { msg($('loginMsg'), errText(err), 'err'); });
     });
     $('codeForm').addEventListener('submit', function (e) {
       e.preventDefault();
@@ -262,12 +289,17 @@
       if (!cfg.enabled) return render();
       return B.client().then(function (c) {
         c.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') render(); });
-        return B.session();
+        return B.handleRedirect().then(function (r) {
+          if (r && r.ok) msg($('loginMsg'), 'Giriş yapıldı.', 'ok');
+        }, function (err) {
+          msg($('loginMsg'), 'Giriş tamamlanamadı: ' + errText(err), 'err');
+          $('afterSend').hidden = false;
+        }).then(function () { return B.session(); });
       }).then(function (ses) { if (ses) afterLogin(); else render(); });
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-29"></script>
-<script src="pwa.js?v=koloni-29"></script>
+  <script src="nav.js?v=koloni-30"></script>
+<script src="pwa.js?v=koloni-30"></script>
 </body>
 </html>
