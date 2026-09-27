@@ -43,6 +43,20 @@
     });
     return hzP;
   }
+  /* Genel tembel yükleyici (ilac-katalog.js, bakim-plan.js …). */
+  var modP = {};
+  function needMod(file, name) {
+    if (global[name]) return Promise.resolve(global[name]);
+    if (modP[file]) return modP[file];
+    modP[file] = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = FOTO_SRC.replace('foto.js', file);
+      s.onload = function () { global[name] ? res(global[name]) : rej(new Error(name)); };
+      s.onerror = function () { modP[file] = null; rej(new Error(name)); };
+      document.head.appendChild(s);
+    });
+    return modP[file];
+  }
   /* Kolay muayene (kolay-muayene.js) gerektiğinde yüklenir. */
   var kmP = null;
   var ovP = null;
@@ -1653,7 +1667,7 @@
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="qkTitle">' +
       '<h3 id="qkTitle">＋ Hızlı kayıt</h3>' +
       '<p class="kol-sub">Tam muayene gerekmez. Her kovana ayrı kayıt yazılır ve Bakım geçmişinde görünür.</p>' +
-      '<div style="display:flex;gap:.4rem;margin:.2rem 0 .5rem;"><button type="button" class="btn" data-qk-km style="flex:1;min-width:0;">🐝 Kolay muayene</button><button type="button" class="btn secondary" data-qk-km data-voice="1" style="flex:none;">🎙 Sesle başlat</button></div>' +
+      '<div style="display:flex;gap:.4rem;margin:.2rem 0 .5rem;"><button type="button" class="btn" data-qk-km style="flex:1 1 0;width:auto;min-width:0;">🐝 Kolay muayene</button><button type="button" class="btn secondary" data-qk-km data-voice="1" style="flex:0 0 auto;width:auto;">🎙 Sesle başlat</button></div>' +
       '<button type="button" class="btn secondary" data-qk-ov style="width:100%;margin:0 0 .5rem;">🐝 Oğul verdi (kaydet)</button>' +
       '<div class="kr-section-title">Tür</div>' +
       '<div class="qk-types">' + QUICK_TYPES.map(function (t) { return '<button type="button" data-qtype="' + t.key + '">' + esc(t.label) + '</button>'; }).join('') + '</div>' +
@@ -1699,6 +1713,7 @@
       var n = back.querySelectorAll('#qkTargets input[data-hid]:checked').length;
       var el = back.querySelector('#qkSelCount'); if (el) el.textContent = n + ' kovan seçili';
       back.querySelector('#krSave').textContent = scope === 'sel' ? 'Seçili ' + n + ' kovana kaydet' : (scope === 'all' ? 'Tüm arılığa kaydet (' + hivesOf().length + ')' : 'Kaydet');
+      if (typeof autoCalc === 'function' && f.querySelector('#qkAuto')) autoCalc();
       if (typeof calcStock === 'function') calcStock();
     }
     /* ---- Stoktan düşme (İlaçlama / Besleme, isteğe bağlı) ---- */
@@ -1747,15 +1762,102 @@
       if (type === 'besleme' && f.elements.amount) { per = Number(String(f.elements.amount.value).replace(',', '.')); perUnit = r.FEED_UNIT[f.elements['type'].value]; }
       if (type === 'ilac' && f.elements.dose) { per = Number(String(f.elements.dose.value).replace(',', '.')); perUnit = r.DOSE_UNIT_LABEL[f.elements.doseUnit.value]; }
       var same = perUnit && perUnit === it.unit;
-      if (!stockTouched) sf2.elements.sqty.value = (same && per > 0 && n) ? String(Math.round(per * n * 10) / 10) : '';
+      var tot = autoTotal(per);
+      if (!stockTouched) sf2.elements.sqty.value = (same && tot > 0 && n) ? String(Math.round(tot * 10) / 10) : '';
       hint.textContent = same && per > 0
-        ? num(per) + ' ' + perUnit + ' × ' + n + ' kovan = ' + num(per * n) + ' ' + it.unit + ' · stokta ' + num(it.qty) + ' ' + it.unit
+        ? (tot !== per * n ? n + ' kovanın kendi miktarları toplamı = ' + num(tot) : num(per) + ' ' + perUnit + ' × ' + n + ' kovan = ' + num(per * n)) + ' ' + it.unit + ' · stokta ' + num(it.qty) + ' ' + it.unit
         : (per > 0 && perUnit ? 'Birim farklı (' + perUnit + ' / ' + it.unit + '): düşülecek toplamı elle girin.' : 'Miktar / doz girilince toplam hesaplanır; elle de yazabilirsiniz.') + ' Stokta ' + num(it.qty) + ' ' + it.unit + '.';
     }
     sf2.addEventListener('change', function (e) { if (e.target.name === 'sitem') { stockTouched = false; calcStock(); } });
     sf2.addEventListener('input', function (e) { if (e.target.name === 'sqty') stockTouched = true; });
-    f.addEventListener('input', function () { calcStock(); });
+    f.addEventListener('input', function (e) {
+      if (e.target.name === 'dose' || e.target.name === 'amount') { auto.touched = true; autoCalc(true); }
+      calcStock();
+    });
+    /* ---- Otomatik miktar: ilaç = ruhsatlı etiket dozu (arılı çerçeveye göre), besleme = bakım planı önerisi ---- */
+    var auto = { touched: false, typeTouched: false, map: {} };
+    var SEASON_TR = { ilkbahar: 'ilkbahar', yaz: 'yaz', sonbahar: 'sonbahar', kis: 'kış', akim: 'bal akımı' };
+    function hiveName(id) { var h = d.hiveById(id); return h ? h.name : String(id); }
+    function lastBee(id) { var s = r.recordsFor(id).strength[0]; return s && s.beeFrames != null && s.beeFrames !== '' ? Number(s.beeFrames) : null; }
+    function autoTotal(per) {
+      var ids = currentTargets(), t = 0;
+      ids.forEach(function (id) {
+        var m = auto.map[id];
+        if (!auto.touched && m) t += m.v;
+        else if (!(type === 'ilac' && !auto.touched && f.elements.product && f.elements.product.value)) t += per > 0 ? per : 0;
+      });
+      return t;
+    }
+    function setVal(name, v) { if (f.elements[name] && v != null) f.elements[name].value = String(v); }
+    function autoCalc(keepVals) {
+      auto.map = {};
+      var box = f.querySelector('#qkAuto'); if (!box) return;
+      var ids = currentTargets(), lines = [], missing = [];
+      if (type === 'ilac') {
+        var I = global.SuperAriIlac, pid = f.elements.product ? f.elements.product.value : '';
+        if (!I) { box.textContent = 'Ruhsatlı ürün listesi yükleniyor…'; return; }
+        if (!pid) { box.innerHTML = 'Ruhsatlı ürün seçerseniz kovan başı doz, son muayenedeki arılı çerçeve sayısına göre etiketten otomatik yazılır.'; return; }
+        var p = I.byId(pid);
+        var res0 = null;
+        ids.forEach(function (id) {
+          var bf = lastBee(id), res = I.doseFor(pid, bf);
+          if (res.ok) { auto.map[id] = { v: res.qty, unit: res.unit }; lines.push(hiveName(id) + ': ' + res.text + ' ' + (r.DOSE_UNIT_LABEL[res.unit] || res.unit) + (bf ? ' (' + bf + ' arılı çerçeve)' : '')); if (!res0) res0 = res; }
+          else missing.push({ id: id, why: res.reason });
+        });
+        if (!keepVals && !auto.touched) {
+          if (p && p.dose) setVal('doseUnit', p.dose.unit);
+          f.elements.dose.value = res0 ? String(res0.qty) : '';
+        }
+        var html = '<b>Etiket dozu</b> · ' + esc(p ? p.name : '') + '<br>';
+        if (!p || !p.dose) html += '<span style="color:#9b2c2c;">Doz doğrulanmadı — ' + esc((p && p.reason) || 'etikette doz bilgisi yok') + ' Dozu prospektüse göre elle girin.</span>';
+        else {
+          if (lines.length) html += esc(lines.slice(0, 6).join(' · ')) + (lines.length > 6 ? ' · +' + (lines.length - 6) + ' kovan' : '') + '<br>';
+          if (missing.length) html += '<span style="color:#9b2c2c;">' + esc(missing.length === 1 && ids.length === 1 ? missing[0].why : missing.length + ' kovanda doz yazılamadı (' + namesShort(missing.map(function (x) { return hiveName(x.id); }), 3) + '): ' + missing[0].why) + ' Bu kovanlara doz yazılmaz; dozu elle girerseniz tüm kovanlara o yazılır.</span><br>';
+          if (p.dose.note) html += '<small>' + esc(p.dose.note) + '</small><br>';
+          html += auto.touched ? '<small>Dozu elle değiştirdiniz: seçili tüm kovanlara ' + esc(f.elements.dose.value || '—') + ' yazılır. <button type="button" data-auto-reset style="font:inherit;color:#2b6cb0;background:none;border:0;padding:0;text-decoration:underline;">Etiket dozuna dön</button></small>'
+            : (ids.length > 1 && lines.length ? '<small>Her kovana kendi etiket dozu yazılır. Dozu değiştirebilirsiniz.</small>' : '<small>Dozu değiştirebilirsiniz.</small>');
+        }
+        box.innerHTML = html + '<small style="display:block;color:#5c4813;">' + esc(I.WARNING) + '</small>';
+        return;
+      }
+      if (type === 'besleme') {
+        var P = global.SuperAriPlan;
+        if (!P) { box.textContent = 'Bakım planı önerisi yükleniyor…'; return; }
+        var first = null, reasons = [], sk = '';
+        ids.forEach(function (id) {
+          var h = d.hiveById(id); if (!h) return;
+          var fp; try { fp = P.feedPlan(h); } catch (e) { fp = null; }
+          if (!fp) return;
+          sk = sk || fp.season;
+          if (fp.need) {
+            var v = fp.type === 'kek' ? fp.perFeedKg : fp.perFeedL;
+            if (!first) first = fp;
+            auto.map[id] = { v: v, type: fp.type };
+            lines.push(hiveName(id) + ': ' + (r.FEED_LABEL[fp.type] || fp.type) + ' ' + num(v) + ' ' + r.FEED_UNIT[fp.type] + (fp.feedings > 1 ? ' (' + fp.feedings + ' beslemenin ilki)' : ''));
+          } else { missing.push(id); reasons.push(fp.reason || 'Besleme gerekmiyor.'); }
+        });
+        var selType = f.elements['type'].value;
+        if (!keepVals && !auto.touched && !auto.typeTouched && first && first.type !== selType) {
+          f.elements['type'].value = first.type; selType = first.type;
+          f.elements['type'].dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        Object.keys(auto.map).forEach(function (id) { if (auto.map[id].type !== selType) delete auto.map[id]; });
+        var fid = ids.filter(function (id) { return auto.map[id]; })[0];
+        if (!keepVals && !auto.touched) f.elements.amount.value = fid ? String(auto.map[fid].v) : '';
+        var bh = '<b>Bakım planı önerisi</b>' + (sk ? ' · ' + esc(SEASON_TR[sk] || sk) : '') + '<br>';
+        if (lines.length) bh += esc(lines.slice(0, 6).join(' · ')) + (lines.length > 6 ? ' · +' + (lines.length - 6) + ' kovan' : '') + '<br>';
+        if (first && first.reason) bh += '<small>' + esc(first.reason) + '</small><br>';
+        if (first && first.note) bh += '<small>' + esc(first.note) + '</small><br>';
+        if (missing.length) bh += '<small>' + esc(ids.length === 1 ? reasons[0] : missing.length + ' kovanda besleme gerekmiyor / hesaplanamadı (' + namesShort(missing.map(hiveName), 3) + '): ' + reasons[0]) + (ids.length > 1 ? ' Bu kovanlara girdiğiniz miktar yazılır.' : '') + '</small><br>';
+        if (lines.length && first && first.type !== selType) bh += '<small>Seçtiğiniz tür öneriden farklı: miktarı elle girin.</small><br>';
+        bh += auto.touched ? '<small>Miktarı elle değiştirdiniz: seçili tüm kovanlara ' + esc(f.elements.amount.value || '—') + ' yazılır. <button type="button" data-auto-reset style="font:inherit;color:#2b6cb0;background:none;border:0;padding:0;text-decoration:underline;">Öneriye dön</button></small>'
+          : (lines.length ? '<small>' + (ids.length > 1 ? 'Her kovana kendi önerisi yazılır. ' : '') + 'Miktarı değiştirebilirsiniz.</small>' : '');
+        box.innerHTML = bh;
+      }
+    }
     f.addEventListener('change', function (e) {
+      if (e.target.name === 'product') { auto.touched = false; productPicked(); }
+      if (type === 'besleme' && e.target.name === 'type' && e.isTrusted) { auto.typeTouched = true; autoCalc(); }
       if (type === 'besleme' && e.target.name === 'type' && sf2.elements.sitem) {
         var m = stockItems().filter(function (x) { return x.feedType === e.target.value; })[0];
         if (m) { sf2.elements.sitem.value = m.id; stockTouched = false; }
@@ -1769,7 +1871,38 @@
       f.innerHTML = topicFormHtml(type === 'ilac' ? 'hastalik' : type, today);
       wireTopicForm(type, f, back);
       if (type === 'ilac' && f.elements.treatment) f.elements.treatment.placeholder = 'ör. Oksalik asit damlatma, Amitraz şerit';
+      auto = { touched: false, typeTouched: false, map: {} };
+      if (type === 'ilac' || type === 'besleme') {
+        var autoHtml = '<div class="kr-info" id="qkAuto" style="grid-column:1 / -1;font-size:.8rem;line-height:1.35;"></div>';
+        var anc = f.elements[type === 'ilac' ? 'doseUnit' : 'amount'];
+        anc = anc && anc.closest('label');
+        if (anc) anc.insertAdjacentHTML('afterend', autoHtml); else f.insertAdjacentHTML('beforeend', autoHtml);
+        var want = type;
+        var ld = type === 'ilac' ? needMod('ilac-katalog.js', 'SuperAriIlac') : needMod('bakim-plan.js', 'SuperAriPlan');
+        ld.then(function () {
+          if (type !== want || !f.querySelector('#qkAuto')) return;
+          if (type === 'ilac') addProductSelect();
+          autoCalc(); calcStock();
+        }, function () { var b = f.querySelector('#qkAuto'); if (b) b.textContent = 'Otomatik miktar yüklenemedi; elle girin.'; });
+      }
       renderStock();
+    }
+    function addProductSelect() {
+      var I = global.SuperAriIlac; if (!I || f.elements.product) return;
+      var opts = I.LIST.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name + (p.dose ? '' : ' · doz doğrulanmadı')) + '</option>'; }).join('');
+      var tr = f.elements.treatment && f.elements.treatment.closest('label');
+      var html = '<label class="full">Ruhsatlı ürün (isteğe bağlı)<select name="product"><option value="">Seçilmedi / diğer yöntem</option>' + opts + '</select></label>';
+      if (tr) tr.insertAdjacentHTML('beforebegin', html); else f.insertAdjacentHTML('afterbegin', html);
+    }
+    function productPicked() {
+      var I = global.SuperAriIlac, pid = f.elements.product.value, p = I && pid ? I.byId(pid) : null;
+      if (p) {
+        f.elements.treatment.value = p.name + ' (' + p.active + ')';
+        if (f.elements.disease && f.elements.disease.value !== 'varroa' && f.elements.disease.querySelector('option[value=varroa]')) {
+          f.elements.disease.value = 'varroa'; f.elements.disease.dispatchEvent(new Event('change'));
+        }
+      }
+      autoCalc(); calcStock();
     }
     back.addEventListener('click', function (e) {
       var t = e.target;
@@ -1791,6 +1924,7 @@
         openKolayMuayene(kid, { onSaved: opts.onSaved, voice: vo });
         return;
       }
+      if (t.closest && t.closest('[data-auto-reset]')) { auto.touched = false; autoCalc(); calcStock(); return; }
       var q = t.closest && t.closest('[data-qtype]');
       if (q) { type = q.getAttribute('data-qtype'); renderForm(); return; }
       var sc = t.closest && t.closest('[data-scope]');
@@ -1829,6 +1963,13 @@
       var names = [], savedList = [];
       targets.forEach(function (id) {
         var copy = {}; Object.keys(got.rec).forEach(function (k) { copy[k] = got.rec[k]; });
+        if (!auto.touched && (type === 'ilac' || type === 'besleme')) {
+          var am = auto.map[id];
+          if (type === 'ilac' && f.elements.product && f.elements.product.value) {
+            if (am) { copy.dose = String(am.v); copy.doseUnit = am.unit; } else copy.dose = '';
+          }
+          if (type === 'besleme' && am) copy.amount = String(am.v);
+        }
         var sv = r.add(id, got.kind, copy);
         if (sv) { var h = d.hiveById(id); names.push(h ? h.name : String(id)); savedList.push({ id: sv.id, hiveId: id, kind: got.kind }); }
       });
