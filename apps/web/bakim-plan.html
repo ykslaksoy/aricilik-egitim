@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bakım planı · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .bp-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.5rem;}
+    .bp-row select{width:100%;min-width:0;font:inherit;font-size:.9rem;padding:.55rem .6rem;border-radius:12px;border:1px solid var(--border);background:#fff;}
+    .bp-row label{font-size:.78rem;font-weight:700;min-width:0;}
+    .bp-tl{display:grid;gap:.45rem;}
+    .bp-ph{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.6rem .7rem;display:grid;gap:.3rem;min-width:0;}
+    .bp-ph.simdi{border-color:#e0c56a;background:#fffbea;box-shadow:0 0 0 2px #fff3bf inset;}
+    .bp-ph.gecti{opacity:.62;}
+    .bp-ph-h{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline;flex-wrap:wrap;}
+    .bp-ph-h b{font-size:.92rem;}
+    .bp-ph-h span{font-size:.76rem;font-weight:800;color:var(--muted);white-space:nowrap;}
+    .bp-tag{display:inline-block;font-size:.68rem;font-weight:800;padding:.1rem .45rem;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:.3rem;vertical-align:middle;}
+    .bp-tag.flow{background:#fff3bf;color:#7a5b00;}
+    .bp-tag.now{background:#ebfbee;color:#2b8a3e;}
+    .bp-ph ul{margin:0;padding-left:1.1rem;font-size:.82rem;}
+    .bp-btn{font:inherit;font-size:.8rem;font-weight:800;padding:.45rem .7rem;border-radius:10px;border:1.5px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#fff3bf);color:#5c4813;cursor:pointer;justify-self:start;}
+    .bp-btn:disabled{opacity:.5;cursor:default;}
+    .bp-msg{font-size:.8rem;color:#2b8a3e;font-weight:700;margin:0;}
+    .bp-warn{font-size:.8rem;background:#fff4e6;border:1px solid #ffd8a8;color:#8a4b00;border-radius:10px;padding:.5rem .6rem;margin:0;}
+    .bp-hives{display:grid;gap:.4rem;}
+    .bp-hv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.2rem .5rem;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.55rem .65rem;color:inherit;}
+    .bp-hv b{font-size:.86rem;overflow-wrap:anywhere;}
+    .bp-hv small{grid-column:1/-1;font-size:.76rem;color:var(--muted);overflow-wrap:anywhere;}
+    .bp-hv em{font-style:normal;font-size:.74rem;font-weight:800;white-space:nowrap;}
+    .bp-hv em.r{color:#c92a2a}.bp-hv em.o{color:#e67700}.bp-hv em.g{color:#2b8a3e}
+    .bp-med{display:grid;gap:.35rem;}
+    .bp-med details{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.5rem .65rem;font-size:.82rem;}
+    .bp-med summary{font-weight:800;cursor:pointer;overflow-wrap:anywhere;}
+    .bp-med p{margin:.3rem 0 0;overflow-wrap:anywhere;}
+    .bp-med a{color:#2b6cb0;text-decoration:underline;}
+    h2.bp-h{margin:0;font-size:1.05rem;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="bakim.html">← Bakım</a>
+      <a class="chip" href="bugun.html">Bugün</a>
+      <a class="chip" href="stok.html">📦 Stok</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>Bakım planı</p></div>
+    </div>
+
+    <section class="card stack">
+      <div class="bp-row">
+        <label>Arılık<select id="bpAp" aria-label="Arılık"></select></label>
+        <label>Bölge / iklim<select id="bpProf" aria-label="Bölge profili"></select></label>
+      </div>
+      <label id="bpCamWrap" style="font-size:.82rem;display:none;"><input type="checkbox" id="bpCam" /> Çam balı akımına gidiliyor (sonbahar ilaçlaması akımdan sonra)</label>
+      <p class="muted" id="bpDesc" style="margin:0;font-size:.8rem;"></p>
+      <p class="muted" id="bpMode" style="margin:0;font-size:.8rem;"></p>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bp-h">🗺️ Yıllık yol haritası</h2>
+      <p class="muted" style="margin:0;font-size:.78rem;">Tarihler bölgeye göre <b>tahmindir</b>; hava ve çiçeklenmeye göre kaydırın. «Görevlere ekle» her kovan için Bakım ve Bugün'de görünen görev açar (aynı görev ikinci kez eklenmez).</p>
+      <div class="bp-tl" id="bpTl"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;" id="bpHiveCard">
+      <h2 class="bp-h">🐝 Kovan başına öneri</h2>
+      <div class="bp-hives" id="bpHives"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bp-h">💊 Ruhsatlı varroa ilaçları (etiket)</h2>
+      <p class="bp-warn"><b>Etiket dozunu kontrol edin.</b> Liste Tarım ve Orman Bakanlığı ruhsatlı veteriner ilaçları sorgusundan (hedef tür: Arı) alınmıştır; doz yalnız ürün belgesinde yazanla hesaplanır.</p>
+      <div class="bp-med" id="bpMed"></div>
+    </section>
+    <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
+  </main>
+  <script src="demo-data.js?v=koloni-17"></script>
+  <script src="ilac-katalog.js?v=koloni-17"></script>
+  <script src="bakim-plan.js?v=koloni-17"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
+    if (!D || !P || !I) return;
+    var esc = P.esc, fmt = P.fmt;
+    var apEl = document.getElementById('bpAp'), prEl = document.getElementById('bpProf');
+    var aps = D.loadApiaries();
+    var q = new URLSearchParams(location.search);
+    var ap = q.get('apiary');
+    if (!aps.some(function (a) { return String(a.id) === ap; })) { try { ap = localStorage.getItem('superari.lastApiary.v1') || ''; } catch (e) { ap = ''; } }
+    if (!aps.some(function (a) { return String(a.id) === ap; })) ap = aps[0] ? String(aps[0].id) : '';
+    apEl.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    apEl.value = ap;
+    prEl.innerHTML = Object.keys(P.PROFILES).map(function (k) { return '<option value="' + k + '">' + esc(P.PROFILES[k].label) + '</option>'; }).join('');
+
+    function renderTop() {
+      var pk = P.profileKey(ap), pr = P.PROFILES[pk];
+      prEl.value = pk;
+      var hasCam = pr.phases.some(function (x) { return x.optional === 'camBali'; });
+      document.getElementById('bpCamWrap').style.display = hasCam ? '' : 'none';
+      document.getElementById('bpCam').checked = P.camBali(ap);
+      var auto = P.autoProfile(D.apiaryById(ap));
+      document.getElementById('bpDesc').textContent = pr.desc + ' Kışlık hedef (tahmin): ' + pr.winterKg + ' kg/kovan.' + (auto === pk ? ' Profil arılık konumundan seçildi.' : '');
+      document.getElementById('bpMode').textContent = P.mode() === 'live' ? 'Canlı mod: görevler ve kayıtlar sizin verinize eklenir.' : 'Demo mod: eklenen görev ve kayıtlar «Demo» verisidir, gerçek kayıt sayılmaz.';
+    }
+    function renderTl() {
+      var t = P.today();
+      document.getElementById('bpTl').innerHTML = P.phases(ap).map(function (ph) {
+        var st = P.phaseStatus(ph, t);
+        return '<div class="bp-ph ' + st + '"><div class="bp-ph-h"><b>' + esc(ph.label) +
+          (st === 'simdi' ? '<span class="bp-tag now">Şimdi</span>' : '') + (ph.flow ? '<span class="bp-tag flow">İlaç yok</span>' : '') +
+          '</b><span>' + fmt(ph.from) + ' – ' + fmt(ph.to) + '</span></div>' +
+          '<ul>' + ph.jobs.map(function (j) { return '<li>' + esc(j) + '</li>'; }).join('') + '</ul>' +
+          (st === 'gecti' ? '' : '<button type="button" class="bp-btn" data-phase="' + ph.key + '">＋ Görevlere ekle</button><p class="bp-msg" data-msg="' + ph.key + '"></p>') + '</div>';
+      }).join('');
+    }
+    function renderMed() {
+      document.getElementById('bpMed').innerHTML = I.LIST.map(function (p) {
+        var g = I.GROUPS[p.group] ? I.GROUPS[p.group].label : '';
+        var body = p.dose
+          ? '<p><b>Doz:</b> ' + esc(p.dose.note) + '</p><p><b>Süre:</b> ' + (p.durationDays[0] === p.durationDays[1] ? p.durationDays[0] + ' gün' : p.durationDays[0] + '–' + p.durationDays[1] + ' gün') + '</p>' +
+            '<p><b>Bekleme / bal:</b> ' + esc(p.withdrawalText) + '</p><p><b>Dönem:</b> ' + esc(p.season) + '</p>'
+          : '<p><b>Doz doğrulanmadı.</b> ' + esc(p.reason) + '</p>';
+        return '<details><summary>' + esc(p.name) + (p.dose ? '' : ' · <span style="color:#c92a2a;">doz doğrulanmadı</span>') + '</summary>' +
+          '<p>' + esc(p.active) + ' · ' + esc(p.form) + (p.holder ? ' · ' + esc(p.holder) : '') + '</p><p><b>Rotasyon grubu:</b> ' + esc(g) + '</p>' + body +
+          '<p><a href="' + esc(p.source) + '" target="_blank" rel="noopener">Kaynak: ' + (p.dose ? 'Bakanlık ürün özellikleri belgesi (PDF)' : 'Bakanlık ruhsatlı ilaç sorgusu') + '</a> · ' + fmt(I.CHECKED) + ' ' + I.CHECKED.slice(0, 4) + '</p></details>';
+      }).join('');
+    }
+    function renderHives() {
+      var el = document.getElementById('bpHives');
+      if (window.SuperAriPlan.hiveSummary) el.innerHTML = window.SuperAriPlan.hiveSummary(ap);
+      else document.getElementById('bpHiveCard').style.display = 'none';
+    }
+    function render() { renderTop(); renderTl(); renderHives(); }
+    apEl.addEventListener('change', function () {
+      ap = apEl.value; try { localStorage.setItem('superari.lastApiary.v1', ap); } catch (e) { /* ignore */ }
+      history.replaceState(null, '', 'bakim-plan.html?apiary=' + encodeURIComponent(ap)); render();
+    });
+    prEl.addEventListener('change', function () { P.setProfile(ap, prEl.value === P.autoProfile(D.apiaryById(ap)) ? '' : prEl.value); render(); });
+    document.getElementById('bpCam').addEventListener('change', function (e) { P.setCamBali(ap, e.target.checked); render(); });
+    document.getElementById('bpTl').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-phase]'); if (!b) return;
+      var k = b.getAttribute('data-phase');
+      var r = P.addPhaseTasks(ap, k);
+      var m = document.querySelector('[data-msg="' + k + '"]');
+      if (m) m.textContent = r.created ? r.created + ' görev eklendi (' + r.hives + ' kovan)' + (r.skipped ? ' · ' + r.skipped + ' zaten vardı' : '') + '.' : (r.hives ? 'Bu evrenin görevleri zaten ekli.' : 'Bu arılıkta kovan yok.');
+    });
+    window.addEventListener('superari-records-changed', renderHives);
+    renderMed(); render();
+  })();
+  </script>
+  <script src="nav.js?v=koloni-17"></script>
+  <script src="pwa.js?v=koloni-17"></script>
+</body>
+</html>
