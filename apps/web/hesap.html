@@ -32,7 +32,10 @@
     .hb-small{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .55rem;border-radius:9px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
     .hb-small.del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
     .hb-google{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;}
-  </style>
+    .hb-link{background:none;border:0;padding:.2rem 0;color:#8a5a00;font:inherit;font-size:.84rem;font-weight:700;text-decoration:underline;cursor:pointer;justify-self:start;}
+  .hb-or{display:flex;align-items:center;gap:.5rem;color:#868e96;font-size:.78rem;margin:.2rem 0;}
+  .hb-or::before,.hb-or::after{content:'';flex:1;height:1px;background:#e9ecef;}
+</style>
 </head>
 <body data-tabbar="fixed">
   <main class="wrap">
@@ -51,7 +54,18 @@
 
     <section class="card stack" id="loginCard" style="margin-top:1rem;" hidden>
       <h2 style="margin:0;font-size:1.05rem;">Giriş yap</h2>
-      <p class="muted" style="margin:0;font-size:.84rem;">Şifre yok. E-postanı yaz, <b>e-postana gelen bağlantıya dokun</b> (gelmezse spam / gereksiz klasörüne de bak).</p>
+      <form class="hb-form" id="pwForm" autocomplete="on">
+        <label>E-posta<input type="email" name="email" autocomplete="username" inputmode="email" required placeholder="ornek@mail.com"></label>
+        <label>Şifre<input type="password" name="pw" autocomplete="current-password" minlength="8" required placeholder="en az 8 karakter"></label>
+        <div class="hb-row">
+          <button class="btn" type="submit" id="btnPwIn">Giriş yap</button>
+          <button class="btn secondary" type="button" id="btnPwUp">Hesap oluştur</button>
+        </div>
+        <button class="hb-link" type="button" id="btnForgot">Şifremi unuttum</button>
+      </form>
+      <p class="hb-msg" id="pwMsg" aria-live="polite"></p>
+      <div class="hb-or"><span>veya şifresiz</span></div>
+      <p class="muted" style="margin:0;font-size:.84rem;">E-postanı yaz, <b>e-postana gelen bağlantıya dokun</b> (gelmezse spam / gereksiz klasörüne de bak).</p>
       <form class="hb-form" id="emailForm" autocomplete="on">
         <label>E-posta<input type="email" name="email" autocomplete="email" inputmode="email" required placeholder="ornek@mail.com"></label>
         <button class="btn" type="submit" id="btnSend">✉️ Giriş bağlantısı gönder</button>
@@ -83,6 +97,16 @@
         <button class="btn secondary" type="button" id="btnOut">Çıkış yap</button>
       </div>
       <p class="hb-msg" id="syncMsg" aria-live="polite"></p>
+      <details class="hb-code" id="setPwBox"><summary id="setPwSum">🔑 Şifre belirle / değiştir</summary>
+        <form class="hb-form" id="setPwForm" autocomplete="on">
+          <p class="muted" id="setPwHint" style="margin:0;font-size:.8rem;">Bağlantı veya Google ile giriş yaptıysanız da şifre belirleyebilirsiniz; sonra e-posta + şifreyle girersiniz.</p>
+          <input type="email" name="username" autocomplete="username" hidden>
+          <label>Yeni şifre<input type="password" name="pw" autocomplete="new-password" minlength="8" required placeholder="en az 8 karakter"></label>
+          <label>Yeni şifre (tekrar)<input type="password" name="pw2" autocomplete="new-password" minlength="8" required></label>
+          <button class="btn secondary" type="submit">Şifreyi kaydet</button>
+          <p class="hb-msg" id="setPwMsg" aria-live="polite"></p>
+        </form>
+      </details>
       <button class="btn secondary" type="button" id="btnExport">📥 Buluttaki verilerimi indir (JSON)</button>
       <p class="muted" style="margin:0;font-size:.78rem;">Yedek ya da paylaşmak için: buluttaki arılık, kovan, ana arı, kayıt, görev, stok ve fotoğraf bilgilerini tek dosya olarak indirir.</p>
     </section>
@@ -128,9 +152,9 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-40"></script>
-  <script src="bulut.js?v=koloni-40"></script>
-  <script src="push.js?v=koloni-40"></script>
+  <script src="demo-data.js?v=koloni-41"></script>
+  <script src="bulut.js?v=koloni-41"></script>
+  <script src="push.js?v=koloni-41"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -145,6 +169,13 @@
     function errText(e) {
       var m = String((e && (e.message || e.error_description)) || e || '');
       if (/rate limit|too many/i.test(m)) return 'Çok sık denendi. Biraz bekleyip tekrar deneyin.';
+      if (/invalid login credentials/i.test(m)) return 'E-posta veya şifre hatalı. Şifre belirlemediyseniz «Şifremi unuttum» ya da şifresiz bağlantı ile girin.';
+      if (/already registered|already been registered|user already exists/i.test(m)) return 'Bu e-posta zaten kayıtlı. «Giriş yap» deyin; şifreniz yoksa «Şifremi unuttum».';
+      if (/email not confirmed/i.test(m)) return 'E-posta henüz onaylanmadı: e-postanıza gelen onay bağlantısına dokunun.';
+      if (/password should be|weak password|at least/i.test(m)) return 'Şifre en az 8 karakter olmalı (harf ve rakam karıştırın).';
+      if (/same password|different from the old/i.test(m)) return 'Yeni şifre eskisiyle aynı olamaz.';
+      if (/signups not allowed|signup is disabled/i.test(m)) return 'Yeni hesap açma kapalı (Supabase ayarı).';
+      if (/Şifre|şifre|e-posta/.test(m)) return m;
       if (/provider is not enabled|unsupported provider/i.test(m)) return 'Google ile giriş henüz etkin değil (Supabase ayarı gerekli).';
       if (/Bağlantı|bağlantı|Önce|Geçerli/.test(m)) return m;
       if (/expired|invalid|otp/i.test(m)) return 'Kod/bağlantı geçersiz veya süresi dolmuş. Yeni bağlantı isteyin.';
@@ -178,6 +209,7 @@
         /* oturum var: eski giriş hatası (ör. aynı bağlantı ikinci kez açıldı) ve giriş formu gösterilmez */
         msg($('loginMsg'), ''); $('afterSend').hidden = true;
         $('acctCard').hidden = false;
+        try { $('setPwForm').elements.username.value = s.email || ''; } catch (eU) { /* ignore */ }
         var linked = Object.keys(s.links || {});
         $('acctKv').innerHTML = '<span>E-posta</span><b>' + esc(s.email || '—') + '</b>' +
           '<span>Son eşitleme</span><b>' + esc(fmt(s.lastSync)) + '</b>' +
@@ -256,6 +288,43 @@
       }).catch(function (e) { el.querySelector('.hb-mems').textContent = 'Ekip bilgisi alınamadı: ' + errText(e); });
     }
 
+    function pwVals() { var f = $('pwForm').elements; return { em: f.email.value.trim(), pw: f.pw.value }; }
+    $('pwForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = pwVals(); msg($('pwMsg'), 'Giriş yapılıyor…'); $('btnPwIn').disabled = true;
+      B.signInPassword(v.em, v.pw).then(function () { msg($('pwMsg'), 'Giriş yapıldı.', 'ok'); afterLogin(); })
+        .catch(function (err) { msg($('pwMsg'), errText(err), 'err'); }).then(function () { $('btnPwIn').disabled = false; });
+    });
+    $('btnPwUp').addEventListener('click', function () {
+      var f = $('pwForm'); if (!f.reportValidity()) return;
+      var v = pwVals(); msg($('pwMsg'), 'Hesap oluşturuluyor…');
+      B.signUpPassword(v.em, v.pw).then(function (r) {
+        if (r.session) { msg($('pwMsg'), 'Hesap oluşturuldu, giriş yapıldı.', 'ok'); afterLogin(); }
+        else msg($('pwMsg'), 'Onay e-postası gönderildi: ' + v.em + '. Bağlantıya dokunun, sonra e-posta ve şifrenizle giriş yapın.', 'ok');
+      }).catch(function (err) { msg($('pwMsg'), errText(err), 'err'); });
+    });
+    $('btnForgot').addEventListener('click', function () {
+      var em = $('pwForm').elements.email.value.trim();
+      msg($('pwMsg'), 'Gönderiliyor…');
+      B.resetPassword(em).then(function () {
+        msg($('pwMsg'), 'Şifre yenileme bağlantısı gönderildi: ' + em + '. Bağlantıya dokunun; açılan sayfada «Hesabım › Şifre belirle» ile yeni şifrenizi kaydedin.', 'ok');
+      }).catch(function (err) { msg($('pwMsg'), errText(err), 'err'); });
+    });
+    $('setPwForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var f = e.target.elements;
+      if (f.pw.value !== f.pw2.value) { msg($('setPwMsg'), 'Şifreler aynı değil.', 'err'); return; }
+      msg($('setPwMsg'), 'Kaydediliyor…');
+      B.setPassword(f.pw.value).then(function () {
+        msg($('setPwMsg'), '✓ Şifre kaydedildi. Artık e-posta + şifreyle de giriş yapabilirsiniz.', 'ok'); e.target.reset();
+      }).catch(function (err) { msg($('setPwMsg'), errText(err), 'err'); });
+    });
+    function showRecovery() {
+      var box = $('setPwBox'); box.open = true;
+      $('setPwSum').textContent = '🔑 Yeni şifrenizi belirleyin';
+      msg($('setPwMsg'), 'Şifre yenileme bağlantısıyla giriş yapıldı. Yeni şifrenizi yazıp kaydedin.', 'ok');
+      setTimeout(function () { try { box.scrollIntoView({ block: 'center' }); $('setPwForm').elements.pw.focus(); } catch (e) { /* ignore */ } }, 400);
+    }
     $('emailForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var em = e.target.elements.email.value.trim();
@@ -364,9 +433,10 @@
     B.loadConfig(true).then(function (cfg) {
       if (!cfg.enabled) return render();
       return B.client().then(function (c) {
-        c.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') render(); });
+        c.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') render(); if (ev === 'PASSWORD_RECOVERY') setTimeout(showRecovery, 600); });
         return B.handleRedirect().then(function (r) {
           if (r && r.ok) msg($('loginMsg'), 'Giriş yapıldı.', 'ok');
+          if (r && r.recovery) setTimeout(showRecovery, 900);
         }, function (err) {
           /* bağlantı zaten kullanılmış / süresi dolmuş olabilir; oturum açıksa hata gösterme */
           return B.session().then(function (ses) {
@@ -382,7 +452,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-40"></script>
-<script src="pwa.js?v=koloni-40"></script>
+  <script src="nav.js?v=koloni-41"></script>
+<script src="pwa.js?v=koloni-41"></script>
 </body>
 </html>

@@ -10,7 +10,10 @@ Bulut, yapılandırma yokken tamamen kapalıdır; uygulama yalnız cihazda çal�
 2. Supabase SQL Editor'de `migrations/20260927100000_superari_bulut.sql` dosyasını çalıştırın (tekrar çalıştırılabilir).
 3. Authentication › URL Configuration: Site URL `https://superari.vercel.app`, Redirect URL `https://superari.vercel.app/hesap.html`.
 4. (İsteğe bağlı) Magic Link e-posta şablonuna `{{ .Token }}` ekleyin: ana ekran uygulamasında kodla giriş için.
-5. Google girişi: Google Cloud'da OAuth istemcisi oluşturup Supabase › Auth › Providers › Google'a girin.
-6. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
+5. E-posta + şifre girişi: Authentication › Providers › Email açık olmalı. «Confirm email» açıksa yeni hesap onay e-postasıyla etkinleşir.
+   «Şifremi unuttum» bağlantısı `https://superari.vercel.app/hesap.html?sifre=yeni` adresine döner (Redirect URL listesinde `https://superari.vercel.app/hesap.html*` olmalı);
+   «Reset Password» e-posta şablonu varsayılan haliyle çalışır. Varsayılan Supabase SMTP saatte birkaç e-posta gönderir; yoğun kullanımda özel SMTP gerekir.
+6. Google girişi: Google Cloud'da OAuth istemcisi oluşturup Supabase › Auth › Providers › Google'a girin.
+7. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
 
 Demo verisi hiçbir zaman buluta gönderilmez.

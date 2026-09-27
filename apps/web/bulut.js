@@ -147,9 +147,11 @@
   /** Sayfa açılışında: adres bir giriş dönüşüyse oturumu tamamlar. { none } | { ok } | hata fırlatır. */
   function handleRedirect() {
     var pr = parseAuthParams(BOOT.search, BOOT.hash);
+    var bootSearch = BOOT.search;
     BOOT = { search: '', hash: '' };
     if (!pr.error && !pr.code && !pr.tokenHash && !pr.access) return Promise.resolve({ none: true });
-    return completeAuth(pr).then(function () { cleanUrl(); return { ok: true }; }, function (e) { cleanUrl(); throw e; });
+    var recovery = pr.type === 'recovery' || /[?&]sifre=yeni/.test(bootSearch);
+    return completeAuth(pr).then(function () { cleanUrl(); return { ok: true, recovery: recovery }; }, function (e) { cleanUrl(); throw e; });
   }
   /** Yüklü uygulama (PWA) için: e-postadaki bağlantı kopyalanıp yapıştırılır, uygulama içinde oturum açılır. */
   function signInWithLink(text) {
@@ -165,6 +167,38 @@
     return client().then(function (c) {
       return c.auth.signInWithOtp({ email: String(email || '').trim().toLowerCase(), options: { emailRedirectTo: redirectUrl(), shouldCreateUser: true } });
     }).then(function (r) { if (r.error) throw r.error; return true; });
+  }
+  /* ---- e-posta + şifre ---- */
+  function normEmail(e) { return String(e || '').trim().toLowerCase(); }
+  function checkPw(pw) { if (String(pw || '').length < 8) throw new Error('Şifre en az 8 karakter olmalı'); }
+  function signInPassword(email, pw) {
+    return client().then(function (c) { return c.auth.signInWithPassword({ email: normEmail(email), password: String(pw || '') }); })
+      .then(function (r) { if (r.error) throw r.error; return r.data && r.data.session; });
+  }
+  /** Yeni hesap. Supabase «e-posta onayı» açıksa oturum gelmez: { confirm:true } döner. */
+  function signUpPassword(email, pw) {
+    try { checkPw(pw); } catch (e) { return Promise.reject(e); }
+    return client().then(function (c) {
+      return c.auth.signUp({ email: normEmail(email), password: String(pw), options: { emailRedirectTo: redirectUrl() } });
+    }).then(function (r) {
+      if (r.error) throw r.error;
+      var d = r.data || {};
+      /* Kayıtlı e-posta: Supabase hata vermeden boş kimlik listesi döndürür */
+      if (d.user && Array.isArray(d.user.identities) && !d.user.identities.length) throw new Error('User already registered');
+      return d.session ? { session: d.session } : { confirm: true };
+    });
+  }
+  function resetPassword(email) {
+    var em = normEmail(email);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return Promise.reject(new Error('Önce e-posta adresinizi yazın'));
+    return client().then(function (c) { return c.auth.resetPasswordForEmail(em, { redirectTo: redirectUrl() + '?sifre=yeni' }); })
+      .then(function (r) { if (r.error) throw r.error; return true; });
+  }
+  /** Oturum açıkken şifre belirle/değiştir (bağlantıyla giren kullanıcı için de). */
+  function setPassword(pw) {
+    try { checkPw(pw); } catch (e) { return Promise.reject(e); }
+    return client().then(function (c) { return c.auth.updateUser({ password: String(pw) }); })
+      .then(function (r) { if (r.error) throw r.error; return true; });
   }
   function verifyCode(email, code) {
     return client().then(function (c) {
@@ -979,6 +1013,10 @@
     session: session,
     hasSessionToken: hasSessionToken,
     signInEmail: signInEmail,
+    signInPassword: signInPassword,
+    signUpPassword: signUpPassword,
+    resetPassword: resetPassword,
+    setPassword: setPassword,
     verifyCode: verifyCode,
     signInGoogle: signInGoogle,
     signOut: signOut,
