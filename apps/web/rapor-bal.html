@@ -47,11 +47,19 @@
       <div id="apiaryList"></div>
     </section>
 
+    <section class="card-block" id="byHiveBlock">
+      <h2>Kovan bazlı hasat</h2>
+      <div id="hiveList"></div>
+    </section>
+
     <section class="card-block">
       <h2>Hasat kaydı ekle</h2>
       <form class="form-grid" id="harvestForm">
         <label>Arılık
           <select id="fApiary" required></select>
+        </label>
+        <label>Kovan
+          <select id="fHive"></select>
         </label>
         <label>Tarih
           <input type="date" id="fDate" required />
@@ -64,6 +72,10 @@
             <input type="number" id="fFrames" min="0" step="1" inputmode="numeric" placeholder="ör. 24" />
           </label>
         </div>
+        <label>Bal türü
+          <input type="text" id="fType" maxlength="40" list="honeyTypes" placeholder="ör. Çiçek, Kestane" />
+          <datalist id="honeyTypes"></datalist>
+        </label>
         <label>Not
           <input type="text" id="fNote" maxlength="120" placeholder="Ana hasat, ikinci sıyırma…" />
         </label>
@@ -76,15 +88,15 @@
       <h2 id="listTitle">Hasat kayıtları</h2>
       <div id="harvestList"></div>
     </section>
-    <p class="hint">Kayıtlar bu cihazda saklanır. Toplam tüm arılıkları, Arılık görünümü seçili arılığı gösterir.</p>
+    <p class="hint" id="modeHint">Kayıtlar bu cihazda saklanır. Hızlı kayıttaki hasat notları ve kovan kayıtları da buraya eklenir. Toplam tüm arılıkları, Arılık görünümü seçili arılığı gösterir.</p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-7"></script>
-<script src="rapor-store.js"></script>
+<script src="demo-data.js?v=koloni-8"></script>
+<script src="rapor-store.js?v=koloni-8"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
@@ -96,6 +108,32 @@
   var apiaryFilter = document.getElementById('apiaryFilter');
   var apiaryFilterWrap = document.getElementById('apiaryFilterWrap');
   var fApiary = document.getElementById('fApiary');
+  var fHive = document.getElementById('fHive');
+  var HV = (D && D.harvests) || null;
+  (HV && HV.HONEY_TYPES || []).forEach(function (t) {
+    var o = document.createElement('option'); o.value = t;
+    document.getElementById('honeyTypes').appendChild(o);
+  });
+  var liveMode = false;
+  try { liveMode = localStorage.getItem('superari.workMode') === 'live'; } catch (e) { liveMode = false; }
+  document.getElementById('modeHint').textContent += liveMode
+    ? ' Canlı mod: yalnız sizin girdiğiniz hasatlar.'
+    : ' Demo mod: örnek hasatlar «Demo» etiketlidir; canlı moda geçince görünmez.';
+  function allHives() { try { return (D && D.hives) || []; } catch (e) { return []; } }
+  function fillHiveSelect() {
+    var cur = fHive.value;
+    fHive.innerHTML = '';
+    var o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = 'Arılık geneli (kovan belirtilmeden)';
+    fHive.appendChild(o0);
+    allHives().filter(function (h) { return String(h.apiaryId) === String(fApiary.value); }).forEach(function (h) {
+      var o = document.createElement('option');
+      o.value = h.id; o.textContent = h.name || ('Kovan ' + h.id);
+      fHive.appendChild(o);
+    });
+    fHive.value = cur;
+    if (fHive.value !== cur) fHive.value = '';
+  }
   var cur = R.currentSeasonYear();
   var apiaries = (D && typeof D.loadApiaries === 'function') ? D.loadApiaries() : [];
 
@@ -137,6 +175,8 @@
     }
   }
   fillApiarySelects();
+  fillHiveSelect();
+  fApiary.addEventListener('change', fillHiveSelect);
 
   var today = new Date();
   var iso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
@@ -161,6 +201,7 @@
   sel.addEventListener('change', render);
   apiaryFilter.addEventListener('change', function () {
     fApiary.value = apiaryFilter.value;
+    fillHiveSelect();
     render();
   });
 
@@ -206,17 +247,32 @@
         btn.addEventListener('click', function () {
           apiaryFilter.value = btn.getAttribute('data-jump');
           fApiary.value = apiaryFilter.value;
+          fillHiveSelect();
           setView('arilik');
         });
       });
     }
 
+    var bh = s.byHive || [];
+    var maxH = Math.max.apply(null, bh.map(function (x) { return x.honeyKg; }).concat([1]));
+    document.getElementById('hiveList').innerHTML = (bh.map(function (x) {
+      var pct = Math.round((x.honeyKg / maxH) * 100);
+      return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '#btBox" style="display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #f0f1f3;color:inherit;text-decoration:none">' +
+        '<div class="left"><div class="title">' + escapeHtml(x.hiveName) + '</div>' +
+        '<div class="meta">' + (aid ? '' : escapeHtml(x.apiaryName) + ' · ') + x.count + ' kayıt' + (x.frames ? ' · ' + x.frames + ' çerçeve' : '') + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>' +
+        '<div class="right">' + R.fmtKg(x.honeyKg) + '</div></a>';
+    }).join('') || '<p class="meta">Kovan belirtilmiş hasat yok. Hızlı kayıt › Hasat notu veya aşağıdaki formda kovan seçerek ekleyin.</p>') +
+      (s.apiaryLevelCount ? '<p class="meta" style="margin-top:6px">Arılık geneli (kovan belirtilmeden): ' + s.apiaryLevelCount + ' kayıt · ' + R.fmtKg(s.apiaryLevelKg) + '</p>' : '');
+
     document.getElementById('harvestList').innerHTML = s.rows.slice().sort(function (a, b) {
       return String(b.date).localeCompare(String(a.date));
     }).map(function (h) {
-      return '<div class="row-item"><div class="left"><div class="title">' + escapeHtml(h.apiaryName) + '</div>' +
-        '<div class="meta">' + escapeHtml(h.date) + (h.note ? ' · ' + escapeHtml(h.note) : '') +
-        (h.frames ? ' · ' + h.frames + ' çerçeve' : '') + '</div></div>' +
+      var who = h.hiveId != null ? (h.hiveName || ('Kovan ' + h.hiveId)) + ' · ' + h.apiaryName : h.apiaryName + ' · arılık geneli';
+      return '<div class="row-item"><div class="left"><div class="title">' + escapeHtml(who) +
+        (h.demo ? ' <span class="meta" style="font-weight:700">· Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + escapeHtml(h.date) + (h.honeyType ? ' · ' + escapeHtml(h.honeyType) : '') + (h.note ? ' · ' + escapeHtml(h.note) : '') +
+        (h.frames ? ' · ' + h.frames + ' çerçeve' : '') + (h.source === 'kayit' ? ' · kovan kaydı' : '') + '</div></div>' +
         '<div class="right">' + R.fmtKg(h.honeyKg) + '</div>' +
         '<button type="button" class="del" data-del="' + escapeHtml(h.id) + '" aria-label="Sil">Sil</button></div>';
     }).join('') || '<p class="meta">Kayıt yok. Aşağıdan ekleyin.</p>';
@@ -239,6 +295,7 @@
     var KR = window.SuperAriDemo && window.SuperAriDemo.records;
     if (KR && KR.withdrawalConflicts) {
       var wc = KR.withdrawalConflicts(fApiary.value, document.getElementById('fDate').value);
+      if (fHive.value) wc = wc.filter(function (c) { return String(c.hiveId) === String(fHive.value); });
       if (wc.length) {
         var fmt = function (d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? m[3] + '.' + m[2] + '.' + m[1] : d; };
         var lines = wc.map(function (c) { return '• ' + c.hiveName + ': ' + c.disease + ' ilacı, bekleme ' + fmt(c.until) + ' tarihine kadar'; }).join('\n');
@@ -253,15 +310,18 @@
       R.addHarvest({
         apiaryId: fApiary.value,
         apiaryName: opt ? opt.textContent : fApiary.value,
+        hiveId: fHive.value === '' ? null : Number(fHive.value),
         date: document.getElementById('fDate').value,
         honeyKg: document.getElementById('fKg').value,
         frames: document.getElementById('fFrames').value,
+        honeyType: document.getElementById('fType').value,
         note: document.getElementById('fNote').value
       });
+      document.getElementById('fType').value = '';
       document.getElementById('fKg').value = '';
       document.getElementById('fFrames').value = '';
       document.getElementById('fNote').value = '';
-      msg.textContent = 'Hasat kaydı eklendi.';
+      msg.textContent = fHive.value ? 'Hasat kaydı eklendi · kovanın Bakım geçmişinde de görünür.' : 'Hasat kaydı eklendi.';
       if (view === 'arilik') apiaryFilter.value = fApiary.value;
       render();
     } catch (err) {
@@ -285,6 +345,6 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-7"></script>
+<script src="nav.js?v=koloni-8"></script>
 </body>
 </html>

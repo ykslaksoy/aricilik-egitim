@@ -703,6 +703,7 @@
       [Number(d.date.slice(0, 4)), Number(until.slice(0, 4))].filter(function (y, i, a) { return a.indexOf(y) === i; }).forEach(function (y) {
         var s; try { s = Rp.harvestSummary(y, h.apiaryId); } catch (e) { s = null; }
         (s && s.rows || []).forEach(function (row) {
+          if (row.hiveId != null && String(row.hiveId) !== String(h.id)) return;
           if (row.date >= d.date && row.date <= until) out.push({ date: row.date, until: until, disease: r.DISEASE_LABEL[d.disease] });
         });
       });
@@ -845,7 +846,9 @@
       form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
         '<label>Bal (kg)<input type="number" name="kg" min="0" max="500" step="0.1" inputmode="decimal"></label>' +
         '<label>Çerçeve<input type="number" name="frames" min="0" max="60" inputmode="numeric"></label>' +
-        '<label class="full">Not<input name="note" maxlength="300" placeholder="ör. Kestane balı, 2 ballık"></label>';
+        '<label class="full">Bal türü<input name="honeyType" maxlength="40" list="krHoneyTypes" placeholder="ör. Çiçek, Kestane">' + honeyTypesDatalist() + '</label>' +
+        '<label class="full">Not<input name="note" maxlength="300" placeholder="ör. 2 ballık, ikinci sıyırma"></label>' +
+        '<p class="kol-sub full" style="grid-column:1 / -1;margin:0;">Raporlar › Bal / verim toplamlarına da eklenir.</p>';
     } else {
       form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
         '<label class="full">Hastalık<select name="disease">' + r.DISEASES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
@@ -903,7 +906,7 @@
     }
     if (topic === 'hasat') {
       if (v('kg') === '' && v('frames') === '' && v('note') === '') { f.elements.kg.focus(); toast('Kg, çerçeve veya not girin'); return null; }
-      return { kind: 'harvest', rec: { date: v('date'), kg: v('kg'), frames: v('frames'), note: v('note') } };
+      return { kind: 'harvest', rec: { date: v('date'), kg: v('kg'), frames: v('frames'), honeyType: v('honeyType'), note: v('note') } };
     }
     if (topic === 'ilac' && !v('treatment')) { f.elements.treatment.focus(); toast('Uygulanan ilacı / yöntemi yazın'); return null; }
     return { kind: 'disease', rec: { date: v('date'), disease: v('disease'), count: v('count'), method: v('method'), infestation: v('infestation'), status: v('status'), spores: v('spores'),
@@ -1023,6 +1026,7 @@
       var got = readTopicForm(topic, f);
       if (!got) return;
       var rec = got.rec, kind = got.kind;
+      if (kind === 'harvest' && !confirmHarvestWithdrawal([h.id], rec.date)) return;
       var saved = editRec ? r.update(h.id, kind, editRec.id, rec) : r.add(h.id, kind, rec);
       if (!saved) { toast('Kaydedilemedi'); return; }
       if (editRec) { toast('Güncellendi'); close(); if (typeof onSaved === 'function') onSaved(saved); return; }
@@ -1042,9 +1046,26 @@
     var m = /^(\d{4})-(\d{2})/.exec(dt || ''); if (!m) return 0;
     return Number(m[2]) <= 2 ? Number(m[1]) - 1 : Number(m[1]);
   }
+  function honeyTypesDatalist() {
+    var d = D();
+    var list = (d && d.harvests && d.harvests.HONEY_TYPES) || [];
+    return '<datalist id="krHoneyTypes">' + list.map(function (t) { return '<option value="' + esc(t) + '">'; }).join('') + '</datalist>';
+  }
+  /** Hasat kaydında ilaç bekleme süresi onayı: yalnız hedef kovanlar. true → kaydet. */
+  function confirmHarvestWithdrawal(hiveIds, date) {
+    var r = R(); if (!r || !r.withdrawalConflicts || !date) return true;
+    var set = {}; (hiveIds || []).forEach(function (id) { set[String(id)] = true; });
+    var wc = r.withdrawalConflicts(null, date).filter(function (c) { return set[String(c.hiveId)]; });
+    if (!wc.length) return true;
+    var lines = wc.map(function (c) { return '• ' + c.hiveName + ': ' + c.disease + ' ilacı, bekleme ' + fmtDate(c.until) + ' tarihine kadar'; }).join('\n');
+    var ok = confirm('Uyarı: Bu tarih ilaç bekleme süresi içinde.\n' + lines + '\n\nBu kovanların balı hasada dahil edilmemeli. Yine de kaydedilsin mi?');
+    if (!ok) toast('Kaydedilmedi: bekleme süresindeki kovan var (' + namesShort(wc.map(function (c) { return c.hiveName; }), 3) + ')');
+    return ok;
+  }
   function harvestText(x) {
     var p = [];
     if (x.kg != null) p.push(num(x.kg) + ' kg');
+    if (x.honeyType) p.push(x.honeyType);
     if (x.frames != null) p.push(x.frames + ' çerçeve');
     if (x.note) p.push(x.note);
     return p.join(' · ') || '—';
@@ -1182,6 +1203,7 @@
     feed: { icon: '🍯', label: 'Besleme', topic: 'besleme' },
     winter: { icon: '❄️', label: 'Kışlık hazırlık', topic: 'kis' },
     harvest: { icon: '🫙', label: 'Hasat notu', topic: 'hasat' },
+    aharvest: { icon: '🫙', label: 'Arılık hasadı', topic: null },
     queen: { icon: '👑', label: 'Ana arı değişimi', topic: 'ana' }
   };
   var TL_CSS = '.bt-list{display:grid;gap:6px;margin-top:8px;}' +
@@ -1208,6 +1230,13 @@
     rec.brood.forEach(function (x) { out.push({ kind: 'brood', rec: x, date: x.date, sum: broodText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
     rec.disease.forEach(function (x) { out.push({ kind: 'disease', rec: x, date: x.date, sum: diseaseText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
     rec.harvest.forEach(function (x) { out.push({ kind: 'harvest', rec: x, date: x.date, sum: harvestText(x) }); });
+    /* Arılık geneli hasatlar (kovan belirtilmeden, Raporlar › Bal / verim): bu kovanın arılığı. */
+    var dd = D();
+    if (dd && dd.harvests && h.apiaryId != null) {
+      dd.harvests.list({ apiaryId: String(h.apiaryId), apiaryOnly: true }).forEach(function (x) {
+        out.push({ kind: 'aharvest', rec: { id: x.id, demo: !!x.demo }, date: x.date, sum: 'Arılık geneli · ' + harvestText({ kg: x.honeyKg, frames: x.frames || null, honeyType: x.honeyType, note: x.note }) });
+      });
+    }
     rec.feed.forEach(function (x) { out.push({ kind: 'feed', rec: x, date: x.date, sum: r.FEED_LABEL[x.type] + ' ' + num(x.amount) + ' ' + r.FEED_UNIT[x.type] + (x.note ? ' · ' + x.note : '') }); });
     rec.winter.forEach(function (x) {
       var ws = r.winterStatus(h.id);
@@ -1225,7 +1254,7 @@
     var list = timelineEntries(h);
     var items = list.map(function (e) {
       var k = TL_KIND[e.kind];
-      return '<button type="button" class="bt-item" data-bt-kind="' + e.kind + '" data-bt-id="' + esc(e.rec.id) + '" aria-label="' + esc(k.label + ' ' + fmtDate(e.date) + ' düzenle') + '">' +
+      return '<button type="button" class="bt-item" data-bt-kind="' + e.kind + '" data-bt-id="' + esc(e.rec.id) + '" aria-label="' + esc(k.label + ' ' + fmtDate(e.date) + (e.kind === 'aharvest' ? ' · Bal / verim raporunda aç' : ' düzenle')) + '">' +
         '<span class="bt-ico" aria-hidden="true">' + k.icon + '</span><span><span class="bt-top"><span>' + esc(k.label) +
         (e.rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span><span class="dt">' + esc(fmtDate(e.date)) + '</span></span>' +
         '<span class="bt-sum" style="display:block;">' + esc(e.sum) + '</span></span></button>';
@@ -1270,6 +1299,7 @@
       var kind = it.getAttribute('data-bt-kind'), id = it.getAttribute('data-bt-id');
       if (kind === 'queen') { openEditor(hiveId, onSaved); return; }
       if (kind === 'winter') { openWinterSheet(hiveId, onSaved); return; }
+      if (kind === 'aharvest') { global.location.href = 'rapor-bal.html'; return; }
       var r = R(); if (!r) return;
       var rec = (r.recordsFor(hiveId)[kind] || []).filter(function (x) { return x.id === id; })[0];
       openRecordSheet(TL_KIND[kind].topic, hiveId, onSaved, rec || null);
@@ -1390,6 +1420,7 @@
       if (!targets.length) { toast('En az bir kovan seçin'); return; }
       var got = readTopicForm(type, f);
       if (!got) return;
+      if (got.kind === 'harvest' && !confirmHarvestWithdrawal(targets, got.rec.date)) return;
       var names = [];
       targets.forEach(function (id) {
         var copy = {}; Object.keys(got.rec).forEach(function (k) { copy[k] = got.rec[k]; });
@@ -1423,8 +1454,27 @@
       else if (!t.due || t.due <= weekEnd) out.week.push(item);
     });
     var all = r.loadAll();
+    /* Hasat tek depodan gelir: yalnız hasadı olan kovanlar da listelenir. */
+    var harvestHive = {}, aHarv = [];
+    if (d.harvests) {
+      d.harvests.list().forEach(function (x) {
+        if (x.hiveId != null) harvestHive[String(x.hiveId)] = true;
+        else aHarv.push(x);
+      });
+    }
+    var apiaryShown = {};
     Object.keys(ids).forEach(function (key) {
-      if (!all[key]) return;
+      var hh = ids[key];
+      if (hh && hh.apiaryId != null) apiaryShown[String(hh.apiaryId)] = true;
+    });
+    var sinceA = r.addDays(today, -30);
+    aHarv.forEach(function (x) {
+      if (x.date < sinceA || !apiaryShown[String(x.apiaryId)]) return;
+      out.recent.push({ hive: null, apiaryId: x.apiaryId, apiaryName: x.apiaryName, href: 'rapor-bal.html', kind: 'harvest', icon: '🫙', label: 'Arılık hasadı',
+        date: x.date, sum: 'Arılık geneli · ' + harvestText({ kg: x.honeyKg, frames: x.frames || null, honeyType: x.honeyType, note: x.note }), demo: !!x.demo, id: x.id });
+    });
+    Object.keys(ids).forEach(function (key) {
+      if (!all[key] && !harvestHive[key]) return;
       var h = ids[key];
       var st = r.status(h.id, all);
       Object.keys(st.latestByDisease).forEach(function (k) {

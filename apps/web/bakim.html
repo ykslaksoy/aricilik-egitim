@@ -77,9 +77,9 @@
 
     <div class="note" style="margin-top:1rem;">Bakım, Koloni sayfasındaki kovan kayıtlarını okur (tek kaynak). Kovana dokununca kovan detayı ve bakım geçmişi açılır.</div>
   </main>
-  <script src="demo-data.js?v=koloni-7"></script>
-  <script src="rapor-store.js"></script>
-  <script src="koloni.js?v=koloni-7"></script>
+  <script src="demo-data.js?v=koloni-8"></script>
+  <script src="rapor-store.js?v=koloni-8"></script>
+  <script src="koloni.js?v=koloni-8"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -147,7 +147,8 @@
       var rec = m.recent.filter(function (x) { return kind === 'all' || x.kind === kind; });
       document.getElementById('cRecent').textContent = '(son 30 gün)';
       document.getElementById('bkRecent').innerHTML = rec.slice(0, recentMax).map(function (x) {
-        return item(x.icon, x.hive.name + ' · ' + x.label + (x.demo ? ' · Demo' : ''), x.sum, fmt(x.date), hiveHref(x.hive), '');
+        var who = x.hive ? x.hive.name : (apName[x.apiaryId] || x.apiaryName || 'Arılık');
+        return item(x.icon, who + ' · ' + x.label + (x.demo ? ' · Demo' : ''), x.sum, fmt(x.date), x.hive ? hiveHref(x.hive) : (x.href || 'rapor-bal.html'), '');
       }).join('') + (rec.length > recentMax ? '<button type="button" class="bk-more" id="bkMore">+' + (rec.length - recentMax) + ' işlem daha</button>' : '') ||
         '<p class="bk-empty">Son 30 günde kayıt yok. «＋ Hızlı kayıt» ile ilaçlama, besleme veya muayene ekleyin.</p>';
     }
@@ -174,6 +175,6 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-7"></script>
+  <script src="nav.js?v=koloni-8"></script>
 </body>
 </html>

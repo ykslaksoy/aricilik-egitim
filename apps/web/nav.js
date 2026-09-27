@@ -63,8 +63,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-7'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-7'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-8'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-8'); });
     chain.then(go, go);
   }
   function init() {
@@ -90,7 +90,7 @@
       });
     });
     if (global.SuperAriDemo) updateBadge();
-    else loadScript('demo-data.js?v=koloni-7').then(updateBadge, updateBadge);
+    else loadScript('demo-data.js?v=koloni-8').then(updateBadge, updateBadge);
   }
   /* Bugün sekmesi: etkin uyarı sayısı (0 ise gizli). */
   function updateBadge() {

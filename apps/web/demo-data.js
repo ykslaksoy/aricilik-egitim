@@ -1950,6 +1950,7 @@
     if (kind === 'harvest') {
       o.kg = numIn(r.kg, 0, 500);
       o.frames = intIn(r.frames, 0, 60);
+      var ht0 = txt(r.honeyType, 40); if (ht0) o.honeyType = ht0;
       return o;
     }
     if (kind === 'winter') {
@@ -2007,10 +2008,17 @@
     REC_KINDS.forEach(function (k) {
       out[k] = (Array.isArray(src[k]) ? src[k] : []).map(function (r) { return normalizeRecord(k, r); }).filter(Boolean).sort(byDateDesc);
     });
+    /* Hasat: tek hasat deposundan (Raporlar › Bal / verim ile ortak). */
+    out.harvest = listHarvests({ hiveId: Number(hiveId) }).map(harvestAsRecord);
     return out;
   }
   function addRecord(hiveId, kind, rec) {
     if (REC_KINDS.indexOf(kind) === -1) return null;
+    if (kind === 'harvest') {
+      var hr = rec || {};
+      var added = addHarvestRow({ hiveId: Number(hiveId), date: hr.date, kg: hr.kg, frames: hr.frames, honeyType: hr.honeyType, note: hr.note, source: 'kayit' });
+      return added ? harvestAsRecord(added) : null;
+    }
     var r = normalizeRecord(kind, rec || {});
     if (!r) return null;
     var all = loadRecordsAll();
@@ -2027,6 +2035,11 @@
   }
   function updateRecord(hiveId, kind, id, rec) {
     if (REC_KINDS.indexOf(kind) === -1) return null;
+    if (kind === 'harvest') {
+      var ur = rec || {};
+      var up = updateHarvestRow(id, { date: ur.date, honeyKg: ur.kg, frames: ur.frames, honeyType: ur.honeyType || '', note: ur.note || '' });
+      return up ? harvestAsRecord(up) : null;
+    }
     var all = loadRecordsAll();
     var key = String(Number(hiveId));
     if (!all[key] || !Array.isArray(all[key][kind])) return null;
@@ -2044,6 +2057,7 @@
     return r;
   }
   function removeRecord(hiveId, kind, id) {
+    if (kind === 'harvest') return removeHarvestRow(id);
     var all = loadRecordsAll();
     var key = String(Number(hiveId));
     if (!all[key] || !Array.isArray(all[key][kind])) return false;
@@ -2052,6 +2066,194 @@
     saveRecordsAll(all);
     return all[key][kind].length !== before;
   }
+
+  /* ================= Hasat kayıtları — TEK depo =================
+   * Hızlı kayıt (kovan başına), kovan kayıt formu ve Raporlar › Bal / verim aynı depoyu yazar/okur.
+   *   canlı: superari.hasat.v2 (boş başlar) · demo: superari.hasat.demo.v2 (örnekler demo=true)
+   * Satır: { id, date, apiaryId, apiaryName, hiveId|null, honeyKg, frames, honeyType, note, source, demo? }
+   * hiveId=null → arılık geneli hasat (kovan belirtilmeden).
+   * Eski depolar (superari.rapor.hasat.v1 ve koloni kayıtlarındaki "harvest") bir kez taşınır.
+   */
+  var HARVEST_KEY_LIVE = 'superari.hasat.v2';
+  var HARVEST_KEY_DEMO = 'superari.hasat.demo.v2';
+  var HARVEST_MIGRATED_KEY = 'superari.hasat.migrated.v2';
+  var HARVEST_DEMO_SEED_KEY = 'superari.hasat.demoSeed.v2';
+  var OLD_RAPOR_HARVEST_KEY = 'superari.rapor.hasat.v1';
+  var HONEY_TYPES = ['Çiçek', 'Kestane', 'Salgı / Orman', 'Ayçiçeği', 'Narenciye', 'Yayla', 'Diğer'];
+  var HARVEST_DEMO_SEED = [
+    { id: 'h1', apiaryId: 'a1', apiaryName: 'Kayaköy Ana Arılık', date: '2026-08-18', honeyKg: 420, frames: 86, note: 'Ana hasat' },
+    { id: 'h2', apiaryId: 'a1', apiaryName: 'Kayaköy Ana Arılık', date: '2026-09-05', honeyKg: 95, frames: 22, note: 'İkinci sıyırma' },
+    { id: 'h3', apiaryId: 'a2', apiaryName: 'Tortum Yayla Arılığı', date: '2026-08-22', honeyKg: 310, frames: 64, note: 'Yayla hasadı' },
+    { id: 'h4', apiaryId: 'a3', apiaryName: 'Palandöken Yayla Arılığı', date: '2026-08-25', honeyKg: 180, frames: 38, note: 'Çiçek balı' },
+    { id: 'h5', apiaryId: 'a4', apiaryName: 'Yanıkdağ Baluğundüzü Arılığı', date: '2026-08-28', honeyKg: 145, frames: 30, note: 'Baluğundüzü' },
+    { id: 'h6', apiaryId: 'a5', apiaryName: 'Cimil Yaylası Arılığı', date: '2026-08-30', honeyKg: 165, frames: 34, note: 'Cimil' },
+    { id: 'h7', apiaryId: 'a1', apiaryName: 'Kayaköy Ana Arılık', date: '2025-08-20', honeyKg: 380, frames: 78, note: 'Geçen sezon ana' },
+    { id: 'h8', apiaryId: 'a2', apiaryName: 'Tortum Yayla Arılığı', date: '2025-08-24', honeyKg: 275, frames: 56, note: 'Geçen sezon yayla' },
+    { id: 'h9', apiaryId: 'a3', apiaryName: 'Palandöken Yayla Arılığı', date: '2025-08-27', honeyKg: 155, frames: 32, note: 'Geçen sezon' },
+    { id: 'h10', apiaryId: 'a4', apiaryName: 'Yanıkdağ Baluğundüzü Arılığı', date: '2025-08-29', honeyKg: 120, frames: 26, note: 'Geçen sezon' },
+    { id: 'h11', apiaryId: 'a5', apiaryName: 'Cimil Yaylası Arılığı', date: '2025-09-01', honeyKg: 140, frames: 28, note: 'Geçen sezon' }
+  ];
+  function harvestKey() { return workMode() === 'live' ? HARVEST_KEY_LIVE : HARVEST_KEY_DEMO; }
+  function readHarvestKey(key) {
+    try { var v = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function writeHarvestKey(key, list) {
+    try { localStorage.setItem(key, JSON.stringify(list || [])); } catch (e) { /* ignore */ }
+  }
+  function hiveById(id) {
+    if (id == null || id === '') return null;
+    var n = Number(id), hit = null;
+    loadHives().forEach(function (h) { if (Number(h.id) === n) hit = h; });
+    return hit;
+  }
+  function apiaryNameOf(aid) {
+    var nm = '';
+    try { loadApiaries().forEach(function (a) { if (String(a.id) === String(aid)) nm = a.name || a.place || ''; }); } catch (e) { /* ignore */ }
+    return nm;
+  }
+  function normalizeHarvest(r) {
+    if (!r || typeof r !== 'object') return null;
+    var o = {
+      id: txt(r.id, 40) || ('h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)),
+      date: isoDate(r.date) || todayLocal()
+    };
+    var hid = (r.hiveId == null || r.hiveId === '') ? null : Number(r.hiveId);
+    o.hiveId = (hid != null && isFinite(hid)) ? hid : null;
+    var hv = (o.hiveId != null && !txt(r.apiaryId, 40)) ? hiveById(o.hiveId) : null;
+    o.apiaryId = txt(r.apiaryId, 40) || (hv ? String(hv.apiaryId || '') : '');
+    o.apiaryName = txt(r.apiaryName, 120) || apiaryNameOf(o.apiaryId) || o.apiaryId;
+    var kg = numIn(r.honeyKg != null ? r.honeyKg : r.kg, 0, 100000);
+    o.honeyKg = kg == null ? 0 : kg;
+    o.frames = intIn(r.frames, 0, 100000);
+    var ht = txt(r.honeyType, 40); if (ht) o.honeyType = ht;
+    var note = txt(r.note, 300); if (note) o.note = note;
+    o.source = pick(r.source, ['rapor', 'kayit', 'eski'], 'kayit');
+    if (r.demo === true) o.demo = true;
+    return o;
+  }
+  function isOldSeedRow(row) {
+    if (!row) return false;
+    return HARVEST_DEMO_SEED.some(function (s) {
+      return s.id === String(row.id) && s.date === row.date && Number(s.honeyKg) === Number(row.honeyKg) && String(s.apiaryId) === String(row.apiaryId);
+    });
+  }
+  /** Bir kez: eski rapor deposu + koloni kayıtlarındaki kovan hasatları → tek depo (id ile tekilleştirilir). */
+  function migrateHarvests() {
+    try { if (localStorage.getItem(HARVEST_MIGRATED_KEY) === '1') return; } catch (e) { return; }
+    var live = readHarvestKey(HARVEST_KEY_LIVE), demo = readHarvestKey(HARVEST_KEY_DEMO);
+    function has(list, id) { return list.some(function (x) { return x && String(x.id) === String(id); }); }
+    /* 1) Eski rapor deposu: örnek satırlar demo tohumuyla zaten gelir; kullanıcı satırları gerçek (canlı) veridir. */
+    var old = [];
+    try { old = JSON.parse(localStorage.getItem(OLD_RAPOR_HARVEST_KEY) || '[]'); if (!Array.isArray(old)) old = []; } catch (e) { old = []; }
+    old.forEach(function (row) {
+      if (!row || isOldSeedRow(row)) return;
+      var x = {}; Object.keys(row).forEach(function (k) { x[k] = row[k]; });
+      x.source = 'rapor'; delete x.demo;
+      var n = normalizeHarvest(x);
+      if (n && !has(live, n.id)) live.push(n);
+    });
+    /* 2) Koloni kayıtlarındaki kovan hasatları: aynı moddaki depoya taşınır, kayıt deposundan silinir. */
+    [[REC_KEY_LIVE, live], [REC_KEY_DEMO, demo]].forEach(function (pair) {
+      var obj;
+      try { obj = JSON.parse(localStorage.getItem(pair[0]) || '{}'); } catch (e) { obj = null; }
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
+      var changed = false;
+      Object.keys(obj).forEach(function (hid) {
+        var hv = obj[hid];
+        if (!hv || !Array.isArray(hv.harvest)) return;
+        hv.harvest.forEach(function (r) {
+          if (!r) return;
+          var n = normalizeHarvest({ id: r.id, date: r.date, hiveId: hid, kg: r.kg, frames: r.frames, note: r.note, honeyType: r.honeyType, demo: r.demo === true, source: 'kayit' });
+          if (n && !has(pair[1], n.id)) pair[1].push(n);
+        });
+        delete hv.harvest;
+        changed = true;
+      });
+      if (changed) { try { localStorage.setItem(pair[0], JSON.stringify(obj)); } catch (e) { /* ignore */ } }
+    });
+    writeHarvestKey(HARVEST_KEY_LIVE, live);
+    writeHarvestKey(HARVEST_KEY_DEMO, demo);
+    try { localStorage.setItem(HARVEST_MIGRATED_KEY, '1'); } catch (e) { /* ignore */ }
+  }
+  /** Demo modda bir kez örnek hasatlar (demo=true, yalnız demo deposuna). */
+  function seedDemoHarvests() {
+    if (workMode() !== 'demo') return;
+    try { if (localStorage.getItem(HARVEST_DEMO_SEED_KEY) === '1') return; localStorage.setItem(HARVEST_DEMO_SEED_KEY, '1'); } catch (e) { return; }
+    var list = readHarvestKey(HARVEST_KEY_DEMO);
+    HARVEST_DEMO_SEED.forEach(function (s) {
+      if (list.some(function (x) { return x && String(x.id) === s.id; })) return;
+      var x = {}; Object.keys(s).forEach(function (k) { x[k] = s[k]; });
+      x.demo = true; x.source = 'rapor';
+      list.push(normalizeHarvest(x));
+    });
+    writeHarvestKey(HARVEST_KEY_DEMO, list);
+  }
+  function harvestPrep() { migrateHarvests(); seedDemoHarvests(); }
+  /** filter: { hiveId, apiaryId, apiaryOnly (yalnız arılık geneli) } */
+  function listHarvests(filter) {
+    harvestPrep();
+    var f = filter || {};
+    return readHarvestKey(harvestKey()).map(normalizeHarvest).filter(function (h) {
+      if (!h) return false;
+      if (f.hiveId != null && Number(h.hiveId) !== Number(f.hiveId)) return false;
+      if (f.hiveId != null && h.hiveId == null) return false;
+      if (f.apiaryId != null && f.apiaryId !== '' && String(h.apiaryId) !== String(f.apiaryId)) return false;
+      if (f.apiaryOnly && h.hiveId != null) return false;
+      return true;
+    }).sort(byDateDesc);
+  }
+  function addHarvestRow(entry) {
+    harvestPrep();
+    var e = {}; Object.keys(entry || {}).forEach(function (k) { e[k] = entry[k]; });
+    delete e.demo; /* kullanıcı girişi asla demo örneği olarak işaretlenmez */
+    if (!e.id) delete e.id;
+    var n = normalizeHarvest(e);
+    if (!n) return null;
+    var list = readHarvestKey(harvestKey());
+    list.push(n);
+    writeHarvestKey(harvestKey(), list);
+    return n;
+  }
+  function updateHarvestRow(id, patch) {
+    harvestPrep();
+    var list = readHarvestKey(harvestKey()), out = null;
+    list = list.map(function (x) {
+      if (!x || String(x.id) !== String(id)) return x;
+      var m = {}; Object.keys(x).forEach(function (k) { m[k] = x[k]; });
+      Object.keys(patch || {}).forEach(function (k) { if (k !== 'id' && k !== 'demo') m[k] = patch[k]; });
+      if (patch && patch.kg != null && patch.honeyKg == null) m.honeyKg = patch.kg;
+      out = normalizeHarvest(m);
+      return out;
+    });
+    if (out) writeHarvestKey(harvestKey(), list);
+    return out;
+  }
+  function removeHarvestRow(id) {
+    harvestPrep();
+    var list = readHarvestKey(harvestKey());
+    var next = list.filter(function (x) { return x && String(x.id) !== String(id); });
+    writeHarvestKey(harvestKey(), next);
+    return next.length !== list.length;
+  }
+  /** Kovan kayıt biçimi (koloni kayıtları API'si için): { id, date, kg, frames, honeyType, note, demo } */
+  function harvestAsRecord(h) {
+    var o = { id: h.id, date: h.date, kg: h.honeyKg, frames: h.frames };
+    if (h.honeyType) o.honeyType = h.honeyType;
+    if (h.note) o.note = h.note;
+    if (h.demo) o.demo = true;
+    return o;
+  }
+  var harvestStore = {
+    KEY_LIVE: HARVEST_KEY_LIVE,
+    KEY_DEMO: HARVEST_KEY_DEMO,
+    HONEY_TYPES: HONEY_TYPES,
+    list: listHarvests,
+    add: addHarvestRow,
+    update: updateHarvestRow,
+    remove: removeHarvestRow,
+    key: harvestKey,
+    migrate: migrateHarvests
+  };
 
   /** Hastalık kaydının seviyesi: { active, level: 'temiz'|'izle'|'orta'|'yüksek'|'kritik', text } */
   function diseaseLevel(r) {
@@ -2413,6 +2615,7 @@
     winterSummary: function (hives, all) { seedAll(); return winterSummary(hives, all); },
     feedTotals: function (hives, all, season) { seedAll(); return feedTotals(hives, all, season); },
     /** Hasat tarihi, arılıktaki bir kovanın ilaç bekleme süresine denk geliyor mu? */
+    harvests: harvestStore,
     withdrawalConflicts: function (apiaryId, date) {
       seedAll();
       var all = loadRecordsAll();
@@ -2923,6 +3126,7 @@
         currentYear: currentYear,
         todayLocal: todayLocal
       },
+      harvests: harvestStore,
       APIARY_BREED_PLAN: APIARY_BREED_PLAN,
       loadApiaries: loadApiaries,
       saveApiaries: saveApiaries,

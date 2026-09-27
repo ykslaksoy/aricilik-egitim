@@ -95,7 +95,7 @@
   function ensureSeeded() {
     try {
       if (localStorage.getItem(SEEDED_FLAG) === '1') {
-        if (!readJson(HARVEST_KEY)) writeJson(HARVEST_KEY, SEED_HARVESTS);
+        if (!unifiedHarvests() && !readJson(HARVEST_KEY)) writeJson(HARVEST_KEY, SEED_HARVESTS);
         if (!readJson(INCOME_KEY)) writeJson(INCOME_KEY, SEED_INCOMES);
         if (!readJson(INSPECTION_KEY)) writeJson(INSPECTION_KEY, SEED_INSPECTIONS);
         if (!readJson(ALERT_HIST_KEY)) writeJson(ALERT_HIST_KEY, SEED_ALERT_HIST);
@@ -103,7 +103,7 @@
         return;
       }
     } catch (e) { /* ignore */ }
-    writeJson(HARVEST_KEY, SEED_HARVESTS);
+    if (!unifiedHarvests()) writeJson(HARVEST_KEY, SEED_HARVESTS);
     writeJson(INCOME_KEY, SEED_INCOMES);
     writeJson(INSPECTION_KEY, SEED_INSPECTIONS);
     writeJson(ALERT_HIST_KEY, SEED_ALERT_HIST);
@@ -111,7 +111,28 @@
     try { localStorage.setItem(SEEDED_FLAG, '1'); } catch (e2) { /* ignore */ }
   }
 
+  /* Tek hasat deposu (demo-data.js › SuperAriDemo.harvests): Hızlı kayıt ve kovan kayıtlarıyla ortak. */
+  function unifiedHarvests() {
+    var D = global.SuperAriDemo;
+    return D && D.harvests && typeof D.harvests.list === 'function' ? D.harvests : null;
+  }
+  function hiveNameMap() {
+    var D = global.SuperAriDemo, m = {};
+    try { (D && D.hives || []).forEach(function (h) { m[String(h.id)] = h.name || ('Kovan ' + h.id); }); } catch (e) { /* ignore */ }
+    return m;
+  }
+
   function loadHarvests() {
+    var U = unifiedHarvests();
+    if (U) {
+      var names = hiveNameMap();
+      return U.list().map(function (h) {
+        var o = {}; Object.keys(h).forEach(function (k) { o[k] = h[k]; });
+        o.frames = h.frames || 0;
+        if (h.hiveId != null) o.hiveName = names[String(h.hiveId)] || ('Kovan ' + h.hiveId);
+        return o;
+      });
+    }
     ensureSeeded();
     return readJson(HARVEST_KEY) || SEED_HARVESTS.slice();
   }
@@ -137,6 +158,17 @@
   }
 
   function addHarvest(entry) {
+    var U = unifiedHarvests();
+    if (U) {
+      var e = entry || {};
+      if (!e.apiaryId && e.hiveId == null) throw new Error('apiaryId gerekli');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(e.date || ''))) throw new Error('tarih gerekli');
+      if (!(Number(String(e.honeyKg).replace(',', '.')) > 0)) throw new Error('kg gerekli');
+      return U.add({
+        apiaryId: e.apiaryId, apiaryName: e.apiaryName, hiveId: (e.hiveId === '' ? null : e.hiveId),
+        date: e.date, honeyKg: e.honeyKg, frames: e.frames, honeyType: e.honeyType, note: e.note, source: 'rapor'
+      });
+    }
     var list = loadHarvests().slice();
     var id = 'h' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
     var row = {
@@ -157,6 +189,8 @@
   }
 
   function removeHarvest(id) {
+    var U = unifiedHarvests();
+    if (U) { U.remove(id); return loadHarvests(); }
     var sid = String(id || '');
     var list = loadHarvests().filter(function (h) { return String(h.id) !== sid; });
     writeJson(HARVEST_KEY, list);
@@ -215,7 +249,19 @@
     });
     var list = Object.keys(byApiary).map(function (k) { return byApiary[k]; })
       .sort(function (a, b) { return b.honeyKg - a.honeyKg; });
-    return { year: y, totalKg: totalKg, totalFrames: totalFrames, rows: rows, byApiary: list };
+    /* Kovan bazında (yalnız kovanı belirtilmiş hasatlar); arılık geneli kayıtlar ayrı toplanır. */
+    var byHiveMap = {}, apiaryLevelKg = 0, apiaryLevelCount = 0;
+    rows.forEach(function (h) {
+      if (h.hiveId == null) { apiaryLevelKg += Number(h.honeyKg) || 0; apiaryLevelCount += 1; return; }
+      var k = String(h.hiveId);
+      if (!byHiveMap[k]) byHiveMap[k] = { hiveId: h.hiveId, hiveName: h.hiveName || ('Kovan ' + h.hiveId), apiaryId: h.apiaryId, apiaryName: h.apiaryName, honeyKg: 0, frames: 0, count: 0 };
+      byHiveMap[k].honeyKg += Number(h.honeyKg) || 0;
+      byHiveMap[k].frames += Number(h.frames) || 0;
+      byHiveMap[k].count += 1;
+    });
+    var byHive = Object.keys(byHiveMap).map(function (k) { return byHiveMap[k]; })
+      .sort(function (a, b) { return b.honeyKg - a.honeyKg; });
+    return { year: y, totalKg: totalKg, totalFrames: totalFrames, rows: rows, byApiary: list, byHive: byHive, apiaryLevelKg: apiaryLevelKg, apiaryLevelCount: apiaryLevelCount };
   }
 
   function incomeSummary(year) {
