@@ -362,13 +362,15 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-25"></script>
-<script src="rapor-store.js?v=koloni-25"></script>
-<script src="sensor-health.js?v=koloni-25"></script>
-<script src="koloni.js?v=koloni-25"></script>
-<script src="ilac-katalog.js?v=koloni-25"></script>
-<script src="bakim-plan.js?v=koloni-25"></script>
-<script src="ogul.js?v=koloni-25"></script>
+<script src="demo-data.js?v=koloni-26"></script>
+<script src="rapor-store.js?v=koloni-26"></script>
+<script src="sensor-health.js?v=koloni-26"></script>
+<script src="koloni.js?v=koloni-26"></script>
+<script src="ilac-katalog.js?v=koloni-26"></script>
+<script src="bakim-plan.js?v=koloni-26"></script>
+<script src="ogul.js?v=koloni-26"></script>
+<script src="irk-tahmin.js?v=koloni-26"></script>
+<script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-ogul-open]') : null; if (t && window.SuperAriOgul) { e.preventDefault(); SuperAriOgul.open(t.getAttribute('data-ogul-open'), { hideHiveLink: true }); } });</script>
 <script src="device-runtime.js"></script>
 <script>
@@ -893,7 +895,8 @@
       '<div class="sum-row">' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico">🐝</span><span class="sum-lbl">Irk</span></div>' +
-          '<div class="sum-val">' + escapeHtml(fieldOrNone(hive.breed)) + '</div>' +
+          '<div class="sum-val">' + escapeHtml(Ddemo && Ddemo.colony && Ddemo.colony.breedLabel ? Ddemo.colony.breedLabel(hive) : fieldOrNone(hive.breed)) + '</div>' +
+          (!hive.breed || hive.breedEstimated ? '<a href="#" data-irk-open="' + escapeHtml(hive.id) + '" class="sum-badge" style="text-decoration:underline;">Irk tahmini</a>' : '') +
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico">💪</span><span class="sum-lbl">Koloni gücü</span></div>' +
@@ -1015,7 +1018,7 @@
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-25"></script>
-<script src="pwa.js?v=koloni-25"></script>
+<script src="nav.js?v=koloni-26"></script>
+<script src="pwa.js?v=koloni-26"></script>
 </body>
 </html>

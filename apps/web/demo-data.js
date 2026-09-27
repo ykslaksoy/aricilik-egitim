@@ -827,6 +827,8 @@
     if (qy != null) out.queenYear = qy;
     if (h.queenSource != null && String(h.queenSource).trim()) out.queenSource = String(h.queenSource).trim().slice(0, 120);
     if (h.queenMarked === true || h.queenMarked === false) out.queenMarked = h.queenMarked;
+    if (out.breed && h.breedEstimated === true) out.breedEstimated = true;
+    if (!out.breed && h.breedUnknown === true) out.breedUnknown = true;
     if (h.queenClipped === true || h.queenClipped === false) out.queenClipped = h.queenClipped;
     if (h.queenClipped === true && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenClippedAt || ''))) out.queenClippedAt = String(h.queenClippedAt);
     var c = parseCalmness(h.calmness);
@@ -954,6 +956,8 @@
     var y = parseQueenYear(q.year);
     o.year = y;
     o.breed = q.breed != null && String(q.breed).trim() ? String(q.breed).trim().slice(0, 60) : '';
+    if (o.breed && q.breedEstimated === true) o.breedEstimated = true;
+    if (!o.breed && q.breedUnknown === true) o.breedUnknown = true;
     if (q.source != null && String(q.source).trim()) o.source = String(q.source).trim().slice(0, 120);
     if (q.marked === true || q.marked === false) o.marked = q.marked;
     if (q.note != null && String(q.note).trim()) o.note = String(q.note).trim().slice(0, 300);
@@ -1007,10 +1011,13 @@
   /** Kovan aynası ← mevcut ana (breed, queenYear, queenSource, queenMarked). */
   function mirrorQueenToHive(hive, q) {
     delete hive.queenYear; delete hive.queenSource; delete hive.queenMarked; delete hive.queenClipped; delete hive.queenClippedAt;
+    delete hive.breedEstimated; delete hive.breedUnknown;
     if (!q) { delete hive.currentQueenId; return hive; }
     hive.currentQueenId = q.id;
     if (q.year != null) hive.queenYear = q.year;
     if (q.breed) hive.breed = q.breed;
+    else if (q.breedUnknown) { delete hive.breed; hive.breedUnknown = true; }
+    if (q.breed && q.breedEstimated) hive.breedEstimated = true;
     if (q.source) hive.queenSource = q.source;
     if (q.marked === true || q.marked === false) hive.queenMarked = q.marked;
     if (q.clipped === true || q.clipped === false) hive.queenClipped = q.clipped;
@@ -1021,6 +1028,8 @@
     return h.currentQueenId === q.id &&
       (h.queenYear == null ? null : h.queenYear) === q.year &&
       (!q.breed || h.breed === q.breed) &&
+      (!q.breedUnknown || (!h.breed && h.breedUnknown === true)) &&
+      (h.breedEstimated === true) === (!!q.breed && q.breedEstimated === true) &&
       (h.queenSource || '') === (q.source || '') &&
       (h.queenMarked == null ? null : h.queenMarked) === (q.marked == null ? null : q.marked) &&
       (h.queenClipped == null ? null : h.queenClipped) === (q.clipped == null ? null : q.clipped) &&
@@ -1147,7 +1156,13 @@
         var q = h.currentQueenId ? queenById(h.currentQueenId, queens) : null;
         if (q) {
           if (Object.prototype.hasOwnProperty.call(patch, 'queenYear')) q.year = parseQueenYear(patch.queenYear);
-          if (patch.breed != null && String(patch.breed).trim()) q.breed = String(patch.breed).trim().slice(0, 60);
+          if (patch.breed != null && String(patch.breed).trim()) {
+            q.breed = String(patch.breed).trim().slice(0, 60);
+            delete q.breedUnknown;
+            if (patch.breedEstimated === true) q.breedEstimated = true; else delete q.breedEstimated;
+          } else if (patch.breedUnknown === true) {
+            q.breed = ''; q.breedUnknown = true; delete q.breedEstimated;
+          }
           if (Object.prototype.hasOwnProperty.call(patch, 'queenSource')) {
             var src = String(patch.queenSource == null ? '' : patch.queenSource).trim();
             if (src) q.source = src.slice(0, 120); else delete q.source;
@@ -1179,6 +1194,18 @@
     saveQueens(queens);
     saveHives(out);
     return found;
+  }
+
+  /** Irk tahmini kabul: ırk «tahmini» işaretiyle mevcut ana kaydına yazılır. */
+  function setBreedEstimate(hiveId, breed) {
+    var b = String(breed || '').trim();
+    if (!b) return null;
+    return updateHiveColony(hiveId, { breed: b, breedEstimated: true }, 'correct');
+  }
+  /** Görünen ırk: «Kafkas (tahmini)» / «Bilinmiyor». */
+  function breedLabel(h) {
+    if (!h || !h.breed) return 'Bilinmiyor';
+    return h.breed + (h.breedEstimated ? ' (tahmini)' : '');
   }
 
   /** Ana arı kanadı kırpıldı: mevcut ana kaydına yazar + tamamlanan görev olarak kayıt düşer. */
@@ -2615,7 +2642,8 @@
       if (q && q.breed) breed = q.breed;
     }
     if (!breed) breed = h.breed || '';
-    if (!breed) breed = plannedBreed(breedPlanKeyFor({ id: h.apiaryId }), 0) || '';
+    if (!breed && !h.breedUnknown) breed = plannedBreed(breedPlanKeyFor({ id: h.apiaryId }), 0) || '';
+    var breedTxt = breed ? breed + (h.breedEstimated ? ' (tahmini)' : '') : '';
     var bf = breedSwarmFactor(breed);
     var why = []; /* { key, text, dir: up | down | info, group: durum | karakter } */
     function R(key, text, dir, group) { why.push({ key: key, text: text, dir: dir || 'info', group: group || 'durum' }); }
@@ -2703,7 +2731,7 @@
     }
     s = Math.round(Math.max(0, Math.min(100, s)));
     var lv = swarmLevelOf(s);
-    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breed + (bf.note ? ', ' + bf.note : ''), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
+    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breedTxt + (bf.note ? ', ' + bf.note : ''), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
     /* Öneriler (nedene göre). */
     var recs = [];
     function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }
@@ -4088,6 +4116,8 @@
         updateHive: updateHiveColony,
         bulkQueenReplace: bulkQueenReplace,
         setQueenClipped: setQueenClipped,
+        setBreedEstimate: setBreedEstimate,
+        breedLabel: breedLabel,
         loadQueens: loadQueens,
         queenById: function (id) { return queenById(id); },
         openPlacement: openPlacement,

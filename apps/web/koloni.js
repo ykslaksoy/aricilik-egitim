@@ -285,7 +285,7 @@
     var opts = c.BREED_OPTIONS.slice();
     var curBreed = String(h.breed || '');
     var isOther = curBreed && opts.indexOf(curBreed) === -1;
-    var breedSel = '<option value="">Seçin</option>' + opts.map(function (b) {
+    var breedSel = '<option value="">Bilinmiyor</option>' + opts.map(function (b) {
       var sel = (b === curBreed || (isOther && b === 'Diğer')) ? ' selected' : '';
       return '<option value="' + esc(b) + '"' + sel + '>' + esc(b) + '</option>';
     }).join('');
@@ -321,6 +321,8 @@
         '<form class="kol-form" id="kolForm" autocomplete="off">' +
           '<label class="full" id="kolDateWrap" hidden>Değişim tarihi<input type="date" name="date" value="' + esc(c.todayLocal ? c.todayLocal() : '') + '"></label>' +
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
+          '<p class="full kol-sub" id="kolIrkHint" style="margin:-.2rem 0 0;"' + (!curBreed || h.breedEstimated ? '' : ' hidden') + '>' + (h.breedEstimated ? 'Irk tahminidir. ' : 'Irk bilinmiyor. ') +
+            '<a href="#" id="kolIrkTahmin" style="color:#2b6cb0;text-decoration:underline;font-weight:700;">Irk tahmini (kesin değil)</a></p>' +
           '<label class="full" id="kolOtherWrap"' + (isOther ? '' : ' hidden') + '>Irk adı<input name="breedOther" maxlength="60" value="' + esc(isOther ? curBreed : '') + '" placeholder="ör. Yerel melez"></label>' +
           '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
           '<label class="full">Kaynak / üretici<input name="queenSource" maxlength="120" value="' + esc(h.queenSource || '') + '" placeholder="ör. Kendi üretimim, ana arı yetiştiricisi"></label>' +
@@ -385,6 +387,14 @@
     });
     form.breed.addEventListener('change', function () {
       otherWrap.hidden = form.breed.value !== 'Diğer';
+      var ih = back.querySelector('#kolIrkHint'); if (ih) ih.hidden = !!form.breed.value && !(h.breedEstimated && form.breed.value === curBreed);
+    });
+    var irkLink = back.querySelector('#kolIrkTahmin');
+    if (irkLink) irkLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!global.SuperAriIrk) { toast('Irk tahmini bu sayfada yok; kovan detayından açın.'); return; }
+      close();
+      global.SuperAriIrk.open(h.id, { onSaved: onSaved });
     });
     function close() { if (back.parentNode) back.parentNode.removeChild(back); document.removeEventListener('keydown', onKey); }
     function onKey(e) { if (e.key === 'Escape') close(); }
@@ -396,7 +406,9 @@
       if (breed === 'Diğer') breed = String(form.breedOther.value || '').trim() || 'Diğer';
       var marked = form.queenMarked.value === '' ? null : form.queenMarked.value === '1';
       var patch = {
-        breed: breed || h.breed || '',
+        breed: breed,
+        breedUnknown: !breed,
+        breedEstimated: !!(breed && h.breedEstimated && breed === curBreed),
         queenYear: form.queenYear.value,
         queenSource: form.queenSource.value,
         queenMarked: marked,
@@ -627,7 +639,7 @@
             (isCurrent ? (age != null && age >= 2 ? '<span class="qbadge renew">Yenile</span>' : (age == null ? '<span class="qbadge unk">Bilinmiyor</span>' : '<span class="badge ok">Aktif</span>'))
               : '<span class="badge cevrimdisi">Geçmiş</span>') + '</div>' +
           '<div class="qmeta">' + esc((q.year != null ? q.year + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '') : 'Yıl bilinmiyor') +
-            ' · ' + (q.breed || 'Irk yok') + (q.source ? ' · ' + q.source : '') + (q.marked === true ? ' · işaretli' : '') + (q.clipped === true ? ' · kanadı kırpık' + (q.clippedAt ? ' (' + q.clippedAt.split('-').reverse().join('.') + ')' : '') : '')) + '</div>' +
+            ' · ' + (q.breed ? q.breed + (q.breedEstimated ? ' (tahmini)' : '') : 'Irk bilinmiyor') + (q.source ? ' · ' + q.source : '') + (q.marked === true ? ' · işaretli' : '') + (q.clipped === true ? ' · kanadı kırpık' + (q.clippedAt ? ' (' + q.clippedAt.split('-').reverse().join('.') + ')' : '') : '')) + '</div>' +
           '<div class="qmeta">' + (hv ? 'Şu an: <b style="color:var(--ink,#1f2933)">' + esc(hv.name) + '</b>' : 'Şu an bir kovanda değil') +
             ' · ' + ps.length + ' yerleşim · ayrıntı için dokunun</div>' +
         '</summary>' +
