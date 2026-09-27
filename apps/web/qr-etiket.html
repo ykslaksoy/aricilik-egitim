@@ -14,6 +14,7 @@
     .qe-label{background:#fff;border:1px dashed #b9a57a;border-radius:10px;padding:.5rem;display:grid;justify-items:center;gap:.2rem;text-align:center;break-inside:avoid;page-break-inside:avoid;min-width:0;}
     .qe-label svg{width:100%;max-width:150px;height:auto;display:block;}
     .qe-name{font-weight:800;font-size:.95rem;overflow-wrap:anywhere;}
+    .qe-clip{display:inline-block;margin-top:.15rem;border:1.5px solid #111;border-radius:4px;padding:0 .25rem;font-size:.7rem;font-weight:900;color:#111;background:#fff;white-space:nowrap;}
     .qe-no{font-weight:900;font-size:1.3rem;letter-spacing:.02em;}
     .qe-ap{font-size:.7rem;color:#555;overflow-wrap:anywhere;}
     .qe-url{font-size:.58rem;color:#777;overflow-wrap:anywhere;}
@@ -64,9 +65,9 @@
     </section>
     <div class="qe-grid" id="qeGrid"></div>
   </main>
-  <script src="demo-data.js?v=koloni-20"></script>
+  <script src="demo-data.js?v=koloni-21"></script>
   <script src="vendor/qrcode.js"></script>
-  <script src="koloni.js?v=koloni-20"></script>
+  <script src="koloni.js?v=koloni-21"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -108,7 +109,8 @@
           : '<div class="qe-band" style="background:#fff;color:#111;border-style:dashed;">Ana yılı bilinmiyor</div>';
         return '<div class="qe-label' + (st && st.refresh ? ' refresh' : '') + '">' +
           '<div class="qe-top">' + qrSvg(url) + '<div class="qe-q"><span class="qe-circ' + (col ? '' : ' unk') + '"' + (col ? ' style="background:' + col.hex + '"' : '') + ' aria-hidden="true"></span>' +
-          '<span class="qe-yr">' + (col ? esc(h.queenYear) + '<br>' + esc(col.name) : 'Yıl<br>yok') + '</span></div></div>' + band +
+          '<span class="qe-yr">' + (col ? esc(h.queenYear) + '<br>' + esc(col.name) : 'Yıl<br>yok') + '</span>' +
+          (h.queenClipped === true ? '<span class="qe-clip">✂ Kırpık</span>' : '') + '</div></div>' + band +
           (st && st.refresh ? '<div class="qe-ref">Etiketi yenile (basılı: ' + esc(st.printedYear != null ? st.printedYear : 'yok') + ')</div>' : '') +
           '<div class="qe-no">No ' + esc(K.hiveNo(h)) + '</div>' +
           '<div class="qe-name">' + esc(h.name) + '</div>' +
@@ -130,6 +132,6 @@
     render();
   })();
   </script>
-<script src="pwa.js?v=koloni-20"></script>
+<script src="pwa.js?v=koloni-21"></script>
 </body>
 </html>

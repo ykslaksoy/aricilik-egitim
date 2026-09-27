@@ -38,6 +38,10 @@
     var title = r.title + ' — ' + h.name + (mode() === 'demo' ? ' · Demo' : '');
     var row = D.taskStore.add({ title: title, hiveId: h.id, due: today(), priority: r.id === 'meme' || r.id === 'bolme' ? 1 : 2, note: '[ogul:' + r.id + '] ' + r.detail });
     if (!row) return 'Kaydedilemedi.';
+    if (done && r.id === 'kanat') {
+      D.colony.setQueenClipped(h.id, true, today());
+      return 'Kaydedildi: ana arı kanadı kırpık (bugün). Ana değişince bu bilgi sıfırlanır.';
+    }
     if (done) {
       D.taskStore.complete(row.id, { note: r.id === 'izle' ? 'İzlemeye devam' : 'Oğul önerisi uygulandı' });
       if (r.id === 'kat') setSuper(h.id);

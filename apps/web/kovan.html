@@ -362,13 +362,13 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-20"></script>
-<script src="rapor-store.js?v=koloni-20"></script>
-<script src="sensor-health.js?v=koloni-20"></script>
-<script src="koloni.js?v=koloni-20"></script>
-<script src="ilac-katalog.js?v=koloni-20"></script>
-<script src="bakim-plan.js?v=koloni-20"></script>
-<script src="ogul.js?v=koloni-20"></script>
+<script src="demo-data.js?v=koloni-21"></script>
+<script src="rapor-store.js?v=koloni-21"></script>
+<script src="sensor-health.js?v=koloni-21"></script>
+<script src="koloni.js?v=koloni-21"></script>
+<script src="ilac-katalog.js?v=koloni-21"></script>
+<script src="bakim-plan.js?v=koloni-21"></script>
+<script src="ogul.js?v=koloni-21"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-ogul-open]') : null; if (t && window.SuperAriOgul) { e.preventDefault(); SuperAriOgul.open(t.getAttribute('data-ogul-open'), { hideHiveLink: true }); } });</script>
 <script src="device-runtime.js"></script>
 <script>
@@ -919,6 +919,7 @@
           (K && K.labelHintHtml && K.labelHintHtml(hive) ? '<div class="kv-row" style="display:block;">' + K.labelHintHtml(hive) + '</div>' : '') +
           kvRow('Ana kaynağı', fieldOrNone(hive.queenSource)) +
           kvRow('İşaretli', hive.queenMarked === true ? 'Evet' : (hive.queenMarked === false ? 'Hayır' : 'Kayıt yok')) +
+          kvRow('Kanadı kırpık', hive.queenClipped === true ? ('Evet' + (hive.queenClippedAt ? ' · ' + hive.queenClippedAt.split('-').reverse().join('.') : '')) : (hive.queenClipped === false ? 'Hayır' : 'Kayıt yok')) +
           kvRow('Sakinlik', K && hive.calmness != null ? K.calmText(hive) : 'Kayıt yok') +
           kvRow('Oğul eğilimi', fieldOrNone(hive.swarmTendency)) +
           (swA ? kvRowHtml('Oğul riski', '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + swA.color + ';margin-right:5px;"></span><b>' + escapeHtml(swA.level) + '</b> · ' + escapeHtml(swA.seasonNote) +
@@ -1014,7 +1015,7 @@
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-20"></script>
-<script src="pwa.js?v=koloni-20"></script>
+<script src="nav.js?v=koloni-21"></script>
+<script src="pwa.js?v=koloni-21"></script>
 </body>
 </html>

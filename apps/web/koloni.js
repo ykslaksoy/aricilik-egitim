@@ -302,6 +302,8 @@
     }).join('');
     var markSel = '<option value="">—</option><option value="1"' + (h.queenMarked === true ? ' selected' : '') + '>Evet</option>' +
       '<option value="0"' + (h.queenMarked === false ? ' selected' : '') + '>Hayır</option>';
+    var clipSel = '<option value="">—</option><option value="1"' + (h.queenClipped === true ? ' selected' : '') + '>Evet</option>' +
+      '<option value="0"' + (h.queenClipped === false ? ' selected' : '') + '>Hayır</option>';
     var ap = d.apiaryById(h.apiaryId);
 
     var back = document.createElement('div');
@@ -323,6 +325,8 @@
           '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
           '<label class="full">Kaynak / üretici<input name="queenSource" maxlength="120" value="' + esc(h.queenSource || '') + '" placeholder="ör. Kendi üretimim, ana arı yetiştiricisi"></label>' +
           '<label>İşaretli mi<select name="queenMarked">' + markSel + '</select></label>' +
+          '<label>Kanadı kırpık<select name="queenClipped">' + clipSel + '</select></label>' +
+          '<label id="kolClipDateWrap"' + (h.queenClipped === true ? '' : ' hidden') + '>Kırpma tarihi<input type="date" name="queenClippedAt" value="' + esc(h.queenClippedAt || (c.todayLocal ? c.todayLocal() : '')) + '"></label>' +
           '<label>Sakinlik<select name="calmness">' + calmSel + '</select></label>' +
           '<label class="full">Oğul eğilimi<select name="swarmTendency">' + swSel + '</select></label>' +
           '<label class="full">Ana arı notu<input name="queenNote" maxlength="300" value="' + esc(q && q.note ? q.note : '') + '" placeholder="Bu ana arıya özel not"></label>' +
@@ -340,8 +344,11 @@
     var mode = 'correct';
     var snapshot = {
       queenYear: form.queenYear.value, queenSource: form.queenSource.value,
-      queenMarked: form.queenMarked.value, queenNote: form.queenNote.value
+      queenMarked: form.queenMarked.value, queenNote: form.queenNote.value,
+      queenClipped: form.queenClipped.value, queenClippedAt: form.queenClippedAt.value
     };
+    var clipWrap = back.querySelector('#kolClipDateWrap');
+    form.queenClipped.addEventListener('change', function () { clipWrap.hidden = form.queenClipped.value !== '1'; });
     function setMode(m) {
       mode = m;
       Array.prototype.forEach.call(back.querySelectorAll('.kol-seg button'), function (btn) {
@@ -359,12 +366,17 @@
         form.queenSource.value = '';
         form.queenMarked.value = '1';
         form.queenNote.value = '';
+        form.queenClipped.value = '';
+        clipWrap.hidden = true;
         saveBtn.textContent = 'Ana arıyı değiştir';
       } else {
         form.queenYear.value = snapshot.queenYear;
         form.queenSource.value = snapshot.queenSource;
         form.queenMarked.value = snapshot.queenMarked;
         form.queenNote.value = snapshot.queenNote;
+        form.queenClipped.value = snapshot.queenClipped;
+        form.queenClippedAt.value = snapshot.queenClippedAt;
+        clipWrap.hidden = snapshot.queenClipped !== '1';
         saveBtn.textContent = 'Kaydet';
       }
     }
@@ -393,7 +405,11 @@
         colonyNote: form.colonyNote.value
       };
       if (mode === 'replace') { patch.note = form.queenNote.value; patch.date = form.date.value; }
-      else patch.queenNote = form.queenNote.value;
+      else {
+        patch.queenNote = form.queenNote.value;
+        patch.queenClipped = form.queenClipped.value === '' ? null : form.queenClipped.value === '1';
+        patch.queenClippedAt = form.queenClippedAt.value;
+      }
       var saved = c.updateHive(h.id, patch, mode);
       close();
       if (!saved) { toast('Kaydedilemedi'); return; }
@@ -611,7 +627,7 @@
             (isCurrent ? (age != null && age >= 2 ? '<span class="qbadge renew">Yenile</span>' : (age == null ? '<span class="qbadge unk">Bilinmiyor</span>' : '<span class="badge ok">Aktif</span>'))
               : '<span class="badge cevrimdisi">Geçmiş</span>') + '</div>' +
           '<div class="qmeta">' + esc((q.year != null ? q.year + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '') : 'Yıl bilinmiyor') +
-            ' · ' + (q.breed || 'Irk yok') + (q.source ? ' · ' + q.source : '') + (q.marked === true ? ' · işaretli' : '')) + '</div>' +
+            ' · ' + (q.breed || 'Irk yok') + (q.source ? ' · ' + q.source : '') + (q.marked === true ? ' · işaretli' : '') + (q.clipped === true ? ' · kanadı kırpık' + (q.clippedAt ? ' (' + q.clippedAt.split('-').reverse().join('.') + ')' : '') : '')) + '</div>' +
           '<div class="qmeta">' + (hv ? 'Şu an: <b style="color:var(--ink,#1f2933)">' + esc(hv.name) + '</b>' : 'Şu an bir kovanda değil') +
             ' · ' + ps.length + ' yerleşim · ayrıntı için dokunun</div>' +
         '</summary>' +

@@ -827,6 +827,8 @@
     if (qy != null) out.queenYear = qy;
     if (h.queenSource != null && String(h.queenSource).trim()) out.queenSource = String(h.queenSource).trim().slice(0, 120);
     if (h.queenMarked === true || h.queenMarked === false) out.queenMarked = h.queenMarked;
+    if (h.queenClipped === true || h.queenClipped === false) out.queenClipped = h.queenClipped;
+    if (h.queenClipped === true && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenClippedAt || ''))) out.queenClippedAt = String(h.queenClippedAt);
     var c = parseCalmness(h.calmness);
     if (c != null) out.calmness = c;
     var st = parseSwarmTendency(h.swarmTendency);
@@ -955,6 +957,8 @@
     if (q.source != null && String(q.source).trim()) o.source = String(q.source).trim().slice(0, 120);
     if (q.marked === true || q.marked === false) o.marked = q.marked;
     if (q.note != null && String(q.note).trim()) o.note = String(q.note).trim().slice(0, 300);
+    if (q.clipped === true || q.clipped === false) o.clipped = q.clipped;
+    if (q.clipped === true && /^\d{4}-\d{2}-\d{2}$/.test(String(q.clippedAt || ''))) o.clippedAt = String(q.clippedAt);
     o.createdAt = String(q.createdAt || new Date().toISOString());
     if (q.migrated === true) o.migrated = true;
     o.placements = (Array.isArray(q.placements) ? q.placements : []).map(function (p) {
@@ -1002,13 +1006,15 @@
   }
   /** Kovan aynası ← mevcut ana (breed, queenYear, queenSource, queenMarked). */
   function mirrorQueenToHive(hive, q) {
-    delete hive.queenYear; delete hive.queenSource; delete hive.queenMarked;
+    delete hive.queenYear; delete hive.queenSource; delete hive.queenMarked; delete hive.queenClipped; delete hive.queenClippedAt;
     if (!q) { delete hive.currentQueenId; return hive; }
     hive.currentQueenId = q.id;
     if (q.year != null) hive.queenYear = q.year;
     if (q.breed) hive.breed = q.breed;
     if (q.source) hive.queenSource = q.source;
     if (q.marked === true || q.marked === false) hive.queenMarked = q.marked;
+    if (q.clipped === true || q.clipped === false) hive.queenClipped = q.clipped;
+    if (q.clipped === true && q.clippedAt) hive.queenClippedAt = q.clippedAt;
     return hive;
   }
   function sameMirror(h, q) {
@@ -1016,7 +1022,9 @@
       (h.queenYear == null ? null : h.queenYear) === q.year &&
       (!q.breed || h.breed === q.breed) &&
       (h.queenSource || '') === (q.source || '') &&
-      (h.queenMarked == null ? null : h.queenMarked) === (q.marked == null ? null : q.marked);
+      (h.queenMarked == null ? null : h.queenMarked) === (q.marked == null ? null : q.marked) &&
+      (h.queenClipped == null ? null : h.queenClipped) === (q.clipped == null ? null : q.clipped) &&
+      (h.queenClippedAt || '') === (q.clipped === true && q.clippedAt ? q.clippedAt : '');
   }
   function cloneObj(h) {
     var c = {};
@@ -1147,6 +1155,14 @@
           if (Object.prototype.hasOwnProperty.call(patch, 'queenMarked')) {
             if (patch.queenMarked === true || patch.queenMarked === false) q.marked = patch.queenMarked; else delete q.marked;
           }
+          if (Object.prototype.hasOwnProperty.call(patch, 'queenClipped')) {
+            if (patch.queenClipped === true) {
+              q.clipped = true;
+              var cd = String(patch.queenClippedAt || '');
+              if (/^\d{4}-\d{2}-\d{2}$/.test(cd)) q.clippedAt = cd; else if (!q.clippedAt) q.clippedAt = todayLocal();
+            } else if (patch.queenClipped === false) { q.clipped = false; delete q.clippedAt; }
+            else { delete q.clipped; delete q.clippedAt; }
+          }
           if (Object.prototype.hasOwnProperty.call(patch, 'queenNote')) {
             var qn = String(patch.queenNote == null ? '' : patch.queenNote).trim();
             if (qn) q.note = qn.slice(0, 300); else delete q.note;
@@ -1163,6 +1179,19 @@
     saveQueens(queens);
     saveHives(out);
     return found;
+  }
+
+  /** Ana arı kanadı kırpıldı: mevcut ana kaydına yazar + tamamlanan görev olarak kayıt düşer. */
+  function setQueenClipped(hiveId, on, date) {
+    var d = isoDate(date) || todayLocal();
+    var saved = updateHiveColony(hiveId, { queenClipped: on === true ? true : (on === false ? false : null), queenClippedAt: d }, 'correct');
+    if (saved && on === true) {
+      try {
+        var row = addUserTask({ title: 'Ana arı kanadı kırpıldı — ' + saved.name + (workMode() === 'demo' ? ' · Demo' : ''), hiveId: saved.id, due: d, priority: 3, note: '[ana:kirpik] ' + (saved.currentQueenId || '') });
+        if (row) completeTask(row.id, { date: d, note: 'Kanat kırpma kaydı' });
+      } catch (e) { /* ignore */ }
+    }
+    return saved;
   }
 
   /**
@@ -2593,6 +2622,8 @@
     if (hasSuper && inSeason) { s -= 10; R('kat', 'Bal katı verilmiş (yer açıldı)', 'down'); }
     s = Math.max(0, Math.min(100, s)) * bf.f;
     s = Math.max(0, Math.min(100, s)) * season.factor;
+    var clipped = h.queenClipped === true;
+    if (clipped) R('kirpik', 'Ana arı kırpık: oğul kaçışı riski azalır', 'down');
     var cell = !!(st && st.swarmCell);
     if (cell) {
       var cd = st.brood && st.brood.date ? ' (muayene ' + fmtTrShort(st.brood.date) + ')' : '';
@@ -2616,7 +2647,9 @@
       if (!cell) A('meme', 'Ana memelerini kontrol et', '7–10 günde bir çerçeve altlarına ve kenarlarına bakın.');
       if (age != null && age >= 2) A('ana', 'Ana arıyı yenile', 'Genç ana oğul eğilimini azaltır.');
       if (season.profile === 'sicak' || strength === 'güçlü') A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını açın, sıcak saatlerde gölge sağlayın.');
-      if (lv.key === 'yuksek' || lv.key === 'cok-yuksek') A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz; koloni kovana geri döner.');
+      /* Kanat kırpma: yalnız çiftleşmiş ve yumurtlayan, henüz kırpılmamış ana. */
+      var laying = !(st && st.queenCellSince) && ((st && st.brood && st.brood.eggs === true) || (age != null && age >= 1));
+      if ((lv.key === 'yuksek' || lv.key === 'cok-yuksek') && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; ana memesi kontrolü, kat atma veya bölme ile birlikte yapın.');
     } else {
       if (cell && !queenless) A('meme', 'Ana memesini kontrol et (kırmayın)', 'Mevsim dışında meme genelde sessiz ana değişimidir; 3 hafta sonra yumurta kontrolü yapın.');
       if (age != null && age >= 3 && !queenless) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
@@ -3972,6 +4005,7 @@
         summaryText: colonySummaryText,
         updateHive: updateHiveColony,
         bulkQueenReplace: bulkQueenReplace,
+        setQueenClipped: setQueenClipped,
         loadQueens: loadQueens,
         queenById: function (id) { return queenById(id); },
         openPlacement: openPlacement,
