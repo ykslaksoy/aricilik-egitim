@@ -14,6 +14,9 @@ Bulut, yapılandırma yokken tamamen kapalıdır; uygulama yalnız cihazda çal�
    «Şifremi unuttum» bağlantısı `https://superari.vercel.app/hesap.html?sifre=yeni` adresine döner (Redirect URL listesinde `https://superari.vercel.app/hesap.html*` olmalı);
    «Reset Password» e-posta şablonu varsayılan haliyle çalışır. Varsayılan Supabase SMTP saatte birkaç e-posta gönderir; yoğun kullanımda özel SMTP gerekir.
 6. Google girişi: Google Cloud'da OAuth istemcisi oluşturup Supabase › Auth › Providers › Google'a girin.
-7. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
+7. Ekip rolleri + bağlantıyla davet: SQL Editor'de `migrations/20260928090000_ekip_roller_davet_baglantisi.sql` dosyasını çalıştırın
+   (roller: Sahip / Yardımcı / İzleyici; izleyici RLS ile salt okunur; tek kullanımlık 14 günlük davet bağlantısı `hesap.html?davet=<kod>`).
+   Çalıştırılmazsa e-posta daveti eskisi gibi (Yardımcı) çalışır; İzleyici ve bağlantı daveti «veritabanı güncellemesi gerekli» der.
+8. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
 
 Demo verisi hiçbir zaman buluta gönderilmez.

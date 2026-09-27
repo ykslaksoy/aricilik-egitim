@@ -697,8 +697,12 @@
   /* ---------------- gönderme ---------------- */
   function push(c, st, entries, F) {
     var byTable = {};
+    var ro = {}; Object.keys(st.roles || {}).forEach(function (u) { if (st.roles[u] === 'izleyici') ro[u] = 1; });
     Object.keys(st.queue).forEach(function (k) {
       var q = st.queue[k], e = entries[k], row;
+      var sk = (e && e.row) || (st.snap[k] && st.snap[k].s) || {};
+      var au = q.t === 'apiaries' ? sk.id : sk.apiary_id;
+      if (au && ro[au]) { delete st.queue[k]; return; } /* izleyici: salt okunur, gönderilmez */
       if (q.del) {
         var sn = st.snap[k];
         if (!sn || !sn.s) { delete st.queue[k]; return; }
@@ -852,8 +856,19 @@
         if (!ses) return { skipped: 'login' };
         st = loadState(ses.user.id);
         var acc = Date.now() - (st.accepted || 0) > 6 * 3600 * 1000 || opts.force
-          ? c.rpc('sa_accept_invites').then(function (x) { if (!x.error) st.accepted = Date.now(); }, function () {})
+          ? c.rpc('sa_accept_invites').then(function (x) { if (!x.error) { st.accepted = Date.now(); if (Number(x.data) > 0) st.cursors = {}; } }, function () {})
           : Promise.resolve();
+        /* Ekip rolleri: izleyici arılıklarına yazma gönderilmez; yeni paylaşılan arılık gelince tam çekme */
+        acc = acc.then(function () {
+          return c.from('apiary_members').select('apiary_id,role').eq('user_id', ses.user.id).then(function (x) {
+            if (x.error || !Array.isArray(x.data)) return;
+            var roles = {}, known = {}, fresh = false;
+            Object.keys(st.links).forEach(function (l) { known[st.links[l]] = 1; });
+            x.data.forEach(function (m) { roles[m.apiary_id] = m.role; if (!known[m.apiary_id] && !(st.roles && st.roles[m.apiary_id])) fresh = true; });
+            st.roles = roles;
+            if (fresh) st.cursors = {};
+          }, function () {});
+        });
         return acc.then(ensureFoto).then(function (f) {
           F = f;
           entries = collect(st);
@@ -976,20 +991,77 @@
     return apUuidOf(localApiaryId).then(function (x) { u = x; return client(); }).then(function (c) {
       return Promise.all([
         c.rpc('sa_apiary_team', { aid: u }),
-        c.from('apiary_invites').select('id,email,role,created_at').eq('apiary_id', u).is('accepted_at', null).order('created_at')
+        c.from('apiary_invites').select('id,email,role,created_at,token,expires_at').eq('apiary_id', u).is('accepted_at', null).order('created_at').then(function (x) {
+          /* ekip rolleri SQL'i çalıştırılmadıysa token sütunu yok: eski sorgu */
+          return x.error ? c.from('apiary_invites').select('id,email,role,created_at').eq('apiary_id', u).is('accepted_at', null).order('created_at') : x;
+        })
       ]);
     }).then(function (r) {
       if (r[0].error) throw r[0].error;
-      return { members: r[0].data || [], invites: (r[1] && !r[1].error && r[1].data) || [] };
+      var now = Date.now();
+      var inv = ((r[1] && !r[1].error && r[1].data) || []).filter(function (i) { return !i.expires_at || Date.parse(i.expires_at) > now; });
+      return { members: r[0].data || [], invites: inv };
     });
   }
-  function invite(localApiaryId, email) {
+  var ROLES = { owner: 'Sahip', yardimci: 'Yardımcı', uye: 'Yardımcı', izleyici: 'İzleyici' };
+  function normRole(r) { return r === 'izleyici' ? 'izleyici' : 'yardimci'; }
+  function needsMigration(err) {
+    var m = String((err && (err.message || err.details)) || err || '');
+    return /role_check|violates check|column .*token|token.*does not exist|expires_at|sa_accept_invite_token|sa_set_member_role|Could not find the function|schema cache/i.test(m);
+  }
+  function migErr() { return new Error('Bu özellik için veritabanı güncellemesi gerekli (supabase/migrations/20260928090000_ekip_roller_davet_baglantisi.sql).'); }
+  function invite(localApiaryId, email, role) {
     var em = String(email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return Promise.reject(new Error('Geçerli bir e-posta yazın'));
-    var u;
-    return sync({ force: true }).then(function () { return apUuidOf(localApiaryId); }).then(function (x) { u = x; return client(); }).then(function (c) {
-      return c.from('apiary_invites').upsert({ apiary_id: u, email: em, role: 'uye' }, { onConflict: 'apiary_id,email' });
+    var u, c, rl = normRole(role);
+    return sync({ force: true }).then(function () { return apUuidOf(localApiaryId); }).then(function (x) { u = x; return client(); }).then(function (cc) {
+      c = cc;
+      return c.from('apiary_invites').upsert({ apiary_id: u, email: em, role: rl }, { onConflict: 'apiary_id,email' });
+    }).then(function (r) {
+      /* eski şema (yalnız owner/uye): yardımcı daveti 'uye' olarak yazılır; izleyici için güncelleme gerekir */
+      if (r.error && needsMigration(r.error)) {
+        if (rl === 'izleyici') throw migErr();
+        return c.from('apiary_invites').upsert({ apiary_id: u, email: em, role: 'uye' }, { onConflict: 'apiary_id,email' });
+      }
+      return r;
     }).then(function (r) { if (r.error) throw r.error; return true; });
+  }
+  /** Bağlantıyla davet: tek kullanımlık, 14 gün geçerli. { url, token, role } */
+  function inviteLink(localApiaryId, role) {
+    var u, rl = normRole(role);
+    return sync({ force: true }).then(function () { return apUuidOf(localApiaryId); }).then(function (x) { u = x; return client(); }).then(function (c) {
+      return c.from('apiary_invites').insert({ apiary_id: u, email: null, role: rl, expires_at: new Date(Date.now() + 14 * 864e5).toISOString() }).select('token').single();
+    }).then(function (r) {
+      if (r.error) throw (needsMigration(r.error) || /null value in column "email"/.test(String(r.error.message)) ? migErr() : r.error);
+      var tok = r.data && r.data.token; if (!tok) throw migErr();
+      return { token: tok, role: rl, url: global.location.origin + '/hesap.html?davet=' + tok };
+    });
+  }
+  /** Davet bağlantısındaki kodu kabul eder, sonra tam eşitleme yapar. { name, role } */
+  function acceptInviteToken(tok) {
+    tok = String(tok || '').trim();
+    if (!/^[0-9a-f-]{36}$/i.test(tok)) return Promise.reject(new Error('Davet kodu geçersiz'));
+    var info;
+    return client().then(function (c) { return c.rpc('sa_accept_invite_token', { tok: tok }); }).then(function (r) {
+      if (r.error) throw (needsMigration(r.error) ? migErr() : r.error);
+      var row = Array.isArray(r.data) ? r.data[0] : r.data;
+      info = { name: (row && row.name) || 'Arılık', role: (row && row.role) || 'yardimci', apiaryId: row && row.apiary_id };
+      return currentState();
+    }).then(function (st) {
+      if (st) { st.cursors = {}; saveState(st); }
+      return sync({ force: true });
+    }).then(function () { return info; });
+  }
+  function setMemberRole(localApiaryId, userId, role) {
+    return apUuidOf(localApiaryId).then(function (u) {
+      return client().then(function (c) { return c.rpc('sa_set_member_role', { aid: u, uid: userId, new_role: normRole(role) }); });
+    }).then(function (r) { if (r.error) throw (needsMigration(r.error) ? migErr() : r.error); return true; });
+  }
+  /** Bu kullanıcının yerel arılıktaki rolü ('owner' | 'yardimci' | 'izleyici' | null) — son eşitlemeden. */
+  function roleOf(localApiaryId) {
+    var st = readJ(STATE_KEY, null); if (!st || !st.links || !st.roles) return null;
+    var u = st.links[String(localApiaryId)]; var r = u && st.roles[u];
+    return r ? (r === 'uye' ? 'yardimci' : r) : null;
   }
   function cancelInvite(id) {
     return client().then(function (c) { return c.from('apiary_invites').delete().eq('id', id); }).then(function (r) { if (r.error) throw r.error; return true; });
@@ -1051,6 +1123,11 @@
     linkApiaries: linkApiaries,
     team: team,
     invite: invite,
+    inviteLink: inviteLink,
+    acceptInviteToken: acceptInviteToken,
+    setMemberRole: setMemberRole,
+    roleOf: roleOf,
+    ROLES: ROLES,
     cancelInvite: cancelInvite,
     removeMember: removeMember,
     autoStart: autoStart,

@@ -13,6 +13,8 @@
     .hb-code form{margin-top:.4rem;}
     .hb-form label{display:grid;gap:.2rem;font-size:.78rem;font-weight:700;color:#5c4813;min-width:0;}
     .hb-form input{font:inherit;font-size:.95rem;padding:.6rem .65rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
+    .hb-form select,[data-linkout] input{font:inherit;font-size:.9rem;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
+    select.hb-small{padding:.28rem .35rem;width:auto;}
     .hb-row{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;}
     .hb-msg{margin:0;font-size:.84rem;line-height:1.4;overflow-wrap:anywhere;}
     .hb-msg.err{color:#c92a2a;font-weight:700;}
@@ -26,7 +28,8 @@
     .hb-check small{color:var(--muted);font-weight:700;white-space:nowrap;}
     .hb-team{background:#fff;border:1px solid var(--border);border-radius:14px;padding:.6rem .7rem;display:grid;gap:.45rem;}
     .hb-team h3{margin:0;font-size:.98rem;}
-    .hb-mem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:center;font-size:.85rem;}
+    .hb-mem{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.35rem .5rem;align-items:center;font-size:.85rem;padding:.3rem 0;border-top:1px solid #f1f3f5;}
+    .hb-mem > b{flex:1 1 11rem;min-width:0;}
     .hb-mem b{overflow-wrap:anywhere;font-weight:650;}
     .hb-tag{display:inline-block;font-size:.68rem;font-weight:800;padding:.08rem .4rem;border-radius:999px;background:#fff3bf;color:#5c4813;margin-left:.3rem;}
     .hb-small{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .55rem;border-radius:9px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
@@ -50,6 +53,15 @@
     <section class="card stack" id="cfgCard">
       <h2 style="margin:0;font-size:1.05rem;">☁️ Bulut durumu</h2>
       <p class="hb-msg" id="cfgMsg">Denetleniyor…</p>
+    </section>
+
+    <section class="card stack" id="davetCard" style="margin-top:1rem;border:2px solid #ffd43b;" hidden>
+      <h2 style="margin:0;font-size:1.05rem;">✉️ Arılık daveti</h2>
+      <p class="hb-msg" id="davetMsg" style="margin:0;"></p>
+      <div class="hb-row" style="gap:.5rem;flex-wrap:wrap;">
+        <button class="btn" type="button" id="btnDavetKatil" hidden>Daveti kabul et</button>
+        <button class="btn secondary" type="button" id="btnDavetVazgec">Vazgeç</button>
+      </div>
     </section>
 
     <section class="card stack" id="loginCard" style="margin-top:1rem;" hidden>
@@ -137,7 +149,7 @@
 
     <section class="card stack" id="teamCard" style="margin-top:1rem;" hidden>
       <h2 style="margin:0;font-size:1.05rem;">👥 Ekip</h2>
-      <p class="muted" style="margin:0;font-size:.84rem;">Arılığa e-postayla üye davet edin. Davet edilen kişi bu uygulamada <b>aynı e-posta</b> ile giriş yaptığında arılık hesabına eklenir ve kayıtları görür / ekler. Davet e-postası otomatik gitmez; «Davet mesajı gönder» ile bağlantıyı siz iletin.</p>
+      <p class="muted" style="margin:0;font-size:.84rem;">Arılığınızı e-postayla ya da <b>davet bağlantısıyla</b> paylaşın. Roller: <b>Yardımcı</b> kayıt ekler ve düzenler · <b>İzleyici</b> yalnız görür. E-posta daveti, kişi <b>aynı e-posta</b> ile giriş yapınca kabul edilir; bağlantı daveti tek kullanımlıktır ve 14 gün geçerlidir. Davet mesajı otomatik gitmez; bağlantıyı siz iletin.</p>
       <div id="teamList" style="display:grid;gap:.6rem;"></div>
     </section>
 
@@ -152,9 +164,9 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-44"></script>
-  <script src="bulut.js?v=koloni-44"></script>
-  <script src="push.js?v=koloni-44"></script>
+  <script src="demo-data.js?v=koloni-45"></script>
+  <script src="bulut.js?v=koloni-45"></script>
+  <script src="push.js?v=koloni-45"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -195,8 +207,43 @@
     }
     function apiaries() { try { return D && D.loadApiaries ? D.loadApiaries() : []; } catch (e) { return []; } }
 
+    /* Davet bağlantısı (?davet=<kod>): giriş öncesi de saklanır; girişten sonra «Daveti kabul et». */
+    var DAVET_KEY = 'superari.davet.bekleyen.v1';
+    (function () {
+      var q = null; try { q = new URLSearchParams(location.search).get('davet'); } catch (e) { /* ignore */ }
+      if (q && /^[0-9a-f-]{36}$/i.test(q)) {
+        try { localStorage.setItem(DAVET_KEY, q); } catch (e2) { /* ignore */ }
+        try { var u = new URL(location.href); u.searchParams.delete('davet'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e3) { /* ignore */ }
+      }
+    })();
+    function pendingTok() { try { return localStorage.getItem(DAVET_KEY); } catch (e) { return null; } }
+    function renderDavet(s) {
+      var t = pendingTok(), dm = $('davetMsg');
+      $('davetCard').hidden = !t; if (!t) return;
+      $('btnDavetKatil').hidden = !(s.enabled && s.loggedIn);
+      if (!s.enabled) msg(dm, 'Bir arılığa davet edildiniz, ancak bulut henüz bağlı değil.', 'err');
+      else if (!s.loggedIn) msg(dm, 'Bir arılığa davet edildiniz. Katılmak için aşağıdan giriş yapın ya da hesap oluşturun, sonra «Daveti kabul et»e dokunun.');
+      else msg(dm, 'Bir arılığa davet edildiniz. Kabul edince arılık ve kayıtları bu hesapta görünür.' + (s.live ? '' : ' Görmek için Ayarlar’dan Canlı moda geçmeniz gerekir.'));
+    }
+    $('btnDavetVazgec').addEventListener('click', function () { try { localStorage.removeItem(DAVET_KEY); } catch (e) { /* ignore */ } $('davetCard').hidden = true; });
+    $('btnDavetKatil').addEventListener('click', function () {
+      var b = $('btnDavetKatil'), dm = $('davetMsg'); b.disabled = true; msg(dm, 'Davet kabul ediliyor…');
+      B.acceptInviteToken(pendingTok()).then(function (info) {
+        try { localStorage.removeItem(DAVET_KEY); } catch (e) { /* ignore */ }
+        var R = B.ROLES || {}, live = B.localStatus ? B.localStatus().live : true;
+        b.hidden = true;
+        msg(dm, '«' + info.name + '» arılığına ' + (R[info.role] || 'Yardımcı') + ' olarak katıldınız.' + (live ? ' Arılık listenizde görünür.' : ' Görmek için Ayarlar’dan Canlı moda geçin.'), 'ok');
+        return render().then(function () { $('davetCard').hidden = false; });
+      }).catch(function (err) {
+        var m = String((err && err.message) || err);
+        if (/bulunamadı|kullanılmış|süresi|başka bir e-posta|geçersiz/i.test(m)) { try { localStorage.removeItem(DAVET_KEY); } catch (e) { /* ignore */ } }
+        msg(dm, /bulunamadı|kullanılmış|süresi|başka bir e-posta|güncellemesi|geçersiz|Önce/i.test(m) ? m : errText(err), 'err');
+      }).then(function () { b.disabled = false; });
+    });
+
     function render() {
       return B.status().then(function (s) {
+        renderDavet(s);
         var cm = $('cfgMsg');
         $('loginCard').hidden = true; $('acctCard').hidden = true; $('firstCard').hidden = true; $('teamCard').hidden = true;
         if (!s.enabled) {
@@ -261,10 +308,20 @@
       $('teamCard').hidden = false;
       var aps = apiaries().filter(function (a) { return s.links[a.id]; });
       var box = $('teamList');
+      /* durum yenilemesinde formu / bağlantı kutusunu / mesajları silme: arılık listesi aynıysa yalnız ekibi yenile */
+      var tk = aps.map(function (a) { return a.id + '=' + a.name; }).join('|');
+      if (box.getAttribute('data-k') === tk && box.children.length) {
+        var nowT = Date.now();
+        if (nowT - (Number(box.getAttribute('data-t')) || 0) > 15000) { box.setAttribute('data-t', String(nowT)); aps.forEach(function (a) { loadTeam(a, s); }); }
+        return;
+      }
+      box.setAttribute('data-k', tk); box.setAttribute('data-t', String(Date.now()));
       box.innerHTML = aps.map(function (a) {
         return '<div class="hb-team" data-team="' + esc(a.id) + '"><h3>' + esc(a.name) + '</h3><div class="hb-mems">Yükleniyor…</div>' +
-          '<form class="hb-form" data-inv="' + esc(a.id) + '"><label>Üye davet et (e-posta)<input type="email" name="email" required placeholder="ekip@ornek.com" inputmode="email"></label>' +
-          '<button class="btn secondary" type="submit">Davet et</button></form><p class="hb-msg" data-tmsg></p></div>';
+          '<form class="hb-form" data-inv="' + esc(a.id) + '"><label>Rol<select name="role"><option value="yardimci">Yardımcı (kayıt ekler, düzenler)</option><option value="izleyici">İzleyici (yalnız görür)</option></select></label>' +
+          '<label>E-postayla davet<input type="email" name="email" required placeholder="ekip@ornek.com" inputmode="email"></label>' +
+          '<div class="hb-row" style="gap:.4rem;flex-wrap:wrap;"><button class="btn secondary" type="submit">E-postayla davet et</button><button class="btn secondary" type="button" data-mklink>🔗 Davet bağlantısı</button></div></form>' +
+          '<div data-linkout hidden style="display:grid;gap:.35rem;"></div><p class="hb-msg" data-tmsg></p></div>';
       }).join('');
       aps.forEach(function (a) { loadTeam(a, s); });
     }
@@ -272,19 +329,39 @@
       var el = document.querySelector('[data-team="' + CSS.escape(String(a.id)) + '"]');
       if (!el) return;
       B.team(a.id).then(function (t) {
-        var meOwner = t.members.some(function (m) { return m.user_id === s.userId && m.role === 'owner'; });
+        var R = B.ROLES || { owner: 'Sahip', yardimci: 'Yardımcı', uye: 'Yardımcı', izleyici: 'İzleyici' };
+        var me = t.members.filter(function (m) { return m.user_id === s.userId; })[0];
+        var meOwner = !!(me && me.role === 'owner');
         var link = location.origin + '/hesap.html';
         el.querySelector('.hb-mems').innerHTML = t.members.map(function (m) {
-          return '<div class="hb-mem"><b>' + esc(m.email || 'Üye') + (m.role === 'owner' ? '<span class="hb-tag">Sahip</span>' : '<span class="hb-tag">Üye</span>') + (m.user_id === s.userId ? ' <small class="muted">(siz)</small>' : '') + '</b>' +
-            (meOwner && m.role !== 'owner' ? '<button type="button" class="hb-small del" data-rm="' + esc(m.user_id) + '">Çıkar</button>' : '<span></span>') + '</div>';
+          var rl = m.role === 'uye' ? 'yardimci' : m.role;
+          var ctl = '<span></span>';
+          if (meOwner && m.role !== 'owner') {
+            ctl = '<span class="hb-row" style="gap:.3rem;"><select class="hb-small" data-setrole="' + esc(m.user_id) + '" aria-label="Rol">' +
+              '<option value="yardimci"' + (rl === 'yardimci' ? ' selected' : '') + '>Yardımcı</option><option value="izleyici"' + (rl === 'izleyici' ? ' selected' : '') + '>İzleyici</option></select>' +
+              '<button type="button" class="hb-small del" data-rm="' + esc(m.user_id) + '">Çıkar</button></span>';
+          }
+          return '<div class="hb-mem"><b>' + esc(m.email || 'Üye') + '<span class="hb-tag">' + esc(R[m.role] || 'Yardımcı') + '</span>' + (m.user_id === s.userId ? ' <small class="muted">(siz)</small>' : '') + '</b>' + ctl + '</div>';
         }).join('') + t.invites.map(function (i) {
-          var body = encodeURIComponent('Merhaba, SüperArı’da «' + a.name + '» arılığına davet edildiniz. Bu bağlantıyı açıp ' + i.email + ' adresiyle giriş yapın: ' + link);
-          return '<div class="hb-mem"><b>' + esc(i.email) + '<span class="hb-tag" style="background:#e9ecef">Davet bekliyor</span></b><span class="hb-row" style="gap:.3rem;">' +
+          var url = i.token ? link + '?davet=' + i.token : link;
+          var rlab = R[i.role] || 'Yardımcı';
+          if (!i.email) {
+            var son = i.expires_at ? new Date(i.expires_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' }) : '';
+            return '<div class="hb-mem"><b>🔗 Bağlantı daveti<span class="hb-tag" style="background:#e9ecef">' + esc(rlab) + (son ? ' · son ' + esc(son) : '') + '</span></b><span class="hb-row" style="gap:.3rem;">' +
+              '<button type="button" class="hb-small" data-copy="' + esc(url) + '">Kopyala</button>' +
+              (meOwner ? '<button type="button" class="hb-small del" data-cancel="' + esc(i.id) + '">İptal</button>' : '') + '</span></div>';
+          }
+          var body = encodeURIComponent('Merhaba, SüperArı’da «' + a.name + '» arılığına ' + rlab + ' olarak davet edildiniz. Bu bağlantıyı açıp ' + i.email + ' adresiyle giriş yapın: ' + url);
+          return '<div class="hb-mem"><b>' + esc(i.email) + '<span class="hb-tag" style="background:#e9ecef">Davet bekliyor · ' + esc(rlab) + '</span></b><span class="hb-row" style="gap:.3rem;">' +
             '<a class="hb-small" style="text-decoration:none" href="mailto:' + esc(i.email) + '?subject=' + encodeURIComponent('SüperArı arılık daveti') + '&body=' + body + '">Davet mesajı gönder</a>' +
             (meOwner ? '<button type="button" class="hb-small del" data-cancel="' + esc(i.id) + '">İptal</button>' : '') + '</span></div>';
         }).join('');
         var form = el.querySelector('form'); form.hidden = !meOwner;
-        if (!meOwner) el.querySelector('[data-tmsg]').textContent = 'Bu arılıkta üyesiniz; davetleri arılık sahibi yönetir.';
+        if (!meOwner) {
+          var mr = me ? (me.role === 'uye' ? 'yardimci' : me.role) : '';
+          el.querySelector('[data-tmsg]').textContent = 'Bu arılıkta ' + (R[mr] || 'üye') + ' rolündesiniz; davetleri arılık sahibi yönetir.' +
+            (mr === 'izleyici' ? ' İzleyici olarak kayıtları yalnız görürsünüz; bu cihazda yaptığınız değişiklikler buluta gönderilmez.' : '');
+        }
       }).catch(function (e) { el.querySelector('.hb-mems').textContent = 'Ekip bilgisi alınamadı: ' + errText(e); });
     }
 
@@ -387,9 +464,43 @@
       var box = f.closest('.hb-team'), apId = f.getAttribute('data-inv');
       var m = box.querySelector('[data-tmsg]');
       msg(m, 'Davet ediliyor…');
-      B.invite(apId, f.elements.email.value).then(function () {
+      B.invite(apId, f.elements.email.value, f.elements.role.value).then(function () {
         msg(m, 'Davet kaydedildi. «Davet mesajı gönder» ile bağlantıyı iletin.', 'ok'); f.reset();
         return B.status().then(function (s) { loadTeam({ id: apId, name: box.querySelector('h3').textContent }, s); });
+      }).catch(function (err) { msg(m, errText(err), 'err'); });
+    });
+    function copyText(t) {
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+      var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ } ta.remove(); return Promise.resolve();
+    }
+    $('teamList').addEventListener('click', function (e) {
+      var mk = e.target.closest('[data-mklink]'), cp = e.target.closest('[data-copy]');
+      if (!mk && !cp) return;
+      e.stopPropagation();
+      var box = e.target.closest('.hb-team'), m = box.querySelector('[data-tmsg]');
+      if (cp) { copyText(cp.getAttribute('data-copy')).then(function () { msg(m, 'Bağlantı kopyalandı.', 'ok'); }); return; }
+      var f = box.querySelector('form[data-inv]'), apId = f.getAttribute('data-inv'), name = box.querySelector('h3').textContent;
+      mk.disabled = true; msg(m, 'Bağlantı oluşturuluyor…');
+      B.inviteLink(apId, f.elements.role.value).then(function (r) {
+        var R = B.ROLES || {};
+        var text = 'SüperArı’da «' + name + '» arılığına ' + (R[r.role] || 'Yardımcı') + ' olarak davetlisiniz. Bağlantıyı açıp giriş yapın ve «Daveti kabul et»e dokunun: ' + r.url;
+        var out = box.querySelector('[data-linkout]'); out.hidden = false;
+        out.innerHTML = '<input readonly value="' + esc(r.url) + '" aria-label="Davet bağlantısı" style="font-size:.78rem;">' +
+          '<div class="hb-row" style="gap:.3rem;flex-wrap:wrap;"><button type="button" class="hb-small" data-copy="' + esc(r.url) + '">Kopyala</button>' +
+          '<a class="hb-small" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(text) + '">WhatsApp ile gönder</a>' +
+          (navigator.share ? '<button type="button" class="hb-small" data-share>Paylaş…</button>' : '') + '</div>';
+        var sh = out.querySelector('[data-share]');
+        if (sh) sh.addEventListener('click', function () { navigator.share({ title: 'SüperArı arılık daveti', text: text }).catch(function () {}); });
+        msg(m, 'Tek kullanımlık bağlantı hazır (14 gün geçerli).', 'ok');
+        return B.status().then(function (s) { loadTeam({ id: apId, name: name }, s); });
+      }).catch(function (err) { msg(m, errText(err), 'err'); }).then(function () { mk.disabled = false; });
+    }, true);
+    $('teamList').addEventListener('change', function (e) {
+      var sel = e.target.closest('[data-setrole]'); if (!sel) return;
+      var box = sel.closest('.hb-team'), apId = box.getAttribute('data-team'), name = box.querySelector('h3').textContent, m = box.querySelector('[data-tmsg]');
+      B.setMemberRole(apId, sel.getAttribute('data-setrole'), sel.value).then(function () {
+        msg(m, 'Rol güncellendi.', 'ok'); return B.status().then(function (s) { loadTeam({ id: apId, name: name }, s); });
       }).catch(function (err) { msg(m, errText(err), 'err'); });
     });
     $('teamList').addEventListener('click', function (e) {
@@ -452,7 +563,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-44"></script>
-<script src="pwa.js?v=koloni-44"></script>
+  <script src="nav.js?v=koloni-45"></script>
+<script src="pwa.js?v=koloni-45"></script>
 </body>
 </html>
