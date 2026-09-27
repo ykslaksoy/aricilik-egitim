@@ -1384,6 +1384,7 @@
       '</form>' +
       '<div class="kr-section-title" id="qkFormTitle" style="margin-top:.6rem;"></div>' +
       '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;"></form>' +
+      '<form class="kol-form" id="qkStock" autocomplete="off" style="margin-top:.55rem;" hidden></form>' +
       '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
     document.body.appendChild(back);
     var sf = back.querySelector('#qkScopeForm');
@@ -1416,7 +1417,69 @@
       var n = back.querySelectorAll('#qkTargets input[data-hid]:checked').length;
       var el = back.querySelector('#qkSelCount'); if (el) el.textContent = n + ' kovan seçili';
       back.querySelector('#krSave').textContent = scope === 'sel' ? 'Seçili ' + n + ' kovana kaydet' : (scope === 'all' ? 'Tüm arılığa kaydet (' + hivesOf().length + ')' : 'Kaydet');
+      if (typeof calcStock === 'function') calcStock();
     }
+    /* ---- Stoktan düşme (İlaçlama / Besleme, isteğe bağlı) ---- */
+    var SK = d.stock || null;
+    var sf2 = back.querySelector('#qkStock');
+    var stockTouched = false;
+    function currentTargets() {
+      if (scope === 'one') return [sf.querySelector('select[name=one]') ? sf.querySelector('select[name=one]').value : null].filter(Boolean);
+      if (scope === 'sel') return Array.prototype.map.call(back.querySelectorAll('#qkTargets input[data-hid]:checked'), function (c) { return c.getAttribute('data-hid'); });
+      return hivesOf().map(function (h) { return h.id; });
+    }
+    function stockItems() {
+      if (!SK) return [];
+      var list = SK.list();
+      if (type === 'ilac') return list.filter(function (x) { return x.category === 'ilac'; });
+      if (type === 'besleme') return list.filter(function (x) { return x.feedType || ['surup', 'seker', 'kek', 'polen'].indexOf(x.category) >= 0; });
+      return [];
+    }
+    function renderStock() {
+      var items = stockItems();
+      if (!SK || (type !== 'ilac' && type !== 'besleme')) { sf2.hidden = true; sf2.innerHTML = ''; return; }
+      sf2.hidden = false;
+      stockTouched = false;
+      sf2.innerHTML = '<label class="full">Stoktan düş (isteğe bağlı)<select name="sitem"><option value="">Düşme</option>' + items.map(function (x) {
+        return '<option value="' + esc(x.id) + '">' + esc(x.name + ' · stokta ' + num(x.qty) + ' ' + x.unit + (x.demo ? ' · Demo' : '')) + '</option>';
+      }).join('') + '</select></label>' +
+        '<label class="full" data-sq hidden><span id="qkSqLbl">Düşülecek toplam</span><input type="number" name="sqty" min="0" step="0.1" inputmode="decimal"></label>' +
+        '<p class="kol-sub full" id="qkSqHint" style="margin:0;">' + (items.length ? '' : 'Stokta uygun kalem yok · <a href="stok.html" style="color:#2b6cb0;text-decoration:underline;">Malzeme stoku</a>') + '</p>';
+      if (type === 'besleme' && f.elements['type']) {
+        var m = items.filter(function (x) { return x.feedType === f.elements['type'].value; })[0];
+        if (m) sf2.elements.sitem.value = m.id;
+      }
+      calcStock();
+    }
+    function calcStock() {
+      if (sf2.hidden || !sf2.elements.sitem) return;
+      var id = sf2.elements.sitem.value;
+      var wrap = sf2.querySelector('[data-sq]'), hint = sf2.querySelector('#qkSqHint');
+      if (!id) { wrap.hidden = true; if (stockItems().length) hint.textContent = ''; return; }
+      var it = stockItems().filter(function (x) { return x.id === id; })[0];
+      if (!it) return;
+      wrap.hidden = false;
+      sf2.querySelector('#qkSqLbl').textContent = 'Düşülecek toplam (' + it.unit + ')';
+      var n = currentTargets().length;
+      var per = null, perUnit = '';
+      if (type === 'besleme' && f.elements.amount) { per = Number(String(f.elements.amount.value).replace(',', '.')); perUnit = r.FEED_UNIT[f.elements['type'].value]; }
+      if (type === 'ilac' && f.elements.dose) { per = Number(String(f.elements.dose.value).replace(',', '.')); perUnit = r.DOSE_UNIT_LABEL[f.elements.doseUnit.value]; }
+      var same = perUnit && perUnit === it.unit;
+      if (!stockTouched) sf2.elements.sqty.value = (same && per > 0 && n) ? String(Math.round(per * n * 10) / 10) : '';
+      hint.textContent = same && per > 0
+        ? num(per) + ' ' + perUnit + ' × ' + n + ' kovan = ' + num(per * n) + ' ' + it.unit + ' · stokta ' + num(it.qty) + ' ' + it.unit
+        : (per > 0 && perUnit ? 'Birim farklı (' + perUnit + ' / ' + it.unit + '): düşülecek toplamı elle girin.' : 'Miktar / doz girilince toplam hesaplanır; elle de yazabilirsiniz.') + ' Stokta ' + num(it.qty) + ' ' + it.unit + '.';
+    }
+    sf2.addEventListener('change', function (e) { if (e.target.name === 'sitem') { stockTouched = false; calcStock(); } });
+    sf2.addEventListener('input', function (e) { if (e.target.name === 'sqty') stockTouched = true; });
+    f.addEventListener('input', function () { calcStock(); });
+    f.addEventListener('change', function (e) {
+      if (type === 'besleme' && e.target.name === 'type' && sf2.elements.sitem) {
+        var m = stockItems().filter(function (x) { return x.feedType === e.target.value; })[0];
+        if (m) { sf2.elements.sitem.value = m.id; stockTouched = false; }
+      }
+      calcStock();
+    });
     function renderForm() {
       back.querySelectorAll('[data-qtype]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-qtype') === type); });
       var t = QUICK_TYPES.filter(function (x) { return x.key === type; })[0];
@@ -1424,6 +1487,7 @@
       f.innerHTML = topicFormHtml(type === 'ilac' ? 'hastalik' : type, today);
       wireTopicForm(type, f, back);
       if (type === 'ilac' && f.elements.treatment) f.elements.treatment.placeholder = 'ör. Oksalik asit damlatma, Amitraz şerit';
+      renderStock();
     }
     back.addEventListener('click', function (e) {
       var t = e.target;
@@ -1453,6 +1517,15 @@
       var got = readTopicForm(type, f);
       if (!got) return;
       if (got.kind === 'harvest' && !confirmHarvestWithdrawal(targets, got.rec.date)) return;
+      var stockPlan = null;
+      if (!sf2.hidden && sf2.elements.sitem && sf2.elements.sitem.value) {
+        var sit = stockItems().filter(function (x) { return x.id === sf2.elements.sitem.value; })[0];
+        var sq = Number(String(sf2.elements.sqty.value || '').replace(',', '.'));
+        if (sit && sq > 0) {
+          if (sq > sit.qty && !confirm('Stokta ' + num(sit.qty) + ' ' + sit.unit + ' ' + sit.name + ' var; ' + num(sq) + ' ' + sit.unit + ' düşülecek ve stok eksiye inecek. Devam edilsin mi?')) return;
+          stockPlan = { item: sit, qty: sq };
+        } else if (sit && !(sq > 0)) { toast('Stoktan düşülecek miktarı girin veya «Düşme» seçin'); return; }
+      }
       var names = [];
       targets.forEach(function (id) {
         var copy = {}; Object.keys(got.rec).forEach(function (k) { copy[k] = got.rec[k]; });
@@ -1460,8 +1533,14 @@
       });
       setLastApiary(sf.elements.apiary.value);
       if (!names.length) { toast('Kaydedilemedi'); return; }
+      var stockMsg = '';
+      if (stockPlan && SK) {
+        var tl = (QUICK_TYPES.filter(function (x) { return x.key === type; })[0] || {}).label || '';
+        var adj = SK.adjust(stockPlan.item.id, -stockPlan.qty, 'Hızlı kayıt: ' + tl + ' · ' + names.length + ' kovan', got.rec.date);
+        if (adj) stockMsg = ' · stoktan ' + num(stockPlan.qty) + ' ' + adj.unit + ' düşüldü' + (adj.low ? ' (stok azaldı)' : '');
+      }
       close();
-      toast(names.length === 1 ? 'Kaydedildi · ' + names[0] : names.length + ' kovana kaydedildi (' + namesShort(names, 4) + ')');
+      toast((names.length === 1 ? 'Kaydedildi · ' + names[0] : names.length + ' kovana kaydedildi (' + namesShort(names, 4) + ')') + stockMsg);
       if (typeof opts.onSaved === 'function') opts.onSaved(names.length);
       try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
     });

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Malzeme stoku · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .st-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;}
+    .st-stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.45rem .4rem;text-align:center;min-width:0;}
+    .st-stat b{display:block;font-size:1.15rem;}
+    .st-stat span{display:block;font-size:.7rem;color:var(--muted);font-weight:700;}
+    .st-stat.red b{color:#c92a2a}
+    .st-list{display:grid;gap:.45rem;}
+    .st-item{background:#fff;border:1px solid var(--border);border-radius:14px;padding:.6rem .7rem;display:grid;gap:.35rem;}
+    .st-item.low{border-color:#ffa8a8;background:#fff5f5;}
+    .st-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:start;}
+    .st-top b{font-size:.95rem;overflow-wrap:anywhere;}
+    .st-top small{display:block;font-size:.76rem;color:var(--muted);overflow-wrap:anywhere;}
+    .st-qty{font-size:1.1rem;font-weight:800;white-space:nowrap;text-align:right;}
+    .st-qty.low{color:#c92a2a;}
+    .st-btns{display:flex;flex-wrap:wrap;gap:.3rem;}
+    .st-btns button{font:inherit;font-size:.78rem;font-weight:800;padding:.38rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
+    .st-btns .del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
+    .st-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .6rem;}
+    .st-form label{display:grid;gap:.2rem;font-size:.76rem;font-weight:700;color:#5c4813;min-width:0;}
+    .st-form .full{grid-column:1 / -1;}
+    .st-form input,.st-form select{font:inherit;font-size:.92rem;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
+    .st-log{font-size:.76rem;color:var(--muted);display:grid;gap:.15rem;}
+    .st-tag{display:inline-block;font-size:.68rem;font-weight:800;padding:.08rem .4rem;border-radius:999px;background:#e9ecef;color:#495057;margin-left:.3rem;vertical-align:middle;}
+    .st-tag.red{background:#ffe3e3;color:#c92a2a;}
+    .st-chips{display:flex;flex-wrap:wrap;gap:.3rem;}
+    .st-chips button{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .65rem;border-radius:999px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
+    .st-chips button.on{background:#fff3bf;border-color:#e0c56a;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="bakim.html">← Bakım</a>
+      <a class="chip" href="ayarlar.html">Ayarlar</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>Malzeme stoku</p></div>
+    </div>
+    <section class="card stack">
+      <div class="st-stats" id="stats"></div>
+      <div class="st-chips" id="cats"></div>
+      <p class="muted" id="modeNote" style="margin:0;font-size:.8rem;"></p>
+    </section>
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 style="margin:0;font-size:1.05rem;">Kalemler</h2>
+      <div class="st-list" id="list"></div>
+    </section>
+    <section class="card stack" style="margin-top:1rem;" id="formCard">
+      <h2 style="margin:0;font-size:1.05rem;" id="formTitle">＋ Yeni kalem</h2>
+      <form class="st-form" id="f" autocomplete="off">
+        <input type="hidden" name="id">
+        <label class="full">Ad<input name="name" maxlength="80" required placeholder="ör. Şurup 2:1, Amitraz şerit"></label>
+        <label>Tür<select name="category"></select></label>
+        <label>Birim<select name="unit"></select></label>
+        <label>Miktar<input type="number" name="qty" step="0.1" inputmode="decimal" required></label>
+        <label>Uyarı eşiği<input type="number" name="threshold" min="0" step="0.1" inputmode="decimal" placeholder="ör. 10"></label>
+        <label class="full">Besleme türü eşleşmesi (Hızlı kayıt › Besleme)<select name="feedType"><option value="">Yok</option></select></label>
+        <label class="full">Not<input name="note" maxlength="200"></label>
+        <button type="submit" class="btn full" id="fSave">Kaydet</button>
+        <button type="button" class="btn secondary full" id="fCancel" hidden>Vazgeç</button>
+      </form>
+      <p class="muted" style="margin:0;font-size:.8rem;">Miktar eşik değerine inince veya altına düşünce Bugün sekmesinde ve Uyarılar'da «Stok azaldı» uyarısı çıkar. Hızlı kayıt › İlaçlama / Besleme kaydederken isteğe bağlı olarak stoktan düşebilirsiniz.</p>
+    </section>
+  </main>
+  <script src="demo-data.js?v=koloni-11"></script>
+  <script src="koloni.js?v=koloni-11"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, K = window.SuperAriKoloni;
+    if (!D || !D.stock) return;
+    var S = D.stock, R = D.records;
+    var esc = K ? K.esc : function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    var fmt = K ? K.fmtDate : function (d) { return d; };
+    var cat = 'all';
+    var f = document.getElementById('f');
+    f.elements.category.innerHTML = S.CATS.map(function (c) { return '<option value="' + c.key + '">' + esc(c.label) + '</option>'; }).join('');
+    f.elements.unit.innerHTML = S.UNITS.map(function (u) { return '<option value="' + esc(u) + '">' + esc(u) + '</option>'; }).join('');
+    f.elements.feedType.innerHTML += R.FEED_TYPES.map(function (t) { return '<option value="' + t.key + '">' + esc(t.label + ' (' + t.unit + ')') + '</option>'; }).join('');
+    document.getElementById('modeNote').textContent = R.workMode() === 'live'
+      ? 'Canlı mod: yalnız sizin eklediğiniz kalemler. Kayıtlar bu cihazda saklanır.'
+      : 'Demo mod: örnek kalemler «Demo» etiketlidir; canlı moda geçince görünmez.';
+    function n(v) { return String(Math.round((Number(v) || 0) * 10) / 10).replace('.', ','); }
+    function render() {
+      var list = S.list();
+      var low = list.filter(function (x) { return x.low; });
+      document.getElementById('stats').innerHTML = '<div class="st-stat"><b>' + list.length + '</b><span>Kalem</span></div>' +
+        '<div class="st-stat red"><b>' + low.length + '</b><span>Azalan</span></div>' +
+        '<div class="st-stat"><b>' + list.filter(function (x) { return x.qty <= 0; }).length + '</b><span>Tükenen</span></div>';
+      var used = {}; list.forEach(function (x) { used[x.category] = (used[x.category] || 0) + 1; });
+      document.getElementById('cats').innerHTML = '<button type="button" data-cat="all" class="' + (cat === 'all' ? 'on' : '') + '">Tümü ' + list.length + '</button>' +
+        (low.length ? '<button type="button" data-cat="low" class="' + (cat === 'low' ? 'on' : '') + '">Azalan ' + low.length + '</button>' : '') +
+        S.CATS.filter(function (c) { return used[c.key]; }).map(function (c) { return '<button type="button" data-cat="' + c.key + '" class="' + (cat === c.key ? 'on' : '') + '">' + esc(c.label) + ' ' + used[c.key] + '</button>'; }).join('');
+      var shown = list.filter(function (x) { return cat === 'all' || (cat === 'low' ? x.low : x.category === cat); });
+      document.getElementById('list').innerHTML = shown.map(function (x) {
+        var last = x.log.slice(-3).reverse();
+        return '<div class="st-item' + (x.low ? ' low' : '') + '" data-id="' + esc(x.id) + '"><div class="st-top"><span><b>' + esc(x.name) + '</b>' +
+          (x.demo ? '<span class="st-tag">Demo</span>' : '') + (x.low ? '<span class="st-tag red">' + (x.qty <= 0 ? 'Tükendi' : 'Azaldı') + '</span>' : '') +
+          '<small>' + esc(S.CAT_LABEL[x.category] + (x.threshold ? ' · eşik ' + n(x.threshold) + ' ' + x.unit : ' · eşik yok') + (x.note ? ' · ' + x.note : '')) + '</small></span>' +
+          '<span class="st-qty' + (x.low ? ' low' : '') + '">' + n(x.qty) + ' ' + esc(x.unit) + '</span></div>' +
+          (last.length ? '<div class="st-log">' + last.map(function (l) { return '<span>' + esc(fmt(l.date)) + ' · ' + (l.delta > 0 ? '+' : '') + n(l.delta) + ' ' + esc(x.unit) + ' · ' + esc(l.reason) + '</span>'; }).join('') + '</div>' : '') +
+          '<div class="st-btns"><button type="button" data-in="' + esc(x.id) + '">＋ Giriş</button><button type="button" data-out="' + esc(x.id) + '">− Kullanım</button>' +
+          '<button type="button" data-edit="' + esc(x.id) + '">Düzenle</button><button type="button" class="del" data-del="' + esc(x.id) + '">Sil</button></div></div>';
+      }).join('') || '<p class="muted" style="margin:0;">' + (list.length ? 'Bu türde kalem yok.' : 'Henüz kalem yok. Aşağıdan şurup, kek, ilaç, çerçeve gibi malzemeleri ekleyin.') + '</p>';
+    }
+    function resetForm() {
+      f.reset(); f.elements.id.value = '';
+      document.getElementById('formTitle').textContent = '＋ Yeni kalem';
+      document.getElementById('fCancel').hidden = true;
+    }
+    document.querySelector('main').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-cat],[data-in],[data-out],[data-edit],[data-del]');
+      if (!b) return;
+      if (b.hasAttribute('data-cat')) { cat = b.getAttribute('data-cat'); render(); return; }
+      var id = b.getAttribute('data-in') || b.getAttribute('data-out') || b.getAttribute('data-edit') || b.getAttribute('data-del');
+      var it = S.list().filter(function (x) { return x.id === id; })[0];
+      if (!it) return;
+      if (b.hasAttribute('data-in') || b.hasAttribute('data-out')) {
+        var inn = b.hasAttribute('data-in');
+        var v = prompt((inn ? 'Giriş' : 'Kullanım') + ' miktarı (' + it.unit + ') — ' + it.name + ':', '');
+        if (v == null) return;
+        var q = Number(String(v).replace(',', '.'));
+        if (!(q > 0)) { alert('Geçerli bir miktar girin.'); return; }
+        S.adjust(id, inn ? q : -q, inn ? 'Giriş (elle)' : 'Kullanım (elle)');
+      } else if (b.hasAttribute('data-edit')) {
+        f.elements.id.value = it.id; f.elements.name.value = it.name; f.elements.category.value = it.category; f.elements.unit.value = it.unit;
+        f.elements.qty.value = it.qty; f.elements.threshold.value = it.threshold || ''; f.elements.feedType.value = it.feedType || ''; f.elements.note.value = it.note || '';
+        document.getElementById('formTitle').textContent = 'Düzenle · ' + it.name;
+        document.getElementById('fCancel').hidden = false;
+        document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
+        return;
+      } else {
+        if (!confirm(it.name + ' silinsin mi?')) return;
+        S.remove(id);
+      }
+      try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+      render();
+    });
+    document.getElementById('fCancel').addEventListener('click', resetForm);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var saved = S.save({ id: f.elements.id.value || undefined, name: f.elements.name.value, category: f.elements.category.value, unit: f.elements.unit.value,
+        qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value });
+      if (!saved) return;
+      if (K && K.toast) K.toast('Kaydedildi · ' + saved.name);
+      resetForm();
+      try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+      render();
+    });
+    render();
+  })();
+  </script>
+  <script src="nav.js?v=koloni-11"></script>
+</body>
+</html>

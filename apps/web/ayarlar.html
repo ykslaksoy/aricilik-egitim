@@ -136,6 +136,18 @@
       </div>
     </section>
 
+    <section class="auth-card" id="araclar">
+      <div class="settings-head">
+        <div>
+          <h2>Araçlar</h2>
+          <p class="sub">Malzeme stoku ve uygulama ayarları.</p>
+        </div>
+      </div>
+      <div class="stack" id="araclar-panel">
+        <a class="btn secondary" href="stok.html" id="lnk-stok" style="text-decoration:none;text-align:center;">📦 Malzeme stoku <span id="stok-az" class="muted" style="font-weight:600"></span></a>
+      </div>
+    </section>
+
     <section class="auth-card">
       <div class="settings-head">
         <div>
@@ -192,8 +204,19 @@
       </details>
     </section>
   </div>
-  <script src="demo-data.js?v=koloni-10"></script>
+  <script src="demo-data.js?v=koloni-11"></script>
   <script src="device-runtime.js"></script>
+  <script>
+  (function () {
+    try {
+      var S = window.SuperAriDemo && window.SuperAriDemo.stock;
+      if (!S) return;
+      var low = S.list().filter(function (x) { return x.low; }).length;
+      var el = document.getElementById('stok-az');
+      if (el && low) el.textContent = '· ' + low + ' kalem azaldı';
+    } catch (e) { /* ignore */ }
+  })();
+  </script>
   <script src="panels.js"></script>
   <script>
     (function () {

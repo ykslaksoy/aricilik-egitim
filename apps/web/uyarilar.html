@@ -69,7 +69,7 @@
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-10"></script>
+  <script src="demo-data.js?v=koloni-11"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -160,17 +160,17 @@
       }
 
       function renderAlertCard(a) {
-        var hive = D.hiveById(a.hiveId);
-        var hiveName = hive ? hive.name : ('Kovan ' + a.hiveId);
+        var hive = a.hiveId != null ? D.hiveById(a.hiveId) : null;
+        var hiveName = hive ? hive.name : (a.hiveId != null ? 'Kovan ' + a.hiveId : 'Genel');
         var pri = a.severity === 'high' ? 1 : (a.severity === 'medium' ? 2 : 3);
         return (
           '<article class="item-card">' +
             '<div class="row">' +
-              '<h3>' + esc(a.title) + '</h3>' +
+              '<h3>' + esc(a.title) + (a.demo ? ' <span class="badge cevrimdisi">Demo</span>' : '') + '</h3>' +
               '<span class="badge priority-' + pri + '">' + esc(a.type || 'uyarı') + '</span>' +
             '</div>' +
             '<div class="meta">' + esc(hiveName) +
-              ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a></div>' +
+              (a.hiveId != null ? ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>' : (a.href ? ' · <a href="' + esc(a.href) + '">Aç</a>' : '')) + '</div>' +
           '</article>'
         );
       }
@@ -266,7 +266,7 @@
         (effectiveMode === 'all' ? allLabel : (apName || 'Arılık'));
       noteEl.textContent = sensorFilter
         ? 'Sensör kaynaklı demo uyarılar (tarti, sağlık, oğul…).'
-        : 'Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.';
+        : ((D.records && D.records.workMode() === 'live') ? 'Canlı mod: kayıtlarınızdan ve malzeme stokundan üretilen uyarılar.' : 'Demo mod: örnek uyarılar «Demo» etiketlidir; kayıtlardan ve stoktan üretilen uyarılar da listelenir.');
 
       modeSwitchEl.innerHTML =
         '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">' + esc(allLabel) + '</a>' +

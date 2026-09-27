@@ -3453,6 +3453,110 @@
     batchTasks: batchTasks
   };
 
+  /* ================= Malzeme stoku =================
+   * superari.stok.v1 (canlı, boş başlar) / superari.stok.demo.v1 (demo: örnek kalemler demo=true).
+   * Kalem: { id, name, category, qty, unit, threshold, feedType?, note?, demo?, log:[{ date, delta, reason }] }
+   */
+  var STOCK_LIVE = 'superari.stok.v1', STOCK_DEMO = 'superari.stok.demo.v1', STOCK_SEED = 'superari.stokSeed.demo.v1';
+  var STOCK_CATS = [
+    { key: 'surup', label: 'Şurup' }, { key: 'seker', label: 'Şeker' }, { key: 'kek', label: 'Kek' }, { key: 'polen', label: 'Polen / katkı' },
+    { key: 'ilac', label: 'İlaç' }, { key: 'cerceve', label: 'Çerçeve' }, { key: 'temelPetek', label: 'Temel petek' }, { key: 'kovan', label: 'Kovan / kat' },
+    { key: 'ekipman', label: 'Ekipman' }, { key: 'diger', label: 'Diğer' }
+  ];
+  var STOCK_UNITS = ['L', 'kg', 'adet', 'şerit', 'ml', 'g', 'paket'];
+  var STOCK_CAT_LABEL = {}; STOCK_CATS.forEach(function (c) { STOCK_CAT_LABEL[c.key] = c.label; });
+  function stockKey() { return workMode() === 'live' ? STOCK_LIVE : STOCK_DEMO; }
+  function normalizeStock(it) {
+    if (!it || !it.id) return null;
+    var o = { id: String(it.id).slice(0, 40), name: txt(it.name, 80) || 'Kalem' };
+    o.category = pick(it.category, STOCK_CATS.map(function (c) { return c.key; }), 'diger');
+    o.unit = pick(it.unit, STOCK_UNITS, 'adet');
+    var q = numIn(it.qty, -100000, 1000000); o.qty = q == null ? 0 : q;
+    var th = numIn(it.threshold, 0, 1000000); o.threshold = th == null ? 0 : th;
+    if (it.feedType && FEED_LABEL[it.feedType]) o.feedType = it.feedType;
+    var note = txt(it.note, 200); if (note) o.note = note;
+    if (it.demo === true) o.demo = true;
+    o.log = (Array.isArray(it.log) ? it.log : []).filter(Boolean).slice(-40).map(function (l) {
+      return { date: isoDate(l.date) || todayLocal(), delta: Number(l.delta) || 0, reason: txt(l.reason, 160) };
+    });
+    o.low = o.threshold > 0 && o.qty <= o.threshold;
+    return o;
+  }
+  function readStock() { try { var a = JSON.parse(localStorage.getItem(stockKey()) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function writeStock(a) { try { localStorage.setItem(stockKey(), JSON.stringify(a || [])); } catch (e) { /* ignore */ } }
+  function seedDemoStock() {
+    if (workMode() !== 'demo') return;
+    try { if (localStorage.getItem(STOCK_SEED) === '1') return; localStorage.setItem(STOCK_SEED, '1'); } catch (e) { return; }
+    var a = readStock();
+    if (a.length) return;
+    var t = todayLocal();
+    [
+      { id: 'sd1', name: 'Şurup 2:1', category: 'surup', qty: 40, unit: 'L', threshold: 20, feedType: 'surup21' },
+      { id: 'sd2', name: 'Arı keki', category: 'kek', qty: 6, unit: 'kg', threshold: 10, feedType: 'kek' },
+      { id: 'sd3', name: 'Toz şeker', category: 'seker', qty: 50, unit: 'kg', threshold: 25 },
+      { id: 'sd4', name: 'Amitraz şerit (onaylı)', category: 'ilac', qty: 12, unit: 'şerit', threshold: 10 },
+      { id: 'sd5', name: 'Oksalik asit çözeltisi', category: 'ilac', qty: 500, unit: 'ml', threshold: 200 },
+      { id: 'sd6', name: 'Boş çerçeve', category: 'cerceve', qty: 60, unit: 'adet', threshold: 30 },
+      { id: 'sd7', name: 'Temel petek', category: 'temelPetek', qty: 25, unit: 'adet', threshold: 40 },
+      { id: 'sd8', name: 'Boş kovan (Langstroth)', category: 'kovan', qty: 3, unit: 'adet', threshold: 2 }
+    ].forEach(function (x) { x.demo = true; x.log = [{ date: t, delta: x.qty, reason: 'Demo başlangıç stoğu' }]; a.push(normalizeStock(x)); });
+    writeStock(a);
+  }
+  function listStock() {
+    seedDemoStock();
+    return readStock().map(normalizeStock).filter(Boolean).sort(function (a, b) { return (b.low - a.low) || a.name.localeCompare(b.name, 'tr'); });
+  }
+  function saveStockItem(it) {
+    seedDemoStock();
+    var a = readStock();
+    var isNew = !it.id;
+    var base = isNew ? { id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), log: [] } : null;
+    if (!isNew) a.forEach(function (x) { if (x && x.id === it.id) base = x; });
+    if (!base) return null;
+    var m = cloneObj(base);
+    ['name', 'category', 'unit', 'threshold', 'feedType', 'note'].forEach(function (k) { if (Object.prototype.hasOwnProperty.call(it, k)) m[k] = it[k]; });
+    if (!it.feedType) delete m.feedType;
+    var newQty = numIn(it.qty, -100000, 1000000);
+    if (newQty != null && newQty !== Number(base.qty || 0)) {
+      m.log = (m.log || []).concat([{ date: todayLocal(), delta: Math.round((newQty - Number(base.qty || 0)) * 10) / 10, reason: isNew ? 'Başlangıç stoğu' : 'Sayım / düzeltme' }]);
+      m.qty = newQty;
+    }
+    var n = normalizeStock(m);
+    if (!n) return null;
+    if (isNew) a.push(n); else a = a.map(function (x) { return x && x.id === n.id ? n : x; });
+    writeStock(a);
+    return n;
+  }
+  /** Stok hareketi: delta (+ giriş / − kullanım). */
+  function adjustStock(id, delta, reason, date) {
+    var a = readStock(), out = null;
+    var d = numIn(delta, -1000000, 1000000);
+    if (!d) return null;
+    a = a.map(function (x) {
+      if (!x || x.id !== id) return x;
+      var m = cloneObj(x);
+      m.qty = Math.round(((Number(m.qty) || 0) + d) * 10) / 10;
+      m.log = (Array.isArray(m.log) ? m.log : []).concat([{ date: isoDate(date) || todayLocal(), delta: d, reason: txt(reason, 160) || (d > 0 ? 'Giriş' : 'Kullanım') }]);
+      out = normalizeStock(m);
+      return out;
+    });
+    if (out) writeStock(a);
+    return out;
+  }
+  function removeStock(id) {
+    var a = readStock(); var n = a.filter(function (x) { return x && x.id !== id; });
+    writeStock(n); return n.length !== a.length;
+  }
+  function stockAlerts() {
+    return listStock().filter(function (x) { return x.low; }).map(function (x) {
+      return { id: 'stok-az-' + x.id, title: 'Stok azaldı — ' + x.name + ': ' + String(x.qty).replace('.', ',') + ' ' + x.unit + ' (eşik ' + String(x.threshold).replace('.', ',') + ')', type: 'stok', severity: x.qty <= 0 ? 'high' : 'medium', auto: true, demo: !!x.demo, href: 'stok.html' };
+    });
+  }
+  var stockStore = {
+    CATS: STOCK_CATS, CAT_LABEL: STOCK_CAT_LABEL, UNITS: STOCK_UNITS,
+    list: listStock, save: saveStockItem, adjust: adjustStock, remove: removeStock, alerts: stockAlerts
+  };
+
   /* ================= Görevler: tamamlama + elle eklenen görevler =================
    * Tamamlanan: superari.gorevTamam.v1 (canlı) / .demo.v1 → { "<taskId>": { date, note, sig, title, hiveId, apiaryId, auto } }
    * Elle görev: superari.gorevler.v1 (canlı) / .demo.v1 → [ { id, title, hiveId, apiaryId, due, priority, note } ]
@@ -3579,6 +3683,7 @@
       get alerts() {
         var extra = [];
         try { extra = colonyRecords.derived().alerts; } catch (e) { extra = []; }
+        try { extra = extra.concat(stockAlerts()); } catch (e) { /* ignore */ }
         var base = workMode() === 'demo' ? alerts.map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];
         return base.concat(extra);
       },
@@ -3588,6 +3693,7 @@
       },
       taskStore: taskStore,
       colonyOps: colonyOps,
+      stock: stockStore,
       records: colonyRecords,
       get counts() {
         var h = loadHives();
