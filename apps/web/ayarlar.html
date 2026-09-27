@@ -151,6 +151,16 @@
           <button class="btn" type="button" id="btn-pwa-install" hidden>📲 Ana ekrana ekle</button>
           <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Uygulama bir kez internetle açıldıktan sonra internet olmadan da açılır; kayıtlar bu cihaza yazılır. Harita, hava durumu ve sesle yazma için internet gerekir.</p>
         </div>
+        <div id="notif-box" style="display:grid;gap:.45rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
+          <strong style="font-size:.95rem;">🔔 Görev bildirimleri</strong>
+          <p class="muted" id="notif-status" style="margin:0;font-size:.85rem;line-height:1.4;"></p>
+          <div style="display:flex;flex-wrap:wrap;gap:.45rem;">
+            <button class="btn" type="button" id="btn-notif-on">🔔 Bildirimleri aç</button>
+            <button class="btn secondary" type="button" id="btn-notif-off" hidden>Bildirimleri kapat</button>
+            <button class="btn secondary" type="button" id="btn-notif-test" hidden>Deneme bildirimi</button>
+          </div>
+          <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Önemli: Sunucu olmadığı için bildirimler yalnız uygulama açıldığında ve açıkken (yaklaşık 30 dakikada bir) denetlenir; uygulama kapalıyken bildirim gelmez. iPhone / iPad'de bildirim için uygulamayı önce ana ekrana ekleyin (iOS 16.4+) ve oradan açın.</p>
+        </div>
       </div>
     </section>
 
@@ -210,7 +220,7 @@
       </details>
     </section>
   </div>
-  <script src="demo-data.js?v=koloni-14"></script>
+  <script src="demo-data.js?v=koloni-15"></script>
   <script src="device-runtime.js"></script>
   <script>
   (function () {
@@ -608,7 +618,7 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="pwa.js?v=koloni-14"></script>
+<script src="pwa.js?v=koloni-15"></script>
 <script>
   (function () {
     var P = window.SuperAriPWA;
@@ -622,6 +632,25 @@
     btn.addEventListener('click', function () { P.install().then(render); });
     P.onChange(render);
     render();
+    var ns = document.getElementById('notif-status'), on = document.getElementById('btn-notif-on'), off = document.getElementById('btn-notif-off'), test = document.getElementById('btn-notif-test');
+    function renderN() {
+      var en = P.notifEnabled(), perm = P.notifPermission();
+      ns.textContent = P.notifHelpText();
+      on.hidden = en || perm === 'unsupported' || perm === 'denied';
+      off.hidden = !en;
+      test.hidden = !en;
+    }
+    on.addEventListener('click', function () {
+      P.enableNotif().then(function (perm) {
+        if (perm === 'granted') P.toast('Bildirimler açıldı');
+        else if (perm === 'denied') P.toast('Bildirim izni verilmedi');
+        renderN();
+      });
+    });
+    off.addEventListener('click', function () { P.disableNotif(); P.toast('Bildirimler kapatıldı'); renderN(); });
+    test.addEventListener('click', function () { P.testNotif().then(function (ok) { if (!ok) P.toast('Bildirim gösterilemedi'); }); });
+    P.onChange(renderN);
+    renderN();
   })();
 </script>
 </body>

@@ -88,7 +88,123 @@
   global.addEventListener('offline', function () { toast('Çevrimdışı · kayıtlar bu cihaza yazılmaya devam eder'); });
   global.addEventListener('online', function () { toast('Tekrar çevrimiçi'); });
 
+  /* ---- Yerel bildirimler (sunucu yok: yalnız uygulama açıldığında / açıkken denetlenir) ---- */
+  var NOTIF_KEY = 'superari.bildirim.v1', SENT_KEY = 'superari.bildirimGonderildi.v1', CHECK_EVERY_MS = 30 * 60 * 1000;
+  function readJson(k, d) { try { var v = JSON.parse(global.localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } }
+  function writeJson(k, v) { try { global.localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } }
+  function notifSupported() { return 'Notification' in global; }
+  function notifPermission() { return notifSupported() ? global.Notification.permission : 'unsupported'; }
+  function notifEnabled() { return !!readJson(NOTIF_KEY, {}).on && notifPermission() === 'granted'; }
+  function setNotif(on) { var s = readJson(NOTIF_KEY, {}); s.on = !!on; writeJson(NOTIF_KEY, s); emit(); }
+  function enableNotif() {
+    if (!notifSupported()) return Promise.resolve('unsupported');
+    var ask = global.Notification.permission === 'granted' ? Promise.resolve('granted')
+      : new Promise(function (res) {
+        var p = global.Notification.requestPermission(function (x) { res(x); });
+        if (p && p.then) p.then(res);
+      });
+    return ask.then(function (perm) {
+      setNotif(perm === 'granted');
+      if (perm === 'granted') checkDue(true);
+      return perm;
+    });
+  }
+  function todayIso() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function fmt(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? m[3] + '.' + m[2] + '.' + m[1] : ''; }
+  /** Bildirilecek görevler: tarihi gelmiş açık görevler, bekleme süresi bitişleri, ana arı yenileme. */
+  function dueItems() {
+    var D = global.SuperAriDemo;
+    if (!D || !D.taskStore || typeof D.taskStore.open !== 'function') return null;
+    var mode = 'demo';
+    try { mode = global.localStorage.getItem('superari.workMode') === 'live' ? 'live' : 'demo'; } catch (e) { /* ignore */ }
+    var today = todayIso(), out = [];
+    (D.taskStore.open() || []).forEach(function (t) {
+      if (!t || !t.id) return;
+      if (mode === 'live' && t.demo) return;
+      var isQueen = t.kind === 'ana' || /^kr-ana-yenile-/.test(t.id);
+      var isWithdrawal = /^kr-bekleme-bitti-/.test(t.id);
+      if (!isQueen && !(t.due && String(t.due).slice(0, 10) <= today)) return;
+      out.push({
+        queen: isQueen, demo: mode === 'demo' || !!t.demo, hiveName: isQueen ? String(t.title || '').replace(/^Ana arıyı yenile — /, '') : '',
+        key: mode + '|' + t.id + '|' + String(t.due || t.sig || ''),
+        title: (mode === 'demo' || t.demo ? 'Demo · ' : '') + (isWithdrawal ? 'Bekleme süresi bitti' : isQueen ? 'Ana arı yenileme' : 'Görev tarihi geldi'),
+        body: String(t.title || 'Görev') + (t.due && !isWithdrawal ? ' · ' + fmt(t.due) : ''),
+        url: isQueen ? '/gorevler.html#queenTasks' : '/gorevler.html',
+        tag: 'superari-' + t.id
+      });
+    });
+    return out;
+  }
+  function show(title, opts) {
+    opts = opts || {};
+    opts.icon = opts.icon || '/icons/icon-192.png';
+    opts.badge = opts.badge || '/icons/icon-192.png';
+    opts.lang = 'tr';
+    return registration().then(function (reg) {
+      if (reg && reg.showNotification) return reg.showNotification(title, opts).then(function () { return true; });
+      if (notifSupported()) { var n = new global.Notification(title, opts); n.onclick = function () { global.focus(); if (opts.data && opts.data.url) global.location.href = opts.data.url; }; return true; }
+      return false;
+    }).catch(function () { return false; });
+  }
+  /** Tarihi gelen görevleri bildirir; her görev (ve tekrarı) bir kez bildirilir. */
+  function checkDue(force) {
+    if (!notifEnabled()) return Promise.resolve(0);
+    var s = readJson(NOTIF_KEY, {}), now = Date.now();
+    if (!force && s.lastCheck && now - s.lastCheck < 5 * 60 * 1000) return Promise.resolve(0);
+    var items = dueItems();
+    if (!items) return Promise.resolve(0);
+    s.lastCheck = now; writeJson(NOTIF_KEY, s);
+    var sent = readJson(SENT_KEY, {});
+    Object.keys(sent).forEach(function (k) { if (now - sent[k] > 90 * 864e5) delete sent[k]; });
+    var fresh = items.filter(function (it) { return !sent[it.key]; });
+    if (!fresh.length) { writeJson(SENT_KEY, sent); return Promise.resolve(0); }
+    var dated = fresh.filter(function (it) { return !it.queen; }), queens = fresh.filter(function (it) { return it.queen; });
+    var pre = fresh[0].demo ? 'Demo · ' : '';
+    var list = dated.length > 3 ? dated.slice(0, 2) : dated;
+    var jobs = list.map(function (it) { return show(it.title, { body: it.body, tag: it.tag, data: { url: it.url } }); });
+    if (dated.length > 3) {
+      jobs.push(show(pre + (dated.length - 2) + ' görev daha bekliyor', { body: 'Görevler sayfasında tümünü görün.', tag: 'superari-ozet', data: { url: '/gorevler.html' } }));
+    }
+    if (queens.length === 1) jobs.push(show(queens[0].title, { body: queens[0].body, tag: queens[0].tag, data: { url: queens[0].url } }));
+    else if (queens.length > 1) {
+      jobs.push(show(pre + 'Ana arı yenileme · ' + queens.length + ' kovan', {
+        body: queens.slice(0, 3).map(function (q) { return q.hiveName; }).join(', ') + (queens.length > 3 ? ' ve ' + (queens.length - 3) + ' kovan daha' : ''),
+        tag: 'superari-ana-ozet', data: { url: '/gorevler.html#queenTasks' }
+      }));
+    }
+    fresh.forEach(function (it) { sent[it.key] = now; });
+    writeJson(SENT_KEY, sent);
+    return Promise.all(jobs).then(function () { return fresh.length; });
+  }
+  function testNotif() { return show('SüperArı · Deneme', { body: 'Bildirimler çalışıyor. Tarihi gelen görevler böyle görünecek.', tag: 'superari-deneme', data: { url: '/gorevler.html' } }); }
+  function notifHelpText() {
+    var p = notifPermission();
+    if (p === 'unsupported') return isIOS() && !isStandalone()
+      ? 'iPhone / iPad\'de bildirimler yalnız uygulama ana ekrana eklendikten sonra (iOS 16.4+) ve oradan açılınca kullanılabilir.'
+      : 'Bu tarayıcı bildirimleri desteklemiyor.';
+    if (p === 'denied') return 'Bildirim izni engellenmiş. Tarayıcı / telefon ayarlarından bu site için izin verin.';
+    if (notifEnabled()) return 'Bildirimler açık: bekleme süresi bitişi, ana arı yenileme ve tarihi gelen görevler bildirilir.';
+    return 'Bekleme süresi bitişi, ana arı yenileme ve görev tarihleri için bildirim alın.';
+  }
+  function startNotifLoop() {
+    setTimeout(function () { checkDue(false); }, 2500);
+    setInterval(function () { checkDue(true); }, CHECK_EVERY_MS);
+    doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'visible') checkDue(false); });
+  }
+
   global.SuperAriPWA = {
+    notifSupported: notifSupported,
+    notifPermission: notifPermission,
+    notifEnabled: notifEnabled,
+    enableNotif: enableNotif,
+    disableNotif: function () { setNotif(false); },
+    checkDue: checkDue,
+    dueItems: dueItems,
+    testNotif: testNotif,
+    notifHelpText: notifHelpText,
     version: VERSION,
     isStandalone: isStandalone,
     isIOS: isIOS,
@@ -100,6 +216,6 @@
     toast: toast
   };
 
-  if (doc.readyState === 'complete') register();
-  else global.addEventListener('load', register);
+  if (doc.readyState === 'complete') { register(); startNotifLoop(); }
+  else global.addEventListener('load', function () { register(); startNotifLoop(); });
 })(window);
