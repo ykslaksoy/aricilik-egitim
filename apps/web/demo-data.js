@@ -10,6 +10,13 @@
   var HIVES_KEY = 'superari.kovanlar.v1';
   var QUEENS_KEY = 'superari.anaArilar.v1';
   var DELETED_SEEDS_KEY = 'superari.ariliklar.deletedSeeds.v1';
+  /* Demo ve Canlı ayrı depolar: demo arılık/kovan/ana arı «.demo» anahtarlarında; Canlı anahtarları eskisi gibi (mevcut veriler korunur). */
+  function mk(k) {
+    var demo = false;
+    try { demo = localStorage.getItem('superari.workMode') !== 'live'; } catch (e) { demo = true; }
+    return demo ? String(k).replace(/\.v(\d+)$/, '.demo.v$1') : k;
+  }
+  function isLiveMode() { return mk('x.v1') === 'x.v1'; }
   var WATER_CATALOG_KEY = 'superari.waterSources.catalog.v1';
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
@@ -1007,13 +1014,13 @@
   var QUEEN_ORIGIN_LABEL = { satin: 'satın alınan ana', uretim: 'ana üretimi (larva transferi)', bolme: 'bölmede yetişen ana', ogul: 'oğul sonrası yetişen ana', yenileme: 'sessiz ana değiştirme', acil: 'acil ana memesinden' };
   function loadQueens() {
     try {
-      var raw = localStorage.getItem(QUEENS_KEY);
+      var raw = localStorage.getItem(mk(QUEENS_KEY));
       var arr = raw ? JSON.parse(raw) : [];
       return Array.isArray(arr) ? arr.map(normalizeQueen).filter(Boolean) : [];
     } catch (e) { return []; }
   }
   function saveQueens(list) {
-    try { localStorage.setItem(QUEENS_KEY, JSON.stringify(list || [])); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(mk(QUEENS_KEY), JSON.stringify(list || [])); } catch (e) { /* ignore */ }
   }
   function queenSeq(id) {
     var m = /-(\d+)$/.exec(String(id || ''));
@@ -1432,6 +1439,8 @@
   }
 
   function synthHive(apiaryId, id, i) {
+    /* Canlı: yeni kovan boş kayıt — örnek ağırlık/ırk/güç/skor atanmaz (normalizeHive varsayılanları arayüzde Canlı’da gösterilmez). */
+    if (isLiveMode()) return normalizeHive({ id: id, name: 'Kovan ' + id, apiaryId: apiaryId });
     var health = HEALTHS[i % HEALTHS.length];
     var score = health === 'Kritik' ? 40 + (i % 10) : (health === 'Dikkat' ? 58 + (i % 12) : 78 + (i % 18));
     var delta = ((i % 7) - 2) * 0.3;
@@ -1465,7 +1474,7 @@
     want = Math.max(0, Number(want) || 0);
     var used = usedIds || {};
     var out = [];
-    var featured = FEATURED_HIVES.filter(function (h) {
+    var featured = isLiveMode() ? [] : FEATURED_HIVES.filter(function (h) {
       return h.apiaryId === apiaryId;
     });
     var i;
@@ -1644,7 +1653,7 @@
   /** Append missing seed apiaries by id (a4/a5 …) without wiping user rows. */
   function readDeletedSeedIds() {
     try {
-      var raw = localStorage.getItem(DELETED_SEEDS_KEY);
+      var raw = localStorage.getItem(mk(DELETED_SEEDS_KEY));
       if (!raw) return {};
       var arr = JSON.parse(raw);
       var map = {};
@@ -1664,7 +1673,7 @@
     if (map[key]) return;
     map[key] = true;
     try {
-      localStorage.setItem(DELETED_SEEDS_KEY, JSON.stringify(Object.keys(map)));
+      localStorage.setItem(mk(DELETED_SEEDS_KEY), JSON.stringify(Object.keys(map)));
     } catch (e) { /* ignore */ }
   }
 
@@ -1759,7 +1768,7 @@
     var keys = Object.keys(remappedIds);
     if (!keys.length) return false;
     try {
-      var rawH = localStorage.getItem(HIVES_KEY);
+      var rawH = localStorage.getItem(mk(HIVES_KEY));
       var hList = rawH ? JSON.parse(rawH) : [];
       if (!Array.isArray(hList)) return false;
       var changed = false;
@@ -1771,7 +1780,7 @@
           changed = true;
         }
       });
-      if (changed) localStorage.setItem(HIVES_KEY, JSON.stringify(hList));
+      if (changed) localStorage.setItem(mk(HIVES_KEY), JSON.stringify(hList));
       return changed;
     } catch (e) { return false; }
   }
@@ -1787,9 +1796,10 @@
 
   function loadApiaries() {
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
+      var raw = localStorage.getItem(mk(STORAGE_KEY));
       if (raw) {
         var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && !parsed.length && isLiveMode()) return [];
         if (Array.isArray(parsed) && parsed.length) {
           var mapped = parsed.map(function (a) {
             return copyAdminFields(applyWaterDistance({
@@ -1801,17 +1811,19 @@
               hiveCount: Math.max(0, Number(a.hiveCount) || 0)
             }, a), a);
           });
-          var rest = restoreKayakoyA1(mapped);
+          var liveM = isLiveMode();
+          /* Örnek arılık onarımları yalnız Demo’da; Canlı’da kullanıcının listesine örnek arılık eklenmez. */
+          var rest = liveM ? { list: mapped, changed: false } : restoreKayakoyA1(mapped);
           var mig = migrateApiaryNames(rest.list);
           var coordMig = migrateApiaryCoordinates(mig.list);
-          var ens = ensureSeedApiariesPresent(coordMig.list);
-          var ded = dedupeYanikBalugApiaries(ens.list);
+          var ens = liveM ? { list: coordMig.list, changed: false } : ensureSeedApiariesPresent(coordMig.list);
+          var ded = liveM ? { list: ens.list, changed: false } : dedupeYanikBalugApiaries(ens.list);
           var adminMig = migratePlaceAdmin(ded.list);
           var waterDist = refreshWaterDistancesFromMap(adminMig.list);
           var out = waterDist.list;
           if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed || adminMig.changed || waterDist.changed) {
             try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+              localStorage.setItem(mk(STORAGE_KEY), JSON.stringify(out));
             } catch (eMig) { /* ignore */ }
           }
           if (ded.changed && ded.remappedIds && Object.keys(ded.remappedIds).length) {
@@ -1830,7 +1842,7 @@
           } catch (ePurge) { /* ignore */ }
           if (ens.changed || (ded.changed && Object.keys(ded.remappedIds || {}).length)) {
             try {
-              var rawH = localStorage.getItem(HIVES_KEY);
+              var rawH = localStorage.getItem(mk(HIVES_KEY));
               var hList = rawH ? JSON.parse(rawH) : [];
               if (!Array.isArray(hList)) hList = [];
               return reconcile(out, hList).apiaries;
@@ -1840,9 +1852,11 @@
         }
       }
     } catch (e) { /* ignore */ }
+    /* Canlı: veri yoksa boş başlar (örnek arılık/kovan yok). */
+    if (isLiveMode()) return [];
     var seed = cloneSeed();
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+      localStorage.setItem(mk(STORAGE_KEY), JSON.stringify(seed));
     } catch (e2) { /* ignore */ }
     return seed;
   }
@@ -1850,14 +1864,14 @@
   function saveApiaries(list) {
     if (!Array.isArray(list)) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(mk(STORAGE_KEY), JSON.stringify(list));
     } catch (e) { /* ignore */ }
   }
 
   function saveHives(list) {
     if (!Array.isArray(list)) return;
     try {
-      localStorage.setItem(HIVES_KEY, JSON.stringify(list));
+      localStorage.setItem(mk(HIVES_KEY), JSON.stringify(list));
     } catch (e) { /* ignore */ }
   }
 
@@ -1928,7 +1942,7 @@
 
   function readRawHives() {
     try {
-      var raw = localStorage.getItem(HIVES_KEY);
+      var raw = localStorage.getItem(mk(HIVES_KEY));
       if (raw) {
         var parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length) {
@@ -1998,11 +2012,11 @@
      *  v5 — önceki adımları çalıştırmış kullanıcılar için yalnız a2 Tortum → Kafkas × Karadeniz.
      *  (Diğer arılıklardaki sonradan yapılan elle düzenlemelere dokunulmaz.)
      */
-    var MIG_V2 = 'superari.breedMig.v2';
+    var MIG_V2 = mk('superari.breedMig.v2');
     var LATER_MIGS = [
-      { key: 'superari.breedMig.v3', apiary: 'a5' },
-      { key: 'superari.breedMig.v4', apiary: 'a3' },
-      { key: 'superari.breedMig.v5', apiary: 'a2' }
+      { key: mk('superari.breedMig.v3'), apiary: 'a5' },
+      { key: mk('superari.breedMig.v4'), apiary: 'a3' },
+      { key: mk('superari.breedMig.v5'), apiary: 'a2' }
     ];
     var v2Done = false;
     var onlyKeys = [];
@@ -2032,7 +2046,7 @@
 
   function loadHives() {
     var list = loadHivesBase();
-    var QUEEN_SEED_KEY = 'superari.queenSeed.v1';
+    var QUEEN_SEED_KEY = mk('superari.queenSeed.v1');
     var done = false;
     try { done = localStorage.getItem(QUEEN_SEED_KEY) === '1'; } catch (eQ) {}
     if (!done) {
@@ -2960,7 +2974,7 @@
   var hiveFlagCache = { raw: null, map: {} };
   function hiveFlags() {
     var raw = null;
-    try { raw = localStorage.getItem(HIVES_KEY); } catch (e) { raw = null; }
+    try { raw = localStorage.getItem(mk(HIVES_KEY)); } catch (e) { raw = null; }
     if (raw === hiveFlagCache.raw) return hiveFlagCache.map;
     var map = {};
     try {
@@ -4350,8 +4364,8 @@
     configurable: true,
     enumerable: true,
     value: {
-      STORAGE_KEY: STORAGE_KEY,
-      HIVES_KEY: HIVES_KEY,
+      get STORAGE_KEY() { return mk(STORAGE_KEY); },
+      get HIVES_KEY() { return mk(HIVES_KEY); },
       SEED_APIARIES: SEED_APIARIES,
       get apiaries() { return loadApiaries(); },
       get hives() { return loadHives(); },
@@ -4409,7 +4423,7 @@
         queenById: function (id) { return queenById(id); },
         openPlacement: openPlacement,
         queensForHives: queensForHives,
-        QUEENS_KEY: QUEENS_KEY,
+        get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
         SWARM_LEVELS: SWARM_LEVELS,

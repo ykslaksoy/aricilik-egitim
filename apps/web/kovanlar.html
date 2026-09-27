@@ -58,14 +58,14 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-41"></script>
-  <script src="rapor-store.js?v=koloni-41"></script>
-  <script src="sensor-health.js?v=koloni-41"></script>
-<script src="saglik-canli.js?v=koloni-41"></script>
-  <script src="koloni.js?v=koloni-41"></script>
-  <script src="irk-tahmin.js?v=koloni-41"></script>
-  <script src="kovan-ara.js?v=koloni-41"></script>
-  <script src="tarti-elle.js?v=koloni-41"></script>
+  <script src="demo-data.js?v=koloni-42"></script>
+  <script src="rapor-store.js?v=koloni-42"></script>
+  <script src="sensor-health.js?v=koloni-42"></script>
+<script src="saglik-canli.js?v=koloni-42"></script>
+  <script src="koloni.js?v=koloni-42"></script>
+  <script src="irk-tahmin.js?v=koloni-42"></script>
+  <script src="kovan-ara.js?v=koloni-42"></script>
+  <script src="tarti-elle.js?v=koloni-42"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -236,16 +236,24 @@
         var place = ap ? ap.name : '—';
         var badge;
         var meta;
+        var liveW = window.SuperAriLiveHealth && SuperAriLiveHealth.isLive();
+        var leW = TE ? TE.latest(h.id) : null;
+        /* Canlı: yalnız elle tartım (sensör/örnek ağırlık gösterilmez). */
+        var wTxt = liveW ? (leW ? String(leW.kg).replace('.', ',') + ' kg' : 'Tartı yok') : h.weightKg.toFixed(1) + ' kg';
         if (view === 'tarti') {
-          var sign = h.deltaKg > 0 ? '+' : '';
-          badge = sign + h.deltaKg.toFixed(1) + ' kg';
-          var le = TE ? TE.latest(h.id) : null;
-          meta = h.weightKg.toFixed(1) + ' kg · ' + place + (le ? ' · Elle: ' + String(le.kg).replace('.', ',') + ' kg (' + TE.fmtAt(le.at) + ')' : '');
+          if (liveW) {
+            badge = wTxt;
+            meta = place + (leW ? ' · elle ' + TE.fmtAt(leW.at) : ' · elle tartım girilmedi');
+          } else {
+            var sign = h.deltaKg > 0 ? '+' : '';
+            badge = sign + h.deltaKg.toFixed(1) + ' kg';
+            meta = h.weightKg.toFixed(1) + ' kg · ' + place + (leW ? ' · Elle: ' + String(leW.kg).replace('.', ',') + ' kg (' + TE.fmtAt(leW.at) + ')' : '');
+          }
         } else if (view === 'koloni') {
-          badge = String(h.colonyScore);
+          badge = liveW ? (h.queenYear ? 'Ana ' + h.queenYear : 'Koloni') : String(h.colonyScore);
           meta = 'Koloni · ' + place;
         } else {
-          badge = h.weightKg.toFixed(1) + ' kg';
+          badge = wTxt;
           meta = place + ' · sağlık ' + h.health + ' · oğul ' + h.swarmRisk;
         }
         var hsc = h.healthScore;
@@ -459,6 +467,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-41"></script>
+<script src="pwa.js?v=koloni-42"></script>
 </body>
 </html>

@@ -229,7 +229,8 @@
     var unscored = evald.filter(function (x) { return x.score == null; });
     var sum = 0;
     list.forEach(function (x) { sum += x.score; });
-    var avg = list.length ? Math.round(sum / list.length) : (unscored.length ? null : 100);
+    /* Kovan yoksa ya da hiçbiri skorlanamıyorsa ortalama yok («—»), 100 gösterilmez. */
+    var avg = list.length ? Math.round(sum / list.length) : null;
 
     var D = global.SuperAriDemo;
     var nameById = {};

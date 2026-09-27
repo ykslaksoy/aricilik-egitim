@@ -1051,10 +1051,10 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-41"></script>
+<script src="demo-data.js?v=koloni-42"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-41"></script>
-<script src="saglik-canli.js?v=koloni-41"></script>
+<script src="sensor-health.js?v=koloni-42"></script>
+<script src="saglik-canli.js?v=koloni-42"></script>
 <script src="hava-kayit.js"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
@@ -1130,7 +1130,8 @@
     var muayeneEl = document.getElementById('muayeneHint');
     var muayeneText = document.getElementById('muayeneHintText');
     var muayeneOk = document.getElementById('muayeneHintOk');
-    var apiaries = DEMO_APIARIES.slice();
+    var ANA_LIVE = false; try { ANA_LIVE = localStorage.getItem('superari.workMode') === 'live'; } catch (eAl) { ANA_LIVE = false; }
+    var apiaries = ANA_LIVE ? [] : DEMO_APIARIES.slice();
     var idx = 0;
     var cycleTimer = null;
     var weatherCache = {};
@@ -1400,7 +1401,7 @@
     }
 
     function currentApiaryHref() {
-      var a = apiaries[idx] || apiaries[0] || DEMO_APIARIES[0];
+      var a = apiaries[idx] || apiaries[0] || (ANA_LIVE ? null : DEMO_APIARIES[0]);
       if (!a || !a.id) return 'ariliklar.html';
       return 'arilik.html?id=' + encodeURIComponent(a.id);
     }
@@ -1567,7 +1568,7 @@
     }
 
     function currentApiary() {
-      return apiaries[idx] || apiaries[0] || DEMO_APIARIES[0];
+      return apiaries[idx] || apiaries[0] || (ANA_LIVE ? null : DEMO_APIARIES[0]);
     }
 
     function readLock() {
@@ -1784,7 +1785,7 @@
     function filterDeletedSeeds(list) {
       var deleted = {};
       try {
-        var raw = localStorage.getItem('superari.ariliklar.deletedSeeds.v1');
+        var raw = localStorage.getItem(localStorage.getItem('superari.workMode') === 'live' ? 'superari.ariliklar.deletedSeeds.v1' : 'superari.ariliklar.deletedSeeds.demo.v1');
         if (raw) {
           var arr = JSON.parse(raw);
           if (Array.isArray(arr)) {
@@ -1809,12 +1810,13 @@
       if (fromStore && fromStore.length) {
         return Promise.resolve(fromStore);
       }
-      return Promise.resolve(filterDeletedSeeds(DEMO_APIARIES.slice()));
+      return Promise.resolve(ANA_LIVE ? [] : filterDeletedSeeds(DEMO_APIARIES.slice()));
     }
 
     function applyApiaryList(list, keepIndex) {
       var prevId = currentApiary() && currentApiary().id;
-      apiaries = list && list.length ? list : filterDeletedSeeds(DEMO_APIARIES.slice());
+      var liveNow = false; try { liveNow = localStorage.getItem('superari.workMode') === 'live'; } catch (eLm) { liveNow = false; }
+      apiaries = list && list.length ? list : (liveNow ? [] : filterDeletedSeeds(DEMO_APIARIES.slice()));
       if (keepIndex && prevId) {
         for (var i = 0; i < apiaries.length; i++) {
           if (apiaries[i].id === prevId) {
@@ -1855,7 +1857,9 @@
     });
 
     loadApiaries().then(function (list) {
-      apiaries = list && list.length ? list : filterDeletedSeeds(DEMO_APIARIES.slice());
+      var liveNow = ANA_LIVE;
+      apiaries = list && list.length ? list : (liveNow ? [] : filterDeletedSeeds(DEMO_APIARIES.slice()));
+      if (liveNow && !apiaries.length && weatherLocLabel) { weatherLocLabel.textContent = 'Arılık ekleyin'; weatherLocLabel.setAttribute('title', 'Arılık ekleyin'); }
       if (window.SuperAriHava) {
         try { window.SuperAriHava.ensureSeed(); } catch (e) { /* ignore */ }
       }
@@ -2001,7 +2005,7 @@
   function saglikBadgeInfo() {
     try {
       var SH = window.SuperAriSensorHealth, hv = hivesForTiles;
-      if (!SH || !hv.length) return { text: 'İyi', tone: 'green' };
+      if (!SH || !hv.length) return { text: hv && !hv.length && localStorage.getItem('superari.workMode') === 'live' ? '—' : 'İyi', tone: hv && !hv.length && localStorage.getItem('superari.workMode') === 'live' ? 'tan' : 'green' };
       var ev = SH.evaluateAll(hv), c = ev.counts || {};
       if (ev.live) {
         if (c.act) return { text: c.act + ' müdahale', tone: 'red' };
@@ -3082,7 +3086,7 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-41"></script>
-<script src="pwa.js?v=koloni-41"></script>
+<script src="nav.js?v=koloni-42"></script>
+<script src="pwa.js?v=koloni-42"></script>
 </body>
 </html>

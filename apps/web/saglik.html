@@ -7,27 +7,27 @@
 <link rel="stylesheet" href="rapor-common.css" />
 <style>
   .screen-fill {
-    flex: 1 1 auto; min-height: 0;
+    flex: 1 0 auto; min-height: 0;
     display: flex; flex-direction: column;
   }
   .card-fill {
-    flex: 1 1 auto; min-height: 0;
+    flex: 1 0 auto; min-height: 0;
     display: flex; flex-direction: column;
     margin-bottom: 0 !important;
   }
   .band-grid {
-    flex: 1 1 auto; min-height: 0;
+    flex: 1 0 auto; min-height: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: repeat(2, minmax(min-content, 1fr)); /* kısa ekranda kart metni kesilmez, sayfa kayar */
     gap: 10px;
   }
   .band-card {
     display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between;
-    height: 100%; min-height: 0; padding: 14px 12px; border-radius: 16px; text-decoration: none;
+    height: 100%; min-height: min-content; padding: 14px 12px; border-radius: 16px; text-decoration: none;
     border: 1.5px solid #e4e6ea; font-family: inherit; color: inherit;
     -webkit-tap-highlight-color: transparent;
-    overflow: hidden;
+    overflow: visible; overflow-wrap: anywhere;
   }
   .band-card:active { transform: scale(.985); }
   .band-card .count {
@@ -93,9 +93,9 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-41"></script>
-<script src="sensor-health.js?v=koloni-41"></script>
-<script src="saglik-canli.js?v=koloni-41"></script>
+<script src="demo-data.js?v=koloni-42"></script>
+<script src="sensor-health.js?v=koloni-42"></script>
+<script src="saglik-canli.js?v=koloni-42"></script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
@@ -159,7 +159,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-41"></script>
-<script src="pwa.js?v=koloni-41"></script>
+<script src="nav.js?v=koloni-42"></script>
+<script src="pwa.js?v=koloni-42"></script>
 </body>
 </html>

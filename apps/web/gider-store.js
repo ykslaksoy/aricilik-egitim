@@ -457,13 +457,18 @@
     return changed;
   }
 
-  var APIARIES_KEY = 'superari.ariliklar.v1';
-  var DELETED_SEEDS_KEY = 'superari.ariliklar.deletedSeeds.v1';
+  var APIARIES_KEY_BASE = 'superari.ariliklar.v1';
+  var DELETED_SEEDS_KEY_BASE = 'superari.ariliklar.deletedSeeds.v1';
+  function modeKey(k) {
+    var demo = false;
+    try { demo = localStorage.getItem('superari.workMode') !== 'live'; } catch (e) { demo = true; }
+    return demo ? k.replace(/\.v(\d+)$/, '.demo.v$1') : k;
+  }
   var ORPHAN_PURGE_FLAG = 'superari.giderler.orphanPurge.v1';
 
   function readDeletedSeedIdMap() {
     try {
-      var raw = localStorage.getItem(DELETED_SEEDS_KEY);
+      var raw = localStorage.getItem(modeKey(DELETED_SEEDS_KEY_BASE));
       if (!raw) return {};
       var arr = JSON.parse(raw);
       var map = {};
@@ -478,7 +483,7 @@
   function readLiveApiaryIdMap() {
     var map = {};
     try {
-      var raw = localStorage.getItem(APIARIES_KEY);
+      var raw = localStorage.getItem(modeKey(APIARIES_KEY_BASE));
       if (raw) {
         var list = JSON.parse(raw);
         if (Array.isArray(list)) {
