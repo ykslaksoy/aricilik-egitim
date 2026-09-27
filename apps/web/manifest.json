@@ -1,17 +1,25 @@
 {
-  "name": "koloni",
-  "short_name": "koloni",
-  "description": "Kovan izleme — gezginci arıcılık",
-  "start_url": "/",
+  "id": "/",
+  "name": "SüperArı — Arıcılık",
+  "short_name": "SüperArı",
+  "description": "Kovan, koloni ve bakım kayıtları — gezginci arıcılık",
+  "start_url": "/?kaynak=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f1419",
+  "orientation": "portrait",
+  "background_color": "#fff8df",
   "theme_color": "#c9a227",
   "lang": "tr",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
   "icons": [
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect fill='%23c9a227' width='128' height='128' rx='24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='72' fill='%230f1419'%3E🐝%3C/text%3E%3C/svg%3E",
-      "sizes": "128x128",
-      "type": "image/svg+xml"
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Bugün", "url": "/bugun.html", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Görevler", "url": "/gorevler.html", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Bakım", "url": "/bakim.html", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }
