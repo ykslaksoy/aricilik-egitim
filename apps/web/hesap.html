@@ -6,6 +6,7 @@
   <title>Hesap ve bulut · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
   <style>
+    [hidden] { display: none !important; } /* .card/.stack display:grid «hidden»ı eziyordu → giriş formu oturum açıkken de görünüyordu */
     .hb-form{display:grid;gap:.5rem;}
     .hb-after{display:grid;gap:.6rem;}
     .hb-code summary{cursor:pointer;font-size:.8rem;font-weight:700;color:#5c4813;padding:.2rem 0;}
@@ -74,6 +75,7 @@
 
     <section class="card stack" id="acctCard" style="margin-top:1rem;" hidden>
       <h2 style="margin:0;font-size:1.05rem;">Hesabım</h2>
+      <p class="hb-msg ok" id="loggedMsg" style="margin:0;font-weight:700;">✓ Giriş yapıldı</p>
       <div class="hb-kv" id="acctKv"></div>
       <p class="hb-msg" id="modeMsg"></p>
       <div class="hb-row">
@@ -126,9 +128,9 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-37"></script>
-  <script src="bulut.js?v=koloni-37"></script>
-  <script src="push.js?v=koloni-37"></script>
+  <script src="demo-data.js?v=koloni-38"></script>
+  <script src="bulut.js?v=koloni-38"></script>
+  <script src="push.js?v=koloni-38"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -173,6 +175,8 @@
         }
         cm.innerHTML = s.loggedIn ? '<b style="color:#2b8a3e">Bulut bağlı.</b> ' + (s.online ? '' : 'Şu an çevrimdışısınız; değişiklikler internet gelince gönderilir.') : '<b style="color:#2b8a3e">Bulut hazır.</b> Yedekleme ve ekip paylaşımı için giriş yapın.';
         if (!s.loggedIn) { $('loginCard').hidden = false; return; }
+        /* oturum var: eski giriş hatası (ör. aynı bağlantı ikinci kez açıldı) ve giriş formu gösterilmez */
+        msg($('loginMsg'), ''); $('afterSend').hidden = true;
         $('acctCard').hidden = false;
         var linked = Object.keys(s.links || {});
         $('acctKv').innerHTML = '<span>E-posta</span><b>' + esc(s.email || '—') + '</b>' +
@@ -364,14 +368,21 @@
         return B.handleRedirect().then(function (r) {
           if (r && r.ok) msg($('loginMsg'), 'Giriş yapıldı.', 'ok');
         }, function (err) {
-          msg($('loginMsg'), 'Giriş tamamlanamadı: ' + errText(err), 'err');
-          $('afterSend').hidden = false;
+          /* bağlantı zaten kullanılmış / süresi dolmuş olabilir; oturum açıksa hata gösterme */
+          return B.session().then(function (ses) {
+            if (ses) return;
+            msg($('loginMsg'), 'Giriş tamamlanamadı: ' + errText(err), 'err');
+            $('afterSend').hidden = false;
+          }, function () {
+            msg($('loginMsg'), 'Giriş tamamlanamadı: ' + errText(err), 'err');
+            $('afterSend').hidden = false;
+          });
         }).then(function () { return B.session(); });
       }).then(function (ses) { if (ses) afterLogin(); else render(); });
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-37"></script>
-<script src="pwa.js?v=koloni-37"></script>
+  <script src="nav.js?v=koloni-38"></script>
+<script src="pwa.js?v=koloni-38"></script>
 </body>
 </html>
