@@ -95,8 +95,8 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
@@ -149,10 +149,8 @@
       return { id: a.id, name: a.name || a.place || a.id };
     });
     if (!opts.length) {
-      opts = [
-        { id: 'a1', name: 'Kayaköy Ana Arılık' },
-        { id: 'a2', name: 'Tortum Yayla Arılığı' }
-      ];
+      /* Arılık yoksa örnek arılık gösterilmez; önce arılık eklenmeli. */
+      opts = [{ id: '', name: 'Önce arılık ekleyin' }];
     }
     function fill(el, withAll) {
       el.innerHTML = '';
@@ -345,7 +343,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

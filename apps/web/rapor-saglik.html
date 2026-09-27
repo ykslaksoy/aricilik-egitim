@@ -27,6 +27,7 @@
       </div>
     </div>
     <div class="stats" id="stats"></div>
+    <p class="hint" id="modeHint" style="margin-top:0"></p>
     <section class="card-block">
       <h2>Sağlık dağılımı</h2>
       <div id="bucketList"></div>
@@ -46,7 +47,7 @@
     <section class="card-block">
       <h2>Yenilenecek ana arılar</h2>
       <div id="queenRenewList"></div>
-      <p class="meta" style="margin-top:6px;">Kaynak: Koloni kayıtları (demo). Düzenleme yalnız <a href="kovanlar.html?view=koloni" style="text-decoration:underline;">Koloni</a> sayfasında.</p>
+      <p class="meta" style="margin-top:6px;">Kaynak: Koloni kayıtları. Düzenleme yalnız <a href="kovanlar.html?view=koloni" style="text-decoration:underline;">Koloni</a> sayfasında.</p>
     </section>
     
   </div>
@@ -55,11 +56,11 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
-<script src="sensor-health.js?v=koloni-38"></script>
-<script src="saglik-canli.js?v=koloni-38"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
-<script src="koloni.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
+<script src="sensor-health.js?v=koloni-39"></script>
+<script src="saglik-canli.js?v=koloni-39"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
+<script src="koloni.js?v=koloni-39"></script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
@@ -67,40 +68,54 @@
   if (!H || !D) return;
   var hives = D.loadHives ? D.loadHives() : [];
   var all = H.evaluateAll(hives);
+  var live = false;
+  try { live = localStorage.getItem('superari.workMode') === 'live'; } catch (e) { live = false; }
+  var unscoredN = (all.unscored || []).length;
+  function escH(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  document.getElementById('modeHint').textContent = (live
+    ? 'Canlı mod: skor muayene, hastalık ve tartı kayıtlarınızdan hesaplanır.'
+    : 'Demo mod: örnek kovan verileri.') +
+    (unscoredN ? ' ' + unscoredN + ' kovanda veri az (skor için muayene kaydı gerekir).' : '');
   document.getElementById('stats').innerHTML =
     '<div class="stat"><div class="k">Ort. sağlık</div><div class="v">' + (all.avg == null ? '—' : all.avg) + '</div></div>' +
     '<div class="stat"><div class="k">Sağlıklı</div><div class="v">' + all.counts.ok + '</div></div>' +
     '<div class="stat"><div class="k">Müdahale</div><div class="v">' + all.counts.act + '</div></div>' +
-    '<div class="stat"><div class="k">Kovan</div><div class="v">' + all.hives.length + '</div></div>';
+    '<div class="stat"><div class="k">Kovan</div><div class="v">' + hives.length + '</div></div>';
   document.getElementById('bucketList').innerHTML =
     '<div class="row-item"><div class="left"><div class="title">Sağlıklı</div></div><div class="right"><span class="badge ok">' + all.counts.ok + '</span></div></div>' +
     '<div class="row-item"><div class="left"><div class="title">İzle</div></div><div class="right"><span class="badge warn">' + all.counts.watch + '</span></div></div>' +
     '<div class="row-item"><div class="left"><div class="title">Kontrol</div></div><div class="right"><span class="badge warn">' + all.counts.check + '</span></div></div>' +
-    '<div class="row-item"><div class="left"><div class="title">Müdahale</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>';
+    '<div class="row-item"><div class="left"><div class="title">Müdahale</div></div><div class="right"><span class="badge bad">' + all.counts.act + '</span></div></div>' +
+    (unscoredN ? '<div class="row-item"><div class="left"><div class="title">Veri az</div><div class="meta">Muayene kaydı yok</div></div><div class="right"><span class="badge info">' + unscoredN + '</span></div></div>' : '');
   var byAp = {};
+  function apSlot(hive) {
+    var aid = hive ? String(hive.apiaryId || 'none') : 'none';
+    if (!byAp[aid]) {
+      var ap = (hive && D.apiaryById) ? D.apiaryById(hive.apiaryId) : null;
+      byAp[aid] = { name: ap ? (ap.name || ap.place || aid) : (aid === 'none' ? 'Atanmamış' : aid), sum: 0, n: 0, total: 0 };
+    }
+    return byAp[aid];
+  }
+  hives.forEach(function (h) { apSlot(h).total += 1; });
   all.hives.forEach(function (x) {
     var hive = hives.filter(function (h) { return String(h.id) === String(x.hiveId); })[0];
-    var aid = hive ? String(hive.apiaryId || 'none') : 'none';
-    if (!byAp[aid]) byAp[aid] = { name: aid, sum: 0, n: 0 };
-    byAp[aid].sum += x.score; byAp[aid].n += 1;
-    if (hive && D.apiaryById) {
-      var ap = D.apiaryById(hive.apiaryId);
-      if (ap) byAp[aid].name = ap.name || ap.place || aid;
-    }
+    var slot = apSlot(hive);
+    slot.sum += x.score; slot.n += 1;
   });
   document.getElementById('apiaryList').innerHTML = Object.keys(byAp).map(function (k) {
     var a = byAp[k];
-    var avg = Math.round(a.sum / a.n);
-    return '<div class="row-item"><div class="left"><div class="title">' + a.name + '</div>' +
-      '<div class="meta">' + a.n + ' kovan</div>' +
-      '<div class="bar-track"><div class="bar-fill" style="width:' + avg + '%"></div></div></div>' +
-      '<div class="right">' + avg + '</div></div>';
+    var avg = a.n ? Math.round(a.sum / a.n) : null;
+    return '<div class="row-item"><div class="left"><div class="title">' + escH(a.name) + '</div>' +
+      '<div class="meta">' + a.total + ' kovan' + (a.n < a.total ? ' · ' + (a.total - a.n) + ' kovanda veri az' : '') + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + (avg || 0) + '%"></div></div></div>' +
+      '<div class="right">' + (avg == null ? '—' : avg) + '</div></div>';
   }).join('') || '<p class="meta">Kovan yok.</p>';
   document.getElementById('riskList').innerHTML = all.hives.filter(function (x) { return x.score < 85; }).slice(0, 12).map(function (x) {
-    return '<div class="row-item"><div class="left"><div class="title">' + x.name + '</div>' +
-      '<div class="meta">' + x.band.label + '</div></div>' +
-      '<div class="right"><span class="badge ' + x.band.tone + '">' + x.score + '</span></div></div>';
-  }).join('') || '<p class="meta">Tüm kovanlar 85+.</p>';
+    return '<div class="row-item"><div class="left"><div class="title"><a href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="color:inherit">' + escH(x.name) + '</a></div>' +
+      '<div class="meta">' + escH(x.band.label) + '</div></div>' +
+      '<div class="right"><span class="badge ' + ({ green: 'ok', yellow: 'warn', orange: 'warn', red: 'bad' }[x.band.tone] || 'info') + '">' + x.score + '</span></div></div>';
+  }).join('') || (all.hives.length ? '<p class="meta">Skorlu tüm kovanlar 85 ve üzeri.</p>'
+    : '<p class="meta">Henüz skorlu kovan yok — kovan sayfasında «Kolay muayene» ile kayıt girin.</p>');
 
   /* Ana arı / ırk — Koloni kaydından (tek kaynak) okunur. */
   var C = D.colony, K = window.SuperAriKoloni;
@@ -142,7 +157,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

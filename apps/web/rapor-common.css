@@ -192,7 +192,7 @@ body {
 @media print {
   body { background: #fff; padding: 0; display: block; }
   .phone { width: 100%; height: auto; border-radius: 0; box-shadow: none; }
-  .phone-notch, .tabbar, .home-indicator, .nav-chips, .btn-row { display: none !important; }
+  .phone-notch, .status-bar, .tabbar, .home-indicator, .nav-chips, .btn-row { display: none !important; }
   .screen { overflow: visible; background: #fff; }
 }
 

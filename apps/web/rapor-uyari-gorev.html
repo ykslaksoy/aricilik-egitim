@@ -39,6 +39,7 @@
       <h2>Son görevler</h2>
       <div id="taskList"></div>
     </section>
+    <p class="hint" id="modeHint"></p>
     <p class="hint">Açık uyarılar <a href="uyarilar.html" style="color:var(--brown);font-weight:700">Uyarılar</a>, görevler <a href="gorevler.html" style="color:var(--brown);font-weight:700">Görevler</a> sayfalarında da listelenir.</p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -46,25 +47,32 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
   var D = window.SuperAriDemo;
   if (!R) return;
   var s = R.alertTaskSummary();
+  var MAX = 30;
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  document.getElementById('modeHint').textContent = s.live
+    ? 'Canlı mod: uyarılar kayıtlarınızdan, stoktan ve oğul riskinden anlık üretilir (çözülen uyarı geçmişi tutulmaz). Görevler: sizin eklediğiniz ve otomatik görevler; tamamlananlar tarihiyle.'
+    : 'Demo mod: örnek uyarı ve görev geçmişi «Demo» etiketlidir; canlı moda geçince görünmez.';
   document.getElementById('stats').innerHTML =
     '<div class="stat"><div class="k">Açık uyarı</div><div class="v warn">' + s.openAlerts + '</div></div>' +
-    '<div class="stat"><div class="k">Çözülen</div><div class="v pos">' + s.resolvedAlerts + '</div></div>' +
+    '<div class="stat"><div class="k">Çözülen</div><div class="v pos">' + (s.resolvedAlerts == null ? '—' : s.resolvedAlerts) + '</div></div>' +
     '<div class="stat"><div class="k">Açık görev</div><div class="v">' + s.openTasks + '</div></div>' +
     '<div class="stat"><div class="k">Tamamlanan</div><div class="v pos">' + s.doneTasks + '</div></div>';
-  var typeLabels = { ogul: 'Oğul', saglik: 'Sağlık', tarti: 'Tartı', hava: 'Hava', petek: 'Petek', diger: 'Diğer' };
-  document.getElementById('typeList').innerHTML = Object.keys(s.byType).map(function (k) {
-    return '<div class="row-item"><div class="left"><div class="title">' + (typeLabels[k] || k) + '</div></div>' +
+  var typeLabels = { ogul: 'Oğul', saglik: 'Sağlık', tarti: 'Tartı', hava: 'Hava', petek: 'Petek', koloni: 'Koloni', 'hastalık': 'Hastalık', besleme: 'Besleme', stok: 'Stok', diger: 'Diğer' };
+  function typeLabel(k) { return typeLabels[k] || (k ? k.charAt(0).toLocaleUpperCase('tr') + k.slice(1) : 'Diğer'); }
+  document.getElementById('typeList').innerHTML = Object.keys(s.byType).sort(function (a, b) { return s.byType[b] - s.byType[a]; }).map(function (k) {
+    return '<div class="row-item"><div class="left"><div class="title">' + esc(typeLabel(k)) + '</div></div>' +
       '<div class="right">' + s.byType[k] + '</div></div>';
   }).join('') || '<p class="meta">Uyarı yok.</p>';
   function hiveName(id) {
+    if (id == null || id === '') return 'Genel';
     if (!D) return 'Kovan ' + id;
     var h = D.hiveById(id);
     return h ? h.name : ('Kovan ' + id);
@@ -74,22 +82,20 @@
     if (sev === 'medium') return 'warn';
     return 'info';
   }
-  function shortDate(iso) {
-    if (!iso) return '—';
-    return String(iso).slice(0, 10) + ' ' + String(iso).slice(11, 16);
-  }
-  document.getElementById('alertList').innerHTML = s.recentAlerts.map(function (a) {
+  var demoTag = ' <span class="meta" style="font-weight:700">· Demo</span>';
+  function more(n) { return n > MAX ? '<p class="meta">+' + (n - MAX) + ' kayıt daha — tümü için Dışa aktarma › CSV</p>' : ''; }
+  document.getElementById('alertList').innerHTML = s.recentAlerts.slice(0, MAX).map(function (a) {
     var st = a.status === 'resolved' ? '<span class="badge ok">çözüldü</span>' : '<span class="badge warn">açık</span>';
-    return '<div class="row-item"><div class="left"><div class="title">' + a.title + ' ' + st + '</div>' +
-      '<div class="meta">' + shortDate(a.createdAt) + ' · ' + hiveName(a.hiveId) +
-      ' · <span class="badge ' + sevBadge(a.severity) + '">' + (a.type || '') + '</span></div></div></div>';
-  }).join('') || '<p class="meta">Uyarı yok.</p>';
-  document.getElementById('taskList').innerHTML = s.recentTasks.map(function (t) {
+    return '<div class="row-item"><div class="left"><div class="title">' + esc(a.title) + ' ' + st + (a.demo ? demoTag : '') + '</div>' +
+      '<div class="meta">' + (a.createdAt ? esc(R.trDate(a.createdAt)) + ' · ' : '') + esc(hiveName(a.hiveId)) +
+      ' · <span class="badge ' + sevBadge(a.severity) + '">' + esc(typeLabel(a.type)) + '</span></div></div></div>';
+  }).join('') + more(s.recentAlerts.length) || '<p class="meta">Uyarı yok.</p>';
+  document.getElementById('taskList').innerHTML = s.recentTasks.slice(0, MAX).map(function (t) {
     var st = t.status === 'done' ? '<span class="badge ok">bitti</span>' : '<span class="badge warn">açık</span>';
-    return '<div class="row-item"><div class="left"><div class="title">' + t.title + ' ' + st + '</div>' +
-      '<div class="meta">' + shortDate(t.createdAt) + ' · ' + hiveName(t.hiveId) +
-      ' · öncelik ' + t.priority + (t.doneAt ? ' · bitti ' + shortDate(t.doneAt) : '') + '</div></div></div>';
-  }).join('') || '<p class="meta">Görev yok.</p>';
+    return '<div class="row-item"><div class="left"><div class="title">' + esc(t.title) + ' ' + st + (t.demo ? demoTag : '') + '</div>' +
+      '<div class="meta">' + (t.createdAt ? esc(R.trDate(t.createdAt)) + ' · ' : '') + esc(hiveName(t.hiveId)) +
+      ' · öncelik ' + t.priority + (t.doneAt ? ' · bitti ' + esc(R.trDate(t.doneAt)) : '') + '</div></div></div>';
+  }).join('') + more(s.recentTasks.length) || '<p class="meta">Görev yok.</p>';
 })();
 </script>
 <script>
@@ -104,7 +110,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

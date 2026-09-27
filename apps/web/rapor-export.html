@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Dışa aktarma</title>
 <link rel="stylesheet" href="rapor-common.css" />
+<style>
+  #printArea { display: none; }
+  @media print {
+    @page { size: A4; margin: 14mm; }
+    .screen > *:not(#printArea) { display: none !important; }
+    #printArea { display: block; color: #000; font-size: 11px; }
+    #printArea h1 { font-size: 16px; margin: 0 0 4px; }
+    #printArea .pmeta { color: #444; margin: 0 0 10px; font-size: 10px; }
+    #printArea table { width: 100%; border-collapse: collapse; }
+    #printArea th, #printArea td { text-align: left; padding: 4px 5px; border-bottom: 1px solid #ccc; vertical-align: top; }
+    #printArea th { border-bottom: 1.5px solid #000; }
+    #printArea tr { break-inside: avoid; }
+    #printArea tr.total td { font-weight: 800; border-top: 1.5px solid #000; }
+  }
+</style>
 
 </head>
 <body>
@@ -37,6 +52,7 @@
           <option value="gelir">Gelir</option>
           <option value="gider">Gider</option>
           <option value="muayene">Muayene / petek</option>
+          <option value="saglik">Koloni sağlık</option>
           <option value="uyari">Uyarı geçmişi</option>
           <option value="gorev">Görev geçmişi</option>
           <option value="karzarar">Kâr-zarar</option>
@@ -52,16 +68,20 @@
       <div id="previewMeta" class="meta" style="margin-bottom:8px;font-size:12px;color:var(--muted)"></div>
       <div id="preview" style="overflow-x:auto"></div>
     </section>
-    <p class="hint">CSV tarayıcıda oluşturulur (UTF-8 BOM). PDF için sistem yazdır diyaloğundan «PDF olarak kaydet» seçin.</p>
+    <p class="hint" id="modeHint"></p>
+    <p class="hint">CSV telefonda oluşturulur (UTF-8, «;» ayraçlı — Türkçe Excel doğrudan açar). PDF için «Yazdır / PDF kaydet» › yazıcı olarak «PDF olarak kaydet» seçin; PDF’te tüm satırlar yer alır.</p>
+    <div id="printArea"></div>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
 <script src="gider-store.js"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
+<script src="sensor-health.js?v=koloni-39"></script>
+<script src="saglik-canli.js?v=koloni-39"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
@@ -77,21 +97,35 @@
   function bundle() {
     return R.exportBundle(kindSel.value, Number(seasonSel.value) || cur);
   }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function cell(c) { return typeof c === 'number' ? String(c).replace('.', ',') : esc(c); }
+  function tableHtml(b, limit, forPrint) {
+    var rows = limit ? b.rows.slice(0, limit) : b.rows;
+    var th = forPrint ? '' : ' style="text-align:left;padding:6px 4px;border-bottom:1px solid #e4e6ea;color:var(--muted)"';
+    var td = forPrint ? '' : ' style="padding:6px 4px;border-bottom:1px solid #f0f1f3;font-weight:600;word-break:break-word"';
+    var html = '<table' + (forPrint ? '' : ' style="width:100%;border-collapse:collapse;font-size:11px"') + '>';
+    html += '<thead><tr>' + b.headers.map(function (h) { return '<th' + th + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    rows.forEach(function (row) {
+      var total = row[0] === 'TOPLAM';
+      html += '<tr' + (total ? ' class="total"' : '') + '>' + row.map(function (c) { return '<td' + td + '>' + cell(c) + '</td>'; }).join('') + '</tr>';
+    });
+    return html + '</tbody></table>';
+  }
+  document.getElementById('modeHint').textContent = R.isLive()
+    ? 'Canlı mod: yalnız sizin kayıtlarınız dışa aktarılır.'
+    : 'Demo mod: örnek veriler dışa aktarılır (satırlar «Demo» kaynaklıdır).';
   function render() {
     var b = bundle();
     document.getElementById('previewMeta').textContent = b.filename + ' · ' + b.rows.length + ' satır';
-    var html = '<table style="width:100%;border-collapse:collapse;font-size:11px">';
-    html += '<thead><tr>' + b.headers.map(function (h) {
-      return '<th style="text-align:left;padding:6px 4px;border-bottom:1px solid #e4e6ea;color:var(--muted)">' + h + '</th>';
-    }).join('') + '</tr></thead><tbody>';
-    b.rows.slice(0, 40).forEach(function (row) {
-      html += '<tr>' + row.map(function (c) {
-        return '<td style="padding:6px 4px;border-bottom:1px solid #f0f1f3;font-weight:600">' + c + '</td>';
-      }).join('') + '</tr>';
-    });
-    html += '</tbody></table>';
-    if (b.rows.length > 40) html += '<p class="meta" style="margin-top:8px;font-size:11px;color:var(--muted)">İlk 40 satır gösteriliyor…</p>';
-    document.getElementById('preview').innerHTML = html || '<p class="meta">Veri yok.</p>';
+    document.getElementById('preview').innerHTML = b.rows.length
+      ? tableHtml(b, 40, false) + (b.rows.length > 40 ? '<p class="meta" style="margin-top:8px;font-size:11px;color:var(--muted)">İlk 40 satır gösteriliyor… (CSV ve PDF’te tümü)</p>' : '')
+      : '<p class="meta">Bu seçimde veri yok.</p>';
+    var d = new Date();
+    document.getElementById('printArea').innerHTML = '<h1>' + esc(b.title) + '</h1>' +
+      '<p class="pmeta">Hardal Arıcılık · ' + (b.mode === 'Demo' ? 'Demo verisi' : 'Canlı veri') + ' · ' + b.rows.length + ' satır · oluşturma ' +
+      d.toLocaleDateString('tr-TR') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + '</p>' +
+      (b.rows.length ? tableHtml(b, 0, true) : '<p>Bu seçimde veri yok.</p>');
+    document.title = b.filename.replace(/\.csv$/, '');
   }
   document.getElementById('btnCsv').addEventListener('click', function () {
     var b = bundle();
@@ -115,7 +149,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

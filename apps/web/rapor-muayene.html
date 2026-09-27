@@ -30,69 +30,84 @@
       <label>Sezon
         <select id="seasonSel"></select>
       </label>
+      <label>Arılık
+        <select id="apSel"></select>
+      </label>
     </div>
     <div class="stats" id="stats"></div>
     <section class="card-block">
       <h2>Kayıtlar</h2>
       <div id="list"></div>
     </section>
-    <p class="hint">Muayene ve petek tarama demo kayıtları. Petek tarama akışı <a href="petek-tarama.html" style="color:var(--brown);font-weight:700">petek-tarama.html</a> üzerinden de çalışır.</p>
+    <p class="hint" id="modeHint"></p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
   var D = window.SuperAriDemo;
   if (!R) return;
+  var live = R.isLive();
   var sel = document.getElementById('seasonSel');
+  var apSel = document.getElementById('apSel');
   var cur = R.currentSeasonYear();
   [cur, cur - 1].forEach(function (y) {
     var o = document.createElement('option');
     o.value = y; o.textContent = y + ' sezonu'; if (y === cur) o.selected = true;
     sel.appendChild(o);
   });
-  function hiveName(id) {
-    if (!D) return 'Kovan ' + id;
-    var h = D.hiveById(id);
-    return h ? h.name : ('Kovan ' + id);
-  }
-  function apiaryName(id) {
-    if (!D) return id;
-    var a = D.apiaryById(id);
-    return a ? (a.name || a.place) : id;
-  }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  var aps = (D && D.loadApiaries) ? D.loadApiaries() : [];
+  apSel.innerHTML = '<option value="">Tüm arılıklar</option>' + aps.map(function (a) {
+    return '<option value="' + esc(a.id) + '">' + esc(a.name || a.place || a.id) + '</option>';
+  }).join('');
+  var hint = document.getElementById('modeHint');
+  hint.innerHTML = live
+    ? 'Canlı mod: kovan kayıtlarınızdan (Kolay muayene, koloni gücü, yavru, hastalık) derlenir; aynı gün aynı kovanın kayıtları tek satırdır. Petek tarama sonuçları bu rapora eklenmez — <a href="petek-tarama.html" style="color:var(--brown);font-weight:700">Petek tarama</a>.'
+    : 'Demo mod: örnek muayene ve petek tarama kayıtları «Demo» etiketlidir; canlı moda geçince görünmez. <a href="petek-tarama.html" style="color:var(--brown);font-weight:700">Petek tarama</a>';
+  function stat(k, v) { return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
   function render() {
     var y = Number(sel.value) || cur;
-    var rows = R.filterBySeason(R.loadInspections(), y).slice().sort(function (a, b) {
-      return String(b.date).localeCompare(String(a.date));
-    });
+    var aid = apSel.value;
+    var rows = R.filterBySeason(R.loadInspections(), y).filter(function (r) {
+      return !aid || String(r.apiaryId) === String(aid);
+    }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
+    if (live) {
+      var hv = {}; rows.forEach(function (r) { hv[r.hiveId] = 1; });
+      var flagged = rows.filter(function (r) { return r.queenless || r.disease.length || /çok|%([5-9]|\d\d)/.test(r.varroa || ''); }).length;
+      var weak = rows.filter(function (r) { return r.strength === 'Zayıf'; }).length;
+      document.getElementById('stats').innerHTML = stat('Muayene', rows.length) + stat('Kovan', Object.keys(hv).length) +
+        stat('Bulgulu', flagged) + stat('Zayıf koloni', weak);
+      document.getElementById('list').innerHTML = rows.map(function (m) {
+        var cls = m.strength === 'Güçlü' ? 'ok' : (m.strength === 'Zayıf' ? 'bad' : 'warn');
+        return '<div class="row-item"><div class="left"><div class="title"><a href="kovan.html?id=' + encodeURIComponent(m.hiveId) + '" style="color:inherit">' + esc(m.hiveName) + '</a></div>' +
+          '<div class="meta">' + esc(R.trDate(m.date)) + ' · ' + esc(m.apiaryName || '—') + '<br>' + esc(m.detail) + (m.note ? '<br>Not: ' + esc(m.note) : '') + '</div></div>' +
+          (m.strength ? '<div class="right"><span class="badge ' + cls + '">' + esc(m.strength) + '</span></div>' : '') + '</div>';
+      }).join('') || '<p class="meta">Bu sezon' + (aid ? ' bu arılıkta' : '') + ' muayene kaydı yok. Kovan sayfasında «Kolay muayene» ile ekleyin.</p>';
+      return;
+    }
     var muayene = rows.filter(function (r) { return r.type === 'muayene'; }).length;
     var petek = rows.filter(function (r) { return r.type === 'petek'; }).length;
-    var avg = rows.length ? Math.round(rows.reduce(function (s, r) { return s + (Number(r.score) || 0); }, 0) / rows.length) : 0;
-    document.getElementById('stats').innerHTML =
-      '<div class="stat"><div class="k">Kayıt</div><div class="v">' + rows.length + '</div></div>' +
-      '<div class="stat"><div class="k">Muayene</div><div class="v">' + muayene + '</div></div>' +
-      '<div class="stat"><div class="k">Petek tarama</div><div class="v">' + petek + '</div></div>' +
-      '<div class="stat"><div class="k">Ort. skor</div><div class="v">' + avg + '</div></div>';
+    var avg = rows.length ? Math.round(rows.reduce(function (s, r) { return s + (Number(r.score) || 0); }, 0) / rows.length) : null;
+    document.getElementById('stats').innerHTML = stat('Kayıt', rows.length) + stat('Muayene', muayene) +
+      stat('Petek tarama', petek) + stat('Ort. skor', avg == null ? '—' : avg);
     document.getElementById('list').innerHTML = rows.map(function (m) {
       var cls = m.score < 50 ? 'bad' : (m.score < 70 ? 'warn' : 'ok');
       var tip = m.type === 'petek' ? 'Petek' : 'Muayene';
-      var detail = m.type === 'petek'
-        ? (m.note || 'Petek tarama')
-        : ('Yavru ' + m.brood + ' · bal ' + m.honey + ' · ana ' + m.queen + ' · varroa ' + m.varroa);
-      return '<div class="row-item"><div class="left"><div class="title">' + hiveName(m.hiveId) +
-        ' <span class="badge info">' + tip + '</span></div>' +
-        '<div class="meta">' + m.date + ' · ' + apiaryName(m.apiaryId) + '<br>' + detail + '</div></div>' +
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(m.hiveName) +
+        ' <span class="badge info">' + tip + '</span>' + (m.demo ? ' <span class="meta" style="font-weight:700">· Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + esc(R.trDate(m.date)) + ' · ' + esc(m.apiaryName) + '<br>' + esc(m.detail) + '</div></div>' +
         '<div class="right"><span class="badge ' + cls + '">' + m.score + '</span></div></div>';
-    }).join('') || '<p class="meta">Bu sezon kayıt yok.</p>';
+    }).join('') || '<p class="meta">Bu sezon' + (aid ? ' bu arılıkta' : '') + ' kayıt yok.</p>';
   }
   sel.addEventListener('change', render);
+  apSel.addEventListener('change', render);
   render();
 })();
 </script>
@@ -108,7 +123,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

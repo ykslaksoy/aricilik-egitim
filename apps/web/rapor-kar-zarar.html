@@ -36,24 +36,54 @@
       <h2>Arılık bazlı</h2>
       <div id="list"></div>
     </section>
+    <section class="card-block">
+      <h2>Gelir kayıtları</h2>
+      <div id="incomeList"></div>
+    </section>
+    <section class="card-block">
+      <h2>Gelir ekle</h2>
+      <form class="form-grid" id="incomeForm">
+        <label>Arılık
+          <select id="iApiary"></select>
+        </label>
+        <div class="pair">
+          <label>Tarih
+            <input type="date" id="iDate" required />
+          </label>
+          <label>Kaynak
+            <select id="iSource"></select>
+          </label>
+        </div>
+        <label>Tutar (₺)
+          <input type="text" id="iAmount" inputmode="decimal" required placeholder="ör. 12500" />
+        </label>
+        <label>Not
+          <input type="text" id="iNote" maxlength="120" placeholder="ör. 40 kg çiçek balı satışı" />
+        </label>
+        <button type="submit" class="btn">Kaydet</button>
+        <p class="form-msg" id="incomeMsg" aria-live="polite"></p>
+      </form>
+    </section>
     <div class="btn-row">
       <a class="btn secondary" href="giderler.html?tab=ariliklar" style="text-decoration:none">Gider detayı</a>
       <a class="btn secondary" href="rapor-export.html" style="text-decoration:none">CSV dışa aktar</a>
     </div>
-    <p class="hint">Gelir: demo bal/balmumu satışları. Gider: Giderler deposundaki kalemler (sezon filtresi May–Nis).</p>
+    <p class="hint" id="modeHint"></p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
 <script src="gider-store.js"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
+  var D = window.SuperAriDemo;
   if (!R) return;
+  var live = R.isLive();
   var sel = document.getElementById('seasonSel');
   var cur = R.currentSeasonYear();
   [cur, cur - 1].forEach(function (y) {
@@ -61,6 +91,20 @@
     o.value = y; o.textContent = y + ' sezonu'; if (y === cur) o.selected = true;
     sel.appendChild(o);
   });
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function pctTxt(v) { return String(Math.round(v * 10) / 10).replace('.', ',') + '%'; }
+  document.getElementById('modeHint').textContent = (live
+    ? 'Canlı mod: yalnız sizin girdiğiniz gelirler. '
+    : 'Demo mod: örnek bal/balmumu satışları «Demo» etiketlidir; canlı moda geçince görünmez. ') +
+    'Gider: Giderler sayfasındaki kalemler. Sezon: Mayıs–Nisan. Gelirler bu cihazda saklanır.';
+  var iApiary = document.getElementById('iApiary');
+  var aps = (D && D.loadApiaries) ? D.loadApiaries() : [];
+  iApiary.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name || a.place || a.id) + '</option>'; }).join('') +
+    '<option value="">Arılık belirtilmedi</option>';
+  var srcSel = document.getElementById('iSource');
+  srcSel.innerHTML = Object.keys(R.INCOME_SOURCES).map(function (k) { return '<option value="' + k + '">' + R.INCOME_SOURCES[k] + '</option>'; }).join('');
+  var t = new Date();
+  document.getElementById('iDate').value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
   function render() {
     var y = Number(sel.value) || cur;
     var pl = R.profitLoss(y);
@@ -70,19 +114,56 @@
       '<div class="stat"><div class="k">Gider</div><div class="v neg">' + R.fmtMoney(pl.expense) + '</div></div>' +
       '<div class="stat"><div class="k">Kâr / zarar</div><div class="v ' + cls + '">' + R.fmtMoney(pl.profit) + '</div></div>' +
       '<div class="stat"><div class="k">Marj</div><div class="v ' + cls + '">' +
-        (pl.income ? Math.round((pl.profit / pl.income) * 1000) / 10 : 0) + '%</div></div>';
+        (pl.income ? pctTxt((pl.profit / pl.income) * 100) : '—') + '</div></div>';
     var maxAbs = Math.max.apply(null, pl.rows.map(function (r) { return Math.abs(r.profit); }).concat([1]));
     document.getElementById('list').innerHTML = pl.rows.map(function (r) {
       var pcls = r.profit >= 0 ? 'pos' : 'neg';
       var pct = Math.round((Math.abs(r.profit) / maxAbs) * 100);
-      return '<div class="row-item"><div class="left"><div class="title">' + r.apiaryName + '</div>' +
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(r.apiaryName) + '</div>' +
         '<div class="meta">Gelir ' + R.fmtMoney(r.income) + ' · Gider ' + R.fmtMoney(r.expense) + '</div>' +
         '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' +
           (r.profit >= 0 ? 'linear-gradient(90deg,#8ce99a,#2f9e44)' : 'linear-gradient(90deg,#ffa8a8,#e03131)') +
         '"></div></div></div>' +
         '<div class="right ' + pcls + '">' + R.fmtMoney(r.profit) + '</div></div>';
-    }).join('') || '<p class="meta">Veri yok.</p>';
+    }).join('') || '<p class="meta">Bu sezon gelir veya gider kaydı yok.</p>';
+    var inc = R.incomeSummary(y);
+    document.getElementById('incomeList').innerHTML = inc.rows.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); }).map(function (r) {
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(r.apiaryName) +
+        (r.demo ? ' <span class="meta" style="font-weight:700">· Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + esc(R.trDate(r.date)) + ' · ' + esc(R.INCOME_SOURCES[r.source] || r.source || '') + (r.note ? ' · ' + esc(r.note) : '') + '</div></div>' +
+        '<div class="right pos">' + R.fmtMoney(r.amount) + '</div>' +
+        '<button type="button" class="del" data-del="' + esc(r.id) + '" aria-label="Sil">Sil</button></div>';
+    }).join('') || '<p class="meta">Bu sezon gelir kaydı yok. Satışlarınızı aşağıdan ekleyin.</p>';
   }
+  document.getElementById('incomeList').addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-del]');
+    if (!b) return;
+    if (!confirm('Bu gelir kaydı silinsin mi?')) return;
+    R.removeIncome(b.getAttribute('data-del'));
+    render();
+  });
+  document.getElementById('incomeForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msg = document.getElementById('incomeMsg');
+    msg.className = 'form-msg';
+    try {
+      var row = R.addIncome({
+        apiaryId: iApiary.value, date: document.getElementById('iDate').value,
+        source: srcSel.value, amount: document.getElementById('iAmount').value, note: document.getElementById('iNote').value
+      });
+      document.getElementById('iAmount').value = ''; document.getElementById('iNote').value = '';
+      msg.textContent = '✓ ' + R.fmtMoney(row.amount) + ' gelir eklendi';
+      var ys = R.seasonYearOf(row.date);
+      if (!sel.querySelector('option[value="' + ys + '"]')) {
+        var o = document.createElement('option'); o.value = ys; o.textContent = ys + ' sezonu'; sel.appendChild(o);
+      }
+      sel.value = String(ys);
+      render();
+    } catch (err) {
+      msg.className = 'form-msg err';
+      msg.textContent = err.message || 'Kaydedilemedi';
+    }
+  });
   sel.addEventListener('change', render);
   render();
 })();
@@ -99,7 +180,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

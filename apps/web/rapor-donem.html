@@ -26,6 +26,11 @@
         <a class="back-chip" href="ana.html">Ana</a>
       </div>
     </div>
+    <div class="filters">
+      <label>Sezon
+        <select id="seasonSel"></select>
+      </label>
+    </div>
     <div class="stats" id="stats"></div>
     <section class="card-block">
       <h2 id="compareTitle">Sezon karşılaştırması</h2>
@@ -35,48 +40,67 @@
       <h2>Arılık bazlı bal</h2>
       <div id="apiaryList"></div>
     </section>
-    <p class="hint">Hasat ve gelir demo kayıtlardan; giderler Giderler deposundan (aynı sezon filtresi) alınır.</p>
+    <p class="hint" id="modeHint"></p>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-38"></script>
+<script src="demo-data.js?v=koloni-39"></script>
 <script src="gider-store.js"></script>
-<script src="rapor-store.js?v=koloni-38"></script>
+<script src="rapor-store.js?v=koloni-39"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
   if (!R) return;
-  var c = R.periodCompare();
-  document.getElementById('pageSub').textContent = c.currentYear + ' vs ' + c.previousYear;
-  document.getElementById('compareTitle').textContent = c.currentYear + ' / ' + c.previousYear;
-  function deltaCls(p) { return p > 0 ? 'pos' : (p < 0 ? 'neg' : ''); }
-  function deltaTxt(p) { return (p > 0 ? '+' : '') + p + '%'; }
-  document.getElementById('stats').innerHTML =
-    '<div class="stat"><div class="k">Bal ' + c.currentYear + '</div><div class="v">' + R.fmtKg(c.harvest.current) + '</div></div>' +
-    '<div class="stat"><div class="k">Bal farkı</div><div class="v ' + deltaCls(c.harvest.deltaPct) + '">' + deltaTxt(c.harvest.deltaPct) + '</div></div>' +
-    '<div class="stat"><div class="k">Gelir ' + c.currentYear + '</div><div class="v">' + R.fmtMoney(c.income.current) + '</div></div>' +
-    '<div class="stat"><div class="k">Kâr farkı</div><div class="v ' + deltaCls(c.profit.deltaPct) + '">' + deltaTxt(c.profit.deltaPct) + '</div></div>';
-  function row(label, cur, prev, fmt) {
-    var d = prev ? Math.round(((cur - prev) / Math.abs(prev)) * 1000) / 10 : (cur ? 100 : 0);
-    return '<div class="compare-grid"><div class="lab">' + label + '</div>' +
-      '<div class="num">' + fmt(cur) + '</div><div class="mid ' + deltaCls(d) + '">' + deltaTxt(d) + '</div>' +
-      '<div class="num" style="text-align:right">' + fmt(prev) + '</div></div>';
+  var live = R.isLive();
+  var sel = document.getElementById('seasonSel');
+  var now = R.currentSeasonYear();
+  [now, now - 1].forEach(function (y) {
+    var o = document.createElement('option');
+    o.value = y; o.textContent = y + ' / ' + (y - 1); if (y === now) o.selected = true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modeHint').textContent = (live
+    ? 'Canlı mod: yalnız sizin girdiğiniz hasat ve gelirler. '
+    : 'Demo mod: örnek hasat ve gelirler «Demo» etiketlidir. ') +
+    'Giderler Giderler sayfasından alınır. Sezon: Mayıs–Nisan. Önceki sezonda veri yoksa fark «—» gösterilir.';
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function pct(cur, prev) { return prev ? Math.round(((cur - prev) / Math.abs(prev)) * 1000) / 10 : null; }
+  function deltaCls(p) { return p == null ? '' : (p > 0 ? 'pos' : (p < 0 ? 'neg' : '')); }
+  function deltaTxt(p) { return p == null ? '—' : (p > 0 ? '+' : '') + String(p).replace('.', ',') + '%'; }
+  function render() {
+    var c = R.periodCompare(Number(sel.value) || now);
+    document.getElementById('pageSub').textContent = c.currentYear + ' vs ' + c.previousYear;
+    document.getElementById('compareTitle').textContent = c.currentYear + ' / ' + c.previousYear;
+    document.getElementById('stats').innerHTML =
+      '<div class="stat"><div class="k">Bal ' + c.currentYear + '</div><div class="v">' + R.fmtKg(c.harvest.current) + '</div></div>' +
+      '<div class="stat"><div class="k">Bal farkı</div><div class="v ' + deltaCls(c.harvest.deltaPct) + '">' + deltaTxt(c.harvest.deltaPct) + '</div></div>' +
+      '<div class="stat"><div class="k">Gelir ' + c.currentYear + '</div><div class="v">' + R.fmtMoney(c.income.current) + '</div></div>' +
+      '<div class="stat"><div class="k">Kâr farkı</div><div class="v ' + deltaCls(c.profit.deltaPct) + '">' + deltaTxt(c.profit.deltaPct) + '</div></div>';
+    function row(label, cur, prev, fmt) {
+      var d = pct(cur, prev);
+      return '<div class="compare-grid"><div class="lab">' + label + '</div>' +
+        '<div class="num">' + fmt(cur) + '</div><div class="mid ' + deltaCls(d) + '">' + deltaTxt(d) + '</div>' +
+        '<div class="num" style="text-align:right">' + fmt(prev) + '</div></div>';
+    }
+    document.getElementById('compareBlock').innerHTML =
+      row('Bal (kg)', c.harvest.current, c.harvest.previous, R.fmtKg) +
+      row('Gelir', c.income.current, c.income.previous, R.fmtMoney) +
+      row('Gider', c.expense.current, c.expense.previous, R.fmtMoney) +
+      row('Kâr / zarar', c.profit.current, c.profit.previous, R.fmtMoney);
+    var rows = c.byApiary.filter(function (a) { return a.honeyCurrent || a.honeyPrevious || a.income || a.expense; });
+    document.getElementById('apiaryList').innerHTML = rows.map(function (a) {
+      var d = pct(a.honeyCurrent, a.honeyPrevious);
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(a.apiaryName) + '</div>' +
+        '<div class="meta">' + c.previousYear + ': ' + R.fmtKg(a.honeyPrevious) + ' → ' + c.currentYear + ': ' + R.fmtKg(a.honeyCurrent) +
+        ' · kâr ' + c.currentYear + ' ' + R.fmtMoney(a.profit) + '</div></div>' +
+        '<div class="right ' + deltaCls(d) + '">' + deltaTxt(d) + '</div></div>';
+    }).join('') || '<p class="meta">Bu iki sezonda hasat, gelir veya gider kaydı yok.</p>';
   }
-  document.getElementById('compareBlock').innerHTML =
-    row('Bal (kg)', c.harvest.current, c.harvest.previous, R.fmtKg) +
-    row('Gelir', c.income.current, c.income.previous, R.fmtMoney) +
-    row('Gider', c.expense.current, c.expense.previous, R.fmtMoney) +
-    row('Kâr / zarar', c.profit.current, c.profit.previous, R.fmtMoney);
-  document.getElementById('apiaryList').innerHTML = c.byApiary.map(function (a) {
-    var d = a.honeyPrevious ? Math.round(((a.honeyCurrent - a.honeyPrevious) / Math.abs(a.honeyPrevious)) * 1000) / 10 : (a.honeyCurrent ? 100 : 0);
-    return '<div class="row-item"><div class="left"><div class="title">' + a.apiaryName + '</div>' +
-      '<div class="meta">' + c.previousYear + ': ' + R.fmtKg(a.honeyPrevious) + ' → ' + c.currentYear + ': ' + R.fmtKg(a.honeyCurrent) +
-      ' · kâr ' + R.fmtMoney(a.profit) + '</div></div>' +
-      '<div class="right ' + deltaCls(d) + '">' + deltaTxt(d) + '</div></div>';
-  }).join('') || '<p class="meta">Veri yok.</p>';
+  sel.addEventListener('change', render);
+  render();
 })();
 </script>
 <script>
@@ -91,7 +115,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-38"></script>
-<script src="pwa.js?v=koloni-38"></script>
+<script src="nav.js?v=koloni-39"></script>
+<script src="pwa.js?v=koloni-39"></script>
 </body>
 </html>

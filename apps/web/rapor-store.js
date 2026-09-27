@@ -1,6 +1,8 @@
 /**
- * Report demo store: harvest, income, inspections, alert/task history.
- * Seeds localStorage once; pages stay filled without API.
+ * Report store: harvest, income, inspections, alert/task history.
+ * Demo mod: örnek veriler (demo:true, «Demo» etiketi).
+ * Canlı mod: yalnız kullanıcının kayıtları — gelir ayrı anahtarda, muayene koloni
+ * kayıtlarından, uyarılar ve görevler canlı uyarı/görev deposundan okunur.
  */
 (function (global) {
   var HARVEST_KEY = 'superari.rapor.hasat.v1';
@@ -9,6 +11,19 @@
   var ALERT_HIST_KEY = 'superari.rapor.uyari.gecmis.v1';
   var TASK_HIST_KEY = 'superari.rapor.gorev.gecmis.v1';
   var SEEDED_FLAG = 'superari.rapor.seeded.v1';
+  var INCOME_LIVE_KEY = 'superari.rapor.gelir.live.v1';
+  var INCOME_SOURCES = { bal: 'Bal', balmumu: 'Balmumu', polen: 'Polen', propolis: 'Propolis', ogul: 'Oğul / paket arı', ana: 'Ana arı', diger: 'Diğer' };
+
+  function isLive() {
+    try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; }
+  }
+  function tagDemo(list) {
+    return (list || []).map(function (x) {
+      var o = {}; Object.keys(x).forEach(function (k) { o[k] = x[k]; });
+      o.demo = true;
+      return o;
+    });
+  }
 
   var SEED_HARVESTS = [
     { id: 'h1', apiaryId: 'a1', apiaryName: 'Kayaköy Ana Arılık', date: '2026-08-18', honeyKg: 420, frames: 86, note: 'Ana hasat' },
@@ -138,32 +153,182 @@
   }
 
   function loadIncomes() {
+    if (isLive()) return readJson(INCOME_LIVE_KEY) || [];
     ensureSeeded();
-    return readJson(INCOME_KEY) || SEED_INCOMES.slice();
+    return tagDemo(readJson(INCOME_KEY) || SEED_INCOMES.slice());
+  }
+
+  function apiaryNameOf(id) {
+    var D = global.SuperAriDemo;
+    try {
+      var a = D && D.apiaryById ? D.apiaryById(id) : null;
+      return a ? (a.name || a.place || String(id)) : '';
+    } catch (e) { return ''; }
+  }
+
+  /** Gelir ekle (Canlı: kullanıcı deposu; Demo: demo deposu). */
+  function addIncome(entry) {
+    var e = entry || {};
+    var rawAmt = String(e.amount == null ? '' : e.amount).replace(/[\s₺]/g, '');
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(rawAmt)) rawAmt = rawAmt.replace(/\./g, '');
+    var amount = Number(rawAmt.replace(',', '.'));
+    if (!(amount > 0)) throw new Error('Tutar girin');
+    var date = String(e.date || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Tarih girin');
+    var aid = String(e.apiaryId || '');
+    var row = {
+      id: 'i' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+      apiaryId: aid || 'none',
+      apiaryName: aid ? (apiaryNameOf(aid) || aid) : 'Arılık belirtilmedi',
+      date: date,
+      amount: Math.round(amount * 100) / 100,
+      source: INCOME_SOURCES[e.source] ? e.source : 'diger',
+      note: String(e.note || '').trim().slice(0, 200)
+    };
+    var key = isLive() ? INCOME_LIVE_KEY : INCOME_KEY;
+    if (!isLive()) ensureSeeded();
+    var list = readJson(key) || [];
+    list.push(row);
+    writeJson(key, list);
+    return row;
+  }
+
+  function removeIncome(id) {
+    var key = isLive() ? INCOME_LIVE_KEY : INCOME_KEY;
+    var sid = String(id || '');
+    var list = (readJson(key) || []).filter(function (r) { return String(r.id) !== sid; });
+    writeJson(key, list);
+    return list;
+  }
+
+  var LEVEL_TR = { az: 'az', cok: 'çok' };
+  /** Canlı muayeneler: koloni kayıtlarından (güç / yavru / hastalık), aynı gün + kovan tek satır. */
+  function liveInspections() {
+    var D = global.SuperAriDemo;
+    var KR = D && D.records;
+    if (!KR || typeof KR.loadAll !== 'function') return [];
+    var all = KR.loadAll() || {};
+    var hives = {};
+    try { (D.hives || []).forEach(function (h) { hives[String(h.id)] = h; }); } catch (e) { /* ignore */ }
+    var byKey = {};
+    Object.keys(all).forEach(function (hid) {
+      var recs = KR.recordsFor(hid, all);
+      var hv = hives[String(hid)];
+      function row(date) {
+        var k = hid + '|' + date;
+        if (!byKey[k]) {
+          byKey[k] = {
+            id: 'live-' + k, hiveId: Number(hid), hiveName: hv ? hv.name : ('Kovan ' + hid),
+            apiaryId: hv ? hv.apiaryId : '', apiaryName: hv ? apiaryNameOf(hv.apiaryId) : '',
+            date: date, type: 'muayene', parts: [], strength: '', beeFrames: null, broodFrames: null, honeyFrames: null,
+            eggs: null, queenless: false, queenCell: '', varroa: '', disease: [], note: ''
+          };
+        }
+        return byKey[k];
+      }
+      (recs.strength || []).forEach(function (r) {
+        var o = row(r.date);
+        o.beeFrames = r.beeFrames; o.broodFrames = r.broodFrames; o.honeyFrames = r.honeyFrames;
+        o.strength = KR.strengthClass ? KR.strengthClass(r) || '' : '';
+        if (r.varroaSeen) o.varroa = 'gözle ' + (LEVEL_TR[r.varroaSeen] || r.varroaSeen);
+        if (r.diseaseSign) o.disease.push('hastalık belirtisi');
+        if (r.note && !o.note) o.note = r.note;
+      });
+      (recs.brood || []).forEach(function (r) {
+        var o = row(r.date);
+        o.eggs = r.eggs; o.queenless = !!r.queenless;
+        if (r.queenCell && r.queenCell !== 'yok') o.queenCell = r.queenCell;
+        if (r.varroaSeen && !o.varroa) o.varroa = 'gözle ' + (LEVEL_TR[r.varroaSeen] || r.varroaSeen);
+        if (r.diseaseSign && o.disease.indexOf('hastalık belirtisi') === -1) o.disease.push('hastalık belirtisi');
+        if (r.note && !o.note) o.note = r.note;
+      });
+      (recs.disease || []).forEach(function (r) {
+        var o = row(r.date);
+        var lab = (KR.DISEASE_LABEL && KR.DISEASE_LABEL[r.disease]) || r.disease;
+        if (r.disease === 'varroa') {
+          if (r.infestation != null) o.varroa = '%' + String(r.infestation).replace('.', ',');
+          else if (r.count != null) o.varroa = r.count + ' akar';
+        } else {
+          var st = r.status || r.severity || '';
+          var stl = (KR.SEVERITY_LABEL && KR.SEVERITY_LABEL[st]) || (KR.NOSEMA_LABEL && KR.NOSEMA_LABEL[st]) || (KR.AYC_LABEL && KR.AYC_LABEL[st]) || st;
+          if (st && st !== 'yok' && st !== 'temiz') o.disease.push(lab + ' ' + String(stl).toLocaleLowerCase('tr'));
+        }
+        if (r.treatment) o.disease.push('tedavi: ' + r.treatment);
+        if (r.note && !o.note) o.note = r.note;
+      });
+    });
+    return Object.keys(byKey).map(function (k) {
+      var o = byKey[k];
+      var bits = [];
+      if (o.strength) bits.push(o.strength + ' koloni');
+      if (o.beeFrames != null) bits.push(o.beeFrames + ' arılı · ' + o.broodFrames + ' yavrulu · ' + o.honeyFrames + ' ballı çerçeve');
+      if (o.eggs === true) bits.push('yumurta var');
+      else if (o.eggs === false) bits.push('yumurta yok');
+      if (o.queenless) bits.push('anasız');
+      if (o.queenCell) bits.push('ana memesi');
+      if (o.varroa) bits.push('varroa ' + o.varroa);
+      o.disease.forEach(function (d) { bits.push(d); });
+      o.detail = bits.join(' · ') || 'Kayıt';
+      return o;
+    }).sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
   }
 
   function loadInspections() {
+    if (isLive()) return liveInspections();
     ensureSeeded();
-    return readJson(INSPECTION_KEY) || SEED_INSPECTIONS.slice();
+    var D = global.SuperAriDemo;
+    return tagDemo(readJson(INSPECTION_KEY) || SEED_INSPECTIONS.slice()).map(function (m) {
+      var h = null;
+      try { h = D && D.hiveById ? D.hiveById(m.hiveId) : null; } catch (e) { h = null; }
+      m.hiveName = h ? h.name : ('Kovan ' + m.hiveId);
+      m.apiaryName = apiaryNameOf(m.apiaryId) || m.apiaryId;
+      m.detail = m.type === 'petek' ? (m.note || 'Petek tarama')
+        : ('Yavru ' + m.brood + ' · bal ' + m.honey + ' · ana ' + m.queen + ' · varroa ' + m.varroa);
+      return m;
+    });
   }
 
   function loadAlertHistory() {
+    if (isLive()) {
+      /* Canlı: kayıtlardan/stoktan/oğul riskinden üretilen güncel uyarılar (geçmiş kapanış kaydı tutulmaz). */
+      var D = global.SuperAriDemo, list = [];
+      try { list = (D && D.alerts) || []; } catch (e) { list = []; }
+      return list.filter(function (a) { return a && !a.demo; }).map(function (a) {
+        return { id: a.id, title: a.title, type: a.type || 'diger', hiveId: a.hiveId, severity: a.severity || 'medium', status: 'open', createdAt: a.createdAt || '', auto: !!a.auto };
+      });
+    }
     ensureSeeded();
-    return readJson(ALERT_HIST_KEY) || SEED_ALERT_HIST.slice();
+    return tagDemo(readJson(ALERT_HIST_KEY) || SEED_ALERT_HIST.slice());
   }
 
   function loadTaskHistory() {
+    if (isLive()) {
+      var TS = global.SuperAriDemo && global.SuperAriDemo.taskStore;
+      if (!TS) return [];
+      var out = [];
+      try {
+        TS.open().forEach(function (t) {
+          if (t.demo) return;
+          out.push({ id: t.id, title: t.title, hiveId: t.hiveId, priority: t.priority || 3, status: 'open', createdAt: t.auto ? '' : (t.createdAt || ''), due: t.due || '', auto: !!t.auto });
+        });
+        TS.done().forEach(function (t) {
+          if (t.demo) return;
+          out.push({ id: t.id, title: t.title, hiveId: t.hiveId, priority: t.priority || 3, status: 'done', createdAt: t.auto ? '' : (t.createdAt || ''), doneAt: t.doneAt || '', auto: !!t.auto });
+        });
+      } catch (e) { /* ignore */ }
+      return out;
+    }
     ensureSeeded();
-    return readJson(TASK_HIST_KEY) || SEED_TASK_HIST.slice();
+    return tagDemo(readJson(TASK_HIST_KEY) || SEED_TASK_HIST.slice());
   }
 
   function addHarvest(entry) {
     var U = unifiedHarvests();
     if (U) {
       var e = entry || {};
-      if (!e.apiaryId && e.hiveId == null) throw new Error('apiaryId gerekli');
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(e.date || ''))) throw new Error('tarih gerekli');
-      if (!(Number(String(e.honeyKg).replace(',', '.')) > 0)) throw new Error('kg gerekli');
+      if (!e.apiaryId && e.hiveId == null) throw new Error('Arılık seçin');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(e.date || ''))) throw new Error('Tarih girin');
+      if (!(Number(String(e.honeyKg).replace(',', '.')) > 0)) throw new Error('Bal miktarını (kg) girin');
       return U.add({
         apiaryId: e.apiaryId, apiaryName: e.apiaryName, hiveId: (e.hiveId === '' ? null : e.hiveId),
         date: e.date, honeyKg: e.honeyKg, frames: e.frames, honeyType: e.honeyType, note: e.note, source: 'rapor'
@@ -180,9 +345,9 @@
       frames: Math.max(0, Math.round(Number(entry && entry.frames) || 0)),
       note: String((entry && entry.note) || '').trim()
     };
-    if (!row.apiaryId) throw new Error('apiaryId gerekli');
-    if (!row.date) throw new Error('tarih gerekli');
-    if (!(row.honeyKg > 0)) throw new Error('kg gerekli');
+    if (!row.apiaryId) throw new Error('Arılık seçin');
+    if (!row.date) throw new Error('Tarih girin');
+    if (!(row.honeyKg > 0)) throw new Error('Bal miktarını (kg) girin');
     list.push(row);
     writeJson(HARVEST_KEY, list);
     return row;
@@ -288,11 +453,27 @@
     };
   }
 
+  /* Giderler sayfasıyla aynı kalem seti: standart arılık kalemleri bir kez uzlaştırılır (Giderler açılmadan da tutarlı toplam). */
+  var giderReconciled = false;
+  function loadExpensesReconciled() {
+    var G = global.SuperAriGider, D = global.SuperAriDemo;
+    if (!G || typeof G.loadExpenses !== 'function') return [];
+    if (!giderReconciled) {
+      giderReconciled = true;
+      try {
+        if (G.reconcileAllApiaries && D && D.loadApiaries) {
+          G.reconcileAllApiaries(D.loadApiaries().map(function (a) {
+            return { id: a.id, name: a.name, place: a.place, hiveCount: G.hiveCountOf ? G.hiveCountOf(a) : (Number(a.hiveCount) || 0) };
+          }));
+        }
+      } catch (e) { /* ignore */ }
+    }
+    return G.loadExpenses() || [];
+  }
+
   function expenseTotalForSeason(year) {
     var y = Number(year) || currentSeasonYear();
-    var G = global.SuperAriGider;
-    if (!G || typeof G.loadExpenses !== 'function') return 0;
-    var rows = G.loadExpenses() || [];
+    var rows = loadExpensesReconciled();
     var sum = 0;
     rows.forEach(function (e) {
       if (seasonYearOf(e.date) === y) sum += Number(e.amount) || 0;
@@ -302,10 +483,8 @@
 
   function expensesByApiarySeason(year) {
     var y = Number(year) || currentSeasonYear();
-    var G = global.SuperAriGider;
     var map = {};
-    if (!G || typeof G.loadExpenses !== 'function') return map;
-    (G.loadExpenses() || []).forEach(function (e) {
+    loadExpensesReconciled().forEach(function (e) {
       if (seasonYearOf(e.date) !== y) return;
       var id = (!e.apiaryId || e.deletedApiary) ? 'none' : String(e.apiaryId);
       if (!map[id]) {
@@ -321,87 +500,16 @@
     return map;
   }
 
+  /** Sağlık özeti: SuperAriSensorHealth (Canlı modda canlı skor; veri yoksa skor null = «Veri az»). */
   function healthSummary() {
-    var D = global.SuperAriDemo;
+    var H = global.SuperAriSensorHealth, D = global.SuperAriDemo;
+    if (!H || typeof H.evaluateAll !== 'function') return null;
     var hives = (D && typeof D.loadHives === 'function') ? D.loadHives() : [];
-    var apiaries = (D && typeof D.loadApiaries === 'function') ? D.loadApiaries() : [];
-    var nameById = {};
-    apiaries.forEach(function (a) { nameById[a.id] = a.name || a.place || a.id; });
-
-    var buckets = { iyi: 0, dikkat: 0, kritik: 0 };
-    var swarm = { dusuk: 0, orta: 0, yuksek: 0 };
-    var sumHealth = 0;
-    var sumWeight = 0;
-    var sumDelta = 0;
-    var byApiary = {};
-
-    hives.forEach(function (h) {
-      var hs = Number(h.healthScore) || 0;
-      sumHealth += hs;
-      sumWeight += Number(h.weightKg) || 0;
-      sumDelta += Number(h.deltaKg) || 0;
-      var label = String(h.health || '').toLocaleLowerCase('tr');
-      if (label.indexOf('kritik') !== -1) buckets.kritik += 1;
-      else if (label.indexOf('dikkat') !== -1) buckets.dikkat += 1;
-      else buckets.iyi += 1;
-      var sw = String(h.swarmRisk || '').toLocaleLowerCase('tr');
-      if (sw.indexOf('yüksek') !== -1 || sw.indexOf('yuksek') !== -1) swarm.yuksek += 1;
-      else if (sw.indexOf('orta') !== -1) swarm.orta += 1;
-      else swarm.dusuk += 1;
-
-      var aid = String(h.apiaryId || 'none');
-      if (!byApiary[aid]) {
-        byApiary[aid] = {
-          apiaryId: aid,
-          apiaryName: nameById[aid] || aid,
-          count: 0,
-          healthSum: 0,
-          weightSum: 0,
-          deltaSum: 0,
-          kritik: 0,
-          ogulYuksek: 0
-        };
-      }
-      var b = byApiary[aid];
-      b.count += 1;
-      b.healthSum += hs;
-      b.weightSum += Number(h.weightKg) || 0;
-      b.deltaSum += Number(h.deltaKg) || 0;
-      if (label.indexOf('kritik') !== -1) b.kritik += 1;
-      if (sw.indexOf('yüksek') !== -1 || sw.indexOf('yuksek') !== -1) b.ogulYuksek += 1;
-    });
-
-    var n = hives.length || 1;
-    var list = Object.keys(byApiary).map(function (k) {
-      var b = byApiary[k];
-      return {
-        apiaryId: b.apiaryId,
-        apiaryName: b.apiaryName,
-        count: b.count,
-        avgHealth: Math.round(b.healthSum / (b.count || 1)),
-        avgWeight: Math.round((b.weightSum / (b.count || 1)) * 10) / 10,
-        deltaSum: Math.round(b.deltaSum * 10) / 10,
-        kritik: b.kritik,
-        ogulYuksek: b.ogulYuksek
-      };
-    }).sort(function (a, b) { return a.avgHealth - b.avgHealth; });
-
-    return {
-      hiveCount: hives.length,
-      avgHealth: Math.round(sumHealth / n),
-      avgWeight: Math.round((sumWeight / n) * 10) / 10,
-      deltaSum: Math.round(sumDelta * 10) / 10,
-      buckets: buckets,
-      swarm: swarm,
-      byApiary: list,
-      topRisk: hives.slice().sort(function (a, b) {
-        return (Number(a.healthScore) || 0) - (Number(b.healthScore) || 0);
-      }).slice(0, 8)
-    };
+    return H.evaluateAll(hives);
   }
 
-  function periodCompare() {
-    var cur = currentSeasonYear();
+  function periodCompare(year) {
+    var cur = Number(year) || currentSeasonYear();
     var prev = cur - 1;
     var hCur = harvestSummary(cur);
     var hPrev = harvestSummary(prev);
@@ -410,7 +518,7 @@
     var eCur = expenseTotalForSeason(cur);
     var ePrev = expenseTotalForSeason(prev);
     function pct(a, b) {
-      if (!b) return a ? 100 : 0;
+      if (!b) return null; /* önceki dönem 0: yüzde anlamsız */
       return Math.round(((a - b) / Math.abs(b)) * 1000) / 10;
     }
     return {
@@ -499,11 +607,13 @@
       var t = a.type || 'diger';
       byType[t] = (byType[t] || 0) + 1;
     });
+    var live = isLive();
     return {
+      live: live,
       alerts: alerts,
       tasks: tasks,
       openAlerts: openA.length,
-      resolvedAlerts: resolvedA.length,
+      resolvedAlerts: live ? null : resolvedA.length,
       openTasks: openT.length,
       doneTasks: doneT.length,
       byType: byType,
@@ -511,7 +621,7 @@
         return String(b.createdAt).localeCompare(String(a.createdAt));
       }),
       recentTasks: tasks.slice().sort(function (a, b) {
-        return String(b.createdAt || b.doneAt || '').localeCompare(String(a.createdAt || a.doneAt || ''));
+        return String(b.doneAt || b.createdAt || '').localeCompare(String(a.doneAt || a.createdAt || ''));
       })
     };
   }
@@ -525,18 +635,19 @@
     return (Math.round((Number(n) || 0) * 10) / 10).toLocaleString('tr-TR') + ' kg';
   }
 
+  /* Türkçe Excel: ayırıcı «;», ondalık «,». */
   function csvEscape(v) {
-    var s = String(v == null ? '' : v);
-    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    var s = (typeof v === 'number' && isFinite(v)) ? String(v).replace('.', ',') : String(v == null ? '' : v);
+    if (/[";\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
   }
 
   function toCsv(headers, rows) {
-    var lines = [headers.map(csvEscape).join(',')];
+    var lines = [headers.map(csvEscape).join(';')];
     rows.forEach(function (row) {
-      lines.push(row.map(csvEscape).join(','));
+      lines.push(row.map(csvEscape).join(';'));
     });
-    return lines.join('\n');
+    return lines.join('\r\n');
   }
 
   function downloadBlob(filename, text, mime) {
@@ -558,98 +669,157 @@
     downloadBlob(filename, bom + toCsv(headers, rows), 'text/csv;charset=utf-8');
   }
 
+  function trDate(iso) {
+    var str = String(iso || '');
+    if (/T\d{2}:\d{2}/.test(str) && /(Z|[+-]\d{2}:?\d{2})$/.test(str)) {
+      var dt = new Date(str);
+      if (!isNaN(dt)) {
+        var p2 = function (n) { return String(n).padStart(2, '0'); };
+        return p2(dt.getDate()) + '.' + p2(dt.getMonth() + 1) + '.' + dt.getFullYear() + ' ' + p2(dt.getHours()) + ':' + p2(dt.getMinutes());
+      }
+    }
+    var m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(String(iso || ''));
+    if (!m) return '';
+    return m[3] + '.' + m[2] + '.' + m[1] + (m[4] ? ' ' + m[4] + ':' + m[5] : '');
+  }
+  var TYPE_TR = { muayene: 'Muayene', petek: 'Petek tarama' };
+  var SEV_TR = { high: 'Yüksek', medium: 'Orta', low: 'Düşük' };
+  function hiveLabel(id) {
+    if (id == null || id === '') return '';
+    var D = global.SuperAriDemo, h = null;
+    try { h = D && D.hiveById ? D.hiveById(id) : null; } catch (e) { h = null; }
+    return h ? h.name : ('Kovan ' + id);
+  }
+  function hiveApiary(id) {
+    var D = global.SuperAriDemo, h = null;
+    try { h = D && D.hiveById ? D.hiveById(id) : null; } catch (e) { h = null; }
+    return h ? apiaryNameOf(h.apiaryId) : '';
+  }
+  function demoCol(r) { return r && r.demo ? 'Demo' : ''; }
+
   function exportBundle(kind, year) {
     var y = Number(year) || currentSeasonYear();
     kind = String(kind || 'ozet');
+    var live = isLive();
+    var title = 'SüperArı';
+    var out;
     if (kind === 'hasat') {
       var hs = harvestSummary(y);
-      return {
+      out = {
+        title: 'Hasat — ' + y + ' sezonu',
         filename: 'superari-hasat-' + y + '.csv',
-        headers: ['Tarih', 'Arılık', 'Bal (kg)', 'Çerçeve', 'Not'],
+        headers: ['Tarih', 'Arılık', 'Kovan', 'Bal (kg)', 'Çerçeve', 'Bal türü', 'Not'],
         rows: hs.rows.map(function (r) {
-          return [r.date, r.apiaryName, r.honeyKg, r.frames, r.note || ''];
-        })
+          return [trDate(r.date), r.apiaryName || apiaryNameOf(r.apiaryId), r.hiveName || '', Number(r.honeyKg) || 0, Number(r.frames) || 0, r.honeyType || '', r.note || ''];
+        }),
+        total: ['TOPLAM', '', '', hs.totalKg, hs.totalFrames, '', '']
       };
-    }
-    if (kind === 'gelir') {
+    } else if (kind === 'gelir') {
       var inc = incomeSummary(y);
-      return {
+      out = {
+        title: 'Gelir — ' + y + ' sezonu',
         filename: 'superari-gelir-' + y + '.csv',
-        headers: ['Tarih', 'Arılık', 'Kaynak', 'Tutar', 'Not'],
+        headers: ['Tarih', 'Arılık', 'Kaynak', 'Tutar (₺)', 'Not'],
         rows: inc.rows.map(function (r) {
-          return [r.date, r.apiaryName, r.source, r.amount, r.note || ''];
-        })
+          return [trDate(r.date), r.apiaryName, INCOME_SOURCES[r.source] || r.source || '', Number(r.amount) || 0, r.note || ''];
+        }),
+        total: ['TOPLAM', '', '', inc.total, '']
       };
-    }
-    if (kind === 'gider') {
+    } else if (kind === 'gider') {
       var G = global.SuperAriGider;
-      var exps = (G && G.loadExpenses) ? G.loadExpenses() : [];
+      var exps = loadExpensesReconciled();
       var filtered = exps.filter(function (e) { return seasonYearOf(e.date) === y; });
-      return {
+      var cat = function (id) { try { var c = G.catById(id); return c ? (c.label || c.name || id) : id; } catch (e) { return id; } };
+      var gsum = 0; filtered.forEach(function (e) { gsum += Number(e.amount) || 0; });
+      out = {
+        title: 'Gider — ' + y + ' sezonu',
         filename: 'superari-gider-' + y + '.csv',
-        headers: ['Tarih', 'Arılık', 'Kalem', 'Kategori', 'Tutar', 'Not'],
+        headers: ['Tarih', 'Arılık', 'Kalem', 'Kategori', 'Tutar (₺)', 'Not'],
         rows: filtered.map(function (e) {
-          return [e.date, e.apiaryName || '', e.title || '', e.category || '', e.amount, e.note || ''];
-        })
+          return [trDate(e.date), e.apiaryName || '', e.title || '', cat(e.category || ''), Number(e.amount) || 0, e.note || ''];
+        }),
+        total: ['TOPLAM', '', '', '', gsum, '']
       };
-    }
-    if (kind === 'muayene') {
+    } else if (kind === 'muayene') {
       var ins = filterBySeason(loadInspections(), y);
-      return {
+      out = {
+        title: 'Muayene / petek — ' + y + ' sezonu',
         filename: 'superari-muayene-' + y + '.csv',
-        headers: ['Tarih', 'Tip', 'Kovan', 'Arılık', 'Skor', 'Yavru', 'Bal', 'Ana', 'Varroa', 'Not'],
+        headers: live ? ['Tarih', 'Kovan', 'Arılık', 'Koloni', 'Bulgular', 'Not']
+          : ['Tarih', 'Tip', 'Kovan', 'Arılık', 'Skor', 'Bulgular', 'Not', 'Kaynak'],
         rows: ins.map(function (m) {
-          return [m.date, m.type, m.hiveId, m.apiaryId, m.score, m.brood, m.honey, m.queen, m.varroa, m.note || ''];
+          return live ? [trDate(m.date), m.hiveName, m.apiaryName, m.strength || '', m.detail, m.note || '']
+            : [trDate(m.date), TYPE_TR[m.type] || m.type, m.hiveName, m.apiaryName, m.score, m.type === 'petek' ? '' : m.detail, m.note || '', demoCol(m)];
         })
       };
-    }
-    if (kind === 'uyari') {
+    } else if (kind === 'uyari') {
       var al = loadAlertHistory();
-      return {
+      out = {
+        title: live ? 'Güncel uyarılar' : 'Uyarı geçmişi',
         filename: 'superari-uyari-gecmis.csv',
-        headers: ['Oluşturma', 'Başlık', 'Tip', 'Kovan', 'Şiddet', 'Durum', 'Kapanış'],
+        headers: ['Oluşturma', 'Başlık', 'Tip', 'Kovan', 'Arılık', 'Önem', 'Durum', 'Kapanış'],
         rows: al.map(function (a) {
-          return [a.createdAt, a.title, a.type, a.hiveId, a.severity, a.status, a.resolvedAt || ''];
+          return [trDate(a.createdAt), a.title, a.type || '', hiveLabel(a.hiveId), hiveApiary(a.hiveId), SEV_TR[a.severity] || a.severity || '', a.status === 'resolved' ? 'Çözüldü' : 'Açık', trDate(a.resolvedAt)];
         })
       };
-    }
-    if (kind === 'gorev') {
+    } else if (kind === 'gorev') {
       var ts = loadTaskHistory();
-      return {
+      out = {
+        title: 'Görev geçmişi',
         filename: 'superari-gorev-gecmis.csv',
-        headers: ['Oluşturma', 'Başlık', 'Kovan', 'Öncelik', 'Durum', 'Tamamlanma'],
+        headers: ['Oluşturma', 'Başlık', 'Kovan', 'Arılık', 'Öncelik', 'Durum', 'Tamamlanma'],
         rows: ts.map(function (t) {
-          return [t.createdAt, t.title, t.hiveId, t.priority, t.status, t.doneAt || ''];
+          return [trDate(t.createdAt), t.title, hiveLabel(t.hiveId), hiveApiary(t.hiveId), t.priority, t.status === 'done' ? 'Tamamlandı' : 'Açık', trDate(t.doneAt)];
         })
       };
-    }
-    if (kind === 'karzarar') {
+    } else if (kind === 'karzarar') {
       var pl = profitLoss(y);
-      return {
+      out = {
+        title: 'Kâr-zarar — ' + y + ' sezonu',
         filename: 'superari-kar-zarar-' + y + '.csv',
-        headers: ['Arılık', 'Gelir', 'Gider', 'Kâr/Zarar'],
+        headers: ['Arılık', 'Gelir (₺)', 'Gider (₺)', 'Kâr/Zarar (₺)'],
         rows: pl.rows.map(function (r) {
           return [r.apiaryName, r.income, r.expense, r.profit];
-        }).concat([['TOPLAM', pl.income, pl.expense, pl.profit]])
+        }),
+        total: ['TOPLAM', pl.income, pl.expense, pl.profit]
+      };
+    } else if (kind === 'saglik') {
+      var hsum = healthSummary();
+      var rowsH = [];
+      if (hsum) {
+        hsum.hives.forEach(function (x) { rowsH.push([x.name, hiveApiary(x.hiveId), x.score, x.band ? x.band.label : '']); });
+        (hsum.unscored || []).forEach(function (x) { rowsH.push([x.name, hiveApiary(x.hiveId), '', 'Veri az']); });
+      }
+      out = {
+        title: 'Koloni sağlık',
+        filename: 'superari-saglik.csv',
+        headers: ['Kovan', 'Arılık', 'Sağlık skoru', 'Durum'],
+        rows: rowsH
+      };
+    } else {
+      var h = harvestSummary(y);
+      var i = incomeSummary(y);
+      var e = expenseTotalForSeason(y);
+      out = {
+        title: 'Sezon özeti — ' + y,
+        filename: 'superari-ozet-' + y + '.csv',
+        headers: ['Metrik', 'Değer'],
+        rows: [
+          ['Sezon', String(y)],
+          ['Toplam bal (kg)', h.totalKg],
+          ['Toplam gelir (₺)', i.total],
+          ['Toplam gider (₺)', e],
+          ['Kâr/Zarar (₺)', i.total - e],
+          ['Hasat kaydı', h.rows.length],
+          ['Gelir kaydı', i.rows.length]
+        ]
       };
     }
-    /* ozet */
-    var h = harvestSummary(y);
-    var i = incomeSummary(y);
-    var e = expenseTotalForSeason(y);
-    return {
-      filename: 'superari-ozet-' + y + '.csv',
-      headers: ['Metrik', 'Değer'],
-      rows: [
-        ['Sezon', y],
-        ['Toplam bal (kg)', h.totalKg],
-        ['Toplam gelir (₺)', i.total],
-        ['Toplam gider (₺)', e],
-        ['Kâr/Zarar (₺)', i.total - e],
-        ['Hasat kaydı', h.rows.length],
-        ['Gelir kaydı', i.rows.length]
-      ]
-    };
+    out.mode = live ? 'Canlı' : 'Demo';
+    out.title = title + ' · ' + out.title;
+    if (out.total && out.rows.length) out.rows = out.rows.concat([out.total]);
+    delete out.total;
+    return out;
   }
 
   ensureSeeded();
@@ -666,6 +836,11 @@
       addHarvest: addHarvest,
       removeHarvest: removeHarvest,
       loadIncomes: loadIncomes,
+      addIncome: addIncome,
+      removeIncome: removeIncome,
+      INCOME_SOURCES: INCOME_SOURCES,
+      isLive: isLive,
+      trDate: trDate,
       loadInspections: loadInspections,
       loadAlertHistory: loadAlertHistory,
       loadTaskHistory: loadTaskHistory,
