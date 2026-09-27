@@ -850,6 +850,14 @@
     if (h.splitFrom != null && isFinite(Number(h.splitFrom))) out.splitFrom = Number(h.splitFrom);
     if (h.createdBy === 'bolme') out.createdBy = 'bolme';
     if (h.queenGivenAt && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenGivenAt))) out.queenGivenAt = String(h.queenGivenAt);
+    /* Soy: bu kovanda yetişecek (veya yetişmiş) ananın annesi (bölmede kaynak kovanın anası). */
+    if (h.pendingMother && typeof h.pendingMother === 'object' && (h.pendingMother.breed || h.pendingMother.queenId)) {
+      var pm = h.pendingMother;
+      out.pendingMother = { date: /^\d{4}-\d{2}-\d{2}$/.test(String(pm.date || '')) ? String(pm.date) : todayLocal(), origin: String(pm.origin || 'bolme').slice(0, 20) };
+      if (pm.queenId) out.pendingMother.queenId = String(pm.queenId).slice(0, 32);
+      if (pm.breed) out.pendingMother.breed = String(pm.breed).slice(0, 60);
+      if (pm.fromHiveId != null && isFinite(Number(pm.fromHiveId))) out.pendingMother.fromHiveId = Number(pm.fromHiveId);
+    }
     if (Array.isArray(h.colonyEvents) && h.colonyEvents.length) {
       out.colonyEvents = h.colonyEvents.filter(function (e) { return e && e.date && e.text; }).slice(-30).map(function (e) {
         var o = { id: String(e.id || '').slice(0, 40), date: String(e.date).slice(0, 10), type: String(e.type || '').slice(0, 20), text: String(e.text).slice(0, 300) };
@@ -962,6 +970,10 @@
     if (q.marked === true || q.marked === false) o.marked = q.marked;
     if (q.note != null && String(q.note).trim()) o.note = String(q.note).trim().slice(0, 300);
     if (q.clipped === true || q.clipped === false) o.clipped = q.clipped;
+    /* Soy: anne ana ve ananın kökeni (satın alma / ana üretimi / bölme / oğul / sessiz / acil). */
+    if (q.motherQueenId) o.motherQueenId = String(q.motherQueenId).slice(0, 32);
+    if (q.motherBreed != null && String(q.motherBreed).trim()) o.motherBreed = String(q.motherBreed).trim().slice(0, 60);
+    if (QUEEN_ORIGINS.indexOf(q.origin) >= 0) o.origin = q.origin;
     if (q.clipped === true && /^\d{4}-\d{2}-\d{2}$/.test(String(q.clippedAt || ''))) o.clippedAt = String(q.clippedAt);
     o.createdAt = String(q.createdAt || new Date().toISOString());
     if (q.migrated === true) o.migrated = true;
@@ -976,6 +988,8 @@
     }).filter(Boolean);
     return o;
   }
+  var QUEEN_ORIGINS = ['satin', 'uretim', 'bolme', 'ogul', 'yenileme', 'acil'];
+  var QUEEN_ORIGIN_LABEL = { satin: 'satın alınan ana', uretim: 'ana üretimi (larva transferi)', bolme: 'bölmede yetişen ana', ogul: 'oğul sonrası yetişen ana', yenileme: 'sessiz ana değiştirme', acil: 'acil ana memesinden' };
   function loadQueens() {
     try {
       var raw = localStorage.getItem(QUEENS_KEY);
@@ -1201,6 +1215,104 @@
     var b = String(breed || '').trim();
     if (!b) return null;
     return updateHiveColony(hiveId, { breed: b, breedEstimated: true }, 'correct');
+  }
+  /** Arılıktaki çoğunluk ırkı (bu kovan hariç) — yerel erkek arı kaynağı tahmini. */
+  function apiaryMajorityBreed(apiaryId, exceptId) {
+    var cnt = {}, tot = 0;
+    loadHives().forEach(function (x) {
+      if (String(x.apiaryId) !== String(apiaryId) || x.id === Number(exceptId) || !x.breed || x.colonyState === 'birlestirildi' || x.breed === 'Diğer') return;
+      cnt[x.breed] = (cnt[x.breed] || 0) + 1; tot++;
+    });
+    var best = '', bn = 0;
+    Object.keys(cnt).forEach(function (k) { if (cnt[k] > bn) { bn = cnt[k]; best = k; } });
+    return bn >= 2 && bn / tot >= 0.4 ? best : '';
+  }
+  function queenAt(hiveId, date, queens) {
+    var hit = null;
+    (queens || loadQueens()).forEach(function (q) {
+      (q.placements || []).forEach(function (p) { if (p.hiveId === Number(hiveId) && (!p.from || p.from <= date) && (!p.to || p.to >= date)) hit = q; });
+    });
+    return hit;
+  }
+  function prevQueenBefore(hiveId, date, queens) {
+    var hit = null, best = '';
+    (queens || loadQueens()).forEach(function (q) {
+      (q.placements || []).forEach(function (p) { if (p.hiveId === Number(hiveId) && p.to && p.to <= date && p.to >= best) { best = p.to; hit = q; } });
+    });
+    return hit;
+  }
+  var PURCHASE_RE = /sat[ıi]n|al[ıi]nd[ıi]|yeti[şs]tirici|[üu]retici|firma|[çc]iftli[ğg]i|enstit[üu]/i;
+  var LOCAL_RE = /kendi|do[ğg]al|sessiz|o[ğg]ul|acil|meme|h[üu]cre|yenileme/i;
+  /**
+   * Soy kanıtı (ırk tahmininin ilk satırı):
+   *  { kind: 'satin'|'yerel'|null, breed, motherBreed, localBreed, origin, source, text }
+   * satin: satın alınan, ırkı belirtilmiş ana (en güçlü kanıt).
+   * yerel: annesi bilinen, yerelde çiftleşmiş ana (baba bilinmiyor).
+   */
+  function queenLineage(h) {
+    var out = { kind: null, breed: '', motherBreed: '', localBreed: '', origin: '', source: '', text: '' };
+    if (!h) return out;
+    var queens = loadQueens(), q = h.currentQueenId ? queenById(h.currentQueenId, queens) : null;
+    out.localBreed = apiaryMajorityBreed(h.apiaryId, h.id);
+    function fromPlacement(qq) { var f = ''; (qq.placements || []).forEach(function (p) { if (p.hiveId === h.id && p.from && (!f || p.from < f)) f = p.from; }); return f; }
+    var purchased = q && q.breed && !q.breedEstimated && (q.origin === 'satin' || (!q.origin && PURCHASE_RE.test(q.source || '') && !LOCAL_RE.test(q.source || '')));
+    if (purchased) {
+      out.kind = 'satin'; out.breed = q.breed; out.origin = 'satin';
+      out.source = 'Ana kaydı' + (q.source ? ' (' + q.source + ')' : '');
+      out.text = 'Satın alınan ana, ırkı belirtilmiş: ' + q.breed + '.';
+      return out;
+    }
+    var mb = '', mq = null, origin = '', src = '';
+    if (q && (q.motherBreed || q.motherQueenId)) {
+      mq = q.motherQueenId ? queenById(q.motherQueenId, queens) : null;
+      mb = q.motherBreed || (mq && mq.breed) || ''; origin = q.origin || '';
+      src = q.origin === 'uretim' ? 'Ana üretimi' + (q.motherQueenId ? ' (anne ' + q.motherQueenId + ')' : '') : 'Ana kaydı';
+    }
+    if (!mb && h.pendingMother && (!q || fromPlacement(q) >= h.pendingMother.date)) {
+      var pm = h.pendingMother, fh = pm.fromHiveId != null ? hiveById(pm.fromHiveId) : null;
+      mq = pm.queenId ? queenById(pm.queenId, queens) : null;
+      mb = pm.breed || (mq && mq.breed) || ''; origin = pm.origin || 'bolme';
+      src = pm.origin === 'manuel' ? 'Elle girildi' : 'Bölme ' + fmtTr(pm.date) + (fh ? ' (kaynak: ' + fh.name + ')' : '');
+    }
+    if (!mb) {
+      var br = []; try { br = recordsFor(h.id).brood.filter(function (b) { return ['ogul', 'yenileme', 'acil'].indexOf(b.queenCell) >= 0; }); } catch (e) { br = []; }
+      if (br.length) {
+        var b0 = br[0], m0 = queenAt(h.id, b0.date, queens) || prevQueenBefore(h.id, b0.date, queens);
+        if (m0 && m0.breed && (!q || q.id !== m0.id)) { mq = m0; mb = m0.breed; origin = b0.queenCell; src = 'Yavru kaydı ' + fmtTr(b0.date) + ' (' + QUEEN_ORIGIN_LABEL[b0.queenCell] + ')'; }
+      }
+    }
+    if (!mb && q && LOCAL_RE.test(q.source || '')) {
+      var hist = (h.queenHistory || []).filter(function (e) { return e.newQueenId === q.id && e.oldBreed; });
+      if (hist.length) { mb = hist[hist.length - 1].oldBreed; origin = 'yenileme'; src = 'Ana geçmişi (önceki ana)'; }
+    }
+    if (!mb) return out;
+    out.kind = 'yerel'; out.motherBreed = mb; out.breed = mb; out.origin = origin; out.source = src;
+    out.text = 'Anne ' + mb + ', baba bilinmiyor: ' + mb + ' veya ' + mb + ' × ' + (out.localBreed && out.localBreed !== mb ? out.localBreed : 'yerel arı') + ' melezi olabilir' + (out.localBreed === mb ? ' (arılık çoğunluğu da ' + mb + ')' : '') + '.';
+    return out;
+  }
+  /** Soy bilgisini elle yaz: mevcut ana kaydına (yoksa kovanda yetişecek anaya) anne ırkı / köken. */
+  function setQueenLineage(hiveId, o) {
+    o = o || {};
+    var mb = String(o.motherBreed || '').trim().slice(0, 60), origin = QUEEN_ORIGINS.indexOf(o.origin) >= 0 ? o.origin : '';
+    var list = loadHives(), queens = loadQueens(), found = null;
+    var out = list.map(function (h) {
+      if (h.id !== Number(hiveId)) return h;
+      var copy = cloneObj(h), q = h.currentQueenId ? queenById(h.currentQueenId, queens) : null;
+      if (q) {
+        if (origin) q.origin = origin;
+        if (origin === 'satin') { if (mb) { q.breed = mb; delete q.breedEstimated; delete q.breedUnknown; } delete q.motherBreed; }
+        else if (mb) q.motherBreed = mb;
+        mirrorQueenToHive(copy, q);
+      } else if (mb && origin !== 'satin') {
+        copy.pendingMother = { date: todayLocal(), origin: 'manuel', breed: mb };
+      } else return h;
+      copy.colonyUpdatedAt = new Date().toISOString();
+      found = normalizeHive(copy);
+      return found;
+    });
+    if (!found) return null;
+    saveQueens(queens); saveHives(out);
+    return found;
   }
   /** Görünen ırk: «Kafkas (tahmini)» / «Bilinmiyor». */
   function breedLabel(h) {
@@ -2086,6 +2198,7 @@
         o.severity = pick(r.severity, SEVERITY, 'yok');
         if (o.disease === 'kirec') o.frames = intIn(r.frames, 0, 30);
       }
+      if (r.suspected === true) o.suspected = true; /* Hastalık tahmini (kesin değil) ile açılan şüpheli kayıt */
       var tr = txt(r.treatment, 200); if (tr) o.treatment = tr;
       o.dose = numIn(r.dose, 0, 1000);
       if (o.dose != null) o.doseUnit = pick(r.doseUnit, ['serit', 'ml', 'g'], 'serit');
@@ -3564,7 +3677,8 @@
     var sc = cloneObj(src);
     var frTxt = [brood ? brood + ' yavrulu' : '', honey ? honey + ' ballı' : '', bees ? bees + ' arılı' : ''].filter(Boolean).join(', ') + ' çerçeve';
     var qTxt = { kaynakta: 'ana kaynakta kaldı, yeni kovan anasız', hucre: 'yeni kovana ana hücresi verildi', yeniAna: 'yeni kovana yeni ana verildi', anaTasindi: 'ana yeni kovana alındı, kaynak anasız' }[mode];
-    if (mode === 'kaynakta') setQueenless(nh, null);
+    var srcQ = src.currentQueenId ? queenById(src.currentQueenId, queens) : null;
+    if (mode === 'kaynakta') { setQueenless(nh, null); nh.pendingMother = { date: date, origin: 'bolme', queenId: srcQ ? srcQ.id : '', breed: (srcQ && srcQ.breed) || src.breed || '', fromHiveId: src.id }; }
     else if (mode === 'hucre') setQueenless(nh, date);
     else if (mode === 'yeniAna') {
       var r0 = replaceQueenInMemory(nh, { date: date, queenYear: o.queenYear || currentYear(), breed: o.queenBreed || src.breed, queenSource: txt(o.queenSource, 120) || 'Bölmede verildi', queenMarked: o.queenMarked === true }, queens, gen);
@@ -3576,6 +3690,7 @@
       closePlacement(q, src.id, date, 'Bölmede yeni kovana alındı');
       pushQueenHist(sc, { date: date, oldQueenId: q.id, oldYear: q.year, oldBreed: q.breed, label: 'Bölme: ana yeni kovana alındı (' + name + ')' });
       setQueenless(sc, null);
+      sc.pendingMother = { date: date, origin: 'bolme', queenId: q.id, breed: q.breed || '', fromHiveId: src.id };
       placeQueen(nh, q, date);
       pushQueenHist(nh, { date: date, newQueenId: q.id, newYear: q.year, newBreed: q.breed, label: 'Bölme: ana geldi (kaynak: ' + src.name + ')' });
     }
@@ -3766,6 +3881,11 @@
         if (h.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovana ana verilemez');
         var r0 = replaceQueenInMemory(h, { date: date, queenYear: year, breed: b.sourceBreed || h.breed, queenSource: src, queenMarked: o.marked === true }, queens, gen);
         var nh = r0.hive;
+        /* Kız ana: ırk anneden önerilir (tahmini; baba yerel erkek arılar). */
+        r0.queen.origin = 'uretim';
+        if (b.sourceQueenId) r0.queen.motherQueenId = b.sourceQueenId;
+        if (b.sourceBreed) { r0.queen.motherBreed = b.sourceBreed; r0.queen.breed = b.sourceBreed; r0.queen.breedEstimated = true; }
+        mirrorQueenToHive(nh, r0.queen);
         nh.queenHistory[nh.queenHistory.length - 1].label = 'Ana üretimi: kendi yetiştirdiğimiz ana verildi';
         delete nh.queenless; delete nh.queenCellSince; nh.queenGivenAt = date;
         pushEvent(nh, { id: opsId('ev'), date: date, type: 'uretim', text: 'Ana üretiminden ana verildi (' + r0.queen.id + ', parti ' + fmtTr(b.date) + ')' });
@@ -3777,7 +3897,7 @@
       saveQueens(queens);
       saveHives(out);
     } else {
-      var nq = normalizeQueen({ id: gen(year), year: year, breed: b.sourceBreed || '', source: src, marked: o.marked === true, note: 'Boşta (çiftleşme kutusu / satış)', createdAt: new Date().toISOString(), placements: [] });
+      var nq = normalizeQueen({ id: gen(year), year: year, breed: b.sourceBreed || '', breedEstimated: !!b.sourceBreed, origin: 'uretim', motherQueenId: b.sourceQueenId, motherBreed: b.sourceBreed, source: src, marked: o.marked === true, note: 'Boşta (çiftleşme kutusu / satış)', createdAt: new Date().toISOString(), placements: [] });
       queens.push(nq); saveQueens(queens); qid = nq.id;
     }
     var ops = readOps();
@@ -4118,6 +4238,10 @@
         setQueenClipped: setQueenClipped,
         setBreedEstimate: setBreedEstimate,
         breedLabel: breedLabel,
+        lineage: queenLineage,
+        setQueenLineage: setQueenLineage,
+        apiaryMajorityBreed: apiaryMajorityBreed,
+        QUEEN_ORIGIN_LABEL: QUEEN_ORIGIN_LABEL,
         loadQueens: loadQueens,
         queenById: function (id) { return queenById(id); },
         openPlacement: openPlacement,

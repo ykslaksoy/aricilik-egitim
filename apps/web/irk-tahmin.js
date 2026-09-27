@@ -143,7 +143,7 @@
   }
 
   /** Adaylar: { list:[{breed, score, pct, word}], answered, hybrid } */
-  function candidates(answers, photo, wing) {
+  function candidates(answers, photo, wing, lin) {
     var sc = {}, max = 0, answered = 0;
     BREEDS.forEach(function (b) { sc[b] = 0; });
     QUESTIONS.forEach(function (q) {
@@ -166,9 +166,29 @@
     list.forEach(function (c, i) { c.word = i === 0 ? 'En muhtemel' : 'Muhtemel'; });
     var enough = answered >= 3 || (answered >= 1 && (photo && photo.group || (wing && wing.n >= 3)));
     var hybrid = enough && list.length > 1 && list[0].pct - list[1].pct <= 8 ? list[0].breed + ' × ' + list[1].breed : '';
+    /* Soy kanıtı: satın alınan ırkı belirtilmiş ana en yüksek ağırlık; annesi bilinen yerel çiftleşmiş ana güçlü ön bilgi. */
+    if (lin && lin.kind && lin.breed) {
+      var top = [];
+      if (lin.kind === 'satin') top.push({ breed: lin.breed, pct: 100, word: 'En muhtemel', lineage: 'Satın alınan ana, ırkı belirtilmiş' });
+      else {
+        top.push({ breed: lin.breed, pct: 85, word: 'En muhtemel', lineage: 'Anne ' + lin.breed + ' (baba bilinmiyor)' });
+        var lb = lin.localBreed && lin.localBreed !== lin.breed ? lin.localBreed : '';
+        if (lb) top.push({ breed: hybridName(lin.breed, lb), pct: 70, word: 'Muhtemel', lineage: 'Anne ' + lin.breed + ' × yerel ' + lb + ' erkek arıları' });
+      }
+      var seen = {}; top.forEach(function (x) { seen[x.breed] = 1; });
+      var rest = enough && list[0].score > 0 ? list.filter(function (x) { return !seen[x.breed]; }).map(function (x) { return { breed: x.breed, score: x.score, pct: Math.round(x.pct * (lin.kind === 'satin' ? 0.4 : 0.6)), word: 'Muhtemel' }; }) : [];
+      return { list: top.concat(rest).slice(0, 3), answered: answered, enough: true, hybrid: '', lineage: lin };
+    }
     return { list: list, answered: answered, enough: enough && list[0].score > 0, hybrid: hybrid };
   }
 
+  /** Melez adı: seçeneklerde varsa o sırayla («Kafkas × Anadolu»). */
+  function hybridName(a, b) {
+    var opts = (D && D.colony && D.colony.BREED_OPTIONS) || [];
+    if (opts.indexOf(a + ' × ' + b) >= 0) return a + ' × ' + b;
+    if (opts.indexOf(b + ' × ' + a) >= 0) return b + ' × ' + a;
+    return a + ' × ' + b;
+  }
   /* ---------------- Arayüz ---------------- */
   var css = '.it-back{position:fixed;inset:0;background:rgba(30,20,10,.45);z-index:9000;display:flex;align-items:flex-end;justify-content:center;}' +
     '.it-sheet{background:#fffaf2;width:100%;max-width:560px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px 24px;box-sizing:border-box;color:#3d2616;}' +
@@ -193,7 +213,26 @@
     opts = opts || {};
     var h = D.hiveById(hiveId); if (!h) return;
     ensureCss(); close();
-    var st = { tab: 'foto', photo: null, answers: {}, wing: { list: [], pts: [], img: null, zoom: 1 } };
+    var st = { tab: 'foto', photo: null, answers: {}, wing: { list: [], pts: [], img: null, zoom: 1 }, man: { origin: '', breed: '' } };
+    var autoLin = D.colony.lineage ? D.colony.lineage(h) : { kind: null };
+    function lineage() {
+      if (!st.man.breed) return autoLin;
+      var lb = autoLin.localBreed || '';
+      if (st.man.origin === 'satin') return { kind: 'satin', breed: st.man.breed, localBreed: lb, source: 'Elle girildi', text: 'Satın alınan ana, ırkı belirtilmiş: ' + st.man.breed + '.' };
+      return { kind: 'yerel', breed: st.man.breed, motherBreed: st.man.breed, localBreed: lb, source: 'Elle girildi',
+        text: 'Anne ' + st.man.breed + ', baba bilinmiyor: ' + st.man.breed + ' veya ' + st.man.breed + ' × ' + (lb && lb !== st.man.breed ? lb : 'yerel arı') + ' melezi olabilir' + (lb === st.man.breed ? ' (arılık çoğunluğu da ' + lb + ')' : '') + '.' };
+    }
+    function renderLin() {
+      var L = lineage(), el = back.querySelector('[data-it-lin]');
+      var opts = ['<option value="">Bilinmiyor</option>'].concat(D.colony.BREED_OPTIONS.filter(function (b) { return b !== 'Diğer'; }).map(function (b) { return '<option' + (st.man.breed === b ? ' selected' : '') + '>' + esc(b) + '</option>'; })).join('');
+      el.innerHTML = '<div class="it-sec"><h3>🧬 Soy (ilk kanıt)</h3>' +
+        (L.kind ? '<p><b>' + esc(L.text) + '</b></p><p class="it-mut">Kaynak: ' + esc(L.source) + (L.kind === 'satin' ? ' · en yüksek ağırlık' : ' · güçlü ön bilgi') + (L.kind === 'yerel' && L.localBreed ? ' · arılık çoğunluğu: ' + esc(L.localBreed) : '') + '</p>'
+          : '<p class="it-mut">Kayıtlarda anne ana bulunamadı (ana geçmişi, ana üretimi, bölme). Biliyorsanız aşağıdan girin.</p>') +
+        '<div class="it-row"><label style="font-size:12.5px;display:flex;flex-direction:column;gap:2px;flex:1 1 140px;">' + (st.man.origin === 'satin' ? 'Satıcının belirttiği ırk (elle)' : 'Anne ana ırkı (elle)') + '<select data-it-mb style="font:inherit;padding:6px;border-radius:8px;border:1px solid #c9b79c;max-width:100%;">' + opts + '</select></label>' +
+        '<label style="font-size:12.5px;display:flex;flex-direction:column;gap:2px;flex:1 1 140px;">Ana nereden?<select data-it-mo style="font:inherit;padding:6px;border-radius:8px;border:1px solid #c9b79c;max-width:100%;">' +
+        [['', 'Kendi kovanımda yetişti (sessiz, oğul, acil, bölme)'], ['uretim', 'Ana üretimi (larva transferi)'], ['satin', 'Satın alındı (ırkı belirtilmiş)']].map(function (o) { return '<option value="' + o[0] + '"' + (st.man.origin === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') +
+        '</select></label></div>' + (st.man.breed ? '<p class="it-mut">Elle girilen soy, kabul edildiğinde ana kaydına yazılır.</p>' : '') + '</div>';
+    }
     /* Mevcut kayıtlardan ön doldurma: sakinlik ve gözlenen oğul eğilimi. */
     if (h.calmness != null) st.answers.uysal = h.calmness >= 5 ? 'cok' : (h.calmness >= 4 ? 'sakin' : (h.calmness >= 3 ? 'orta' : 'sinirli'));
     if (h.swarmTendency) st.answers.ogul = h.swarmTendency === 'Yüksek' ? 'sik' : (h.swarmTendency === 'Orta' ? 'ara' : 'nadir');
@@ -201,7 +240,7 @@
     back.innerHTML = '<div class="it-sheet" role="dialog" aria-modal="true" aria-label="Irk tahmini">' +
       '<h2>Irk tahmini (kesin değil)<button type="button" class="it-x" data-it-close aria-label="Kapat">×</button></h2>' +
       '<div class="it-mut">' + esc(h.name) + ' · şu an: ' + esc(D.colony.breedLabel(h)) + (mode() === 'demo' ? ' · Demo' : '') + ' · internet gerekmez, fotoğraf cihazdan çıkmaz</div>' +
-      '<div class="it-tabs" role="tablist"><button type="button" data-it-tab="foto">1 · Fotoğraf</button><button type="button" data-it-tab="soru">2 · Davranış</button><button type="button" data-it-tab="kanat">3 · Kanat</button></div>' +
+      '<div data-it-lin></div><div class="it-tabs" role="tablist"><button type="button" data-it-tab="foto">1 · Fotoğraf</button><button type="button" data-it-tab="soru">2 · Davranış</button><button type="button" data-it-tab="kanat">3 · Kanat</button></div>' +
       '<div data-it-body></div><div data-it-res></div>' +
       '<p class="it-mut">Kesin ırk için kanat morfometrisi (çok sayıda kanat, uzman değerlendirmesi) veya DNA analizi gerekir. Bu tahmin yalnız yol göstericidir.</p></div>';
     document.body.appendChild(back);
@@ -213,10 +252,10 @@
       return { n: l.length, mean: m };
     }
     function renderRes() {
-      var c = candidates(st.answers, st.photo, wingStats());
+      var c = candidates(st.answers, st.photo, wingStats(), lineage());
       if (!c.enough) { resEl.innerHTML = '<div class="it-sec"><h3>Sonuç</h3><p class="it-mut">En az 3 soruyu yanıtlayın (veya 1 soru + fotoğraf / 3 kanat ölçümü). Yanıtlanan: ' + c.answered + '</p></div>'; return; }
       resEl.innerHTML = '<div class="it-sec"><h3>Muhtemel ırklar</h3>' + c.list.map(function (x, i) {
-        return '<div class="it-cand"><b>' + esc(x.word) + ': ' + esc(x.breed) + '</b><div class="it-bar"><i style="width:' + Math.max(4, x.pct) + '%"></i></div>' +
+        return '<div class="it-cand"><b>' + esc(x.word) + ': ' + esc(x.breed) + '</b>' + (x.lineage ? '<div class="it-mut">🧬 ' + esc(x.lineage) + '</div>' : '') + '<div class="it-bar"><i style="width:' + Math.max(4, x.pct) + '%"></i></div>' +
           '<div class="it-row"><button type="button" class="it-btn' + (i ? ' sec' : '') + '" data-it-accept="' + esc(x.breed) + '">Kabul et → «' + esc(x.breed) + ' (tahmini)»</button></div></div>';
       }).join('') +
         (c.hybrid ? '<p class="it-mut">İlk iki aday birbirine çok yakın: <b>' + esc(c.hybrid) + '</b> melezi olabilir.</p>' +
@@ -275,6 +314,7 @@
     }
     function render() {
       Array.prototype.forEach.call(back.querySelectorAll('[data-it-tab]'), function (b) { b.classList.toggle('on', b.getAttribute('data-it-tab') === st.tab); });
+      renderLin();
       if (st.tab === 'foto') renderFoto(); else if (st.tab === 'soru') renderSoru(); else renderKanat();
       renderRes();
     }
@@ -301,6 +341,7 @@
       }
       if (t.hasAttribute('data-it-accept')) {
         var br = t.getAttribute('data-it-accept');
+        if (st.man.breed && D.colony.setQueenLineage) D.colony.setQueenLineage(h.id, { motherBreed: st.man.breed, origin: st.man.origin });
         var saved = D.colony.setBreedEstimate(h.id, br);
         var m = back.querySelector('[data-it-msg]');
         if (saved) {
@@ -316,6 +357,8 @@
     back.addEventListener('change', function (e) {
       var t = e.target;
       if (t.hasAttribute('data-it-q')) { st.answers[t.getAttribute('data-it-q')] = t.value; render(); return; }
+      if (t.hasAttribute('data-it-mb')) { st.man.breed = t.value; render(); return; }
+      if (t.hasAttribute('data-it-mo')) { st.man.origin = t.value; render(); return; }
       if (t.hasAttribute('data-it-file') && t.files && t.files[0]) {
         analyzeFile(t.files[0]).then(function (res) { st.photo = res; render(); }, function () { st.photo = { issues: ['Fotoğraf açılamadı'], group: null }; render(); });
       }
@@ -327,5 +370,5 @@
     });
     render();
   }
-  global.SuperAriIrk = { open: open, close: close, analyzePixels: analyzePixels, candidates: candidates, QUESTIONS: QUESTIONS, CI_REF: CI_REF };
+  global.SuperAriIrk = { open: open, close: close, analyzePixels: analyzePixels, candidates: candidates, hybridName: hybridName, QUESTIONS: QUESTIONS, CI_REF: CI_REF };
 })(window);

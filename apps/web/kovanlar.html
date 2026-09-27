@@ -57,12 +57,12 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-26"></script>
-  <script src="rapor-store.js?v=koloni-26"></script>
-  <script src="sensor-health.js?v=koloni-26"></script>
-  <script src="koloni.js?v=koloni-26"></script>
-  <script src="irk-tahmin.js?v=koloni-26"></script>
-  <script src="kovan-ara.js?v=koloni-26"></script>
+  <script src="demo-data.js?v=koloni-27"></script>
+  <script src="rapor-store.js?v=koloni-27"></script>
+  <script src="sensor-health.js?v=koloni-27"></script>
+  <script src="koloni.js?v=koloni-27"></script>
+  <script src="irk-tahmin.js?v=koloni-27"></script>
+  <script src="kovan-ara.js?v=koloni-27"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -399,7 +399,7 @@
             ? 'Her muayenede arılı, yavrulu, ballı ve polenli çerçeveleri girin; sınıf (Zayıf/Orta/Güçlü) otomatik hesaplanır ve geçmiş kovan bazında saklanır. Kayıtlar kovan detayı, görevler, uyarılar ve sağlık puanında kullanılır.'
             : topic === 'yavru'
               ? 'Anasız işaretlenirse görev ve uyarı otomatik açılır; üşümüş yavru kovanı «zayıf koloni» yapar ve «Birleştir veya çerçeve azalt» görevi önerilir.'
-              : 'Her hastalık ayrı kayıttır. İlaç bekleme süresi dolmadan hasat yapmayın; Amerikan yavru çürüğü ihbarı zorunludur. Kayıtlar sağlık puanını ve uyarıları etkiler.')
+              : 'Her hastalık ayrı kayıttır. İlaç bekleme süresi dolmadan hasat yapmayın; Amerikan yavru çürüğü ihbarı zorunludur. Kayıtlar sağlık puanını ve uyarıları etkiler. Kovanı açınca «🔍 Hastalık tahmini (kesin değil)» ile rehberli fotoğraf ve belirti listesi kullanılabilir.')
           : 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi.';
         listEl.addEventListener('click', function (e) {
           if (e.target.closest && e.target.closest('a')) return;
@@ -437,6 +437,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-26"></script>
+<script src="pwa.js?v=koloni-27"></script>
 </body>
 </html>

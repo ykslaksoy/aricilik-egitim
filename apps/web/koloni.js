@@ -29,6 +29,20 @@
     });
     return fotoP;
   }
+  /* Hastalık tahmini modülü (hastalik-tahmin.js) gerektiğinde yüklenir. */
+  var hzP = null;
+  function loadHastalik() {
+    if (global.SuperAriHastalik) return Promise.resolve(global.SuperAriHastalik);
+    if (hzP) return hzP;
+    hzP = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = FOTO_SRC.replace('foto.js', 'hastalik-tahmin.js');
+      s.onload = function () { global.SuperAriHastalik ? res(global.SuperAriHastalik) : rej(new Error('hz')); };
+      s.onerror = function () { hzP = null; rej(new Error('hz')); };
+      document.head.appendChild(s);
+    });
+    return hzP;
+  }
   var thumbTimer = null;
   function scheduleThumbs() {
     if (thumbTimer) return;
@@ -1182,7 +1196,7 @@
       } else {
         items = rec.disease.map(function (x) {
           var lv = r.diseaseLevel(x);
-          return histRow(fmtDate(x.date) + ' · ' + r.DISEASE_LABEL[x.disease] + ' · ' + lv.text, diseaseText(x).split(' · ').slice(3).join(' · ') + (x.note ? ' · ' + x.note : ''), x, 'disease', h.id);
+          return histRow(fmtDate(x.date) + ' · ' + r.DISEASE_LABEL[x.disease] + ' · ' + lv.text + (x.suspected ? ' · şüpheli (tahmin)' : ''), diseaseText(x).split(' · ').slice(3).join(' · ') + (x.note ? ' · ' + x.note : ''), x, 'disease', h.id);
         }).join('');
       }
       var trend = '';
@@ -1202,7 +1216,7 @@
         trend += '<div class="kr-info">Kışlık hazırlık: <b>' + esc(ws3.status ? ws3.status + (ws3.suggestedOnly ? ' (öneri)' : '') : 'kayıt yok') + '</b> · <a href="#" data-open-kis="1">Aç</a></div>';
       }
       var cnt = topic === 'guc' ? rec.strength.length : topic === 'yavru' ? rec.brood.length : topic === 'besleme' ? rec.feed.length : topic === 'hasat' ? rec.harvest.length : rec.disease.length;
-      return (topic === 'hastalik' ? withdrawalHtml(h, st) : '') + trend +
+      return (topic === 'hastalik' ? '<div class="kr-info"><button type="button" class="btn secondary" data-hz-open="1" style="width:100%;">🔍 Hastalık tahmini (kesin değil)</button><div style="font-size:.78rem;margin-top:4px;">Rehberli fotoğraf + belirti listesi → muhtemel hastalıklar ve yapılacaklar. Tanı koymaz.</div></div>' + withdrawalHtml(h, st) : '') + trend +
         '<div class="kr-section-title">Geçmiş (' + cnt + ')</div>' +
         '<div class="kr-hist">' + (items || '<p class="kol-sub" style="margin:0;">Henüz kayıt yok.</p>') + '</div>';
     }
@@ -1244,6 +1258,14 @@
     back.querySelector('#krClose').addEventListener('click', close);
     fillForm(editRec);
     wireTopicForm(topic, f, back);
+    back.querySelector('#krHist').addEventListener('click', function (e) {
+      var hz = e.target.closest ? e.target.closest('[data-hz-open]') : null;
+      if (!hz) return;
+      e.preventDefault();
+      loadHastalik().then(function (Hz) {
+        Hz.open(h.id, { onSaved: function () { var el = back.querySelector('#krHist'); if (el) el.innerHTML = histHtml(); if (typeof onSaved === 'function') onSaved(); } });
+      }).catch(function () { toast('Hastalık tahmini yüklenemedi'); });
+    });
     back.querySelector('#krHist').addEventListener('click', function (e) {
       var a = e.target.closest ? e.target.closest('[data-open-kis]') : null;
       if (!a) return;

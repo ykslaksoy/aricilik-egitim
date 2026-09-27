@@ -475,6 +475,9 @@
       '<select data-bo-cellcap aria-label="Kapalı mı açık mı"><option value="">Kapalı/açık —</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select>' +
       '<select data-bo-eggs aria-label="Yumurta"><option value="1">Yumurta var</option><option value="0">Yumurta yok</option></select></div>' +
       '<div class="bo-row"><button type="button" class="bo-btn" data-bo-savecell>Muayeneyi kaydet</button></div></div>');
+    /* hastalık tahmini (kesin değil) */
+    H.push('<div class="bo-sec"><h3>🔍 Hastalık tahmini <span class="bo-mut">(kesin değil)</span></h3><p class="bo-mut">Rehberli fotoğraf + belirti listesi → muhtemel hastalıklar, yapılacaklar ve tek dokunuşla şüpheli kayıt.</p>' +
+      '<div class="bo-row"><button type="button" class="bo-btn" data-bo-hz>Hastalık tahmini başlat</button></div></div>');
     /* varroa */
     var V = '<div class="bo-sec"><h3>💊 Varroa</h3><p>' + esc(mp.summary.split(' · ⛔')[0].split(' · Öneri')[0]) + '</p>';
     mp.warns.forEach(function (w) { V += '<p class="bo-warn">' + esc(w) + '</p>'; });
@@ -528,7 +531,14 @@
     };
     el.onclick = function (e) {
       var b = e.target.closest && e.target.closest('button'); if (!b) return;
-      if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
+      if (b.hasAttribute('data-bo-hz')) {
+        var go = function () { global.SuperAriHastalik.open(h.id, { onSaved: function () { say({ ok: true, msg: 'Şüpheli hastalık kaydedildi; görevler eklendi.' }); } }); };
+        if (global.SuperAriHastalik) go();
+        else {
+          var sc = document.createElement('script'), cur = document.querySelector('script[src*="bakim-plan.js"]'), mv = cur && /[?&]v=([^&]+)/.exec(cur.src);
+          sc.src = 'hastalik-tahmin.js' + (mv ? '?v=' + mv[1] : ''); sc.onload = go; document.head.appendChild(sc);
+        }
+      } else if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
       else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cell]').value, el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
       else if (b.hasAttribute('data-bo-savecount')) say(saveCount(h.id, el.querySelector('[data-bo-count]').value, el.querySelector('[data-bo-method]').value));
       else if (b.hasAttribute('data-bo-treat')) {

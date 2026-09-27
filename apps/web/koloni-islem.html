@@ -61,8 +61,8 @@
     </section>
     <div id="view"></div>
   </main>
-  <script src="demo-data.js?v=koloni-26"></script>
-  <script src="koloni.js?v=koloni-26"></script>
+  <script src="demo-data.js?v=koloni-27"></script>
+  <script src="koloni.js?v=koloni-27"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -307,6 +307,7 @@
         var ST = { aktif: 'Etkin', tamamlandi: 'Tamamlandı', iptal: 'İptal' };
         return '<div class="ki-batch" data-batch="' + esc(b.id) + '"><h3>' + esc(fmt(b.date) + ' · ' + (src ? src.name : 'anne kovan yok') + (b.sourceQueenId ? ' · anne ' + b.sourceQueenId : '')) +
           ' <span class="badge ' + (b.status === 'aktif' ? 'uyari' : 'ok') + '">' + ST[b.status] + '</span></h3>' +
+          (b.sourceBreed ? '<div class="muted" style="font-size:.8rem;">🧬 Kız analar için ırk önerisi: <b>' + esc(b.sourceBreed) + ' (tahmini)</b> — anne ' + esc(b.sourceBreed) + ', baba bilinmiyor: ' + esc(b.sourceBreed) + ' veya ' + esc(b.sourceBreed) + ' × ' + esc((function () { var lb = src && D.colony.apiaryMajorityBreed ? D.colony.apiaryMajorityBreed(src.apiaryId, src.id) : ''; return lb && lb !== b.sourceBreed ? lb : 'yerel arı'; })()) + ' melezi olabilir.</div>' : '') +
           '<div class="muted" style="font-size:.8rem;">' + b.cups + ' yüksük · kabul ' + (b.accepted != null ? b.accepted : '—') + ' · çıkan ' + (b.emerged != null ? b.emerged : '—') + ' · kaydedilen ana ' + b.results.length + (b.note ? ' · ' + esc(b.note) : '') + '</div>' +
           tlHtml(b.dates) +
           '<form class="ki-form" data-upd="' + esc(b.id) + '"><label>Kabul edilen<input type="number" name="acc" min="0" max="' + b.cups + '" value="' + (b.accepted != null ? b.accepted : '') + '"></label>' +
@@ -378,7 +379,7 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-26"></script>
-<script src="pwa.js?v=koloni-26"></script>
+  <script src="nav.js?v=koloni-27"></script>
+<script src="pwa.js?v=koloni-27"></script>
 </body>
 </html>
