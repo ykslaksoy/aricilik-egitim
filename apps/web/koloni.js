@@ -939,8 +939,85 @@
     }
     return form;
   }
+  /* ---- Sesli not (Web Speech API, tr-TR) ---- */
+  var activeRec = null;
+  function speechCtor() { return global.SpeechRecognition || global.webkitSpeechRecognition || null; }
+  function micCss() {
+    if (document.getElementById('krMicCss')) return;
+    var s = document.createElement('style');
+    s.id = 'krMicCss';
+    s.textContent = '.kr-mic-row{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;min-width:0;margin-top:-.15rem;}' +
+      '.kr-mic{display:inline-flex;align-items:center;gap:.3rem;padding:.36rem .7rem;border-radius:999px;border:1px solid var(--border,#ead9b3);background:#fff;font:inherit;font-size:.8rem;font-weight:750;color:#5c4813;cursor:pointer;}' +
+      '.kr-mic.on{background:#ffe3e3;border-color:#f5a3a3;color:#c92a2a;animation:krMicPulse 1.2s ease-in-out infinite;}' +
+      '@keyframes krMicPulse{50%{box-shadow:0 0 0 5px rgba(201,42,42,.15);}}' +
+      '.kr-mic-msg{font-size:.74rem;color:var(--muted,#6b7280);min-width:0;flex:1 1 12rem;overflow-wrap:anywhere;}';
+    document.head.appendChild(s);
+  }
+  function micUnsupportedText() {
+    if (global.isSecureContext === false) return 'Sesle yazma yalnız güvenli (https) bağlantıda çalışır.';
+    return 'Sesle yazma bu tarayıcıda desteklenmiyor (ör. Firefox). Chrome, Edge veya Safari kullanın ya da klavyenin mikrofon tuşuyla yazdırın.';
+  }
+  /** Formdaki not alanlarının altına «🎤 Sesle yaz» düğmesi ekler. */
+  function addMicButtons(form) {
+    if (!form) return;
+    micCss();
+    Array.prototype.forEach.call(form.querySelectorAll('input[name=note], textarea[name=note]'), function (el) {
+      if (el.__micBound) return;
+      el.__micBound = true;
+      var host = el.closest('label') || el;
+      var row = document.createElement('div');
+      row.className = 'kr-mic-row';
+      row.innerHTML = '<button type="button" class="kr-mic" aria-label="Notu sesle yaz">🎤 Sesle yaz</button><span class="kr-mic-msg" aria-live="polite"></span>';
+      host.parentNode.insertBefore(row, host.nextSibling);
+      var btn = row.querySelector('.kr-mic'), msg = row.querySelector('.kr-mic-msg');
+      var rec = null, base = '';
+      function stopUi() { btn.classList.remove('on'); btn.textContent = '🎤 Sesle yaz'; rec = null; if (activeRec && activeRec.btn === btn) activeRec = null; }
+      btn.addEventListener('click', function () {
+        if (rec) { try { rec.stop(); } catch (e) { /* ignore */ } return; }
+        var Ctor = speechCtor();
+        if (!Ctor || global.isSecureContext === false) { msg.textContent = micUnsupportedText(); return; }
+        if (activeRec) { try { activeRec.rec.abort(); } catch (e) { /* ignore */ } }
+        try { rec = new Ctor(); } catch (e) { msg.textContent = micUnsupportedText(); return; }
+        rec.lang = 'tr-TR';
+        rec.interimResults = true;
+        rec.continuous = false;
+        rec.maxAlternatives = 1;
+        base = String(el.value || '').replace(/\s+$/, '');
+        var max = Number(el.getAttribute('maxlength')) || 300;
+        rec.onresult = function (ev) {
+          var fin = '', tmp = '';
+          for (var i = 0; i < ev.results.length; i++) {
+            var t = ev.results[i][0] ? ev.results[i][0].transcript : '';
+            if (ev.results[i].isFinal) fin += t; else tmp += t;
+          }
+          var said = (fin + tmp).trim();
+          el.value = ((base ? base + ' ' : '') + said).slice(0, max);
+          msg.textContent = tmp ? 'Dinleniyor…' : 'Eklendi. Düzeltebilirsiniz.';
+          try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* ignore */ }
+        };
+        rec.onerror = function (ev) {
+          var c = ev && ev.error;
+          msg.textContent = c === 'not-allowed' || c === 'service-not-allowed' ? 'Mikrofon izni verilmedi. Tarayıcı ayarlarından izin verin.'
+            : c === 'no-speech' ? 'Ses algılanmadı; tekrar deneyin.'
+            : c === 'network' ? 'Ses tanıma için internet bağlantısı gerekiyor.'
+            : c === 'audio-capture' ? 'Mikrofon bulunamadı.'
+            : c === 'aborted' ? '' : 'Ses tanınamadı; tekrar deneyin.';
+          stopUi();
+        };
+        rec.onend = function () { stopUi(); };
+        try {
+          rec.start();
+          activeRec = { rec: rec, btn: btn };
+          btn.classList.add('on'); btn.textContent = '⏹ Durdur';
+          msg.textContent = 'Konuşun… (Türkçe)';
+        } catch (e) { msg.textContent = 'Ses tanıma başlatılamadı.'; stopUi(); }
+      });
+    });
+  }
+
   function wireTopicForm(topic, f, root) {
     var r = R();
+    addMicButtons(f);
     if (topic === 'guc') {
       var upd = function () {
         var cls = r.strengthClass({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value });
@@ -1250,6 +1327,7 @@
       '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
     document.body.appendChild(back);
     var f = back.querySelector('#krForm');
+    addMicButtons(f);
     function close() { if (back.parentNode) back.parentNode.removeChild(back); document.removeEventListener('keydown', onKey); }
     function onKey(e) { if (e.key === 'Escape') close(); }
     document.addEventListener('keydown', onKey);
@@ -1846,6 +1924,7 @@
     openEditor: openEditor,
     openTaskDone: openTaskDone,
     toast: toast,
+    addMicButtons: addMicButtons,
     undoTask: undoTask
   };
 })(window);
