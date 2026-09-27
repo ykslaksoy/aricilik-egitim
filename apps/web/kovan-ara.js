@@ -188,54 +188,143 @@
     back.innerHTML = '<div class="ka-qr-card" role="dialog" aria-modal="true"><h3>' + esc(title) + '</h3>' + html +
       '<div style="margin-top:.8rem;"><button type="button" class="ka-btn" data-close style="width:100%;">Kapat</button></div></div>';
   }
+  /* QR çözücü: BarcodeDetector (Chrome / Android) yoksa yerel jsQR (vendor/jsqr.js) — iPhone Safari için. */
+  var JSQR_SRC = (function () {
+    var s = document.currentScript, m = s && /[?&]v=([^&]+)/.exec(s.src || '');
+    return 'vendor/jsqr.js' + (m ? '?v=' + m[1] : '');
+  })();
+  var jsqrP = null;
+  function loadJsQR() {
+    if (global.jsQR) return Promise.resolve(global.jsQR);
+    if (jsqrP) return jsqrP;
+    jsqrP = new Promise(function (res, rej) {
+      var sc = document.createElement('script');
+      sc.src = JSQR_SRC;
+      sc.onload = function () { global.jsQR ? res(global.jsQR) : rej(new Error('jsqr')); };
+      sc.onerror = function () { jsqrP = null; rej(new Error('jsqr')); };
+      document.head.appendChild(sc);
+    });
+    return jsqrP;
+  }
+  function nativeDetector() {
+    if (!('BarcodeDetector' in global)) return Promise.resolve(null);
+    var BD = global.BarcodeDetector;
+    var fm = typeof BD.getSupportedFormats === 'function' ? BD.getSupportedFormats() : Promise.resolve(['qr_code']);
+    return fm.then(function (list) {
+      if (list && list.indexOf('qr_code') === -1) return null;
+      try { return new BD({ formats: ['qr_code'] }); } catch (e) { return null; }
+    }).catch(function () { return null; });
+  }
+  /** decode(source) → Promise<string|null>. source: video veya img. */
+  function makeDecoder() {
+    return nativeDetector().then(function (det) {
+      if (det) return { kind: 'native', decode: function (src) { return det.detect(src).then(function (c) { return c && c.length ? c[0].rawValue : null; }); } };
+      return loadJsQR().then(function (jsQR) {
+        var cv = document.createElement('canvas'), ctx = cv.getContext('2d', { willReadFrequently: true });
+        return {
+          kind: 'jsqr',
+          decode: function (src, big) {
+            var w = src.videoWidth || src.naturalWidth || src.width, h = src.videoHeight || src.naturalHeight || src.height;
+            if (!w || !h) return Promise.resolve(null);
+            var max = big ? 1200 : 640, sc = Math.min(1, max / Math.max(w, h));
+            cv.width = Math.round(w * sc); cv.height = Math.round(h * sc);
+            ctx.drawImage(src, 0, 0, cv.width, cv.height);
+            var img = ctx.getImageData(0, 0, cv.width, cv.height);
+            var r = jsQR(img.data, cv.width, cv.height, { inversionAttempts: big ? 'attemptBoth' : 'dontInvert' });
+            return Promise.resolve(r && r.data ? r.data : null);
+          }
+        };
+      });
+    });
+  }
   function openScanner(hives) {
     ensureCss();
     var back = document.createElement('div');
     back.className = 'ka-qr-back';
     document.body.appendChild(back);
-    var stream = null, timer = null, done = false;
+    var stream = null, timer = null, done = false, decoder = null;
     function close() {
       done = true;
       if (timer) clearTimeout(timer);
       if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
       if (back.parentNode) back.parentNode.removeChild(back);
     }
-    back.addEventListener('click', function (e) { if (e.target === back || (e.target.closest && e.target.closest('[data-close]'))) close(); });
+    function msg(t) { var el = back.querySelector('#kaQrMsg'); if (el) el.textContent = t; }
+    function handle(raw) {
+      if (raw == null) return false;
+      var h = parseHiveFromText(raw, hives);
+      if (h) { close(); location.href = 'kovan.html?id=' + encodeURIComponent(h.id); return true; }
+      msg('Bu QR bir SüperArı kovanına ait değil: ' + String(raw).slice(0, 80));
+      return false;
+    }
+    var photoBtn = '<label class="ka-btn" style="position:relative;overflow:hidden;cursor:pointer;">📷 Fotoğrafla okut<input type="file" accept="image/*" capture="environment" data-qr-photo style="position:absolute;inset:0;opacity:0;width:100%;height:100%;font-size:0;cursor:pointer;" aria-label="QR kodunun fotoğrafını çek"></label>';
     var fallback = '<p style="margin:0;">Telefonunuzun kamera uygulamasıyla etiketteki QR kodu okutun; bağlantı doğrudan kovan sayfasını açar. Ya da kovan numarasını arama kutusuna yazıp Enter’a basın.</p>';
-    if (!('BarcodeDetector' in global) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      card(back, 'QR okuma bu tarayıcıda desteklenmiyor', fallback);
+    back.addEventListener('click', function (e) { if (e.target === back || (e.target.closest && e.target.closest('[data-close]'))) close(); });
+    /* Canlı kamera yoksa / izin yoksa: QR'ın fotoğrafını çekip çözme. */
+    back.addEventListener('change', function (e) {
+      var inp = e.target;
+      if (!inp || !inp.hasAttribute || !inp.hasAttribute('data-qr-photo') || !inp.files || !inp.files[0]) return;
+      var f = inp.files[0]; inp.value = '';
+      msg('Fotoğraf okunuyor…');
+      var u = URL.createObjectURL(f), im = new Image();
+      im.onload = function () {
+        (decoder ? Promise.resolve(decoder) : makeDecoder()).then(function (dc) {
+          decoder = dc;
+          return dc.decode(im, true);
+        }).then(function (raw) {
+          URL.revokeObjectURL(u);
+          if (raw == null) { msg('Fotoğrafta QR kodu bulunamadı. Kodu yakından, net ve düz çekin.'); return; }
+          handle(raw);
+        }).catch(function () { URL.revokeObjectURL(u); msg('QR çözücü yüklenemedi. İnternet bağlantısını kontrol edin.'); });
+      };
+      im.onerror = function () { URL.revokeObjectURL(u); msg('Fotoğraf açılamadı.'); };
+      im.src = u;
+    });
+    function photoOnly(title, text) {
+      back.innerHTML = '<div class="ka-qr-card" role="dialog" aria-modal="true"><h3>' + esc(title) + '</h3><p style="margin:0 0 .6rem;">' + esc(text) + '</p>' +
+        '<div style="display:grid;gap:.5rem;">' + photoBtn + '</div><p class="ka-qr-note" id="kaQrMsg" style="margin:.5rem 0 0;font-size:.84rem;color:#5c4813;"></p>' +
+        '<div style="margin-top:.6rem;font-size:.84rem;">' + fallback + '</div>' +
+        '<div style="margin-top:.8rem;"><button type="button" class="ka-btn" data-close style="width:100%;">Kapat</button></div></div>';
+    }
+    var hasCam = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && global.isSecureContext !== false;
+    if (!hasCam) {
+      photoOnly('Canlı kamera kullanılamıyor', 'Bu tarayıcıda canlı kamera açılamıyor; QR kodunun fotoğrafını çekerek okutabilirsiniz.');
       return;
     }
-    var detector;
-    try { detector = new global.BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { card(back, 'QR okuma bu tarayıcıda desteklenmiyor', fallback); return; }
-    back.innerHTML = '<video playsinline muted></video><div class="ka-qr-msg" id="kaQrMsg">Kamera açılıyor… QR kodu çerçeveye getirin.</div>' +
-      '<button type="button" class="ka-btn" data-close>Kapat</button>';
+    back.innerHTML = '<video playsinline muted autoplay></video><div class="ka-qr-msg" id="kaQrMsg">Kamera açılıyor… QR kodu çerçeveye getirin.</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;">' + photoBtn + '<button type="button" class="ka-btn" data-close>Kapat</button></div>';
     var video = back.querySelector('video');
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }).then(function (s) {
+    video.setAttribute('playsinline', ''); video.muted = true; video.playsInline = true;
+    Promise.all([
+      makeDecoder().catch(function () { return null; }),
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    ]).then(function (res) {
+      var s = res[1];
       if (done) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
       stream = s;
+      decoder = res[0];
+      if (!decoder) { msg('QR çözücü yüklenemedi. İnternet bağlantısını kontrol edin ya da fotoğrafla okutun.'); }
       video.srcObject = s;
-      return video.play().then(function () {
-        back.querySelector('#kaQrMsg').textContent = 'QR kodu çerçeveye getirin.';
+      var pl = video.play();
+      return Promise.resolve(pl).then(function () {
+        if (!decoder) return;
+        msg('QR kodu çerçeveye getirin.');
         (function tick() {
           if (done) return;
-          detector.detect(video).then(function (codes) {
+          if (video.readyState < 2) { timer = setTimeout(tick, 250); return; }
+          decoder.decode(video).then(function (raw) {
             if (done) return;
-            if (codes && codes.length) {
-              var raw = codes[0].rawValue;
-              var h = parseHiveFromText(raw, hives);
-              if (h) { close(); location.href = 'kovan.html?id=' + encodeURIComponent(h.id); return; }
-              back.querySelector('#kaQrMsg').textContent = 'Bu QR bir SüperArı kovanına ait değil: ' + String(raw).slice(0, 80);
-            }
-            timer = setTimeout(tick, 350);
+            if (raw != null && handle(raw)) return;
+            timer = setTimeout(tick, decoder.kind === 'native' ? 350 : 220);
           }).catch(function () { timer = setTimeout(tick, 600); });
         })();
       });
     }).catch(function (err) {
       if (done) return;
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
       var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
-      card(back, denied ? 'Kamera izni verilmedi' : 'Kamera açılamadı',
-        '<p style="margin:0 0 .5rem;">' + (denied ? 'Tarayıcı ayarlarından bu site için kamera iznini açabilirsiniz.' : 'Cihazda kullanılabilir kamera bulunamadı.') + '</p>' + fallback);
+      photoOnly(denied ? 'Kamera izni verilmedi' : 'Kamera açılamadı',
+        denied ? 'Tarayıcı ayarlarından bu site için kamera iznini açabilir ya da QR kodunun fotoğrafını çekebilirsiniz. iPhone: Ayarlar › Safari › Kamera.' : 'Canlı kamera açılamadı; QR kodunun fotoğrafını çekerek okutabilirsiniz.');
     });
   }
 

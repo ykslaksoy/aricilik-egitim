@@ -78,6 +78,7 @@ const SHELL = [
   "/manifest.json",
   "/logos/hardal-bees.js",
   "/vendor/qrcode.js",
+  "/vendor/jsqr.js",
   "/assets/logos/hardal-italyan-bee.png",
   "/icons/icon-192.png",
   "/icons/apple-touch-icon.png"
