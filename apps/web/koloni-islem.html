@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Koloni işlemleri · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .ki-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;}
+    .ki-tabs a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:.35rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:#5c4813;font-weight:800;font-size:.8rem;text-decoration:none;line-height:1.15;}
+    .ki-tabs a.on{background:#fff3bf;border-color:#e0c56a;}
+    .ki-seg{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;}
+    .ki-seg button{font:inherit;font-weight:800;font-size:.85rem;padding:.55rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
+    .ki-seg button.on{background:#fff3bf;border-color:#e0c56a;}
+    .ki-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .6rem;}
+    .ki-form label{display:grid;gap:.2rem;font-size:.76rem;font-weight:700;color:#5c4813;min-width:0;}
+    .ki-form .full{grid-column:1 / -1;}
+    .ki-form [hidden]{display:none!important;}
+    .ki-form input,.ki-form select{font:inherit;font-size:.92rem;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
+    .ki-form .three{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;}
+    .ki-radio{grid-column:1 / -1;display:grid;gap:.3rem;}
+    .ki-radio label{display:flex;gap:.45rem;align-items:flex-start;font-size:.84rem;font-weight:650;color:inherit;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.5rem .55rem;}
+    .ki-radio input{width:auto;margin-top:.15rem;}
+    .ki-info{font-size:.8rem;background:#fff8df;color:#6b5314;border-radius:10px;padding:.5rem .6rem;}
+    .ki-warn{font-size:.8rem;background:#fff4e6;color:#a64b00;border-radius:10px;padding:.5rem .6rem;}
+    .ki-ok{font-size:.84rem;background:#ebfbee;color:#2b8a3e;border-radius:10px;padding:.55rem .6rem;font-weight:700;}
+    .ki-err{font-size:.84rem;background:#fff5f5;color:#c92a2a;border-radius:10px;padding:.55rem .6rem;font-weight:700;}
+    .ki-list{display:grid;gap:.4rem;}
+    .ki-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.5rem .65rem;color:inherit;text-decoration:none;}
+    .ki-row b{font-size:.86rem;overflow-wrap:anywhere;}
+    .ki-row small{display:block;font-size:.76rem;color:var(--muted);overflow-wrap:anywhere;}
+    .ki-row .d{font-size:.74rem;font-weight:800;color:var(--muted);white-space:nowrap;}
+    .ki-tl{display:grid;gap:.25rem;margin:.4rem 0;}
+    .ki-tl div{display:grid;grid-template-columns:78px minmax(0,1fr);gap:.4rem;font-size:.8rem;}
+    .ki-tl .past{color:var(--muted);text-decoration:line-through;}
+    .ki-tl .today{font-weight:800;color:#c92a2a;}
+    .ki-batch{background:#fff;border:1px solid var(--border);border-radius:14px;padding:.7rem;display:grid;gap:.45rem;}
+    .ki-batch h3{margin:0;font-size:.95rem;overflow-wrap:anywhere;}
+    .ki-btns{display:flex;flex-wrap:wrap;gap:.35rem;}
+    .ki-btns button{font:inherit;font-size:.78rem;font-weight:800;padding:.4rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
+    .ki-btns .del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
+    h2.ki-h{margin:0;font-size:1.05rem;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" id="backKoloni" href="kovanlar.html?view=koloni">← Koloni</a>
+      <a class="chip" href="bakim.html">Bakım</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p id="pageSub">Koloni işlemleri</p></div>
+    </div>
+    <section class="card stack">
+      <div class="ki-tabs" id="tabs"></div>
+      <label style="font-size:.78rem;display:grid;gap:.2rem;">Arılık
+        <select id="apSel" style="font:inherit;font-size:.95rem;padding:.55rem .6rem;border-radius:12px;border:1px solid var(--border);background:#fff;"></select>
+      </label>
+      <p class="muted" id="modeNote" style="margin:0;font-size:.8rem;"></p>
+    </section>
+    <div id="view"></div>
+  </main>
+  <script src="demo-data.js?v=koloni-10"></script>
+  <script src="koloni.js?v=koloni-10"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, K = window.SuperAriKoloni;
+    if (!D || !D.colonyOps || !K) return;
+    K.ensureCss(); K.ensureGridCss();
+    var O = D.colonyOps, R = D.records, esc = K.esc, fmt = K.fmtDate;
+    var params = new URLSearchParams(location.search);
+    var islem = ['bolme', 'tasima', 'uretim'].indexOf(params.get('islem')) >= 0 ? params.get('islem') : 'bolme';
+    var sub = params.get('alt') === 'birlestirme' ? 'birlestirme' : 'bolme';
+    var aps = D.loadApiaries();
+    var apiaryId = params.get('apiary') || K.lastApiary();
+    if (!aps.some(function (a) { return String(a.id) === String(apiaryId); })) apiaryId = aps[0] ? String(aps[0].id) : '';
+    var apSel = document.getElementById('apSel');
+    apSel.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    apSel.value = apiaryId;
+    var TITLES = { bolme: 'Bölme / Birleştirme', tasima: 'Ana taşıma', uretim: 'Ana üretimi' };
+    document.getElementById('modeNote').textContent = 'Kovan ve ana arı kayıtlarını değiştirir; her iki kovanın geçmişine yazılır. ' +
+      (R.workMode() === 'live' ? 'Canlı mod.' : 'Demo mod: işlem kayıtları demo deposunda tutulur; örnek işlem verisi yoktur.');
+    function today() { return R.todayLocal(); }
+    function url(o) {
+      var q = new URLSearchParams();
+      q.set('islem', o.islem || islem);
+      if ((o.alt || sub) === 'birlestirme' && (o.islem || islem) === 'bolme') q.set('alt', 'birlestirme');
+      q.set('apiary', apiaryId);
+      return 'koloni-islem.html?' + q.toString();
+    }
+    function hivesAll() { return D.hivesForApiary(apiaryId); }
+    function active() { return hivesAll().filter(function (h) { return h.colonyState !== 'birlestirildi'; }); }
+    function statusOf(h) { try { return R.status(h.id); } catch (e) { return {}; } }
+    function hiveOpt(h, extra) { return '<option value="' + esc(h.id) + '">' + esc(h.name + ' (No ' + K.hiveNo(h) + ')' + (extra ? ' · ' + extra : '')) + '</option>'; }
+    function msg(el, ok, text, html) { el.className = ok ? 'ki-ok' : 'ki-err'; el.hidden = false; if (html) el.innerHTML = html; else el.textContent = text; }
+    function evRows(types) {
+      var ids = {}; hivesAll().forEach(function (h) { ids[String(h.id)] = h; });
+      var list = O.events().filter(function (e) { return types.indexOf(e.type) >= 0 && (ids[String(e.fromHiveId)] || ids[String(e.toHiveId)]); });
+      var nm = function (id) { var h = id != null ? D.hiveById(id) : null; return h ? h.name : (id != null ? 'Kovan ' + id : 'boştaki ana'); };
+      var LBL = { bolme: 'Bölme', birlestirme: 'Birleştirme', tasima: 'Ana taşıma' };
+      return list.slice(0, 20).map(function (e) {
+        var t = e.type === 'bolme' ? nm(e.fromHiveId) + ' → ' + nm(e.toHiveId) + ' (' + [e.broodFrames ? e.broodFrames + ' yavrulu' : '', e.honeyFrames ? e.honeyFrames + ' ballı' : '', e.beeFrames ? e.beeFrames + ' arılı' : ''].filter(Boolean).join(', ') + ' çerçeve)'
+          : e.type === 'birlestirme' ? nm(e.fromHiveId) + ' → ' + nm(e.toHiveId) + ' içine (' + (e.keepQueen === 'zayif' ? 'zayıfın anası' : 'güçlünün anası') + ' kaldı)'
+          : e.queenId + ': ' + nm(e.fromHiveId) + ' → ' + nm(e.toHiveId) + (e.replacedQueenId ? ' (' + e.replacedQueenId + ' ayrıldı)' : '');
+        return '<a class="ki-row" href="kovan.html?id=' + encodeURIComponent(e.toHiveId) + '#btBox"><span><b>' + esc(LBL[e.type]) + '</b><small>' + esc(t + (e.note ? ' · ' + e.note : '')) + '</small></span><span class="d">' + esc(fmt(e.date)) + '</span></a>';
+      }).join('') || '<p class="muted" style="margin:0;">Bu arılıkta henüz kayıtlı işlem yok.</p>';
+    }
+    function renderTabs() {
+      document.getElementById('tabs').innerHTML = ['bolme', 'tasima', 'uretim'].map(function (k) {
+        return '<a href="' + url({ islem: k, alt: 'bolme' }) + '" class="' + (k === islem ? 'on' : '') + '">' + esc(TITLES[k]) + '</a>';
+      }).join('');
+      document.getElementById('pageSub').textContent = TITLES[islem];
+      document.title = TITLES[islem] + ' · SüperArı';
+      document.getElementById('backKoloni').href = 'kovanlar.html?view=koloni&mode=apiary&apiary=' + encodeURIComponent(apiaryId);
+    }
+
+    /* ---------- Bölme / Birleştirme ---------- */
+    function renderBolme() {
+      var hs = active();
+      var cand = hs.map(function (h) { return { h: h, st: statusOf(h) }; });
+      var splitC = cand.filter(function (x) { return x.st.swarmCell || x.st.strengthClass === 'Güçlü'; });
+      var mergeC = cand.filter(function (x) { return x.st.weak || x.st.queenless; });
+      var html = '<section class="card stack" style="margin-top:1rem;"><div class="ki-seg"><button type="button" data-sub="bolme" class="' + (sub === 'bolme' ? 'on' : '') + '">✂️ Bölme</button><button type="button" data-sub="birlestirme" class="' + (sub === 'birlestirme' ? 'on' : '') + '">🔗 Birleştirme</button></div>';
+      if (sub === 'bolme') {
+        var hint = function (x) { return x.st.swarmCell ? 'oğul hücresi' : (x.st.strengthClass === 'Güçlü' ? 'güçlü' : ''); };
+        html += '<form class="ki-form" id="fSplit" autocomplete="off">' +
+          '<label class="full">Kaynak kovan<select name="src" required>' + splitC.map(function (x) { return hiveOpt(x.h, hint(x)); }).join('') +
+            hs.filter(function (h) { return !splitC.some(function (x) { return x.h.id === h.id; }); }).map(function (h) { return hiveOpt(h); }).join('') + '</select></label>' +
+          '<label>Tarih<input type="date" name="date" value="' + today() + '" max="' + today() + '"></label>' +
+          '<label>Yeni kovan adı<input name="name" maxlength="60" placeholder="otomatik: Kovan No"></label>' +
+          '<div class="three"><label>Yavrulu çerçeve<input type="number" name="brood" min="0" max="20" inputmode="numeric" value="2"></label>' +
+            '<label>Ballı çerçeve<input type="number" name="honey" min="0" max="20" inputmode="numeric" value="1"></label>' +
+            '<label>Arılı çerçeve<input type="number" name="bees" min="0" max="20" inputmode="numeric" value="3"></label></div>' +
+          '<div class="ki-radio" role="radiogroup" aria-label="Ana durumu">' +
+            '<label><input type="radio" name="qm" value="kaynakta" checked> <span><b>Ana kaynakta kaldı</b> — yeni kovan anasız (yumurtalı çerçeveden kendi anasını yetiştirir)</span></label>' +
+            '<label><input type="radio" name="qm" value="hucre"> <span><b>Yeni kovana ana hücresi verildi</b> — çıkış ~7 gün, yumurta kontrolü ~3 hafta</span></label>' +
+            '<label><input type="radio" name="qm" value="yeniAna"> <span><b>Yeni kovana yeni ana verildi</b> — yeni ana kaydı açılır</span></label>' +
+            '<label><input type="radio" name="qm" value="anaTasindi"> <span><b>Ana yeni kovana alındı</b> — kaynak kovan anasız kalır</span></label></div>' +
+          '<label hidden data-yeni>Ana doğum yılı<input type="number" name="qyear" min="2015" max="2100" value="' + new Date().getFullYear() + '"></label>' +
+          '<label hidden data-yeni>Kaynağı<input name="qsrc" maxlength="120" placeholder="ör. Satın alındı"></label>' +
+          '<label class="full">Hedef arılık<select name="ap">' + aps.map(function (a) { return '<option value="' + esc(a.id) + '"' + (String(a.id) === String(apiaryId) ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join('') + '</select></label>' +
+          '<label class="full">Not<input name="note" maxlength="300"></label>' +
+          '<button type="submit" class="btn full">Bölmeyi kaydet (yeni kovan oluştur)</button><p class="full" id="mSplit" hidden></p></form>' +
+          '<div class="ki-info">Kaynak kovanın son koloni gücü kaydından aktarılan çerçeveler düşülür; yeni kovana ayrı güç kaydı yazılır. Her iki kovanın Bakım geçmişine işlenir.</div>';
+      } else {
+        var mh = function (x) { return x.st.queenless ? 'anasız' : (x.st.weak ? 'zayıf' : ''); };
+        html += '<form class="ki-form" id="fMerge" autocomplete="off">' +
+          '<label class="full">Zayıf kovan (katılacak)<select name="weak" required>' + mergeC.map(function (x) { return hiveOpt(x.h, mh(x)); }).join('') +
+            hs.filter(function (h) { return !mergeC.some(function (x) { return x.h.id === h.id; }); }).map(function (h) { return hiveOpt(h); }).join('') + '</select></label>' +
+          '<label class="full">Güçlü kovan (alacak)<select name="strong" required>' + hs.map(function (h) { var st = statusOf(h); return hiveOpt(h, st.strengthClass ? st.strengthClass.toLocaleLowerCase('tr') : ''); }).join('') + '</select></label>' +
+          '<label>Hangi ana kalsın<select name="keep"><option value="guclu">Güçlü kovanın anası</option><option value="zayif">Zayıf kovanın anası</option></select></label>' +
+          '<label>Yöntem<select name="method"><option value="gazete">Gazete kâğıdı ile</option><option value="dogrudan">Doğrudan</option></select></label>' +
+          '<label class="full">Tarih<input type="date" name="date" value="' + today() + '" max="' + today() + '"></label>' +
+          '<label class="full">Not<input name="note" maxlength="300"></label>' +
+          '<button type="submit" class="btn full">Birleştirmeyi kaydet</button><p class="full" id="mMerge" hidden></p></form>' +
+          '<div class="ki-info">Zayıf kovan «Birleştirildi» olarak işaretlenir (kayıt ve geçmiş silinmez); ayrılan ananın kaydı kapanır. İki kovanın geçmişine de yazılır.</div>';
+      }
+      html += '</section>';
+      html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">' + (sub === 'bolme' ? 'Bölme adayları' : 'Birleştirme adayları') + ' (' + (sub === 'bolme' ? splitC.length : mergeC.length) + ')</h2><div class="ki-list">' +
+        ((sub === 'bolme' ? splitC : mergeC).slice(0, 15).map(function (x) {
+          var why = sub === 'bolme' ? (x.st.swarmCell ? 'Oğul hücresi görüldü — bölerek oğulu önleyin' : 'Güçlü koloni') : (x.st.queenless ? 'Anasız' : 'Zayıf koloni');
+          return '<a class="ki-row" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '#btBox"><span><b>' + esc(x.h.name) + '</b><small>' + esc(why) + '</small></span><span class="d">No ' + esc(K.hiveNo(x.h)) + '</span></a>';
+        }).join('') || '<p class="muted" style="margin:0;">Kayıtlara göre aday kovan yok. Koloni gücü ve yavru kayıtları girdikçe burada görünür.</p>') + '</div></section>';
+      html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Son işlemler</h2><div class="ki-list">' + evRows(['bolme', 'birlestirme']) + '</div></section>';
+      var merged = hivesAll().filter(function (h) { return h.colonyState === 'birlestirildi'; });
+      if (merged.length) html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Birleştirilmiş kovanlar (' + merged.length + ')</h2><div class="ki-list">' + merged.map(function (h) {
+        var to = h.mergedInto ? D.hiveById(h.mergedInto) : null;
+        return '<a class="ki-row" href="kovan.html?id=' + encodeURIComponent(h.id) + '#btBox"><span><b>' + esc(h.name) + '</b><small>' + esc(to ? 'katıldı → ' + to.name : 'birleştirildi') + '</small></span><span class="d">boş kutu</span></a>';
+      }).join('') + '</div></section>';
+      document.getElementById('view').innerHTML = html;
+      var fs = document.getElementById('fSplit');
+      if (fs) {
+        var tg = function () { var v = fs.querySelector('input[name=qm]:checked').value; fs.querySelectorAll('[data-yeni]').forEach(function (el) { el.hidden = v !== 'yeniAna'; }); };
+        fs.addEventListener('change', tg); tg();
+        fs.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var m = document.getElementById('mSplit');
+          try {
+            var res = O.split({ sourceId: fs.elements.src.value, date: fs.elements.date.value, name: fs.elements.name.value, broodFrames: fs.elements.brood.value, honeyFrames: fs.elements.honey.value, beeFrames: fs.elements.bees.value,
+              queenMode: fs.querySelector('input[name=qm]:checked').value, queenYear: fs.elements.qyear.value, queenSource: fs.elements.qsrc.value, apiaryId: fs.elements.ap.value, note: fs.elements.note.value });
+            K.toast('Bölme kaydedildi · ' + res.newHiveName + ' oluşturuldu');
+            try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+            renderBolme();
+            msg(document.getElementById('mSplit'), true, '', '✓ ' + esc(res.newHiveName) + ' oluşturuldu. <a href="kovan.html?id=' + encodeURIComponent(res.newHiveId) + '#btBox" style="color:#2b6cb0;text-decoration:underline;">Yeni kovanı aç</a>');
+          } catch (err) { msg(m, false, err.message || 'Kaydedilemedi'); }
+        });
+      }
+      var fm = document.getElementById('fMerge');
+      if (fm) {
+        var pickStrong = function () {
+          var w = fm.elements.weak.value;
+          if (fm.elements.strong.value === w) {
+            var o = Array.prototype.filter.call(fm.elements.strong.options, function (x) { return x.value !== w; })[0];
+            if (o) fm.elements.strong.value = o.value;
+          }
+        };
+        fm.elements.weak.addEventListener('change', pickStrong); pickStrong();
+        fm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var m = document.getElementById('mMerge');
+          var w = D.hiveById(fm.elements.weak.value), s = D.hiveById(fm.elements.strong.value);
+          if (!w || !s || w.id === s.id) { msg(m, false, 'Farklı iki kovan seçin'); return; }
+          if (!confirm('Birleştirme: ' + w.name + ' → ' + s.name + '. Katılan kovan «Birleştirildi» olarak işaretlenecek. Devam edilsin mi?')) return;
+          try {
+            var res = O.merge({ weakId: w.id, strongId: s.id, keepQueen: fm.elements.keep.value, method: fm.elements.method.value, date: fm.elements.date.value, note: fm.elements.note.value });
+            K.toast('Birleştirme kaydedildi');
+            try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+            renderBolme();
+            msg(document.getElementById('mMerge'), true, '✓ ' + w.name + ' → ' + s.name + ' birleştirildi (' + (res.keepQueen === 'zayif' ? 'zayıf' : 'güçlü') + ' kovanın anası kaldı).');
+          } catch (err) { msg(m, false, err.message || 'Kaydedilemedi'); }
+        });
+      }
+      document.querySelectorAll('[data-sub]').forEach(function (b) {
+        b.addEventListener('click', function () { sub = b.getAttribute('data-sub'); history.replaceState(null, '', url({})); renderBolme(); });
+      });
+    }
+
+    /* ---------- Ana taşıma ---------- */
+    function renderTasima() {
+      var hs = active();
+      var C = D.colony;
+      var placed = hs.filter(function (h) { return h.currentQueenId; });
+      var free = O.freeQueens();
+      var waiting = hs.filter(function (h) { var st = statusOf(h); return h.queenless || st.queenless; });
+      var qLabel = function (h) { var q = C.queenById(h.currentQueenId); return (q ? q.id : h.currentQueenId) + ' · ' + h.name + (q && q.year ? ' · ' + q.year : '') + (q && q.breed ? ' ' + q.breed : ''); };
+      var html = '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">👑 Ana taşıma</h2>' +
+        '<form class="ki-form" id="fMove" autocomplete="off">' +
+        '<label class="full">Taşınacak ana<select name="q" required>' +
+          (free.length ? '<optgroup label="Boştaki analar (kovana yerleşmemiş)">' + free.map(function (q) { return '<option value="' + esc(q.id) + '">' + esc(q.id + ' · boşta' + (q.year ? ' · ' + q.year : '') + (q.breed ? ' ' + q.breed : '')) + '</option>'; }).join('') + '</optgroup>' : '') +
+          '<optgroup label="Kovandaki analar">' + placed.map(function (h) { return '<option value="' + esc(h.currentQueenId) + '">' + esc(qLabel(h)) + '</option>'; }).join('') + '</optgroup></select></label>' +
+        '<label class="full">Hedef kovan<select name="to" required>' +
+          waiting.map(function (h) { return hiveOpt(h, 'anasız'); }).join('') +
+          hs.filter(function (h) { return waiting.indexOf(h) < 0; }).map(function (h) { return hiveOpt(h, h.currentQueenId ? 'mevcut ana ' + h.currentQueenId : ''); }).join('') + '</select></label>' +
+        '<label>Tarih<input type="date" name="date" value="' + today() + '" max="' + today() + '"></label>' +
+        '<label>Not<input name="note" maxlength="300" placeholder="ör. kafesle verildi"></label>' +
+        '<p class="full ki-warn" id="wMove" hidden></p>' +
+        '<button type="submit" class="btn full">Anayı taşı</button><p class="full" id="mMove" hidden></p></form>' +
+        '<div class="ki-info">Ana kaydının yerleşim geçmişi güncellenir; çıkan kovan anasız olarak işaretlenir, iki kovanın ana geçmişine de yazılır. Hedefte ana varsa o ananın kaydı «Yerine ana taşındı» ile kapanır.</div></section>';
+      html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Ana bekleyen kovanlar (' + waiting.length + ')</h2><div class="ki-list">' + (waiting.map(function (h) {
+        var st = statusOf(h);
+        return '<a class="ki-row" href="kovan.html?id=' + encodeURIComponent(h.id) + '#btBox"><span><b>' + esc(h.name) + '</b><small>' + esc(st.queenCellSince ? 'Ana hücresi verildi (' + fmt(st.queenCellSince) + ')' : 'Anasız') + '</small></span><span class="d">No ' + esc(K.hiveNo(h)) + '</span></a>';
+      }).join('') || '<p class="muted" style="margin:0;">Anasız kovan yok.</p>') + '</div></section>';
+      html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Son ana taşımaları</h2><div class="ki-list">' + evRows(['tasima']) + '</div></section>';
+      document.getElementById('view').innerHTML = html;
+      var f = document.getElementById('fMove');
+      var warn = function () {
+        var to = D.hiveById(f.elements.to.value), w = document.getElementById('wMove');
+        var src = null; hs.forEach(function (h) { if (h.currentQueenId === f.elements.q.value) src = h; });
+        var parts = [];
+        if (to && to.currentQueenId && to.currentQueenId !== f.elements.q.value) parts.push('Hedefteki mevcut ana (' + to.currentQueenId + ', ' + to.name + ') ayrılacak.');
+        if (src) parts.push(src.name + ' anasız kalacak.');
+        w.hidden = !parts.length; w.textContent = parts.join(' ');
+      };
+      f.addEventListener('change', warn); warn();
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var m = document.getElementById('mMove');
+        var to = D.hiveById(f.elements.to.value);
+        if (to && to.currentQueenId && to.currentQueenId !== f.elements.q.value && !confirm('Hedefteki mevcut ana (' + to.currentQueenId + ', ' + to.name + ') ayrılacak. Devam edilsin mi?')) return;
+        try {
+          var qid = f.elements.q.value;
+          O.moveQueen({ queenId: qid, toHiveId: f.elements.to.value, date: f.elements.date.value, note: f.elements.note.value });
+          K.toast('Ana taşındı');
+          try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+          renderTasima();
+          msg(document.getElementById('mMove'), true, '✓ ' + qid + ' → ' + (to ? to.name : '') + ' taşındı.');
+        } catch (err) { msg(m, false, err.message || 'Kaydedilemedi'); }
+      });
+    }
+
+    /* ---------- Ana üretimi ---------- */
+    function tlHtml(dates) {
+      var t = today();
+      return '<div class="ki-tl">' + O.GRAFT_TIMELINE.map(function (s) {
+        var d = dates[s.key];
+        return '<div class="' + (d < t ? 'past' : (d === t ? 'today' : '')) + '"><span>' + esc(fmt(d)) + '</span><span>+' + s.d + ' gün · ' + esc(s.label) + '</span></div>';
+      }).join('') + '</div>';
+    }
+    function renderUretim() {
+      var hs = active();
+      var ids = {}; hivesAll().forEach(function (h) { ids[String(h.id)] = true; });
+      var batches = O.batches().filter(function (b) { return b.sourceHiveId == null || ids[String(b.sourceHiveId)]; });
+      var free = O.freeQueens();
+      var html = '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">🧪 Yeni larva transferi (aşılama)</h2>' +
+        '<form class="ki-form" id="fBatch" autocomplete="off">' +
+        '<label>Aşılama tarihi<input type="date" name="date" value="' + today() + '"></label>' +
+        '<label>Yüksük sayısı<input type="number" name="cups" min="1" max="500" inputmode="numeric" required placeholder="ör. 30"></label>' +
+        '<label class="full">Anne kovan (larva kaynağı)<select name="src">' + hs.filter(function (h) { return h.currentQueenId; }).map(function (h) {
+          var q = D.colony.queenById(h.currentQueenId); return hiveOpt(h, (q ? q.id : '') + (q && q.breed ? ' ' + q.breed : ''));
+        }).join('') + '</select></label>' +
+        '<label>Kabul edilen (biliniyorsa)<input type="number" name="acc" min="0" max="500" inputmode="numeric"></label>' +
+        '<label>Not<input name="note" maxlength="300"></label>' +
+        '<div class="full"><b style="font-size:.8rem;">Standart takvim (1 günlük larva)</b><div id="tlPrev"></div></div>' +
+        '<button type="submit" class="btn full">Partiyi kaydet</button><p class="full" id="mBatch" hidden></p></form></section>';
+      html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Partiler (' + batches.length + ')</h2>' + (batches.map(function (b) {
+        var src = b.sourceHiveId != null ? D.hiveById(b.sourceHiveId) : null;
+        var limit = b.accepted != null ? b.accepted : b.cups;
+        var left = Math.max(0, limit - b.results.length);
+        var ST = { aktif: 'Etkin', tamamlandi: 'Tamamlandı', iptal: 'İptal' };
+        return '<div class="ki-batch" data-batch="' + esc(b.id) + '"><h3>' + esc(fmt(b.date) + ' · ' + (src ? src.name : 'anne kovan yok') + (b.sourceQueenId ? ' · anne ' + b.sourceQueenId : '')) +
+          ' <span class="badge ' + (b.status === 'aktif' ? 'uyari' : 'ok') + '">' + ST[b.status] + '</span></h3>' +
+          '<div class="muted" style="font-size:.8rem;">' + b.cups + ' yüksük · kabul ' + (b.accepted != null ? b.accepted : '—') + ' · çıkan ' + (b.emerged != null ? b.emerged : '—') + ' · kaydedilen ana ' + b.results.length + (b.note ? ' · ' + esc(b.note) : '') + '</div>' +
+          tlHtml(b.dates) +
+          '<form class="ki-form" data-upd="' + esc(b.id) + '"><label>Kabul edilen<input type="number" name="acc" min="0" max="' + b.cups + '" value="' + (b.accepted != null ? b.accepted : '') + '"></label>' +
+            '<label>Çıkan ana<input type="number" name="em" min="0" max="' + b.cups + '" value="' + (b.emerged != null ? b.emerged : '') + '"></label>' +
+            '<button type="submit" class="btn secondary full">Sayıları güncelle</button></form>' +
+          (b.status === 'aktif' && left ? '<form class="ki-form" data-assign="' + esc(b.id) + '"><label class="full">Çıkan anayı kaydet → kovan<select name="hive"><option value="">Boşta (çiftleşme kutusu / satış)</option>' +
+            hs.map(function (h) { var st = statusOf(h); return hiveOpt(h, (h.queenless || st.queenless) ? 'anasız' : (h.currentQueenId ? 'mevcut ana ayrılır' : '')); }).join('') + '</select></label>' +
+            '<label>Tarih<input type="date" name="date" value="' + today() + '"></label><label class="kr-checkline" style="display:flex;align-items:center;gap:.4rem;margin-top:1.1rem;"><input type="checkbox" name="marked" style="width:auto;"> İşaretli</label>' +
+            '<button type="submit" class="btn full">Ana kaydı oluştur (' + left + ' kaldı)</button></form>' : '') +
+          (b.results.length ? '<div class="ki-list">' + b.results.map(function (x) { var h = x.hiveId != null ? D.hiveById(x.hiveId) : null; return '<div class="ki-row"><span><b>' + esc(x.queenId) + '</b><small>' + esc(h ? h.name : 'boşta') + '</small></span><span class="d">' + esc(fmt(x.date)) + '</span></div>'; }).join('') + '</div>' : '') +
+          '<div class="ki-btns">' + (b.status === 'aktif' ? '<button type="button" data-close="' + esc(b.id) + '">Partiyi kapat</button>' : '<button type="button" data-reopen="' + esc(b.id) + '">Yeniden aç</button>') +
+            '<button type="button" class="del" data-rm="' + esc(b.id) + '">Sil</button></div></div>';
+      }).join('') || '<p class="muted" style="margin:0;">Bu arılıkta üretim partisi yok. Yukarıdan ilk larva transferini kaydedin.</p>') + '</section>';
+      if (free.length) html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Boştaki analar (' + free.length + ')</h2><div class="ki-list">' + free.map(function (q) {
+        return '<div class="ki-row"><span><b>' + esc(q.id) + '</b><small>' + esc([q.year, q.breed, q.source].filter(Boolean).join(' · ')) + '</small></span><a class="d" href="' + url({ islem: 'tasima' }) + '" style="color:#2b6cb0;">Kovana ver</a></div>';
+      }).join('') + '</div></section>';
+      html += '<div class="note" style="margin-top:1rem;">Takvim 1 günlük larva aşılamasına göredir (ana arı yumurtadan ~16 günde çıkar). Tarihli adımlar Görevler ve Bakım listelerine otomatik görev olarak düşer.</div>';
+      document.getElementById('view').innerHTML = html;
+      var f = document.getElementById('fBatch');
+      var prev = function () { document.getElementById('tlPrev').innerHTML = tlHtml(O.batchDates(f.elements.date.value || today())); };
+      f.elements.date.addEventListener('input', prev); prev();
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        try {
+          O.addBatch({ date: f.elements.date.value, cups: f.elements.cups.value, sourceHiveId: f.elements.src.value || null, accepted: f.elements.acc.value, note: f.elements.note.value });
+          K.toast('Parti kaydedildi · takvim görevlere eklendi');
+          try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+          renderUretim();
+        } catch (err) { msg(document.getElementById('mBatch'), false, err.message || 'Kaydedilemedi'); }
+      });
+      var view = document.getElementById('view');
+      view.querySelectorAll('[data-upd]').forEach(function (fu) {
+        fu.addEventListener('submit', function (e) { e.preventDefault(); O.updateBatch(fu.getAttribute('data-upd'), { accepted: fu.elements.acc.value, emerged: fu.elements.em.value }); K.toast('Güncellendi'); renderUretim(); });
+      });
+      view.querySelectorAll('[data-assign]').forEach(function (fa) {
+        fa.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var h = fa.elements.hive.value ? D.hiveById(fa.elements.hive.value) : null;
+          if (h && h.currentQueenId && !confirm(h.name + ': mevcut ana (' + h.currentQueenId + ') değiştirilecek. Devam edilsin mi?')) return;
+          try {
+            var res = O.assignBatchQueen(fa.getAttribute('data-assign'), { hiveId: fa.elements.hive.value, date: fa.elements.date.value, marked: fa.elements.marked.checked });
+            K.toast('Ana kaydı oluşturuldu · ' + res.queenId + (h ? ' → ' + h.name : ' (boşta)'));
+            try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+            renderUretim();
+          } catch (err) { K.toast(err.message || 'Kaydedilemedi'); }
+        });
+      });
+    }
+    document.getElementById('view').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-close],[data-reopen],[data-rm]');
+      if (!b || islem !== 'uretim') return;
+      if (b.hasAttribute('data-close')) O.updateBatch(b.getAttribute('data-close'), { status: 'tamamlandi' });
+      else if (b.hasAttribute('data-reopen')) O.updateBatch(b.getAttribute('data-reopen'), { status: 'aktif' });
+      else { if (!confirm('Bu üretim partisi silinsin mi? (Oluşturulan ana kayıtları silinmez.)')) return; O.removeBatch(b.getAttribute('data-rm')); }
+      try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
+      renderUretim();
+    });
+    function render() {
+      renderTabs();
+      if (islem === 'tasima') renderTasima();
+      else if (islem === 'uretim') renderUretim();
+      else renderBolme();
+    }
+    apSel.addEventListener('change', function () {
+      apiaryId = apSel.value; K.setLastApiary(apiaryId);
+      history.replaceState(null, '', url({}));
+      render();
+    });
+    render();
+  })();
+  </script>
+  <script src="nav.js?v=koloni-10"></script>
+</body>
+</html>

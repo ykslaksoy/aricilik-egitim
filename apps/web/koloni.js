@@ -318,6 +318,12 @@
   function historyEntryText(e) {
     if (!e) return '';
     var parts = [fmtDate(e.date)];
+    if (e.label) {
+      parts.push(e.label);
+      if (e.oldQueenId || e.newQueenId) parts.push((e.oldQueenId || '—') + ' → ' + (e.newQueenId || 'anasız'));
+      if (e.note) parts.push(e.note);
+      return parts.join(' · ');
+    }
     parts.push((e.oldYear != null ? e.oldYear : '?') + ' → ' + (e.newYear != null ? e.newYear : '?') + ' anası');
     if (e.oldBreed && e.newBreed && e.oldBreed !== e.newBreed) parts.push(e.oldBreed + ' → ' + e.newBreed);
     else if (e.newBreed || e.oldBreed) parts.push(e.newBreed || e.oldBreed);
@@ -540,10 +546,10 @@
     { key: 'yavru', label: 'Yavru durumu', ready: true },
     { key: 'hastalik', label: 'Hastalık', ready: true },
     { key: 'besleme', label: 'Besleme', ready: true },
-    { key: 'bolme', label: 'Bölme / Birleştirme', ready: false },
+    { key: 'bolme', label: 'Bölme / Birleştirme', ready: true },
     { key: 'ogul', label: 'Oğul', ready: true },
-    { key: 'tasima', label: 'Ana taşıma', ready: false },
-    { key: 'uretim', label: 'Ana üretimi', ready: false }
+    { key: 'tasima', label: 'Ana taşıma', ready: true },
+    { key: 'uretim', label: 'Ana üretimi', ready: true }
   ];
   var TOPIC_LABEL = {};
   TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
@@ -594,17 +600,28 @@
   /** Konu başına ilgilenilmesi gereken kovan sayısı (yalnız hazır konular). */
   function topicCounts(hives) {
     var c = C(), r = R();
-    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0, besleme: 0, ogul: 0 };
+    var out = { ana: 0, guc: 0, yavru: 0, hastalik: 0, besleme: 0, ogul: 0, bolme: 0, tasima: 0, uretim: 0 };
     if (!r) return out;
     var all = r.loadAll();
+    /* Ana üretimi: kapsamdaki kovanlardan başlatılmış etkin partiler. */
+    var inScope = {};
+    (hives || []).forEach(function (h) { inScope[String(h.id)] = true; });
+    var d1 = D();
+    if (d1 && d1.colonyOps) {
+      d1.colonyOps.batches().forEach(function (b) { if (b.status === 'aktif' && (b.sourceHiveId == null || inScope[String(b.sourceHiveId)])) out.uretim++; });
+    }
     var d0 = D();
     var ogulHives = {};
     ((d0 && d0.alerts) || []).forEach(function (a) { if (a && a.type === 'ogul' && a.hiveId != null) ogulHives[String(a.hiveId)] = true; });
     (hives || []).forEach(function (h) {
+      if (h.colonyState === 'birlestirildi') return;
       if (c && c.queenStatus(h) === 'Yenile') out.ana++;
       var isOgul = !!ogulHives[String(h.id)];
-      if (!all[String(h.id)]) { if (isOgul) out.ogul++; return; }
+      if (!all[String(h.id)] && !h.queenless) { if (isOgul) out.ogul++; return; }
       var st = r.status(h.id, all);
+      /* Bölme adayı: oğul hücresi; birleştirme adayı: zayıf veya anasız. Ana taşıma: ana bekleyen kovan. */
+      if (st.swarmCell || st.weak || st.queenless) out.bolme++;
+      if (st.queenless || h.queenless) out.tasima++;
       var ws = r.winterStatus(h.id, all);
       if (st.weak || (ws.rec && ws.statusKey !== 'hazir')) out.guc++;
       if (ws.storesKg != null && !ws.storesOk) out.besleme++;
@@ -627,7 +644,8 @@
           icon + '<span class="kg-lbl">' + esc(t.label) + '</span><span class="kg-soon">Yakında</span></button>';
       }
       var n = counts[t.key] || 0;
-      return '<a class="kg-tile' + (activeTopic === t.key ? ' on' : '') + '" href="' + hrefFor(t.key) + '" aria-label="' + esc(t.label) + (n ? ', ' + n + ' kovan ilgi bekliyor' : '') + '">' +
+      var why = { bolme: ' kovan bölme veya birleştirme adayı', tasima: ' kovan ana bekliyor', uretim: ' etkin üretim partisi' }[t.key] || ' kovan ilgi bekliyor';
+      return '<a class="kg-tile' + (activeTopic === t.key ? ' on' : '') + '" href="' + hrefFor(t.key) + '" aria-label="' + esc(t.label) + (n ? ', ' + n + why : '') + '">' +
         '<span class="kg-count' + (n ? '' : ' zero') + '">' + n + '</span>' +
         icon + '<span class="kg-lbl">' + esc(t.label) + '</span></a>';
     }).join('') + '</div>';
@@ -657,7 +675,9 @@
     var out = [];
     if (st.strengthClass) out.push(chip('Güç: ' + st.strengthClass, st.strengthClass === 'Zayıf' ? 'red' : (st.strengthClass === 'Güçlü' ? 'green' : 'orange')));
     if (st.chilled) out.push(chip('Zayıf koloni', 'red'));
+    if (h.colonyState === 'birlestirildi') out.push(chip('Birleştirildi' + (h.mergedInto ? ' → Kovan ' + h.mergedInto : ''), ''));
     if (st.queenless) out.push(chip('Anasız', 'red'));
+    if (st.queenCellSince) out.push(chip('Ana hücresi verildi', 'orange'));
     if (st.swarmCell) out.push(chip('Oğul hücresi', 'orange'));
     st.diseases.forEach(function (d) { out.push(chip('🦠 ' + d.label, levelTone(d.level))); });
     if (st.withdrawalUntil) out.push(chip('İlaç bekleme', 'blue'));
@@ -1204,6 +1224,7 @@
     winter: { icon: '❄️', label: 'Kışlık hazırlık', topic: 'kis' },
     harvest: { icon: '🫙', label: 'Hasat notu', topic: 'hasat' },
     aharvest: { icon: '🫙', label: 'Arılık hasadı', topic: null },
+    colony: { icon: '🔀', label: 'Koloni işlemi', topic: null },
     queen: { icon: '👑', label: 'Ana arı değişimi', topic: 'ana' }
   };
   var TL_CSS = '.bt-list{display:grid;gap:6px;margin-top:8px;}' +
@@ -1243,6 +1264,10 @@
       var cur = ws.rec && ws.rec.id === x.id;
       out.push({ kind: 'winter', rec: x, date: x.date, sum: x.season + ' kışı' + (cur ? ' · ' + ws.status + (ws.missing.length ? ' · eksik: ' + ws.missing.join(', ') : '') : '') + (x.note ? ' · ' + x.note : '') });
     });
+    var EV_LABEL = { bolme: 'Bölme', birlestirme: 'Birleştirme', tasima: 'Ana taşıma', uretim: 'Ana üretimi' };
+    (Array.isArray(h.colonyEvents) ? h.colonyEvents : []).forEach(function (e) {
+      out.push({ kind: 'colony', rec: { id: e.id || ('ev' + e.date), evType: e.type }, date: e.date, sum: (EV_LABEL[e.type] || 'İşlem') + ' · ' + e.text });
+    });
     (Array.isArray(h.queenHistory) ? h.queenHistory : []).forEach(function (e, i) {
       out.push({ kind: 'queen', rec: { id: 'q' + i }, date: String(e.date || '').slice(0, 10), sum: historyEntryText(e).split(' · ').slice(1).join(' · ') });
     });
@@ -1254,7 +1279,7 @@
     var list = timelineEntries(h);
     var items = list.map(function (e) {
       var k = TL_KIND[e.kind];
-      return '<button type="button" class="bt-item" data-bt-kind="' + e.kind + '" data-bt-id="' + esc(e.rec.id) + '" aria-label="' + esc(k.label + ' ' + fmtDate(e.date) + (e.kind === 'aharvest' ? ' · Bal / verim raporunda aç' : ' düzenle')) + '">' +
+      return '<button type="button" class="bt-item" data-bt-kind="' + e.kind + '" data-bt-id="' + esc(e.rec.id) + '" aria-label="' + esc(k.label + ' ' + fmtDate(e.date) + (e.kind === 'aharvest' ? ' · Bal / verim raporunda aç' : (e.kind === 'colony' ? ' · işlem sayfasında aç' : ' düzenle'))) + '">' +
         '<span class="bt-ico" aria-hidden="true">' + k.icon + '</span><span><span class="bt-top"><span>' + esc(k.label) +
         (e.rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span><span class="dt">' + esc(fmtDate(e.date)) + '</span></span>' +
         '<span class="bt-sum" style="display:block;">' + esc(e.sum) + '</span></span></button>';
@@ -1300,6 +1325,13 @@
       if (kind === 'queen') { openEditor(hiveId, onSaved); return; }
       if (kind === 'winter') { openWinterSheet(hiveId, onSaved); return; }
       if (kind === 'aharvest') { global.location.href = 'rapor-bal.html'; return; }
+      if (kind === 'colony') {
+        var hh = D() && D().hiveById(hiveId);
+        var ev = hh && (hh.colonyEvents || []).filter(function (x) { return (x.id || ('ev' + x.date)) === id; })[0];
+        var isl = ev && (ev.type === 'tasima' ? 'tasima' : (ev.type === 'uretim' ? 'uretim' : 'bolme'));
+        global.location.href = 'koloni-islem.html?islem=' + (isl || 'bolme') + (hh ? '&apiary=' + encodeURIComponent(hh.apiaryId) : '');
+        return;
+      }
       var r = R(); if (!r) return;
       var rec = (r.recordsFor(hiveId)[kind] || []).filter(function (x) { return x.id === id; })[0];
       openRecordSheet(TL_KIND[kind].topic, hiveId, onSaved, rec || null);
@@ -1572,7 +1604,8 @@
     var all = r.loadAll();
     var out = [];
     (hives || []).forEach(function (h) {
-      if (!all[String(h.id)]) return;
+      if (h.colonyState === 'birlestirildi') return;
+      if (!all[String(h.id)] && !h.queenless) return;
       var st = r.status(h.id, all);
       var ws = r.winterStatus(h.id, all);
       var why = [];
@@ -1653,6 +1686,7 @@
     hiveCardHtml: hiveCardHtml,
     openEditor: openEditor,
     openTaskDone: openTaskDone,
+    toast: toast,
     undoTask: undoTask
   };
 })(window);

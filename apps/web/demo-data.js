@@ -839,6 +839,21 @@
       var hist = h.queenHistory.map(normalizeQueenHistoryEntry).filter(Boolean);
       if (hist.length) out.queenHistory = hist.slice(-20);
     }
+    /* Koloni işlemleri (bölme / birleştirme / ana taşıma / ana üretimi). */
+    if (h.queenless === true) out.queenless = true;
+    if (h.queenCellSince && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenCellSince))) out.queenCellSince = String(h.queenCellSince);
+    if (h.colonyState === 'birlestirildi') out.colonyState = 'birlestirildi';
+    if (h.mergedInto != null && isFinite(Number(h.mergedInto))) out.mergedInto = Number(h.mergedInto);
+    if (h.splitFrom != null && isFinite(Number(h.splitFrom))) out.splitFrom = Number(h.splitFrom);
+    if (h.createdBy === 'bolme') out.createdBy = 'bolme';
+    if (h.queenGivenAt && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenGivenAt))) out.queenGivenAt = String(h.queenGivenAt);
+    if (Array.isArray(h.colonyEvents) && h.colonyEvents.length) {
+      out.colonyEvents = h.colonyEvents.filter(function (e) { return e && e.date && e.text; }).slice(-30).map(function (e) {
+        var o = { id: String(e.id || '').slice(0, 40), date: String(e.date).slice(0, 10), type: String(e.type || '').slice(0, 20), text: String(e.text).slice(0, 300) };
+        if (e.otherHiveId != null) o.otherHiveId = Number(e.otherHiveId);
+        return o;
+      });
+    }
     return out;
   }
   function todayLocal() {
@@ -865,6 +880,7 @@
     if (e.bulk === true) o.bulk = true;
     if (e.oldQueenId) o.oldQueenId = String(e.oldQueenId).slice(0, 32);
     if (e.newQueenId) o.newQueenId = String(e.newQueenId).slice(0, 32);
+    if (e.label != null && String(e.label).trim()) o.label = String(e.label).trim().slice(0, 120);
     return o;
   }
 
@@ -1024,6 +1040,8 @@
     var out = (hives || []).map(function (h) {
       hiveIds[h.id] = true;
       var q = h.currentQueenId ? byId[h.currentQueenId] : null;
+      /* Anasız / birleştirilmiş kovana otomatik ana kaydı açılmaz. */
+      if (!q && (h.queenless === true || h.colonyState === 'birlestirildi')) return h;
       if (!q) {
         q = normalizeQueen({
           id: gen(h.queenYear),
@@ -1083,6 +1101,9 @@
     if (opts.bulk) entry.bulk = true;
     copy.queenHistory = (Array.isArray(hive.queenHistory) ? hive.queenHistory.slice() : []).concat([entry]);
     mirrorQueenToHive(copy, nq);
+    /* Yeni ana: anasız / ana hücresi durumu kapanır. */
+    delete copy.queenless; delete copy.queenCellSince;
+    copy.queenGivenAt = date;
     copy.colonyUpdatedAt = new Date().toISOString();
     return { hive: copy, queen: nq, oldQueen: old, entry: entry };
   }
@@ -2381,7 +2402,8 @@
     });
     var cls = strengthClass(s);
     var chilled = !!(b && b.chilled);
-    var queenless = !!(b && b.queenless);
+    var hf = hiveFlags()[String(Number(hiveId))] || {};
+    var queenless = !!(b && b.queenless && !(hf.queenGivenAt && hf.queenGivenAt >= b.date)) || (hf.queenless === true && !hf.queenCellSince);
     var afb = latestByDisease.ayc ? latestByDisease.ayc.status : 'temiz';
     return {
       records: rec,
@@ -2390,6 +2412,8 @@
       weak: cls === 'Zayıf' || chilled,
       chilled: chilled,
       queenless: queenless,
+      queenCellSince: hf.queenless === true && hf.queenCellSince ? hf.queenCellSince : '',
+      merged: hf.colonyState === 'birlestirildi',
       swarmCell: !!(b && b.queenCell === 'ogul'),
       broodIssue: !!(b && (b.queenless || b.chilled || b.queenCell === 'ogul' || !b.eggs || b.pattern === 'daginik')),
       diseases: active,
@@ -2409,6 +2433,22 @@
     return f;
   }
 
+  /* Kovan bayrakları (anasız, ana hücresi, birleştirildi) — ham depodan, değişmedikçe önbellekli. */
+  var hiveFlagCache = { raw: null, map: {} };
+  function hiveFlags() {
+    var raw = null;
+    try { raw = localStorage.getItem(HIVES_KEY); } catch (e) { raw = null; }
+    if (raw === hiveFlagCache.raw) return hiveFlagCache.map;
+    var map = {};
+    try {
+      (JSON.parse(raw || '[]') || []).forEach(function (h) {
+        if (!h || h.id == null) return;
+        if (h.queenless || h.colonyState || h.queenGivenAt) map[String(Number(h.id))] = { queenless: h.queenless === true, queenCellSince: h.queenCellSince || '', colonyState: h.colonyState || '', queenGivenAt: h.queenGivenAt || '' };
+      });
+    } catch (e) { map = {}; }
+    hiveFlagCache = { raw: raw, map: map };
+    return map;
+  }
   function hiveNameMap(hives) {
     var m = {};
     (hives || loadHives()).forEach(function (h) { m[h.id] = h; });
@@ -2419,6 +2459,8 @@
   function derivedItems() {
     var all = loadRecordsAll();
     var ids = Object.keys(all);
+    var flags = hiveFlags();
+    Object.keys(flags).forEach(function (k) { if (flags[k].queenless && ids.indexOf(k) === -1) ids.push(k); });
     var tasksOut = [], alertsOut = [];
     if (!ids.length) return { tasks: tasksOut, alerts: alertsOut };
     var hives = hiveNameMap();
@@ -2427,8 +2469,12 @@
     var nowIso = new Date().toISOString();
     ids.forEach(function (key) {
       var h = hives[Number(key)];
-      if (!h) return;
+      if (!h || h.colonyState === 'birlestirildi') return;
       var st = colonyStatus(h.id, all);
+      if (st.queenCellSince) {
+        var qc = addDays(st.queenCellSince, 21);
+        tasksOut.push({ id: 'kr-anahucre-' + h.id, title: 'Ana hücresi verildi — ' + h.name + ': yumurta kontrolü (hücre ' + fmtTr(st.queenCellSince) + ', ana çıkışı ~7 gün, çiftleşme ~2 hafta)', hiveId: h.id, priority: 3, auto: true, due: qc, createdAt: new Date().toISOString() });
+      }
       var nm = h.name;
       var apName = aps[h.apiaryId] ? aps[h.apiaryId].name : '';
       if (st.queenless) {
@@ -3066,6 +3112,347 @@
     return null;
   }
 
+  /* ================= Koloni işlemleri: bölme, birleştirme, ana taşıma, ana üretimi =================
+   * Kovan ve ana arı kayıtları ortak depodadır (superari.kovanlar / superari.anaArilar.v1).
+   * İşlem günlüğü ve üretim partileri moda göre ayrı: superari.koloniIslem.v1 (canlı) / .demo.v1.
+   * Örnek (demo) işlem verisi yoktur; tüm işlemler kullanıcı girişidir.
+   */
+  var OPS_LIVE = 'superari.koloniIslem.v1', OPS_DEMO = 'superari.koloniIslem.demo.v1';
+  /* Standart larva transferi takvimi (1 günlük larva aşılandığı gün = 0. gün). */
+  var GRAFT_TIMELINE = [
+    { key: 'kabul', d: 1, label: 'Kabul kontrolü (kaç yüksük kabul edildi)' },
+    { key: 'kapanma', d: 5, label: 'Hücreler kapanır (dokunmayın)' },
+    { key: 'dagitim', d: 10, label: 'Olgun hücreleri çiftleşme kutularına dağıt' },
+    { key: 'cikis', d: 12, label: 'Ana arı çıkışı' },
+    { key: 'ucus', d: 17, label: 'Çiftleşme uçuşları (yaklaşık 5–9 gün sonra)' },
+    { key: 'yumurta', d: 24, label: 'Yumurtlama kontrolü (ana çiftleşti mi)' }
+  ];
+  function opsKey() { return workMode() === 'live' ? OPS_LIVE : OPS_DEMO; }
+  function readOps() {
+    try {
+      var o = JSON.parse(localStorage.getItem(opsKey()) || '{}');
+      return { events: Array.isArray(o.events) ? o.events : [], batches: Array.isArray(o.batches) ? o.batches : [] };
+    } catch (e) { return { events: [], batches: [] }; }
+  }
+  function writeOps(o) { try { localStorage.setItem(opsKey(), JSON.stringify(o)); } catch (e) { /* ignore */ } }
+  function opsId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function fmtTr(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? m[3] + '.' + m[2] + '.' + m[1] : (d || ''); }
+  function pushEvent(hive, ev) {
+    hive.colonyEvents = (Array.isArray(hive.colonyEvents) ? hive.colonyEvents.slice() : []).concat([ev]);
+    hive.colonyUpdatedAt = new Date().toISOString();
+  }
+  function pushQueenHist(hive, entry) {
+    hive.queenHistory = (Array.isArray(hive.queenHistory) ? hive.queenHistory.slice() : []).concat([entry]);
+  }
+  function closePlacement(q, hiveId, date, reason) {
+    var op = openPlacement(q);
+    if (op && (hiveId == null || op.hiveId === Number(hiveId))) { op.to = date; op.endReason = reason; }
+  }
+  /** Kovanı anasız bırak (ana kaydı kapatıldıktan sonra). */
+  function setQueenless(hive, cellDate) {
+    mirrorQueenToHive(hive, null);
+    hive.queenless = true;
+    if (cellDate) hive.queenCellSince = cellDate; else delete hive.queenCellSince;
+  }
+  function placeQueen(hive, q, date) {
+    q.placements.push({ hiveId: hive.id, from: date, to: null, endReason: null });
+    mirrorQueenToHive(hive, q);
+    delete hive.queenless; delete hive.queenCellSince;
+    hive.queenGivenAt = date;
+  }
+  function lastStrength(hiveId) { var rec = recordsFor(hiveId); return rec.strength[0] || null; }
+  function frameN(v) { var n = intIn(v, 0, 40); return n == null ? 0 : n; }
+
+  /** Bölme: kaynak kovandan yeni kovan (yeni kayıt), çerçeve aktarımı ve ana durumu. */
+  function splitHive(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal();
+    var list = loadHives();
+    var src = null; list.forEach(function (h) { if (h.id === Number(o.sourceId)) src = h; });
+    if (!src) throw new Error('Kaynak kovan bulunamadı');
+    if (src.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovan bölünemez');
+    var brood = frameN(o.broodFrames), honey = frameN(o.honeyFrames), bees = frameN(o.beeFrames);
+    if (!brood && !bees) throw new Error('Aktarılan yavrulu veya arılı çerçeve sayısını girin');
+    var apiaryId = String(o.apiaryId || src.apiaryId);
+    var aps = loadApiaries();
+    var ap = null; aps.forEach(function (a) { if (String(a.id) === apiaryId) ap = a; });
+    if (!ap) throw new Error('Arılık bulunamadı');
+    var used = {}, maxId = 0, maxAp = 0;
+    list.forEach(function (h) { used[h.id] = true; maxId = Math.max(maxId, h.id); if (String(h.apiaryId) === apiaryId) maxAp = Math.max(maxAp, h.id); });
+    var nid = maxAp + 1; while (used[nid]) nid = ++maxId + 1;
+    var queens = loadQueens(), gen = makeQueenIdGen(queens);
+    var mode = pick(o.queenMode, ['kaynakta', 'hucre', 'yeniAna', 'anaTasindi'], 'kaynakta');
+    var name = txt(o.name, 60) || ('Kovan ' + nid);
+    var nh = normalizeHive({ id: nid, name: name, apiaryId: apiaryId, strength: 'zayıf', breed: src.breed, swarmRisk: 'Düşük' });
+    nh.splitFrom = src.id; nh.createdBy = 'bolme';
+    var sc = cloneObj(src);
+    var frTxt = [brood ? brood + ' yavrulu' : '', honey ? honey + ' ballı' : '', bees ? bees + ' arılı' : ''].filter(Boolean).join(', ') + ' çerçeve';
+    var qTxt = { kaynakta: 'ana kaynakta kaldı, yeni kovan anasız', hucre: 'yeni kovana ana hücresi verildi', yeniAna: 'yeni kovana yeni ana verildi', anaTasindi: 'ana yeni kovana alındı, kaynak anasız' }[mode];
+    if (mode === 'kaynakta') setQueenless(nh, null);
+    else if (mode === 'hucre') setQueenless(nh, date);
+    else if (mode === 'yeniAna') {
+      var r0 = replaceQueenInMemory(nh, { date: date, queenYear: o.queenYear || currentYear(), breed: o.queenBreed || src.breed, queenSource: txt(o.queenSource, 120) || 'Bölmede verildi', queenMarked: o.queenMarked === true }, queens, gen);
+      nh = r0.hive; nh.queenGivenAt = date;
+      nh.queenHistory[nh.queenHistory.length - 1].label = 'Bölme: yeni ana verildi';
+    } else {
+      var q = src.currentQueenId ? queenById(src.currentQueenId, queens) : null;
+      if (!q) throw new Error('Kaynak kovanın ana kaydı yok; «Ana kaynakta» veya «Ana hücresi» seçin');
+      closePlacement(q, src.id, date, 'Bölmede yeni kovana alındı');
+      pushQueenHist(sc, { date: date, oldQueenId: q.id, oldYear: q.year, oldBreed: q.breed, label: 'Bölme: ana yeni kovana alındı (' + name + ')' });
+      setQueenless(sc, null);
+      placeQueen(nh, q, date);
+      pushQueenHist(nh, { date: date, newQueenId: q.id, newYear: q.year, newBreed: q.breed, label: 'Bölme: ana geldi (kaynak: ' + src.name + ')' });
+    }
+    var evId = opsId('ev');
+    pushEvent(sc, { id: evId, date: date, type: 'bolme', text: 'Bölme → ' + name + ': ' + frTxt + '; ' + qTxt, otherHiveId: nid });
+    pushEvent(nh, { id: evId, date: date, type: 'bolme', text: 'Bölmeyle oluşturuldu (' + src.name + '): ' + frTxt + '; ' + qTxt, otherHiveId: src.id });
+    var out = list.map(function (h) { return h.id === src.id ? normalizeHive(sc) : h; });
+    out.push(normalizeHive(nh));
+    ap.hiveCount = out.filter(function (h) { return String(h.apiaryId) === apiaryId; }).length;
+    saveApiaries(aps);
+    saveQueens(queens);
+    saveHives(out);
+    /* Çerçeve aktarımı: koloni gücü kayıtları (etkin mod). */
+    var ls = lastStrength(src.id);
+    if (ls) {
+      addRecord(src.id, 'strength', { date: date, beeFrames: Math.max(0, ls.beeFrames - bees), broodFrames: Math.max(0, ls.broodFrames - brood), honeyFrames: Math.max(0, ls.honeyFrames - honey), pollenFrames: ls.pollenFrames, note: 'Bölme sonrası (' + frTxt + ' → ' + name + ')' });
+    }
+    addRecord(nid, 'strength', { date: date, beeFrames: bees || brood, broodFrames: brood, honeyFrames: honey, pollenFrames: 0, note: 'Bölmeyle oluşturuldu (' + src.name + ')' });
+    var ops = readOps();
+    ops.events.push({ id: evId, type: 'bolme', date: date, fromHiveId: src.id, toHiveId: nid, broodFrames: brood, honeyFrames: honey, beeFrames: bees, queenMode: mode, note: txt(o.note, 300) });
+    writeOps(ops);
+    return { newHiveId: nid, newHiveName: name, eventId: evId };
+  }
+
+  /** Birleştirme: zayıf kovan güçlüye katılır; zayıf kovan «birleştirildi» olarak işaretlenir. */
+  function mergeHives(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal();
+    var list = loadHives();
+    var W = null, S = null;
+    list.forEach(function (h) { if (h.id === Number(o.weakId)) W = h; if (h.id === Number(o.strongId)) S = h; });
+    if (!W || !S) throw new Error('Kovan seçin');
+    if (W.id === S.id) throw new Error('Aynı kovan seçilemez');
+    if (W.colonyState === 'birlestirildi' || S.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovan tekrar seçilemez');
+    var queens = loadQueens();
+    var wq = W.currentQueenId ? queenById(W.currentQueenId, queens) : null;
+    var sq = S.currentQueenId ? queenById(S.currentQueenId, queens) : null;
+    var keep = pick(o.keepQueen, ['guclu', 'zayif'], 'guclu');
+    if (keep === 'guclu' && !sq && wq) keep = 'zayif';
+    var wc = cloneObj(W), scp = cloneObj(S);
+    var qTxt;
+    if (keep === 'zayif' && wq) {
+      if (sq) { closePlacement(sq, S.id, date, 'Birleştirmede ayrıldı'); }
+      closePlacement(wq, W.id, date, 'Birleştirmede geçti: ' + S.name);
+      pushQueenHist(scp, { date: date, oldQueenId: sq ? sq.id : undefined, oldYear: sq ? sq.year : undefined, newQueenId: wq.id, newYear: wq.year, newBreed: wq.breed, label: 'Birleştirme: katılan kovanın anası (' + W.name + ')' });
+      placeQueen(scp, wq, date);
+      pushQueenHist(wc, { date: date, oldQueenId: wq.id, oldYear: wq.year, label: 'Birleştirme: ana birleşilen kovana geçti (' + S.name + ')' });
+      qTxt = 'zayıf kovanın anası tutuldu';
+    } else {
+      if (wq) {
+        closePlacement(wq, W.id, date, 'Birleştirmede ayrıldı');
+        pushQueenHist(wc, { date: date, oldQueenId: wq.id, oldYear: wq.year, label: 'Birleştirme: ana ayrıldı' });
+      }
+      qTxt = 'güçlü kovanın anası tutuldu';
+    }
+    mirrorQueenToHive(wc, null);
+    delete wc.queenless; delete wc.queenCellSince;
+    wc.colonyState = 'birlestirildi'; wc.mergedInto = S.id;
+    var method = o.method === 'dogrudan' ? 'doğrudan' : 'gazete kâğıdı ile';
+    var evId = opsId('ev');
+    pushEvent(wc, { id: evId, date: date, type: 'birlestirme', text: 'Birleştirildi → ' + S.name + ' (' + method + '); ' + qTxt, otherHiveId: S.id });
+    pushEvent(scp, { id: evId, date: date, type: 'birlestirme', text: 'Katılan kovan: ' + W.name + ' (' + method + '); ' + qTxt, otherHiveId: W.id });
+    var out = list.map(function (h) { return h.id === W.id ? normalizeHive(wc) : (h.id === S.id ? normalizeHive(scp) : h); });
+    saveQueens(queens);
+    saveHives(out);
+    var lw = lastStrength(W.id), ls = lastStrength(S.id);
+    if (lw || ls) {
+      var a = lw || { beeFrames: 0, broodFrames: 0, honeyFrames: 0, pollenFrames: 0 }, b = ls || { beeFrames: 0, broodFrames: 0, honeyFrames: 0, pollenFrames: 0 };
+      addRecord(S.id, 'strength', { date: date, beeFrames: a.beeFrames + b.beeFrames, broodFrames: a.broodFrames + b.broodFrames, honeyFrames: a.honeyFrames + b.honeyFrames, pollenFrames: a.pollenFrames + b.pollenFrames,
+        note: 'Birleştirme sonrası tahmini (' + W.name + ' eklendi' + (lw && ls ? '' : '; bir kovanın güç kaydı yoktu') + ')' });
+    }
+    var ops = readOps();
+    ops.events.push({ id: evId, type: 'birlestirme', date: date, fromHiveId: W.id, toHiveId: S.id, keepQueen: keep, method: o.method === 'dogrudan' ? 'dogrudan' : 'gazete', note: txt(o.note, 300) });
+    writeOps(ops);
+    return { eventId: evId, keepQueen: keep };
+  }
+
+  /** Ana taşıma: bir ana kaydını (kovandaki veya boştaki) başka kovana yerleştir. */
+  function moveQueen(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal();
+    var queens = loadQueens();
+    var q = queenById(o.queenId, queens);
+    if (!q) throw new Error('Ana arı seçin');
+    var list = loadHives();
+    var op = openPlacement(q);
+    var A = null, B = null;
+    list.forEach(function (h) { if (op && h.id === op.hiveId) A = h; if (h.id === Number(o.toHiveId)) B = h; });
+    if (!B) throw new Error('Hedef kovan seçin');
+    if (A && A.id === B.id) throw new Error('Ana zaten bu kovanda');
+    if (B.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovana ana verilemez');
+    var bq = B.currentQueenId ? queenById(B.currentQueenId, queens) : null;
+    var bc = cloneObj(B), ac = A ? cloneObj(A) : null;
+    if (bq) closePlacement(bq, B.id, date, 'Yerine ana taşındı');
+    if (A) {
+      closePlacement(q, A.id, date, 'Taşındı: ' + B.name);
+      pushQueenHist(ac, { date: date, oldQueenId: q.id, oldYear: q.year, oldBreed: q.breed, label: 'Ana taşıma: ana gitti (hedef: ' + B.name + ')' });
+      setQueenless(ac, null);
+    }
+    pushQueenHist(bc, { date: date, oldQueenId: bq ? bq.id : undefined, oldYear: bq ? bq.year : undefined, oldBreed: bq ? bq.breed : undefined, newQueenId: q.id, newYear: q.year, newBreed: q.breed,
+      label: 'Ana taşıma: ' + (A ? 'ana geldi (kaynak: ' + A.name + ')' : 'boştaki ana yerleştirildi') });
+    placeQueen(bc, q, date);
+    var evId = opsId('ev');
+    var tx = q.id + (A ? ' ' + A.name + ' → ' + B.name : ' → ' + B.name) + (bq ? '; önceki ana ' + bq.id + ' ayrıldı' : '');
+    if (ac) pushEvent(ac, { id: evId, date: date, type: 'tasima', text: 'Ana taşındı: ' + tx + '; bu kovan anasız', otherHiveId: B.id });
+    pushEvent(bc, { id: evId, date: date, type: 'tasima', text: 'Ana geldi: ' + tx, otherHiveId: A ? A.id : undefined });
+    var out = list.map(function (h) { return h.id === B.id ? normalizeHive(bc) : (ac && h.id === ac.id ? normalizeHive(ac) : h); });
+    saveQueens(queens);
+    saveHives(out);
+    var ops = readOps();
+    ops.events.push({ id: evId, type: 'tasima', date: date, queenId: q.id, fromHiveId: A ? A.id : null, toHiveId: B.id, replacedQueenId: bq ? bq.id : null, note: txt(o.note, 300) });
+    writeOps(ops);
+    return { eventId: evId, fromHiveId: A ? A.id : null };
+  }
+
+  /* ---- Ana üretimi (larva transferi partileri) ---- */
+  function batchDates(date) {
+    var out = {};
+    GRAFT_TIMELINE.forEach(function (t) { out[t.key] = addDays(date, t.d); });
+    return out;
+  }
+  function normalizeBatch(b) {
+    if (!b || !b.id) return null;
+    var o = { id: String(b.id), date: isoDate(b.date) || todayLocal() };
+    o.sourceHiveId = b.sourceHiveId != null ? Number(b.sourceHiveId) : null;
+    o.sourceQueenId = txt(b.sourceQueenId, 32);
+    o.sourceBreed = txt(b.sourceBreed, 60);
+    o.cups = intIn(b.cups, 1, 500) || 1;
+    o.accepted = intIn(b.accepted, 0, o.cups);
+    o.emerged = intIn(b.emerged, 0, o.cups);
+    o.status = pick(b.status, ['aktif', 'tamamlandi', 'iptal'], 'aktif');
+    var note = txt(b.note, 300); if (note) o.note = note;
+    o.results = (Array.isArray(b.results) ? b.results : []).filter(function (x) { return x && x.queenId; }).map(function (x) {
+      return { queenId: String(x.queenId), hiveId: x.hiveId != null ? Number(x.hiveId) : null, date: isoDate(x.date) || o.date };
+    });
+    o.dates = batchDates(o.date);
+    return o;
+  }
+  function listBatches() {
+    return readOps().batches.map(normalizeBatch).filter(Boolean).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  }
+  function addBatch(b) {
+    b = b || {};
+    var cups = intIn(b.cups, 1, 500);
+    if (!cups) throw new Error('Yüksük (larva) sayısını girin');
+    var hv = b.sourceHiveId != null && b.sourceHiveId !== '' ? hiveById(b.sourceHiveId) : null;
+    var qid = txt(b.sourceQueenId, 32) || (hv && hv.currentQueenId) || '';
+    var q = qid ? queenById(qid) : null;
+    var row = normalizeBatch({ id: opsId('b'), date: b.date, sourceHiveId: hv ? hv.id : null, sourceQueenId: qid, sourceBreed: (q && q.breed) || (hv && hv.breed) || '', cups: cups, accepted: b.accepted, note: b.note });
+    var ops = readOps(); ops.batches.push(row); writeOps(ops);
+    return row;
+  }
+  function updateBatch(id, patch) {
+    var ops = readOps(), out = null;
+    ops.batches = ops.batches.map(function (b) {
+      if (!b || b.id !== id) return b;
+      var m = cloneObj(b);
+      ['accepted', 'emerged', 'status', 'note'].forEach(function (k) { if (patch && Object.prototype.hasOwnProperty.call(patch, k)) m[k] = patch[k]; });
+      out = normalizeBatch(m);
+      return out;
+    });
+    if (out) writeOps(ops);
+    return out;
+  }
+  function removeBatch(id) {
+    var ops = readOps(), n = ops.batches.length;
+    ops.batches = ops.batches.filter(function (b) { return b && b.id !== id; });
+    writeOps(ops);
+    return ops.batches.length !== n;
+  }
+  /** Partiden çıkan anayı kaydet: yeni ana kaydı; kovan seçildiyse yerleştirilir (varsa eski ana ayrılır). */
+  function assignBatchQueen(batchId, o) {
+    o = o || {};
+    var b = listBatches().filter(function (x) { return x.id === batchId; })[0];
+    if (!b) throw new Error('Parti bulunamadı');
+    var limit = b.accepted != null ? b.accepted : b.cups;
+    if (b.results.length >= limit) throw new Error('Kabul edilen yüksük sayısı kadar ana kaydedildi (' + limit + ')');
+    var date = isoDate(o.date) || todayLocal();
+    var queens = loadQueens(), gen = makeQueenIdGen(queens);
+    var year = Number(b.dates.cikis.slice(0, 4)) || currentYear();
+    var src = 'Kendi üretimi · larva transferi ' + fmtTr(b.date) + (b.sourceQueenId ? ' · anne ' + b.sourceQueenId : '');
+    var hiveId = o.hiveId != null && o.hiveId !== '' ? Number(o.hiveId) : null;
+    var qid;
+    if (hiveId != null) {
+      var list = loadHives(), found = null;
+      var out = list.map(function (h) {
+        if (h.id !== hiveId) return h;
+        if (h.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovana ana verilemez');
+        var r0 = replaceQueenInMemory(h, { date: date, queenYear: year, breed: b.sourceBreed || h.breed, queenSource: src, queenMarked: o.marked === true }, queens, gen);
+        var nh = r0.hive;
+        nh.queenHistory[nh.queenHistory.length - 1].label = 'Ana üretimi: kendi yetiştirdiğimiz ana verildi';
+        delete nh.queenless; delete nh.queenCellSince; nh.queenGivenAt = date;
+        pushEvent(nh, { id: opsId('ev'), date: date, type: 'uretim', text: 'Ana üretiminden ana verildi (' + r0.queen.id + ', parti ' + fmtTr(b.date) + ')' });
+        qid = r0.queen.id;
+        found = normalizeHive(nh);
+        return found;
+      });
+      if (!found) throw new Error('Kovan bulunamadı');
+      saveQueens(queens);
+      saveHives(out);
+    } else {
+      var nq = normalizeQueen({ id: gen(year), year: year, breed: b.sourceBreed || '', source: src, marked: o.marked === true, note: 'Boşta (çiftleşme kutusu / satış)', createdAt: new Date().toISOString(), placements: [] });
+      queens.push(nq); saveQueens(queens); qid = nq.id;
+    }
+    var ops = readOps();
+    ops.batches = ops.batches.map(function (x) {
+      if (!x || x.id !== batchId) return x;
+      var m = cloneObj(x); m.results = (Array.isArray(x.results) ? x.results : []).concat([{ queenId: qid, hiveId: hiveId, date: date }]);
+      if (m.results.length >= limit) m.status = 'tamamlandi';
+      return m;
+    });
+    writeOps(ops);
+    return { queenId: qid, hiveId: hiveId };
+  }
+  /** Boştaki (kovana yerleşmemiş) ana kayıtları. */
+  function freeQueens() {
+    return loadQueens().filter(function (q) { return !openPlacement(q) && !(q.placements || []).length; });
+  }
+  /** Partilerden otomatik görevler (tarihli). */
+  function batchTasks() {
+    var out = [];
+    var today0 = todayLocal();
+    listBatches().forEach(function (b) {
+      if (b.status !== 'aktif') return;
+      var src = b.sourceHiveId != null ? hiveById(b.sourceHiveId) : null;
+      var tag = 'larva transferi ' + fmtTr(b.date) + (src ? ', ' + src.name : '');
+      GRAFT_TIMELINE.forEach(function (t) {
+        if (t.key === 'kapanma' || t.key === 'ucus') return;
+        if (t.key === 'kabul' && b.accepted != null) return;
+        var due = b.dates[t.key];
+        if (due < addDays(today0, -30)) return;
+        out.push({ id: 'kr-uretim-' + b.id + '-' + t.key, title: 'Ana üretimi: ' + t.label + ' — ' + tag, hiveId: b.sourceHiveId, apiaryId: src ? src.apiaryId : null,
+          priority: t.key === 'kabul' || t.key === 'dagitim' ? 2 : 3, auto: true, kind: 'uretim', due: due });
+      });
+    });
+    return out;
+  }
+  var colonyOps = {
+    GRAFT_TIMELINE: GRAFT_TIMELINE,
+    split: splitHive,
+    merge: mergeHives,
+    moveQueen: moveQueen,
+    events: function () { return readOps().events.slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); }); },
+    batches: listBatches,
+    batchDates: batchDates,
+    addBatch: addBatch,
+    updateBatch: updateBatch,
+    removeBatch: removeBatch,
+    assignBatchQueen: assignBatchQueen,
+    freeQueens: freeQueens,
+    batchTasks: batchTasks
+  };
+
   /* ================= Görevler: tamamlama + elle eklenen görevler =================
    * Tamamlanan: superari.gorevTamam.v1 (canlı) / .demo.v1 → { "<taskId>": { date, note, sig, title, hiveId, apiaryId, auto } }
    * Elle görev: superari.gorevler.v1 (canlı) / .demo.v1 → [ { id, title, hiveId, apiaryId, due, priority, note } ]
@@ -3107,6 +3494,7 @@
     try { der = colonyRecords.derived().tasks; } catch (e) { der = []; }
     list = list.concat(der);
     try { list = list.concat(queenRenewTasks()); } catch (e) { /* ignore */ }
+    try { list = list.concat(batchTasks()); } catch (e) { /* ignore */ }
     var done = readTaskDone();
     var seen = {};
     list.forEach(function (t) {
@@ -3199,6 +3587,7 @@
         try { return openTasks(); } catch (e) { return workMode() === 'demo' ? tasks.slice() : []; }
       },
       taskStore: taskStore,
+      colonyOps: colonyOps,
       records: colonyRecords,
       get counts() {
         var h = loadHives();
