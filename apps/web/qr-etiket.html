@@ -17,6 +17,15 @@
     .qe-no{font-weight:900;font-size:1.3rem;letter-spacing:.02em;}
     .qe-ap{font-size:.7rem;color:#555;overflow-wrap:anywhere;}
     .qe-url{font-size:.58rem;color:#777;overflow-wrap:anywhere;}
+    .qe-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.35rem;align-items:center;width:100%;}
+    .qe-q{display:grid;justify-items:center;gap:.15rem;min-width:0;}
+    .qe-circ{width:34px;height:34px;border-radius:50%;border:2px solid #333;}
+    .qe-circ.unk{background:repeating-linear-gradient(45deg,#fff 0 4px,#bbb 4px 6px);}
+    .qe-yr{font-weight:900;font-size:.8rem;line-height:1.05;text-align:center;}
+    .qe-band{width:100%;border:1.5px solid #333;border-radius:6px;font-weight:900;font-size:.78rem;padding:.12rem .2rem;overflow-wrap:anywhere;}
+    .qe-label.refresh{outline:2px solid #e8590c;outline-offset:-2px;}
+    .qe-ref{font-size:.66rem;font-weight:800;color:#c2410c;}
+    .qe-circ,.qe-band{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     @media print{
       @page{size:A4;margin:10mm;}
       body{background:#fff!important;}
@@ -24,7 +33,10 @@
       .wrap{width:100%;padding:0;}
       .qe-grid{grid-template-columns:repeat(3,1fr);gap:4mm;margin:0;}
       .qe-label{border:1px dashed #999;border-radius:2mm;padding:3mm;}
-      .qe-label svg{max-width:42mm;}
+      .qe-label svg{max-width:34mm;}
+      .qe-circ{width:11mm;height:11mm;}
+      .qe-ref{display:none;}
+      .qe-label.refresh{outline:0;}
     }
   </style>
 </head>
@@ -46,13 +58,15 @@
         <button type="button" class="qe-print" id="qePrint">🖨️ Yazdır</button>
       </div>
       <p class="muted" id="qeInfo" style="margin:0;font-size:.82rem;"></p>
+      <label style="font-size:.82rem;display:flex;gap:.4rem;align-items:center;font-weight:700;"><input type="checkbox" id="qeOnly" style="width:auto;margin:0;" /> Yalnız yenilenmesi gereken etiketler (ana yılı değişen)</label>
+      <div class="note" style="margin:0;">Etiketteki renk, ana arının doğum yılı rengidir (1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi); yıl ve renk adı yazıyla da basılır, siyah-beyaz yazıcıda da okunur. «Yazdır» basılan etiketlerin ana yılını kaydeder; ana değişince kovan detayında «Etiketi yenile» uyarısı çıkar.</div>
       <div class="note" style="margin:0;">QR kodları bu cihazda üretilir (dış servis yok). Her etiket <b>kovan.html?id=…</b> adresine gider; SüperArı’daki «QR okut» veya telefonun kamerası ile açılır. Suya dayanıklı etiket kâğıdı veya laminasyon önerilir.</div>
     </section>
     <div class="qe-grid" id="qeGrid"></div>
   </main>
-  <script src="demo-data.js?v=koloni-18"></script>
+  <script src="demo-data.js?v=koloni-19"></script>
   <script src="vendor/qrcode.js"></script>
-  <script src="koloni.js?v=koloni-18"></script>
+  <script src="koloni.js?v=koloni-19"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -75,13 +89,27 @@
       for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) path += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
       return '<svg viewBox="0 0 ' + size + ' ' + size + '" shape-rendering="crispEdges" role="img" aria-label="QR kodu"><rect width="' + size + '" height="' + size + '" fill="#fff"/><path d="' + path + '" fill="#000"/></svg>';
     }
+    var onlyEl = document.getElementById('qeOnly');
+    onlyEl.checked = params.get('yenile') === '1';
+    var shown = [];
+    function textColor(hex) { return /f4f4f4|f2c500/i.test(hex) ? '#111' : '#fff'; }
     function render() {
       var a = D.apiaryById(apiaryId);
-      var hs = D.hivesForApiary(apiaryId);
-      document.getElementById('qeInfo').textContent = hs.length + ' kovan etiketi · ' + (a ? a.name : '');
+      var all = D.hivesForApiary(apiaryId);
+      var needs = all.filter(function (h) { var s = K.labelStatus(h); return s && s.refresh; });
+      var hs = onlyEl.checked ? needs : all;
+      shown = hs;
+      document.getElementById('qeInfo').textContent = hs.length + ' kovan etiketi · ' + (a ? a.name : '') + (needs.length ? ' · ' + needs.length + ' etiket yenilenmeli' : '');
       document.getElementById('qeGrid').innerHTML = hs.map(function (h) {
         var url = base + 'kovan.html?id=' + encodeURIComponent(h.id);
-        return '<div class="qe-label">' + qrSvg(url) +
+        var col = D.colony && D.colony.queenColor ? D.colony.queenColor(h.queenYear) : null;
+        var st = K.labelStatus(h);
+        var band = col ? '<div class="qe-band" style="background:' + col.hex + ';color:' + textColor(col.hex) + ';">Ana ' + esc(h.queenYear) + ' · ' + esc(col.name.toLocaleUpperCase('tr')) + '</div>'
+          : '<div class="qe-band" style="background:#fff;color:#111;border-style:dashed;">Ana yılı bilinmiyor</div>';
+        return '<div class="qe-label' + (st && st.refresh ? ' refresh' : '') + '">' +
+          '<div class="qe-top">' + qrSvg(url) + '<div class="qe-q"><span class="qe-circ' + (col ? '' : ' unk') + '"' + (col ? ' style="background:' + col.hex + '"' : '') + ' aria-hidden="true"></span>' +
+          '<span class="qe-yr">' + (col ? esc(h.queenYear) + '<br>' + esc(col.name) : 'Yıl<br>yok') + '</span></div></div>' + band +
+          (st && st.refresh ? '<div class="qe-ref">Etiketi yenile (basılı: ' + esc(st.printedYear != null ? st.printedYear : 'yok') + ')</div>' : '') +
           '<div class="qe-no">No ' + esc(K.hiveNo(h)) + '</div>' +
           '<div class="qe-name">' + esc(h.name) + '</div>' +
           '<div class="qe-ap">' + esc(a ? a.name : '') + '</div>' +
@@ -93,10 +121,15 @@
       history.replaceState(null, '', 'qr-etiket.html?apiary=' + encodeURIComponent(apiaryId));
       render();
     });
-    document.getElementById('qePrint').addEventListener('click', function () { window.print(); });
+    onlyEl.addEventListener('change', render);
+    var marked = false;
+    function mark() { if (marked) return; marked = true; K.markLabelsPrinted(shown); setTimeout(function () { marked = false; }, 1500); }
+    window.addEventListener('beforeprint', mark);
+    window.addEventListener('afterprint', function () { render(); });
+    document.getElementById('qePrint').addEventListener('click', function () { mark(); window.print(); render(); });
     render();
   })();
   </script>
-<script src="pwa.js?v=koloni-18"></script>
+<script src="pwa.js?v=koloni-19"></script>
 </body>
 </html>

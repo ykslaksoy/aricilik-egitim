@@ -362,12 +362,12 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-18"></script>
-<script src="rapor-store.js?v=koloni-18"></script>
-<script src="sensor-health.js?v=koloni-18"></script>
-<script src="koloni.js?v=koloni-18"></script>
-<script src="ilac-katalog.js?v=koloni-18"></script>
-<script src="bakim-plan.js?v=koloni-18"></script>
+<script src="demo-data.js?v=koloni-19"></script>
+<script src="rapor-store.js?v=koloni-19"></script>
+<script src="sensor-health.js?v=koloni-19"></script>
+<script src="koloni.js?v=koloni-19"></script>
+<script src="ilac-katalog.js?v=koloni-19"></script>
+<script src="bakim-plan.js?v=koloni-19"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -852,6 +852,7 @@
         '<div class="kd-titles">' +
           '<h1>' + escapeHtml(hive.name) + '</h1>' +
           '<p>' + escapeHtml(place) + '</p>' +
+          (K && K.colorBadgeHtml ? '<div style="margin-top:4px;" aria-label="Ana arı rengi">' + K.colorBadgeHtml(hive.queenYear) + '</div>' : '') +
         '</div>' +
         '<span class="ok-pill' + cls(ok.cls) + '">' + escapeHtml(ok.label) + '</span>' +
       '</header>' +
@@ -909,6 +910,7 @@
         '<div class="kv">' +
           kvRowHtml('Ana arı', queenRowHtml(hive)) +
           kvRow('Ana kimliği', fieldOrNone(hive.currentQueenId)) +
+          (K && K.labelHintHtml && K.labelHintHtml(hive) ? '<div class="kv-row" style="display:block;">' + K.labelHintHtml(hive) + '</div>' : '') +
           kvRow('Ana kaynağı', fieldOrNone(hive.queenSource)) +
           kvRow('İşaretli', hive.queenMarked === true ? 'Evet' : (hive.queenMarked === false ? 'Hayır' : 'Kayıt yok')) +
           kvRow('Sakinlik', K && hive.calmness != null ? K.calmText(hive) : 'Kayıt yok') +
@@ -1004,7 +1006,7 @@
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-18"></script>
-<script src="pwa.js?v=koloni-18"></script>
+<script src="nav.js?v=koloni-19"></script>
+<script src="pwa.js?v=koloni-19"></script>
 </body>
 </html>

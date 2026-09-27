@@ -121,9 +121,14 @@
         return chip('breed', b, b, cnt('breed', function (f) { return f.breed === b; }), !!state.breed[b]);
       }).join('') + '</div></div>';
       html += '<div class="ka-g"><span>Ana yaşı</span><div class="ka-chips">' + AGE_CHIPS.map(function (a) {
-        var col = a[2] != null && c && c.queenColor ? c.queenColor(cy - a[2]) : null;
-        var dot = '<span class="ka-dot" style="background:' + (col ? col.hex : '#adb5bd') + '"' + (col ? ' title="' + esc(col.name) + '"' : '') + '></span>';
-        return chip('age', a[0], a[1], cnt('age', function (f) { return f.ageKey === a[0]; }), !!state.age[a[0]], dot);
+        /* Nokta = ana arının doğum yılı rengi (uluslararası kod); 3+ yaş birden çok yılı kapsar. */
+        var yrs = a[2] == null ? [] : (a[2] >= 3 ? [cy - 3, cy - 4, cy - 5] : [cy - a[2]]);
+        var dot = yrs.length ? yrs.map(function (y) {
+          var col = c && c.queenColor ? c.queenColor(y) : null;
+          return '<span class="ka-dot" style="background:' + (col ? col.hex : '#adb5bd') + '" title="' + esc(y + (col ? ' · ' + col.name : '')) + '"></span>';
+        }).join('') : '<span class="ka-dot" style="background:#e9ecef;border:1.5px dashed #868e96;" title="Yıl bilinmiyor · gri"></span>';
+        var lbl = a[1] + (a[2] == null ? '' : a[2] >= 3 ? ' · ≤' + (cy - 3) : ' · ' + (cy - a[2]));
+        return chip('age', a[0], lbl, cnt('age', function (f) { return f.ageKey === a[0]; }), !!state.age[a[0]], dot);
       }).join('') + chip('renew', '1', 'Yenile', cnt('renew', function (f) { return f.renew; }), state.renew) + '</div></div>';
       html += '<div class="ka-g"><span>Koloni gücü</span><div class="ka-chips">' + ['Zayıf', 'Orta', 'Güçlü'].map(function (s) {
         return chip('strength', s, s, cnt('strength', function (f) { return f.strength === s; }), !!state.strength[s]);

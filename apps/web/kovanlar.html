@@ -57,11 +57,11 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-18"></script>
-  <script src="rapor-store.js?v=koloni-18"></script>
-  <script src="sensor-health.js?v=koloni-18"></script>
-  <script src="koloni.js?v=koloni-18"></script>
-  <script src="kovan-ara.js?v=koloni-18"></script>
+  <script src="demo-data.js?v=koloni-19"></script>
+  <script src="rapor-store.js?v=koloni-19"></script>
+  <script src="sensor-health.js?v=koloni-19"></script>
+  <script src="koloni.js?v=koloni-19"></script>
+  <script src="kovan-ara.js?v=koloni-19"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -233,7 +233,7 @@
         return (
           '<a class="item-card" id="hive-' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
             '<div class="row">' +
-              '<h3>' + esc(h.name) + '</h3>' +
+              '<h3>' + (K && K.dotHtml ? K.dotHtml(h.queenYear) : '') + esc(h.name) + '</h3>' +
               '<span class="badge ' + tone + '">' + esc(badge) + '</span>' +
             '</div>' +
             (K && K.recordChipsHtml ? K.recordChipsHtml(h) : '') +
@@ -436,6 +436,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-18"></script>
+<script src="pwa.js?v=koloni-19"></script>
 </body>
 </html>

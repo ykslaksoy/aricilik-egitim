@@ -100,10 +100,10 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="demo-data.js?v=koloni-18"></script>
-  <script src="ilac-katalog.js?v=koloni-18"></script>
-  <script src="bakim-plan.js?v=koloni-18"></script>
-  <script src="kovan-ara.js?v=koloni-18"></script>
+  <script src="demo-data.js?v=koloni-19"></script>
+  <script src="ilac-katalog.js?v=koloni-19"></script>
+  <script src="bakim-plan.js?v=koloni-19"></script>
+  <script src="kovan-ara.js?v=koloni-19"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -163,7 +163,7 @@
       document.getElementById('bpCount').textContent = tr.total ? tr.done + '/' + tr.total + ' tamam' : '';
       document.getElementById('bpBar').style.width = tr.total ? Math.round(tr.done / tr.total * 100) + '%' : '0';
       document.getElementById('bpList').innerHTML = tr.rows.map(function (r) {
-        return '<a class="bp-hv' + (r.done ? ' done' : '') + '" href="bakim-yap.html?id=' + encodeURIComponent(r.hive.id) + '&apiary=' + encodeURIComponent(ap) + '"><b>' + esc(r.hive.name) + '</b>' +
+        return '<a class="bp-hv' + (r.done ? ' done' : '') + '" href="bakim-yap.html?id=' + encodeURIComponent(r.hive.id) + '&apiary=' + encodeURIComponent(ap) + '"><b>' + P.queenDot(r.hive) + esc(r.hive.name) + '</b>' +
           (r.done ? '<em class="g">✓ Tamam</em>' : '<em class="' + (r.u === 1 ? 'r' : r.u === 2 ? 'o' : '') + '">' + (r.u === 1 ? 'Acil' : r.u === 2 ? 'Bu hafta' : 'İzle') + '</em>') +
           '<span class="bp-need">' + r.needs.map(function (n) { return '<span class="' + (n.u === 1 ? 'u1' : '') + '">' + ICON[n.kind] + ' ' + esc(n.text) + (n.amount ? ' — ' + esc(n.amount) : '') + '</span>'; }).join('') + '</span></a>';
       }).join('') || '<p class="muted" style="margin:0;font-size:.85rem;">Şu an bakım gerektiren kovan yok. Yol haritasındaki evre görevlerini ekleyebilir veya kovan açıp sayım girebilirsiniz.</p>';
@@ -210,7 +210,7 @@
     renderMed(); render();
   })();
   </script>
-  <script src="nav.js?v=koloni-18"></script>
-  <script src="pwa.js?v=koloni-18"></script>
+  <script src="nav.js?v=koloni-19"></script>
+  <script src="pwa.js?v=koloni-19"></script>
 </body>
 </html>

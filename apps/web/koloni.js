@@ -69,6 +69,11 @@
 
   var CSS = '' +
     '.qdot{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-.08em;margin-right:.3em;border:1px solid rgba(0,0,0,.25);flex:0 0 auto;}' +
+    '.qdot.unk{background:#e9ecef;border:1.5px dashed #868e96;}.qdot.big{width:1.1em;height:1.1em;vertical-align:-.2em;}' +
+    '.qcol{display:inline-flex;align-items:center;gap:.1rem;padding:.2rem .6rem;border-radius:999px;background:#fff;border:1px solid #ced4da;font-weight:800;font-size:.85rem;white-space:nowrap;}' +
+    '.qleg{font-size:.8rem;padding:.55rem .7rem;border-radius:12px;background:#fff;border:1px solid var(--border,#ead9b3);}.qleg-s{color:#6b7280;font-size:.74rem;}' +
+    '.qleg-row{display:flex;flex-wrap:wrap;gap:.3rem .7rem;margin-top:.3rem;}.qleg-row>span{white-space:nowrap;}' +
+    '.qlabel-hint{font-size:.8rem;margin-top:.4rem;padding:.45rem .55rem;border-radius:10px;background:#fff4e6;border:1px solid #ffd8a8;color:#8a4b00;}.qlabel-hint a{color:#2b6cb0;text-decoration:underline;}' +
     '.qbadge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;white-space:nowrap;margin-left:.3rem;}' +
     '.qbadge.renew{background:#ffe3e3;color:#c92a2a;}' +
     '.qbadge.unk{background:#e9ecef;color:#495057;}' +
@@ -143,11 +148,49 @@
     return 'kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(hiveId);
   }
 
+  /* Uluslararası ana arı renk kodu: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi; yıl yoksa gri/boş. */
   function dotHtml(year) {
     ensureCss();
     var c = C(); var col = c && c.queenColor(year);
-    if (!col) return '';
+    if (!col) return '<span class="qdot unk" title="Ana arı yılı bilinmiyor" aria-label="Yıl bilinmiyor"></span>';
     return '<span class="qdot" style="background:' + col.hex + '" title="Ana arı rengi: ' + esc(col.name) + '" aria-label="' + esc(col.name) + '"></span>';
+  }
+  /** Büyük rozet: ● 2026 · Beyaz */
+  function colorBadgeHtml(year) {
+    ensureCss();
+    var c = C(); var col = c && c.queenColor(year);
+    if (!col) return '<span class="qcol"><span class="qdot unk big"></span>Yıl bilinmiyor · gri</span>';
+    return '<span class="qcol"><span class="qdot big" style="background:' + col.hex + '"></span>' + esc(year + ' · ' + col.name) + '</span>';
+  }
+  function legendHtml() {
+    ensureCss();
+    var L = [['1 / 6', 'Beyaz', '#f4f4f4'], ['2 / 7', 'Sarı', '#f2c500'], ['3 / 8', 'Kırmızı', '#d62828'], ['4 / 9', 'Yeşil', '#2f9e44'], ['5 / 0', 'Mavi', '#1e6fd9']];
+    var c = C(), cy = c && c.currentYear ? c.currentYear() : new Date().getFullYear();
+    return '<div class="qleg" aria-label="Ana arı renk kodu"><b>Renk kodu</b> <span class="qleg-s">(doğum yılının son hanesi · bu yıl ' + cy + ')</span><div class="qleg-row">' +
+      L.map(function (x) { return '<span><span class="qdot" style="background:' + x[2] + '"></span>' + x[0] + ' ' + x[1] + '</span>'; }).join('') +
+      '<span><span class="qdot unk"></span>bilinmiyor · gri</span></div></div>';
+  }
+  /* Basılan QR etiketindeki ana yılı (kovan başına): etiket yenileme ipucu için. */
+  function labelKey() { var d = D(); var live = false; try { live = localStorage.getItem('superari.workMode') === 'live'; } catch (e) { /* ignore */ } return live ? 'superari.etiketAnaYili.v1' : 'superari.etiketAnaYili.demo.v1'; }
+  function labelMap() { try { var o = JSON.parse(localStorage.getItem(labelKey()) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+  function markLabelsPrinted(hives) {
+    var m = labelMap(), t = new Date().toISOString().slice(0, 10);
+    (hives || []).forEach(function (h) { m[String(h.id)] = { y: h.queenYear != null ? Number(h.queenYear) : null, d: t }; });
+    try { localStorage.setItem(labelKey(), JSON.stringify(m)); } catch (e) { /* ignore */ }
+  }
+  /** null (hiç basılmadı / takip yok) | { printedYear, date, refresh } */
+  function labelStatus(h) {
+    var e = h ? labelMap()[String(h.id)] : null;
+    if (!e) return null;
+    var cur = h.queenYear != null ? Number(h.queenYear) : null;
+    return { printedYear: e.y, date: e.d, refresh: e.y !== cur };
+  }
+  function labelHintHtml(h) {
+    var s = labelStatus(h);
+    if (!s || !s.refresh) return '';
+    ensureCss();
+    return '<div class="qlabel-hint">🏷️ <b>Etiketi yenile:</b> basılı etikette ana yılı ' + esc(s.printedYear != null ? s.printedYear : 'yok') + ', şu anki ana ' + esc(h.queenYear != null ? h.queenYear : 'bilinmiyor') +
+      '. <a href="qr-etiket.html?apiary=' + encodeURIComponent(h.apiaryId) + '&yenile=1">Etiket bas</a></div>';
   }
   function statusBadgeHtml(h) {
     ensureCss();
@@ -161,7 +204,7 @@
   function queenHtml(h) {
     var c = C(); if (!c) return '—';
     var age = c.queenAge(h);
-    if (age == null) return 'Yıl yok' + statusBadgeHtml(h);
+    if (age == null) return dotHtml(null) + 'Yıl yok' + statusBadgeHtml(h);
     var col = c.queenColor(h.queenYear);
     return dotHtml(h.queenYear) + esc(h.queenYear + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '')) + statusBadgeHtml(h);
   }
@@ -577,7 +620,10 @@
         (hv ? '<div class="qmeta" style="margin-top:.35rem;"><a href="' + editHref(hv.id) + '" style="color:#2b6cb0;text-decoration:underline;">Düzenle</a></div>' : '') +
       '</details>';
     }
-    return '<h3 style="margin:.2rem 0 0;font-size:1rem;">Mevcut ana arılar (' + res.current.length + ')</h3>' +
+    var hintN = (hives || []).filter(function (h) { var s = labelStatus(h); return s && s.refresh; });
+    return legendHtml() +
+      (hintN.length ? '<div class="qlabel-hint">🏷️ <b>Etiketi yenile:</b> ' + hintN.length + ' kovanın basılı etiketindeki ana yılı güncel değil (' + esc(hintN.slice(0, 6).map(function (h) { return h.name; }).join(', ') + (hintN.length > 6 ? '…' : '')) + '). <a href="qr-etiket.html?yenile=1">Etiket bas</a></div>' : '') +
+      '<h3 style="margin:.2rem 0 0;font-size:1rem;">Mevcut ana arılar (' + res.current.length + ')</h3>' +
       (res.current.map(function (q) { return card(q, true); }).join('') || '<p class="muted">Kayıt yok.</p>') +
       '<h3 style="margin:.6rem 0 0;font-size:1rem;">Önceki ana arılar (' + res.past.length + ')</h3>' +
       (res.past.map(function (q) { return card(q, false); }).join('') || '<p class="muted">Henüz değiştirilen ana arı yok.</p>');
@@ -1914,6 +1960,11 @@
     ensureCss: ensureCss,
     editHref: editHref,
     dotHtml: dotHtml,
+    colorBadgeHtml: colorBadgeHtml,
+    legendHtml: legendHtml,
+    markLabelsPrinted: markLabelsPrinted,
+    labelStatus: labelStatus,
+    labelHintHtml: labelHintHtml,
     statusBadgeHtml: statusBadgeHtml,
     queenHtml: queenHtml,
     queenText: queenText,

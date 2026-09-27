@@ -371,7 +371,7 @@
       var tag = fp.need ? '<em class="o">Besleme</em>' : '<em class="g">Stok iyi</em>';
       if (fp.honeyFrames == null && st.honeyFrames == null) tag = '<em>Veri yok</em>';
       if (mp && mp.level === 'tedavi') tag = '<em class="r">Varroa: tedavi</em>';
-      return '<a class="bp-hv" href="kovan.html?id=' + encodeURIComponent(h.id) + '#oneri"><b>' + esc(h.name) + (st.cls ? ' · ' + esc(st.cls) : '') + '</b>' + tag +
+      return '<a class="bp-hv" href="kovan.html?id=' + encodeURIComponent(h.id) + '#oneri"><b>' + queenDot(h) + esc(h.name) + (st.cls ? ' · ' + esc(st.cls) : '') + '</b>' + tag +
         '<small>🍯 ' + esc(feedText(fp)) + (mp ? '<br>💊 ' + esc(mp.summary) : '') + '</small></a>';
     }).join('');
   }
@@ -533,7 +533,15 @@
     };
   }
 
+  /** Ana arı yıl rengi noktası (uluslararası kod; yıl yoksa gri/boş). */
+  function queenDot(h) {
+    var col = h && D.colony && D.colony.queenColor ? D.colony.queenColor(h.queenYear) : null;
+    var st = 'display:inline-block;width:.75em;height:.75em;border-radius:50%;margin-right:.3em;vertical-align:-.05em;';
+    return col ? '<span style="' + st + 'background:' + col.hex + ';border:1px solid rgba(0,0,0,.3);" title="Ana ' + esc(h.queenYear + ' · ' + col.name) + '"></span>'
+      : '<span style="' + st + 'background:#e9ecef;border:1.5px dashed #868e96;" title="Ana yılı bilinmiyor"></span>';
+  }
   global.SuperAriPlan = {
+    queenDot: queenDot,
     needs: needs, tour: tour, tourMarkDone: tourMarkDone, tourNext: tourNext, saveCount: saveCount, renderHiveCard: renderHiveCard, hiveTasks: hiveTasks,
     SYRUP: SYRUP, KG_PER_HONEY_FRAME: KG_PER_HONEY_FRAME, hiveState: hiveState, seasonKind: seasonKind, feedPlan: feedPlan, saveFeeding: saveFeeding, feedText: feedText, hiveSummary: hiveSummary, medPlan: medPlan, saveTreatment: saveTreatment,
     PROFILES: PROFILES, JOBS: JOBS, profileKey: profileKey, autoProfile: autoProfile, setProfile: setProfile,
