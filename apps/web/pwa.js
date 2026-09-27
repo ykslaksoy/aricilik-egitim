@@ -85,8 +85,31 @@
     doc.body.appendChild(t);
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3200);
   }
-  global.addEventListener('offline', function () { toast('Çevrimdışı · kayıtlar bu cihaza yazılmaya devam eder'); });
-  global.addEventListener('online', function () { toast('Tekrar çevrimiçi'); });
+  /* Küçük «Çevrimdışı» göstergesi (sayfa düzenine dokunmaz; üstte sabit küçük etiket). Hava verisi son güncelleme saatiyle. */
+  function lastWeatherAt() {
+    try {
+      var rows = JSON.parse(global.localStorage.getItem('superari.hava.kayit.v3') || '[]'), best = '';
+      (Array.isArray(rows) ? rows : (rows && rows.records) || []).forEach(function (r) { if (r && r.at && String(r.at) > best) best = String(r.at); });
+      if (!best) return '';
+      var d = new Date(best); if (isNaN(d)) return '';
+      return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return ''; }
+  }
+  function paintOffline() {
+    var off = global.navigator.onLine === false, el = doc.getElementById('saOffline');
+    if (!off) { if (el) el.remove(); return; }
+    if (!doc.body) return;
+    if (!el) {
+      el = doc.createElement('div'); el.id = 'saOffline'; el.setAttribute('role', 'status');
+      el.style.cssText = 'position:fixed;top:calc(6px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:99998;background:#495057;color:#fff;font:700 11.5px/1.2 system-ui,sans-serif;padding:4px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.2);pointer-events:none;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis;';
+      doc.body.appendChild(el);
+    }
+    var w = lastWeatherAt();
+    el.textContent = '⚡ Çevrimdışı' + (w ? ' · son güncelleme ' + w : '');
+  }
+  global.addEventListener('offline', function () { paintOffline(); toast('Çevrimdışı · kayıtlar bu cihaza yazılır, internet gelince buluta gönderilir'); });
+  global.addEventListener('online', function () { paintOffline(); toast('Tekrar çevrimiçi'); });
+  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', paintOffline); else paintOffline();
 
   /* ---- Yerel bildirimler (sunucu yok: yalnız uygulama açıldığında / açıkken denetlenir) ---- */
   var NOTIF_KEY = 'superari.bildirim.v1', SENT_KEY = 'superari.bildirimGonderildi.v1', CHECK_EVERY_MS = 30 * 60 * 1000;

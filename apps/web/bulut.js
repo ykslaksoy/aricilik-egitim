@@ -690,8 +690,17 @@
       /* eşitleme sırasında yazılmış olabilir: yalnız sıra/anahtarları güncelle */
       fresh.keys = st.keys; detect(fresh, entries); saveState(fresh);
       emitStatus();
-      return Object.keys(fresh.queue).length;
+      var n = Object.keys(fresh.queue).length;
+      if (n && global.navigator.onLine === false) bgSync();
+      return n;
     }).catch(function () { return 0; });
+  }
+  /* Background Sync (Chrome/Android): bağlantı gelince SW açık sayfaya «outbox'ı gönder» der; ayrıca online olayı + açılış/odak/3 dk çekme. */
+  function bgSync() {
+    try {
+      var sw = global.navigator.serviceWorker; if (!sw) return;
+      sw.ready.then(function (r) { if (r && r.sync) return r.sync.register('superari-outbox'); }).catch(function () { /* desteklenmiyor */ });
+    } catch (e) { /* ignore */ }
   }
   function localStatus() {
     var st = storedState();
@@ -917,6 +926,7 @@
     global.addEventListener('offline', function () { emitStatus(); });
     setTimeout(function () { paintIndicator(); }, 300);
     global.addEventListener('online', function () { soon(1000); });
+    try { if (global.navigator.serviceWorker) global.navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.type === 'sync-outbox') soon(300); }); } catch (e) { /* ignore */ }
     global.addEventListener('superari-records-changed', function () { soon(4000); });
     doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'visible') soon(1500); });
     var lastFocus = 0;
