@@ -216,6 +216,22 @@
     toast: toast
   };
 
-  if (doc.readyState === 'complete') { register(); startNotifLoop(); }
-  else global.addEventListener('load', function () { register(); startNotifLoop(); });
+  /* ---- Bulut eşitlemesi: yalnız Canlı modda ve daha önce giriş yapılmışsa yüklenir.
+   * Bulut ayarı yoksa kimse giriş yapamaz → hiçbir şey yüklenmez, ağ isteği yapılmaz. ---- */
+  function bulutBoot() {
+    try {
+      if (global.localStorage.getItem('superari.workMode') !== 'live') return;
+      if (!global.localStorage.getItem('sb-superari-auth-token')) return;
+    } catch (e) { return; }
+    if (/\/hesap\.html$/.test(global.location.pathname)) return; /* hesap sayfası kendisi yönetir */
+    function go() { if (global.SuperAriBulut) global.SuperAriBulut.autoStart(); }
+    if (global.SuperAriBulut) { go(); return; }
+    var s = doc.createElement('script');
+    s.src = 'bulut.js?v=' + encodeURIComponent(VERSION);
+    s.onload = go;
+    doc.head.appendChild(s);
+  }
+  function onLoad() { register(); startNotifLoop(); bulutBoot(); }
+  if (doc.readyState === 'complete') onLoad();
+  else global.addEventListener('load', onLoad);
 })(window);

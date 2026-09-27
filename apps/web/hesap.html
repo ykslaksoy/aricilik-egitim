@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hesap ve bulut · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .hb-form{display:grid;gap:.5rem;}
+    .hb-form label{display:grid;gap:.2rem;font-size:.78rem;font-weight:700;color:#5c4813;min-width:0;}
+    .hb-form input{font:inherit;font-size:.95rem;padding:.6rem .65rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
+    .hb-row{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;}
+    .hb-msg{margin:0;font-size:.84rem;line-height:1.4;overflow-wrap:anywhere;}
+    .hb-msg.err{color:#c92a2a;font-weight:700;}
+    .hb-msg.ok{color:#2b8a3e;font-weight:700;}
+    .hb-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.25rem .7rem;font-size:.86rem;}
+    .hb-kv span{color:var(--muted);font-weight:700;}
+    .hb-kv b{overflow-wrap:anywhere;}
+    .hb-ap{display:grid;gap:.4rem;}
+    .hb-check{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.5rem;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.5rem .6rem;font-size:.9rem;}
+    .hb-check small{color:var(--muted);font-weight:700;white-space:nowrap;}
+    .hb-team{background:#fff;border:1px solid var(--border);border-radius:14px;padding:.6rem .7rem;display:grid;gap:.45rem;}
+    .hb-team h3{margin:0;font-size:.98rem;}
+    .hb-mem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:center;font-size:.85rem;}
+    .hb-mem b{overflow-wrap:anywhere;font-weight:650;}
+    .hb-tag{display:inline-block;font-size:.68rem;font-weight:800;padding:.08rem .4rem;border-radius:999px;background:#fff3bf;color:#5c4813;margin-left:.3rem;}
+    .hb-small{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .55rem;border-radius:9px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
+    .hb-small.del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
+    .hb-google{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="ayarlar.html">← Ayarlar</a>
+    </div>
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div><h1>SüperArı</h1><p>Hesap ve bulut</p></div>
+    </div>
+
+    <section class="card stack" id="cfgCard">
+      <h2 style="margin:0;font-size:1.05rem;">☁️ Bulut durumu</h2>
+      <p class="hb-msg" id="cfgMsg">Denetleniyor…</p>
+    </section>
+
+    <section class="card stack" id="loginCard" style="margin-top:1rem;" hidden>
+      <h2 style="margin:0;font-size:1.05rem;">Giriş yap</h2>
+      <p class="muted" style="margin:0;font-size:.84rem;">Şifre yok: e-postanıza gelen bağlantıya dokunun ya da e-postadaki kodu yazın.</p>
+      <form class="hb-form" id="emailForm" autocomplete="on">
+        <label>E-posta<input type="email" name="email" autocomplete="email" inputmode="email" required placeholder="ornek@mail.com"></label>
+        <button class="btn" type="submit" id="btnSend">✉️ Giriş bağlantısı gönder</button>
+      </form>
+      <form class="hb-form" id="codeForm" autocomplete="off" hidden>
+        <label>E-postadaki kod<input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="ör. 123456"></label>
+        <button class="btn secondary" type="submit">Kodu doğrula</button>
+      </form>
+      <button class="btn secondary hb-google" type="button" id="btnGoogle"><span aria-hidden="true">G</span> Google ile giriş</button>
+      <p class="hb-msg" id="loginMsg" aria-live="polite"></p>
+    </section>
+
+    <section class="card stack" id="acctCard" style="margin-top:1rem;" hidden>
+      <h2 style="margin:0;font-size:1.05rem;">Hesabım</h2>
+      <div class="hb-kv" id="acctKv"></div>
+      <p class="hb-msg" id="modeMsg"></p>
+      <div class="hb-row">
+        <button class="btn" type="button" id="btnSync">🔄 Şimdi eşitle</button>
+        <button class="btn secondary" type="button" id="btnOut">Çıkış yap</button>
+      </div>
+      <p class="hb-msg" id="syncMsg" aria-live="polite"></p>
+    </section>
+
+    <section class="card stack" id="firstCard" style="margin-top:1rem;" hidden>
+      <h2 style="margin:0;font-size:1.05rem;">Cihazdaki verileri buluta yükle</h2>
+      <p class="muted" style="margin:0;font-size:.84rem;">Bir kez yapılır. Seçtiğiniz arılıkların kovanları, ana arıları ve Canlı moddaki kayıtları (muayene, ilaçlama, besleme, hasat, kışlık, koloni işlemleri, fotoğraflar), görevleriniz ve stok yüklenir. Demo veriler asla yüklenmez.</p>
+      <div class="hb-ap" id="apList"></div>
+      <div class="hb-row">
+        <button class="btn" type="button" id="btnUpload">☁️ Seçilenleri yükle</button>
+        <button class="btn secondary" type="button" id="btnSkip">Yükleme, yalnız buluttakileri al</button>
+      </div>
+      <p class="hb-msg" id="firstMsg" aria-live="polite"></p>
+    </section>
+
+    <section class="card stack" id="teamCard" style="margin-top:1rem;" hidden>
+      <h2 style="margin:0;font-size:1.05rem;">👥 Ekip</h2>
+      <p class="muted" style="margin:0;font-size:.84rem;">Arılığa e-postayla üye davet edin. Davet edilen kişi bu uygulamada <b>aynı e-posta</b> ile giriş yaptığında arılık hesabına eklenir ve kayıtları görür / ekler. Davet e-postası otomatik gitmez; «Davet mesajı gönder» ile bağlantıyı siz iletin.</p>
+      <div id="teamList" style="display:grid;gap:.6rem;"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 style="margin:0;font-size:1.05rem;">Nasıl çalışır?</h2>
+      <ul class="muted" style="margin:0;padding-left:1.1rem;font-size:.82rem;line-height:1.45;display:grid;gap:.2rem;">
+        <li>Uygulama önce bu cihazda çalışır; internet yokken de kayıt yapabilirsiniz. Değişiklikler sıraya alınır ve internet gelince buluta gönderilir.</li>
+        <li>Uygulama açılınca buluttaki yenilikler alınır. Aynı kayıt iki yerde değiştiyse en son değiştirilen geçerli olur.</li>
+        <li>Yalnız Canlı moddaki veriler eşitlenir; Demo moddaki örnek veriler hiçbir zaman buluta gitmez.</li>
+        <li>Kovanların sensör değerleri (ağırlık vb.) eşitlenmez.</li>
+      </ul>
+    </section>
+  </main>
+  <script src="demo-data.js?v=koloni-17"></script>
+  <script src="bulut.js?v=koloni-17"></script>
+  <script>
+  (function () {
+    var B = window.SuperAriBulut, D = window.SuperAriDemo;
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function fmt(iso) {
+      if (!iso) return 'henüz yok';
+      var d = new Date(iso); if (isNaN(d)) return '—';
+      return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    function msg(el, text, kind) { el.textContent = text || ''; el.className = 'hb-msg' + (kind ? ' ' + kind : ''); }
+    function errText(e) {
+      var m = String((e && (e.message || e.error_description)) || e || '');
+      if (/rate limit|too many/i.test(m)) return 'Çok sık denendi. Biraz bekleyip tekrar deneyin.';
+      if (/provider is not enabled|unsupported provider/i.test(m)) return 'Google ile giriş henüz etkin değil (Supabase ayarı gerekli).';
+      if (/expired|invalid/i.test(m)) return 'Kod geçersiz veya süresi dolmuş.';
+      if (/bulut-kapali/.test(m)) return 'Bulut henüz bağlı değil.';
+      if (/Failed to fetch|NetworkError|network/i.test(m)) return 'İnternet bağlantısı yok.';
+      return m || 'Bir hata oluştu.';
+    }
+    var lastEmail = '';
+    function apiaries() { try { return D && D.loadApiaries ? D.loadApiaries() : []; } catch (e) { return []; } }
+
+    function render() {
+      return B.status().then(function (s) {
+        var cm = $('cfgMsg');
+        $('loginCard').hidden = true; $('acctCard').hidden = true; $('firstCard').hidden = true; $('teamCard').hidden = true;
+        if (!s.enabled) {
+          cm.innerHTML = '<b>Bulut henüz bağlı değil.</b> Uygulama şu an yalnız bu cihazda çalışıyor ve tüm kayıtlar bu cihazda saklanıyor; hiçbir veri dışarı gönderilmiyor. ' +
+            'Bulut bağlandığında buradan giriş yapıp verilerinizi yedekleyebilir ve arılıklarınızı ekibinizle paylaşabilirsiniz.';
+          return;
+        }
+        cm.innerHTML = s.loggedIn ? '<b style="color:#2b8a3e">Bulut bağlı.</b> ' + (s.online ? '' : 'Şu an çevrimdışısınız; değişiklikler internet gelince gönderilir.') : '<b style="color:#2b8a3e">Bulut hazır.</b> Yedekleme ve ekip paylaşımı için giriş yapın.';
+        if (!s.loggedIn) { $('loginCard').hidden = false; return; }
+        $('acctCard').hidden = false;
+        var linked = Object.keys(s.links || {});
+        $('acctKv').innerHTML = '<span>E-posta</span><b>' + esc(s.email || '—') + '</b>' +
+          '<span>Son eşitleme</span><b>' + esc(fmt(s.lastSync)) + '</b>' +
+          '<span>Bekleyen</span><b>' + (s.pending || 0) + ' değişiklik</b>' +
+          '<span>Buluttaki arılık</span><b>' + linked.length + '</b>' +
+          (s.lastError ? '<span>Son hata</span><b style="color:#c92a2a">' + esc(s.lastError) + '</b>' : '');
+        msg($('modeMsg'), s.live ? '' : 'Demo moddasınız: eşitleme durur ve demo veriler asla buluta yüklenmez. Eşitleme için Ayarlar’dan Canlı moda geçin.', s.live ? '' : 'err');
+        $('btnSync').disabled = !s.live;
+        if (s.live && !s.initialDone) renderFirst(s);
+        if (linked.length) renderTeam(s);
+      });
+    }
+    function renderFirst(s) {
+      $('firstCard').hidden = false;
+      var links = s.links || {};
+      $('apList').innerHTML = apiaries().map(function (a) {
+        var on = !!links[a.id];
+        return '<label class="hb-check"><input type="checkbox" data-ap="' + esc(a.id) + '"' + (on ? ' checked disabled' : ' checked') + '><span>' + esc(a.name) + '</span><small>' +
+          (on ? 'Bulutla eşleşti' : (Number(a.hiveCount) || 0) + ' kovan') + '</small></label>';
+      }).join('') || '<p class="muted" style="margin:0;">Bu cihazda arılık yok.</p>';
+    }
+    function renderTeam(s) {
+      $('teamCard').hidden = false;
+      var aps = apiaries().filter(function (a) { return s.links[a.id]; });
+      var box = $('teamList');
+      box.innerHTML = aps.map(function (a) {
+        return '<div class="hb-team" data-team="' + esc(a.id) + '"><h3>' + esc(a.name) + '</h3><div class="hb-mems">Yükleniyor…</div>' +
+          '<form class="hb-form" data-inv="' + esc(a.id) + '"><label>Üye davet et (e-posta)<input type="email" name="email" required placeholder="ekip@ornek.com" inputmode="email"></label>' +
+          '<button class="btn secondary" type="submit">Davet et</button></form><p class="hb-msg" data-tmsg></p></div>';
+      }).join('');
+      aps.forEach(function (a) { loadTeam(a, s); });
+    }
+    function loadTeam(a, s) {
+      var el = document.querySelector('[data-team="' + CSS.escape(String(a.id)) + '"]');
+      if (!el) return;
+      B.team(a.id).then(function (t) {
+        var meOwner = t.members.some(function (m) { return m.user_id === s.userId && m.role === 'owner'; });
+        var link = location.origin + '/hesap.html';
+        el.querySelector('.hb-mems').innerHTML = t.members.map(function (m) {
+          return '<div class="hb-mem"><b>' + esc(m.email || 'Üye') + (m.role === 'owner' ? '<span class="hb-tag">Sahip</span>' : '<span class="hb-tag">Üye</span>') + (m.user_id === s.userId ? ' <small class="muted">(siz)</small>' : '') + '</b>' +
+            (meOwner && m.role !== 'owner' ? '<button type="button" class="hb-small del" data-rm="' + esc(m.user_id) + '">Çıkar</button>' : '<span></span>') + '</div>';
+        }).join('') + t.invites.map(function (i) {
+          var body = encodeURIComponent('Merhaba, SüperArı’da «' + a.name + '» arılığına davet edildiniz. Bu bağlantıyı açıp ' + i.email + ' adresiyle giriş yapın: ' + link);
+          return '<div class="hb-mem"><b>' + esc(i.email) + '<span class="hb-tag" style="background:#e9ecef">Davet bekliyor</span></b><span class="hb-row" style="gap:.3rem;">' +
+            '<a class="hb-small" style="text-decoration:none" href="mailto:' + esc(i.email) + '?subject=' + encodeURIComponent('SüperArı arılık daveti') + '&body=' + body + '">Davet mesajı gönder</a>' +
+            (meOwner ? '<button type="button" class="hb-small del" data-cancel="' + esc(i.id) + '">İptal</button>' : '') + '</span></div>';
+        }).join('');
+        var form = el.querySelector('form'); form.hidden = !meOwner;
+        if (!meOwner) el.querySelector('[data-tmsg]').textContent = 'Bu arılıkta üyesiniz; davetleri arılık sahibi yönetir.';
+      }).catch(function (e) { el.querySelector('.hb-mems').textContent = 'Ekip bilgisi alınamadı: ' + errText(e); });
+    }
+
+    $('emailForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var em = e.target.elements.email.value.trim();
+      lastEmail = em;
+      $('btnSend').disabled = true;
+      msg($('loginMsg'), 'Gönderiliyor…');
+      B.signInEmail(em).then(function () {
+        msg($('loginMsg'), 'Bağlantı gönderildi: ' + em + '. E-postadaki bağlantıya bu cihazda dokunun ya da e-postada kod varsa aşağıya yazın.', 'ok');
+        $('codeForm').hidden = false;
+      }).catch(function (err) { msg($('loginMsg'), errText(err), 'err'); })
+        .then(function () { $('btnSend').disabled = false; });
+    });
+    $('codeForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      B.verifyCode(lastEmail || $('emailForm').elements.email.value, e.target.elements.code.value).then(function () {
+        msg($('loginMsg'), 'Giriş yapıldı.', 'ok'); afterLogin();
+      }).catch(function (err) { msg($('loginMsg'), errText(err), 'err'); });
+    });
+    $('btnGoogle').addEventListener('click', function () {
+      B.signInGoogle().catch(function (err) { msg($('loginMsg'), errText(err), 'err'); });
+    });
+    $('btnOut').addEventListener('click', function () {
+      if (!confirm('Çıkış yapılsın mı? Bu cihazdaki kayıtlar silinmez.')) return;
+      B.signOut().then(render);
+    });
+    $('btnSync').addEventListener('click', function () {
+      msg($('syncMsg'), 'Eşitleniyor…');
+      B.sync({ force: true }).then(function (r) {
+        if (r.error) msg($('syncMsg'), 'Eşitlenemedi: ' + errText(r.error), 'err');
+        else if (r.skipped === 'offline') msg($('syncMsg'), 'Çevrimdışı: değişiklikler internet gelince gönderilir.', 'err');
+        else if (r.skipped) msg($('syncMsg'), 'Eşitleme yapılmadı (' + r.skipped + ').', 'err');
+        else msg($('syncMsg'), 'Eşitlendi · alınan ' + r.pulled + ', gönderilen ' + r.pushed + ', bekleyen ' + r.pending + '.', 'ok');
+        render();
+      });
+    });
+    $('btnUpload').addEventListener('click', function () {
+      var ids = Array.prototype.map.call(document.querySelectorAll('#apList input[data-ap]:checked:not(:disabled)'), function (c) { return c.getAttribute('data-ap'); });
+      msg($('firstMsg'), 'Yükleniyor… (fotoğraflar biraz sürebilir)');
+      $('btnUpload').disabled = true;
+      B.linkApiaries(ids).then(function (r) {
+        if (r && r.error) msg($('firstMsg'), 'Yüklenemedi: ' + errText(r.error), 'err');
+        else msg($('firstMsg'), 'Yüklendi · ' + ((r && r.pushed) || 0) + ' kayıt gönderildi.', 'ok');
+        render();
+      }).catch(function (err) { msg($('firstMsg'), errText(err), 'err'); }).then(function () { $('btnUpload').disabled = false; });
+    });
+    $('btnSkip').addEventListener('click', function () {
+      B.linkApiaries([]).then(function () { render(); });
+    });
+    $('teamList').addEventListener('submit', function (e) {
+      var f = e.target.closest('form[data-inv]'); if (!f) return;
+      e.preventDefault();
+      var box = f.closest('.hb-team'), apId = f.getAttribute('data-inv');
+      var m = box.querySelector('[data-tmsg]');
+      msg(m, 'Davet ediliyor…');
+      B.invite(apId, f.elements.email.value).then(function () {
+        msg(m, 'Davet kaydedildi. «Davet mesajı gönder» ile bağlantıyı iletin.', 'ok'); f.reset();
+        return B.status().then(function (s) { loadTeam({ id: apId, name: box.querySelector('h3').textContent }, s); });
+      }).catch(function (err) { msg(m, errText(err), 'err'); });
+    });
+    $('teamList').addEventListener('click', function (e) {
+      var box = e.target.closest('.hb-team'); if (!box) return;
+      var apId = box.getAttribute('data-team'), name = box.querySelector('h3').textContent;
+      var rm = e.target.closest('[data-rm]'), cn = e.target.closest('[data-cancel]');
+      if (!rm && !cn) return;
+      if (!confirm(rm ? 'Bu üye arılıktan çıkarılsın mı?' : 'Davet iptal edilsin mi?')) return;
+      (rm ? B.removeMember(apId, rm.getAttribute('data-rm')) : B.cancelInvite(cn.getAttribute('data-cancel')))
+        .then(function () { return B.status(); }).then(function (s) { loadTeam({ id: apId, name: name }, s); })
+        .catch(function (err) { msg(box.querySelector('[data-tmsg]'), errText(err), 'err'); });
+    });
+    function afterLogin() {
+      render().then(function () { return B.sync({ force: true }); }).then(render);
+    }
+    B.loadConfig(true).then(function (cfg) {
+      if (!cfg.enabled) return render();
+      return B.client().then(function (c) {
+        c.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') render(); });
+        return B.session();
+      }).then(function (ses) { if (ses) afterLogin(); else render(); });
+    }).catch(function () { render(); });
+  })();
+  </script>
+  <script src="nav.js?v=koloni-17"></script>
+<script src="pwa.js?v=koloni-17"></script>
+</body>
+</html>

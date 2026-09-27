@@ -1,0 +1,5 @@
+{
+  "_not": "Yedek ayar. Asıl kaynak /api/supabase-config (Vercel ortam değişkenleri). Gerekirse buraya Supabase proje adresi ve anon (publishable) anahtar yazılabilir; gizli (service_role) anahtar ASLA yazılmaz.",
+  "url": null,
+  "anonKey": null
+}

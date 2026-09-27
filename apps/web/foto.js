@@ -115,6 +115,19 @@
       return Promise.all(l.map(function (p) { return detachOne(p.id, recordId); }));
     }).catch(function () { return []; });
   }
+  /* Bulut eşitlemesi için ham satır erişimi (bulut.js). */
+  function allRows() {
+    return tx('readonly', function (st) { return reqVal(st.getAll(), {}); }).then(function (l) { return l || []; }).catch(function () { return []; });
+  }
+  function getRow(id) {
+    return tx('readonly', function (st) { return reqVal(st.get(String(id)), {}); }).then(function (r) { return r && r.id ? r : null; }).catch(function () { return null; });
+  }
+  function putRow(row) {
+    return tx('readwrite', function (st) { st.put(row); return row; });
+  }
+  function deleteRow(id) {
+    return tx('readwrite', function (st) { st.delete(String(id)); });
+  }
   function countAll() {
     return tx('readonly', function (st) { return reqVal(st.count(), {}); }).catch(function () { return 0; });
   }
@@ -328,6 +341,6 @@
 
   global.SuperAriFoto = {
     compress: compress, attach: attach, listFor: listFor, detachOne: detachOne, detachRecord: detachRecord,
-    countAll: countAll, viewer: viewer, fillThumbs: fillThumbs, picker: picker, supported: supported, MAX_PER_RECORD: MAX_PER_RECORD
+    countAll: countAll, allRows: allRows, getRow: getRow, putRow: putRow, deleteRow: deleteRow, viewer: viewer, fillThumbs: fillThumbs, picker: picker, supported: supported, MAX_PER_RECORD: MAX_PER_RECORD
   };
 })(typeof window !== 'undefined' ? window : this);

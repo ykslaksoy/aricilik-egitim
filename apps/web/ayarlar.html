@@ -136,6 +136,16 @@
       </div>
     </section>
 
+    <section class="auth-card" id="bulut">
+      <div class="settings-head">
+        <div>
+          <h2>Hesap ve bulut</h2>
+          <p class="sub" id="bulut-status">Denetleniyor…</p>
+        </div>
+      </div>
+      <a class="btn secondary" href="hesap.html" id="lnk-hesap" style="text-decoration:none;text-align:center;">☁️ Hesap ve bulut</a>
+    </section>
+
     <section class="auth-card" id="araclar">
       <div class="settings-head">
         <div>
@@ -220,7 +230,7 @@
       </details>
     </section>
   </div>
-  <script src="demo-data.js?v=koloni-16"></script>
+  <script src="demo-data.js?v=koloni-17"></script>
   <script src="device-runtime.js"></script>
   <script>
   (function () {
@@ -618,7 +628,19 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="pwa.js?v=koloni-16"></script>
+<script src="pwa.js?v=koloni-17"></script>
+<script src="bulut.js?v=koloni-17"></script>
+<script>
+  (function () {
+    var B = window.SuperAriBulut, el = document.getElementById('bulut-status');
+    if (!B || !el) return;
+    B.status().then(function (s) {
+      if (!s.enabled) { el.textContent = 'Bulut henüz bağlı değil. Kayıtlar yalnız bu cihazda saklanıyor.'; return; }
+      if (!s.loggedIn) { el.textContent = 'Bulut hazır · yedekleme ve ekip paylaşımı için giriş yapın.'; return; }
+      el.textContent = 'Giriş yapıldı: ' + (s.email || '') + (s.live ? '' : ' · Demo modda eşitleme durur') + (s.pending ? ' · ' + s.pending + ' değişiklik bekliyor' : '');
+    }).catch(function () { el.textContent = 'Bulut henüz bağlı değil. Kayıtlar yalnız bu cihazda saklanıyor.'; });
+  })();
+</script>
 <script>
   (function () {
     var P = window.SuperAriPWA;
