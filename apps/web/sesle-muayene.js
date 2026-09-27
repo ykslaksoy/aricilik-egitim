@@ -142,13 +142,73 @@
     '.kv-parsed{font-size:14px;color:#b2f2bb;font-weight:700;}.kv-btns{display:flex;gap:6px;flex-wrap:wrap;}' +
     '.kv-btns button{font:inherit;font-size:14px;font-weight:800;border-radius:10px;padding:8px 12px;border:1px solid #f3e2c8;background:transparent;color:#fff;cursor:pointer;min-height:40px;}' +
     '.kv-btns button.pri{background:#e56f1c;border-color:#e56f1c;}.kv-help{font-size:12px;color:#f3e2c8;}' +
+    '.kv-voices{display:grid;gap:6px;background:#3a2515;border-radius:10px;padding:8px;}.kv-voices label{display:grid;gap:4px;font-size:12px;color:#f3e2c8;font-weight:700;}' +
+    '.kv-voices select{font:inherit;font-size:14px;border-radius:8px;padding:8px;max-width:100%;min-width:0;}.kv-voices button{justify-self:start;font:inherit;font-size:14px;font-weight:800;border-radius:10px;padding:8px 12px;border:1px solid #f3e2c8;background:transparent;color:#fff;min-height:40px;}' +
     '.km-voice.unsup{background:#fff4e6;color:#8a4b00;border-bottom:1px solid #ffd8a8;font-size:14px;}';
   function ensureCss() { if (document.getElementById('kvCss')) return; var s = document.createElement('style'); s.id = 'kvCss'; s.textContent = css; document.head.appendChild(s); }
   var active = null;
-  function trVoice() {
-    var vs = []; try { vs = global.speechSynthesis.getVoices(); } catch (e) { vs = []; }
-    return vs.filter(function (v) { return /^tr/i.test(v.lang); })[0] || null;
+  /* ---- Ses seçimi: cihazdaki en doğal Türkçe ses (ücretsiz, cihaz üstü) ---- */
+  var VOICE_KEY = 'superari.sesleSes.v1';
+  function voiceRank(v) {
+    var n = String(v.name || '') + ' ' + String(v.voiceURI || ''), r = 0;
+    if (/natural|neural/i.test(n)) r += 50;
+    if (/enhanced|premium|gelişmiş|gelismis|yüksek kalite|high quality/i.test(n)) r += 40;
+    if (/yelda/i.test(n)) r += 12;
+    if (/emel|ahmet/i.test(n) && /online/i.test(n)) r += 30;
+    if (/google/i.test(n)) r += 20;
+    if (/^tr[-_]TR$/i.test(v.lang)) r += 3;
+    if (v.localService) r += 1; /* çevrimdışı da çalışır */
+    if (/compact|espeak/i.test(n)) r -= 20;
+    return r;
   }
+  function trVoices() {
+    var vs = []; try { vs = global.speechSynthesis.getVoices() || []; } catch (e) { vs = []; }
+    return vs.filter(function (v) { return /^tr/i.test(v.lang); }).sort(function (a, b) { return voiceRank(b) - voiceRank(a) || String(a.name).localeCompare(String(b.name)); });
+  }
+  function savedVoiceId() { try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; } }
+  function trVoice() {
+    var list = trVoices(), id = savedVoiceId();
+    if (id) { for (var i = 0; i < list.length; i++) if (list[i].voiceURI === id || list[i].name === id) return list[i]; }
+    return list[0] || null;
+  }
+  function utter(text) {
+    var u = new global.SpeechSynthesisUtterance(text); u.lang = 'tr-TR'; u.rate = 1.02; u.pitch = 1.0;
+    var v = trVoice(); if (v) { u.voice = v; u.lang = v.lang; }
+    return u;
+  }
+  /* ---- Doğal konuşma metinleri ---- */
+  function lastVowel(w) { var m = String(w).toLocaleLowerCase('tr').match(/[aeıioöuü](?=[^aeıioöuü]*$)/); return m ? m[0] : 'e'; }
+  function qParticle(w) { return { a: 'mı', 'ı': 'mı', e: 'mi', i: 'mi', o: 'mu', u: 'mu', 'ö': 'mü', 'ü': 'mü' }[lastVowel(w)]; }
+  function shortLabel(l) { return String(l || '').replace(/ \+ /g, ' ve ').split(' (')[0].split(' — ')[0].split(' / ')[0].split(', ')[0].trim(); }
+  function lowerFirst(t) { return t ? t.charAt(0).toLocaleLowerCase('tr') + t.slice(1) : t; }
+  var SAY_Q = {
+    giris: 'Önce girişe bakalım. Trafik yoğun mu, normal mi, zayıf mı? Ölü arı ya da yağma varsa onu söyleyin.',
+    ana: 'Ana arıyı ya da yumurtayı gördünüz mü?',
+    yavru: 'Yavru düzeni nasıl? Düzenli mi, biraz boşluklu mu, dağınık mı?',
+    kapali: 'Kapalı yavru kapakları düzgün mü, yoksa delikli, çökük olanlar var mı?',
+    cerceve: 'Kaç çerçeve arıyla kaplı, kaçında yavru var? Mesela, sekiz arılı üç yavrulu.',
+    stok: 'Bal ve polen stoğu nasıl? Az mı, orta mı, bol mu?',
+    meme: 'Ana memesi var mı? Varsa alt kenarda mı, petek ortasında mı?',
+    varroa: 'Varroa gördünüz mü? Yok, birkaç ya da çok diyebilirsiniz.',
+    hastalik: 'Hastalık belirtisi var mı?',
+    huy: 'Arılar nasıldı? Sakin mi, sinirli mi?',
+    yer: 'Kovanda yer var mı, yoksa dolmak üzere mi?',
+    kutu: 'Kovan kutusu ve yeri iyi mi? Çatlak, nem ya da yer sorunu var mı?',
+    anayas: 'Ana arı kaç yaşında? Bu yıl mı, geçen yıl mı, daha eski mi?',
+    petek: 'Petekler yeni mi, orta mı, eski mi?',
+    genel: 'Son olarak, genel izleniminiz nasıl? İyi, orta ya da kötü.'
+  };
+  function naturalQ(c) {
+    if (c.id && SAY_Q[c.id]) return SAY_Q[c.id];
+    var q = String(c.def.q || '').replace(/\s*\/\s*/g, ' ve ').replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    if (!c.def.opts) return q;
+    var labs = c.def.opts.slice(0, 4).map(function (o) { return lowerFirst(shortLabel(o[1])); });
+    var asks = labs.map(function (l) { return l + ' ' + qParticle(l); });
+    return q.replace(/\?$/, '') + '? ' + asks.join(', ').replace(/^./, function (x) { return x.toLocaleUpperCase('tr'); }) + '?';
+  }
+  var ACKS = ['Tamam', 'Anladım', 'Peki'];
+  var ackI = 0;
+  function ack(label) { var a = ACKS[ackI++ % ACKS.length]; return a + ', ' + lowerFirst(shortLabel(label)) + '.'; }
   function showUnsupported(api) {
     ensureCss();
     var bar = api.bar(); if (!bar) return;
@@ -169,12 +229,15 @@
     var bar = api.bar(); bar.hidden = false; bar.className = 'km-voice';
     bar.innerHTML = '<div class="kv-top"><span class="kv-dot" data-kv-dot></span><span class="kv-state" data-kv-state>Sesle muayene</span></div>' +
       '<div class="kv-step" data-kv-step></div><div class="kv-tr" data-kv-tr aria-live="polite"></div><div class="kv-parsed" data-kv-parsed></div>' +
-      '<div class="kv-btns"><button type="button" data-kv-go class="pri" hidden>🎙 Sesle devam et</button><button type="button" data-kv-repeat>🔁 Tekrar</button><button type="button" data-kv-stop>⏹ Dur</button></div>' +
+      '<div class="kv-btns"><button type="button" data-kv-go class="pri" hidden>🎙 Sesle devam et</button><button type="button" data-kv-repeat>🔁 Tekrar</button><button type="button" data-kv-stop>⏹ Dur</button><button type="button" data-kv-vbtn>🔈 Ses seç</button></div>' +
+      '<div class="kv-voices" data-kv-voices hidden><label>Türkçe ses<select data-kv-vsel></select></label>' +
+      '<button type="button" data-kv-vtest>▶ Dene</button>' +
+      '<p class="kv-help">Daha akıcı ses için — iPhone: Ayarlar › Erişilebilirlik › Seslendirme › Sesler › Türkçe › «Yelda (Gelişmiş)» indirin. Android: Ayarlar › Metin okuma › Google TTS › Türkçe yüksek kalite sesi indirin. Sonra buradan seçin.</p></div>' +
       '<div class="kv-help">Komutlar: «geç», «geri», «tekrar», «kaydet», «kaydet ve sıradaki», «dur», «not …»</div>';
     var $ = function (a) { return bar.querySelector('[data-kv-' + a + ']'); };
     var rec = new SR();
     rec.lang = 'tr-TR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
-    var st = { on: true, listening: false, speaking: false, sub: null, bee: null, busy: false, fails: 0, lastPrompt: '' };
+    var st = { on: true, listening: false, speaking: false, sub: null, bee: null, busy: false, fails: 0, lastPrompt: '', prefix: '' };
     function state(txt, mode) { $('state').textContent = txt; var d = $('dot'); d.className = 'kv-dot' + (mode ? ' ' + mode : ''); }
     function listen() {
       if (!st.on || st.speaking) return;
@@ -186,8 +249,7 @@
       var done = false, fin = function () { if (done) return; done = true; st.speaking = false; if (!st.on) return; if (then) then(); else listen(); };
       try {
         global.speechSynthesis.cancel();
-        var u = new global.SpeechSynthesisUtterance(text); u.lang = 'tr-TR'; u.rate = 1.05;
-        var v = trVoice(); if (v) u.voice = v;
+        var u = utter(text);
         u.onend = fin; u.onerror = fin;
         global.speechSynthesis.speak(u);
       } catch (e) { fin(); return; }
@@ -195,7 +257,8 @@
     }
     function optsText(c) {
       if (!c.def || !c.def.opts) return '';
-      return ' Seçenekler: ' + c.def.opts.map(function (o) { return o[1].split(' (')[0]; }).join(', ') + '.';
+      var labs = c.def.opts.map(function (o) { return lowerFirst(shortLabel(o[1])); });
+      return ' ' + labs.slice(0, -1).join(', ').replace(/^./, function (x) { return x.toLocaleUpperCase('tr'); }) + ' ya da ' + labs[labs.length - 1] + ' diyebilirsiniz.';
     }
     function prompt() {
       if (!st.on) return;
@@ -204,40 +267,49 @@
       var text;
       if (c.summary) {
         $('step').textContent = c.done ? 'Kaydedildi' : 'Özet';
-        text = c.done ? 'Kaydedildi. Sıradaki kovan için sıradaki deyin, bitirmek için dur deyin.' : 'Özet hazır. Kaydetmek için kaydet, kaydedip sonraki kovana geçmek için kaydet ve sıradaki deyin.';
+        text = c.done ? 'Kaydettim. Sıradaki kovana geçelim mi? Sıradaki ya da dur deyin.' : 'Hepsi bu kadar. Kaydedeyim mi? Kaydet ya da kaydet ve sıradaki deyin.';
       } else {
         $('step').textContent = 'Adım ' + (c.i + 1) + ' / ' + c.n + ' · ' + c.def.q;
-        text = c.def.stepper ? c.def.q + '. Arılı ve yavrulu çerçeve sayısını söyleyin, örneğin sekiz arılı üç yavrulu.' : c.def.q + optsText(c);
+        text = naturalQ(c);
       }
       st.lastPrompt = text;
-      speak(text);
+      var pre = st.prefix; st.prefix = '';
+      speak(pre ? pre + ' ' + text : text);
     }
-    function after(msg, fn) { $('parsed').textContent = '✓ ' + msg; speak(msg, fn); }
+    /* Onay cümlesi bir sonraki soruyla birleştirilir («Tamam, yoğun. Ana arıyı gördünüz mü?»). */
+    function after(msg, fn) {
+      $('parsed').textContent = '✓ ' + msg;
+      if (!fn) { speak(msg); return; }
+      st.prefix = msg;
+      stopRec();
+      fn();
+      setTimeout(function () { if (st.prefix && st.on) { var m = st.prefix; st.prefix = ''; speak(m); } }, 350);
+    }
     function handle(text) {
       var c = api.cur(), id = c.summary ? 'summary' : c.id;
       var r = parse(id, text, { options: c.def && c.def.opts, stepper: c.def && c.def.stepper, sub: st.sub });
       if (r.cmd) {
         st.fails = 0;
-        if (r.cmd === 'stop') { after('Sesle muayene durdu.', function () { stop(); }); return; }
+        if (r.cmd === 'stop') { $('parsed').textContent = '✓ Durdu'; speak('Tamam, duruyorum.', function () { stop(); }); return; }
         if (r.cmd === 'repeat') { prompt(); return; }
-        if (r.cmd === 'back') { after('Geri.', function () { api.back(); }); return; }
-        if (r.cmd === 'skip') { after('Atlandı.', function () { if (c.summary) prompt(); else api.skip(); }); return; }
-        if (r.cmd === 'save') { if (c.done) { prompt(); return; } after('Kaydediliyor.', function () { api.save(false); }); return; }
+        if (r.cmd === 'back') { after('Bir önceki soruya dönüyorum.', function () { api.back(); }); return; }
+        if (r.cmd === 'skip') { after('Geçiyorum.', function () { if (c.summary) prompt(); else api.skip(); }); return; }
+        if (r.cmd === 'save') { if (c.done) { prompt(); return; } after('Kaydediyorum.', function () { api.save(false); }); return; }
         if (r.cmd === 'saveNext' || r.cmd === 'next') {
           if (c.done) { after('Sıradaki kovan.', function () { api.goNext(); }); return; }
-          after('Kaydediliyor, sıradaki kovana geçiliyor.', function () { api.save(true); }); return;
+          after('Kaydettim, sıradaki kovana geçiyorum.', function () { api.save(true); }); return;
         }
       }
-      if (r.note) { api.note(r.note); after('Not eklendi.', null); return; }
+      if (r.note) { api.note(r.note); after('Notu ekledim.', null); return; }
       if (r.frames) {
         st.fails = 0;
-        if (st.sub === 'brood') { var bee = st.bee; after(r.frames.brood + ' yavrulu çerçeve.', function () { api.frames(bee, r.frames.brood); }); return; }
-        if (r.frames.brood == null) { st.sub = 'brood'; st.bee = r.frames.bee; after(r.frames.bee + ' arılı çerçeve. Yavrulu kaç?', null); return; }
-        after(r.frames.bee + ' arılı, ' + r.frames.brood + ' yavrulu çerçeve.', function () { api.frames(r.frames.bee, r.frames.brood); }); return;
+        if (st.sub === 'brood') { var bee = st.bee; after('Tamam, ' + r.frames.brood + ' yavrulu.', function () { api.frames(bee, r.frames.brood); }); return; }
+        if (r.frames.brood == null) { st.sub = 'brood'; st.bee = r.frames.bee; after(r.frames.bee + ' arılı. Peki kaçında yavru var?', null); return; }
+        after('Tamam, ' + r.frames.bee + ' arılı, ' + r.frames.brood + ' yavrulu.', function () { api.frames(r.frames.bee, r.frames.brood); }); return;
       }
-      if (r.value != null) { st.fails = 0; var lab = api.optLabel(id, r.value); after(lab + '.', function () { api.answer(id, r.value); }); return; }
+      if (r.value != null) { st.fails = 0; var lab = api.optLabel(id, r.value); after(ack(lab), function () { api.answer(id, r.value); }); return; }
       st.fails++;
-      speak('Anlayamadım' + (st.fails > 1 ? '. ' + (c.def && c.def.opts ? optsText(c) : 'Bir sayı söyleyin.') + ' Ya da geç deyin.' : ', tekrar söyler misiniz?'));
+      speak(st.fails > 1 ? 'Yine anlayamadım.' + (c.def && c.def.opts ? optsText(c) : ' Bir sayı söyleyin.') + ' İsterseniz geç deyin.' : 'Kusura bakmayın, anlayamadım. Tekrar söyler misiniz?');
     }
     rec.onstart = function () { st.listening = true; state('Dinliyorum…', 'on'); };
     rec.onresult = function (e) {
@@ -249,7 +321,7 @@
     rec.onerror = function (e) {
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { st.on = false; state('Mikrofon izni verilmedi', ''); $('tr').textContent = 'Tarayıcı ayarlarından mikrofon iznini açın; dokunarak devam edebilirsiniz.'; return; }
       if (e.error === 'network') { $('parsed').textContent = 'Ses tanıma için internet gerekebilir (tarayıcı hizmeti). Dokunarak devam edin.'; return; }
-      if (e.error === 'no-speech') { if (st.on && !st.speaking) speak('Duyamadım. ' + (api.cur().summary ? 'Kaydet deyin.' : 'Tekrar söyler misiniz?')); }
+      if (e.error === 'no-speech') { if (st.on && !st.speaking) speak(api.cur().summary ? 'Sizi duyamadım. Kaydet deyin.' : 'Sizi duyamadım, tekrar söyler misiniz?'); }
     };
     rec.onend = function () { st.listening = false; if (st.on && !st.speaking) setTimeout(listen, 250); else if (!st.on) state('Durdu', ''); };
     function stop(silent) {
@@ -257,6 +329,19 @@
       api.onRender = null; active = null;
       if (!silent) { state('Durdu · dokunarak devam edin', ''); $('go').hidden = false; $('go').textContent = '🎙 Sesle yeniden başlat'; }
     }
+    function fillVoices() {
+      var sel = $('vsel'), list = trVoices(), cur = trVoice();
+      sel.innerHTML = list.length ? list.map(function (v, i) {
+        var tag = voiceRank(v) >= 40 ? ' · doğal' : '';
+        return '<option value="' + esc(v.voiceURI || v.name) + '"' + (cur && (cur.voiceURI || cur.name) === (v.voiceURI || v.name) ? ' selected' : '') + '>' + esc(v.name) + (i === 0 ? ' (önerilen)' : '') + tag + '</option>';
+      }).join('') : '<option value="">Cihazda Türkçe ses bulunamadı</option>';
+    }
+    $('vbtn').onclick = function () { var p = $('voices'); p.hidden = !p.hidden; if (!p.hidden) fillVoices(); };
+    $('vsel').onchange = function () { try { localStorage.setItem(VOICE_KEY, this.value); } catch (e) { /* ignore */ } };
+    $('vtest').onclick = function () {
+      try { global.speechSynthesis.cancel(); global.speechSynthesis.speak(utter('Merhaba. Kovan yüz bir. Yavru düzeni nasıl? Düzenli mi, biraz boşluklu mu?')); } catch (e) { /* ignore */ }
+    };
+    try { global.speechSynthesis.addEventListener('voiceschanged', function () { if (!$('voices').hidden) fillVoices(); }); } catch (e) { /* ignore */ }
     $('stop').onclick = function () { stop(); };
     $('repeat').onclick = function () { if (!st.on) { restart(); return; } prompt(); };
     $('go').onclick = function () { restart(); };
@@ -269,5 +354,5 @@
     else prompt();
     return ctl;
   }
-  root.SuperAriSesle = { parse: parse, parseNumber: parseNumber, numbers: numbers, supported: supported, start: start, stop: function () { if (active) active.stop(); } };
+  root.SuperAriSesle = { parse: parse, parseNumber: parseNumber, numbers: numbers, supported: supported, start: start, trVoices: trVoices, pickVoice: trVoice, voiceRank: voiceRank, stop: function () { if (active) active.stop(); } };
 })(typeof window !== 'undefined' ? window : this);
