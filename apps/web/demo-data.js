@@ -787,7 +787,7 @@
   }
 
   /* ---------- Koloni: ana arı + koloni özellikleri (tek kaynak: kovan kaydı) ---------- */
-  var COLONY_BREED_OPTIONS = ['Kafkas', 'Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karadeniz', 'Karniyol', 'Muğla', 'Anadolu', 'İtalyan', 'Diğer'];
+  var COLONY_BREED_OPTIONS = ['Kafkas', 'Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Kafkas × Anadolu', 'Karadeniz', 'Karniyol', 'Karniyol × Muğla', 'Muğla', 'Anadolu', 'İtalyan', 'Buckfast', 'Diğer'];
   var SWARM_TENDENCIES = ['Düşük', 'Orta', 'Yüksek'];
   var CALM_LABELS = { 1: 'Çok sinirli', 2: 'Sinirli', 3: 'Orta', 4: 'Sakin', 5: 'Çok sakin' };
   /* Uluslararası ana arı renk kodu (yılın son hanesi). */
@@ -2565,17 +2565,30 @@
   }
   /* Irk etkisi (oğul eğilimi): melez türü ayrı değerlendirilir. */
   /* Irk = ana arının karakteri (eğilim), kovanın durumu değil: yalnız küçük bir kaydırma (en fazla bir düzey, sınırda). */
+  var BREED_TENDENCY = {
+    'cok-dusuk': { f: 0.45, shift: -8, note: 'oğul eğilimi çok düşük' },
+    'dusuk': { f: 0.65, shift: -5, note: 'oğul eğilimi düşük' },
+    'orta': { f: 1.0, shift: 0, note: 'oğul eğilimi orta' },
+    'yuksek': { f: 1.2, shift: 4, note: 'oğul eğilimi yüksek' },
+    'cok-yuksek': { f: 1.3, shift: 6, note: 'oğul eğilimi çok yüksek' }
+  };
+  /* 5 düzeyli karakter ölçeği (melezler önce). */
   function breedSwarmFactor(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
-    var kaf = b.indexOf('kafkas') >= 0, kar = b.indexOf('karadeniz') >= 0, kni = b.indexOf('karniyol') >= 0;
-    if (kaf && kar) return { f: 0.45, shift: -8, note: 'oğul eğilimi çok düşük' };
-    if (kaf && kni) return { f: 1.0, shift: 0, note: 'oğul eğilimi orta (Karniyol etkisi)' };
-    if (kaf || kar) return { f: 0.65, shift: -5, note: 'oğul eğilimi düşük' };
-    if (kni) return { f: 1.3, shift: 6, note: 'oğul eğilimi yüksek' };
-    if (b.indexOf('muğla') >= 0 || b.indexOf('mugla') >= 0) return { f: 1.2, shift: 4, note: 'oğul eğilimi orta-yüksek' };
-    if (b.indexOf('anadolu') >= 0) return { f: 1.05, shift: 1, note: 'oğul eğilimi orta' };
-    if (b.indexOf('italyan') >= 0) return { f: 0.9, shift: -2, note: 'oğul eğilimi orta-düşük' };
-    return { f: 1.0, shift: 0, note: '' };
+    function has(x) { return b.indexOf(x) >= 0; }
+    var kaf = has('kafkas'), kar = has('karadeniz'), kni = has('karniyol'), mug = has('muğla') || has('mugla'), ana = has('anadolu');
+    var k = null;
+    if (kaf && kar) k = 'cok-dusuk';
+    else if (kaf && kni) k = 'orta';
+    else if (kaf && ana) k = 'dusuk';
+    else if (kni && mug) k = 'yuksek';
+    else if (kni) k = 'cok-yuksek';
+    else if (mug) k = 'yuksek';
+    else if (kaf || kar || has('buckfast')) k = 'dusuk';
+    else if (ana || has('italyan')) k = 'orta';
+    if (!k) return { f: 1.0, shift: 0, note: '', level: '' };
+    var t = BREED_TENDENCY[k];
+    return { f: t.f, shift: t.shift, note: t.note, level: k };
   }
   function swarmLevelOf(score) {
     var i = score >= 75 ? 4 : (score >= 55 ? 3 : (score >= 35 ? 2 : (score >= 15 ? 1 : 0)));
