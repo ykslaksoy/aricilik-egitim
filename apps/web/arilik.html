@@ -703,11 +703,12 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
+<script src="harita-offline.js?v=koloni-37"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=koloni-36"></script>
-<script src="rapor-store.js?v=koloni-36"></script>
-<script src="koloni.js?v=koloni-36"></script>
-<script src="forage-analysis.js?v=koloni-36"></script>
+<script src="demo-data.js?v=koloni-37"></script>
+<script src="rapor-store.js?v=koloni-37"></script>
+<script src="koloni.js?v=koloni-37"></script>
+<script src="forage-analysis.js?v=koloni-37"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
@@ -2996,7 +2997,8 @@
       el.innerHTML = '<div class="ymap-key-needed"><strong>Yandex harita modülü yok</strong></div>';
       return;
     }
-    if (!Y.hasApiKey()) {
+    var OMd = window.SuperAriOfflineMap;
+    if (!Y.hasApiKey() && !(OMd && OMd.shouldUseOffline())) {
       Y.showKeyRequired(el);
       return;
     }
@@ -3005,6 +3007,8 @@
     var zoom = hasCoords(apiary) ? 12 : 9;
     detailMapReady = Y.createMap(el, { center: center, zoom: zoom }).then(function (ctrl) {
       detailMapCtrl = ctrl;
+      /* haritayı ilk açışta (internet varken): bu bölgenin haritası telefona indirilsin mi? */
+      if (OMd && hasCoords(apiary) && !(ctrl.ymaps && ctrl.ymaps.__offline)) setTimeout(function () { OMd.ask(apiary, { reason: 'harita' }); }, 1200);
       radar = Y.attachRadar(ctrl, { radiusKm: forageRadiusKm });
       var wKm = currentWaterRadiusM() / 1000;
       waterRadar = Y.attachRadar(ctrl, {
@@ -3695,7 +3699,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-36"></script>
-<script src="pwa.js?v=koloni-36"></script>
+<script src="nav.js?v=koloni-37"></script>
+<script src="pwa.js?v=koloni-37"></script>
 </body>
 </html>

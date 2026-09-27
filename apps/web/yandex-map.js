@@ -120,7 +120,19 @@
       '</div>';
   }
 
+  /* İnternet yokken (veya Yandex yüklenemezse ve telefona harita indirilmişse): harita-offline.js'in ymaps uyumlu
+     çevrimdışı haritası (MapLibre + indirilen karolar). Yandex karoları saklanmaz (kullanım koşulları). */
+  function offlineMaps() { return global.SuperAriOfflineMap || null; }
   function loadYmaps() {
+    var OM = offlineMaps();
+    if (OM && OM.shouldUseOffline()) return OM.ymaps();
+    return loadYandex().catch(function (err) {
+      var O = offlineMaps();
+      if (O && O.hasAny() && String(err && err.message || '') !== 'yandex_api_key_missing') return O.ymaps();
+      throw err;
+    });
+  }
+  function loadYandex() {
     if (global.ymaps && typeof global.ymaps.ready === 'function') {
       return new Promise(function (resolve) {
         global.ymaps.ready(function () { resolve(global.ymaps); });
@@ -196,7 +208,8 @@
         : el;
     if (!node) return Promise.reject(new Error('map_el_missing'));
 
-    if (!hasApiKey()) {
+    var OMc = offlineMaps();
+    if (!hasApiKey() && !(OMc && OMc.shouldUseOffline())) {
       showKeyRequired(node);
       return Promise.reject(new Error('yandex_api_key_missing'));
     }

@@ -114,6 +114,7 @@ const SHELL = [
   "/giderler.html",
   "/giris.html",
   "/gorevler.html",
+  "/harita-offline.js",
   "/hastalik-tahmin.js",
   "/hava-gecmis.html",
   "/hava-kayit.js",
@@ -189,6 +190,24 @@ const SHELL = [
   "/yonetici.html"
 ];
 const NET_TIMEOUT_MS = 6000;
+/* Çevrimdışı harita (harita-offline.js indirir): OpenFreeMap vektör + EOX uydu karoları, MapLibre. Sürümden bağımsız, silinmez. */
+const MAPS = "superari-maps";
+function mapKey(url) {
+  const m = /^\/planet\/[^/]+\/(\d+)\/(\d+)\/(\d+)\.pbf$/.exec(url.pathname);
+  return url.hostname === "tiles.openfreemap.org" && m ? "https://tiles.openfreemap.org/__ofm/" + m[1] + "/" + m[2] + "/" + m[3] + ".pbf" : url.href;
+}
+function mapRequest(req, url) {
+  const key = mapKey(url);
+  return caches.open(MAPS).then((c) => c.match(key).then((hit) => {
+    /* TileJSON: çevrimiçiyken güncel sürüm (indirilmişse önbellekteki de yenilenir), çevrimdışı önbellek */
+    if (url.hostname === "tiles.openfreemap.org" && url.pathname === "/planet") {
+      return fetch(req).then((res) => { if (res.ok && hit) c.put(key, res.clone()).catch(() => {}); return res; })
+        .catch(() => hit || new Response("", { status: 504, statusText: "offline" }));
+    }
+    if (hit) return hit;
+    return fetch(req).catch(() => new Response("", { status: 504, statusText: "offline" }));
+  }));
+}
 
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {
@@ -210,7 +229,7 @@ self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys
-        .filter((k) => (k.indexOf("superari-") === 0 || k.indexOf("koloni-v") === 0) && k !== CACHE && k !== RUNTIME && k !== DATA)
+        .filter((k) => (k.indexOf("superari-") === 0 || k.indexOf("koloni-v") === 0) && k !== CACHE && k !== RUNTIME && k !== DATA && k !== MAPS)
         .map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
@@ -271,10 +290,11 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  /* Dış kaynaklar: yalnız hava durumu ve yazı tipleri (son yanıt çevrimdışı gösterilir); geri kalanı (Supabase, harita…) yalnız ağ. */
+  /* Dış kaynaklar: hava durumu ve yazı tipleri (son yanıt çevrimdışı), indirilen harita karoları; geri kalanı (Supabase, Yandex…) yalnız ağ. */
   if (url.origin !== self.location.origin) {
     if (/(^|\.)open-meteo\.com$/.test(url.hostname)) { e.respondWith(networkFirst(req, DATA)); return; }
     if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") { e.respondWith(cacheFirst(req, DATA)); return; }
+    if (url.hostname === "tiles.openfreemap.org" || url.hostname === "tiles.maps.eox.at") { e.respondWith(mapRequest(req, url)); return; }
     return;
   }
   if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") return;

@@ -159,7 +159,12 @@
           <strong style="font-size:.95rem;">📲 Uygulama ve çevrimdışı kullanım</strong>
           <p class="muted" id="pwa-status" style="margin:0;font-size:.85rem;line-height:1.4;"></p>
           <button class="btn" type="button" id="btn-pwa-install" hidden>📲 Ana ekrana ekle</button>
-          <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Uygulama bir kez internetle açıldıktan sonra internet olmadan da açılır; kayıtlar bu cihaza yazılır. Harita, hava durumu ve sesle yazma için internet gerekir.</p>
+          <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Uygulama bir kez internetle açıldıktan sonra internet olmadan da açılır; kayıtlar bu cihaza yazılır. Hava durumu ve sesle yazma için internet gerekir; harita için bölgenizi aşağıdan telefona indirin.</p>
+        </div>
+        <div id="harita-box" style="display:grid;gap:.45rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
+          <strong style="font-size:.95rem;">🗺 Haritaları telefona indir</strong>
+          <p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Arılıklarınızın bulunduğu bölgenin uydu ve yol haritasını indirin; dağda, köyde internet yokken de harita, arılık ve öneri pinleri görünür.</p>
+          <div id="harita-list" style="display:grid;gap:.4rem;min-width:0;"></div>
         </div>
         <div id="notif-box" style="display:grid;gap:.45rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
           <strong style="font-size:.95rem;">🔔 Görev bildirimleri</strong>
@@ -230,7 +235,7 @@
       </details>
     </section>
   </div>
-  <script src="demo-data.js?v=koloni-36"></script>
+  <script src="demo-data.js?v=koloni-37"></script>
   <script src="device-runtime.js"></script>
   <script>
   (function () {
@@ -628,8 +633,10 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="pwa.js?v=koloni-36"></script>
-<script src="bulut.js?v=koloni-36"></script>
+<script src="harita-offline.js?v=koloni-37"></script>
+<script>try { SuperAriOfflineMap.renderSettings(document.getElementById('harita-list')); } catch (e) {}</script>
+<script src="pwa.js?v=koloni-37"></script>
+<script src="bulut.js?v=koloni-37"></script>
 <script>
   (function () {
     var B = window.SuperAriBulut, el = document.getElementById('bulut-status');

@@ -394,11 +394,12 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
+<script src="harita-offline.js?v=koloni-37"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=koloni-36"></script>
-<script src="rapor-store.js?v=koloni-36"></script>
-<script src="koloni.js?v=koloni-36"></script>
-<script src="forage-analysis.js?v=koloni-36"></script>
+<script src="demo-data.js?v=koloni-37"></script>
+<script src="rapor-store.js?v=koloni-37"></script>
+<script src="koloni.js?v=koloni-37"></script>
+<script src="forage-analysis.js?v=koloni-37"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script>
 (function () {
@@ -659,7 +660,7 @@
       showError('Yandex harita modülü yüklenemedi.');
       return Promise.reject(new Error('no_ymap'));
     }
-    if (!Y.hasApiKey()) {
+    if (!Y.hasApiKey() && !(window.SuperAriOfflineMap && window.SuperAriOfflineMap.shouldUseOffline())) {
       Y.showKeyRequired('pickerMap');
       showError('Yandex harita için API anahtarı gerekli.');
       return Promise.reject(new Error('yandex_api_key_missing'));
@@ -1055,8 +1056,9 @@
     }
     function finishAdd(extra) {
       extra = extra || {};
+      var added = null;
       try {
-        D.addApiary({
+        added = D.addApiary({
           name: name,
           place: place,
           hiveCount: hiveCount,
@@ -1072,6 +1074,8 @@
       }
       closeSheet();
       render();
+      /* yeni arılık: çevresinin haritası telefona indirilsin mi? (internet varken) */
+      if (added && window.SuperAriOfflineMap) setTimeout(function () { window.SuperAriOfflineMap.ask(added, { reason: 'yeni' }); }, 500);
     }
     if (D && D.reverseGeocodeAdmin) {
       D.reverseGeocodeAdmin(lat, lon).then(function (geo) {
@@ -1101,7 +1105,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-36"></script>
-<script src="pwa.js?v=koloni-36"></script>
+<script src="nav.js?v=koloni-37"></script>
+<script src="pwa.js?v=koloni-37"></script>
 </body>
 </html>
