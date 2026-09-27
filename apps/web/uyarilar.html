@@ -79,8 +79,8 @@
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-22"></script>
-  <script src="ogul.js?v=koloni-22"></script>
+  <script src="demo-data.js?v=koloni-23"></script>
+  <script src="ogul.js?v=koloni-23"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -224,7 +224,7 @@
           modeSwitchEl.innerHTML = '';
           noteEl.textContent = duzey === 'izleme'
             ? 'Orta riskli kovanlar izlemededir. Oğul mevsiminde Bakım planına 7–10 günde bir «Oğul izleme» görevi eklenir; mevsim dışında görev açılmaz.'
-            : 'Oğul riski bölgenin oğul mevsimi, ana arı ırkı, koloni gücü, ana yaşı ve muayene kayıtlarına göre tahmin edilir.';
+            : 'Oğul riskini kovanın durumu (ana memesi, yer darlığı, koloni gücü, ana yaşı) ve bölgenin oğul mevsimi belirler; ana arı karakteri (ırk) yalnız küçük bir etkidir.';
           var apN = {}; (D.loadApiaries ? D.loadApiaries() : []).forEach(function (a) { apN[a.id] = a.name || a.place; });
           listEl.innerHTML = sel.map(function (r) {
             return '<a class="og-row" href="kovan.html?id=' + encodeURIComponent(r.h.id) + '" data-ogul-open="' + esc(r.h.id) + '"><b><span class="og-dot" style="background:' + r.a.color + '"></span>' + esc(r.h.name) +
@@ -336,6 +336,6 @@
       listEl.innerHTML = alerts.map(renderAlertCard).join('') || '<p class="muted">Açık uyarı yok.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-22"></script>
+<script src="pwa.js?v=koloni-23"></script>
 </body>
 </html>

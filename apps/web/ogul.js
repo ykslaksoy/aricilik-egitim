@@ -59,13 +59,15 @@
     var a = D.colony.swarm(h);
     var ap = D.apiaryById ? D.apiaryById(h.apiaryId) : null;
     var icon = { up: '▲', down: '▼', info: '•' };
+    function li(list) { return list.map(function (x) { return '<li><span class="i ' + x.dir + '">' + icon[x.dir] + '</span><span>' + esc(x.text) + '</span></li>'; }).join(''); }
+    var kar = a.details.filter(function (x) { return x.group === 'karakter'; });
     var html = '<div class="og-sheet" role="dialog" aria-modal="true" aria-label="Oğul riski ayrıntısı">' +
       '<h2>Oğul riski · ' + esc(h.name) + '<button type="button" class="og-x" data-og-close aria-label="Kapat">×</button></h2>' +
       '<div class="muted" style="font-size:13px;color:#6b5a48;">' + esc((ap ? ap.name : '') + (mode() === 'demo' ? ' · Demo' : '')) + '</div>' +
       '<span class="og-lvl" style="background:' + a.color + '">' + esc(a.level) + (a.key === 'orta' ? ' · izlemede' : '') + '</span>' +
-      '<div class="og-sec"><h3>Neden?</h3><ul class="og-why">' + a.details.map(function (x) {
-        return '<li><span class="i ' + x.dir + '">' + icon[x.dir] + '</span><span>' + esc(x.text) + '</span></li>';
-      }).join('') + '</ul></div>' +
+      '<div class="og-sec"><h3>Kovan durumu</h3><ul class="og-why">' + li(a.details.filter(function (x) { return x.group !== 'karakter'; })) + '</ul></div>' +
+      (kar.length ? '<div class="og-sec"><h3>Ana arı karakteri</h3><ul class="og-why">' + li(kar) + '</ul>' +
+        '<div class="og-foot" style="margin-top:4px;">Karakter yalnız eğilimi gösterir; düzeyi kovanın durumu belirler.</div></div>' : '') +
       '<div class="og-sec"><h3>Öneriler</h3>' + a.recs.map(function (r, i) {
         return '<div class="og-rec"><b>' + esc(r.title) + '</b><p>' + esc(r.detail) + '</p><div class="og-acts">' +
           (r.href ? '<a class="pri" href="' + esc(r.href) + '">Bölme ekranını aç</a>' : '') +
@@ -74,7 +76,7 @@
           '</div><div class="og-msg" data-og-msg="' + i + '" hidden></div></div>';
       }).join('') + '</div>' +
       (opts.hideHiveLink ? '' : '<div class="og-acts" style="margin-top:6px;"><a href="kovan.html?id=' + encodeURIComponent(h.id) + '">Kovan detayına git</a></div>') +
-      '<div class="og-foot">Oğul riski tahminidir: bölgenin oğul mevsimi, ana arı ırkı ve yaşı, koloni gücü ve muayene kayıtlarına göre belirlenir.</div></div>';
+      '<div class="og-foot">Oğul riski tahminidir: kovanın durumu (ana memesi, yer darlığı, koloni gücü ve yavru, ana yaşı, tartı), bölgenin oğul mevsimi ve ana arı karakterine göre belirlenir.</div></div>';
     var back = document.createElement('div');
     back.className = 'og-back'; back.id = 'ogulSheet'; back.innerHTML = html;
     back.addEventListener('click', function (e) {
