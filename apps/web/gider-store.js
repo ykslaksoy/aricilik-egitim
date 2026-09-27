@@ -4,8 +4,12 @@
  * Her gider bir arılığa bağlıdır (apiaryId).
  */
 (function (global) {
-  var STORAGE_KEY = 'superari.giderler.v1';
-  var TRANSPORT_KEY = 'superari.tasimalar.v1';
+  /* Demo ve Canlı ayrı anahtarlar: demo → .demo.v1; Canlı → .v1 (yalnız Canlı eşitlenir) */
+  var STORAGE_KEY_BASE = 'superari.giderler.v1';
+  var TRANSPORT_KEY_BASE = 'superari.tasimalar.v1';
+  function EK() { return modeKey(STORAGE_KEY_BASE); }
+  function TK() { return modeKey(TRANSPORT_KEY_BASE); }
+  function giderLive() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
   var MATERIALS_KEY = 'superari.malzemeler.v1';
 
   /* Soft pastel-vivid Hardal-friendly — light but lively (not muddy, not neon). */
@@ -464,7 +468,7 @@
     try { demo = localStorage.getItem('superari.workMode') !== 'live'; } catch (e) { demo = true; }
     return demo ? k.replace(/\.v(\d+)$/, '.demo.v$1') : k;
   }
-  var ORPHAN_PURGE_FLAG = 'superari.giderler.orphanPurge.v1';
+  var ORPHAN_PURGE_FLAG_BASE = 'superari.giderler.orphanPurge.v1';
 
   function readDeletedSeedIdMap() {
     try {
@@ -513,16 +517,16 @@
     var key = String(apiaryId || '');
     if (!key) return false;
     var changed = false;
-    var expenses = readJson(STORAGE_KEY);
+    var expenses = readJson(EK());
     if (Array.isArray(expenses) && expenses.length) {
       expenses = expenses.map(function (e) {
         if (!e || String(e.apiaryId || '') !== key) return e;
         changed = true;
         return clearExpenseApiaryLink(e);
       });
-      if (changed) writeJson(STORAGE_KEY, expenses.map(normalizeExpense).filter(Boolean));
+      if (changed) writeJson(EK(), expenses.map(normalizeExpense).filter(Boolean));
     }
-    var transports = readJson(TRANSPORT_KEY);
+    var transports = readJson(TK());
     if (Array.isArray(transports) && transports.length) {
       var tChanged = false;
       transports = transports.map(function (t) {
@@ -535,7 +539,7 @@
         });
       });
       if (tChanged) {
-        writeJson(TRANSPORT_KEY, transports);
+        writeJson(TK(), transports);
         changed = true;
       }
     }
@@ -553,7 +557,7 @@
     if (!Object.keys(live).length && !Object.keys(deleted).length) return false;
 
     var changed = false;
-    var expenses = readJson(STORAGE_KEY);
+    var expenses = readJson(EK());
     if (Array.isArray(expenses) && expenses.length) {
       expenses = expenses.map(function (e) {
         if (!e) return e;
@@ -563,9 +567,9 @@
         changed = true;
         return clearExpenseApiaryLink(e);
       });
-      if (changed) writeJson(STORAGE_KEY, expenses.map(normalizeExpense).filter(Boolean));
+      if (changed) writeJson(EK(), expenses.map(normalizeExpense).filter(Boolean));
     }
-    var transports = readJson(TRANSPORT_KEY);
+    var transports = readJson(TK());
     if (Array.isArray(transports) && transports.length) {
       var tChanged = false;
       transports = transports.map(function (t) {
@@ -581,11 +585,11 @@
         });
       });
       if (tChanged) {
-        writeJson(TRANSPORT_KEY, transports);
+        writeJson(TK(), transports);
         changed = true;
       }
     }
-    try { localStorage.setItem(ORPHAN_PURGE_FLAG, '1'); } catch (eFlag) { /* ignore */ }
+    try { localStorage.setItem(modeKey(ORPHAN_PURGE_FLAG_BASE), '1'); } catch (eFlag) { /* ignore */ }
     return changed;
   }
 
@@ -635,13 +639,13 @@
     });
     if (!added.length) return list;
     list = list.concat(added);
-    writeJson(STORAGE_KEY, list);
+    writeJson(EK(), list);
 
     var needYakitTransport = added.some(function (e) {
       return e.category === 'yakit';
     });
     if (needYakitTransport) {
-      var transports = readJson(TRANSPORT_KEY);
+      var transports = readJson(TK());
       if (!Array.isArray(transports)) transports = [];
       var seedYakit = seedExpenseForCategory('yakit');
       var hasT = transports.some(function (t) {
@@ -654,7 +658,7 @@
             break;
           }
         }
-        writeJson(TRANSPORT_KEY, transports);
+        writeJson(TK(), transports);
       }
     }
     return list;
@@ -680,7 +684,7 @@
       e.apiaryName = hint.name || e.apiaryName || '';
       return e;
     });
-    if (changed) writeJson(STORAGE_KEY, list.map(normalizeExpense).filter(Boolean));
+    if (changed) writeJson(EK(), list.map(normalizeExpense).filter(Boolean));
     return list;
   }
 
@@ -703,21 +707,60 @@
       out.push(normalizeExpense(seed));
       added = true;
     });
-    if (added) writeJson(STORAGE_KEY, out);
+    if (added) writeJson(EK(), out);
     return out;
   }
 
+  /* Eski sürümlerde Canlı anahtarında kalan örnek/şablon satırları bir kez yedeğe taşınır (silinmez). */
+  var LIVE_CLEAN_FLAG = 'superari.giderler.canliTemizlik.v1';
+  var LIVE_CLEAN_BACKUP = 'superari.giderler.canliTemizlik.yedek.v1';
+  var SEED_ID_MAP = {};
+  SEED_EXPENSES.forEach(function (e) { SEED_ID_MAP[e.id] = true; });
+  function isSeedishExpense(e) {
+    if (!e) return false;
+    var id = String(e.id || '');
+    if (SEED_ID_MAP[id] || id.indexOf('g-tpl-') === 0) return true;
+    if (e.templateKey) return true;
+    if (/\(standart kalem\)/.test(String(e.note || ''))) return true;
+    if (String(e.transportId || '').indexOf('t-seed-') === 0) return true;
+    return false;
+  }
+  function cleanLiveOnce() {
+    if (!giderLive()) return;
+    try { if (localStorage.getItem(LIVE_CLEAN_FLAG)) return; } catch (e0) { return; }
+    var ex = readJson(EK()), tr = readJson(TK());
+    var movedE = [], movedT = [], keepE = [], keepT = [];
+    (Array.isArray(ex) ? ex : []).forEach(function (e) { (isSeedishExpense(e) ? movedE : keepE).push(e); });
+    (Array.isArray(tr) ? tr : []).forEach(function (t) { ((t && String(t.id || '').indexOf('t-seed-') === 0) ? movedT : keepT).push(t); });
+    if (movedE.length || movedT.length) {
+      try { localStorage.setItem(LIVE_CLEAN_BACKUP, JSON.stringify({ at: new Date().toISOString(), expenses: movedE, transports: movedT })); } catch (e1) { return; }
+      if (Array.isArray(ex)) writeJson(EK(), keepE);
+      if (Array.isArray(tr)) writeJson(TK(), keepT);
+    }
+    try { localStorage.setItem(LIVE_CLEAN_FLAG, '1'); } catch (e2) { /* ignore */ }
+  }
+
   function loadExpenses() {
-    var parsed = readJson(STORAGE_KEY);
+    if (giderLive()) {
+      cleanLiveOnce();
+      var lp = readJson(EK());
+      if (!Array.isArray(lp) || !lp.length) return [];
+      var lmig = migrateExpenseApiaryNames(lp.map(normalizeExpense).filter(Boolean));
+      if (lmig.changed) writeJson(EK(), lmig.list);
+      purgeOrphanApiaryLabels();
+      var lafter = readJson(EK());
+      return (Array.isArray(lafter) ? lafter : lmig.list).map(normalizeExpense).filter(Boolean);
+    }
+    var parsed = readJson(EK());
     if (Array.isArray(parsed) && parsed.length) {
       var list = ensureApiaryLinks(
         ensureDemoCategoriesVisible(parsed.map(normalizeExpense).filter(Boolean))
       );
       var mig = migrateExpenseApiaryNames(list);
-      if (mig.changed) writeJson(STORAGE_KEY, mig.list);
+      if (mig.changed) writeJson(EK(), mig.list);
       purgeOrphanApiaryLabels();
       /* Re-read after possible orphan purge */
-      var after = readJson(STORAGE_KEY);
+      var after = readJson(EK());
       if (Array.isArray(after) && after.length) {
         list = after.map(normalizeExpense).filter(Boolean);
       } else {
@@ -725,39 +768,44 @@
       }
       return ensureSeedExpenseRows(list);
     }
-    writeJson(STORAGE_KEY, SEED_EXPENSES);
+    writeJson(EK(), SEED_EXPENSES);
     return SEED_EXPENSES.map(normalizeExpense);
   }
 
   function saveExpenses(list) {
     if (!Array.isArray(list)) return;
-    writeJson(STORAGE_KEY, list.map(normalizeExpense).filter(Boolean));
+    writeJson(EK(), list.map(normalizeExpense).filter(Boolean));
   }
 
   function loadTransports() {
-    var parsed = readJson(TRANSPORT_KEY);
+    if (giderLive()) {
+      cleanLiveOnce();
+      var lt = readJson(TK());
+      return Array.isArray(lt) ? lt : [];
+    }
+    var parsed = readJson(TK());
     if (Array.isArray(parsed) && parsed.length) {
       return parsed;
     }
-    var expenses = readJson(STORAGE_KEY);
+    var expenses = readJson(EK());
     if (!expenses || !Array.isArray(expenses) || !expenses.length) {
-      writeJson(TRANSPORT_KEY, SEED_TRANSPORTS);
+      writeJson(TK(), SEED_TRANSPORTS);
       return SEED_TRANSPORTS.slice();
     }
     var hasSeedLink = expenses.some(function (e) {
       return e && (e.id === 'g7' || e.id === 'g9') && e.transportId;
     });
     if (hasSeedLink || !expenses.length) {
-      writeJson(TRANSPORT_KEY, SEED_TRANSPORTS);
+      writeJson(TK(), SEED_TRANSPORTS);
       return SEED_TRANSPORTS.slice();
     }
-    writeJson(TRANSPORT_KEY, []);
+    writeJson(TK(), []);
     return [];
   }
 
   function saveTransports(list) {
     if (!Array.isArray(list)) return;
-    writeJson(TRANSPORT_KEY, list);
+    writeJson(TK(), list);
   }
 
   function syncLinkedTransport(gider) {
@@ -1350,6 +1398,7 @@
    */
   function reconcileApiaryExpenses(apiary) {
     var empty = { added: [], updated: [], removed: [], expectedTotal: 0 };
+    if (giderLive()) return empty; /* Canlı: otomatik standart kalem yok — yalnız kullanıcının girdiği giderler */
     var hives = hiveCountOf(apiary);
     if (!apiary || apiary.id == null || !(hives > 0)) return empty;
     var apiaryId = String(apiary.id);
@@ -1509,8 +1558,11 @@
     configurable: true,
     enumerable: true,
     value: {
-      STORAGE_KEY: STORAGE_KEY,
-      TRANSPORT_KEY: TRANSPORT_KEY,
+      get STORAGE_KEY() { return EK(); },
+      get TRANSPORT_KEY() { return TK(); },
+      LIVE_STORAGE_KEY: STORAGE_KEY_BASE,
+      LIVE_TRANSPORT_KEY: TRANSPORT_KEY_BASE,
+      isSeedishExpense: isSeedishExpense,
       MATERIALS_KEY: MATERIALS_KEY,
       CATEGORIES: CATEGORIES,
       SEED_EXPENSES: SEED_EXPENSES,

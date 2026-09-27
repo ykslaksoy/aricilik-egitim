@@ -144,17 +144,17 @@
     <section class="card stack" style="margin-top:1rem;">
       <h2 style="margin:0;font-size:1.05rem;">Nasıl çalışır?</h2>
       <ul class="muted" style="margin:0;padding-left:1.1rem;font-size:.82rem;line-height:1.45;display:grid;gap:.2rem;">
-        <li>Giriş yapınca Canlı moddaki tüm verileriniz (arılıklar, kovanlar ve kutu bilgisi, ana arılar, muayene, oğul ve diğer kayıtlar, elle tartımlar, fotoğraflar, görevler, stok, bakım planı ayarları) bir kez otomatik buluta yüklenir.</li>
+        <li>Giriş yapınca Canlı moddaki tüm verileriniz (arılıklar, kovanlar ve kutu bilgisi, ana arılar, muayene, oğul ve diğer kayıtlar, elle tartımlar, fotoğraflar, görevler, stok, bakım planı ayarları, arılığa bağlı giderler, taşıma kayıtları ve gelirler) bir kez otomatik buluta yüklenir.</li>
         <li>Uygulama önce bu cihazda çalışır; internet yokken de kayıt yapabilirsiniz. Değişiklikler sıraya alınır ve internet gelince buluta gönderilir.</li>
         <li>Uygulama açılınca buluttaki yenilikler alınır. Aynı kayıt iki yerde değiştiyse en son değiştirilen geçerli olur.</li>
         <li>Yalnız Canlı moddaki veriler eşitlenir; Demo moddaki örnek veriler hiçbir zaman buluta gitmez.</li>
-        <li>Kovanların sensör değerleri (ağırlık vb.) eşitlenmez.</li>
+        <li>Kovanların sensör değerleri (ağırlık vb.) eşitlenmez. Arılık seçilmeden girilen gider/gelir yalnız bu cihazda kalır.</li>
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-42"></script>
-  <script src="bulut.js?v=koloni-42"></script>
-  <script src="push.js?v=koloni-42"></script>
+  <script src="demo-data.js?v=koloni-43"></script>
+  <script src="bulut.js?v=koloni-43"></script>
+  <script src="push.js?v=koloni-43"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -452,7 +452,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-42"></script>
-<script src="pwa.js?v=koloni-42"></script>
+  <script src="nav.js?v=koloni-43"></script>
+<script src="pwa.js?v=koloni-43"></script>
 </body>
 </html>

@@ -25,6 +25,9 @@
     tasks: 'superari.gorevler.v1', done: 'superari.gorevTamam.v1', stock: 'superari.stok.v1',
     tarti: 'superari.tartiElle.v1', /* Elle tartım: records (kind colony_event, data.type 'elle_tarti') */
     saglik: 'superari.saglikSkor.v1', /* Sağlık skoru geçmişi: records (kind colony_event, data.type 'saglik') */
+    gider: 'superari.giderler.v1', /* Canlı giderler: records (kind colony_event, local_id 'gd:<id>', data.type 'gider') */
+    tasima: 'superari.tasimalar.v1', /* Canlı taşıma kaydı (gider bağlı): local_id 'ts:<id>' */
+    gelir: 'superari.rapor.gelir.live.v1', /* Canlı gelirler (kâr-zarar): local_id 'gl:<id>' */
     plan: 'superari.bakimPlan.v1' /* Bakım planı: arılık profili / çam balı (apiaries.data._plan), bal katı (hives.data._superSince) */
   };
   var SENSOR_FIELDS = ['weightKg', 'deltaKg', 'health', 'healthScore', 'colonyScore', 'swarmRisk'];
@@ -377,6 +380,19 @@
       });
     });
     opsRow(ops.batches, 'opsb', 'graft_batch');
+    /* Arılığa bağlı para kayıtları (gider · taşıma · gelir). Arılık seçilmemiş satır cihazda kalır. */
+    function moneyRows(name, pre, type) {
+      var arr = raw(name, []); if (!Array.isArray(arr)) return;
+      arr.forEach(function (x) {
+        if (!x || !x.id || x.demo) return;
+        var u = X.apUuid(x.apiaryId); if (!u) return;
+        var lid = pre + ':' + x.id, k = keyFor(st, name, lid, u), dd = mapRefs(x, toCloud); dd.type = type;
+        add(entry('records', k, { key: k, apiary_id: u, local_id: lid, hive_key: null, kind: 'colony_event', record_date: isoDate(x.date), data: dd }));
+      });
+    }
+    moneyRows('gider', 'gd', 'gider');
+    moneyRows('tasima', 'ts', 'tasima');
+    moneyRows('gelir', 'gl', 'gelir');
     function scopeOf(o) {
       if (o.apiaryId != null && o.apiaryId !== '') return { u: X.apUuid(o.apiaryId), ref: true };
       if (o.hiveId != null && o.hiveId !== '') { var hk = X.hiveKey(o.hiveId); return { u: hk ? hk.split(':')[0] : null, ref: !!X.hiveAp[String(Number(o.hiveId))] }; }
@@ -481,8 +497,10 @@
     var L = {
       apiaries: raw('apiaries', []), hives: raw('hives', []), queens: raw('queens', []), records: raw('records', {}),
       harvest: raw('harvest', []), ops: raw('ops', { events: [], batches: [] }), tasks: raw('tasks', []), done: raw('done', {}), stock: raw('stock', []),
-      plan: raw('plan', {}), tarti: raw('tarti', []), saglik: raw('saglik', {})
+      plan: raw('plan', {}), tarti: raw('tarti', []), saglik: raw('saglik', {}),
+      gider: raw('gider', []), tasima: raw('tasima', []), gelir: raw('gelir', [])
     };
+    ['gider', 'tasima', 'gelir'].forEach(function (k) { if (!Array.isArray(L[k])) L[k] = []; });
     if (!L.saglik || typeof L.saglik !== 'object' || Array.isArray(L.saglik)) L.saglik = {};
     if (!Array.isArray(L.tarti)) L.tarti = [];
     if (!L.plan || typeof L.plan !== 'object' || Array.isArray(L.plan)) L.plan = {};
@@ -581,6 +599,12 @@
       if (r.kind === 'harvest') {
         if (d) { var al = X.apLocal(r.apiary_id); if (al) d.apiaryId = al; delete d.demo; }
         upsertBy(L.harvest, lid, d); dirty.harvest = 1; done(r, 'harvest', lid); return;
+      }
+      var mm = r.kind === 'colony_event' && /^(gd|ts|gl):(.+)$/.exec(lid);
+      if (mm) {
+        var mn = { gd: 'gider', ts: 'tasima', gl: 'gelir' }[mm[1]];
+        if (d) { delete d.type; delete d.demo; d.id = mm[2]; var mal = X.apLocal(r.apiary_id); if (mal != null) d.apiaryId = mal; }
+        upsertBy(L[mn], mm[2], d); dirty[mn] = 1; done(r, mn, lid); return;
       }
       if (r.kind === 'colony_event' && ((d && d.type === 'elle_tarti') || String(r.local_id).indexOf('tw') === 0)) {
         if (d) { delete d.type; delete d.demo; if (r.hive_key) { var th = X.hiveOfKey(r.hive_key); if (th != null) d.hiveId = th; } }
