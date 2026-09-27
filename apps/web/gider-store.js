@@ -9,6 +9,8 @@
   var TRANSPORT_KEY_BASE = 'superari.tasimalar.v1';
   function EK() { return modeKey(STORAGE_KEY_BASE); }
   function TK() { return modeKey(TRANSPORT_KEY_BASE); }
+  /* Cihazlar arası çakışmasız kimlik (aynı ms'de iki kayıt da ayrı kalır) */
+  function newId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function giderLive() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
   var MATERIALS_KEY = 'superari.malzemeler.v1';
 
@@ -598,7 +600,7 @@
     var cat = String(e.category || 'diger');
     if (cat === 'fuel') cat = 'yakit';
     return {
-      id: String(e.id || ('g' + Date.now())),
+      id: String(e.id || newId('g')),
       title: String(e.title || '').trim() || 'Gider',
       category: cat,
       amount: Math.max(0, Number(e.amount) || 0),
@@ -870,8 +872,8 @@
           : (apiaryName ? 'Nakliye — ' + apiaryName : 'Nakliye');
     }
 
-    var transportId = 't' + Date.now();
-    var giderId = 'g' + Date.now();
+    var transportId = newId('t');
+    var giderId = newId('g');
     var category = mode === 'kendi_arac' ? 'yakit' : 'nakliye';
 
     var gider = normalizeExpense({
@@ -936,7 +938,7 @@
     var ap = resolveApiary(input);
     var expenses = loadExpenses();
     var gider = normalizeExpense({
-      id: 'g' + Date.now(),
+      id: newId('g'),
       title: input && input.title,
       category: input && input.category,
       amount: input && input.amount,
@@ -993,7 +995,7 @@
     ensureMaterial(gider.title);
 
     if (mode && !gider.transportId) {
-      gider.transportId = 't' + Date.now();
+      gider.transportId = newId('t');
       var transports = loadTransports();
       transports.push({
         id: gider.transportId,
@@ -1260,7 +1262,7 @@
     var baseNote = String((input && input.note) || '').trim();
     var expenses = loadExpenses();
     var created = [];
-    var stamp = Date.now();
+    var stamp = newId('');
 
     parts.forEach(function (part, i) {
       var noteParts = [];
@@ -1317,7 +1319,7 @@
     });
 
     var created = [];
-    var stamp = Date.now();
+    var stamp = newId('');
     gap.missing.forEach(function (miss, i) {
       var id = String(miss.apiaryId);
       var key = materialKey(gap.title) + '::' + id;
