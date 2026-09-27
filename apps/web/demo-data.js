@@ -821,6 +821,16 @@
     }
     return null;
   }
+  function normBoxes(b) {
+    if (!b || typeof b !== 'object') return null;
+    var body = Math.round(Number(b.body)), kat = Math.round(Number(b.kat));
+    if (!isFinite(body) || body < 1 || body > 3) body = 1;
+    if (!isFinite(kat) || kat < 0 || kat > 4) kat = 0;
+    var o = { body: body, kat: kat, ballik: b.ballik === true };
+    if (o.ballik && !o.kat) o.kat = 1;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.date || ''))) o.date = String(b.date);
+    return o;
+  }
   function copyColonyFields(out, h) {
     if (!h) return out;
     var qy = parseQueenYear(h.queenYear);
@@ -848,7 +858,12 @@
     if (h.colonyState === 'birlestirildi') out.colonyState = 'birlestirildi';
     if (h.mergedInto != null && isFinite(Number(h.mergedInto))) out.mergedInto = Number(h.mergedInto);
     if (h.splitFrom != null && isFinite(Number(h.splitFrom))) out.splitFrom = Number(h.splitFrom);
-    if (h.createdBy === 'bolme') out.createdBy = 'bolme';
+    if (h.createdBy === 'bolme' || h.createdBy === 'ogul') out.createdBy = h.createdBy;
+    if (h.swarmFrom != null && isFinite(Number(h.swarmFrom))) out.swarmFrom = Number(h.swarmFrom);
+    if (h.lastSwarmDate && /^\d{4}-\d{2}-\d{2}$/.test(String(h.lastSwarmDate))) out.lastSwarmDate = String(h.lastSwarmDate);
+    /* Kovan kutusu: gövde (kuluçkalık) sayısı, kat sayısı, ballık takılı mı. */
+    var bx = normBoxes(h.boxes);
+    if (bx) out.boxes = bx;
     if (h.queenGivenAt && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenGivenAt))) out.queenGivenAt = String(h.queenGivenAt);
     /* Soy: bu kovanda yetişecek (veya yetişmiş) ananın annesi (bölmede kaynak kovanın anası). */
     if (h.pendingMother && typeof h.pendingMother === 'object' && (h.pendingMother.breed || h.pendingMother.queenId)) {
@@ -2778,10 +2793,11 @@
     else if (strength === 'zayıf') { s -= 20; R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
     if (broodF != null && broodF >= 6) { s += 10; R('yavru', 'Çok yavru (' + broodF + ' çerçeve)', 'up'); }
     else if (broodF != null && broodF >= 4) s += 5;
-    var sup = (ctx.plan || (ctx.plan = planState())).supers;
-    var hasSuper = !!(sup && sup[String(id)]);
-    /* Yer darlığı: arılı çerçeve / kutu kapasitesi (10 çerçeveli gövde + bal katı varsa 10). */
-    var capF = 10 + (hasSuper ? 10 : 0);
+    var bxs = hiveBoxes(h, ctx.plan || (ctx.plan = planState()));
+    var hasSuper = !!(bxs && (bxs.kat > 0 || bxs.ballik));
+    /* Yer darlığı: arılı çerçeve / kutu kapasitesi (her gövde ve kat 10 çerçeve). */
+    var capF = bxs ? bxs.frames : 10;
+    if (bxs && bxs.known) R('kutu', 'Kovan: ' + bxs.label + ' (' + capF + ' çerçeve yer)', 'info');
     var space = false, severe = false;
     if (bees != null) {
       var used = bees / capF;
@@ -2803,8 +2819,12 @@
     var dk = Number(h.deltaKg) || 0;
     if (inSeason && dk >= 1.5) { s += 6; R('tarti', 'Hızlı ağırlık artışı (bal akımı, yer dolmakta)', 'up'); }
     else if (inSeason && dk <= -2) { s += 10; R('tarti', 'Ani ağırlık düşüşü — oğul çıkmış olabilir, kontrol edin', 'up'); }
-    if (h.lastSwarmDate && /^\d{4}-\d{2}-\d{2}$/.test(String(h.lastSwarmDate)) && String(h.lastSwarmDate) >= addDays(ctx.date || todayLocal(), -365)) {
-      s += 10; R('gecmis', 'Son bir yılda oğul verdi (' + fmtTrShort(String(h.lastSwarmDate)) + ')', 'up');
+    var swD = h.lastSwarmDate && /^\d{4}-\d{2}-\d{2}$/.test(String(h.lastSwarmDate)) ? String(h.lastSwarmDate) : '';
+    var today0 = ctx.date || todayLocal();
+    /* Bu mevsim oğul verdiyse (son 120 gün): koloni ana memesinden yeni ana yetiştirir, tekrar oğul riski düşüktür. */
+    var recentSwarm = !!(swD && swD <= today0 && swD >= addDays(today0, -120));
+    if (swD && !recentSwarm && swD >= addDays(today0, -365)) {
+      s += 10; R('gecmis', 'Son bir yılda oğul verdi (' + fmtTrShort(swD) + ')', 'up');
     }
     if (h.sensorSwarmSignal === true) { s += 15; R('sensor', 'Sensör: oğul öncesi ses/ısı işareti', 'up'); }
     s = Math.max(0, Math.min(100, s)) * season.factor;
@@ -2846,6 +2866,15 @@
       why.splice(1, 0, st.emergencyCell
         ? { key: 'acil', text: 'Acil ana memesi (genç larvadan' + (cellN ? ', ' + cellN + ' meme' : '') + ') — koloni anasız, yeni ana yetiştiriyor' + cd, dir: 'down', group: 'durum' }
         : { key: 'anasiz', text: 'Koloni anasız — oğul vermez', dir: 'down', group: 'durum' });
+    }
+    if (recentSwarm) {
+      /* Oğuldan 3 haftadan uzun süre sonra yeniden alt kenar memesi kaydı varsa sınırlama kalkar. */
+      var lateCell = cell && st && st.brood && st.brood.date && st.brood.date > addDays(swD, 21);
+      if (!lateCell) {
+        s = Math.min(s, 15);
+        why = why.filter(function (x) { return x.key !== 'yer' && x.key !== 'tarti'; });
+        why.splice(1, 0, { key: 'ogulverdi', text: 'Oğul verdi (' + fmtTrShort(swD) + ') — bu mevsim tekrar oğul riski düşük', dir: 'down', group: 'durum' });
+      }
     }
     s = Math.round(Math.max(0, Math.min(100, s)));
     var lv = swarmLevelOf(s);
@@ -3938,8 +3967,133 @@
     });
     return out;
   }
+  /* ================= Kovan kutusu (gövde / kat / ballık) ================= */
+  function boxLabel(b) {
+    if (!b) return '';
+    return b.body + ' gövde' + (b.kat ? ' + ' + b.kat + ' kat' : '') + (b.ballik ? ' (ballık takılı)' : '');
+  }
+  /** Kovanın kutusu: kayıtlı değilse Bakım planındaki «bal katı» işaretinden tahmin. { body, kat, ballik, frames, label, known } */
+  function hiveBoxes(h, plan) {
+    if (h != null && typeof h !== 'object') h = hiveById(h);
+    if (!h) return null;
+    var b = normBoxes(h.boxes), known = !!b;
+    if (!b) {
+      var sup = (plan || planState()).supers, on = !!(sup && sup[String(h.id)]);
+      b = { body: 1, kat: on ? 1 : 0, ballik: on };
+    }
+    b.frames = 10 * (b.body + b.kat); b.label = boxLabel(b); b.known = known;
+    return b;
+  }
+  function setHiveBoxes(hiveId, box) {
+    var n = Number(hiveId), list = loadHives(), found = null;
+    var bx = normBoxes(box); if (!bx) return null;
+    if (!bx.date) bx.date = todayLocal();
+    var out = list.map(function (h) {
+      if (h.id !== n) return h;
+      var c = cloneObj(h); c.boxes = bx; c.colonyUpdatedAt = new Date().toISOString();
+      found = normalizeHive(c); return found;
+    });
+    if (!found) return null;
+    saveHives(out);
+    /* Bakım planındaki bal katı işareti kutu bilgisiyle uyumlu kalsın. */
+    try {
+      var k = workMode() === 'live' ? 'superari.bakimPlan.v1' : 'superari.bakimPlan.demo.v1';
+      var ps = JSON.parse(localStorage.getItem(k) || '{}') || {};
+      if (!ps.supers || typeof ps.supers !== 'object') ps.supers = {};
+      var had = !!ps.supers[String(n)], want = bx.kat > 0 || bx.ballik;
+      if (want && !had) ps.supers[String(n)] = bx.date;
+      if (!want && had) delete ps.supers[String(n)];
+      if (want !== had) localStorage.setItem(k, JSON.stringify(ps));
+    } catch (e) { /* ignore */ }
+    try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e2) { /* ignore */ }
+    return found;
+  }
+
+  /* ================= Oğul verdi ================= */
+  /**
+   * Oğul kaydı. o: { sourceId, date, outcome: 'yakalandi' | 'kayip', target: 'yeni' | 'mevcut', targetHiveId, apiaryId, name, beeFrames, note }
+   * Soy: oğulla giden ana eski anadır → yakalanıp kovanlanırsa yeni kovana yerleşir; kaynak kovan ana memesinden
+   * yeni (kız) ana yetiştirir (pendingMother: origin 'ogul').
+   */
+  function recordSwarm(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal();
+    var list = loadHives();
+    var src = null; list.forEach(function (h) { if (h.id === Number(o.sourceId)) src = h; });
+    if (!src) throw new Error('Kovan bulunamadı');
+    var outcome = o.outcome === 'kayip' ? 'kayip' : 'yakalandi';
+    var target = outcome === 'kayip' ? null : (o.target === 'mevcut' ? 'mevcut' : 'yeni');
+    var queens = loadQueens();
+    var q = src.currentQueenId ? queenById(src.currentQueenId, queens) : null;
+    var sc = cloneObj(src), nh = null, tgt = null, aps = null, ap = null;
+    if (target === 'mevcut') {
+      list.forEach(function (h) { if (h.id === Number(o.targetHiveId)) tgt = h; });
+      if (!tgt) throw new Error('Oğulun konduğu kovanı seçin');
+      if (tgt.id === src.id) throw new Error('Kaynak kovan seçilemez');
+      if (tgt.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovan seçilemez');
+      nh = cloneObj(tgt);
+    } else if (target === 'yeni') {
+      var apiaryId = String(o.apiaryId || src.apiaryId);
+      aps = loadApiaries(); aps.forEach(function (a) { if (String(a.id) === apiaryId) ap = a; });
+      if (!ap) throw new Error('Arılık bulunamadı');
+      var used = {}, maxId = 0, maxAp = 0;
+      list.forEach(function (h) { used[h.id] = true; maxId = Math.max(maxId, h.id); if (String(h.apiaryId) === apiaryId) maxAp = Math.max(maxAp, h.id); });
+      var nid = maxAp + 1; while (used[nid]) nid = ++maxId + 1;
+      nh = normalizeHive({ id: nid, name: txt(o.name, 60) || ('Kovan ' + nid), apiaryId: apiaryId, strength: 'orta', breed: (q && q.breed) || src.breed, swarmRisk: 'Düşük' });
+      nh.createdBy = 'ogul'; nh.swarmFrom = src.id;
+    }
+    var nName = nh ? nh.name : '';
+    /* Eski ana kaynaktan ayrılır. */
+    if (q) {
+      closePlacement(q, src.id, date, outcome === 'kayip' ? 'Oğulla gitti (kayıp)' : 'Oğulla çıktı → ' + nName);
+      pushQueenHist(sc, { date: date, oldQueenId: q.id, oldYear: q.year, oldBreed: q.breed, label: 'Oğul verdi: ana oğulla ' + (outcome === 'kayip' ? 'gitti (kayıp)' : 'çıktı (' + nName + ')') });
+    }
+    setQueenless(sc, date);
+    sc.pendingMother = { date: date, origin: 'ogul', queenId: q ? q.id : '', breed: (q && q.breed) || src.breed || '', fromHiveId: src.id };
+    sc.lastSwarmDate = date;
+    if (nh) {
+      if (target === 'mevcut') {
+        var oq = nh.currentQueenId ? queenById(nh.currentQueenId, queens) : null;
+        if (oq) closePlacement(oq, nh.id, date, 'Oğul kondu, önceki ana ayrıldı');
+      }
+      if (q) {
+        placeQueen(nh, q, date);
+        pushQueenHist(nh, { date: date, newQueenId: q.id, newYear: q.year, newBreed: q.breed, label: 'Oğul kovanlandı: ana ' + src.name + ' kovanından' });
+      } else { mirrorQueenToHive(nh, null); delete nh.queenless; if (src.breed) { nh.breed = src.breed; nh.breedEstimated = true; } }
+      nh.swarmFrom = src.id;
+    }
+    var evId = opsId('ev');
+    var tx = outcome === 'kayip' ? 'Oğul verdi — kaçtı (kayıp)' : 'Oğul verdi — yakalandı, ' + nName + ' kovanına konuldu';
+    pushEvent(sc, { id: evId, date: date, type: 'ogul', text: tx + '; kovan ana memesinden yeni ana yetiştiriyor', otherHiveId: nh ? nh.id : undefined });
+    if (nh) pushEvent(nh, { id: evId, date: date, type: 'ogul', text: 'Oğul kondu (' + src.name + ' kovanından' + (q ? ', ana ' + q.id : '') + ')', otherHiveId: src.id });
+    var out = list.map(function (h) { return h.id === src.id ? normalizeHive(sc) : (nh && target === 'mevcut' && h.id === nh.id ? normalizeHive(nh) : h); });
+    if (target === 'yeni') {
+      out.push(normalizeHive(nh));
+      ap.hiveCount = out.filter(function (h) { return String(h.apiaryId) === String(ap.id); }).length;
+      saveApiaries(aps);
+    }
+    saveQueens(queens);
+    saveHives(out);
+    var bees = intIn(o.beeFrames, 0, 20);
+    if (nh && bees) addRecord(nh.id, 'strength', { date: date, beeFrames: bees, broodFrames: 0, honeyFrames: 0, pollenFrames: 0, note: 'Oğul kovanlandı (' + src.name + ')' + (workMode() === 'demo' ? ' · Demo' : '') });
+    var ops = readOps();
+    var ev = { id: evId, type: 'ogul', date: date, fromHiveId: src.id, toHiveId: nh ? nh.id : null, outcome: outcome, target: target, queenId: q ? q.id : null, note: txt(o.note, 300) };
+    if (workMode() === 'demo') ev.demo = true;
+    ops.events.push(ev);
+    writeOps(ops);
+    try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
+    return { eventId: evId, newHiveId: nh ? nh.id : null, newHiveName: nName, queenId: q ? q.id : null };
+  }
+  function swarmEvents(hiveId) {
+    var n = Number(hiveId);
+    return readOps().events.filter(function (e) { return e && e.type === 'ogul' && (Number(e.fromHiveId) === n || Number(e.toHiveId) === n); })
+      .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  }
+
   var colonyOps = {
     GRAFT_TIMELINE: GRAFT_TIMELINE,
+    recordSwarm: recordSwarm,
+    swarmEvents: swarmEvents,
     split: splitHive,
     merge: mergeHives,
     moveQueen: moveQueen,
@@ -4257,6 +4411,11 @@
         SWARM_LEVELS: SWARM_LEVELS,
         swarm: function (h, date) { return swarmAssess(h, date ? { date: date } : null); },
         swarmLevelOf: swarmLevelOf,
+        boxes: function (h) { return hiveBoxes(h); },
+        setBoxes: setHiveBoxes,
+        boxLabel: boxLabel,
+        recordSwarm: function (o) { return recordSwarm(o); },
+        swarmEvents: swarmEvents,
         swarmSeason: function (apId, date) { return swarmSeason(apId, date); },
         autoSeasonProfile: autoSeasonProfile
       },

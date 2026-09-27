@@ -109,8 +109,21 @@
   function setProfile(apId, key) { var s = loadSt(); if (PROFILES[key]) s.profiles[apId] = key; else delete s.profiles[apId]; saveSt(s); }
   function camBali(apId) { var s = loadSt(); return s.camBali[apId] !== false; }
   function setCamBali(apId, on) { var s = loadSt(); s.camBali[apId] = !!on; saveSt(s); }
-  function hasSuper(hiveId) { return !!loadSt().supers[String(hiveId)]; }
-  function setSuper(hiveId, on) { var s = loadSt(); if (on) s.supers[String(hiveId)] = today(); else delete s.supers[String(hiveId)]; saveSt(s); }
+  function boxesOf(hiveId) { try { return D.colony.boxes ? D.colony.boxes(D.hiveById(hiveId)) : null; } catch (e) { return null; } }
+  function hasSuper(hiveId) {
+    var b = boxesOf(hiveId);
+    if (b && b.known) return b.kat > 0 || b.ballik;
+    return !!loadSt().supers[String(hiveId)];
+  }
+  function setSuper(hiveId, on) {
+    var s = loadSt(); if (on) s.supers[String(hiveId)] = today(); else delete s.supers[String(hiveId)]; saveSt(s);
+    /* Kutu bilgisi kayıtlıysa onu da güncelle (kat / ballık). */
+    var b = boxesOf(hiveId);
+    if (b && b.known && D.colony.setBoxes) {
+      if (on && !b.kat && !b.ballik) D.colony.setBoxes(hiveId, { body: b.body, kat: 1, ballik: true });
+      else if (!on && (b.kat || b.ballik)) D.colony.setBoxes(hiveId, { body: b.body, kat: 0, ballik: false });
+    }
+  }
 
   /** Arılığın yıl içi evreleri (tarihleri ile). */
   function phases(apId, year) {
@@ -166,7 +179,8 @@
   var KG_PER_HONEY_FRAME = 2; /* dolu Langstroth bal çerçevesi ≈ 2 kg (tahmin) */
   var SYRUP = { /* 1 L şurup içeriği (ağırlıkça oran; yoğunluk ≈ 1,33 / 1,23) ve kışlık stoğa katkısı (uygulamadaki katsayı) */
     surup21: { label: 'Şurup 2:1', sugarKg: 0.89, waterL: 0.44, storeKg: 0.8, perFeedL: 3, everyDays: 3 },
-    surup11: { label: 'Şurup 1:1', sugarKg: 0.62, waterL: 0.62, storeKg: 0.5, perFeedL: 1, everyDays: 3 }
+    surup11: { label: 'Şurup 1:1', sugarKg: 0.62, waterL: 0.62, storeKg: 0.5, perFeedL: 1, everyDays: 3 },
+    kek: { label: 'Kek (fondan)', sugarKg: 1, waterL: 0, storeKg: 1, perFeedL: 2, everyDays: 7, unit: 'kg' }
   };
   function hiveState(h) {
     var R = D.records, rec = R.recordsFor(h.id);
@@ -180,9 +194,12 @@
     return { hive: h, strength: s, beeFrames: s ? s.beeFrames : null, honeyFrames: s ? s.honeyFrames : null, cls: s ? R.strengthClass(s) : null,
       varroa: vr, lastTreat: lastTreat, winter: w, disease: rec.disease };
   }
+  /* Ağustos sonu – Ekim: kışlık besleme dönemi (bölgeden bağımsız; akım varsa akım önce gelir). */
+  function isAutumn(d) { var md = String(d || today()).slice(5); return md >= '08-20' && md <= '10-31'; }
   function seasonKind(apId, d) {
     d = d || today();
     if (flowAt(apId, d).flow) return 'akim';
+    if (isAutumn(d)) return 'sonbahar';
     var ph = phases(apId, Number(d.slice(0, 4)));
     var cur = ph.filter(function (x) { return d >= x.from && d <= x.to && !x.flow; }).map(function (x) { return x.key; });
     if (cur.indexOf('sonbahar') >= 0 || cur.indexOf('kis') >= 0) return 'sonbahar';
@@ -211,8 +228,34 @@
     }
     out.storesKg = measured != null ? measured : Math.round((frameKg + (sk === 'sonbahar' || sk === 'kis' ? fedKg : 0)) * 10) / 10;
     out.storesSrc = measured != null ? 'kışlık kaydındaki ölçüm + sonraki beslemeler' : st.honeyFrames + ' bal çerçevesi × ' + KG_PER_HONEY_FRAME + ' kg' + (fedKg && (sk === 'sonbahar' || sk === 'kis') ? ' + bu sonbahar verilen besin' : '');
-    if (sk === 'akim') { out.need = false; out.reason = 'Bal akımında şurup verilmez (bala karışır).'; return out; }
     var type, target;
+    if (sk === 'akim') {
+      var fl = flowAt(apId).phase, sup = hasSuper(h.id), autumnFlow = isAutumn(today());
+      var tgt = autumnFlow ? pr.winterKg : pr.springMinKg;
+      var def0 = Math.max(0, Math.round((tgt - out.storesKg) * 10) / 10);
+      out.flow = fl; out.targetKg = tgt; out.deficitKg = def0;
+      var flTxt = (fl ? fl.label + ', bitiş ' + fmt(fl.to) : 'bal akımı');
+      if (!sup) {
+        /* Bal katı / ballık yok: şurup hasat edilecek bala karışmaz → normal (kışlık) hesap. */
+        out.flowNote = 'Bölgede ' + flTxt + ', ancak bu kovanda bal katı yok: besleme bala karışmaz. Hasat edilecek bal çerçevesi varsa önce onları alın.';
+        sk = autumnFlow ? 'sonbahar' : 'yaz'; out.season = sk;
+      } else {
+        var emerg = pr.springMinKg;
+        if (out.storesKg >= emerg) {
+          out.need = false;
+          out.reason = 'Bal akımında (' + flTxt + ') bal katı takılı kovana şurup verilmez (bala karışır). ' + (def0 ? 'Akım bitince kışlık hedef ' + tgt + ' kg: açık ≈ ' + num(def0) + ' kg (≈ ' + num(Math.ceil(def0 / SYRUP.surup21.storeKg * 2) / 2) + ' L 2:1 şurup).' : 'Stok hedefte.');
+          return out;
+        }
+        /* Açlık riski: akımda bile kek (fondan) verilir; bala geçmesi çok azdır. */
+        var kg = Math.min(4, Math.max(1, Math.ceil((emerg - out.storesKg) * 2) / 2));
+        out.need = true; out.type = 'kek'; out.kekKg = kg; out.feedings = Math.max(1, Math.ceil(kg / 2)); out.perFeedKg = Math.round(kg / out.feedings * 10) / 10; out.everyDays = 7;
+        out.liters = kg; out.perFeedL = out.perFeedKg; out.sugarKg = kg; out.waterL = 0;
+        out.stock = feedStock('kek', out);
+        out.reason = 'Bal akımı (' + flTxt + '): şurup yerine kek.';
+        out.note = 'Stok çok az (≈ ' + num(out.storesKg) + ' kg): akımda şurup verilmez ama açlık riskine karşı kek verin. Akım bitince kışlık hedef ' + tgt + ' kg için 2:1 şurupla tamamlayın.';
+        return out;
+      }
+    }
     if (sk === 'sonbahar' || sk === 'kis') {
       type = 'surup21';
       target = pr.winterKg;
@@ -238,6 +281,10 @@
   }
   function feedStock(type, fp) {
     var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+    if (type === 'kek') {
+      var kk = list.filter(function (x) { return (x.category === 'kek' || x.feedType === 'kek') && x.unit === 'kg'; })[0] || null;
+      return kk ? { use: 'syrup', item: kk, perFeed: fp.perFeedKg, unit: 'kg', total: fp.kekKg, short: kk.qty < fp.kekKg } : {};
+    }
     var syr = list.filter(function (x) { return x.feedType === type && x.unit === 'L'; })[0] || null;
     var sug = list.filter(function (x) { return x.category === 'seker' && x.unit === 'kg'; })[0] || null;
     var o = { syrup: syr, sugar: sug };
@@ -254,15 +301,16 @@
     var t = today();
     var ov = Number(String(amountL == null ? '' : amountL).replace(',', '.'));
     if (isFinite(ov) && ov > 0 && ov <= 20) { fp.perFeedL = Math.round(ov * 10) / 10; if (fp.stock && fp.stock.use === 'syrup') fp.stock.perFeed = fp.perFeedL; else if (fp.stock && fp.stock.use === 'sugar') fp.stock.perFeed = Math.round(fp.perFeedL * SYRUP[fp.type].sugarKg * 10) / 10; }
+    var U = SYRUP[fp.type].unit || 'L';
     var rec = D.records.add(h.id, 'feed', { date: t, type: fp.type, amount: fp.perFeedL, note: 'Bakım planı · ' + fp.feedings + ' beslemenin 1.si (tahmini açık ' + num(fp.deficitKg) + ' kg)' });
-    var msg = SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' L kaydedildi.', low = null;
+    var msg = SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' ' + U + ' kaydedildi.', low = null;
     var s = fp.stock;
     if (s && s.item) {
       var after = D.stock.adjust(s.item.id, -s.perFeed, 'Besleme · ' + h.name, t);
       if (after) { msg += ' Stoktan ' + num(s.perFeed) + ' ' + s.unit + ' düşüldü (' + after.name + ': ' + num(after.qty) + ' ' + after.unit + ').'; if (after.low) low = after; }
     } else msg += ' Stokta şurup/şeker kalemi yok; düşülmedi.';
     for (var i = 1; i < fp.feedings; i++) {
-      D.taskStore.add({ title: 'Besleme ' + (i + 1) + '/' + fp.feedings + ': ' + SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' L — ' + h.name + (mode() === 'demo' ? ' · Demo' : ''), hiveId: h.id,
+      D.taskStore.add({ title: 'Besleme ' + (i + 1) + '/' + fp.feedings + ': ' + SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' ' + U + ' — ' + h.name + (mode() === 'demo' ? ' · Demo' : ''), hiveId: h.id,
         due: addDays(t, i * fp.everyDays), priority: 2, note: 'Bakım planı besleme' });
     }
     if (fp.feedings > 1) msg += ' Kalan ' + (fp.feedings - 1) + ' besleme görevlere eklendi.';
@@ -272,6 +320,7 @@
   }
   function feedText(fp) {
     if (!fp.need) return fp.reason;
+    if (fp.type === 'kek') return 'Kek (fondan): ' + num(fp.kekKg) + ' kg, ' + fp.feedings + ' seferde ' + num(fp.perFeedKg) + ' kg (7 günde bir) · ' + fp.reason;
     return (fp.weak ? 'Zayıf koloni: önce birleştirmeyi düşünün. ' : '') + SYRUP[fp.type].label + ': ' + num(fp.liters) + ' L (≈ ' + num(fp.sugarKg) + ' kg şeker + ' + num(fp.waterL) + ' L su), ' + fp.feedings + ' seferde ' + num(fp.perFeedL) + ' L · açık ≈ ' + num(fp.deficitKg) + ' kg';
   }
   /* ---------------- ilaç önerisi (yalnız etiket kuralı) ---------------- */
@@ -395,7 +444,7 @@
     else if (mp.level === 'sayim' && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımı', amount: 'alkol yıkama / pudra şekeri', u: 3 });
     else if (mp.countDate && t > addDays(mp.countDate, 30) && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımını yenile', amount: 'son ' + fmt(mp.countDate), u: 3 });
     var fp = feedPlan(h, st);
-    if (fp.need) out.push({ kind: 'besleme', text: 'Besleme' + (fp.weak ? ' (zayıf: birleştirmeyi düşünün)' : ''), amount: SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' L × ' + fp.feedings, u: sk === 'sonbahar' ? 2 : 3 });
+    if (fp.need) out.push({ kind: 'besleme', text: 'Besleme' + (fp.weak ? ' (zayıf: birleştirmeyi düşünün)' : ''), amount: SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' ' + (SYRUP[fp.type].unit || 'L') + ' × ' + fp.feedings, u: sk === 'sonbahar' ? 2 : 3 });
     out.sort(function (a, b) { return a.u - b.u; });
     return out;
   }
@@ -500,11 +549,12 @@
     var F = '<div class="bo-sec"><h3>🍯 Besleme <span class="bo-mut">(tahmin)</span></h3><p>' + esc(feedText(fp)) + '</p>';
     if (fp.storesKg != null) F += '<p class="bo-mut">Stok ≈ ' + num(fp.storesKg) + ' kg (' + esc(fp.storesSrc) + ')' + (fp.targetKg ? ' · hedef ' + fp.targetKg + ' kg' : '') + '</p>';
     if (fp.note) F += '<p class="bo-warn">' + esc(fp.note) + '</p>';
+    if (fp.flowNote) F += '<p class="bo-mut">' + esc(fp.flowNote) + '</p>';
     if (fp.need) {
       var s = fp.stock || {};
       if (s.item && s.short) F += '<p class="bo-warn">Stok yetersiz: ' + esc(s.item.name) + ' ' + num(s.item.qty) + ' ' + esc(s.item.unit) + ', toplam gereken ' + num(s.total) + ' ' + esc(s.unit) + '.</p>';
       if (!s.item) F += '<p class="bo-mut">Stokta şurup/şeker kalemi yok; kayıt stoktan düşmez.</p>';
-      F += '<div class="bo-row"><input type="number" inputmode="decimal" step="0.5" min="0.5" max="20" value="' + fp.perFeedL + '" data-bo-feedl aria-label="Litre"> L ' + esc(SYRUP[fp.type].label) +
+      F += '<div class="bo-row"><input type="number" inputmode="decimal" step="0.5" min="0.5" max="20" value="' + fp.perFeedL + '" data-bo-feedl aria-label="Miktar"> ' + (SYRUP[fp.type].unit || 'L') + ' ' + esc(SYRUP[fp.type].label) +
         '<button type="button" class="bo-btn" data-bo-feed>Beslemeyi kaydet</button></div>';
     }
     F += '</div>';

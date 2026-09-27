@@ -75,12 +75,20 @@
             : '<button type="button"' + (r.href ? '' : ' class="pri"') + ' data-og-i="' + i + '">Görev ekle</button><button type="button" data-og-i="' + i + '" data-og-done="1">Yapıldı kaydet</button>') +
           '</div><div class="og-msg" data-og-msg="' + i + '" hidden></div></div>';
       }).join('') + '</div>' +
-      (opts.hideHiveLink ? '' : '<div class="og-acts" style="margin-top:6px;"><a href="kovan.html?id=' + encodeURIComponent(h.id) + '">Kovan detayına git</a></div>') +
+      '<div class="og-acts" style="margin-top:6px;"><button type="button" data-og-swarmed>🐝 Oğul verdi (kaydet)</button>' + (opts.hideHiveLink ? '' : '<a href="kovan.html?id=' + encodeURIComponent(h.id) + '">Kovan detayına git</a>') + '</div>' +
       '<div class="og-foot">Oğul riski tahminidir: kovanın durumu (ana memesi, yer darlığı, koloni gücü ve yavru, ana yaşı, tartı), bölgenin oğul mevsimi ve ana arı karakterine göre belirlenir.</div></div>';
     var back = document.createElement('div');
     back.className = 'og-back'; back.id = 'ogulSheet'; back.innerHTML = html;
     back.addEventListener('click', function (e) {
       if (e.target === back || e.target.hasAttribute('data-og-close')) { close(); return; }
+      if (e.target.closest && e.target.closest('[data-og-swarmed]')) {
+        var go = function () { close(); global.SuperAriOgulVerdi.open(h.id, { onSaved: opts.onSaved }); };
+        if (global.SuperAriOgulVerdi) { go(); return; }
+        var sc = document.createElement('script'); var me = document.querySelector('script[src*="ogul.js"]');
+        sc.src = me ? me.getAttribute('src').replace('ogul.js', 'ogul-verdi.js') : 'ogul-verdi.js';
+        sc.onload = go; document.head.appendChild(sc);
+        return;
+      }
       var btn = e.target.closest ? e.target.closest('[data-og-i]') : null;
       if (!btn) return;
       var i = Number(btn.getAttribute('data-og-i')), r = a.recs[i];

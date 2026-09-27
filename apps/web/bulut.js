@@ -22,7 +22,8 @@
   var LS = {
     apiaries: 'superari.ariliklar.v1', hives: 'superari.kovanlar.v1', queens: 'superari.anaArilar.v1',
     records: 'superari.koloniKayit.v1', harvest: 'superari.hasat.v2', ops: 'superari.koloniIslem.v1',
-    tasks: 'superari.gorevler.v1', done: 'superari.gorevTamam.v1', stock: 'superari.stok.v1'
+    tasks: 'superari.gorevler.v1', done: 'superari.gorevTamam.v1', stock: 'superari.stok.v1',
+    plan: 'superari.bakimPlan.v1' /* Bakım planı: arılık profili / çam balı (apiaries.data._plan), bal katı (hives.data._superSince) */
   };
   var SENSOR_FIELDS = ['weightKg', 'deltaKg', 'health', 'healthScore', 'colonyScore', 'swarmRisk'];
   var HIVE_REF = ['hiveId', 'fromHiveId', 'toHiveId', 'otherHiveId', 'mergedInto', 'splitFrom', 'sourceHiveId', 'targetHiveId'];
@@ -259,17 +260,23 @@
       var hk = X.hiveKey(v); return hk ? 'hk:' + hk : v;
     }
     function add(e) { if (!st.localOnly[e.key]) out[e.key] = e; }
+    var plan = raw('plan', {}); if (!plan || typeof plan !== 'object') plan = {};
+    var pProf = plan.profiles || {}, pCam = plan.camBali || {}, pSup = plan.supers || {};
     var aps = raw('apiaries', []); if (!Array.isArray(aps)) aps = [];
     aps.forEach(function (a) {
       if (!a || a.id == null) return;
       var u = st.links[String(a.id)]; if (!u) return;
-      add(entry('apiaries', u, { id: u, local_id: String(a.id), name: String(a.name || ''), data: omit(a, ['id']) }));
+      var ad = omit(a, ['id']), k0 = String(a.id);
+      if (pProf[k0] || pCam[k0] != null) { ad._plan = {}; if (pProf[k0]) ad._plan.profile = pProf[k0]; if (pCam[k0] != null) ad._plan.camBali = !!pCam[k0]; }
+      add(entry('apiaries', u, { id: u, local_id: String(a.id), name: String(a.name || ''), data: ad }));
     });
     X.hives.forEach(function (h) {
       if (!h || h.id == null) return;
       var u = X.apUuid(h.apiaryId); if (!u) return;
       var n = Number(h.id), k = st.keys['hives:' + n] || (st.keys['hives:' + n] = u + ':' + n);
-      add(entry('hives', k, { key: k, apiary_id: u, local_id: String(n), name: String(h.name || ''), data: mapRefs(omit(h, SENSOR_FIELDS.concat(['id'])), toCloud) }));
+      var hd = mapRefs(omit(h, SENSOR_FIELDS.concat(['id'])), toCloud);
+      if (pSup[String(n)]) hd._superSince = String(pSup[String(n)]);
+      add(entry('hives', k, { key: k, apiary_id: u, local_id: String(n), name: String(h.name || ''), data: hd }));
     });
     var qs = raw('queens', []); if (!Array.isArray(qs)) qs = [];
     qs.forEach(function (q) {
@@ -421,8 +428,11 @@
     cur = cur || {};
     var L = {
       apiaries: raw('apiaries', []), hives: raw('hives', []), queens: raw('queens', []), records: raw('records', {}),
-      harvest: raw('harvest', []), ops: raw('ops', { events: [], batches: [] }), tasks: raw('tasks', []), done: raw('done', {}), stock: raw('stock', [])
+      harvest: raw('harvest', []), ops: raw('ops', { events: [], batches: [] }), tasks: raw('tasks', []), done: raw('done', {}), stock: raw('stock', []),
+      plan: raw('plan', {})
     };
+    if (!L.plan || typeof L.plan !== 'object' || Array.isArray(L.plan)) L.plan = {};
+    ['profiles', 'camBali', 'supers'].forEach(function (k) { if (!L.plan[k] || typeof L.plan[k] !== 'object') L.plan[k] = {}; });
     ['apiaries', 'hives', 'queens', 'harvest', 'tasks', 'stock'].forEach(function (k) { if (!Array.isArray(L[k])) L[k] = []; });
     if (!L.records || typeof L.records !== 'object' || Array.isArray(L.records)) L.records = {};
     if (!L.done || typeof L.done !== 'object' || Array.isArray(L.done)) L.done = {};
@@ -463,7 +473,14 @@
         X = ctx(st);
       }
       if (r.deleted) { upsertBy(L.apiaries, lid, null); delete st.links[lid]; X = ctx(st); }
-      else { var a = clone(r.data) || {}; a.id = lid; upsertBy(L.apiaries, lid, a); }
+      else {
+        var a = clone(r.data) || {}; a.id = lid;
+        var pl = a._plan || {}; delete a._plan;
+        if (pl.profile) L.plan.profiles[lid] = pl.profile; else delete L.plan.profiles[lid];
+        if (pl.camBali != null) L.plan.camBali[lid] = !!pl.camBali; else delete L.plan.camBali[lid];
+        dirty.plan = 1;
+        upsertBy(L.apiaries, lid, a);
+      }
       dirty.apiaries = 1; done(r);
     });
     rows.hives.forEach(function (r) {
@@ -482,10 +499,13 @@
         st.keys['hives:' + lid] = r.key;
         X = ctx(st);
       }
-      if (r.deleted) upsertBy(L.hives, lid, null);
+      if (r.deleted) { upsertBy(L.hives, lid, null); if (L.plan.supers[String(lid)]) { delete L.plan.supers[String(lid)]; dirty.plan = 1; } }
       else {
         var cur = L.hives.filter(function (h) { return h && Number(h.id) === lid; })[0];
         var d = mapRefs(clone(r.data) || {}, fromCloud);
+        var ss = d._superSince; delete d._superSince;
+        if (ss) L.plan.supers[String(lid)] = String(ss); else delete L.plan.supers[String(lid)];
+        dirty.plan = 1;
         var obj = {};
         if (cur) SENSOR_FIELDS.forEach(function (f) { if (cur[f] != null) obj[f] = cur[f]; });
         Object.keys(d).forEach(function (k) { obj[k] = d[k]; });

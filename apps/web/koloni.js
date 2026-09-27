@@ -45,6 +45,17 @@
   }
   /* Kolay muayene (kolay-muayene.js) gerektiğinde yüklenir. */
   var kmP = null;
+  var ovP = null;
+  function openOgulVerdi(hiveId, opts) {
+    if (!ovP) ovP = global.SuperAriOgulVerdi ? Promise.resolve(global.SuperAriOgulVerdi) : new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = FOTO_SRC.replace('foto.js', 'ogul-verdi.js');
+      s.onload = function () { global.SuperAriOgulVerdi ? res(global.SuperAriOgulVerdi) : rej(new Error('ov')); };
+      s.onerror = function () { ovP = null; rej(new Error('ov')); };
+      document.head.appendChild(s);
+    });
+    return ovP.then(function (O) { O.open(hiveId, opts || {}); return O; }, function () { toast('Oğul kaydı yüklenemedi'); });
+  }
   function openKolayMuayene(hiveId, opts) {
     if (!kmP) kmP = global.SuperAriKolayMuayene ? Promise.resolve(global.SuperAriKolayMuayene) : new Promise(function (res, rej) {
       var s = document.createElement('script');
@@ -1642,6 +1653,7 @@
       '<h3 id="qkTitle">＋ Hızlı kayıt</h3>' +
       '<p class="kol-sub">Tam muayene gerekmez. Her kovana ayrı kayıt yazılır ve Bakım geçmişinde görünür.</p>' +
       '<button type="button" class="btn" data-qk-km style="width:100%;margin:.2rem 0 .5rem;">🐝 Muayene — Kolay muayene (adım adım)</button>' +
+      '<button type="button" class="btn secondary" data-qk-ov style="width:100%;margin:0 0 .5rem;">🐝 Oğul verdi (kaydet)</button>' +
       '<div class="kr-section-title">Tür</div>' +
       '<div class="qk-types">' + QUICK_TYPES.map(function (t) { return '<button type="button" data-qtype="' + t.key + '">' + esc(t.label) + '</button>'; }).join('') + '</div>' +
       '<form class="kol-form" id="qkScopeForm" autocomplete="off">' +
@@ -1761,6 +1773,14 @@
     back.addEventListener('click', function (e) {
       var t = e.target;
       if (t === back) { close(); return; }
+      if (t.closest && t.closest('[data-qk-ov]')) {
+        var one2 = sf.querySelector('select[name=one]'), hs2 = hivesOf();
+        var kid2 = scope === 'one' && one2 ? one2.value : (currentTargets()[0] || (hs2[0] && hs2[0].id));
+        if (!kid2) { toast('Önce kovan seçin'); return; }
+        close();
+        openOgulVerdi(kid2, { onSaved: opts.onSaved });
+        return;
+      }
       if (t.closest && t.closest('[data-qk-km]')) {
         var one = sf.querySelector('select[name=one]'), hsx = hivesOf();
         var kid = scope === 'one' && one ? one.value : (currentTargets()[0] || (hsx[0] && hsx[0].id));

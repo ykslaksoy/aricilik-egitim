@@ -85,6 +85,7 @@ const SHELL = [
   "/bakim-yap.html",
   "/ilac-katalog.js",
   "/bulut.js",
+  "/ogul-verdi.js",
   "/vendor/supabase.js",
   "/manifest.json",
   "/logos/hardal-bees.js",

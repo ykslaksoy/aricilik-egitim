@@ -55,7 +55,7 @@
       ['yok', 'Yok'], ['var', 'Var / şüpheli']] },
     huy: { id: 'huy', icon: '🐝', q: 'Huy (muayenede)', help: 'Arılar nasıl davrandı?', opts: [
       ['5', 'Çok sakin'], ['4', 'Sakin'], ['3', 'Orta'], ['2', 'Sinirli'], ['1', 'Çok sinirli']] },
-    yer: { id: 'yer', icon: '📦', q: 'Yer durumu / kat', help: 'Kovanda boş çerçeve kaldı mı?', opts: [
+    yer: { id: 'yer', icon: '📦', q: 'Yer durumu / kat', help: 'Kovanda boş çerçeve kaldı mı? Altta kovanın gövde / kat sayısını düzeltin.', opts: [
       ['bol', 'Bol yer var'], ['dolmak', 'Dolmak üzere'], ['dolu', 'Dolu / sıkışık'], ['kat', 'Bal katı takılı, yer var']] },
     kutu: { id: 'kutu', icon: '🏠', q: 'Kovan kutusu ve yeri', help: 'Kutu, kapak, taban ve kovanın durduğu yer.', opts: [
       ['iyi', 'İyi'], ['catlak', 'Çatlak / aralık var'], ['nem', 'Nemli / küflü'], ['yer', 'Güneş / rüzgâr / su baskını sorunu']] },
@@ -106,6 +106,11 @@
     }
     if (a.huy) out.calm = Number(a.huy);
     if (a.yer === 'kat') out.superOn = true;
+    if (st.box && (st.boxTouched || (a.yer === 'kat' && !st.box.kat))) {
+      var bx = { body: st.box.body, kat: st.box.kat, ballik: st.box.ballik };
+      if (a.yer === 'kat' && !bx.kat) { bx.kat = 1; bx.ballik = true; }
+      out.boxes = bx;
+    }
     if (a.anayas && a.anayas !== '?' && h.queenYear == null) out.queenYear = new Date().getFullYear() - Number(a.anayas);
     return out;
   }
@@ -113,7 +118,8 @@
     var a = st.ans, T = [];
     function t(title, p, d, why) { T.push({ title: title, priority: p, due: plusDays(d), why: why || '' }); }
     var bee = a.cerceve ? a.cerceve.bee : null, P = global.SuperAriPlan;
-    var hasSup = a.yer === 'kat' || (P && P.hasSuper && P.hasSuper(h.id));
+    var bxS = st.box || null;
+    var hasSup = a.yer === 'kat' || (bxS ? (bxS.kat > 0 || bxS.ballik) : (P && P.hasSuper && P.hasSuper(h.id)));
     if (a.ana === 'hicbiri') {
       if (a.yavru === 'yok' || a.yavru == null) t('Anasız görünüyor: ana ver veya güçlü bir kovanla birleştir', 1, 1, 'Ne ana ne yumurta, yavru yok');
       else t('Ana kontrolü: 3–4 gün sonra yumurta var mı bak (anasız olabilir)', 2, 4, 'Ana ve yumurta görülmedi');
@@ -121,7 +127,7 @@
     if (a.ana === 'ana' && a.yavru === 'yok') t('Ana yumurtlamıyor: 1 hafta içinde tekrar kontrol et, gerekirse ana değiştir', 2, 7);
     if (a.meme === 'ogul') t('Oğul memesi: bölme yap veya yer aç (kat / boş çerçeve)', 1, 1, 'Alt kenarda oğul memesi');
     if (a.meme === 'yenileme') t('Sessiz ana değiştirme: memelere dokunma, 2–3 hafta sonra yumurta kontrolü', 3, 18);
-    var cap = hasSup ? 20 : 10;
+    var cap = bxS ? 10 * (bxS.body + Math.max(bxS.kat, a.yer === 'kat' ? 1 : 0)) : (hasSup ? 20 : 10);
     if (a.yer === 'dolu' || (bee != null && bee / cap >= 0.9)) t(hasSup ? 'Yer dar: ikinci kat / boş çerçeve ver' : 'Yer dar: kat at (bal katı ver)', 1, 1, 'Kovan dolu');
     else if (a.yer === 'dolmak' || (bee != null && bee / cap >= 0.8)) t(hasSup ? 'Kovan dolmak üzere: boş çerçeve hazırla' : 'Kovan dolmak üzere: kat atmaya hazırlan', 2, 5);
     if (a.stok === 'az' && plan && plan.feed && P) {
@@ -179,6 +185,7 @@
     var last = null; try { last = D.records.status(h.id).strength; } catch (e) { last = null; }
     var st = { first: first, steps: (first ? FIRST : ROUTINE).slice(), i: 0, ans: {}, notes: {}, photos: {}, noteOpen: {}, done: null, t0: Date.now(),
       bee: last ? last.beeFrames : 5, brood: last ? last.broodFrames : 3, sel: {} };
+    try { var b0 = D.colony.boxes ? D.colony.boxes(h) : null; if (b0) st.box = { body: b0.body, kat: b0.kat, ballik: b0.ballik, known: b0.known }; } catch (e) { st.box = null; }
     var back = document.createElement('div'); back.className = 'km-back'; back.id = 'kmSheet';
     back.innerHTML = '<div class="km" role="dialog" aria-modal="true" aria-label="Kolay muayene"><div class="km-head"><div class="km-top"><b data-km-title></b><button type="button" class="km-x" data-km-close aria-label="Kapat">×</button></div>' +
       '<div class="km-sub" data-km-sub></div><div class="km-bar"><i data-km-bar></i></div></div><form class="km-body" data-km-body autocomplete="off" onsubmit="return false"></form><div class="km-foot" data-km-foot></div></div>';
@@ -213,6 +220,7 @@
         H += '<div class="km-opts">' + s.opts.map(function (o) { return '<button type="button" class="km-opt' + (st.ans[id] === o[0] ? ' on' : '') + '" data-km-opt="' + o[0] + '">' + esc(o[1]) + '</button>'; }).join('') + '</div>';
         if (id === 'hastalik' && st.ans.hastalik === 'var') H += '<button type="button" class="km-link" data-km-hz>🔍 Hastalık tahminini aç (rehberli fotoğraf)</button>';
         if (id === 'ana' && st.ans.ana === 'hicbiri') H += '<div class="km-warn">Ana ve yumurta görülmedi. Sonraki adımda yavru durumuna göre öneri verilir.</div>';
+        if (id === 'yer' && st.box) H += boxEditor();
       }
       H += tools(id);
       body.innerHTML = H;
@@ -220,6 +228,15 @@
       foot.innerHTML = '<button type="button" data-km-back' + (st.i === 0 ? ' disabled' : '') + '>← Geri</button>' +
         (s.stepper ? '<button type="button" data-km-skip>Atla</button><button type="button" class="pri" data-km-next>İleri →</button>' : '<button type="button" data-km-skip>' + (st.ans[id] != null ? 'İleri →' : 'Atla →') + '</button>');
     }
+    function boxEditor() {
+      var b = st.box;
+      return '<div class="km-sum" style="margin-top:12px;"><h3>🏠 Kovan kutusu' + (b.known || st.boxTouched ? '' : ' <small style="font-weight:400;color:#6b5a48;">(kayıtlı değil — kontrol edin)</small>') + '</h3>' +
+        '<div class="km-lbl">Gövde (kuluçkalık)</div><div class="km-step sm"><button type="button" data-km-box="body" data-d="-1" aria-label="Gövde azalt">−</button><output data-km-bout="body">' + b.body + '</output><button type="button" data-km-box="body" data-d="1" aria-label="Gövde artır">+</button></div>' +
+        '<div class="km-lbl">Kat</div><div class="km-step sm"><button type="button" data-km-box="kat" data-d="-1" aria-label="Kat azalt">−</button><output data-km-bout="kat">' + b.kat + '</output><button type="button" data-km-box="kat" data-d="1" aria-label="Kat artır">+</button></div>' +
+        '<label class="km-task" style="border:0;justify-content:center;"><input type="checkbox" data-km-ballik' + (b.ballik ? ' checked' : '') + '><span style="flex:none;">Ballık takılı (ana ızgaralı bal katı)</span></label>' +
+        '<p class="km-help" style="text-align:center;margin:4px 0 0;" data-km-blabel>' + esc(boxText(b)) + '</p></div>';
+    }
+    function boxText(b) { return b.body + ' gövde' + (b.kat ? ' + ' + b.kat + ' kat' : '') + (b.ballik ? ' (ballık takılı)' : '') + ' · ' + (10 * (b.body + b.kat)) + ' çerçeve yer'; }
     function planFor() {
       var P = global.SuperAriPlan; if (!P) return null;
       var out = {};
@@ -247,9 +264,9 @@
         (b.strength ? '<div class="km-row"><span>💪 Koloni gücü / muayene: ' + b.strength.beeFrames + ' arılı, ' + b.strength.broodFrames + ' yavrulu, ' + b.strength.honeyFrames + ' bal çerçevesi' + (b.strength.space ? ' · yer: ' + esc(optLabel('yer', b.strength.space).toLocaleLowerCase('tr')) : '') + '</span></div>' : '') +
         (b.brood ? '<div class="km-row"><span>🥚 Yavru durumu: ' + (b.brood.eggs ? 'yumurta var' : 'yumurta yok') + ', ' + (b.brood.pattern === 'duzenli' ? 'düzenli' : 'dağınık') + (b.brood.queenCell !== 'yok' ? ' · ana memesi: ' + esc(optLabel('meme', b.brood.queenCell).toLocaleLowerCase('tr')) : '') + (b.brood.queenless ? ' · anasız' : '') + '</span></div>' : '') +
         (b.calm ? '<div class="km-row"><span>🐝 Sakinlik: ' + esc(optLabel('huy', String(b.calm))) + '</span></div>' : '') +
-        (b.superOn ? '<div class="km-row"><span>📦 Bal katı takılı olarak işaretlenir</span></div>' : '') +
+        (b.boxes ? '<div class="km-row"><span>🏠 Kovan kutusu: ' + esc(boxText(b.boxes)) + '</span></div>' : (b.superOn ? '<div class="km-row"><span>📦 Bal katı takılı olarak işaretlenir</span></div>' : '')) +
         (b.queenYear ? '<div class="km-row"><span>🎨 Ana yılı: ' + b.queenYear + '</span></div>' : '') +
-        (!b.strength && !b.brood && !b.calm ? '<p class="km-help">Kaydedilecek bilgi yok; en az bir adımı yanıtlayın.</p>' : '<p class="km-help" style="margin:6px 0 0;">Oğul riski, sağlık durumu ve görevler bu kayıtlardan yeniden hesaplanır.</p>') + '</div>';
+        (!b.strength && !b.brood && !b.calm && !b.boxes ? '<p class="km-help">Kaydedilecek bilgi yok; en az bir adımı yanıtlayın.</p>' : '<p class="km-help" style="margin:6px 0 0;">Oğul riski, sağlık durumu ve görevler bu kayıtlardan yeniden hesaplanır.</p>') + '</div>';
       H += '<div class="km-sum"><h3>Önerilen görevler</h3>' + (sug.length ? sug.map(function (x, i) {
         return '<label class="km-task"><input type="checkbox" data-km-sel="' + i + '"' + (st.sel[i] ? ' checked' : '') + (st.done ? ' disabled' : '') + '><span>' + esc(x.title) + (x.why ? '<small>' + esc(x.why) + '</small>' : '') + '</span></label>';
       }).join('') : '<p class="km-help" style="margin:0;">Ek görev önerisi yok.</p>') + '</div>';
@@ -273,7 +290,7 @@
     }
     function save(andNext) {
       var b = build(h, st), R = D.records, ids = [], msgs = [];
-      if (!b.strength && !b.brood && !b.calm) { global.alert && global.alert('Kaydedilecek bilgi yok; en az bir adımı yanıtlayın.'); return; }
+      if (!b.strength && !b.brood && !b.calm && !b.boxes) { global.alert && global.alert('Kaydedilecek bilgi yok; en az bir adımı yanıtlayın.'); return; }
       var s1 = b.strength ? R.add(h.id, 'strength', b.strength) : null; if (s1) { ids.push({ id: s1.id, kind: 'strength' }); msgs.push('muayene'); }
       var s2 = b.brood ? R.add(h.id, 'brood', b.brood) : null; if (s2) { ids.push({ id: s2.id, kind: 'brood' }); msgs.push('yavru durumu'); }
       var patch = {};
@@ -281,7 +298,8 @@
       if (b.queenYear) patch.queenYear = b.queenYear;
       if (Object.keys(patch).length) { try { D.colony.updateHive(h.id, patch, 'correct'); msgs.push(b.queenYear ? 'sakinlik / ana yılı' : 'sakinlik'); } catch (e) { /* ignore */ } }
       var P = global.SuperAriPlan;
-      if (b.superOn && P && P.setSuper) { P.setSuper(h.id, true); msgs.push('bal katı'); }
+      if (b.boxes && D.colony.setBoxes) { D.colony.setBoxes(h.id, b.boxes); msgs.push('kovan kutusu'); }
+      else if (b.superOn && P && P.setSuper) { P.setSuper(h.id, true); msgs.push('bal katı'); }
       var open = []; try { open = D.taskStore.open().map(function (x) { return x.title; }); } catch (e) { open = []; }
       var nt = 0;
       (st.sugg || []).forEach(function (x, i) {
@@ -320,7 +338,10 @@
       if (t.hasAttribute('data-km-variant')) { e.preventDefault(); st.first = !st.first; st.steps = (st.first ? FIRST : ROUTINE).slice(); st.i = 0; st.sugg = null; st.selInit = false; render(); return; }
       if (t.hasAttribute('data-km-opt')) {
         st.ans[id] = t.getAttribute('data-km-opt'); st.sugg = null; st.selInit = false;
-        if ((id === 'hastalik' && st.ans[id] === 'var') || (id === 'ana' && st.ans[id] === 'hicbiri')) { render(); return; }
+        if ((id === 'hastalik' && st.ans[id] === 'var') || (id === 'ana' && st.ans[id] === 'hicbiri') || (id === 'yer' && st.box)) {
+          if (id === 'yer' && st.ans.yer === 'kat' && st.box && !st.box.kat) { st.box.kat = 1; st.box.ballik = true; st.boxTouched = true; }
+          render(); return;
+        }
         setTimeout(advance, 120); return;
       }
       if (t.hasAttribute('data-km-inc')) {
@@ -329,6 +350,16 @@
         if (k === 'bee' && st.brood > st.bee) st.brood = st.bee;
         if (k === 'brood' && st.brood > st.bee) st.bee = st.brood;
         back.querySelector('[data-km-out="bee"]').textContent = st.bee; back.querySelector('[data-km-out="brood"]').textContent = st.brood;
+        return;
+      }
+      if (t.hasAttribute('data-km-box')) {
+        var bk = t.getAttribute('data-km-box'), bd = Number(t.getAttribute('data-d'));
+        st.box[bk] = Math.max(bk === 'body' ? 1 : 0, Math.min(bk === 'body' ? 3 : 4, st.box[bk] + bd));
+        if (bk === 'kat' && !st.box.kat) st.box.ballik = false;
+        st.boxTouched = true; st.sugg = null; st.selInit = false;
+        back.querySelector('[data-km-bout="' + bk + '"]').textContent = st.box[bk];
+        var bl = back.querySelector('[data-km-blabel]'); if (bl) bl.textContent = boxText(st.box);
+        var cb = back.querySelector('[data-km-ballik]'); if (cb) cb.checked = st.box.ballik;
         return;
       }
       if (t.hasAttribute('data-km-next')) { if (id === 'cerceve') { st.ans.cerceve = { bee: st.bee, brood: st.brood }; st.sugg = null; st.selInit = false; } advance(); return; }
@@ -349,6 +380,13 @@
     back.addEventListener('change', function (e) {
       var t = e.target;
       if (t.hasAttribute('data-km-sel')) { st.sel[Number(t.getAttribute('data-km-sel'))] = t.checked; return; }
+      if (t.hasAttribute('data-km-ballik')) {
+        st.box.ballik = t.checked; if (t.checked && !st.box.kat) st.box.kat = 1;
+        st.boxTouched = true; st.sugg = null; st.selInit = false;
+        var ko = back.querySelector('[data-km-bout="kat"]'); if (ko) ko.textContent = st.box.kat;
+        var bl2 = back.querySelector('[data-km-blabel]'); if (bl2) bl2.textContent = boxText(st.box);
+        return;
+      }
       if (t.hasAttribute('data-km-photo') && t.files && t.files[0]) {
         var id = st.steps[st.i];
         (st.photos[id] = st.photos[id] || []).push({ file: t.files[0], url: URL.createObjectURL(t.files[0]) });
