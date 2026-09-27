@@ -16,6 +16,7 @@
     .hb-msg{margin:0;font-size:.84rem;line-height:1.4;overflow-wrap:anywhere;}
     .hb-msg.err{color:#c92a2a;font-weight:700;}
     .hb-msg.ok{color:#2b8a3e;font-weight:700;}
+    #pushCard [hidden]{display:none !important;}
     .hb-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.25rem .7rem;font-size:.86rem;}
     .hb-kv span{color:var(--muted);font-weight:700;}
     .hb-kv b{overflow-wrap:anywhere;}
@@ -84,6 +85,19 @@
       <p class="muted" style="margin:0;font-size:.78rem;">Yedek ya da paylaşmak için: buluttaki arılık, kovan, ana arı, kayıt, görev, stok ve fotoğraf bilgilerini tek dosya olarak indirir.</p>
     </section>
 
+ <section class="card stack" id="pushCard" style="margin-top:1rem;" hidden>
+      <h2 style="margin:0;font-size:1.05rem;">🔔 Bildirimler (uygulama kapalıyken)</h2>
+      <p class="muted" style="margin:0;font-size:.84rem;">Görev zamanı, ilaç bekleme süresi bitişi, oğuldan sonra 21. gün yumurta kontrolü, ana arı yenileme, yüksek oğul riski ve sağlık uyarıları telefonunuza gelir (sabah ≈07:00, akşam ≈19:00). Aynı uyarı iki kez gönderilmez. Demo veriler için bildirim gönderilmez.</p>
+      <div class="hb-kv" id="pushKv"></div>
+      <p class="hb-msg" id="pushHint" style="font-size:.82rem;color:#5c4813;" hidden></p>
+      <div class="hb-row" style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button class="btn" type="button" id="btnPushOn">🔔 Bildirimleri aç</button>
+        <button class="btn secondary" type="button" id="btnPushTest" hidden>Deneme bildirimi gönder</button>
+        <button class="btn secondary" type="button" id="btnPushOff" hidden>Kapat</button>
+      </div>
+      <p class="hb-msg" id="pushMsg" aria-live="polite"></p>
+    </section>
+
     <section class="card stack" id="firstCard" style="margin-top:1rem;" hidden>
       <h2 style="margin:0;font-size:1.05rem;">Cihazdaki verileri buluta yükle</h2>
       <p class="muted" style="margin:0;font-size:.84rem;">Normalde girişten sonra otomatik yapılır (tüm arılıklar). Otomatik yükleme henüz olmadıysa buradan yapın. Seçtiğiniz arılıkların kovanları, ana arıları ve Canlı moddaki kayıtları (muayene, ilaçlama, besleme, hasat, kışlık, koloni işlemleri, fotoğraflar), görevleriniz ve stok yüklenir. Demo veriler asla yüklenmez.</p>
@@ -112,8 +126,9 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-33"></script>
-  <script src="bulut.js?v=koloni-33"></script>
+  <script src="demo-data.js?v=koloni-34"></script>
+  <script src="bulut.js?v=koloni-34"></script>
+  <script src="push.js?v=koloni-34"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -170,9 +185,33 @@
         $('btnSync').disabled = !s.live;
         if (s.live && !s.initialDone) renderFirst(s);
         if (linked.length) renderTeam(s);
+        renderPush(s);
         return s;
       });
     }
+    function renderPush(s) {
+      var P = window.SuperAriPush; if (!P) return;
+      $('pushCard').hidden = false;
+      P.status().then(function (ps) {
+        var perm = { granted: 'izin verildi', denied: 'engellendi', 'default': 'sorulmadı', unsupported: 'desteklenmiyor' }[ps.permission] || ps.permission;
+        $('pushKv').innerHTML = '<span>Bu cihaz</span><b>' + (ps.subscribed ? '<span style="color:#2b8a3e">Açık ✓</span>' : 'Kapalı') + '</b><span>İzin</span><b>' + esc(perm) + '</b>' +
+          (ps.serverEnabled ? '' : '<span>Sunucu</span><b style="color:#868e96">hazır değil</b>');
+        var hint = ps.hint || (ps.permission === 'denied' ? 'Bildirim izni engellenmiş: telefon/tarayıcı ayarlarında SüperArı için bildirimlere izin verin.' : '') || (!s.live ? 'Arka plan bildirimleri yalnız Canlı modda çalışır.' : '');
+        $('pushHint').hidden = !hint; $('pushHint').textContent = hint;
+        $('btnPushOn').hidden = ps.subscribed; $('btnPushOn').disabled = !ps.supported || !s.live || !ps.serverEnabled;
+        $('btnPushTest').hidden = !ps.subscribed; $('btnPushOff').hidden = !ps.subscribed;
+      });
+    }
+    function pushAct(fn, okText) {
+      var m = $('pushMsg'); msg(m, 'Bekleyin…');
+      return fn().then(function (r) {
+        msg(m, typeof okText === 'function' ? okText(r) : okText, 'ok');
+        return B.status().then(renderPush);
+      }, function (e) { msg(m, errText(e), 'err'); });
+    }
+    $('btnPushOn').addEventListener('click', function () { pushAct(function () { return SuperAriPush.enable(); }, 'Bildirimler açıldı. «Deneme bildirimi gönder» ile deneyebilirsiniz.'); });
+    $('btnPushOff').addEventListener('click', function () { pushAct(function () { return SuperAriPush.disable(); }, 'Bu cihazda arka plan bildirimleri kapatıldı.'); });
+    $('btnPushTest').addEventListener('click', function () { pushAct(function () { return SuperAriPush.test(); }, function (r) { return r && r.ok ? 'Deneme bildirimi gönderildi (' + r.ok + ' cihaz). Birkaç saniye içinde gelmeli.' : 'Gönderilemedi; bildirimleri kapatıp yeniden açın.'; }); });
     function renderFirst(s) {
       $('firstCard').hidden = false;
       var links = s.links || {};
@@ -332,7 +371,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-33"></script>
-<script src="pwa.js?v=koloni-33"></script>
+  <script src="nav.js?v=koloni-34"></script>
+<script src="pwa.js?v=koloni-34"></script>
 </body>
 </html>

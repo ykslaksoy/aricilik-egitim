@@ -88,6 +88,7 @@ const SHELL = [
   "/ogul-verdi.js",
   "/tarti-elle.js",
   "/sesle-muayene.js",
+  "/push.js",
   "/vendor/supabase.js",
   "/manifest.json",
   "/logos/hardal-bees.js",
@@ -190,4 +191,25 @@ self.addEventListener("notificationclick", (e) => {
       return self.clients.openWindow ? self.clients.openWindow(target) : null;
     })
   );
+});
+
+/* Arka plan bildirimi (Web Push, /api/push-cron): uygulama kapalıyken de gösterilir. */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
+  const title = d.title || "SüperArı";
+  e.waitUntil(self.registration.showNotification(title, {
+    body: d.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: d.tag || undefined,
+    renotify: !!d.tag,
+    requireInteraction: !!d.urgent,
+    lang: "tr",
+    data: { url: d.url || "/gorevler.html" }
+  }));
+});
+self.addEventListener("pushsubscriptionchange", (e) => {
+  /* tarayıcı aboneliği yenilediyse: uygulama bir sonraki açılışta «Hesap ve bulut»ta yeniden kaydeder */
+  e.waitUntil(self.clients.matchAll({ type: "window" }).then((list) => list.forEach((c) => c.postMessage({ type: "push-resubscribe" }))));
 });

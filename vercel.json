@@ -46,5 +46,15 @@
         }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/push-cron",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/push-cron?run=aksam",
+      "schedule": "0 16 * * *"
+    }
   ]
 }
