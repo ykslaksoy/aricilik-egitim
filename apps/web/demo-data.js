@@ -39,7 +39,6 @@
   ];
 
   var tasks = [
-    { id: 't1', title: 'Kovan 211 oğul kontrolü', hiveId: 211, priority: 1 },
     { id: 't2', title: 'Kuzey tartı kalibrasyonu', hiveId: 101, priority: 2 },
     { id: 't3', title: 'Petek tarama — 118', hiveId: 118, priority: 2 },
     { id: 't4', title: 'Yayla besleme kontrolü', hiveId: 305, priority: 3 },
@@ -1232,14 +1231,21 @@
         set('calmness', Math.max(1, Math.min(5, base + ((id % 5) === 0 ? -1 : ((id % 7) === 0 ? 1 : 0)))));
       }
       if (h.swarmTendency == null) {
-        var sr = String(h.swarmRisk || '');
-        set('swarmTendency', sr === 'Yüksek' ? 'Yüksek' : (sr === 'Orta' ? 'Orta' : ((id % 6) === 0 ? 'Orta' : 'Düşük')));
+        set('swarmTendency', demoSwarmTendency(h.breed, id));
       }
       if (h.queenMarked == null && h.queenYear == null && years[seed] != null) set('queenMarked', (id % 3) !== 0);
       if (copy) { changed = true; return copy; }
       return h;
     });
     return { list: out, changed: changed };
+  }
+
+  /** Demo oğul eğilimi: ırka göre (Kafkas/Karadeniz düşük, Karniyol/Muğla daha yüksek). */
+  function demoSwarmTendency(breed, id) {
+    var f = breedSwarmFactor(breed).f;
+    if (f <= 0.65) return (id % 9) === 0 ? 'Orta' : 'Düşük';
+    if (f >= 1.2) return (id % 3) === 0 ? 'Yüksek' : 'Orta';
+    return (id % 4) === 0 ? 'Düşük' : 'Orta';
   }
 
   function synthHive(apiaryId, id, i) {
@@ -1860,7 +1866,23 @@
     if (eq.changed) {
       try { saveHives(eq.list); } catch (eQ4) {}
     }
-    return eq.list;
+    /* Demo: eski örnek veride oğul eğilimi sahte oğul riskinden türetilmişti → ırka göre yeniden ata (bir kez). */
+    if (workMode() === 'demo') {
+      var SW_FIX = 'superari.swarmTendencyFix.demo.v1';
+      var swDone = false;
+      try { swDone = localStorage.getItem(SW_FIX) === '1'; } catch (eS) {}
+      if (!swDone) {
+        try { localStorage.setItem(SW_FIX, '1'); } catch (eS2) {}
+        eq.list = eq.list.map(function (h) {
+          if (!h || !isFinite(h.id)) return h;
+          var c = {}; for (var k in h) if (Object.prototype.hasOwnProperty.call(h, k)) c[k] = h[k];
+          c.swarmTendency = demoSwarmTendency(h.breed, Number(h.id));
+          return c;
+        });
+        try { saveHives(eq.list); } catch (eS3) {}
+      }
+    }
+    return attachSwarmRisk(eq.list);
   }
 
   /* ================= Koloni muayene kayıtları (güç / yavru / hastalık) =================
@@ -2439,6 +2461,200 @@
       withdrawalRec: withdrawalRec,
       latestByDisease: latestByDisease
     };
+  }
+
+
+  /* ================= Oğul riski (hesaplanır; formül arayüzde gösterilmez) =================
+   * Girdiler: arılık bölge profili + tarih (oğul mevsimi), ana arı ırkı (melez türü dahil),
+   * koloni gücü (muayene > kovan kaydı), ana yaşı, gözlenen oğul eğilimi, oğul/ana hücresi,
+   * anasızlık, tartı artışı (sıkışıklık) ve bal katı verilmiş olması (yer açma).
+   * Sonuç 5 düzey: Çok düşük · Düşük · Orta · Yüksek · Çok yüksek. */
+  var SWARM_LEVELS = [
+    { key: 'cok-dusuk', label: 'Çok düşük', tone: 'ok', color: '#1b7a3d' },
+    { key: 'dusuk', label: 'Düşük', tone: 'ok', color: '#4f9d2d' },
+    { key: 'orta', label: 'Orta', tone: 'warn', color: '#c98a00' },
+    { key: 'yuksek', label: 'Yüksek', tone: 'bad', color: '#d9480f' },
+    { key: 'cok-yuksek', label: 'Çok yüksek', tone: 'bad', color: '#b3001b' }
+  ];
+  /* Bölge profili: bakim-plan.js ile aynı anahtarlar (sicak / iliman / yayla / yuksek). */
+  var SEASON_SEED_PROFILE = { a1: 'sicak', a2: 'yayla', a3: 'yuksek', a4: 'yuksek', a5: 'yuksek' };
+  var SEASON_WARM_IL = ['Muğla', 'Antalya', 'Aydın', 'İzmir', 'Mersin', 'Adana', 'Hatay', 'Balıkesir', 'Çanakkale'];
+  var SEASON_HIGH_IL = ['Erzurum', 'Kars', 'Ardahan', 'Ağrı', 'Bayburt', 'Gümüşhane', 'Muş', 'Bitlis', 'Van', 'Hakkari', 'Sivas'];
+  var PROFILE_SHORT = { sicak: 'Sıcak / alçak bölge', iliman: 'Ilıman bölge', yayla: 'Yayla', yuksek: 'Yüksek yayla' };
+  /* Oğul mevsimi (AA-GG): hazırlık → zirve → kuyruk. Tahmindir. */
+  var SWARM_WINDOWS = {
+    sicak: { pre: '02-20', from: '03-15', to: '05-10', post: '05-31' },
+    iliman: { pre: '04-01', from: '04-20', to: '05-31', post: '06-20' },
+    yayla: { pre: '05-10', from: '05-25', to: '06-30', post: '07-20' },
+    yuksek: { pre: '05-20', from: '06-05', to: '07-05', post: '07-25' }
+  };
+  function autoSeasonProfile(a) {
+    if (!a) return 'iliman';
+    if (SEASON_SEED_PROFILE[a.id] && isSeedApiaryId(a.id)) return SEASON_SEED_PROFILE[a.id];
+    var nm = String((a.name || '') + ' ' + (a.place || '') + ' ' + (a.koy || '')).toLocaleLowerCase('tr');
+    var alt = Number(a.altitude || a.elevation || a.rakim);
+    if (isFinite(alt) && alt > 0) return alt >= 1800 ? 'yuksek' : (alt >= 1100 ? 'yayla' : (alt < 400 && SEASON_WARM_IL.indexOf(a.il) >= 0 ? 'sicak' : 'iliman'));
+    if (/yayla/.test(nm)) return 'yayla';
+    if (SEASON_HIGH_IL.indexOf(a.il) >= 0) return 'yayla';
+    if (SEASON_WARM_IL.indexOf(a.il) >= 0) return 'sicak';
+    return 'iliman';
+  }
+  function planState() {
+    try {
+      var s = JSON.parse(localStorage.getItem(workMode() === 'live' ? 'superari.bakimPlan.v1' : 'superari.bakimPlan.demo.v1') || '{}');
+      return s && typeof s === 'object' ? s : {};
+    } catch (e) { return {}; }
+  }
+  function seasonProfileKey(apId, ctx) {
+    var st = ctx ? (ctx.plan || (ctx.plan = planState())) : planState();
+    var p = st.profiles && st.profiles[apId];
+    if (p && SWARM_WINDOWS[p]) return p;
+    var aps = ctx ? (ctx.aps || (ctx.aps = loadApiaries())) : loadApiaries();
+    var a = null;
+    for (var i = 0; i < aps.length; i++) if (aps[i].id === String(apId)) { a = aps[i]; break; }
+    return autoSeasonProfile(a);
+  }
+  var AY_KISA = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function mdLabel(md) { var p = md.split('-'); return Number(p[1]) + ' ' + AY_KISA[Number(p[0]) - 1]; }
+  function swarmSeason(apId, date, ctx) {
+    var key = seasonProfileKey(apId, ctx), w = SWARM_WINDOWS[key];
+    var md = String(date || todayLocal()).slice(5, 10);
+    var phase = (md >= w.from && md <= w.to) ? 'zirve' : ((md >= w.pre && md < w.from) || (md > w.to && md <= w.post) ? 'kenar' : 'disi');
+    return { profile: key, profileLabel: PROFILE_SHORT[key], phase: phase, window: mdLabel(w.from) + '–' + mdLabel(w.to),
+      factor: phase === 'zirve' ? 1 : (phase === 'kenar' ? 0.6 : 0.15) };
+  }
+  /* Irk etkisi (oğul eğilimi): melez türü ayrı değerlendirilir. */
+  function breedSwarmFactor(breed) {
+    var b = String(breed || '').toLocaleLowerCase('tr');
+    var kaf = b.indexOf('kafkas') >= 0, kar = b.indexOf('karadeniz') >= 0, kni = b.indexOf('karniyol') >= 0;
+    if (kaf && kar) return { f: 0.45, note: 'oğul eğilimi çok düşük ırk' };
+    if (kaf && kni) return { f: 1.0, note: 'oğul eğilimi orta ırk (Karniyol etkisi)' };
+    if (kaf || kar) return { f: 0.65, note: 'oğul eğilimi düşük ırk' };
+    if (kni) return { f: 1.3, note: 'oğul eğilimi yüksek ırk' };
+    if (b.indexOf('muğla') >= 0 || b.indexOf('mugla') >= 0) return { f: 1.2, note: 'oğul eğilimi orta-yüksek ırk' };
+    if (b.indexOf('anadolu') >= 0) return { f: 1.05, note: 'oğul eğilimi orta ırk' };
+    if (b.indexOf('italyan') >= 0) return { f: 0.9, note: 'oğul eğilimi orta-düşük ırk' };
+    return { f: 1.0, note: '' };
+  }
+  function swarmLevelOf(score) {
+    var i = score >= 75 ? 4 : (score >= 55 ? 3 : (score >= 35 ? 2 : (score >= 15 ? 1 : 0)));
+    return SWARM_LEVELS[i];
+  }
+  function fmtTrShort(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY_KISA[Number(m[2]) - 1] : ''; }
+  function swarmAssess(h, ctx) {
+    ctx = ctx || {};
+    if (!h) return null;
+    var id = Number(h.id);
+    var season = swarmSeason(h.apiaryId, ctx.date, ctx);
+    var inSeason = season.phase !== 'disi';
+    var st = null;
+    try {
+      if (!ctx.recs) ctx.recs = loadRecordsAll();
+      st = colonyStatus(id, ctx.recs);
+    } catch (e) { st = null; }
+    /* Irk: mevcut ana kaydı → kovan aynası → arılık ırk planı. */
+    var breed = '';
+    if (h.currentQueenId) {
+      if (!ctx.queens) ctx.queens = loadQueens();
+      var q = queenById(h.currentQueenId, ctx.queens);
+      if (q && q.breed) breed = q.breed;
+    }
+    if (!breed) breed = h.breed || '';
+    if (!breed) breed = plannedBreed(breedPlanKeyFor({ id: h.apiaryId }), 0) || '';
+    var bf = breedSwarmFactor(breed);
+    var why = []; /* { key, text, dir: up | down | info } */
+    function R(key, text, dir) { why.push({ key: key, text: text, dir: dir || 'info' }); }
+    R('mevsim', inSeason
+      ? (season.phase === 'zirve' ? 'Oğul mevsimi (' + season.profileLabel + ', ' + season.window + ')' : 'Oğul mevsimine yakın (' + season.profileLabel + ', ' + season.window + ')')
+      : 'Oğul mevsimi dışı (' + season.profileLabel + '; mevsim ' + season.window + ')', inSeason ? 'up' : 'down');
+    var s = 35;
+    var cls = st && st.strengthClass ? st.strengthClass : null;
+    var strength = cls ? cls.toLocaleLowerCase('tr') : String(h.strength || '').toLocaleLowerCase('tr');
+    var bees = st && st.strength && Number(st.strength.beeFrames) ? Number(st.strength.beeFrames) : null;
+    var beeTxt = bees ? ', ' + bees + ' çerçeve arı' : '';
+    if (strength === 'güçlü') { s += 25; R('guc', 'Koloni güçlü' + beeTxt, 'up'); }
+    else if (strength === 'orta') { s += 8; R('guc', 'Koloni orta güçte' + beeTxt, 'info'); }
+    else if (strength === 'zayıf') { s -= 25; R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
+    var age = queenAge(h);
+    if (age == null) R('ana', 'Ana arı yaşı bilinmiyor', 'info');
+    else if (age <= 0) { s -= 12; R('ana', 'Genç ana arı (bu yıl)', 'down'); }
+    else if (age === 1) R('ana', 'Ana arı 1 yaşında', 'info');
+    else if (age === 2) { s += 10; R('ana', 'Ana arı 2 yaşında', 'up'); }
+    else { s += 15; R('ana', 'Ana arı yaşlı (' + age + ' yaş)', 'up'); }
+    var t = String(h.swarmTendency || '');
+    if (t === 'Yüksek') { s += 12; R('egilim', 'Gözlenen oğul eğilimi yüksek', 'up'); }
+    else if (t === 'Orta') s += 4;
+    else if (t === 'Düşük') { s -= 4; R('egilim', 'Gözlenen oğul eğilimi düşük', 'down'); }
+    var sup = (ctx.plan || (ctx.plan = planState())).supers;
+    var hasSuper = !!(sup && sup[String(id)]);
+    var space = false;
+    if (inSeason && (Number(h.deltaKg) || 0) >= 1.5) { s += 6; space = true; R('yer', 'Yer darlığı (hızlı ağırlık artışı)', 'up'); }
+    else if (inSeason && strength === 'güçlü' && !hasSuper) { space = true; R('yer', 'Yer darlığı olabilir (bal katı verilmemiş)', 'up'); }
+    if (hasSuper && inSeason) { s -= 10; R('kat', 'Bal katı verilmiş (yer açıldı)', 'down'); }
+    s = Math.max(0, Math.min(100, s)) * bf.f;
+    s = Math.max(0, Math.min(100, s)) * season.factor;
+    var cell = !!(st && st.swarmCell);
+    if (cell) {
+      var cd = st.brood && st.brood.date ? ' (muayene ' + fmtTrShort(st.brood.date) + ')' : '';
+      s = Math.max(s, inSeason ? 85 : 40);
+      why.splice(1, 0, { key: 'meme', text: inSeason ? 'Ana memesi görüldü' + cd : 'Ana memesi görüldü' + cd + ' — mevsim dışında çoğu zaman sessiz ana değişimi', dir: 'up' });
+    }
+    var queenless = !!(st && st.queenless);
+    if (queenless) { s = Math.min(s, 5); why.splice(1, 0, { key: 'anasiz', text: 'Koloni anasız — oğul vermez', dir: 'down' }); }
+    s = Math.round(Math.max(0, Math.min(100, s)));
+    var lv = swarmLevelOf(s);
+    if (breed) R('irk', 'Irk: ' + breed + (bf.note ? ', ' + bf.note : ''), bf.f < 0.9 ? 'down' : (bf.f > 1.1 ? 'up' : 'info'));
+    /* Öneriler (nedene göre). */
+    var recs = [];
+    function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }
+    var elevated = lv.key === 'orta' || lv.key === 'yuksek' || lv.key === 'cok-yuksek';
+    if (!queenless && inSeason && elevated) {
+      if (cell) A('meme', 'Ana memelerini kontrol et / kır', 'Kapalı memeler varsa oğul çok yakındır: memeleri kırın ya da koloniyi bölüp memeyi bölmede kullanın.');
+      if (space || strength === 'güçlü') A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir; oğul hazırlığını çoğu zaman durdurur.');
+      if (strength === 'güçlü' || cell) A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yapın.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
+      if (space || strength === 'güçlü') A('cerceve', 'Boş çerçeve / temel petek ver', 'Kuluçka alanına 1–2 temel petek koyun; ana yumurtlayacak yer bulur.');
+      if (!cell) A('meme', 'Ana memelerini kontrol et', '7–10 günde bir çerçeve altlarına ve kenarlarına bakın.');
+      if (age != null && age >= 2) A('ana', 'Ana arıyı yenile', 'Genç ana oğul eğilimini azaltır.');
+      if (season.profile === 'sicak' || strength === 'güçlü') A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını açın, sıcak saatlerde gölge sağlayın.');
+      if (lv.key === 'yuksek' || lv.key === 'cok-yuksek') A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz; koloni kovana geri döner.');
+    } else {
+      if (cell && !queenless) A('meme', 'Ana memesini kontrol et (kırmayın)', 'Mevsim dışında meme genelde sessiz ana değişimidir; 3 hafta sonra yumurta kontrolü yapın.');
+      if (age != null && age >= 3 && !queenless) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
+      A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol edin.' : 'Oğul mevsimi dışında; olağan bakımla devam edin.');
+    }
+    var seasonNote = why[0].text;
+    return { score: s, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
+      season: season, seasonNote: seasonNote, reasons: why.slice(1).map(function (x) { return x.text; }), details: why, recs: recs };
+  }
+  /** Kovan listesine hesaplanan oğul riskini (swarmRisk) tembel olarak bağlar. */
+  function attachSwarmRisk(list) {
+    var ctx = { date: todayLocal() };
+    (list || []).forEach(function (h) {
+      if (!h || typeof h !== 'object') return;
+      var cache = null;
+      Object.defineProperty(h, 'swarmRisk', {
+        configurable: true, enumerable: true,
+        get: function () {
+          if (!cache) { try { cache = swarmAssess(h, ctx); } catch (e) { cache = { level: 'Düşük' }; } }
+          return cache.level;
+        },
+        set: function (v) { /* hesaplanan alan: yazma yok sayılır */ }
+      });
+    });
+    return list;
+  }
+  /** Oğul uyarıları: hesaplanan Yüksek / Çok yüksek kovanlar. */
+  function swarmAlerts() {
+    var out = [];
+    var ctx = { date: todayLocal() };
+    loadHives().forEach(function (h) {
+      var a = swarmAssess(h, ctx);
+      if (a && (a.key === 'yuksek' || a.key === 'cok-yuksek')) {
+        out.push({ id: 'ogul-' + h.id, title: 'Oğul riski ' + a.level.toLocaleLowerCase('tr'), type: 'ogul', hiveId: h.id,
+          apiaryId: h.apiaryId, severity: a.key === 'cok-yuksek' ? 'high' : 'medium', auto: true });
+      }
+    });
+    return out;
   }
 
   /** Arka plan sağlık modeli için yalın bayraklar (formül sensor-health.js içinde). */
@@ -3603,6 +3819,22 @@
     });
     return out;
   }
+  /** Oğul mevsiminde: Orta → izleme görevi, Yüksek/Çok yüksek → kontrol görevi (mevsim dışında görev yok). */
+  function swarmTasks() {
+    var out = [], ctx = { date: todayLocal() };
+    loadHives().forEach(function (h) {
+      var a = swarmAssess(h, ctx);
+      if (!a || a.season.phase === 'disi') return;
+      if (a.key === 'orta') {
+        out.push({ id: 'kr-ogul-izle-' + h.id, title: 'Oğul izleme — ' + h.name + ': ana hücresi ve yer darlığı kontrolü (7–10 günde bir)', hiveId: h.id, apiaryId: h.apiaryId,
+          priority: 2, auto: true, kind: 'ogul', due: addDays(ctx.date, 7), sig: 'o-orta-' + ctx.date.slice(0, 4) });
+      } else if (a.key === 'yuksek' || a.key === 'cok-yuksek') {
+        out.push({ id: 'kr-ogul-kontrol-' + h.id, title: 'Oğul kontrolü — ' + h.name + ': ana hücrelerini kontrol et, yer aç / bal katı ver veya böl', hiveId: h.id, apiaryId: h.apiaryId,
+          priority: 1, auto: true, kind: 'ogul', due: ctx.date, sig: 'o-yuksek-' + ctx.date.slice(0, 4) });
+      }
+    });
+    return out;
+  }
   /** Tüm görevler (açık + tamamlanan bayraklı). */
   function allTasks() {
     var list = [];
@@ -3615,6 +3847,7 @@
     try { der = colonyRecords.derived().tasks; } catch (e) { der = []; }
     list = list.concat(der);
     try { list = list.concat(queenRenewTasks()); } catch (e) { /* ignore */ }
+    try { list = list.concat(swarmTasks()); } catch (e) { /* ignore */ }
     try { list = list.concat(batchTasks()); } catch (e) { /* ignore */ }
     var done = readTaskDone();
     var seen = {};
@@ -3701,7 +3934,9 @@
         var extra = [];
         try { extra = colonyRecords.derived().alerts; } catch (e) { extra = []; }
         try { extra = extra.concat(stockAlerts()); } catch (e) { /* ignore */ }
-        var base = workMode() === 'demo' ? alerts.map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];
+        /* Oğul uyarıları statik değil; hesaplanan oğul riskinden (Yüksek / Çok yüksek). */
+        try { extra = extra.concat(swarmAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
+        var base = workMode() === 'demo' ? alerts.filter(function (x) { return x.type !== 'ogul'; }).map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];
         return base.concat(extra);
       },
       /* Açık görevler (tamamlananlar hariç). Statik örnek görevler yalnız demo modda, demo=true. */
@@ -3743,7 +3978,12 @@
         queensForHives: queensForHives,
         QUEENS_KEY: QUEENS_KEY,
         currentYear: currentYear,
-        todayLocal: todayLocal
+        todayLocal: todayLocal,
+        SWARM_LEVELS: SWARM_LEVELS,
+        swarm: function (h, date) { return swarmAssess(h, date ? { date: date } : null); },
+        swarmLevelOf: swarmLevelOf,
+        swarmSeason: function (apId, date) { return swarmSeason(apId, date); },
+        autoSeasonProfile: autoSeasonProfile
       },
       harvests: harvestStore,
       APIARY_BREED_PLAN: APIARY_BREED_PLAN,

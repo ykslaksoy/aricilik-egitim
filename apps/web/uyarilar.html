@@ -6,6 +6,15 @@
   <title>Uyarılar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
   <style>
+    .og-lv { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 4px; }
+    .og-lv a { display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border-radius:999px; border:1px solid #d9cbb5; background:#fff; color:#3d2616; text-decoration:none; font-size:13px; font-weight:600; }
+    .og-lv a.active { border-color:#3d2616; box-shadow:inset 0 0 0 1px #3d2616; }
+    .og-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex:0 0 auto; }
+    .og-season { font-size:13px; color:#6b5a48; margin:2px 0 6px; }
+    .og-row { display:block; padding:10px 12px; border:1px solid #eadfcd; border-radius:12px; background:#fff; margin-bottom:8px; color:inherit; text-decoration:none; }
+    .og-row b { display:flex; align-items:center; gap:6px; }
+    .og-row small { display:block; color:#6b5a48; margin-top:3px; line-height:1.35; }
+    .og-pill { margin-left:auto; font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; white-space:nowrap; }
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
     }
@@ -63,13 +72,15 @@
     <section class="card stack">
       <h2 style="margin:0;" id="pageTitle">Uyarılar</h2>
       <p class="muted" id="summary">Demo uyarı listesi…</p>
+      <div id="ogulPanel"></div>
       <div class="filter-chips" id="filterChips" role="group" aria-label="Uyarı filtresi"></div>
       <div class="mode-switch" id="modeSwitch"></div>
       <div class="list" id="alert-list"></div>
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-19"></script>
+  <script src="demo-data.js?v=koloni-20"></script>
+  <script src="ogul.js?v=koloni-20"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -170,9 +181,59 @@
               '<span class="badge priority-' + pri + '">' + esc(a.type || 'uyarı') + '</span>' +
             '</div>' +
             '<div class="meta">' + esc(hiveName) +
-              (a.hiveId != null ? ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>' : (a.href ? ' · <a href="' + esc(a.href) + '">Aç</a>' : '')) + '</div>' +
+              (a.hiveId != null ? ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>' : (a.href ? ' · <a href="' + esc(a.href) + '">Aç</a>' : '')) +
+              (a.type === 'ogul' && a.hiveId != null ? ' · <a href="#" data-ogul-open="' + esc(a.hiveId) + '">Ayrıntı ve öneriler</a>' : '') + '</div>' +
           '</article>'
         );
+      }
+
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('[data-ogul-open]') : null;
+        if (t && window.SuperAriOgul) { e.preventDefault(); SuperAriOgul.open(t.getAttribute('data-ogul-open')); }
+      });
+      /* ---- Oğul sayfası: 5 düzey, izleme listesi (formül gösterilmez) ---- */
+      var duzey = (params.get('duzey') || '').toLowerCase();
+      if (view === 'ogul' && D.colony && D.colony.swarm) {
+        var LV = D.colony.SWARM_LEVELS;
+        var allH = D.loadHives ? D.loadHives() : D.hives;
+        if (apiaryFilter) allH = allH.filter(function (h) { return String(h.apiaryId) === String(apiaryFilter); });
+        var rows = allH.map(function (h) { return { h: h, a: D.colony.swarm(h) }; });
+        var cnt = {}; LV.forEach(function (l) { cnt[l.key] = 0; });
+        rows.forEach(function (r) { cnt[r.a.key]++; });
+        var nAlert = cnt['yuksek'] + cnt['cok-yuksek'];
+        var apQ = apiaryFilter ? '&apiary=' + encodeURIComponent(apiaryFilter) : '';
+        var seasons = {};
+        rows.forEach(function (r) { seasons[r.a.seasonNote] = 1; });
+        var ph = '<div class="og-lv" role="group" aria-label="Oğul riski düzeyi">' +
+          '<a class="' + (!duzey ? 'active' : '') + '" href="uyarilar.html?view=ogul' + apQ + '">Uyarılar · ' + nAlert + '</a>' +
+          '<a class="' + (duzey === 'izleme' ? 'active' : '') + '" href="uyarilar.html?view=ogul&duzey=izleme' + apQ + '"><span class="og-dot" style="background:' + LV[2].color + '"></span>Oğul izleme · ' + cnt['orta'] + '</a>' +
+          '</div><div class="og-lv">' +
+          LV.map(function (l) {
+            return '<a class="' + (duzey === l.key ? 'active' : '') + '" href="uyarilar.html?view=ogul&duzey=' + l.key + apQ + '"><span class="og-dot" style="background:' + l.color + '"></span>' + esc(l.label) + ' · ' + cnt[l.key] + '</a>';
+          }).join('') + '</div>' +
+          '<div class="og-season">' + esc(Object.keys(seasons).join(' · ')) + '</div>';
+        document.getElementById('ogulPanel').innerHTML = ph;
+        if (duzey) {
+          var want = duzey === 'izleme' ? 'orta' : duzey;
+          var lvObj = LV.filter(function (l) { return l.key === want; })[0];
+          var sel = rows.filter(function (r) { return r.a.key === want; }).sort(function (x, y) { return y.a.score - x.a.score || x.h.id - y.h.id; });
+          titleEl.textContent = duzey === 'izleme' ? 'Oğul izleme' : 'Oğul riski: ' + (lvObj ? lvObj.label : '');
+          subEl.textContent = 'Oğul';
+          summaryEl.textContent = sel.length + ' kovan' + (duzey === 'izleme' ? ' izlemede (orta risk)' : '');
+          if (filterChipsEl) filterChipsEl.innerHTML = '';
+          modeSwitchEl.innerHTML = '';
+          noteEl.textContent = duzey === 'izleme'
+            ? 'Orta riskli kovanlar izlemededir. Oğul mevsiminde Bakım planına 7–10 günde bir «Oğul izleme» görevi eklenir; mevsim dışında görev açılmaz.'
+            : 'Oğul riski bölgenin oğul mevsimi, ana arı ırkı, koloni gücü, ana yaşı ve muayene kayıtlarına göre tahmin edilir.';
+          var apN = {}; (D.loadApiaries ? D.loadApiaries() : []).forEach(function (a) { apN[a.id] = a.name || a.place; });
+          listEl.innerHTML = sel.map(function (r) {
+            return '<a class="og-row" href="kovan.html?id=' + encodeURIComponent(r.h.id) + '" data-ogul-open="' + esc(r.h.id) + '"><b><span class="og-dot" style="background:' + r.a.color + '"></span>' + esc(r.h.name) +
+              '<span class="og-pill" style="background:' + r.a.color + '">' + esc(r.a.level) + '</span></b>' +
+              '<small>' + esc((apN[r.h.apiaryId] || '') + (r.a.breed ? ' · ' + r.a.breed : '')) + '</small>' +
+              '<small>' + esc(r.a.seasonNote + (r.a.reasons.length ? ' — ' + r.a.reasons.join(', ') : '')) + '</small></a>';
+          }).join('') || '<p class="muted">Bu düzeyde kovan yok.</p>';
+          return;
+        }
       }
 
       var alerts = D.alerts.slice();
@@ -275,6 +336,6 @@
       listEl.innerHTML = alerts.map(renderAlertCard).join('') || '<p class="muted">Açık uyarı yok.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-19"></script>
+<script src="pwa.js?v=koloni-20"></script>
 </body>
 </html>

@@ -1051,9 +1051,9 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-19"></script>
+<script src="demo-data.js?v=koloni-20"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-19"></script>
+<script src="sensor-health.js?v=koloni-20"></script>
 <script src="hava-kayit.js"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
@@ -1938,6 +1938,9 @@
     ? SuperAriDemo.loadHives()
     : ((window.SuperAriDemo && SuperAriDemo.hives) ? SuperAriDemo.hives : []);
   var hiveCount = hivesForTiles.length;
+  /* Oğul: rozet Yüksek + Çok yüksek uyarılarını sayar; Orta riskliler ayrı «izlemede». */
+  var ogulWatchCount = 0;
+  try { if (SuperAriDemo.colony && SuperAriDemo.colony.swarm) hivesForTiles.forEach(function (h) { var a = SuperAriDemo.colony.swarm(h); if (a && a.key === 'orta') ogulWatchCount++; }); } catch (eOg) { ogulWatchCount = 0; }
   var apiaryCount = (window.SuperAriDemo && typeof SuperAriDemo.loadApiaries === 'function')
     ? SuperAriDemo.loadApiaries().length
     : 0;
@@ -1996,7 +1999,7 @@
   var tiles = [
     { key: 'tarti', label: 'Tartı', badge: tartiBadge, tone: tartiTone, href: 'kovanlar.html?view=tarti' },
     { key: 'saglik', label: 'Sağlık', badge: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=hivesForTiles; if(!SH||!hv.length) return 'İyi'; return String(SH.evaluateAll(hv).avg); } catch(e){ return 'İyi'; } })(), tone: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=hivesForTiles; if(!SH||!hv.length) return 'green'; var a=SH.evaluateAll(hv).avg; return a>=85?'green':(a>=70?'tan':'red'); } catch(e){ return 'green'; } })(), href: 'saglik.html' },
-    { key: 'ogul', label: 'Oğul', badge: ogulAlertCount ? (String(ogulAlertCount) + ' uyarı') : 'Düşük', tone: ogulAlertCount ? 'red' : 'green', href: 'uyarilar.html?view=ogul' },
+    { key: 'ogul', label: 'Oğul', badge: ogulAlertCount ? (String(ogulAlertCount) + ' uyarı' + (ogulWatchCount ? ' · ' + ogulWatchCount + ' izleme' : '')) : (ogulWatchCount ? (ogulWatchCount + ' izlemede') : 'Düşük'), tone: ogulAlertCount ? 'red' : (ogulWatchCount ? 'tan' : 'green'), href: 'uyarilar.html?view=ogul' },
     { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
     { key: 'koloni', label: 'Koloni', badge: koloniBadge, tone: koloniTone, href: 'kovanlar.html?view=koloni' },
     { key: 'ariliklar', label: 'Arılıklar', badge: String(apiaryCount), tone: 'tan', href: 'ariliklar.html' },
@@ -3057,7 +3060,7 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-19"></script>
-<script src="pwa.js?v=koloni-19"></script>
+<script src="nav.js?v=koloni-20"></script>
+<script src="pwa.js?v=koloni-20"></script>
 </body>
 </html>

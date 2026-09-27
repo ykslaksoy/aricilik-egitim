@@ -362,12 +362,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-19"></script>
-<script src="rapor-store.js?v=koloni-19"></script>
-<script src="sensor-health.js?v=koloni-19"></script>
-<script src="koloni.js?v=koloni-19"></script>
-<script src="ilac-katalog.js?v=koloni-19"></script>
-<script src="bakim-plan.js?v=koloni-19"></script>
+<script src="demo-data.js?v=koloni-20"></script>
+<script src="rapor-store.js?v=koloni-20"></script>
+<script src="sensor-health.js?v=koloni-20"></script>
+<script src="koloni.js?v=koloni-20"></script>
+<script src="ilac-katalog.js?v=koloni-20"></script>
+<script src="bakim-plan.js?v=koloni-20"></script>
+<script src="ogul.js?v=koloni-20"></script>
+<script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-ogul-open]') : null; if (t && window.SuperAriOgul) { e.preventDefault(); SuperAriOgul.open(t.getAttribute('data-ogul-open'), { hideHiveLink: true }); } });</script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -413,7 +415,7 @@
   }
   function toneSwarm(risk) {
     var r = String(risk || '');
-    if (r === 'Yüksek') return 'bad';
+    if (r === 'Yüksek' || r === 'Çok yüksek') return 'bad';
     if (r === 'Orta') return 'warn';
     return '';
   }
@@ -795,7 +797,11 @@
     }
 
     function cls(t) { return t ? ' ' + t : ''; }
-    var swarmTone = st || 'warn';
+    var swarmTone = st;
+    var swA = null;
+    try { swA = Ddemo && Ddemo.colony && Ddemo.colony.swarm ? Ddemo.colony.swarm(hive) : null; } catch (eSw) { swA = null; }
+    var swBadge = swA ? (swA.season.phase === 'disi' ? 'Mevsim dışı' : (swA.season.phase === 'zirve' ? 'Oğul mevsimi' : 'Mevsime yakın')) : hive.swarmRisk;
+    if (swA && swA.key === 'orta') swBadge = 'İzlemede';
     var deltaStr = (function () {
       var n = Number(hive.deltaKg);
       if (!isFinite(n)) return '—';
@@ -877,10 +883,10 @@
             escapeHtml(healthScore != null ? ('Skor ' + Math.round(Number(healthScore))) : healthLabel) +
           '</span>' +
         '</div>' +
-        '<div class="sum-card">' +
+        '<div class="sum-card" data-ogul-open="' + escapeHtml(hive.id) + '" role="button" tabindex="0" style="cursor:pointer;">' +
           '<div class="sum-top"><span class="sum-ico' + cls(swarmTone) + '">◎</span><span class="sum-lbl">Oğul riski</span></div>' +
           '<div class="sum-val' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</div>' +
-          '<span class="sum-badge' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</span>' +
+          '<span class="sum-badge' + cls(swarmTone) + '">' + escapeHtml(swBadge) + '</span>' +
         '</div>' +
       '</div>' +
 
@@ -915,6 +921,8 @@
           kvRow('İşaretli', hive.queenMarked === true ? 'Evet' : (hive.queenMarked === false ? 'Hayır' : 'Kayıt yok')) +
           kvRow('Sakinlik', K && hive.calmness != null ? K.calmText(hive) : 'Kayıt yok') +
           kvRow('Oğul eğilimi', fieldOrNone(hive.swarmTendency)) +
+          (swA ? kvRowHtml('Oğul riski', '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + swA.color + ';margin-right:5px;"></span><b>' + escapeHtml(swA.level) + '</b> · ' + escapeHtml(swA.seasonNote) +
+            ' <a href="#" data-ogul-open="' + escapeHtml(hive.id) + '" style="color:#2b6cb0;text-decoration:underline;font-weight:700;white-space:nowrap;">Ayrıntı ve öneriler</a>') : '') +
           (hive.colonyNote ? kvRow('Koloni notu', hive.colonyNote) : '') +
           (krRows ? kvRowHtml('Koloni gücü', escapeHtml(krRows.strength) + krEdit('guc')) +
             kvRowHtml('Yavru durumu', escapeHtml(krRows.brood) + krEdit('yavru')) +
@@ -1006,7 +1014,7 @@
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-19"></script>
-<script src="pwa.js?v=koloni-19"></script>
+<script src="nav.js?v=koloni-20"></script>
+<script src="pwa.js?v=koloni-20"></script>
 </body>
 </html>

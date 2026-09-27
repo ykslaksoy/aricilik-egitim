@@ -66,6 +66,7 @@ const SHELL = [
   "/raporlar.html",
   "/saglik-detay.html",
   "/saglik.html",
+  "/ogul.js",
   "/sensor-health.js",
   "/sensorler.html",
   "/stok.html",
