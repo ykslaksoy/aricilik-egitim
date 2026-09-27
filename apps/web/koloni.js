@@ -1652,7 +1652,7 @@
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="qkTitle">' +
       '<h3 id="qkTitle">＋ Hızlı kayıt</h3>' +
       '<p class="kol-sub">Tam muayene gerekmez. Her kovana ayrı kayıt yazılır ve Bakım geçmişinde görünür.</p>' +
-      '<button type="button" class="btn" data-qk-km style="width:100%;margin:.2rem 0 .5rem;">🐝 Muayene — Kolay muayene (adım adım)</button>' +
+      '<div style="display:flex;gap:.4rem;margin:.2rem 0 .5rem;"><button type="button" class="btn" data-qk-km style="flex:1;min-width:0;">🐝 Kolay muayene</button><button type="button" class="btn secondary" data-qk-km data-voice="1" style="flex:none;">🎙 Sesle başlat</button></div>' +
       '<button type="button" class="btn secondary" data-qk-ov style="width:100%;margin:0 0 .5rem;">🐝 Oğul verdi (kaydet)</button>' +
       '<div class="kr-section-title">Tür</div>' +
       '<div class="qk-types">' + QUICK_TYPES.map(function (t) { return '<button type="button" data-qtype="' + t.key + '">' + esc(t.label) + '</button>'; }).join('') + '</div>' +
@@ -1785,8 +1785,9 @@
         var one = sf.querySelector('select[name=one]'), hsx = hivesOf();
         var kid = scope === 'one' && one ? one.value : (currentTargets()[0] || (hsx[0] && hsx[0].id));
         if (!kid) { toast('Önce kovan seçin'); return; }
+        var vo = t.closest('[data-qk-km]').hasAttribute('data-voice');
         close();
-        openKolayMuayene(kid, { onSaved: opts.onSaved });
+        openKolayMuayene(kid, { onSaved: opts.onSaved, voice: vo });
         return;
       }
       var q = t.closest && t.closest('[data-qtype]');

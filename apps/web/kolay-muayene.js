@@ -152,7 +152,7 @@
   var css = '.km-back{position:fixed;inset:0;background:rgba(30,20,10,.5);z-index:8990;display:flex;align-items:stretch;justify-content:center;}' +
     '.km{background:#fffaf2;width:100%;max-width:560px;height:100%;display:flex;flex-direction:column;box-sizing:border-box;color:#3d2616;overflow-wrap:anywhere;}' +
     '.km-head{padding:10px 12px 8px;border-bottom:1px solid #eadfcd;background:#fff6e6;}.km-top{display:flex;align-items:center;gap:8px;}' +
-    '.km-top b{font-size:16px;flex:1;min-width:0;}.km-x{flex:none;border:0;background:#efe4d2;border-radius:999px;width:36px;height:36px;font-size:20px;cursor:pointer;}' +
+    '.km-top b{font-size:16px;flex:1;min-width:0;}.km-mic{flex:none;border:1px solid #e56f1c;background:#fff;color:#b4530a;border-radius:999px;padding:6px 10px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;min-height:36px;white-space:nowrap;}.km-x{flex:none;border:0;background:#efe4d2;border-radius:999px;width:36px;height:36px;font-size:20px;cursor:pointer;}' +
     '.km-sub{font-size:12px;color:#6b5a48;margin-top:2px;}.km-bar{height:8px;background:#efe4d2;border-radius:99px;overflow:hidden;margin-top:8px;}.km-bar i{display:block;height:100%;background:linear-gradient(90deg,#f0a202,#e56f1c);transition:width .2s;}' +
     '.km-body{flex:1;overflow:auto;padding:14px 12px;}.km-q{font-size:20px;font-weight:800;margin:4px 0 4px;line-height:1.25;}.km-help{font-size:13px;color:#6b5a48;margin:0 0 12px;}' +
     '.km-opts{display:grid;gap:8px;}.km-opt{font:inherit;font-size:17px;font-weight:700;text-align:left;min-height:56px;padding:12px 14px;border-radius:14px;border:2px solid #e0cfb3;background:#fff;color:#3d2616;cursor:pointer;}' +
@@ -175,7 +175,7 @@
     '.km-link{font:inherit;font-size:15px;font-weight:800;width:100%;min-height:48px;border-radius:12px;border:2px solid #e56f1c;background:#fff;color:#b3470b;cursor:pointer;margin-top:10px;}' +
     '.km-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}.km-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;}';
   function ensureCss() { if (document.getElementById('kmCss')) return; var s = document.createElement('style'); s.id = 'kmCss'; s.textContent = css; document.head.appendChild(s); }
-  function close() { var b = document.getElementById('kmSheet'); if (b) { b.remove(); document.body.style.overflow = ''; } }
+  function close() { try { if (global.SuperAriSesle) global.SuperAriSesle.stop(); } catch (e) { /* ignore */ } var b = document.getElementById('kmSheet'); if (b) { b.remove(); document.body.style.overflow = ''; } }
 
   function open(hiveId, opts) {
     opts = opts || {}; D = global.SuperAriDemo;
@@ -187,8 +187,8 @@
       bee: last ? last.beeFrames : 5, brood: last ? last.broodFrames : 3, sel: {} };
     try { var b0 = D.colony.boxes ? D.colony.boxes(h) : null; if (b0) st.box = { body: b0.body, kat: b0.kat, ballik: b0.ballik, known: b0.known }; } catch (e) { st.box = null; }
     var back = document.createElement('div'); back.className = 'km-back'; back.id = 'kmSheet';
-    back.innerHTML = '<div class="km" role="dialog" aria-modal="true" aria-label="Kolay muayene"><div class="km-head"><div class="km-top"><b data-km-title></b><button type="button" class="km-x" data-km-close aria-label="Kapat">×</button></div>' +
-      '<div class="km-sub" data-km-sub></div><div class="km-bar"><i data-km-bar></i></div></div><form class="km-body" data-km-body autocomplete="off" onsubmit="return false"></form><div class="km-foot" data-km-foot></div></div>';
+    back.innerHTML = '<div class="km" role="dialog" aria-modal="true" aria-label="Kolay muayene"><div class="km-head"><div class="km-top"><b data-km-title></b><button type="button" class="km-mic" data-km-voice-start aria-label="Sesle başlat">🎙 Sesle başlat</button><button type="button" class="km-x" data-km-close aria-label="Kapat">×</button></div>' +
+      '<div class="km-sub" data-km-sub></div><div class="km-bar"><i data-km-bar></i></div></div><div class="km-voice" data-km-voice hidden></div><form class="km-body" data-km-body autocomplete="off" onsubmit="return false"></form><div class="km-foot" data-km-foot></div></div>';
     document.body.appendChild(back); document.body.style.overflow = 'hidden';
     var body = back.querySelector('[data-km-body]'), foot = back.querySelector('[data-km-foot]');
     deps().then(function () { if (st.i < st.steps.length) render(); });
@@ -207,7 +207,40 @@
         (ph.length ? '<div class="km-thumbs">' + ph.map(function (p) { return '<img alt="" src="' + p.url + '">'; }).join('') + '</div>' : '') +
         (st.noteOpen[id] || st.notes[id] ? '<div class="km-note"><textarea name="note" maxlength="200" placeholder="Kısa not (isteğe bağlı)" data-km-notetext>' + esc(st.notes[id] || '') + '</textarea></div>' : '');
     }
+    /* Sesle muayene (sesle-muayene.js) için denetim arayüzü */
+    var vKey = null;
+    var vapi = {
+      bar: function () { return back.querySelector('[data-km-voice]'); },
+      cur: function () { var n = st.steps.length; if (st.i >= n) return { summary: true, done: !!st.done }; var id = st.steps[st.i]; return { id: id, def: S[id], i: st.i, n: n, ans: st.ans[id] }; },
+      answer: function (id, v) {
+        st.ans[id] = v; st.sugg = null; st.selInit = false;
+        if (id === 'yer' && v === 'kat' && st.box && !st.box.kat) { st.box.kat = 1; st.box.ballik = true; st.boxTouched = true; }
+        advance();
+      },
+      frames: function (bee, brood) {
+        if (bee != null) st.bee = Math.max(0, Math.min(30, bee));
+        if (brood != null) st.brood = Math.max(0, Math.min(20, brood));
+        if (st.brood > st.bee) st.bee = st.brood;
+        st.ans.cerceve = { bee: st.bee, brood: st.brood }; st.sugg = null; st.selInit = false; advance();
+      },
+      back: function () { if (st.i > 0 && !st.done) { st.i = Math.min(st.i, st.steps.length) - 1; render(); } else { vKey = null; render(); } },
+      skip: function () { advance(); },
+      save: function (andNext) { if (st.done) return; vapi.viaVoice = true; save(!!andNext && !!nextHive()); },
+      goNext: function () { vapi.viaVoice = true; goNext(); },
+      note: function (txt) { var id = st.steps[Math.min(st.i, st.steps.length - 1)]; st.notes[id] = ((st.notes[id] ? st.notes[id] + ' ' : '') + txt).slice(0, 200); },
+      optLabel: optLabel, onRender: null, viaVoice: false
+    };
+    function voiceStart(resume) {
+      need('sesle-muayene.js', 'SuperAriSesle').then(function (V) { V.start(vapi, { resume: !!resume }); })
+        .catch(function () { var b = vapi.bar(); if (b) { b.hidden = false; b.className = 'km-voice unsup'; b.textContent = 'Sesle muayene yüklenemedi; dokunarak devam edin.'; } });
+    }
     function render() {
+      renderCore();
+      var k = st.i + '|' + (st.done ? 1 : 0) + '|' + st.steps.length;
+      if (vapi.onRender && k !== vKey) { vKey = k; setTimeout(function () { if (vapi.onRender) vapi.onRender(); }, 0); }
+      else vKey = k;
+    }
+    function renderCore() {
       head();
       var n = st.steps.length;
       if (st.i >= n) return renderSum();
@@ -285,7 +318,7 @@
       var nx = nextHive(); var P = global.SuperAriPlan, ap = String(opts.apiary || h.apiaryId);
       try { if (P && P.tourMarkDone && String(h.apiaryId) === ap) P.tourMarkDone(ap, h.id); } catch (e) { /* ignore */ }
       if (typeof opts.onNext === 'function') { close(); opts.onNext(nx); return; }
-      if (nx) location.href = 'bakim-yap.html?id=' + encodeURIComponent(nx.id) + '&apiary=' + encodeURIComponent(ap) + '&km=1';
+      if (nx) location.href = 'bakim-yap.html?id=' + encodeURIComponent(nx.id) + '&apiary=' + encodeURIComponent(ap) + '&km=1' + (vapi.onRender || vapi.viaVoice ? '&ses=1' : '');
       else close();
     }
     function save(andNext) {
@@ -335,6 +368,7 @@
       if (!t) return;
       var id = st.steps[st.i];
       if (t.hasAttribute('data-km-close')) { close(); return; }
+      if (t.hasAttribute('data-km-voice-start')) { voiceStart(false); return; }
       if (t.hasAttribute('data-km-variant')) { e.preventDefault(); st.first = !st.first; st.steps = (st.first ? FIRST : ROUTINE).slice(); st.i = 0; st.sugg = null; st.selInit = false; render(); return; }
       if (t.hasAttribute('data-km-opt')) {
         st.ans[id] = t.getAttribute('data-km-opt'); st.sugg = null; st.selInit = false;
@@ -394,6 +428,7 @@
       }
     });
     render();
+    if (opts.voice) setTimeout(function () { voiceStart(opts.voice === 'resume'); }, 50);
   }
   global.SuperAriKolayMuayene = { open: open, close: close, build: build, suggestions: suggestions, isFirst: isFirst, ROUTINE: ROUTINE, FIRST: FIRST, STEPS: S };
 })(window);

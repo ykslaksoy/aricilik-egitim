@@ -50,6 +50,7 @@
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
       <div id="koloniGrid"></div>
       <p class="muted" id="summary">Demo kovan listesi…</p>
+      <div id="tartiTop" hidden></div>
       <div id="kvSearch" class="stack" style="gap:.5rem;" hidden></div>
       <div class="mode-switch" id="modeSwitch"></div>
       <div id="koloniTop"></div>
@@ -57,12 +58,13 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-32"></script>
-  <script src="rapor-store.js?v=koloni-32"></script>
-  <script src="sensor-health.js?v=koloni-32"></script>
-  <script src="koloni.js?v=koloni-32"></script>
-  <script src="irk-tahmin.js?v=koloni-32"></script>
-  <script src="kovan-ara.js?v=koloni-32"></script>
+  <script src="demo-data.js?v=koloni-33"></script>
+  <script src="rapor-store.js?v=koloni-33"></script>
+  <script src="sensor-health.js?v=koloni-33"></script>
+  <script src="koloni.js?v=koloni-33"></script>
+  <script src="irk-tahmin.js?v=koloni-33"></script>
+  <script src="kovan-ara.js?v=koloni-33"></script>
+  <script src="tarti-elle.js?v=koloni-33"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -137,6 +139,20 @@
       var summaryEl = document.getElementById('summary');
       var noteEl = document.getElementById('pageNote');
       var modeSwitchEl = document.getElementById('modeSwitch');
+      /* Tartı görünümü: elle tartım her zaman (cihaz bağlı olsa da) girilebilir. */
+      var TE = window.SuperAriTarti;
+      function renderTartiTop() {
+        var el = document.getElementById('tartiTop');
+        if (!el || view !== 'tarti' || !TE) return;
+        TE.ensureCss();
+        var ap = params.get('apiary') || '';
+        var rec = TE.all().filter(function (x) { if (!ap) return true; var hh = D.hiveById(x.hiveId); return hh && String(hh.apiaryId) === String(ap); }).slice(0, 5);
+        el.hidden = false;
+        el.innerHTML = '<button type="button" class="btn" data-te-open style="width:100%;min-height:50px;font-size:1.02rem;">⚖ Elle tartım gir</button>' +
+          (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son elle tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '');
+        if (!el.__b) { el.__b = true; el.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-te-open]')) TE.open(params.get('hiveId') || '', { apiaryId: ap, onSaved: renderTartiTop }); }); }
+      }
+      renderTartiTop();
 
       var titles = {
         tarti: 'Tartı',
@@ -222,7 +238,8 @@
         if (view === 'tarti') {
           var sign = h.deltaKg > 0 ? '+' : '';
           badge = sign + h.deltaKg.toFixed(1) + ' kg';
-          meta = h.weightKg.toFixed(1) + ' kg · ' + place;
+          var le = TE ? TE.latest(h.id) : null;
+          meta = h.weightKg.toFixed(1) + ' kg · ' + place + (le ? ' · Elle: ' + String(le.kg).replace('.', ',') + ' kg (' + TE.fmtAt(le.at) + ')' : '');
         } else if (view === 'koloni') {
           badge = String(h.colonyScore);
           meta = 'Koloni · ' + place;
@@ -437,6 +454,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-32"></script>
+<script src="pwa.js?v=koloni-33"></script>
 </body>
 </html>

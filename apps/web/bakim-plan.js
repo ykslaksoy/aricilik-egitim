@@ -510,7 +510,7 @@
       (st.honeyFrames != null ? '<span class="bo-chip">' + st.honeyFrames + ' bal çerçevesi</span>' : '') +
       (mp.infestation != null ? '<span class="bo-chip">Varroa %' + num(mp.infestation) + '</span>' : '') + '</div>');
     var firstInsp = false; try { var rr0 = D.records.status(h.id).records; firstInsp = !rr0.strength.length && !rr0.brood.length && !rr0.disease.length && !rr0.feed.length; } catch (eF) { firstInsp = false; }
-    H.push('<button type="button" class="bo-btn" data-bo-km style="width:100%;min-height:50px;font-size:1rem;margin:.1rem 0 .5rem;">🐝 ' + (firstInsp ? 'İlk muayene (adım adım)' : 'Kolay muayene (≈1 dk)') + '</button>');
+    H.push('<div style="display:flex;gap:.4rem;margin:.1rem 0 .5rem;"><button type="button" class="bo-btn" data-bo-km style="flex:1;min-width:0;min-height:50px;font-size:1rem;">🐝 ' + (firstInsp ? 'İlk muayene (adım adım)' : 'Kolay muayene (≈1 dk)') + '</button><button type="button" class="bo-btn" data-bo-km data-voice="1" style="flex:none;min-height:50px;font-size:.95rem;">🎙 Sesle başlat</button></div>');
     H.push('<label class="bo-row" style="font-size:.8rem;"><input type="checkbox" data-bo-super' + (hasSuper(h.id) ? ' checked' : '') + '> Bal katı takılı (ilaç engellenir)</label>');
     if (tasks.length) {
       H.push('<div class="bo-sec"><h3>📌 Görevler</h3>' + tasks.map(function (x) {
@@ -583,7 +583,7 @@
     };
     el.onclick = function (e) {
       var b = e.target.closest && e.target.closest('button'); if (!b) return;
-      if (b.hasAttribute('data-bo-km')) { openKM(h.id, { apiary: opts.apiary, onChange: opts.onChange, onNext: opts.onNext, rerender: function () { renderHiveCard(el, hiveId, opts); } }); return; }
+      if (b.hasAttribute('data-bo-km')) { openKM(h.id, { apiary: opts.apiary, voice: b.hasAttribute('data-voice'), onChange: opts.onChange, onNext: opts.onNext, rerender: function () { renderHiveCard(el, hiveId, opts); } }); return; }
       if (b.hasAttribute('data-bo-hz')) {
         var go = function () { global.SuperAriHastalik.open(h.id, { onSaved: function () { say({ ok: true, msg: 'Şüpheli hastalık kaydedildi; görevler eklendi.' }); } }); };
         if (global.SuperAriHastalik) go();
@@ -612,7 +612,7 @@
     var o = { apiary: opts.apiary, onSaved: opts.onChange ? function () { opts.onChange({}); } : null, onNext: opts.onNext };
     var go = function () {
       global.SuperAriKolayMuayene.open(hiveId, {
-        apiary: o.apiary, onNext: o.onNext,
+        apiary: o.apiary, onNext: o.onNext, voice: opts.voice,
         onSaved: function () { if (o.onSaved) o.onSaved(); if (opts.rerender) opts.rerender(); }
       });
     };

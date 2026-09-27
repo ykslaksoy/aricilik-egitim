@@ -362,14 +362,23 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-32"></script>
-<script src="rapor-store.js?v=koloni-32"></script>
-<script src="sensor-health.js?v=koloni-32"></script>
-<script src="koloni.js?v=koloni-32"></script>
-<script src="ilac-katalog.js?v=koloni-32"></script>
-<script src="bakim-plan.js?v=koloni-32"></script>
-<script src="ogul.js?v=koloni-32"></script>
-<script src="ogul-verdi.js?v=koloni-32"></script>
+<script src="demo-data.js?v=koloni-33"></script>
+<script src="rapor-store.js?v=koloni-33"></script>
+<script src="sensor-health.js?v=koloni-33"></script>
+<script src="koloni.js?v=koloni-33"></script>
+<script src="ilac-katalog.js?v=koloni-33"></script>
+<script src="bakim-plan.js?v=koloni-33"></script>
+<script src="ogul.js?v=koloni-33"></script>
+<script src="ogul-verdi.js?v=koloni-33"></script>
+<script src="tarti-elle.js?v=koloni-33"></script>
+<script>(function () {
+  if (window.SuperAriTarti) SuperAriTarti.ensureCss();
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-te-open]') : null; if (!t || !window.SuperAriTarti) return;
+    e.preventDefault(); SuperAriTarti.open(t.getAttribute('data-te-open'), { onSaved: function () { window.__teReload = true; } });
+  });
+  new MutationObserver(function () { if (window.__teReload && !document.getElementById('teSheet')) { window.__teReload = false; location.reload(); } }).observe(document.body, { childList: true });
+})();</script>
 <script>document.addEventListener('click', function (e) {
   var t = e.target.closest ? e.target.closest('[data-ov-open],[data-kutu-open]') : null; if (!t) return;
   e.preventDefault();
@@ -378,7 +387,7 @@
   else if (window.SuperAriKutu) SuperAriKutu.open(t.getAttribute('data-kutu-open'), rl);
 });
 new MutationObserver(function () { if (window.__ovReload && !document.getElementById('ovSheet')) { window.__ovReload = false; location.reload(); } }).observe(document.body, { childList: true });</script>
-<script src="irk-tahmin.js?v=koloni-32"></script>
+<script src="irk-tahmin.js?v=koloni-33"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>(function () {
   function kmOpen(id) { if (window.SuperAriKoloni && SuperAriKoloni.openKolayMuayene) SuperAriKoloni.openKolayMuayene(id, { onSaved: function () { window.__kmReload = true; } }); }
@@ -634,7 +643,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
       var py = yAt(series[pi][primary.key]);
       ctx.beginPath();
       ctx.arc(px, py, pi === n - 1 ? 5 : 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = series[pi].manual ? '#f59f00' : '#fff';
       ctx.fill();
       ctx.strokeStyle = primary.color;
       ctx.lineWidth = pi === n - 1 ? 2.5 : 1.6;
@@ -814,6 +823,14 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     } else {
       chartState.series = [];
     }
+    /* Elle tartım: cihaz olsa da her zaman girilebilir; cihaz geçmişi yoksa grafik elle okumalardan çizilir. */
+    var TEm = window.SuperAriTarti, manualList = TEm ? TEm.list(hive.id) : [], manualSeries = TEm ? TEm.series(hive.id, 30) : [];
+    var manualTrend = false;
+    if (!hasRealTrend && manualSeries.length >= 2) {
+      manualTrend = true;
+      chartState.series = manualSeries.map(function (pt) { return { label: TEm.fmtAt(pt.date), tarti: pt.net, manual: true }; });
+      chartState.primary = 'tarti';
+    }
 
     function cls(t) { return t ? ' ' + t : ''; }
     var swarmTone = st;
@@ -855,7 +872,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     var chartHtml =
       '<section class="chart-card">' +
         '<div class="chart-head">' +
-          '<h2>Son 10 gün</h2>' +
+          '<h2>' + (manualTrend ? 'Tartı · Elle (son 30 gün)' : 'Son 10 gün') + '</h2>' +
           (hasRealTrend
             ? (
                 '<select class="metric-select" id="metricSelect" aria-label="Grafik metriği">' +
@@ -864,9 +881,11 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
               )
             : '') +
         '</div>' +
-        (hasRealTrend
-          ? '<div class="chart-wrap"><canvas id="trendChart" aria-label="Son 10 gün grafiği"></canvas></div>'
-          : '<div class="chart-empty">Tartı geçmişi henüz yok. Gerçek kayıt gelmeden grafik çizilmez.</div>') +
+        (hasRealTrend || manualTrend
+          ? '<div class="chart-wrap"><canvas id="trendChart" aria-label="Tartı grafiği"></canvas></div>' + (manualTrend && manualList.some(function (x) { return x.addKg; }) ? '<p style="margin:4px 0 0;font-size:12px;color:#6b5a48;">Eklenen kat / besleme ağırlığı sonraki okumalardan düşülerek çizildi.</p>' : '')
+          : '<div class="chart-empty">Tartı geçmişi henüz yok. Elle tartım girebilirsiniz; cihaz verisi uydurulmaz.</div>') +
+        '<button type="button" class="btn" data-te-open="' + escapeHtml(hive.id) + '" style="width:100%;margin-top:8px;min-height:46px;">⚖ Elle tartım gir</button>' +
+        (manualList.length && TEm ? '<div style="margin-top:6px;">' + manualList.slice(0, 4).map(function (x) { return TEm.rowHtml(x, {}); }).join('') + '</div>' : '') +
       '</section>';
 
     content.innerHTML =
@@ -1046,7 +1065,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-32"></script>
-<script src="pwa.js?v=koloni-32"></script>
+<script src="nav.js?v=koloni-33"></script>
+<script src="pwa.js?v=koloni-33"></script>
 </body>
 </html>
