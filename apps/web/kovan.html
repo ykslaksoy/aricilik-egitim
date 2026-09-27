@@ -366,6 +366,8 @@
 <script src="rapor-store.js?v=koloni-17"></script>
 <script src="sensor-health.js?v=koloni-17"></script>
 <script src="koloni.js?v=koloni-17"></script>
+<script src="ilac-katalog.js?v=koloni-17"></script>
+<script src="bakim-plan.js?v=koloni-17"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -931,6 +933,13 @@
         '</div>' +
       '</div>' +
 
+      (window.SuperAriPlan
+        ? '<div class="kd-extra" aria-label="Bu kovan için öneri" id="oneri">' +
+            '<h2>Bu kovan için öneri</h2>' +
+            '<div id="oneriBody"></div>' +
+            '<p class="hint" style="margin:6px 0 0;"><a href="bakim-yap.html?id=' + encodeURIComponent(hive.id) + '">Bakım yap görünümü</a> · <a href="bakim-plan.html?apiary=' + encodeURIComponent(hive.apiaryId) + '">Bakım planı</a></p>' +
+          '</div>'
+        : '') +
       (K && K.timelineHtml
         ? '<div class="kd-extra" aria-label="Bakım geçmişi" id="btBox">' +
             '<h2>Bakım geçmişi</h2>' +
@@ -961,6 +970,10 @@
         '</div>' +
       '</div>';
 
+    if (window.SuperAriPlan) {
+      window.SuperAriPlan.renderHiveCard(document.getElementById('oneriBody'), hive.id, {});
+      if (location.hash === '#oneri') { var on = document.getElementById('oneri'); if (on) setTimeout(function () { on.scrollIntoView(); }, 50); }
+    }
     if (K && K.bindTimeline) {
       K.bindTimeline(document.getElementById('btBox'), hive.id, function () {
         var fresh = window.SuperAriDemo.hiveById(hive.id) || hive;

@@ -247,11 +247,13 @@
     return o;
   }
   /** Tek beslemeyi kaydet: besleme kaydı + stoktan düş + kalan beslemeler için görev. */
-  function saveFeeding(hiveId) {
+  function saveFeeding(hiveId, amountL) {
     var h = D.hiveById(hiveId); if (!h) return { ok: false, msg: 'Kovan bulunamadı' };
     var fp = feedPlan(h);
     if (!fp.need) return { ok: false, msg: fp.reason || 'Besleme gerekmiyor.' };
     var t = today();
+    var ov = Number(String(amountL == null ? '' : amountL).replace(',', '.'));
+    if (isFinite(ov) && ov > 0 && ov <= 20) { fp.perFeedL = Math.round(ov * 10) / 10; if (fp.stock && fp.stock.use === 'syrup') fp.stock.perFeed = fp.perFeedL; else if (fp.stock && fp.stock.use === 'sugar') fp.stock.perFeed = Math.round(fp.perFeedL * SYRUP[fp.type].sugarKg * 10) / 10; }
     var rec = D.records.add(h.id, 'feed', { date: t, type: fp.type, amount: fp.perFeedL, note: 'Bakım planı · ' + fp.feedings + ' beslemenin 1.si (tahmini açık ' + num(fp.deficitKg) + ' kg)' });
     var msg = SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' L kaydedildi.', low = null;
     var s = fp.stock;
@@ -374,7 +376,165 @@
     }).join('');
   }
 
+  /* ---------------- saha: bakım listesi + «Bakım yap» ---------------- */
+  function hiveTasks(hId, horizonDays) {
+    var t = today(), lim = addDays(t, horizonDays == null ? 3 : horizonDays), out = [];
+    try { D.taskStore.open().forEach(function (x) { if (String(x.hiveId) === String(hId) && (!x.due || x.due <= lim)) out.push(x); }); } catch (e) { /* ignore */ }
+    return out.sort(function (a, b) { return String(a.due || '9') < String(b.due || '9') ? -1 : 1; });
+  }
+  /** Kovanın şu an yapılması gereken işleri: [{ kind, text, amount, u }] (u: 1 acil, 2 bu hafta, 3 izle) */
+  function needs(h) {
+    var t = today(), st = hiveState(h), out = [];
+    hiveTasks(h.id, 3).forEach(function (x) {
+      if (!x.due) return;
+      out.push({ kind: 'gorev', id: x.id, text: x.title.replace(/ — [^—]+$/, ''), amount: x.due < t ? 'gecikti' : (x.due === t ? 'bugün' : fmt(x.due)), u: x.due < t ? 1 : 2 });
+    });
+    var mp = medPlan(h, st), sk = seasonKind(h.apiaryId);
+    if (mp.canTreat && mp.level === 'tedavi' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi (%' + num(mp.infestation) + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 1 });
+    else if (mp.canTreat && mp.level === 'planla' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi planla (%' + num(mp.infestation) + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 2 });
+    else if (mp.level === 'sayim' && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımı', amount: 'alkol yıkama / pudra şekeri', u: 3 });
+    else if (mp.countDate && t > addDays(mp.countDate, 30) && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımını yenile', amount: 'son ' + fmt(mp.countDate), u: 3 });
+    var fp = feedPlan(h, st);
+    if (fp.need) out.push({ kind: 'besleme', text: 'Besleme' + (fp.weak ? ' (zayıf: birleştirmeyi düşünün)' : ''), amount: SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' L × ' + fp.feedings, u: sk === 'sonbahar' ? 2 : 3 });
+    out.sort(function (a, b) { return a.u - b.u; });
+    return out;
+  }
+  function tourKey() { return mode() === 'live' ? 'superari.bakimTur.v1' : 'superari.bakimTur.demo.v1'; }
+  function tourLoad() { try { return JSON.parse(localStorage.getItem(tourKey()) || 'null'); } catch (e) { return null; } }
+  function tourSave(s) { try { localStorage.setItem(tourKey(), JSON.stringify(s)); } catch (e) { /* ignore */ } }
+  /** Arılığın saha listesi (gün içinde sabit; yeni gün veya «Yeni liste» ile yenilenir). */
+  function tour(apId, reset) {
+    var s = tourLoad(), t = today();
+    var hs = D.hivesForApiary(apId), byId = {}; hs.forEach(function (h) { byId[String(h.id)] = h; });
+    var nd = {}; hs.forEach(function (h) { nd[String(h.id)] = needs(h); });
+    if (reset || !s || s.apId !== String(apId) || s.date !== t) {
+      s = { apId: String(apId), date: t, ids: hs.filter(function (h) { return nd[String(h.id)].length; }).map(function (h) { return String(h.id); }), done: {} };
+      tourSave(s);
+    }
+    var rows = s.ids.filter(function (id) { return byId[id]; }).map(function (id) {
+      var n = nd[id], done = !!s.done[id] || !n.length;
+      return { hive: byId[id], needs: n, done: done, u: n.length ? n[0].u : 9 };
+    });
+    rows.sort(function (a, b) { return (a.done - b.done) || (a.u - b.u) || (b.needs.length - a.needs.length) || (Number(a.hive.id) - Number(b.hive.id)); });
+    var doneN = rows.filter(function (r) { return r.done; }).length;
+    return { apId: String(apId), rows: rows, total: rows.length, done: doneN, state: s };
+  }
+  function tourMarkDone(apId, hiveId) { var s = tourLoad(); if (!s || s.apId !== String(apId)) { tour(apId); s = tourLoad(); } s.done[String(hiveId)] = true; tourSave(s); }
+  function tourNext(apId, curId) {
+    var tr = tour(apId), open = tr.rows.filter(function (r) { return !r.done && String(r.hive.id) !== String(curId); });
+    return open.length ? open[0].hive : null;
+  }
+  function completeMatching(hId, re) {
+    var n = 0;
+    hiveTasks(hId, 0).forEach(function (x) { if (re.test(x.title)) { D.taskStore.complete(x.id, { note: 'Bakım planından kaydedildi' }); n++; } });
+    return n;
+  }
+  function saveCount(hiveId, count, method) {
+    var h = D.hiveById(hiveId); if (!h) return { ok: false, msg: 'Kovan bulunamadı' };
+    var c = Math.round(Number(count)); if (!isFinite(c) || c < 0 || c > 5000) return { ok: false, msg: 'Akar sayısını yazın.' };
+    var rec = D.records.add(h.id, 'disease', { date: today(), disease: 'varroa', count: c, method: method === 'seker' ? 'seker' : 'alkol', note: 'Bakım planı · ≈300 arı örneği' });
+    var n = completeMatching(h.id, /^Varroa sayımı \(/);
+    try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
+    return { ok: !!rec, msg: 'Sayım kaydedildi (' + c + ' akar).' + (n ? ' ' + n + ' görev tamamlandı.' : '') };
+  }
+
+  /* ---------------- «Bu kovan için öneri» kartı ---------------- */
+  var CSS = '.bo{display:grid;gap:.55rem;font-size:.85rem;min-width:0}.bo *{box-sizing:border-box}.bo-chips{display:flex;flex-wrap:wrap;gap:.3rem}.bo-chip{font-size:.72rem;font-weight:800;padding:.18rem .5rem;border-radius:999px;background:#f1f3f5;color:#343a40}' +
+    '.bo-chip.demo{background:#fff3bf;color:#7a5b00}.bo-sec{border:1px solid #ead9b3;border-radius:12px;padding:.55rem .6rem;background:#fff;display:grid;gap:.4rem;min-width:0}.bo-sec h3{margin:0;font-size:.9rem}' +
+    '.bo-sec p{margin:0;overflow-wrap:anywhere}.bo-mut{color:#6b7280;font-size:.78rem}.bo-warn{background:#fff4e6;border:1px solid #ffd8a8;color:#8a4b00;border-radius:10px;padding:.4rem .5rem;font-size:.78rem}' +
+    '.bo-block{background:#fff5f5;border:1px solid #ffc9c9;color:#a61e1e;border-radius:10px;padding:.4rem .5rem;font-size:.78rem}.bo-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}' +
+    '.bo-row select,.bo-row input{font:inherit;font-size:.85rem;padding:.45rem .5rem;border:1px solid #ead9b3;border-radius:10px;background:#fff;min-width:0;max-width:100%}.bo-row input[type=number]{width:5.5rem}.bo-row select{flex:1 1 12rem}' +
+    '.bo-btn{font:inherit;font-size:.82rem;font-weight:800;padding:.5rem .75rem;border-radius:10px;border:1.5px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#fff3bf);color:#5c4813;cursor:pointer}' +
+    '.bo-btn.ok{border-color:#b2f2bb;background:#ebfbee;color:#2b8a3e}.bo-task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:center;border-top:1px dashed #ead9b3;padding-top:.35rem}' +
+    '.bo-task:first-of-type{border-top:0;padding-top:0}.bo-msg{font-size:.8rem;font-weight:700;color:#2b8a3e;margin:0}.bo-msg.err{color:#c92a2a}';
+  function ensureCss() { if (document.getElementById('bo-css')) return; var s = document.createElement('style'); s.id = 'bo-css'; s.textContent = CSS; document.head.appendChild(s); }
+  function renderHiveCard(el, hiveId, opts) {
+    opts = opts || {}; ensureCss();
+    var I = global.SuperAriIlac, h = D.hiveById(hiveId);
+    if (!el) return;
+    if (!h) { el.innerHTML = '<p class="bo-mut">Kovan bulunamadı.</p>'; return; }
+    var st = hiveState(h), fp = feedPlan(h, st), mp = medPlan(h, st), tasks = hiveTasks(h.id, 7);
+    var H = [];
+    H.push('<div class="bo-chips">' + (mode() === 'demo' ? '<span class="bo-chip demo">Demo</span>' : '') +
+      '<span class="bo-chip">' + esc(PROFILES[profileKey(h.apiaryId)].label.split(' (')[0]) + '</span>' +
+      (st.beeFrames != null ? '<span class="bo-chip">' + st.beeFrames + ' arılı çerçeve</span>' : '') +
+      (st.honeyFrames != null ? '<span class="bo-chip">' + st.honeyFrames + ' bal çerçevesi</span>' : '') +
+      (mp.infestation != null ? '<span class="bo-chip">Varroa %' + num(mp.infestation) + '</span>' : '') + '</div>');
+    H.push('<label class="bo-row" style="font-size:.8rem;"><input type="checkbox" data-bo-super' + (hasSuper(h.id) ? ' checked' : '') + '> Bal katı takılı (ilaç engellenir)</label>');
+    if (tasks.length) {
+      H.push('<div class="bo-sec"><h3>📌 Görevler</h3>' + tasks.map(function (x) {
+        return '<div class="bo-task"><span>' + esc(x.title) + (x.due ? ' <span class="bo-mut">· ' + (x.due < today() ? 'gecikti ' : '') + fmt(x.due) + '</span>' : '') + '</span><button type="button" class="bo-btn ok" data-bo-done="' + esc(x.id) + '">✓ Bitti</button></div>';
+      }).join('') + '</div>');
+    }
+    /* varroa */
+    var V = '<div class="bo-sec"><h3>💊 Varroa</h3><p>' + esc(mp.summary.split(' · ⛔')[0].split(' · Öneri')[0]) + '</p>';
+    mp.warns.forEach(function (w) { V += '<p class="bo-warn">' + esc(w) + '</p>'; });
+    mp.blocks.forEach(function (b) { V += '<p class="bo-block">⛔ ' + esc(b) + '</p>'; });
+    V += '<div class="bo-row"><input type="number" inputmode="numeric" min="0" max="5000" placeholder="Akar" data-bo-count aria-label="Akar sayısı">' +
+      '<select data-bo-method aria-label="Sayım yöntemi"><option value="alkol">Alkol yıkama (≈300 arı)</option><option value="seker">Pudra şekeri (≈300 arı)</option></select>' +
+      '<button type="button" class="bo-btn" data-bo-savecount>Sayımı kaydet</button></div>';
+    if (mp.canTreat && (mp.level === 'tedavi' || mp.level === 'planla')) {
+      var opt = mp.products.filter(function (x) { return x.verified; }).map(function (x) {
+        var dis = !x.dose.ok || x.blocks.length;
+        return '<option value="' + x.id + '"' + (dis ? ' disabled' : '') + (mp.best && mp.best.id === x.id ? ' selected' : '') + '>' + esc(x.name + ' — ' + (x.dose.ok ? x.dose.text + ' şerit' : 'doz yok') + (x.blocks.length ? ' (uygun değil)' : x.warns.length ? ' (rotasyon uyarısı)' : '')) + '</option>';
+      }).join('');
+      V += '<div class="bo-row"><select data-bo-prod aria-label="İlaç">' + opt + '</select><button type="button" class="bo-btn" data-bo-treat>İlaçlamayı kaydet</button></div><div data-bo-prodinfo></div>';
+    }
+    V += '<p class="bo-warn"><b>Etiket dozunu kontrol edin.</b> Doz yalnız Bakanlık ürün belgesindeki kurala göre hesaplanır.</p></div>';
+    H.push(V);
+    /* besleme */
+    var F = '<div class="bo-sec"><h3>🍯 Besleme <span class="bo-mut">(tahmin)</span></h3><p>' + esc(feedText(fp)) + '</p>';
+    if (fp.storesKg != null) F += '<p class="bo-mut">Stok ≈ ' + num(fp.storesKg) + ' kg (' + esc(fp.storesSrc) + ')' + (fp.targetKg ? ' · hedef ' + fp.targetKg + ' kg' : '') + '</p>';
+    if (fp.note) F += '<p class="bo-warn">' + esc(fp.note) + '</p>';
+    if (fp.need) {
+      var s = fp.stock || {};
+      if (s.item && s.short) F += '<p class="bo-warn">Stok yetersiz: ' + esc(s.item.name) + ' ' + num(s.item.qty) + ' ' + esc(s.item.unit) + ', toplam gereken ' + num(s.total) + ' ' + esc(s.unit) + '.</p>';
+      if (!s.item) F += '<p class="bo-mut">Stokta şurup/şeker kalemi yok; kayıt stoktan düşmez.</p>';
+      F += '<div class="bo-row"><input type="number" inputmode="decimal" step="0.5" min="0.5" max="20" value="' + fp.perFeedL + '" data-bo-feedl aria-label="Litre"> L ' + esc(SYRUP[fp.type].label) +
+        '<button type="button" class="bo-btn" data-bo-feed>Beslemeyi kaydet</button></div>';
+    }
+    F += '</div>';
+    H.push(F);
+    H.push('<p class="bo-msg" data-bo-msg role="status"></p>');
+    el.innerHTML = '<div class="bo">' + H.join('') + '</div>';
+    function info() {
+      var sel = el.querySelector('[data-bo-prod]'), box = el.querySelector('[data-bo-prodinfo]');
+      if (!sel || !box) return;
+      var po = mp.products.filter(function (x) { return x.id === sel.value; })[0], p = I.byId(sel.value);
+      if (!po || !p) { box.innerHTML = ''; return; }
+      box.innerHTML = '<p class="bo-mut">' + esc(p.dose.note) + ' Süre ' + p.durationDays[0] + (p.durationDays[1] !== p.durationDays[0] ? '–' + p.durationDays[1] : '') + ' gün. ' + esc(p.withdrawalText) + ' <a href="' + esc(p.source) + '" target="_blank" rel="noopener" style="color:#2b6cb0;text-decoration:underline;">Etiket (PDF)</a></p>' +
+        po.warns.map(function (w) { return '<p class="bo-warn">' + esc(w) + '</p>'; }).join('');
+    }
+    info();
+    function say(r) {
+      var m = el.querySelector('[data-bo-msg]');
+      if (!r.ok) { if (m) { m.textContent = r.msg; m.className = 'bo-msg err'; } return; }
+      renderHiveCard(el, hiveId, opts);
+      var m2 = el.querySelector('[data-bo-msg]'); if (m2) m2.textContent = '✓ ' + r.msg;
+      if (opts.onChange) opts.onChange(r);
+    }
+    el.onchange = function (e) {
+      if (e.target.hasAttribute('data-bo-super')) { setSuper(h.id, e.target.checked); renderHiveCard(el, hiveId, opts); if (opts.onChange) opts.onChange({}); }
+      else if (e.target.hasAttribute('data-bo-prod')) info();
+    };
+    el.onclick = function (e) {
+      var b = e.target.closest && e.target.closest('button'); if (!b) return;
+      if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
+      else if (b.hasAttribute('data-bo-savecount')) say(saveCount(h.id, el.querySelector('[data-bo-count]').value, el.querySelector('[data-bo-method]').value));
+      else if (b.hasAttribute('data-bo-treat')) {
+        var r = saveTreatment(h.id, el.querySelector('[data-bo-prod]').value);
+        if (r.ok) { var n = completeMatching(h.id, /ilaçlama|Varroa sayımı ve/i); if (n) r.msg += ' ' + n + ' görev tamamlandı.'; }
+        say(r);
+      } else if (b.hasAttribute('data-bo-feed')) {
+        var r2 = saveFeeding(h.id, el.querySelector('[data-bo-feedl]').value);
+        if (r2.ok) { var n2 = completeMatching(h.id, /besleme|stok kontrol/i); if (n2) r2.msg += ' ' + n2 + ' görev tamamlandı.'; }
+        say(r2);
+      }
+    };
+  }
+
   global.SuperAriPlan = {
+    needs: needs, tour: tour, tourMarkDone: tourMarkDone, tourNext: tourNext, saveCount: saveCount, renderHiveCard: renderHiveCard, hiveTasks: hiveTasks,
     SYRUP: SYRUP, KG_PER_HONEY_FRAME: KG_PER_HONEY_FRAME, hiveState: hiveState, seasonKind: seasonKind, feedPlan: feedPlan, saveFeeding: saveFeeding, feedText: feedText, hiveSummary: hiveSummary, medPlan: medPlan, saveTreatment: saveTreatment,
     PROFILES: PROFILES, JOBS: JOBS, profileKey: profileKey, autoProfile: autoProfile, setProfile: setProfile,
     camBali: camBali, setCamBali: setCamBali, hasSuper: hasSuper, setSuper: setSuper,

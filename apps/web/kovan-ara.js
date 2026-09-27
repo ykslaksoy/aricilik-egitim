@@ -237,7 +237,8 @@
       });
     });
   }
-  function openScanner(hives) {
+  function openScanner(hives, opts) {
+    opts = opts || {};
     ensureCss();
     var back = document.createElement('div');
     back.className = 'ka-qr-back';
@@ -253,7 +254,7 @@
     function handle(raw) {
       if (raw == null) return false;
       var h = parseHiveFromText(raw, hives);
-      if (h) { close(); location.href = 'kovan.html?id=' + encodeURIComponent(h.id); return true; }
+      if (h) { close(); if (typeof opts.onHive === 'function') opts.onHive(h); else location.href = 'kovan.html?id=' + encodeURIComponent(h.id); return true; }
       msg('Bu QR bir SüperArı kovanına ait değil: ' + String(raw).slice(0, 80));
       return false;
     }
