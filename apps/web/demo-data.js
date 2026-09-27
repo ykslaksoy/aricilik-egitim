@@ -1948,6 +1948,7 @@
     var o = { id: txt(r.id, 40) || ('r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)), date: isoDate(r.date) || todayLocal() };
     if (r.demo === true) o.demo = true;
     var note = txt(r.note, 300); if (note) o.note = note;
+    var pcnt = intIn(r.photoCount, 0, 50); if (pcnt) o.photoCount = pcnt;
     if (kind === 'strength') {
       o.beeFrames = intIn(r.beeFrames, 0, 40) || 0;
       o.broodFrames = intIn(r.broodFrames, 0, 30) || 0;
@@ -2071,11 +2072,24 @@
     Object.keys(rec || {}).forEach(function (k) { merged[k] = rec[k]; });
     merged.id = id;
     if (all[key][kind][idx].demo) merged.demo = true;
+    if (merged.photoCount == null && all[key][kind][idx].photoCount) merged.photoCount = all[key][kind][idx].photoCount;
     var r = normalizeRecord(kind, merged);
     if (!r) return null;
     all[key][kind][idx] = r;
     saveRecordsAll(all);
     return r;
+  }
+  /** Kayda bağlı fotoğraf sayısı (fotoğraflar IndexedDB'de: foto.js). */
+  function setPhotoCount(hiveId, kind, id, n) {
+    n = Math.max(0, Math.min(50, Math.round(Number(n) || 0)));
+    if (kind === 'harvest') return !!updateHarvestRow(id, { photoCount: n || null });
+    var all = loadRecordsAll();
+    var list = all[String(Number(hiveId))] && all[String(Number(hiveId))][kind];
+    if (!Array.isArray(list)) return false;
+    var hit = false;
+    list.forEach(function (x) { if (x && x.id === id) { hit = true; if (n) x.photoCount = n; else delete x.photoCount; } });
+    if (hit) saveRecordsAll(all);
+    return hit;
   }
   function removeRecord(hiveId, kind, id) {
     if (kind === 'harvest') return removeHarvestRow(id);
@@ -2143,6 +2157,7 @@
     var ht = txt(r.honeyType, 40); if (ht) o.honeyType = ht;
     var note = txt(r.note, 300); if (note) o.note = note;
     o.source = pick(r.source, ['rapor', 'kayit', 'eski'], 'kayit');
+    var pcnt = intIn(r.photoCount, 0, 50); if (pcnt) o.photoCount = pcnt;
     if (r.demo === true) o.demo = true;
     return o;
   }
@@ -2255,6 +2270,7 @@
     var o = { id: h.id, date: h.date, kg: h.honeyKg, frames: h.frames };
     if (h.honeyType) o.honeyType = h.honeyType;
     if (h.note) o.note = h.note;
+    if (h.photoCount) o.photoCount = h.photoCount;
     if (h.demo) o.demo = true;
     return o;
   }
@@ -2638,6 +2654,7 @@
     add: addRecord,
     remove: removeRecord,
     update: updateRecord,
+    setPhotoCount: setPhotoCount,
     diseaseLevel: diseaseLevel,
     status: function (id, all) { seedAll(); return colonyStatus(id, all); },
     healthFlags: function (id) { seedAll(); return healthFlags(id); },

@@ -11,6 +11,62 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  /* ---- Fotoğraflar (foto.js gerektiğinde yüklenir) ---- */
+  var FOTO_SRC = (function () {
+    var s = document.currentScript, m = s && /[?&]v=([^&]+)/.exec(s.src || '');
+    return 'foto.js' + (m ? '?v=' + m[1] : '');
+  })();
+  var fotoP = null;
+  function ensureFoto() {
+    if (global.SuperAriFoto) return Promise.resolve(global.SuperAriFoto);
+    if (fotoP) return fotoP;
+    fotoP = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = FOTO_SRC;
+      s.onload = function () { global.SuperAriFoto ? res(global.SuperAriFoto) : rej(new Error('foto')); };
+      s.onerror = function () { fotoP = null; rej(new Error('foto')); };
+      document.head.appendChild(s);
+    });
+    return fotoP;
+  }
+  var thumbTimer = null;
+  function scheduleThumbs() {
+    if (thumbTimer) return;
+    thumbTimer = setTimeout(function () {
+      thumbTimer = null;
+      ensureFoto().then(function (F) {
+        F.fillThumbs(document, { onCount: function (rid, hid, kind, n) { var rr = R(); if (rr && rr.setPhotoCount && hid && kind) rr.setPhotoCount(hid, kind, rid, n); } });
+      }).catch(function () { /* ignore */ });
+    }, 0);
+  }
+  function thumbsBox(rec, kind, hiveId) {
+    if (!rec || !rec.photoCount) return '';
+    scheduleThumbs();
+    return '<span class="bt-thumbs" style="display:flex;" data-foto-rec="' + esc(rec.id) + '" data-foto-hive="' + esc(hiveId) + '" data-foto-kind="' + esc(kind) + '" aria-label="' + rec.photoCount + ' fotoğraf"></span>';
+  }
+  /** Kayıt formunun altına fotoğraf seçici kurar; ctl.save(records) → Promise */
+  function mountPhotoPicker(holder, opts) {
+    var ctl = { picker: null, count: function () { return ctl.picker ? ctl.picker.count() : 0; }, busy: function () { return !!(ctl.picker && ctl.picker.busy()); } };
+    ensureFoto().then(function (F) {
+      if (!holder.isConnected) return;
+      ctl.picker = F.picker(holder, opts || {});
+    }).catch(function () { holder.innerHTML = '<p class="kol-sub" style="margin:.4rem 0 0;">Fotoğraf modülü yüklenemedi.</p>'; });
+    /** list: [{ id, hiveId, kind }] */
+    ctl.save = function (list) {
+      var items = ctl.picker ? ctl.picker.items() : [];
+      if (!items.length || !list.length) return Promise.resolve(0);
+      return ensureFoto().then(function (F) {
+        return F.attach(list.map(function (x) { return x.id; }), items).then(function () {
+          return Promise.all(list.map(function (x) {
+            return F.listFor(x.id).then(function (l) { var rr = R(); if (rr && rr.setPhotoCount) rr.setPhotoCount(x.hiveId, x.kind, x.id, l.length); });
+          }));
+        }).then(function () { ctl.picker.clear(); return items.length; });
+      }).catch(function () { toast('Fotoğraflar saklanamadı (cihaz depolaması dolu olabilir)'); return 0; });
+    };
+    return ctl;
+  }
+  function detachPhotos(recordId) { if (global.SuperAriFoto) global.SuperAriFoto.detachRecord(recordId); else ensureFoto().then(function (F) { F.detachRecord(recordId); }).catch(function () {}); }
+
   var CSS = '' +
     '.qdot{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-.08em;margin-right:.3em;border:1px solid rgba(0,0,0,.25);flex:0 0 auto;}' +
     '.qbadge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;white-space:nowrap;margin-left:.3rem;}' +
@@ -807,7 +863,7 @@
   function histRow(title, sub, rec, kind, hiveId) {
     return '<div class="kr-hrow"><div class="top"><span>' + esc(title) + (rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span>' +
       '<button type="button" data-del="' + esc(rec.id) + '" data-kind="' + kind + '" data-hive="' + esc(hiveId) + '">Sil</button></div>' +
-      (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div>';
+      (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + thumbsBox(rec, kind, hiveId) + '</div>';
   }
 
   function sevOptions(labels, keys, cur) {
@@ -1002,9 +1058,15 @@
       '<div id="krHist">' + histHtml() + '</div>' +
       '<div class="kr-section-title">' + (editRec ? 'Kaydı düzenle · ' + esc(fmtDate(editRec.date)) : 'Yeni kayıt') + '</div>' +
       '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;">' + form + '</form>' +
+      '<div id="krFoto"></div>' +
       '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">' + (editRec ? 'Güncelle' : 'Kaydet') + '</button></div></div>';
     document.body.appendChild(back);
     var f = back.querySelector('#krForm');
+    var photoKind = topic === 'guc' ? 'strength' : topic === 'yavru' ? 'brood' : topic === 'besleme' ? 'feed' : topic === 'hasat' ? 'harvest' : 'disease';
+    var photos = mountPhotoPicker(back.querySelector('#krFoto'), editRec ? {
+      existingRecordId: editRec.photoCount ? editRec.id : null, hiveId: h.id, kind: photoKind,
+      onCount: function (rid, hid, kind, n) { r.setPhotoCount(hid, kind, rid, n); if (typeof onSaved === 'function') onSaved(); }
+    } : {});
     function fillForm(rec) {
       if (!rec) return;
       if (topic === 'hastalik' && rec.disease) {
@@ -1039,6 +1101,7 @@
       if (!btn) return;
       if (!confirm('Bu kayıt silinsin mi?')) return;
       r.remove(btn.getAttribute('data-hive'), btn.getAttribute('data-kind'), btn.getAttribute('data-del'));
+      detachPhotos(btn.getAttribute('data-del'));
       back.querySelector('#krHist').innerHTML = histHtml();
       if (typeof onSaved === 'function') onSaved();
     });
@@ -1046,18 +1109,28 @@
       var got = readTopicForm(topic, f);
       if (!got) return;
       var rec = got.rec, kind = got.kind;
+      if (photos.busy()) { toast('Fotoğraf hazırlanıyor, birazdan tekrar deneyin'); return; }
       if (kind === 'harvest' && !confirmHarvestWithdrawal([h.id], rec.date)) return;
       var saved = editRec ? r.update(h.id, kind, editRec.id, rec) : r.add(h.id, kind, rec);
       if (!saved) { toast('Kaydedilemedi'); return; }
-      if (editRec) { toast('Güncellendi'); close(); if (typeof onSaved === 'function') onSaved(saved); return; }
+      var saveBtn = back.querySelector('#krSave');
+      saveBtn.disabled = true;
+      photos.save([{ id: saved.id, hiveId: h.id, kind: kind }]).then(function (np) {
+        saveBtn.disabled = false;
+        var pmsg = np ? ' · ' + np + ' fotoğraf' : '';
+        if (editRec) { toast('Güncellendi' + pmsg); close(); if (typeof onSaved === 'function') onSaved(saved); return; }
+        afterSave(pmsg);
+      });
+      function afterSave(pmsg) {
       back.querySelector('#krHist').innerHTML = histHtml();
       resetTopicForm(topic, f, back, today);
       var msg = 'Kaydedildi';
       if (kind === 'brood' && saved.queenless) msg = 'Kaydedildi · Anasız: görev ve uyarı açıldı';
       else if (kind === 'brood' && saved.chilled) msg = 'Kaydedildi · Zayıf koloni: «Birleştir veya çerçeve azalt» önerildi';
       else if (kind === 'disease' && saved.disease === 'ayc' && saved.status === 'dogrulandi') msg = 'Kaydedildi · AYÇ: ihbarı zorunlu, komşu kovan kontrol görevi açıldı';
-      toast(msg);
+      toast(msg + pmsg);
       if (typeof onSaved === 'function') onSaved(saved);
+      }
     });
   }
 
@@ -1282,7 +1355,7 @@
       return '<button type="button" class="bt-item" data-bt-kind="' + e.kind + '" data-bt-id="' + esc(e.rec.id) + '" aria-label="' + esc(k.label + ' ' + fmtDate(e.date) + (e.kind === 'aharvest' ? ' · Bal / verim raporunda aç' : (e.kind === 'colony' ? ' · işlem sayfasında aç' : ' düzenle'))) + '">' +
         '<span class="bt-ico" aria-hidden="true">' + k.icon + '</span><span><span class="bt-top"><span>' + esc(k.label) +
         (e.rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span><span class="dt">' + esc(fmtDate(e.date)) + '</span></span>' +
-        '<span class="bt-sum" style="display:block;">' + esc(e.sum) + '</span></span></button>';
+        '<span class="bt-sum" style="display:block;">' + esc(e.sum) + '</span>' + (e.kind !== 'aharvest' ? thumbsBox(e.rec, e.kind, h.id) : '') + '</span></button>';
     }).join('');
     return '<button type="button" class="bt-add" data-bt-add="1">+ İşlem ekle</button>' +
       '<div class="bt-list">' + (items || '<p class="kol-sub" style="margin:0;">Henüz bakım kaydı yok. «+ İşlem ekle» ile başlayın; tüm kovanları Koloni sayfasından da takip edebilirsiniz.</p>') + '</div>';
@@ -1385,10 +1458,12 @@
       '<div class="kr-section-title" id="qkFormTitle" style="margin-top:.6rem;"></div>' +
       '<form class="kol-form" id="krForm" autocomplete="off" style="margin-top:.4rem;"></form>' +
       '<form class="kol-form" id="qkStock" autocomplete="off" style="margin-top:.55rem;" hidden></form>' +
+      '<div id="qkFoto"></div>' +
       '<div class="kol-actions"><button type="button" class="btn secondary" id="krClose">Kapat</button><button type="button" class="btn" id="krSave">Kaydet</button></div></div>';
     document.body.appendChild(back);
     var sf = back.querySelector('#qkScopeForm');
     var f = back.querySelector('#krForm');
+    var photos = mountPhotoPicker(back.querySelector('#qkFoto'), {});
     sf.elements.apiary.value = apiaryId;
     var selected = {};
     if (preHive) selected[preHive.id] = true;
@@ -1516,6 +1591,7 @@
       if (!targets.length) { toast('En az bir kovan seçin'); return; }
       var got = readTopicForm(type, f);
       if (!got) return;
+      if (photos.busy()) { toast('Fotoğraf hazırlanıyor, birazdan tekrar deneyin'); return; }
       if (got.kind === 'harvest' && !confirmHarvestWithdrawal(targets, got.rec.date)) return;
       var stockPlan = null;
       if (!sf2.hidden && sf2.elements.sitem && sf2.elements.sitem.value) {
@@ -1526,10 +1602,11 @@
           stockPlan = { item: sit, qty: sq };
         } else if (sit && !(sq > 0)) { toast('Stoktan düşülecek miktarı girin veya «Düşme» seçin'); return; }
       }
-      var names = [];
+      var names = [], savedList = [];
       targets.forEach(function (id) {
         var copy = {}; Object.keys(got.rec).forEach(function (k) { copy[k] = got.rec[k]; });
-        if (r.add(id, got.kind, copy)) { var h = d.hiveById(id); names.push(h ? h.name : String(id)); }
+        var sv = r.add(id, got.kind, copy);
+        if (sv) { var h = d.hiveById(id); names.push(h ? h.name : String(id)); savedList.push({ id: sv.id, hiveId: id, kind: got.kind }); }
       });
       setLastApiary(sf.elements.apiary.value);
       if (!names.length) { toast('Kaydedilemedi'); return; }
@@ -1539,10 +1616,13 @@
         var adj = SK.adjust(stockPlan.item.id, -stockPlan.qty, 'Hızlı kayıt: ' + tl + ' · ' + names.length + ' kovan', got.rec.date);
         if (adj) stockMsg = ' · stoktan ' + num(stockPlan.qty) + ' ' + adj.unit + ' düşüldü' + (adj.low ? ' (stok azaldı)' : '');
       }
-      close();
-      toast((names.length === 1 ? 'Kaydedildi · ' + names[0] : names.length + ' kovana kaydedildi (' + namesShort(names, 4) + ')') + stockMsg);
-      if (typeof opts.onSaved === 'function') opts.onSaved(names.length);
-      try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+      back.querySelector('#krSave').disabled = true;
+      photos.save(savedList).then(function (np) {
+        close();
+        toast((names.length === 1 ? 'Kaydedildi · ' + names[0] : names.length + ' kovana kaydedildi (' + namesShort(names, 4) + ')') + stockMsg + (np ? ' · ' + np + ' fotoğraf' : ''));
+        if (typeof opts.onSaved === 'function') opts.onSaved(names.length);
+        try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+      });
     });
     renderForm();
     renderTargets();
