@@ -80,11 +80,13 @@
         <button class="btn secondary" type="button" id="btnOut">Çıkış yap</button>
       </div>
       <p class="hb-msg" id="syncMsg" aria-live="polite"></p>
+      <button class="btn secondary" type="button" id="btnExport">📥 Buluttaki verilerimi indir (JSON)</button>
+      <p class="muted" style="margin:0;font-size:.78rem;">Yedek ya da paylaşmak için: buluttaki arılık, kovan, ana arı, kayıt, görev, stok ve fotoğraf bilgilerini tek dosya olarak indirir.</p>
     </section>
 
     <section class="card stack" id="firstCard" style="margin-top:1rem;" hidden>
       <h2 style="margin:0;font-size:1.05rem;">Cihazdaki verileri buluta yükle</h2>
-      <p class="muted" style="margin:0;font-size:.84rem;">Bir kez yapılır. Seçtiğiniz arılıkların kovanları, ana arıları ve Canlı moddaki kayıtları (muayene, ilaçlama, besleme, hasat, kışlık, koloni işlemleri, fotoğraflar), görevleriniz ve stok yüklenir. Demo veriler asla yüklenmez.</p>
+      <p class="muted" style="margin:0;font-size:.84rem;">Normalde girişten sonra otomatik yapılır (tüm arılıklar). Otomatik yükleme henüz olmadıysa buradan yapın. Seçtiğiniz arılıkların kovanları, ana arıları ve Canlı moddaki kayıtları (muayene, ilaçlama, besleme, hasat, kışlık, koloni işlemleri, fotoğraflar), görevleriniz ve stok yüklenir. Demo veriler asla yüklenmez.</p>
       <div class="hb-ap" id="apList"></div>
       <div class="hb-row">
         <button class="btn" type="button" id="btnUpload">☁️ Seçilenleri yükle</button>
@@ -102,6 +104,7 @@
     <section class="card stack" style="margin-top:1rem;">
       <h2 style="margin:0;font-size:1.05rem;">Nasıl çalışır?</h2>
       <ul class="muted" style="margin:0;padding-left:1.1rem;font-size:.82rem;line-height:1.45;display:grid;gap:.2rem;">
+        <li>Giriş yapınca Canlı moddaki tüm verileriniz (arılıklar, kovanlar, ana arılar, muayene ve diğer kayıtlar, fotoğraflar, görevler, stok) bir kez otomatik buluta yüklenir.</li>
         <li>Uygulama önce bu cihazda çalışır; internet yokken de kayıt yapabilirsiniz. Değişiklikler sıraya alınır ve internet gelince buluta gönderilir.</li>
         <li>Uygulama açılınca buluttaki yenilikler alınır. Aynı kayıt iki yerde değiştiyse en son değiştirilen geçerli olur.</li>
         <li>Yalnız Canlı moddaki veriler eşitlenir; Demo moddaki örnek veriler hiçbir zaman buluta gitmez.</li>
@@ -109,8 +112,8 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-30"></script>
-  <script src="bulut.js?v=koloni-30"></script>
+  <script src="demo-data.js?v=koloni-31"></script>
+  <script src="bulut.js?v=koloni-31"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -133,6 +136,15 @@
       return m || 'Bir hata oluştu.';
     }
     var lastEmail = '';
+    function stateText(s) {
+      var L = B.localStatus ? B.localStatus() : {};
+      if (!s.live) return 'Demo modda durdu';
+      if (L.busy) return '<span style="color:#1c7ed6">Eşitleniyor…</span>';
+      if (!s.online) return '<span style="color:#868e96">Çevrimdışı</span>';
+      if (s.lastError) return '<span style="color:#c92a2a">Hata</span>';
+      if (!s.initialDone) return '<span style="color:#f08c00">İlk yükleme bekliyor</span>';
+      return s.pending ? '<span style="color:#f08c00">Gönderilmeyi bekliyor</span>' : '<span style="color:#2b8a3e">Eşit ✓</span>';
+    }
     function apiaries() { try { return D && D.loadApiaries ? D.loadApiaries() : []; } catch (e) { return []; } }
 
     function render() {
@@ -151,12 +163,14 @@
         $('acctKv').innerHTML = '<span>E-posta</span><b>' + esc(s.email || '—') + '</b>' +
           '<span>Son eşitleme</span><b>' + esc(fmt(s.lastSync)) + '</b>' +
           '<span>Bekleyen</span><b>' + (s.pending || 0) + ' değişiklik</b>' +
+          '<span>Durum</span><b>' + stateText(s) + '</b>' +
           '<span>Buluttaki arılık</span><b>' + linked.length + '</b>' +
           (s.lastError ? '<span>Son hata</span><b style="color:#c92a2a">' + esc(s.lastError) + '</b>' : '');
         msg($('modeMsg'), s.live ? '' : 'Demo moddasınız: eşitleme durur ve demo veriler asla buluta yüklenmez. Eşitleme için Ayarlar’dan Canlı moda geçin.', s.live ? '' : 'err');
         $('btnSync').disabled = !s.live;
         if (s.live && !s.initialDone) renderFirst(s);
         if (linked.length) renderTeam(s);
+        return s;
       });
     }
     function renderFirst(s) {
@@ -240,13 +254,7 @@
     });
     $('btnSync').addEventListener('click', function () {
       msg($('syncMsg'), 'Eşitleniyor…');
-      B.sync({ force: true }).then(function (r) {
-        if (r.error) msg($('syncMsg'), 'Eşitlenemedi: ' + errText(r.error), 'err');
-        else if (r.skipped === 'offline') msg($('syncMsg'), 'Çevrimdışı: değişiklikler internet gelince gönderilir.', 'err');
-        else if (r.skipped) msg($('syncMsg'), 'Eşitleme yapılmadı (' + r.skipped + ').', 'err');
-        else msg($('syncMsg'), 'Eşitlendi · alınan ' + r.pulled + ', gönderilen ' + r.pushed + ', bekleyen ' + r.pending + '.', 'ok');
-        render();
-      });
+      B.sync({ force: true }).then(function (r) { syncResult(r); render(); });
     });
     $('btnUpload').addEventListener('click', function () {
       var ids = Array.prototype.map.call(document.querySelectorAll('#apList input[data-ap]:checked:not(:disabled)'), function (c) { return c.getAttribute('data-ap'); });
@@ -282,9 +290,34 @@
         .then(function () { return B.status(); }).then(function (s) { loadTeam({ id: apId, name: name }, s); })
         .catch(function (err) { msg(box.querySelector('[data-tmsg]'), errText(err), 'err'); });
     });
-    function afterLogin() {
-      render().then(function () { return B.sync({ force: true }); }).then(render);
+    function syncResult(r) {
+      if (r.error) msg($('syncMsg'), 'Eşitlenemedi: ' + errText(r.error), 'err');
+      else if (r.skipped === 'offline') msg($('syncMsg'), 'Çevrimdışı: değişiklikler internet gelince gönderilir.', 'err');
+      else if (r.skipped === 'demo') msg($('syncMsg'), 'Demo modda eşitleme yapılmaz.', 'err');
+      else if (r.skipped) msg($('syncMsg'), 'Eşitleme yapılmadı (' + r.skipped + ').', 'err');
+      else msg($('syncMsg'), (r.firstUpload ? 'İlk yükleme tamamlandı · ' : 'Eşitlendi · ') + 'alınan ' + r.pulled + ', gönderilen ' + r.pushed + ', bekleyen ' + r.pending + '.', r.pending ? '' : 'ok');
     }
+    function afterLogin() {
+      if (B.autoStart) B.autoStart();
+      render().then(function (s) {
+        var st = B.localStatus ? B.localStatus() : {};
+        if (st.live && !st.initialDone) msg($('syncMsg'), 'İlk yükleme yapılıyor: Canlı moddaki tüm veriler buluta gönderiliyor (fotoğraflar biraz sürebilir)…');
+        return B.sync({ force: true });
+      }).then(function (r) { if (r) syncResult(r); return render(); });
+    }
+    var rt = null;
+    window.addEventListener('superari-cloud-status', function () { clearTimeout(rt); rt = setTimeout(render, 400); });
+    $('btnExport').addEventListener('click', function () {
+      var b = $('btnExport'); b.disabled = true; msg($('syncMsg'), 'Buluttaki veriler okunuyor…');
+      B.exportCloud().then(function (data) {
+        var n = 0; Object.keys(data.tables).forEach(function (t) { n += data.tables[t].length; });
+        var blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+        var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = 'superari-bulut-' + new Date().toISOString().slice(0, 10) + '.json';
+        document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+        msg($('syncMsg'), 'İndirildi · ' + n + ' satır.', 'ok');
+      }).catch(function (e) { msg($('syncMsg'), 'İndirilemedi: ' + errText(e), 'err'); }).then(function () { b.disabled = false; });
+    });
     B.loadConfig(true).then(function (cfg) {
       if (!cfg.enabled) return render();
       return B.client().then(function (c) {
@@ -299,7 +332,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-30"></script>
-<script src="pwa.js?v=koloni-30"></script>
+  <script src="nav.js?v=koloni-31"></script>
+<script src="pwa.js?v=koloni-31"></script>
 </body>
 </html>

@@ -547,7 +547,8 @@
       dirty.stock = 1; done(r, 'stock', String(r.local_id));
     });
     st.orphans = orphans.slice(0, 500);
-    Object.keys(dirty).forEach(function (k) { writeJ(LS[k], L[k]); });
+    suppress++;
+    try { Object.keys(dirty).forEach(function (k) { writeJ(LS[k], L[k]); }); } finally { suppress--; }
     return { count: applied.length, applied: applied };
   }
   function applyPhotos(c, st, rows, F) {
@@ -640,6 +641,66 @@
     }, Promise.resolve()).then(function () { return pushed; });
   }
 
+
+  /* ---------------- giden kutusu (outbox) ---------------- */
+  /* Her yerel yazma (izlenen localStorage anahtarları + fotoğraf eklendi/silindi) ağsız çalışır:
+     değişiklik sıraya (st.queue, kalıcı) alınır; çevrimiçi ve girişliyken gönderilir. */
+  var suppress = 0, syncBusy = false, WATCH = {};
+  Object.keys(LS).forEach(function (k) { WATCH[LS[k]] = 1; });
+  function storedState() { var s = readJ(STATE_KEY, null); return s && s.userId ? loadState(s.userId) : null; }
+  function markPending() {
+    if (!isLive()) return Promise.resolve(0);
+    var st = storedState(); if (!st || !st.initialDone) return Promise.resolve(st ? Object.keys(st.queue).length : 0);
+    var entries = collect(st);
+    return ensureFoto().then(function (F) { return collectPhotos(st, entries, F); }).then(function () {
+      var fresh = storedState(); if (!fresh || fresh.userId !== st.userId) return 0;
+      /* eşitleme sırasında yazılmış olabilir: yalnız sıra/anahtarları güncelle */
+      fresh.keys = st.keys; detect(fresh, entries); saveState(fresh);
+      emitStatus();
+      return Object.keys(fresh.queue).length;
+    }).catch(function () { return 0; });
+  }
+  function localStatus() {
+    var st = storedState();
+    return {
+      live: isLive(), online: global.navigator.onLine !== false, signedIn: hasSessionToken(), busy: syncBusy,
+      pending: st ? Object.keys(st.queue).length : 0, lastSync: st ? st.lastSync : null, lastError: st ? st.lastError : null,
+      initialDone: !!(st && st.initialDone)
+    };
+  }
+  function emitStatus() {
+    try { global.dispatchEvent(new CustomEvent('superari-cloud-status', { detail: localStatus() })); } catch (e) { /* ignore */ }
+  }
+  var hooked = false;
+  function hookWrites(onChange) {
+    if (hooked) return; hooked = true;
+    try {
+      var S = global.Storage && global.Storage.prototype; if (!S) return;
+      var oSet = S.setItem, oRem = S.removeItem;
+      S.setItem = function (k, v) { var r = oSet.apply(this, arguments); if (!suppress && WATCH[k] && this === global.localStorage) onChange(); return r; };
+      S.removeItem = function (k) { var r = oRem.apply(this, arguments); if (!suppress && WATCH[k] && this === global.localStorage) onChange(); return r; };
+    } catch (e) { /* ignore */ }
+    global.addEventListener('superari-photos-changed', onChange);
+  }
+  /* Küçük durum göstergesi: alt menüdeki Ayarlar sekmesinde nokta (yeşil eşit · turuncu bekliyor · kırmızı hata · gri çevrimdışı). */
+  function paintIndicator(s) {
+    s = s || localStatus();
+    var tab = doc.querySelector('nav.tabbar a[href="ayarlar.html"]');
+    if (!tab) return;
+    var dot = tab.querySelector('.sa-cloud-dot');
+    if (!s.live || !s.signedIn) { if (dot) dot.remove(); return; }
+    if (!doc.getElementById('sa-cloud-css')) {
+      var cs = doc.createElement('style'); cs.id = 'sa-cloud-css';
+      cs.textContent = 'nav.tabbar a{position:relative}.sa-cloud-dot{position:absolute;top:3px;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;border:1.5px solid #fff;background:#2f9e44;pointer-events:none}' +
+        '.sa-cloud-dot.p{background:#f08c00}.sa-cloud-dot.e{background:#e03131}.sa-cloud-dot.o{background:#adb5bd}.sa-cloud-dot.b{background:#1c7ed6;animation:saCloud 1s ease-in-out infinite alternate}@keyframes saCloud{to{opacity:.35}}';
+      doc.head.appendChild(cs);
+    }
+    if (!dot) { dot = doc.createElement('span'); dot.className = 'sa-cloud-dot'; dot.setAttribute('aria-hidden', 'true'); tab.appendChild(dot); }
+    var cls = s.busy ? 'b' : (!s.online ? 'o' : (s.lastError ? 'e' : (s.pending ? 'p' : '')));
+    dot.className = 'sa-cloud-dot' + (cls ? ' ' + cls : '');
+    tab.title = s.busy ? 'Bulut: eşitleniyor' : (!s.online ? 'Bulut: çevrimdışı · ' + s.pending + ' bekleyen' : (s.lastError ? 'Bulut: eşitleme hatası' : (s.pending ? 'Bulut: ' + s.pending + ' değişiklik bekliyor' : 'Bulut: eşit')));
+  }
+
   /* ---------------- eşitleme ---------------- */
   var syncing = null;
   function ensureFoto() {
@@ -649,10 +710,11 @@
   function sync(opts) {
     opts = opts || {};
     if (syncing) return syncing;
+    syncBusy = true; emitStatus();
     syncing = (function () {
       if (!isLive()) return Promise.resolve({ skipped: 'demo' });
-      if (global.navigator.onLine === false) return Promise.resolve({ skipped: 'offline' });
-      var c, st, F, entries, pulled = 0;
+      if (global.navigator.onLine === false) return markPending().then(function (n) { return { skipped: 'offline', pending: n }; });
+      var c, st, F, entries, pulled = 0, firstUpload = false;
       return client().then(function (cc) { c = cc; return c.auth.getSession(); }).then(function (r) {
         var ses = r && r.data && r.data.session;
         if (!ses) return { skipped: 'login' };
@@ -684,6 +746,14 @@
             });
           });
         }).then(function () {
+          /* İlk giriş: Canlı moddaki tüm arılıklar otomatik bağlanır ve her şey yüklenir (idempotent: sabit anahtar + upsert). */
+          if (st.initialDone || opts.noAuto) return;
+          var aps = raw('apiaries', []); if (!Array.isArray(aps)) aps = [];
+          aps.forEach(function (a) { if (a && a.id != null && !st.links[String(a.id)]) st.links[String(a.id)] = uuid(); });
+          st.initialDone = true; st.autoInitAt = new Date().toISOString(); firstUpload = true;
+          entries = collect(st);
+          return collectPhotos(st, entries, F).then(function () { detect(st, entries); saveState(st); });
+        }).then(function () {
           if (st.baseline) {
             var bl = {}; st.baseline.forEach(function (u) { bl[u] = 1; });
             if (!entries || pulled) entries = entries || collect(st);
@@ -696,15 +766,15 @@
           saveState(st);
           return st.initialDone ? push(c, st, entries, F) : 0;
         }).then(function (pushed) {
-          st.lastSync = new Date().toISOString(); st.lastError = null; saveState(st);
+          st.lastSync = new Date().toISOString(); st.lastError = null; st.lastPushed = pushed; st.lastPulled = pulled; saveState(st);
           if (pulled) { try { global.dispatchEvent(new CustomEvent('superari-cloud-pulled', { detail: { count: pulled } })); } catch (e) { /* ignore */ } }
-          return { pulled: pulled, pushed: pushed, pending: Object.keys(st.queue).length };
+          return { pulled: pulled, pushed: pushed, pending: Object.keys(st.queue).length, firstUpload: firstUpload };
         });
       }).catch(function (err) {
         if (st) { st.lastError = String((err && (err.message || err.error_description)) || err).slice(0, 200); saveState(st); }
         return { error: String((err && err.message) || err) };
       });
-    })().then(function (r) { syncing = null; return r; }, function (e) { syncing = null; throw e; });
+    })().then(function (r) { syncing = null; syncBusy = false; emitStatus(); return r; }, function (e) { syncing = null; syncBusy = false; emitStatus(); throw e; });
     return syncing;
   }
 
@@ -740,6 +810,28 @@
         return base;
       });
     });
+  }
+
+  /** Buluttaki (bu hesabın erişebildiği) tüm satırları okur: indirme / paylaşma için JSON. */
+  function exportCloud() {
+    var c, out = { app: 'SüperArı', exportedAt: new Date().toISOString(), tables: {} };
+    return client().then(function (cc) { c = cc; return c.auth.getSession(); }).then(function (r) {
+      var ses = r && r.data && r.data.session; if (!ses) throw new Error('Önce giriş yapın');
+      out.email = ses.user.email;
+      return TABLES.reduce(function (p, t) {
+        return p.then(function () {
+          var all = [];
+          function page(from) {
+            return c.from(t).select('*').eq('deleted', false).order(t === 'apiaries' ? 'id' : 'key').range(from, from + 999).then(function (x) {
+              if (x.error) throw x.error;
+              all = all.concat(x.data || []);
+              return (x.data || []).length === 1000 ? page(from + 1000) : all;
+            });
+          }
+          return page(0).then(function (rows) { out.tables[t] = rows; });
+        });
+      }, Promise.resolve());
+    }).then(function () { return out; });
   }
 
   /* ---------------- ekip ---------------- */
@@ -783,9 +875,20 @@
     var timer = null;
     function soon(ms) { clearTimeout(timer); timer = setTimeout(function () { sync(); }, ms); }
     soon(1500);
+    var mt = null;
+    hookWrites(function () {
+      clearTimeout(mt);
+      mt = setTimeout(function () { markPending().then(function () { if (global.navigator.onLine !== false) soon(2500); }); }, 700);
+    });
+    global.addEventListener('superari-cloud-status', function (e) { paintIndicator(e.detail); });
+    global.addEventListener('offline', function () { emitStatus(); });
+    setTimeout(function () { paintIndicator(); }, 300);
     global.addEventListener('online', function () { soon(1000); });
     global.addEventListener('superari-records-changed', function () { soon(4000); });
     doc.addEventListener('visibilitychange', function () { if (doc.visibilityState === 'visible') soon(1500); });
+    var lastFocus = 0;
+    global.addEventListener('focus', function () { if (Date.now() - lastFocus > 20000) { lastFocus = Date.now(); soon(1500); } });
+    global.addEventListener('pageshow', function (e) { if (e.persisted) soon(1500); });
     setInterval(function () { if (doc.visibilityState === 'visible') sync(); }, 3 * 60 * 1000);
     global.addEventListener('superari-cloud-pulled', function (e) {
       if (/hesap\.html/.test(global.location.pathname)) return;
@@ -813,6 +916,9 @@
     cancelInvite: cancelInvite,
     removeMember: removeMember,
     autoStart: autoStart,
+    markPending: markPending,
+    localStatus: localStatus,
+    exportCloud: exportCloud,
     _collect: function (st) { return collect(st); },
     _applyRemote: applyRemote,
     _loadState: loadState

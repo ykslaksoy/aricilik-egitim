@@ -230,7 +230,7 @@
       </details>
     </section>
   </div>
-  <script src="demo-data.js?v=koloni-30"></script>
+  <script src="demo-data.js?v=koloni-31"></script>
   <script src="device-runtime.js"></script>
   <script>
   (function () {
@@ -628,8 +628,8 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="pwa.js?v=koloni-30"></script>
-<script src="bulut.js?v=koloni-30"></script>
+<script src="pwa.js?v=koloni-31"></script>
+<script src="bulut.js?v=koloni-31"></script>
 <script>
   (function () {
     var B = window.SuperAriBulut, el = document.getElementById('bulut-status');
@@ -637,7 +637,8 @@
     B.status().then(function (s) {
       if (!s.enabled) { el.textContent = 'Bulut henüz bağlı değil. Kayıtlar yalnız bu cihazda saklanıyor.'; return; }
       if (!s.loggedIn) { el.textContent = 'Bulut hazır · yedekleme ve ekip paylaşımı için giriş yapın.'; return; }
-      el.textContent = 'Giriş yapıldı: ' + (s.email || '') + (s.live ? '' : ' · Demo modda eşitleme durur') + (s.pending ? ' · ' + s.pending + ' değişiklik bekliyor' : '');
+      var ls = s.lastSync ? new Date(s.lastSync).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'henüz yok';
+      el.textContent = 'Giriş yapıldı: ' + (s.email || '') + (s.live ? ' · son eşitleme ' + ls : ' · Demo modda eşitleme durur') + (s.pending ? ' · ' + s.pending + ' değişiklik bekliyor' : '') + (s.lastError ? ' · eşitleme hatası (ayrıntı: Hesap ve bulut)' : '');
     }).catch(function () { el.textContent = 'Bulut henüz bağlı değil. Kayıtlar yalnız bu cihazda saklanıyor.'; });
   })();
 </script>

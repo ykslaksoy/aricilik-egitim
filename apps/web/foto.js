@@ -90,8 +90,9 @@
     if (!recordIds.length || !items || !items.length) return Promise.resolve([]);
     var m = mode(), now = new Date().toISOString();
     var rows = items.map(function (it) { return { id: newId(), recordIds: recordIds.slice(), mode: m, createdAt: now, blob: it.blob, thumb: it.thumb, w: it.w, h: it.h }; });
-    return tx('readwrite', function (st) { rows.forEach(function (r) { st.put(r); }); return rows; });
+    return tx('readwrite', function (st) { rows.forEach(function (r) { st.put(r); }); return rows; }).then(function (r) { changed(); return r; });
   }
+  function changed() { try { global.dispatchEvent(new CustomEvent('superari-photos-changed')); } catch (e) { /* ignore */ } }
   function listFor(recordId) {
     if (!recordId) return Promise.resolve([]);
     return tx('readonly', function (st) { return reqVal(st.index('recordIds').getAll(String(recordId)), {}); })
@@ -107,7 +108,7 @@
         r.recordIds = (r.recordIds || []).filter(function (x) { return x !== String(recordId); });
         if (r.recordIds.length) st.put(r); else st.delete(photoId);
       };
-    });
+    }).then(function (x) { changed(); return x; });
   }
   /** Kayıt silinince: o kayda bağlı tüm fotoğrafları ayırır. */
   function detachRecord(recordId) {
