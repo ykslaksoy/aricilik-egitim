@@ -2578,13 +2578,14 @@
     function has(x) { return b.indexOf(x) >= 0; }
     var kaf = has('kafkas'), kar = has('karadeniz'), kni = has('karniyol'), mug = has('muğla') || has('mugla'), ana = has('anadolu');
     var k = null;
-    if (kaf && kar) k = 'cok-dusuk';
+    if (has('buckfast')) k = 'cok-dusuk';
+    else if (kaf && kar) k = 'dusuk';
     else if (kaf && kni) k = 'orta';
     else if (kaf && ana) k = 'dusuk';
     else if (kni && mug) k = 'yuksek';
     else if (kni) k = 'cok-yuksek';
     else if (mug) k = 'yuksek';
-    else if (kaf || kar || has('buckfast')) k = 'dusuk';
+    else if (kaf || kar) k = 'dusuk';
     else if (ana || has('italyan')) k = 'orta';
     if (!k) return { f: 1.0, shift: 0, note: '', level: '' };
     var t = BREED_TENDENCY[k];
