@@ -873,6 +873,7 @@
         var ses = r && r.data && r.data.session;
         if (!ses) return { skipped: 'login' };
         st = loadState(ses.user.id);
+        syncConsent(ses);
         var acc = Date.now() - (st.accepted || 0) > 6 * 3600 * 1000 || opts.force
           ? c.rpc('sa_accept_invites').then(function (x) { if (!x.error) { st.accepted = Date.now(); if (Number(x.data) > 0) st.cursors = {}; } }, function () {})
           : Promise.resolve();
@@ -998,6 +999,61 @@
         });
       }, Promise.resolve());
     }).then(function () { return out; });
+  }
+
+  /* ---------------- KVKK: şartlar onayı, hesabı silme ---------------- */
+  /** Şartlar onayını hesap bilgisine (user_metadata.sartlar) eşitler: bulutta bu sürüm varsa cihaza alınır, cihazda varsa buluta yazılır. */
+  function syncConsent(ses) {
+    var S = global.SuperAriSartlar;
+    if (!S) return Promise.resolve(null);
+    return (ses ? Promise.resolve(ses) : session()).then(function (s) {
+      if (!s || !s.user) return null;
+      var meta = (s.user.user_metadata || {}).sartlar || null;
+      if (meta && meta.version === S.VERSION) { if (!S.accepted()) S.adoptRemote(meta); return 'ayni'; }
+      var loc = S.get();
+      if (!S.accepted() || !loc) return null;
+      return client().then(function (c) { return c.auth.updateUser({ data: { sartlar: { version: loc.version, acceptedAt: loc.acceptedAt, source: loc.source || 'uygulama' } } }); })
+        .then(function (r) { if (r && r.error) throw r.error; return 'gonderildi'; });
+    }).catch(function () { return null; });
+  }
+  /** Hesabı ve buluttaki verileri kalıcı siler (KVKK). opts.wipeLocal: bu cihazdaki Canlı verileri de siler. */
+  function deleteAccount(opts) {
+    opts = opts || {};
+    var c, uid, photoInfo = { removed: 0, failed: 0 };
+    return client().then(function (cc) { c = cc; return c.auth.getSession(); }).then(function (r) {
+      var ses = r && r.data && r.data.session; if (!ses) throw new Error('Önce giriş yapın');
+      uid = ses.user.id;
+      /* 1) Sahibi olunan arılıklardaki fotoğraf dosyaları (Storage API; SQL ile silinemez) */
+      return c.from('apiaries').select('id').eq('owner_id', uid).then(function (x) {
+        if (x.error) throw x.error;
+        var ids = (x.data || []).map(function (a) { return a.id; });
+        if (!ids.length) return [];
+        return c.from('photos').select('storage_path').in('apiary_id', ids).then(function (y) { if (y.error) throw y.error; return (y.data || []).map(function (p) { return p.storage_path; }).filter(Boolean); });
+      }).then(function (paths) {
+        var chunks = []; for (var i = 0; i < paths.length; i += 100) chunks.push(paths.slice(i, i + 100));
+        return chunks.reduce(function (p, ch) {
+          return p.then(function () {
+            return c.storage.from('photos').remove(ch).then(function (z) { if (z && z.error) photoInfo.failed += ch.length; else photoInfo.removed += ch.length; }, function () { photoInfo.failed += ch.length; });
+          });
+        }, Promise.resolve());
+      });
+    }).then(function () {
+      /* 2) Veritabanı: arılıklar (cascade) + auth kullanıcısı */
+      return c.rpc('sa_delete_my_account');
+    }).then(function (r) {
+      if (r.error) throw (needsMigration(r.error) ? new Error('Hesap silme için veritabanı güncellemesi gerekli (20260929090000_hesap_silme_hata_kaydi.sql). Yöneticiye bildirin.') : r.error);
+      try { global.localStorage.removeItem(STATE_KEY); } catch (e) { /* ignore */ }
+      return c.auth.signOut().catch(function () {});
+    }).then(function () {
+      if (opts.wipeLocal) {
+        try {
+          var ks = []; for (var i = 0; i < global.localStorage.length; i++) { var k = global.localStorage.key(i); if (k && (k.indexOf('superari.') === 0 || k.indexOf('sb-') === 0)) ks.push(k); }
+          ks.forEach(function (k) { if (k !== 'superari.sartlar.onay.v1') global.localStorage.removeItem(k); });
+        } catch (e) { /* ignore */ }
+        try { if (global.indexedDB && global.indexedDB.deleteDatabase) global.indexedDB.deleteDatabase('superari-foto'); } catch (e) { /* ignore */ }
+      }
+      return { ok: true, photos: photoInfo };
+    });
   }
 
   /* ---------------- ekip ---------------- */
@@ -1152,6 +1208,8 @@
     markPending: markPending,
     localStatus: localStatus,
     exportCloud: exportCloud,
+    syncConsent: syncConsent,
+    deleteAccount: deleteAccount,
     _collect: function (st) { return collect(st); },
     _applyRemote: applyRemote,
     _loadState: loadState

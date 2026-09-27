@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kullanım Şartları ve KVKK · SüperArı</title>
+  <link rel="stylesheet" href="panels.css?v=koloni-49" />
+  <style>
+    [hidden]{display:none !important;}
+    .tx{font-size:.88rem;line-height:1.55;color:#1f2933;}
+    .tx h2{font-size:1.05rem;margin:1.1rem 0 .35rem;}
+    .tx h3{font-size:.95rem;margin:.8rem 0 .25rem;}
+    .tx p{margin:.3rem 0;}
+    .tx ul{margin:.3rem 0;padding-left:1.15rem;display:grid;gap:.2rem;}
+    .tx .note{background:#fff8e1;border:1px solid #f1d98b;border-radius:12px;padding:.6rem .7rem;}
+    .toc a{color:#2b6cb0;font-weight:700;}
+    .acc{display:grid;gap:.6rem;}
+    .acc label{display:flex;gap:.55rem;align-items:flex-start;font-size:.92rem;font-weight:700;background:#fff;border:1px solid #e9d8a6;border-radius:12px;padding:.65rem .7rem;cursor:pointer;}
+    .acc input{width:1.25rem;height:1.25rem;margin:.05rem 0 0;flex:none;}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="nav"><a class="chip" id="backLink" href="ayarlar.html">← Geri</a></div>
+    <div class="brand"><div class="brand-badge">🐝</div><div><h1>SüperArı</h1><p>Kullanım Şartları · Gizlilik · KVKK</p></div></div>
+
+    <section class="card stack" id="accCard">
+      <p class="hb-msg" id="accState" style="margin:0;font-size:.88rem;"></p>
+      <div class="acc" id="accForm" hidden>
+        <label><input type="checkbox" id="accChk"><span>Okudum, kabul ediyorum</span></label>
+        <button class="btn" type="button" id="accOk" disabled>Kabul et ve devam et</button>
+      </div>
+    </section>
+
+    <section class="card tx" style="margin-top:1rem;">
+      <p class="muted" style="margin:0;font-size:.8rem;">Sürüm <b id="verTxt"></b> · Bu metin değişirse uygulama sizden yeniden onay ister.</p>
+      <p class="toc" style="margin:.5rem 0 0;"><a href="#sartlar">1. Kullanım Şartları</a> · <a href="#veri">2. Veriler ve bulut</a> · <a href="#kvkk">3. KVKK Aydınlatma Metni</a> · <a href="#haklar">4. Haklarınız, silme ve indirme</a></p>
+
+      <h2 id="sartlar">1. Kullanım Şartları</h2>
+      <p>SüperArı; arılık, kovan, muayene, bakım, ilaçlama, besleme, hasat, gider ve satış kayıtlarınızı tutmanıza ve bu kayıtlara göre öneriler almanıza yarayan ücretsiz bir arıcılık uygulamasıdır. Uygulamayı kullanarak bu şartları kabul etmiş olursunuz.</p>
+      <ul>
+        <li>Uygulama önce cihazınızda çalışır; internet olmadan da kayıt yapabilirsiniz. Giriş yaparsanız veriler buluta eşitlenir.</li>
+        <li>Sağlık skoru, oğul riski, hastalık ve ırk tahmini, bal tahmini, bakım takvimi, besleme ve ilaç dozu gibi bilgiler <b>yardımcı öneridir</b>; kesin teşhis veya tavsiye değildir. İlaç kullanımında ürün etiketi (prospektüs) ve veteriner hekiminizin kararı esastır. İhbarı zorunlu hastalıklarda (ör. Amerikan yavru çürüğü) yasal bildirim sizin sorumluluğunuzdadır.</li>
+        <li>Girdiğiniz bilgilerin doğruluğundan siz sorumlusunuz. Hesabınızı başkalarıyla paylaşmayın; ekip üyelerini «Ekip» bölümünden davet edin. Davet ettiğiniz kişiler, verdiğiniz role göre arılığınızın kayıtlarını görür veya düzenler.</li>
+        <li>Uygulamayı yasalara aykırı amaçla, başkalarının verilerine izinsiz erişmek veya hizmeti bozmak için kullanamazsınız.</li>
+        <li>Uygulama «olduğu gibi» sunulur. Veri kaybına karşı ara sıra cihaz yedeği almanızı öneririz (Hesap → Yedek). Hizmet kesintisi, yanlış öneri veya veri kaybından doğan dolaylı zararlardan, yasaların izin verdiği ölçüde, sorumluluk kabul edilmez.</li>
+        <li>Şartlar güncellenebilir; önemli değişikliklerde uygulama açılışta sizden yeniden onay ister.</li>
+      </ul>
+
+      <h2 id="veri">2. Veriler ve bulut</h2>
+      <h3>Bulutta saklanan veriler</h3>
+      <p>Giriş yaptığınızda uygulama verileriniz <b>bulutta saklanır</b>: hesap e-postanız, arılıklarınız (adı, yeri ve harita konumu), kovanlar ve ana arılar, muayene / bakım / ilaçlama / besleme / hasat kayıtları, görevler, stok, arılığa bağlı gider-gelir, taşıma ve göç kayıtları, satış ve müşteri kayıtları (müşteri adı ve telefonunu siz girerseniz), fotoğraflar ve bakım planı ayarları. Demo moddaki örnek veriler buluta gönderilmez. Sensör değerleri ve cihaz yedekleri buluta gönderilmez.</p>
+      <h3>Anonimleştirilmiş kullanım (uygulamayı iyileştirme)</h3>
+      <div class="note">
+        <p style="margin:0;">Verileriniz <b>anonimleştirilerek</b> kullanılır: <b>ad, e-posta, telefon ve tam konum çıkarılır; konum yalnız bölge düzeyinde</b> (il / bölge) tutulur ve veriler kimliğinizle eşleştirilemez hâle getirilir. Bu anonim veriler uygulamanın <b>sağlık skorunu, oğul riskini, hastalık ve ırk tahminini, bal tahminini ve bakım takvimini</b> iyileştirmek için kullanılır. Bu kullanım hizmetin bir parçasıdır ve bu şartlara dahildir.</p>
+      </div>
+      <ul>
+        <li>Verileriniz satılmaz, kiralanmaz, reklam veya profilleme için kullanılmaz.</li>
+        <li><b>Hata kayıtları:</b> Uygulamada bir hata olursa hata mesajı, sayfa adı, uygulama sürümü ve tarayıcı türü kaydedilir. Kimliğiniz, e-postanız ve IP adresiniz bu kayda yazılmaz (yalnız kötüye kullanımı sınırlamak için IP'nin geri çevrilemez kısa özeti tutulur). Kayıtlar 90 gün sonra silinir.</li>
+        <li><b>Üçüncü taraf servisler:</b> Hava durumu (Open-Meteo), harita ve adres arama (OpenStreetMap / OpenFreeMap / Nominatim, Yandex) servisleri, arılığınızın koordinatını hesaplama için alır; bu isteklere adınız veya e-postanız eklenmez.</li>
+      </ul>
+
+      <h2 id="kvkk">3. KVKK Aydınlatma Metni</h2>
+      <p>6698 sayılı Kişisel Verilerin Korunması Kanunu'nun («KVKK») 10. maddesi uyarınca sizi bilgilendiririz.</p>
+      <h3>Veri sorumlusu</h3>
+      <p>SüperArı uygulamasının geliştiricisi ve işleticisi (Yüksel Aksoy). Başvurularınızı uygulamadaki Hesap sayfası üzerinden (verilerimi indir / hesabımı sil) veya uygulamanın yayımlandığı iletişim kanalından iletebilirsiniz.</p>
+      <h3>İşlenen kişisel veriler</h3>
+      <ul>
+        <li>Kimlik ve iletişim: e-posta adresi (giriş için); siz girerseniz müşteri adı / telefonu, «uygulayan kişi» adı.</li>
+        <li>Konum: arılıklarınızın adı, yeri ve harita koordinatı.</li>
+        <li>İşlem kayıtları: arıcılık kayıtlarınız, fotoğraflar, gider / gelir / satış kayıtları.</li>
+        <li>Teknik: oturum bilgisi, bildirim aboneliği (açarsanız), anonim hata kayıtları.</li>
+      </ul>
+      <h3>İşleme amaçları</h3>
+      <ul>
+        <li>Hesabınızı oluşturmak, giriş yapmanızı ve verilerinizi cihazlarınız arasında eşitlemeyi sağlamak.</li>
+        <li>Ekip paylaşımı, hatırlatma ve bildirimleri sunmak.</li>
+        <li>Anonimleştirilmiş verilerle sağlık skoru, oğul riski, hastalık / ırk tahmini, bal tahmini ve bakım takvimini iyileştirmek.</li>
+        <li>Hizmet güvenliği, hataların giderilmesi ve yasal yükümlülüklerin yerine getirilmesi.</li>
+      </ul>
+      <h3>Hukuki sebepler ve toplama yöntemi</h3>
+      <p>Veriler, uygulamaya sizin girmenizle elektronik ortamda toplanır. Hukuki sebepler: bir sözleşmenin kurulması veya ifası (KVKK m.5/2-c — hizmetin sunulması), veri sorumlusunun meşru menfaati (m.5/2-f — güvenlik, hata giderme, hizmeti iyileştirme) ve hukuki yükümlülük (m.5/2-ç). Anonim hâle getirilmiş veriler KVKK kapsamında kişisel veri sayılmaz.</p>
+      <h3>Aktarım</h3>
+      <p>Veriler, hizmetin barındırılması için bulut altyapı sağlayıcılarında (Supabase veritabanı ve dosya depolama, Vercel sunucuları) saklanır; bu sağlayıcıların sunucuları yurt dışında olabilir. Yurt dışına aktarım KVKK m.9'daki şartlara uygun olarak, hizmetin sunulması için gerekli ölçüde yapılır. Veriler yasal zorunluluk dışında başka kişi veya kurumlarla paylaşılmaz; ekip paylaşımında yalnız sizin davet ettiğiniz kişiler görür.</p>
+      <h3>Saklama süresi</h3>
+      <p>Veriler hesabınız açık olduğu sürece saklanır. Hesabınızı sildiğinizde buluttaki verileriniz silinir; yedek ve günlük kayıtlardan en geç 30 gün içinde temizlenir. Anonim veriler kimliğinizle ilişkilendirilemediği için saklanmaya devam edebilir.</p>
+
+      <h2 id="haklar">4. Haklarınız, verilerinizi indirme ve hesabı silme</h2>
+      <p>KVKK m.11 uyarınca; verilerinizin işlenip işlenmediğini öğrenme, bilgi talep etme, amacına uygun kullanılıp kullanılmadığını öğrenme, aktarıldığı üçüncü kişileri bilme, eksik veya yanlış işlenmişse düzeltilmesini, silinmesini veya yok edilmesini isteme, bu işlemlerin aktarılan kişilere bildirilmesini isteme, otomatik sistemlerle analiz sonucu aleyhinize bir sonuca itiraz etme ve kanuna aykırı işleme nedeniyle zararın giderilmesini talep etme haklarına sahipsiniz.</p>
+      <ul>
+        <li><b>Verilerimi indir:</b> Hesap → «Buluttaki verilerimi indir (JSON)» ve «Cihaz yedeği indir».</li>
+        <li><b>Hesabımı sil:</b> Hesap → «Gizlilik ve verilerim» → «Hesabımı sil». Hesabınız, sahibi olduğunuz arılıklar ve bu arılıklardaki tüm kayıtlar ile fotoğraflar kalıcı olarak silinir.</li>
+        <li>Düzeltme için kayıtlarınızı uygulamada düzenleyebilirsiniz.</li>
+      </ul>
+    </section>
+  </main>
+  <script src="sartlar.js?v=koloni-49"></script>
+  <script>
+  (function () {
+    var S = window.SuperAriSartlar;
+    function $(id) { return document.getElementById(id); }
+    var q = new URLSearchParams(location.search), geri = q.get('geri') || '';
+    if (!/^[a-z0-9\-]+\.html(\?[^#<>"']*)?$/i.test(geri)) geri = '';
+    if (geri) $('backLink').href = geri;
+    $('verTxt').textContent = S.VERSION;
+    function render() {
+      var o = S.get();
+      if (S.accepted()) {
+        $('accState').innerHTML = '✓ Kabul ettiniz · sürüm ' + o.version + ' · ' + S.fmtDate(o.acceptedAt) + ' (İstanbul)';
+        $('accState').className = 'hb-msg ok'; $('accForm').hidden = true;
+      } else {
+        $('accState').textContent = o ? 'Metin güncellendi (sürüm ' + S.VERSION + '). Devam etmek için okuyup onaylayın.' : 'Uygulamayı kullanmak için metni okuyup onaylayın.';
+        $('accForm').hidden = false;
+      }
+    }
+    $('accChk').addEventListener('change', function () { $('accOk').disabled = !this.checked; });
+    $('accOk').addEventListener('click', function () {
+      if (!$('accChk').checked) return;
+      S.accept('sartlar-sayfasi'); render();
+      if (geri) setTimeout(function () { location.href = geri; }, 500);
+    });
+    render();
+  })();
+  </script>
+  <script src="pwa.js?v=koloni-49"></script>
+</body>
+</html>

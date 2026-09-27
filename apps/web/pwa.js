@@ -9,6 +9,56 @@
     var s = doc.currentScript, m = s && /[?&]v=([^&]+)/.exec(s.src || '');
     return m ? decodeURIComponent(m[1]) : 'dev';
   })();
+  /* ---- Kullanım şartları / KVKK onayı (ilk kullanımda ve sürüm değişince) ---- */
+  (function () {
+    if (global.SuperAriSartlar) return;
+    var s = doc.createElement('script');
+    s.src = 'sartlar.js?v=' + encodeURIComponent(VERSION);
+    (doc.head || doc.documentElement).appendChild(s);
+  })();
+  /* ---- Hata kaydı (kendi sunucumuz: /api/log). Kimlik / e-posta / sorgu dizesi gönderilmez; sayfa başına en çok 5, günde en çok 30. ---- */
+  (function () {
+    if (global.__saErrHook) return; global.__saErrHook = true;
+    var sent = {}, n = 0, DAY_KEY = 'superari.hataLog.gun.v1';
+    function dayOk() {
+      try {
+        var t = new Date().toISOString().slice(0, 10), o = JSON.parse(global.localStorage.getItem(DAY_KEY) || '{}');
+        if (o.d !== t) o = { d: t, n: 0 };
+        if (o.n >= 30) return false;
+        o.n++; global.localStorage.setItem(DAY_KEY, JSON.stringify(o)); return true;
+      } catch (e) { return true; }
+    }
+    function clip(v, m) { v = v == null ? '' : String(v); return v.length > m ? v.slice(0, m) : v; }
+    function report(msg, src, line, col, stack, kind) {
+      try {
+        msg = clip(msg, 500);
+        if (!msg || /^Script error\.?$/i.test(msg) || /ResizeObserver loop/i.test(msg)) return;
+        if (src && !/^https?:/.test(src)) return;
+        if (src && src.indexOf(global.location.origin) !== 0) return; /* eklenti / dış betik */
+        if (/^(localhost|127\.|0\.0\.0\.0)/.test(global.location.hostname)) return;
+        var sig = msg + '|' + src + '|' + line;
+        if (sent[sig] || n >= 5 || !dayOk()) return;
+        sent[sig] = 1; n++;
+        var body = JSON.stringify({ v: VERSION, page: global.location.pathname.split('/').pop() || '/', kind: kind, message: msg,
+          source: clip(String(src || '').replace(global.location.origin, '').split('?')[0], 200), line: line || null, col: col || null,
+          stack: clip(String(stack || '').split(global.location.origin).join(''), 2000),
+          mode: (function () { try { return global.localStorage.getItem('superari.workMode') || ''; } catch (e) { return ''; } })() });
+        if (global.navigator.sendBeacon && global.navigator.sendBeacon('/api/log', new Blob([body], { type: 'application/json' }))) return;
+        global.fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body, keepalive: true }).catch(function () {});
+      } catch (e) { /* ignore */ }
+    }
+    global.addEventListener('error', function (e) {
+      if (!e || e.target && e.target !== global) return; /* kaynak yükleme hataları değil */
+      report(e.message, e.filename, e.lineno, e.colno, e.error && e.error.stack, 'error');
+    });
+    global.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      var m = r && r.message ? r.message : (typeof r === 'string' ? r : '');
+      if (!m || /Failed to fetch|NetworkError|Load failed|AbortError|aborted|network/i.test(m)) return;
+      report('Promise: ' + m, global.location.href, 0, 0, r && r.stack, 'promise');
+    });
+    global.SuperAriHataLog = { report: report };
+  })();
   var deferredPrompt = null, listeners = [];
   function emit() { listeners.forEach(function (fn) { try { fn(); } catch (e) { /* ignore */ } }); }
 

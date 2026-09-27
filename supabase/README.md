@@ -17,6 +17,10 @@ Bulut, yapılandırma yokken tamamen kapalıdır; uygulama yalnız cihazda çal�
 7. Ekip rolleri + bağlantıyla davet: SQL Editor'de `migrations/20260928090000_ekip_roller_davet_baglantisi.sql` dosyasını çalıştırın
    (roller: Sahip / Yardımcı / İzleyici; izleyici RLS ile salt okunur; tek kullanımlık 14 günlük davet bağlantısı `hesap.html?davet=<kod>`).
    Çalıştırılmazsa e-posta daveti eskisi gibi (Yardımcı) çalışır; İzleyici ve bağlantı daveti «veritabanı güncellemesi gerekli» der.
-8. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
+8. Hesabı silme (KVKK) + hata kaydı: SQL Editor'de `migrations/20260929090000_hesap_silme_hata_kaydi.sql` dosyasını çalıştırın.
+   Olmadan «Hesabımı sil» «veritabanı güncellemesi gerekli» der ve `/api/log` hataları yazmaz (uygulama çalışmaya devam eder).
+   Hata kayıtları `public.client_errors` tablosunda (yalnız Table Editor / service role görür; 90 gün sonra silinir).
+   İsteğe bağlı: Vercel'de `SUPERARI_LOG_SALT` (IP özeti tuzu) tanımlayın.
+9. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
 
 Demo verisi hiçbir zaman buluta gönderilmez.

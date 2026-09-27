@@ -175,6 +175,8 @@ const SHELL = [
   "/saglik-canli.js",
   "/saglik-detay.html",
   "/saglik.html",
+  "/sartlar.html",
+  "/sartlar.js",
   "/satis-store.js",
   "/satis.html",
   "/sensor-health.js",
@@ -190,6 +192,7 @@ const SHELL = [
   "/vercel.json",
   "/yandex-config.js",
   "/yandex-map.js",
+  "/yedek.js",
   "/yonetici.html"
 ];
 const NET_TIMEOUT_MS = 6000;

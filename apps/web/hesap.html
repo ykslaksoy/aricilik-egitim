@@ -36,6 +36,9 @@
     .hb-small.del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
     .hb-google{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;}
     .hb-link{background:none;border:0;padding:.2rem 0;color:#8a5a00;font:inherit;font-size:.84rem;font-weight:700;text-decoration:underline;cursor:pointer;justify-self:start;}
+  .yd-t{width:100%;border-collapse:collapse;font-size:.8rem;}
+  .yd-t th,.yd-t td{text-align:left;padding:.3rem .25rem;border-top:1px solid #f1f3f5;vertical-align:top;}
+  .yd-t td.n{text-align:right;white-space:nowrap;}
   .hb-or{display:flex;align-items:center;gap:.5rem;color:#868e96;font-size:.78rem;margin:.2rem 0;}
   .hb-or::before,.hb-or::after{content:'';flex:1;height:1px;background:#e9ecef;}
 </style>
@@ -97,6 +100,7 @@
       </div>
       <button class="btn secondary hb-google" type="button" id="btnGoogle"><span aria-hidden="true">G</span> Google ile giriş</button>
       <p class="hb-msg" id="loginMsg" aria-live="polite"></p>
+      <p class="muted" style="margin:0;font-size:.76rem;">Giriş için <a href="sartlar.html?geri=hesap.html" style="color:#2b6cb0;">Kullanım Şartları ve KVKK Aydınlatma Metni</a>’ni kabul etmiş olmanız gerekir; verileriniz bulutta saklanır.</p>
     </section>
 
     <section class="card stack" id="acctCard" style="margin-top:1rem;" hidden>
@@ -121,6 +125,15 @@
       </details>
       <button class="btn secondary" type="button" id="btnExport">📥 Buluttaki verilerimi indir (JSON)</button>
       <p class="muted" style="margin:0;font-size:.78rem;">Yedek ya da paylaşmak için: buluttaki arılık, kovan, ana arı, kayıt, görev, stok ve fotoğraf bilgilerini tek dosya olarak indirir.</p>
+      <details class="hb-code" id="delBox"><summary style="color:#c92a2a;">🗑 Hesabımı sil</summary>
+        <div class="hb-form" style="margin-top:.4rem;">
+          <p class="hb-msg" style="font-size:.82rem;color:#5c4813;">Hesabınız ve buluttaki verileriniz <b>kalıcı olarak</b> silinir: sahibi olduğunuz arılıklar, içindeki tüm kovan, kayıt, görev, stok ve fotoğraflar; ekip üyelikleriniz ve başkalarının arılıklarına eklediğiniz kayıtlar. Bu arılıkları paylaştığınız kişiler de onlara erişemez. Geri alınamaz; önce «Buluttaki verilerimi indir» ile kopya almanızı öneririz.</p>
+          <label style="display:flex;gap:.5rem;align-items:center;font-size:.84rem;"><input type="checkbox" id="delLocal" style="width:auto;"> Bu cihazdaki verileri de sil</label>
+          <label><span>Onay için <b>SİL</b> yazın</span><input id="delConfirm" autocomplete="off" placeholder="SİL"></label>
+          <button class="btn" type="button" id="btnDelete" style="background:#c92a2a;color:#fff;border-color:#c92a2a;">Hesabımı kalıcı olarak sil</button>
+          <p class="hb-msg" id="delMsg" aria-live="polite"></p>
+        </div>
+      </details>
     </section>
 
  <section class="card stack" id="pushCard" style="margin-top:1rem;" hidden>
@@ -153,6 +166,21 @@
       <div id="teamList" style="display:grid;gap:.6rem;"></div>
     </section>
 
+    <section class="card stack" id="privCard" style="margin-top:1rem;">
+      <h2 style="margin:0;font-size:1.05rem;">🔒 Gizlilik ve verilerim</h2>
+      <p class="hb-msg" id="termsMsg" style="margin:0;font-size:.84rem;"></p>
+      <p class="muted" style="margin:0;font-size:.8rem;">Bulutta saklanan verileriniz, ad, e-posta ve tam konum çıkarılıp yalnız bölge düzeyinde anonimleştirilerek sağlık skoru, oğul riski, hastalık / ırk tahmini, bal tahmini ve bakım takvimini iyileştirmek için kullanılır. <a href="sartlar.html?geri=hesap.html" style="color:#2b6cb0;">Metnin tamamı</a></p>
+      <h3 style="margin:.3rem 0 0;font-size:.95rem;">💾 Cihaz yedeği</h3>
+      <p class="muted" style="margin:0;font-size:.8rem;">Bu cihazdaki Canlı mod verilerinin tamamını (arılık, kovan, kayıt, görev, stok, gider, satış, ayarlar) tek dosyaya indirir. Yeni telefona geçerken ya da buluta giriş yapmadan yedek için kullanın. Demo veriler ve fotoğraf dosyaları yedeğe girmez.</p>
+      <div class="hb-row">
+        <button class="btn secondary" type="button" id="btnBackup">📦 Cihaz yedeği indir</button>
+        <button class="btn secondary" type="button" id="btnRestore">📂 Yedekten geri yükle</button>
+        <input type="file" id="restoreFile" accept="application/json,.json" hidden>
+      </div>
+      <div id="ydPreview" hidden style="display:grid;gap:.5rem;"></div>
+      <p class="hb-msg" id="ydMsg" aria-live="polite"></p>
+    </section>
+
     <section class="card stack" style="margin-top:1rem;">
       <h2 style="margin:0;font-size:1.05rem;">Nasıl çalışır?</h2>
       <ul class="muted" style="margin:0;padding-left:1.1rem;font-size:.82rem;line-height:1.45;display:grid;gap:.2rem;">
@@ -164,9 +192,11 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-48"></script>
-  <script src="bulut.js?v=koloni-48"></script>
-  <script src="push.js?v=koloni-48"></script>
+  <script src="demo-data.js?v=koloni-49"></script>
+  <script src="bulut.js?v=koloni-49"></script>
+  <script src="push.js?v=koloni-49"></script>
+  <script src="sartlar.js?v=koloni-49"></script>
+  <script src="yedek.js?v=koloni-49"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -256,6 +286,7 @@
         /* oturum var: eski giriş hatası (ör. aynı bağlantı ikinci kez açıldı) ve giriş formu gösterilmez */
         msg($('loginMsg'), ''); $('afterSend').hidden = true;
         $('acctCard').hidden = false;
+        consentSync();
         try { $('setPwForm').elements.username.value = s.email || ''; } catch (eU) { /* ignore */ }
         var linked = Object.keys(s.links || {});
         $('acctKv').innerHTML = '<span>E-posta</span><b>' + esc(s.email || '—') + '</b>' +
@@ -541,6 +572,83 @@
         msg($('syncMsg'), 'İndirildi · ' + n + ' satır.', 'ok');
       }).catch(function (e) { msg($('syncMsg'), 'İndirilemedi: ' + errText(e), 'err'); }).then(function () { b.disabled = false; });
     });
+    /* ---- Şartlar / KVKK onayı: girişten önce zorunlu; girişte hesaba eşitlenir ---- */
+    var SA = window.SuperAriSartlar, YD = window.SuperAriYedek;
+    function renderTerms() {
+      var o = SA && SA.get();
+      $('termsMsg').innerHTML = SA && SA.accepted()
+        ? '✓ Kullanım Şartları ve KVKK Aydınlatma Metni kabul edildi · sürüm ' + esc(o.version) + ' · ' + esc(SA.fmtDate(o.acceptedAt)) + ' (İstanbul)' + (o.source === 'bulut' ? ' · hesabınızdan alındı' : '')
+        : 'Kullanım Şartları ve KVKK Aydınlatma Metni henüz kabul edilmedi.';
+    }
+    renderTerms();
+    window.addEventListener('superari-terms-accepted', renderTerms);
+    function gate(e) {
+      if (!SA || SA.accepted()) return;
+      var t = e.target, form = e.type === 'submit' ? t : null, btn = e.type === 'click' ? (t.closest && t.closest('button')) : null;
+      if (e.type === 'click' && (!btn || btn.type === 'submit' || btn.id === 'btnForgot')) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      SA.require().then(function () { if (form) { if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true })); } else if (btn) btn.click(); });
+    }
+    $('loginCard').addEventListener('submit', gate, true);
+    $('loginCard').addEventListener('click', gate, true);
+    var consentDone = false;
+    function consentSync() { if (consentDone || !B.syncConsent) return; consentDone = true; B.syncConsent().then(renderTerms); }
+
+    /* ---- Hesabı sil (KVKK) ---- */
+    $('btnDelete').addEventListener('click', function () {
+      var v = String($('delConfirm').value || '').trim().toLocaleUpperCase('tr');
+      if (v !== 'SİL') { msg($('delMsg'), 'Onay için kutuya SİL yazın.', 'err'); $('delConfirm').focus(); return; }
+      if (!confirm('Hesabınız ve buluttaki tüm verileriniz kalıcı olarak silinecek. Emin misiniz?')) return;
+      var b = $('btnDelete'); b.disabled = true; msg($('delMsg'), 'Siliniyor…');
+      B.deleteAccount({ wipeLocal: $('delLocal').checked }).then(function (r) {
+        msg($('delMsg'), 'Hesabınız silindi.' + (r.photos && r.photos.failed ? ' (' + r.photos.failed + ' fotoğraf dosyası silinemedi.)' : ''), 'ok');
+        setTimeout(function () { location.href = 'hesap.html?silindi=1'; }, 1200);
+      }).catch(function (e) { msg($('delMsg'), 'Silinemedi: ' + errText(e), 'err'); b.disabled = false; });
+    });
+    if (/[?&]silindi=1/.test(location.search)) msg($('loginMsg'), 'Hesabınız ve buluttaki verileriniz silindi.', 'ok');
+
+    /* ---- Cihaz yedeği ---- */
+    $('btnBackup').addEventListener('click', function () {
+      try { var r = YD.download(); msg($('ydMsg'), 'Yedek indirildi · ' + r.keys + ' veri grubu (' + Math.max(1, Math.round(r.bytes / 1024)) + ' KB). Dosyayı güvenli bir yerde saklayın.', 'ok'); }
+      catch (e) { msg($('ydMsg'), 'Yedek alınamadı: ' + errText(e), 'err'); }
+    });
+    var pending = null;
+    $('btnRestore').addEventListener('click', function () { $('restoreFile').value = ''; $('restoreFile').click(); });
+    $('restoreFile').addEventListener('change', function () {
+      var file = this.files && this.files[0]; if (!file) return;
+      if (file.size > 25 * 1024 * 1024) { msg($('ydMsg'), 'Dosya çok büyük.', 'err'); return; }
+      var fr = new FileReader();
+      fr.onload = function () { showPlan(String(fr.result || '')); };
+      fr.onerror = function () { msg($('ydMsg'), 'Dosya okunamadı.', 'err'); };
+      fr.readAsText(file);
+      this.value = '';
+    });
+    var ACT = { yeni: 'Eklenecek', ekle: 'Eksikler eklenecek', farkli: 'Cihazdaki korunur', ayni: 'Eklenecek yok' };
+    function showPlan(text) {
+      var r = YD.read(text), box = $('ydPreview');
+      if (!r.ok) { box.hidden = true; pending = null; msg($('ydMsg'), r.error, 'err'); return; }
+      pending = r.backup;
+      var rows = YD.plan(r.backup), adds = 0, diffs = 0;
+      rows.forEach(function (x) { adds += x.add; diffs += x.differ; });
+      var main = rows.filter(function (x) { return x.action !== 'ayni' || x.local || x.backup; });
+      box.innerHTML = '<div class="kr-info" style="font-size:.82rem;background:#fff8e1;border:1px solid #f1d98b;border-radius:12px;padding:.55rem .65rem;">Yedek: <b>' + esc(SA ? SA.fmtDate(r.backup.createdAt) : r.backup.createdAt) + '</b>' + (r.backup.appVersion ? ' · ' + esc(r.backup.appVersion) : '') +
+        '<br><b>Birleştir</b>: cihazdakiler korunur, yedekte olup cihazda olmayan <b>' + adds + '</b> kayıt eklenir' + (diffs ? '; iki yerde farklı olan ' + diffs + ' kayıtta cihazdaki kalır' : '') + '.' +
+        '<br><b>Yedekle değiştir</b>: aşağıdaki gruplar yedekteki hâliyle yazılır (cihazdaki farklı kayıtlar kaybolur).</div>' +
+        '<table class="yd-t"><tr><th>Veri</th><th class="n">Cihaz</th><th class="n">Yedek</th><th>Birleştirince</th></tr>' +
+        main.map(function (x) { return '<tr><td>' + esc(x.label) + '</td><td class="n">' + x.local + '</td><td class="n">' + x.backup + '</td><td>' + esc(ACT[x.action]) + (x.add && x.action !== 'yeni' ? ' (+' + x.add + ')' : '') + '</td></tr>'; }).join('') + '</table>' +
+        '<div class="hb-row"><button class="btn" type="button" id="ydMerge">Birleştir (önerilen)</button><button class="btn secondary" type="button" id="ydReplace">Yedekle değiştir</button><button class="btn secondary" type="button" id="ydCancel">Vazgeç</button></div>';
+      box.hidden = false; msg($('ydMsg'), '');
+      $('ydMerge').onclick = function () { doApply('birlestir'); };
+      $('ydReplace').onclick = function () { if (confirm('Cihazdaki veriler yedekteki hâliyle değiştirilecek. Devam edilsin mi?')) doApply('degistir'); };
+      $('ydCancel').onclick = function () { pending = null; box.hidden = true; box.innerHTML = ''; };
+    }
+    function doApply(mode) {
+      if (!pending) return;
+      var r = YD.apply(pending, mode);
+      pending = null; $('ydPreview').hidden = true; $('ydPreview').innerHTML = '';
+      msg($('ydMsg'), r.changed ? 'Yedek yüklendi · ' + r.changed + ' veri grubu güncellendi. Girişliyseniz yeni kayıtlar bir sonraki eşitlemede buluta gönderilir.' : 'Değişiklik yok: cihazda zaten aynı veriler var.', 'ok');
+    }
+
     B.loadConfig(true).then(function (cfg) {
       if (!cfg.enabled) return render();
       return B.client().then(function (c) {
@@ -563,7 +671,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-48"></script>
-<script src="pwa.js?v=koloni-48"></script>
+  <script src="nav.js?v=koloni-49"></script>
+<script src="pwa.js?v=koloni-49"></script>
 </body>
 </html>
