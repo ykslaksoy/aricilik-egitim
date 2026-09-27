@@ -8,29 +8,12 @@
 const crypto = require('crypto');
 const L = require('./_push-lib');
 const R = require('./_push-rules');
+const RUN = require('./_push-run');
 
 function safeEq(a, b) {
   const x = crypto.createHash('sha256').update(String(a)).digest(), y = crypto.createHash('sha256').update(String(b)).digest();
   return crypto.timingSafeEqual(x, y);
 }
-async function rest(c, path) {
-  const r = await fetch(c.url + '/rest/v1/' + path, { headers: { apikey: c.service, Authorization: 'Bearer ' + c.service, Accept: 'application/json' } });
-  if (!r.ok) throw new Error('rest ' + r.status + ' ' + path.split('?')[0]);
-  return r.json();
-}
-async function userData(c, uid, today) {
-  const mem = await rest(c, 'apiary_members?select=apiary_id&user_id=eq.' + uid);
-  const aps = mem.map((m) => m.apiary_id).filter(Boolean);
-  const scope = aps.length ? 'or=(apiary_id.in.(' + aps.join(',') + '),owner_id.eq.' + uid + ')' : 'owner_id=eq.' + uid;
-  const since = R.addDays(today, -150);
-  const [hives, tasks, records] = await Promise.all([
-    aps.length ? rest(c, 'hives?select=key,local_id,name,data,deleted&deleted=eq.false&apiary_id=in.(' + aps.join(',') + ')') : [],
-    rest(c, 'tasks?select=key,local_id,kind,due,data,deleted&deleted=eq.false&' + scope),
-    rest(c, 'records?select=key,local_id,hive_key,kind,record_date,data,deleted&deleted=eq.false&kind=in.(disease,colony_event)&record_date=gte.' + since + '&' + scope)
-  ]);
-  return { hives, tasks, records };
-}
-
 module.exports = async function handler(req, res) {
   const c = L.conf();
   if (!c.cronSecret || c.cronSecret.length < 16) return L.send(res, 404, { error: 'kapali' });
@@ -47,24 +30,9 @@ module.exports = async function handler(req, res) {
       report.users = users.length;
       for (const uid of users) {
         try {
-          const data = await userData(c, uid, today);
-          const all = R.items(data, today);
-          let fresh = all;
-          if (all.length) {
-            const keys = all.map((x) => x.key);
-            const seen = new Set((await db.query('select dedupe_key from public.push_log where user_id = $1 and dedupe_key = any($2)', [uid, keys])).rows.map((r) => r.dedupe_key));
-            fresh = all.filter((x) => !seen.has(x.key));
-          }
-          const notes = R.group(fresh);
-          if (dry) { (report.preview = report.preview || []).push({ user: uid.slice(0, 8), items: all.length, fresh: fresh.length, notes: notes.map((n) => ({ title: n.title, body: n.body })) }); continue; }
-          for (const n of notes) {
-            /* önce günlüğe yaz (en çok bir kez), sonra gönder */
-            const ins = await db.query(
-              'insert into public.push_log (user_id, dedupe_key, title) select $1, k, $3 from unnest($2::text[]) k on conflict do nothing returning dedupe_key', [uid, n.keys, n.title]);
-            if (!ins.rowCount) continue;
-            const r = await L.sendToUser(db, uid, { title: n.title, body: n.body, url: n.url, tag: n.tag, urgent: n.urgent });
-            report.notifications++; report.delivered += r.ok;
-          }
+          const r = await RUN.runForUser(db, c, uid, today, dry);
+          if (dry) (report.preview = report.preview || []).push(r.preview);
+          report.notifications += r.notifications; report.delivered += r.delivered;
         } catch (e) { report.errors.push(String(e && e.message || e).slice(0, 120)); }
       }
       /* eski günlükleri temizle (120 gün) */

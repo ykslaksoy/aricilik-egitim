@@ -58,13 +58,14 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-35"></script>
-  <script src="rapor-store.js?v=koloni-35"></script>
-  <script src="sensor-health.js?v=koloni-35"></script>
-  <script src="koloni.js?v=koloni-35"></script>
-  <script src="irk-tahmin.js?v=koloni-35"></script>
-  <script src="kovan-ara.js?v=koloni-35"></script>
-  <script src="tarti-elle.js?v=koloni-35"></script>
+  <script src="demo-data.js?v=koloni-36"></script>
+  <script src="rapor-store.js?v=koloni-36"></script>
+  <script src="sensor-health.js?v=koloni-36"></script>
+<script src="saglik-canli.js?v=koloni-36"></script>
+  <script src="koloni.js?v=koloni-36"></script>
+  <script src="irk-tahmin.js?v=koloni-36"></script>
+  <script src="kovan-ara.js?v=koloni-36"></script>
+  <script src="tarti-elle.js?v=koloni-36"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -247,7 +248,11 @@
           badge = h.weightKg.toFixed(1) + ' kg';
           meta = place + ' · sağlık ' + h.health + ' · oğul ' + h.swarmRisk;
         }
-        var tone = h.healthScore < 50 ? 'priority-1' : (h.healthScore < 70 ? 'priority-2' : 'priority-3');
+        var hsc = h.healthScore;
+        if (window.SuperAriLiveHealth && SuperAriLiveHealth.isLive()) {
+          try { var lev = SuperAriLiveHealth.evaluate(h); hsc = lev.score; if (view !== 'tarti' && view !== 'koloni') meta = place + ' · sağlık ' + (lev.score == null ? 'veri az' : lev.band.label + ' ' + lev.score); } catch (e) { hsc = null; }
+        }
+        var tone = hsc == null ? 'priority-3' : (hsc < 50 ? 'priority-1' : (hsc < 70 ? 'priority-2' : 'priority-3'));
         return (
           '<a class="item-card" id="hive-' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
             '<div class="row">' +
@@ -454,6 +459,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-35"></script>
+<script src="pwa.js?v=koloni-36"></script>
 </body>
 </html>

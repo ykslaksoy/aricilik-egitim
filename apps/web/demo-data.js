@@ -2163,6 +2163,8 @@
       o.pollenFrames = intIn(r.pollenFrames, 0, 20) || 0;
       if (r.inspection === true) o.inspection = true; /* Kolay muayene ile girildi */
       var sp = pick(r.space, ['bol', 'dolmak', 'dolu', 'kat', ''], ''); if (sp) o.space = sp; /* muayenede gözlenen yer durumu */
+      var vs0 = pick(r.varroaSeen, ['az', 'cok', ''], ''); if (vs0) o.varroaSeen = vs0;
+      if (r.diseaseSign === true) o.diseaseSign = true;
       return o;
     }
     if (kind === 'brood') {
@@ -2175,6 +2177,8 @@
       }
       o.queenless = r.queenless === true;
       o.chilled = r.chilled === true;
+      var vs1 = pick(r.varroaSeen, ['az', 'cok', ''], ''); if (vs1) o.varroaSeen = vs1; /* Kolay muayene: gözle varroa */
+      if (r.diseaseSign === true) o.diseaseSign = true; /* Kolay muayene: hastalık belirtisi işaretlendi */
       return o;
     }
     if (kind === 'feed') {

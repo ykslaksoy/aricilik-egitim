@@ -1051,9 +1051,10 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-35"></script>
+<script src="demo-data.js?v=koloni-36"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-35"></script>
+<script src="sensor-health.js?v=koloni-36"></script>
+<script src="saglik-canli.js?v=koloni-36"></script>
 <script src="hava-kayit.js"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
@@ -1996,9 +1997,30 @@
   var cihazBadge = cihazInfo.text;
   var kameraBadge = kameraInfo.text;
 
+  /* Sağlık rozeti: Canlı modda yalnız gerçek verilerden (saglik-canli.js); Müdahale/Kontrol varsa sayısı, yoksa ortalama skor. */
+  function saglikBadgeInfo() {
+    try {
+      var SH = window.SuperAriSensorHealth, hv = hivesForTiles;
+      if (!SH || !hv.length) return { text: 'İyi', tone: 'green' };
+      var ev = SH.evaluateAll(hv), c = ev.counts || {};
+      if (ev.live) {
+        if (c.act) return { text: c.act + ' müdahale', tone: 'red' };
+        if (c.check) return { text: c.check + ' kontrol', tone: 'red' };
+      }
+      var a = ev.avg;
+      if (a == null) return { text: 'Veri az', tone: 'tan' };
+      return { text: String(a), tone: a >= 85 ? 'green' : (a >= 70 ? 'tan' : 'red') };
+    } catch (e) { return { text: 'İyi', tone: 'green' }; }
+  }
+  var saglikInfo = saglikBadgeInfo();
+  window.addEventListener('superari-health-updated', function () {
+    var el = document.querySelector('.tile[data-key="saglik"] .badge'); if (!el) return;
+    var n = saglikBadgeInfo(); el.textContent = n.text; el.className = 'badge ' + n.tone;
+  });
+
   var tiles = [
     { key: 'tarti', label: 'Tartı', badge: tartiBadge, tone: tartiTone, href: 'kovanlar.html?view=tarti' },
-    { key: 'saglik', label: 'Sağlık', badge: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=hivesForTiles; if(!SH||!hv.length) return 'İyi'; return String(SH.evaluateAll(hv).avg); } catch(e){ return 'İyi'; } })(), tone: (function(){ try { var SH=window.SuperAriSensorHealth; var hv=hivesForTiles; if(!SH||!hv.length) return 'green'; var a=SH.evaluateAll(hv).avg; return a>=85?'green':(a>=70?'tan':'red'); } catch(e){ return 'green'; } })(), href: 'saglik.html' },
+    { key: 'saglik', label: 'Sağlık', badge: saglikInfo.text, tone: saglikInfo.tone, href: 'saglik.html' },
     { key: 'ogul', label: 'Oğul', badge: ogulAlertCount ? (String(ogulAlertCount) + ' uyarı' + (ogulWatchCount ? ' · ' + ogulWatchCount + ' izleme' : '')) : (ogulWatchCount ? (ogulWatchCount + ' izlemede') : 'Düşük'), tone: ogulAlertCount ? 'red' : (ogulWatchCount ? 'tan' : 'green'), href: 'uyarilar.html?view=ogul' },
     { key: 'kovanlar', label: 'Kovanlar', badge: String(hiveCount), tone: 'tan', href: 'kovanlar.html' },
     { key: 'koloni', label: 'Koloni', badge: koloniBadge, tone: koloniTone, href: 'kovanlar.html?view=koloni' },
@@ -3060,7 +3082,7 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-35"></script>
-<script src="pwa.js?v=koloni-35"></script>
+<script src="nav.js?v=koloni-36"></script>
+<script src="pwa.js?v=koloni-36"></script>
 </body>
 </html>

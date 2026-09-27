@@ -46,5 +46,9 @@ assert.ok(g.find((x) => x.tag === 'superari-health').urgent);
 const it2 = R.items({ hives: d.hives, tasks: [], records: d.records.concat([{ key: 'r7', hive_key: hk(101), kind: 'colony_event', record_date: '2026-10-02', data: { type: 'saglik', at: '2026-10-02T08:00', score: 35, status: 'Müdahale' } }]) }, '2026-10-02');
 assert.ok(!it2.some((x) => x.cat === 'queen'));
 assert.ok(!it2.some((x) => x.cat === 'health'));
+// canlı skor oğul düzeyi «Çok yüksek» de bildirilir
+const it3 = R.items({ hives: d.hives, tasks: [], records: [{ key: 'r8', hive_key: hk(101), kind: 'colony_event', record_date: '2026-09-27', data: { type: 'saglik', at: '2026-09-27T09:00', score: 70, status: 'İzle', swarm: 'Çok yüksek' } }] }, '2026-09-27');
+assert.ok(it3.some((x) => x.cat === 'swarm' && /çok yüksek/.test(x.text)));
+assert.ok(!it3.some((x) => x.cat === 'health'));
 assert.strictEqual(R.istanbulToday(Date.parse('2026-09-26T22:30:00Z')), '2026-09-27');
 console.log('push-rules: tamam (' + it.length + ' uyarı, ' + g.length + ' bildirim)');

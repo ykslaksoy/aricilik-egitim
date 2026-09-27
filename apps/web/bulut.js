@@ -24,6 +24,7 @@
     records: 'superari.koloniKayit.v1', harvest: 'superari.hasat.v2', ops: 'superari.koloniIslem.v1',
     tasks: 'superari.gorevler.v1', done: 'superari.gorevTamam.v1', stock: 'superari.stok.v1',
     tarti: 'superari.tartiElle.v1', /* Elle tartım: records (kind colony_event, data.type 'elle_tarti') */
+    saglik: 'superari.saglikSkor.v1', /* Sağlık skoru geçmişi: records (kind colony_event, data.type 'saglik') */
     plan: 'superari.bakimPlan.v1' /* Bakım planı: arılık profili / çam balı (apiaries.data._plan), bal katı (hives.data._superSince) */
   };
   var SENSOR_FIELDS = ['weightKg', 'deltaKg', 'health', 'healthScore', 'colonyScore', 'swarmRisk'];
@@ -332,6 +333,15 @@
       var u = hk.split(':')[0], k = keyFor(st, 'tarti', x.id, u), dd = mapRefs(x, toCloud); dd.type = 'elle_tarti';
       add(entry('records', k, { key: k, apiary_id: u, local_id: String(x.id), hive_key: hk, kind: 'colony_event', record_date: isoDate(x.date || x.at), data: dd }));
     });
+    var hsMap = raw('saglik', {}); if (!hsMap || typeof hsMap !== 'object' || Array.isArray(hsMap)) hsMap = {};
+    Object.keys(hsMap).forEach(function (hid) {
+      (Array.isArray(hsMap[hid]) ? hsMap[hid] : []).forEach(function (x) {
+        if (!x || !x.id || x.demo) return;
+        var hk = X.hiveKey(x.hiveId != null ? x.hiveId : hid); if (!hk) return;
+        var u = hk.split(':')[0], k = keyFor(st, 'saglik', x.id, u), dd = mapRefs(x, toCloud); dd.type = 'saglik';
+        add(entry('records', k, { key: k, apiary_id: u, local_id: String(x.id), hive_key: hk, kind: 'colony_event', record_date: isoDate(x.date || x.at), data: dd }));
+      });
+    });
     opsRow(ops.batches, 'opsb', 'graft_batch');
     function scopeOf(o) {
       if (o.apiaryId != null && o.apiaryId !== '') return { u: X.apUuid(o.apiaryId), ref: true };
@@ -437,8 +447,9 @@
     var L = {
       apiaries: raw('apiaries', []), hives: raw('hives', []), queens: raw('queens', []), records: raw('records', {}),
       harvest: raw('harvest', []), ops: raw('ops', { events: [], batches: [] }), tasks: raw('tasks', []), done: raw('done', {}), stock: raw('stock', []),
-      plan: raw('plan', {}), tarti: raw('tarti', [])
+      plan: raw('plan', {}), tarti: raw('tarti', []), saglik: raw('saglik', {})
     };
+    if (!L.saglik || typeof L.saglik !== 'object' || Array.isArray(L.saglik)) L.saglik = {};
     if (!Array.isArray(L.tarti)) L.tarti = [];
     if (!L.plan || typeof L.plan !== 'object' || Array.isArray(L.plan)) L.plan = {};
     ['profiles', 'camBali', 'supers'].forEach(function (k) { if (!L.plan[k] || typeof L.plan[k] !== 'object') L.plan[k] = {}; });
@@ -540,6 +551,15 @@
       if (r.kind === 'colony_event' && ((d && d.type === 'elle_tarti') || String(r.local_id).indexOf('tw') === 0)) {
         if (d) { delete d.type; delete d.demo; if (r.hive_key) { var th = X.hiveOfKey(r.hive_key); if (th != null) d.hiveId = th; } }
         upsertBy(L.tarti, lid, d); dirty.tarti = 1; done(r, 'tarti', lid); return;
+      }
+      if (r.kind === 'colony_event' && ((d && d.type === 'saglik') || String(r.local_id).indexOf('hs') === 0)) {
+        var shid = r.hive_key ? X.hiveOfKey(r.hive_key) : null;
+        if (d) { delete d.type; delete d.demo; if (shid != null) d.hiveId = shid; }
+        var hkey = String(shid != null ? shid : (d && d.hiveId));
+        var hl = L.saglik[hkey] = Array.isArray(L.saglik[hkey]) ? L.saglik[hkey] : [];
+        if (d) { upsertBy(hl, lid, d); hl.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); }); if (hl.length > 90) hl.splice(0, hl.length - 90); }
+        else { for (var hi = hl.length - 1; hi >= 0; hi--) if (String(hl[hi].id) === String(lid)) hl.splice(hi, 1); }
+        dirty.saglik = 1; done(r, 'saglik', lid); return;
       }
       if (r.kind === 'colony_event' || r.kind === 'graft_batch') {
         upsertBy(r.kind === 'colony_event' ? L.ops.events : L.ops.batches, lid, d);
@@ -695,6 +715,18 @@
       return n;
     }).catch(function () { return 0; });
   }
+  /* Sağlık durumu Kontrol/Müdahale'ye düştüyse (saglik-canli.js işaret bırakır): skor geçmişi buluta gittikten sonra
+     sunucudan bu kullanıcı için hemen bildirim denetimi iste (aynı uyarı push_log ile ikinci kez gönderilmez). */
+  function healthKick() {
+    var K = 'superari.saglikKick.v1', v = null;
+    try { v = global.localStorage.getItem(K); } catch (e) { v = null; }
+    if (!v) return;
+    try { global.localStorage.removeItem(K); } catch (e) { /* ignore */ }
+    session().then(function (s) {
+      if (!s || !s.access_token) return;
+      return global.fetch('/api/push-subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.access_token }, body: JSON.stringify({ action: 'check' }) });
+    }).catch(function () { /* bir sonraki zamanlanmış çalışmada gönderilir */ });
+  }
   /* Background Sync (Chrome/Android): bağlantı gelince SW açık sayfaya «outbox'ı gönder» der; ayrıca online olayı + açılış/odak/3 dk çekme. */
   function bgSync() {
     try {
@@ -810,6 +842,7 @@
         }).then(function (pushed) {
           st.lastSync = new Date().toISOString(); st.lastError = null; st.lastPushed = pushed; st.lastPulled = pulled; saveState(st);
           if (pulled) { try { global.dispatchEvent(new CustomEvent('superari-cloud-pulled', { detail: { count: pulled } })); } catch (e) { /* ignore */ } }
+          if (pushed && !Object.keys(st.queue).length) healthKick();
           return { pulled: pulled, pushed: pushed, pending: Object.keys(st.queue).length, firstUpload: firstUpload };
         });
       }).catch(function (err) {

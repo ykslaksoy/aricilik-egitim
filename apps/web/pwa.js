@@ -254,7 +254,15 @@
     s.onload = go;
     doc.head.appendChild(s);
   }
-  function onLoad() { register(); startNotifLoop(); bulutBoot(); }
+  /* ---- Canlı sağlık skoru: modülü içermeyen sayfalarda da (kayıt eklenen her yerde) yeniden hesaplansın ---- */
+  function liveHealthBoot() {
+    try { if (global.localStorage.getItem('superari.workMode') !== 'live') return; } catch (e) { return; }
+    if (global.SuperAriLiveHealth || !global.SuperAriDemo) return;
+    var s = doc.createElement('script');
+    s.src = 'saglik-canli.js?v=' + encodeURIComponent(VERSION);
+    doc.head.appendChild(s);
+  }
+  function onLoad() { register(); startNotifLoop(); liveHealthBoot(); bulutBoot(); }
   if (doc.readyState === 'complete') onLoad();
   else global.addEventListener('load', onLoad);
 })(window);

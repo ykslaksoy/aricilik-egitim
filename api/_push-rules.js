@@ -83,7 +83,7 @@ function items(d, today) {
     if (bad && (!prev || prev.data.status !== x.status)) {
       out.push({ cat: 'health', key: 'health:' + last.key, hiveId: localOf(ref), text: hn + ': sağlık ' + x.status + ' (' + x.score + ')' + (x.reasons && x.reasons[0] ? ' · ' + x.reasons[0] : ''), url: hiveUrl(ref), urgent: x.status === 'Müdahale' });
     }
-    if (x.swarm === 'Yüksek' || x.swarm === 'Acil') {
+    if (x.swarm === 'Yüksek' || x.swarm === 'Çok yüksek' || x.swarm === 'Acil') {
       out.push({ cat: 'swarm', key: 'swarm:' + ref + ':' + isoWeek(today), hiveId: localOf(ref), text: hn + ': oğul riski ' + x.swarm.toLocaleLowerCase('tr'), url: hiveUrl(ref) });
     }
   });

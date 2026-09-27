@@ -85,6 +85,7 @@
       <h2>Durum</h2>
       <p class="meta" id="avgLine" style="margin-bottom:10px"></p>
       <div class="band-grid" id="bandGrid"></div>
+      <div id="liveList" style="margin-top:12px;"></div>
     </section>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
@@ -92,8 +93,9 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-35"></script>
-<script src="sensor-health.js?v=koloni-35"></script>
+<script src="demo-data.js?v=koloni-36"></script>
+<script src="sensor-health.js?v=koloni-36"></script>
+<script src="saglik-canli.js?v=koloni-36"></script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
@@ -119,8 +121,21 @@
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  document.getElementById('avgLine').textContent = 'Ort. skor ' + all.avg + ' · ' + all.hives.length + ' kovan';
-  document.getElementById('pageSub').textContent = 'Ort. ' + all.avg;
+  var un = (all.unscored || []).length;
+  document.getElementById('avgLine').textContent = (all.avg == null ? 'Skor için veri az' : 'Ort. skor ' + all.avg) + ' · ' + all.hives.length + ' kovan' + (un ? ' · ' + un + ' kovanda veri az' : '') + (all.live ? ' · Canlı' : '');
+  document.getElementById('pageSub').textContent = all.avg == null ? 'Veri az' : 'Ort. ' + all.avg;
+  /* Canlı: skoru en düşük kovanlar, eğilim (↑/↓) ve sade gerekçe */
+  if (all.live) {
+    var rows = all.hives.slice(0, 8).map(function (x) {
+      var tr = x.trend === 'up' ? '<span style="color:#2b8a3e" title="Yükseliyor">↑</span>' : x.trend === 'down' ? '<span style="color:#c92a2a" title="Düşüyor">↓</span>' : '';
+      return '<a href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #eee2cc;border-radius:12px;margin-top:6px;text-decoration:none;color:inherit;background:#fff;">' +
+        '<span style="flex:1;min-width:0;"><b>' + esc(x.name) + '</b> <small style="color:#6b5a48">' + esc(x.band.label) + '</small><br><small style="color:#6b5a48">' + esc((x.reasons && x.reasons[0]) || (x.positives && x.positives[0]) || '') + (x.hint ? ' · ' + esc(x.hint) : '') + '</small></span>' +
+        '<span style="flex:none;font-weight:800;">' + x.score + ' ' + tr + '</span></a>';
+    }).join('');
+    var unl = (all.unscored || []).slice(0, 3).map(function (x) { return esc(x.name); }).join(', ');
+    document.getElementById('liveList').innerHTML = (rows ? '<div style="font-weight:800;font-size:.95rem;">Öncelikli kovanlar</div>' + rows : '') +
+      (un ? '<p class="meta" style="margin-top:8px;">Veri az: ' + unl + (un > 3 ? ' +' + (un - 3) : '') + ' — skor için bir muayene yapın.</p>' : '');
+  }
   document.getElementById('bandGrid').innerHTML = bands.map(function (b) {
     return '<a class="band-card tone-' + b.tone + '" href="saglik-detay.html?band=' + encodeURIComponent(b.key) + '">' +
       '<div class="count">' + b.count + '</div>' +
@@ -144,7 +159,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-35"></script>
-<script src="pwa.js?v=koloni-35"></script>
+<script src="nav.js?v=koloni-36"></script>
+<script src="pwa.js?v=koloni-36"></script>
 </body>
 </html>

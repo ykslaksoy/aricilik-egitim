@@ -104,6 +104,11 @@
       out.brood = { date: today(), eggs: eggs, pattern: a.yavru === 'daginik' || a.yavru === 'yok' ? 'daginik' : 'duzenli', queenCell: a.meme || 'yok', queenless: noQueen, note: note };
       if (mode() === 'demo') out.brood.demo = true;
     }
+    var insp = out.brood || out.strength;
+    if (insp) {
+      if (a.varroa === 'az' || a.varroa === 'cok') insp.varroaSeen = a.varroa;
+      if (a.hastalik === 'var') insp.diseaseSign = true;
+    }
     if (a.huy) out.calm = Number(a.huy);
     if (a.yer === 'kat') out.superOn = true;
     if (st.box && (st.boxTouched || (a.yer === 'kat' && !st.box.kat))) {

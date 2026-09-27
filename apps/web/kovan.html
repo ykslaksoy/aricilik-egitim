@@ -362,15 +362,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-35"></script>
-<script src="rapor-store.js?v=koloni-35"></script>
-<script src="sensor-health.js?v=koloni-35"></script>
-<script src="koloni.js?v=koloni-35"></script>
-<script src="ilac-katalog.js?v=koloni-35"></script>
-<script src="bakim-plan.js?v=koloni-35"></script>
-<script src="ogul.js?v=koloni-35"></script>
-<script src="ogul-verdi.js?v=koloni-35"></script>
-<script src="tarti-elle.js?v=koloni-35"></script>
+<script src="demo-data.js?v=koloni-36"></script>
+<script src="rapor-store.js?v=koloni-36"></script>
+<script src="sensor-health.js?v=koloni-36"></script>
+<script src="saglik-canli.js?v=koloni-36"></script>
+<script src="koloni.js?v=koloni-36"></script>
+<script src="ilac-katalog.js?v=koloni-36"></script>
+<script src="bakim-plan.js?v=koloni-36"></script>
+<script src="ogul.js?v=koloni-36"></script>
+<script src="ogul-verdi.js?v=koloni-36"></script>
+<script src="tarti-elle.js?v=koloni-36"></script>
 <script>(function () {
   if (window.SuperAriTarti) SuperAriTarti.ensureCss();
   document.addEventListener('click', function (e) {
@@ -387,7 +388,7 @@
   else if (window.SuperAriKutu) SuperAriKutu.open(t.getAttribute('data-kutu-open'), rl);
 });
 new MutationObserver(function () { if (window.__ovReload && !document.getElementById('ovSheet')) { window.__ovReload = false; location.reload(); } }).observe(document.body, { childList: true });</script>
-<script src="irk-tahmin.js?v=koloni-35"></script>
+<script src="irk-tahmin.js?v=koloni-36"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>(function () {
   function kmOpen(id) { if (window.SuperAriKoloni && SuperAriKoloni.openKolayMuayene) SuperAriKoloni.openKolayMuayene(id, { onSaved: function () { window.__kmReload = true; } }); }
@@ -802,7 +803,18 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     try { evalH = SH && SH.evaluateHive ? SH.evaluateHive(hive) : null; } catch (e) { evalH = null; }
     var healthLabel = evalH ? evalH.band.label : hive.health;
     var healthScore = evalH ? evalH.score : hive.healthScore;
-    var ht = evalH ? (evalH.score < 50 ? 'bad' : (evalH.score < 70 ? 'warn' : '')) : toneHealth(hive.health, hive.healthScore);
+    var ht = evalH ? (evalH.score == null ? '' : evalH.score < 50 ? 'bad' : (evalH.score < 70 ? 'warn' : '')) : toneHealth(hive.health, hive.healthScore);
+    var trendIco = evalH && evalH.trend === 'up' ? ' ↑' : (evalH && evalH.trend === 'down' ? ' ↓' : '');
+    /* Canlı sağlık: sade gerekçeler + son muayene ipucu (formül / ağırlık gösterilmez) */
+    var lhBox = '';
+    if (evalH && evalH.live) {
+      var rs = (evalH.reasons || []).slice(0, 3), ps = (evalH.positives || []).slice(0, 2);
+      lhBox = '<div class="lh-box" style="margin:8px 0 0;padding:10px 12px;border-radius:12px;background:#fffaf0;border:1px solid #f1e3c6;font-size:13px;line-height:1.45;">' +
+        '<div style="font-weight:800;margin-bottom:3px;">♥ Sağlık ' + (evalH.score == null ? '· veri az' : evalH.score + ' · ' + escapeHtml(evalH.band.label) + (evalH.trend === 'up' ? ' <span title="Yükseliyor" style="color:#2b8a3e">↑</span>' : evalH.trend === 'down' ? ' <span title="Düşüyor" style="color:#c92a2a">↓</span>' : '')) + '</div>' +
+        (rs.length ? rs.map(function (r) { return '<div>• ' + escapeHtml(r) + '</div>'; }).join('') : '') +
+        (ps.length ? '<div style="color:#2b8a3e;">' + ps.map(function (r) { return '✓ ' + escapeHtml(r); }).join(' · ') + '</div>' : '') +
+        '<div style="color:#6b5a48;font-size:12px;margin-top:3px;">' + escapeHtml(evalH.hint || '') + '</div></div>';
+    }
     var krRows = K && K.latestRowsData ? K.latestRowsData(hive) : null;
     function krEdit(t) {
       return ' <a href="kovanlar.html?view=koloni&topic=' + t + '&hiveId=' + encodeURIComponent(hive.id) +
@@ -918,7 +930,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
           '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +
           '<div class="sum-val' + cls(ht) + '">' + escapeHtml(healthLabel) + '</div>' +
           '<span class="sum-badge' + cls(ht) + '">' +
-            escapeHtml(healthScore != null ? ('Skor ' + Math.round(Number(healthScore))) : healthLabel) +
+            escapeHtml(healthScore != null ? ('Skor ' + Math.round(Number(healthScore)) + trendIco) : healthLabel) +
           '</span>' +
         '</div>' +
         '<div class="sum-card" data-ogul-open="' + escapeHtml(hive.id) + '" role="button" tabindex="0" style="cursor:pointer;">' +
@@ -926,7 +938,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
           '<div class="sum-val' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</div>' +
           '<span class="sum-badge' + cls(swarmTone) + '">' + escapeHtml(swBadge) + '</span>' +
         '</div>' +
-      '</div>' +
+      '</div>' + lhBox +
 
       '<div class="sum-row">' +
         '<div class="sum-card">' +
@@ -1065,7 +1077,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-35"></script>
-<script src="pwa.js?v=koloni-35"></script>
+<script src="nav.js?v=koloni-36"></script>
+<script src="pwa.js?v=koloni-36"></script>
 </body>
 </html>

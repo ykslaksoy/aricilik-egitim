@@ -81,8 +81,9 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-35"></script>
-<script src="sensor-health.js?v=koloni-35"></script>
+<script src="demo-data.js?v=koloni-36"></script>
+<script src="sensor-health.js?v=koloni-36"></script>
+<script src="saglik-canli.js?v=koloni-36"></script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
@@ -168,7 +169,8 @@
     }
     return '<a class="row-item" href="kovan.html?id=' + encodeURIComponent(x.hiveId) + '" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;">' +
       '<div class="left"><div class="title">' + esc(x.name) + '</div>' +
-      '<div class="meta">' + esc(x.band.label) + ' · skor ' + x.score + '</div>' +
+      '<div class="meta">' + esc(x.band.label) + ' · skor ' + x.score + (x.trend === 'up' ? ' ↑' : x.trend === 'down' ? ' ↓' : '') + (x.hint ? ' · ' + esc(x.hint) : '') + '</div>' +
+      (x.reasons && x.reasons.length ? '<div class="meta" style="margin-top:3px">' + x.reasons.slice(0, 3).map(function (r) { return '• ' + esc(r); }).join('<br>') + '</div>' : '') +
       '<div style="margin-top:4px">' + pills + '</div>' + details + hiveMats +
       '</div><div class="right"><span class="badge ' + esc(x.band.tone) + '">' + x.score + '</span></div></a>';
   }
@@ -228,7 +230,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-35"></script>
-<script src="pwa.js?v=koloni-35"></script>
+<script src="nav.js?v=koloni-36"></script>
+<script src="pwa.js?v=koloni-36"></script>
 </body>
 </html>

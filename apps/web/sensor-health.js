@@ -193,7 +193,10 @@
     return { pen: pen, cap: cap, actions: acts };
   }
 
+  function liveMode() { try { return global.localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
   function evaluateHive(h) {
+    /* Canlı mod: yalnız gerçek kayıtlardan (saglik-canli.js); demo değerleri asla karışmaz */
+    if (liveMode() && global.SuperAriLiveHealth && !(h && h.demo)) return global.SuperAriLiveHealth.evaluate(h);
     var devs = deviationsFromHive(h);
     var score = scoreFromDevs(devs);
     var adj = recordAdjust(h);
@@ -221,10 +224,12 @@
   }
 
   function evaluateAll(hives) {
-    var list = (hives || []).map(evaluateHive);
+    var evald = (hives || []).map(evaluateHive);
+    var list = evald.filter(function (x) { return x.score != null; });
+    var unscored = evald.filter(function (x) { return x.score == null; });
     var sum = 0;
     list.forEach(function (x) { sum += x.score; });
-    var avg = list.length ? Math.round(sum / list.length) : 100;
+    var avg = list.length ? Math.round(sum / list.length) : (unscored.length ? null : 100);
 
     var D = global.SuperAriDemo;
     var nameById = {};
@@ -269,7 +274,9 @@
 
     return {
       avg: avg,
-      band: band(avg),
+      band: avg == null ? { key: 'none', label: 'Veri az', tone: 'gray', hint: 'Skor için muayene kaydı gerekir' } : band(avg),
+      unscored: unscored,
+      live: liveMode() && !!global.SuperAriLiveHealth,
       hives: list.slice().sort(function (a, b) { return a.score - b.score; }),
       byApiary: groupByApiary(list),
       counts: {

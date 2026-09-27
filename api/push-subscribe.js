@@ -5,8 +5,11 @@
  *   { action:'subscribe', subscription }   → aboneliği kaydet (kendi satırı)
  *   { action:'unsubscribe', endpoint }     → sil
  *   { action:'test' }                      → kullanıcının cihazlarına deneme bildirimi
+ *   { action:'check' }                     → sağlık/oğul/sensör uyarılarını hemen denetle (Kontrol/Müdahale'ye düşünce uygulama çağırır; push_log tekrarı önler)
  */
 const L = require('./_push-lib');
+const R = require('./_push-rules');
+const RUN = require('./_push-run');
 
 module.exports = async function handler(req, res) {
   const c = L.conf();
@@ -39,6 +42,11 @@ module.exports = async function handler(req, res) {
       if (!L.vapidReady()) return L.send(res, 503, { error: 'vapid yok' });
       const r = await L.withDb((db) => L.sendToUser(db, user.id, { title: 'SüperArı · deneme bildirimi', body: 'Bildirimler çalışıyor 🐝 Uygulama kapalıyken de görev ve uyarılar gelecek.', url: '/hesap.html', tag: 'deneme' }));
       return L.send(res, 200, Object.assign({ ok: r.ok > 0 }, r));
+    }
+    if (action === 'check') {
+      if (!L.vapidReady() || !c.service) return L.send(res, 503, { error: 'yapilandirma eksik' });
+      const r = await L.withDb((db) => RUN.runForUser(db, c, user.id, R.istanbulToday(), false, ['health', 'swarm', 'sensor']));
+      return L.send(res, 200, Object.assign({ ok: true }, r));
     }
     return L.send(res, 400, { error: 'bilinmeyen islem' });
   } catch (e) {
