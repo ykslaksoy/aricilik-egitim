@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Arılık göçü</title>
+<link rel="stylesheet" href="rapor-common.css" />
+
+<style>
+  .hv-list{display:grid;gap:6px;max-height:260px;overflow:auto;border:1px solid var(--border,#eadfbe);border-radius:12px;padding:8px;background:#fff;}
+  .form-grid .hv-item{display:flex !important;flex-direction:row !important;align-items:center;gap:8px;font-size:13px;font-weight:650;color:var(--text,#2b2410);}
+  .form-grid .hv-item input{width:18px !important;height:18px;flex:0 0 auto;padding:0;margin:0;}
+  .hv-item small{margin-left:auto;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .hv-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;}
+  .hv-top button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:9px;padding:4px 8px;color:#5c4813;}
+  .chk{display:flex !important;flex-direction:row !important;align-items:flex-start;gap:8px;font-weight:600 !important;}
+  .chk input{width:18px !important;height:18px;flex:0 0 auto;margin-top:1px;}
+  .demo-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:4px;}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen">
+    <div class="brand-strip">Hardal Arıcılık</div>
+    <div class="page-head">
+      <div>
+        <h1>Arılık göçü</h1>
+        <p id="pageSub">Kovanları arılıklar arasında taşıyın</p>
+      </div>
+      <div class="nav-chips">
+        <a class="back-chip" href="ariliklar.html">← Arılıklar</a>
+        <a class="back-chip" href="ana.html">Ana</a>
+      </div>
+    </div>
+    <section class="card-block">
+      <h2>Yeni göç kaydı</h2>
+      <form class="form-grid" id="gocForm" novalidate>
+        <label>Nereden
+          <select id="gFrom"></select>
+        </label>
+        <label>Nereye
+          <select id="gTo"></select>
+        </label>
+        <div class="pair">
+          <label>Tarih
+            <input type="date" id="gDate" required />
+          </label>
+          <label>Mesafe (km)
+            <input type="text" id="gKm" inputmode="decimal" placeholder="ör. 120" />
+          </label>
+        </div>
+        <label>Sebep
+          <select id="gReason"></select>
+        </label>
+        <div>
+          <div class="hv-top"><span id="hvCount">Kovanlar</span><button type="button" id="hvAll">Tümünü seç</button></div>
+          <div class="hv-list" id="hvList" style="margin-top:6px;"></div>
+        </div>
+        <label>Not
+          <input type="text" id="gNote" maxlength="160" placeholder="ör. Gece yüklendi, kamyon ile" />
+        </label>
+        <label class="chk"><input type="checkbox" id="gTasks" checked /> <span>Göç sonrası kontrol görevleri oluştur (ertesi gün ve 7. gün)</span></label>
+        <button type="submit" class="btn" id="gSave">Göçü kaydet ve kovanları taşı</button>
+        <p class="form-msg" id="gMsg" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="card-block">
+      <h2 id="histTitle">Göç geçmişi</h2>
+      <div id="histList"></div>
+    </section>
+    <p class="hint" id="modeHint"></p>
+  </div>
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+<script src="demo-data.js?v=koloni-46"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, G = D.goc;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function fmt(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY[Number(m[2]) - 1] + ' ' + m[1] : (d || ''); }
+  function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
+  var q = new URLSearchParams(location.search), apFilter = q.get('ap') || q.get('from') || '';
+  function aps() { try { return D.loadApiaries() || []; } catch (e) { return []; } }
+  function msg(t, err) { var m = $('gMsg'); m.textContent = t || ''; m.className = 'form-msg' + (err ? ' err' : ''); }
+  function fillSelects() {
+    var list = aps(), from = $('gFrom').value || apFilter || (list[0] && String(list[0].id)) || '';
+    $('gFrom').innerHTML = list.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (' + D.hivesForApiary(a.id).length + ' kovan)</option>'; }).join('');
+    if (from) $('gFrom').value = from;
+    var to = $('gTo').value;
+    $('gTo').innerHTML = '<option value="">Hedef arılığı seçin</option>' + list.filter(function (a) { return String(a.id) !== String($('gFrom').value); })
+      .map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    if (to && to !== $('gFrom').value) $('gTo').value = to;
+    if (list.length < 2) msg('Göç için en az iki arılık gerekir. Hedef yer için önce Arılıklar’dan yeni arılık ekleyin.', true);
+  }
+  function fillHives() {
+    var hs = $('gFrom').value ? D.hivesForApiary($('gFrom').value) : [];
+    $('hvList').innerHTML = hs.map(function (h) {
+      return '<label class="hv-item"><input type="checkbox" value="' + esc(h.id) + '"> ' + esc(h.name || ('Kovan ' + h.id)) + (h.strength ? '<small>' + esc(h.strength) + '</small>' : '') + '</label>';
+    }).join('') || '<p class="hint" style="margin:0;">Bu arılıkta kovan yok.</p>';
+    count();
+  }
+  function count() {
+    var all = $('hvList').querySelectorAll('input'), n = $('hvList').querySelectorAll('input:checked').length;
+    $('hvCount').textContent = 'Kovanlar · ' + n + ' / ' + all.length + ' seçili';
+    $('hvAll').textContent = n && n === all.length ? 'Seçimi kaldır' : 'Tümünü seç';
+  }
+  function kmHint() {
+    var k = $('gTo').value ? G.airKm($('gFrom').value, $('gTo').value) : null;
+    $('gKm').placeholder = k != null ? 'kuş uçuşu ≈ ' + k + ' km' : 'ör. 120';
+  }
+  function renderHist() {
+    var list = apFilter ? G.forApiary(apFilter) : G.list();
+    var ap = apFilter ? aps().filter(function (a) { return String(a.id) === String(apFilter); })[0] : null;
+    $('histTitle').textContent = ap ? 'Göç geçmişi · ' + ap.name : 'Göç geçmişi';
+    $('histList').innerHTML = list.map(function (g) {
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(fmt(g.date)) + ' · ' + esc(g.fromName) + ' → ' + esc(g.toName) + (g.demo ? '<span class="demo-chip">Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + (g.hiveIds || []).length + ' kovan · ' + esc(G.reasonLabel(g.reason)) + (g.km != null ? ' · ' + String(g.km).replace('.', ',') + ' km' : '') +
+        '<br>' + esc((g.hiveNames || []).join(', ')) + (g.note ? '<br>' + esc(g.note) : '') + '</div></div>' +
+        '<div class="right"><button type="button" class="del" data-del="' + esc(g.id) + '">Sil</button></div></div>';
+    }).join('') || '<p class="hint" style="margin:0;">Henüz göç kaydı yok.</p>';
+    if (ap) $('histList').insertAdjacentHTML('beforeend', '<p class="hint" style="margin:8px 0 0;"><a href="goc.html">Tüm göçleri göster</a></p>');
+  }
+  $('gReason').innerHTML = G.REASONS.map(function (r) { return '<option value="' + r.key + '">' + esc(r.label) + '</option>'; }).join('');
+  $('gDate').value = D.records.todayLocal();
+  $('modeHint').textContent = live() ? 'Canlı mod · göç kayıtları hedef arılık üzerinden buluta eşitlenir. Kovan geçmişine «Göç» olarak yazılır; Bakım listesinde 7 gün «Göç sonrası kontrol» görünür.' : 'Demo mod · kayıtlar örnek veriye yazılır, buluta gitmez.';
+  fillSelects(); fillHives(); kmHint(); renderHist();
+  $('gFrom').addEventListener('change', function () { fillSelects(); fillHives(); kmHint(); msg(''); });
+  $('gTo').addEventListener('change', function () { kmHint(); msg(''); });
+  $('hvList').addEventListener('change', count);
+  $('hvAll').addEventListener('click', function () {
+    var all = $('hvList').querySelectorAll('input'), n = $('hvList').querySelectorAll('input:checked').length, on = !(n && n === all.length);
+    all.forEach(function (i) { i.checked = on; }); count();
+  });
+  $('gocForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var ids = Array.prototype.map.call($('hvList').querySelectorAll('input:checked'), function (i) { return Number(i.value); });
+    try {
+      var rec = G.add({ fromApiaryId: $('gFrom').value, toApiaryId: $('gTo').value, date: $('gDate').value, hiveIds: ids,
+        reason: $('gReason').value, km: $('gKm').value.trim(), note: $('gNote').value, tasks: $('gTasks').checked });
+      msg(rec.hiveIds.length + ' kovan ' + rec.toName + ' arılığına taşındı.' + ($('gTasks').checked ? ' Kontrol görevleri eklendi.' : ''));
+      $('gNote').value = ''; $('gKm').value = '';
+      fillSelects(); fillHives(); kmHint(); renderHist();
+    } catch (err) { msg(err.message || String(err), true); }
+  });
+  $('histList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]'); if (!b) return;
+    if (!confirm('Göç kaydı silinsin mi? Kovanlar geri taşınmaz; gerekirse ters yönde yeni göç kaydı girin.')) return;
+    G.remove(b.getAttribute('data-del')); renderHist();
+  });
+  window.addEventListener('superari-cloud-pulled', function () { fillSelects(); fillHives(); renderHist(); });
+})();
+</script>
+<script src="nav.js?v=koloni-46"></script>
+<script src="pwa.js?v=koloni-46"></script>
+</body>
+</html>

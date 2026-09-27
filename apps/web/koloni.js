@@ -1541,7 +1541,7 @@
       var cur = ws.rec && ws.rec.id === x.id;
       out.push({ kind: 'winter', rec: x, date: x.date, sum: x.season + ' kışı' + (cur ? ' · ' + ws.status + (ws.missing.length ? ' · eksik: ' + ws.missing.join(', ') : '') : '') + (x.note ? ' · ' + x.note : '') });
     });
-    var EV_LABEL = { bolme: 'Bölme', birlestirme: 'Birleştirme', tasima: 'Ana taşıma', uretim: 'Ana üretimi' };
+    var EV_LABEL = { bolme: 'Bölme', birlestirme: 'Birleştirme', tasima: 'Ana taşıma', uretim: 'Ana üretimi', goc: 'Göç' };
     (Array.isArray(h.colonyEvents) ? h.colonyEvents : []).forEach(function (e) {
       out.push({ kind: 'colony', rec: { id: e.id || ('ev' + e.date), evType: e.type }, date: e.date, sum: (EV_LABEL[e.type] || 'İşlem') + ' · ' + e.text });
     });
@@ -1605,6 +1605,7 @@
       if (kind === 'colony') {
         var hh = D() && D().hiveById(hiveId);
         var ev = hh && (hh.colonyEvents || []).filter(function (x) { return (x.id || ('ev' + x.date)) === id; })[0];
+        if (ev && ev.type === 'goc') { global.location.href = 'goc.html?ap=' + encodeURIComponent(hh.apiaryId); return; }
         var isl = ev && (ev.type === 'tasima' ? 'tasima' : (ev.type === 'uretim' ? 'uretim' : 'bolme'));
         global.location.href = 'koloni-islem.html?islem=' + (isl || 'bolme') + (hh ? '&apiary=' + encodeURIComponent(hh.apiaryId) : '');
         return;

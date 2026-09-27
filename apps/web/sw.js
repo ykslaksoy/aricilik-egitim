@@ -113,6 +113,7 @@ const SHELL = [
   "/gider-store.js",
   "/giderler.html",
   "/giris.html",
+  "/goc.html",
   "/gorevler.html",
   "/harita-offline.js",
   "/hastalik-tahmin.js",

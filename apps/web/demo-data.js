@@ -4108,6 +4108,88 @@
       .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
   }
 
+  /* ================= Arılık göçü (kovan taşıma) kaydı =================
+   * superari.goc.v1 (Canlı, eşitlenir) / superari.goc.demo.v1 (Demo). Kovanlar hedef arılığa geçer,
+   * her kovanın geçmişine «Göç» işlemi yazılır, isteğe bağlı göç sonrası kontrol görevleri açılır. */
+  var GOC_REASONS = [
+    { key: 'yayla', label: 'Yayla / nektar akımı' },
+    { key: 'cam', label: 'Çam balı' },
+    { key: 'kislak', label: 'Kışlağa dönüş' },
+    { key: 'polinasyon', label: 'Tozlaşma hizmeti' },
+    { key: 'izolasyon', label: 'Hastalık / izolasyon' },
+    { key: 'ilaclama', label: 'İlaçlama / zehirlenme riski' },
+    { key: 'diger', label: 'Diğer' }
+  ];
+  function gocKey() { return workMode() === 'live' ? 'superari.goc.v1' : 'superari.goc.demo.v1'; }
+  function gocRead() { try { var a = JSON.parse(localStorage.getItem(gocKey()) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function gocWrite(a) { try { localStorage.setItem(gocKey(), JSON.stringify(a)); } catch (e) { /* ignore */ } }
+  function gocReasonLabel(k) { for (var i = 0; i < GOC_REASONS.length; i++) if (GOC_REASONS[i].key === k) return GOC_REASONS[i].label; return 'Diğer'; }
+  function gocList() { return gocRead().slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : String(b.createdAt || '').localeCompare(String(a.createdAt || ''))); }); }
+  function gocForApiary(apId) { var k = String(apId); return gocList().filter(function (g) { return String(g.fromApiaryId) === k || String(g.toApiaryId) === k; }); }
+  /** Kovanın son göçü (days gün içinde) veya null */
+  function gocRecentForHive(hiveId, days) {
+    var lim = addDays(todayLocal(), -(days == null ? 7 : days)), n = Number(hiveId);
+    return gocList().filter(function (g) { return g.date >= lim && (g.hiveIds || []).some(function (x) { return Number(x) === n; }); })[0] || null;
+  }
+  /** Kuş uçuşu mesafe (km, yuvarlak) — koordinatlar yoksa null */
+  function gocAirKm(fromId, toId) {
+    var a = null, b = null;
+    loadApiaries().forEach(function (x) { if (String(x.id) === String(fromId)) a = x; if (String(x.id) === String(toId)) b = x; });
+    if (!a || !b || !isFinite(Number(a.lat)) || !isFinite(Number(b.lat)) || a.lat == null || b.lat == null) return null;
+    return Math.round(haversineMetres(Number(a.lat), Number(a.lon), Number(b.lat), Number(b.lon)) / 1000);
+  }
+  function gocAdd(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal();
+    var fromId = String(o.fromApiaryId || ''), toId = String(o.toApiaryId || '');
+    if (!fromId || !toId) throw new Error('Nereden ve nereye arılığını seçin');
+    if (fromId === toId) throw new Error('Hedef arılık kaynakla aynı olamaz');
+    var aps = loadApiaries(), from = null, to = null;
+    aps.forEach(function (a) { if (String(a.id) === fromId) from = a; if (String(a.id) === toId) to = a; });
+    if (!from || !to) throw new Error('Arılık bulunamadı');
+    var ids = (Array.isArray(o.hiveIds) ? o.hiveIds : []).map(Number).filter(function (x) { return isFinite(x); });
+    if (!ids.length) throw new Error('Taşınacak en az bir kovan seçin');
+    var list = loadHives(), moved = [];
+    var want = {}; ids.forEach(function (x) { want[x] = true; });
+    var reason = pick(o.reason, GOC_REASONS.map(function (r) { return r.key; }), 'diger');
+    var km = numIn(o.km, 0, 5000);
+    var note = txt(o.note, 200);
+    var id = opsId('gc');
+    var evText = from.name + ' → ' + to.name + ' (' + gocReasonLabel(reason) + (km != null ? ', ' + String(km).replace('.', ',') + ' km' : '') + ')' + (note ? ' · ' + note : '');
+    var out = list.map(function (h) {
+      if (!want[h.id]) return h;
+      if (String(h.apiaryId) !== fromId) throw new Error((h.name || ('Kovan ' + h.id)) + ' bu arılıkta değil');
+      var c = cloneObj(h);
+      c.apiaryId = toId;
+      pushEvent(c, { id: id + '-' + h.id, date: date, type: 'goc', text: evText, gocId: id });
+      moved.push(c);
+      return normalizeHive(c);
+    });
+    if (moved.length !== ids.length) throw new Error('Seçilen kovanlardan bazıları bulunamadı');
+    from.hiveCount = out.filter(function (h) { return String(h.apiaryId) === fromId; }).length;
+    to.hiveCount = out.filter(function (h) { return String(h.apiaryId) === toId; }).length;
+    saveApiaries(aps);
+    saveHives(out);
+    var rec = { id: id, date: date, apiaryId: toId, fromApiaryId: fromId, toApiaryId: toId, fromName: from.name, toName: to.name,
+      hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
+      reason: reason, km: km, note: note, createdAt: new Date().toISOString() };
+    if (workMode() === 'demo') rec.demo = true;
+    var all = gocRead(); all.push(rec); gocWrite(all);
+    if (o.tasks !== false) {
+      var tag = ' [goc:' + id + ']';
+      addUserTask({ title: 'Göç sonrası: uçuş deliklerini açın, su ve dış kontrol — ' + to.name, apiaryId: toId, due: addDays(date, 1), priority: 1, note: moved.length + ' kovan taşındı' + tag });
+      addUserTask({ title: 'Göç sonrası: ana, yavru ve besin kontrolü — ' + to.name, apiaryId: toId, due: addDays(date, 7), priority: 2, note: 'Taşınan kovanlar: ' + rec.hiveNames.join(', ') + tag });
+    }
+    return rec;
+  }
+  /** Göç kaydını siler (kovanlar geri taşınmaz). */
+  function gocRemove(id) {
+    var a = gocRead(), n = a.filter(function (g) { return g && g.id !== id; });
+    gocWrite(n);
+    return n.length !== a.length;
+  }
+  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, airKm: gocAirKm, add: gocAdd, remove: gocRemove };
+
   var colonyOps = {
     GRAFT_TIMELINE: GRAFT_TIMELINE,
     recordSwarm: recordSwarm,
@@ -4385,6 +4467,7 @@
       },
       taskStore: taskStore,
       colonyOps: colonyOps,
+      goc: gocStore,
       stock: stockStore,
       records: colonyRecords,
       get counts() {

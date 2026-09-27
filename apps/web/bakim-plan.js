@@ -443,6 +443,9 @@
     else if (mp.canTreat && mp.level === 'planla' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi planla (%' + num(mp.infestation) + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 2 });
     else if (mp.level === 'sayim' && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımı', amount: 'alkol yıkama / pudra şekeri', u: 3 });
     else if (mp.countDate && t > addDays(mp.countDate, 30) && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımını yenile', amount: 'son ' + fmt(mp.countDate), u: 3 });
+    /* Göç sonrası ilk 7 gün: taşıma stresi — uçuş deliği, su, ana/yavru kontrolü */
+    var gc = null; try { gc = D.goc && D.goc.recentForHive(h.id, 7); } catch (eG) { gc = null; }
+    if (gc) out.push({ kind: 'goc', text: 'Göç sonrası kontrol', amount: 'uçuş deliği · su · ana/yavru (göç ' + fmt(gc.date) + ')', u: 2 });
     var fp = feedPlan(h, st);
     if (fp.need) out.push({ kind: 'besleme', text: 'Besleme' + (fp.weak ? ' (zayıf: birleştirmeyi düşünün)' : ''), amount: SYRUP[fp.type].label + ' ' + num(fp.perFeedL) + ' ' + (SYRUP[fp.type].unit || 'L') + ' × ' + fp.feedings, u: sk === 'sonbahar' ? 2 : 3 });
     out.sort(function (a, b) { return a.u - b.u; });
