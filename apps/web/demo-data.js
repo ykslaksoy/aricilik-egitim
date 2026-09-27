@@ -2100,12 +2100,6 @@
   function writeHarvestKey(key, list) {
     try { localStorage.setItem(key, JSON.stringify(list || [])); } catch (e) { /* ignore */ }
   }
-  function hiveById(id) {
-    if (id == null || id === '') return null;
-    var n = Number(id), hit = null;
-    loadHives().forEach(function (h) { if (Number(h.id) === n) hit = h; });
-    return hit;
-  }
   function apiaryNameOf(aid) {
     var nm = '';
     try { loadApiaries().forEach(function (a) { if (String(a.id) === String(aid)) nm = a.name || a.place || ''; }); } catch (e) { /* ignore */ }
@@ -3072,6 +3066,118 @@
     return null;
   }
 
+  /* ================= Görevler: tamamlama + elle eklenen görevler =================
+   * Tamamlanan: superari.gorevTamam.v1 (canlı) / .demo.v1 → { "<taskId>": { date, note, sig, title, hiveId, apiaryId, auto } }
+   * Elle görev: superari.gorevler.v1 (canlı) / .demo.v1 → [ { id, title, hiveId, apiaryId, due, priority, note } ]
+   * Otomatik görevler (bekleme bitişi, varroa sayımı, ana arı yenile…) "sig" ile eşlenir:
+   * aynı görev yeni bir tarihle yeniden doğarsa (ör. yeni ilaçlama) tekrar açılır.
+   */
+  var TASK_DONE_LIVE = 'superari.gorevTamam.v1', TASK_DONE_DEMO = 'superari.gorevTamam.demo.v1';
+  var TASK_USER_LIVE = 'superari.gorevler.v1', TASK_USER_DEMO = 'superari.gorevler.demo.v1';
+  function taskDoneKey() { return workMode() === 'live' ? TASK_DONE_LIVE : TASK_DONE_DEMO; }
+  function taskUserKey() { return workMode() === 'live' ? TASK_USER_LIVE : TASK_USER_DEMO; }
+  function readTaskDone() {
+    try { var o = JSON.parse(localStorage.getItem(taskDoneKey()) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; }
+  }
+  function writeTaskDone(o) { try { localStorage.setItem(taskDoneKey(), JSON.stringify(o || {})); } catch (e) { /* ignore */ } }
+  function readUserTasks() {
+    try { var a = JSON.parse(localStorage.getItem(taskUserKey()) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function writeUserTasks(a) { try { localStorage.setItem(taskUserKey(), JSON.stringify(a || [])); } catch (e) { /* ignore */ } }
+  function taskSig(t) { return String((t && (t.due || t.sig)) || ''); }
+  function queenRenewTasks() {
+    var out = [];
+    loadHives().forEach(function (h) {
+      if (queenStatus(h) !== 'Yenile') return;
+      var age = queenAge(h);
+      out.push({ id: 'kr-ana-yenile-' + h.id, title: 'Ana arıyı yenile — ' + h.name + ' (' + age + ' yaş)', hiveId: h.id, apiaryId: h.apiaryId,
+        priority: age >= 3 ? 2 : 3, auto: true, kind: 'ana', sig: 'q' + h.queenYear });
+    });
+    return out;
+  }
+  /** Tüm görevler (açık + tamamlanan bayraklı). */
+  function allTasks() {
+    var list = [];
+    if (workMode() === 'demo') tasks.forEach(function (t) { var c = {}; Object.keys(t).forEach(function (k) { c[k] = t[k]; }); c.demo = true; list.push(c); });
+    readUserTasks().forEach(function (t) {
+      if (!t || !t.id) return;
+      var c = {}; Object.keys(t).forEach(function (k) { c[k] = t[k]; }); c.manual = true; list.push(c);
+    });
+    var der = [];
+    try { der = colonyRecords.derived().tasks; } catch (e) { der = []; }
+    list = list.concat(der);
+    try { list = list.concat(queenRenewTasks()); } catch (e) { /* ignore */ }
+    var done = readTaskDone();
+    var seen = {};
+    list.forEach(function (t) {
+      seen[t.id] = true;
+      var c = done[t.id];
+      if (!c) return;
+      if (t.auto && String(c.sig || '') !== taskSig(t)) return; /* yeni tekrar: açık */
+      t.done = true; t.doneAt = c.date; if (c.note) t.doneNote = c.note;
+    });
+    /* Koşulu ortadan kalkmış otomatik görevlerin tamamlama kaydı da «Tamamlanan»da kalır. */
+    Object.keys(done).forEach(function (id) {
+      if (seen[id]) return;
+      var c = done[id];
+      if (!c || !c.title) return;
+      list.push({ id: id, title: c.title, hiveId: c.hiveId, apiaryId: c.apiaryId, auto: !!c.auto, done: true, doneAt: c.date, doneNote: c.note, orphan: true, priority: 3 });
+    });
+    return list;
+  }
+  function openTasks() { return allTasks().filter(function (t) { return !t.done; }); }
+  function doneTasks() {
+    return allTasks().filter(function (t) { return t.done; })
+      .sort(function (a, b) { return String(b.doneAt || '') < String(a.doneAt || '') ? -1 : (String(b.doneAt || '') > String(a.doneAt || '') ? 1 : 0); });
+  }
+  function completeTask(id, opts) {
+    var o = opts || {};
+    var t = allTasks().filter(function (x) { return x.id === id; })[0];
+    if (!t) return null;
+    var done = readTaskDone();
+    var hv = t.hiveId != null ? hiveById(t.hiveId) : null;
+    done[id] = { date: isoDate(o.date) || todayLocal(), sig: taskSig(t), title: t.title, hiveId: t.hiveId != null ? t.hiveId : null,
+      apiaryId: t.apiaryId || (hv ? hv.apiaryId : null), auto: !!t.auto };
+    var note = txt(o.note, 300); if (note) done[id].note = note;
+    writeTaskDone(done);
+    return done[id];
+  }
+  function undoTask(id) {
+    var done = readTaskDone();
+    if (!done[id]) return false;
+    delete done[id];
+    writeTaskDone(done);
+    return true;
+  }
+  function addUserTask(t) {
+    var title = txt(t && t.title, 160);
+    if (!title) return null;
+    var hv = t.hiveId != null && t.hiveId !== '' ? hiveById(t.hiveId) : null;
+    var row = { id: 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), title: title,
+      hiveId: hv ? hv.id : null, apiaryId: hv ? hv.apiaryId : (txt(t.apiaryId, 40) || null),
+      due: isoDate(t.due) || '', priority: intIn(t.priority, 1, 3) || 2, createdAt: new Date().toISOString() };
+    var note = txt(t.note, 300); if (note) row.note = note;
+    var a = readUserTasks(); a.push(row); writeUserTasks(a);
+    return row;
+  }
+  function removeUserTask(id) {
+    var a = readUserTasks();
+    var n = a.filter(function (x) { return x && x.id !== id; });
+    writeUserTasks(n);
+    undoTask(id);
+    return n.length !== a.length;
+  }
+  var taskStore = {
+    all: allTasks,
+    open: openTasks,
+    done: doneTasks,
+    complete: completeTask,
+    undo: undoTask,
+    add: addUserTask,
+    remove: removeUserTask,
+    sig: taskSig
+  };
+
   Object.defineProperty(global, 'SuperAriDemo', {
     configurable: true,
     enumerable: true,
@@ -3085,13 +3191,14 @@
       get alerts() {
         var extra = [];
         try { extra = colonyRecords.derived().alerts; } catch (e) { extra = []; }
-        return alerts.concat(extra);
+        var base = workMode() === 'demo' ? alerts.map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];
+        return base.concat(extra);
       },
+      /* Açık görevler (tamamlananlar hariç). Statik örnek görevler yalnız demo modda, demo=true. */
       get tasks() {
-        var extra = [];
-        try { extra = colonyRecords.derived().tasks; } catch (e) { extra = []; }
-        return tasks.concat(extra);
+        try { return openTasks(); } catch (e) { return workMode() === 'demo' ? tasks.slice() : []; }
       },
+      taskStore: taskStore,
       records: colonyRecords,
       get counts() {
         var h = loadHives();

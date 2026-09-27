@@ -63,8 +63,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-8'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-8'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-9'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-9'); });
     chain.then(go, go);
   }
   function init() {
@@ -90,18 +90,26 @@
       });
     });
     if (global.SuperAriDemo) updateBadge();
-    else loadScript('demo-data.js?v=koloni-8').then(updateBadge, updateBadge);
+    else loadScript('demo-data.js?v=koloni-9').then(updateBadge, updateBadge);
   }
-  /* Bugün sekmesi: etkin uyarı sayısı (0 ise gizli). */
+  /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
   function updateBadge() {
-    var n = 0;
-    try { var D = global.SuperAriDemo; n = D && D.alerts ? D.alerts.length : 0; } catch (e) { n = 0; }
+    var n = 0, na = 0, nt = 0;
+    try {
+      var D = global.SuperAriDemo;
+      na = D && D.alerts ? D.alerts.length : 0;
+      if (D && D.taskStore && D.records) {
+        var today = D.records.todayLocal();
+        nt = D.taskStore.open().filter(function (t) { return t.due && t.due <= today; }).length;
+      }
+    } catch (e) { na = 0; nt = 0; }
+    n = na + nt;
     Array.prototype.forEach.call(document.querySelectorAll('nav.tabbar .tab-bugun'), function (t) {
       var b = t.querySelector('.nav-badge');
       if (!b) { b = document.createElement('span'); b.className = 'nav-badge'; t.appendChild(b); }
       b.textContent = n > 99 ? '99+' : String(n);
       b.hidden = !n;
-      t.setAttribute('aria-label', 'Bugün' + (n ? ', ' + n + ' etkin uyarı' : ''));
+      t.setAttribute('aria-label', 'Bugün' + (na ? ', ' + na + ' etkin uyarı' : '') + (nt ? ', ' + nt + ' bugün veya geciken görev' : ''));
     });
   }
   global.addEventListener('superari-records-changed', function () { setTimeout(updateBadge, 0); });

@@ -1438,6 +1438,46 @@
     updSel();
   }
 
+  /* ---- Görev tamamlama: tarih + isteğe bağlı not ---- */
+  function openTaskDone(taskId, onDone) {
+    ensureGridCss();
+    var d = D(); if (!d || !d.taskStore) return;
+    var t = d.taskStore.all().filter(function (x) { return x.id === taskId; })[0];
+    if (!t) { toast('Görev bulunamadı'); return; }
+    var r = R();
+    var today = r ? r.todayLocal() : '';
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="tdTitle"><h3 id="tdTitle">✅ Görevi tamamla</h3>' +
+      '<p class="kol-sub" style="overflow-wrap:anywhere;">' + esc(t.title) + '</p>' +
+      '<form class="kol-form" id="tdForm" autocomplete="off">' +
+        '<label class="full">Tamamlanma tarihi<input type="date" name="date" value="' + esc(today) + '" max="' + esc(today) + '"></label>' +
+        '<label class="full">Not (isteğe bağlı)<input name="note" maxlength="300" placeholder="ör. 2 çerçeve kek verildi"></label>' +
+      '</form>' +
+      (t.auto ? '<div class="kr-info">Otomatik görev: aynı durum yeni bir tarihle yeniden oluşursa görev tekrar açılır.</div>' : '') +
+      '<div class="kol-actions"><button type="button" class="btn secondary" data-close="1">Vazgeç</button><button type="button" class="btn" id="tdSave">Tamamlandı</button></div></div>';
+    document.body.appendChild(back);
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); }
+    back.addEventListener('click', function (e) { if (e.target === back || (e.target.closest && e.target.closest('[data-close]'))) close(); });
+    back.querySelector('#tdSave').addEventListener('click', function () {
+      var f = back.querySelector('#tdForm');
+      var res = d.taskStore.complete(taskId, { date: f.elements.date.value, note: f.elements.note.value });
+      close();
+      if (!res) { toast('Kaydedilemedi'); return; }
+      toast('Görev tamamlandı · «Tamamlanan» bölümüne taşındı');
+      try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+      if (typeof onDone === 'function') onDone(res);
+    });
+  }
+  function undoTask(taskId, onDone) {
+    var d = D(); if (!d || !d.taskStore) return;
+    if (d.taskStore.undo(taskId)) {
+      toast('Geri alındı · görev yeniden açık');
+      try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+      if (typeof onDone === 'function') onDone();
+    }
+  }
+
   /* ---- Bakım: gecikenler, bu hafta, ilaç bekleme, son işlemler ---- */
   function maintenance(hives) {
     var r = R(); var d = D();
@@ -1447,12 +1487,28 @@
     var weekEnd = r.addDays(today, 7);
     var ids = {};
     (hives || []).forEach(function (h) { ids[String(h.id)] = h; });
-    r.derived().tasks.forEach(function (t) {
-      var h = ids[String(t.hiveId)]; if (!h) return;
-      var item = { hive: h, title: t.title, date: t.due || '', priority: t.priority || 3, id: t.id };
+    var apIds = {};
+    (hives || []).forEach(function (h) { apIds[String(h.apiaryId)] = true; });
+    /* Açık görevler (tamamlananlar hariç): otomatik + elle eklenen. Ana arı yenileme Görevler sayfasında. */
+    var ts = d.taskStore;
+    (ts ? ts.open() : r.derived().tasks).forEach(function (t) {
+      if (!(t.auto || t.manual) || t.kind === 'ana') return;
+      var h = t.hiveId != null ? ids[String(t.hiveId)] : null;
+      if (!h && !(t.manual && t.hiveId == null && t.apiaryId && apIds[String(t.apiaryId)])) return;
+      var item = { hive: h || null, apiaryId: h ? h.apiaryId : t.apiaryId, title: t.title, date: t.due || '', priority: t.priority || 3, id: t.id, task: true, manual: !!t.manual };
       if (t.due && t.due < today) out.overdue.push(item);
       else if (!t.due || t.due <= weekEnd) out.week.push(item);
     });
+    out.done = [];
+    if (ts) {
+      var since30 = r.addDays(today, -30);
+      ts.done().forEach(function (t) {
+        if ((t.doneAt || '') < since30) return;
+        var h = t.hiveId != null ? ids[String(t.hiveId)] : null;
+        if (!h && !(t.hiveId == null && t.apiaryId && apIds[String(t.apiaryId)])) return;
+        out.done.push({ hive: h || null, apiaryId: h ? h.apiaryId : t.apiaryId, title: t.title, date: t.doneAt || '', note: t.doneNote || '', id: t.id, demo: !!t.demo });
+      });
+    }
     var all = r.loadAll();
     /* Hasat tek depodan gelir: yalnız hasadı olan kovanlar da listelenir. */
     var harvestHive = {}, aHarv = [];
@@ -1595,6 +1651,8 @@
     summaryHtml: summaryHtml,
     summaryLineHtml: summaryLineHtml,
     hiveCardHtml: hiveCardHtml,
-    openEditor: openEditor
+    openEditor: openEditor,
+    openTaskDone: openTaskDone,
+    undoTask: undoTask
   };
 })(window);

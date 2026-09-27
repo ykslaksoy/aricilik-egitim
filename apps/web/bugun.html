@@ -25,6 +25,11 @@
     .ql{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;}
     .ql a,.ql button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;min-height:64px;padding:.45rem .3rem;border-radius:12px;border:1px solid var(--border);background:#fff;font:inherit;font-size:.76rem;font-weight:800;color:#5c4813;text-align:center;cursor:pointer;}
     .ql span{font-size:1.25rem;}
+    .bk-task{grid-template-columns:30px minmax(0,1fr) auto auto;}
+    .bk-task a{color:inherit;text-decoration:none;display:contents;}
+    .bk-done-btn{font:inherit;font-size:.74rem;font-weight:800;padding:.35rem .5rem;border-radius:10px;border:1px solid #b2f2bb;background:#ebfbee;color:#2b8a3e;cursor:pointer;white-space:nowrap;}
+    .bk-undo-btn{font:inherit;font-size:.74rem;font-weight:800;padding:.35rem .5rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;white-space:nowrap;}
+    .bk-item.done .bk-t{text-decoration:line-through;color:var(--muted);}
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
   </style>
@@ -50,6 +55,10 @@
     <section class="card stack" style="margin-top:1rem;">
       <h2 class="bk-h">✅ Bugünkü ve geciken işler <small id="cTasks"></small></h2>
       <div class="bk-list" id="bgTasks"></div>
+      <div id="bgDoneWrap" hidden>
+        <h3 style="margin:.4rem 0 .3rem;font-size:.9rem;">Tamamlanan (bugün)</h3>
+        <div class="bk-list" id="bgDone"></div>
+      </div>
     </section>
 
     <section class="card stack" style="margin-top:1rem;">
@@ -62,10 +71,10 @@
       <div class="ql" id="bgLinks"></div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-8"></script>
-  <script src="rapor-store.js?v=koloni-8"></script>
+  <script src="demo-data.js?v=koloni-9"></script>
+  <script src="rapor-store.js?v=koloni-9"></script>
   <script src="hava-kayit.js"></script>
-  <script src="koloni.js?v=koloni-8"></script>
+  <script src="koloni.js?v=koloni-9"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni, H = window.SuperAriHava;
@@ -132,6 +141,13 @@
         '<span><span class="bk-t" style="display:block;">' + esc(title) + '</span>' + (sub ? '<span class="bk-s" style="display:block;">' + esc(sub) + '</span>' : '') + '</span>' +
         '<span class="bk-d' + (late ? ' late' : '') + '">' + esc(date) + '</span></a>';
     }
+    function taskItem(ico, x, date, tone, late) {
+      var href = x.hive ? 'kovan.html?id=' + encodeURIComponent(x.hive.id) + '#btBox' : 'gorevler.html';
+      return '<div class="bk-item bk-task' + (tone ? ' ' + tone : '') + '"><a href="' + href + '"><span class="bk-ico" aria-hidden="true">' + ico + '</span>' +
+        '<span><span class="bk-t" style="display:block;">' + esc(x.title) + '</span></span>' +
+        '<span class="bk-d' + (late ? ' late' : '') + '">' + esc(date) + '</span></a>' +
+        '<button type="button" class="bk-done-btn" data-done="' + esc(x.id) + '" aria-label="Tamamlandı olarak işaretle">✓ Bitti</button></div>';
+    }
     function render() {
       var hs = D.hivesForApiary(apiaryId);
       var today = R.todayLocal();
@@ -140,12 +156,19 @@
       var todays = m.week.filter(function (x) { return x.date === today || (!x.date && x.priority === 1); });
       var list = m.overdue.map(function (x) {
         var late = daysBetween(x.date, today);
-        return item('⏰', x.title, '', late > 0 ? late + ' gün gecikti' : 'Bugün', 'kovan.html?id=' + encodeURIComponent(x.hive.id) + '#btBox', 'red', true);
+        return taskItem('⏰', x, late > 0 ? late + ' gün gecikti' : 'Bugün', 'red', true);
       }).concat(todays.map(function (x) {
-        return item(x.priority === 1 ? '❗' : '📌', x.title, '', x.date ? 'Bugün' : 'Acil', 'kovan.html?id=' + encodeURIComponent(x.hive.id) + '#btBox', x.priority === 1 ? 'red' : '');
+        return taskItem(x.priority === 1 ? '❗' : '📌', x, x.date ? 'Bugün' : 'Acil', x.priority === 1 ? 'red' : '');
       }));
       var undated = m.week.filter(function (x) { return !x.date && x.priority !== 1; }).length;
-      var staticN = (D.tasks || []).filter(function (t) { return !t.auto && ids[String(t.hiveId)]; }).length;
+      var staticN = (D.tasks || []).filter(function (t) { return !t.auto && !t.manual && ids[String(t.hiveId)]; }).length;
+      var dToday = (m.done || []).filter(function (x) { return x.date === today; });
+      document.getElementById('bgDoneWrap').hidden = !dToday.length;
+      document.getElementById('bgDone').innerHTML = dToday.map(function (x) {
+        return '<div class="bk-item bk-task done"><a href="' + (x.hive ? 'kovan.html?id=' + encodeURIComponent(x.hive.id) + '#btBox' : 'gorevler.html') + '"><span class="bk-ico" aria-hidden="true">✅</span>' +
+          '<span><span class="bk-t" style="display:block;">' + esc(x.title) + '</span>' + (x.note ? '<span class="bk-s" style="display:block;">' + esc(x.note) + '</span>' : '') + '</span><span class="bk-d">Bugün</span></a>' +
+          '<button type="button" class="bk-undo-btn" data-undo="' + esc(x.id) + '">Geri al</button></div>';
+      }).join('');
       document.getElementById('cTasks').textContent = list.length ? '(' + list.length + ')' : '';
       document.getElementById('bgTasks').innerHTML = (list.join('') || '<p class="bk-empty">Bugün için tarihli veya geciken iş yok.</p>') +
         ((undated || staticN) ? '<p class="bk-empty">Ayrıca ' + (undated + staticN) + ' tarihsiz açık görev var · <a href="gorevler.html" style="color:#2b6cb0;text-decoration:underline;">Görevler</a> · <a href="bakim.html?apiary=' + encodeURIComponent(apiaryId) + '" style="color:#2b6cb0;text-decoration:underline;">Bakım</a></p>' : '');
@@ -173,6 +196,13 @@
       history.replaceState(null, '', 'bugun.html?apiary=' + encodeURIComponent(apiaryId));
       render(); loadWx();
     });
+    document.querySelector('main').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-done],[data-undo]');
+      if (!b) return;
+      e.preventDefault();
+      if (b.hasAttribute('data-done')) K.openTaskDone(b.getAttribute('data-done'), render);
+      else K.undoTask(b.getAttribute('data-undo'), render);
+    });
     document.getElementById('bgLinks').addEventListener('click', function (e) {
       if (e.target.closest('#bgQuick')) K.openQuickRecord({ apiaryId: apiaryId, onSaved: render });
     });
@@ -181,6 +211,6 @@
     loadWx();
   })();
   </script>
-  <script src="nav.js?v=koloni-8"></script>
+  <script src="nav.js?v=koloni-9"></script>
 </body>
 </html>

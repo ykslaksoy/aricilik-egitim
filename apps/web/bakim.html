@@ -26,6 +26,12 @@
     .bk-chips{display:flex;flex-wrap:wrap;gap:.3rem;}
     .bk-chips button{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .65rem;border-radius:999px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
     .bk-chips button.on{background:#fff3bf;border-color:#e0c56a;}
+    .bk-task{grid-template-columns:30px minmax(0,1fr) auto auto;}
+    .bk-task a{color:inherit;text-decoration:none;display:contents;}
+    .bk-done-btn{font:inherit;font-size:.74rem;font-weight:800;padding:.35rem .5rem;border-radius:10px;border:1px solid #b2f2bb;background:#ebfbee;color:#2b8a3e;cursor:pointer;white-space:nowrap;}
+    .bk-undo-btn{font:inherit;font-size:.74rem;font-weight:800;padding:.35rem .5rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;white-space:nowrap;}
+    .bk-item.done .bk-t{text-decoration:line-through;color:var(--muted);}
+    .bk-item.done .bk-ico{background:#ebfbee}
     .bk-more{font:inherit;font-size:.82rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
@@ -70,6 +76,11 @@
     </section>
 
     <section class="card stack" style="margin-top:1rem;">
+      <h2 class="bk-h">✅ Tamamlanan <small id="cDone"></small></h2>
+      <div class="bk-list" id="bkDone"></div>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;">
       <h2 class="bk-h">🗂️ Son işlemler <small id="cRecent"></small></h2>
       <div class="bk-chips" id="bkKinds"></div>
       <div class="bk-list" id="bkRecent"></div>
@@ -77,9 +88,9 @@
 
     <div class="note" style="margin-top:1rem;">Bakım, Koloni sayfasındaki kovan kayıtlarını okur (tek kaynak). Kovana dokununca kovan detayı ve bakım geçmişi açılır.</div>
   </main>
-  <script src="demo-data.js?v=koloni-8"></script>
-  <script src="rapor-store.js?v=koloni-8"></script>
-  <script src="koloni.js?v=koloni-8"></script>
+  <script src="demo-data.js?v=koloni-9"></script>
+  <script src="rapor-store.js?v=koloni-9"></script>
+  <script src="koloni.js?v=koloni-9"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -112,6 +123,13 @@
         '<span><span class="bk-t" style="display:block;">' + esc(title) + '</span>' + (sub ? '<span class="bk-s" style="display:block;">' + esc(sub) + '</span>' : '') + '</span>' +
         '<span class="bk-d' + (late ? ' late' : '') + '">' + esc(date) + '</span></a>';
     }
+    function taskItem(ico, x, sub, date, tone, late) {
+      var href = x.hive ? hiveHref(x.hive) : 'gorevler.html';
+      return '<div class="bk-item bk-task' + (tone ? ' ' + tone : '') + '"><a href="' + href + '"><span class="bk-ico" aria-hidden="true">' + ico + '</span>' +
+        '<span><span class="bk-t" style="display:block;">' + esc(x.title) + '</span>' + (sub ? '<span class="bk-s" style="display:block;">' + esc(sub) + '</span>' : '') + '</span>' +
+        '<span class="bk-d' + (late ? ' late' : '') + '">' + esc(date) + '</span></a>' +
+        (x.task ? '<button type="button" class="bk-done-btn" data-done="' + esc(x.id) + '" aria-label="Tamamlandı olarak işaretle">✓ Bitti</button>' : '<span></span>') + '</div>';
+    }
     function hiveHref(h) { return 'kovan.html?id=' + encodeURIComponent(h.id) + '#btBox'; }
     function render() {
       var hs = hivesInScope();
@@ -127,11 +145,11 @@
       document.getElementById('cOverdue').textContent = m.overdue.length ? '(' + m.overdue.length + ')' : '';
       document.getElementById('bkOverdue').innerHTML = m.overdue.map(function (x) {
         var late = daysBetween(x.date, today);
-        return item('⏰', x.title, apName[x.hive.apiaryId] || '', late > 0 ? late + ' gün gecikti' : fmt(x.date), hiveHref(x.hive), 'red', true);
+        return taskItem('⏰', x, apName[x.apiaryId] || '', late > 0 ? late + ' gün gecikti' : fmt(x.date), 'red', true);
       }).join('') || '<p class="bk-empty">Geciken bakım yok.</p>';
       document.getElementById('cWeek').textContent = m.week.length ? '(' + m.week.length + ')' : '';
       document.getElementById('bkWeek').innerHTML = m.week.map(function (x) {
-        return item(x.priority === 1 ? '❗' : '📌', x.title, apName[x.hive.apiaryId] || '', x.date ? (x.date === today ? 'Bugün' : fmt(x.date)) : 'Bu hafta', hiveHref(x.hive), x.priority === 1 ? 'red' : '');
+        return taskItem(x.priority === 1 ? '❗' : '📌', x, apName[x.apiaryId] || '', x.date ? (x.date === today ? 'Bugün' : fmt(x.date)) : 'Bu hafta', x.priority === 1 ? 'red' : '');
       }).join('') || '<p class="bk-empty">Bu hafta için planlı bakım yok. Kontrol tarihi girdiğiniz kayıtlar burada görünür.</p>';
       document.getElementById('cWd').textContent = m.withdrawal.length ? '(' + m.withdrawal.length + ')' : '';
       document.getElementById('bkWd').innerHTML = m.withdrawal.map(function (x) {
@@ -140,6 +158,13 @@
         return item('💊', x.hive.name + ' · hasat yapmayın', (rec.treatment || R.DISEASE_LABEL[rec.disease] || '') + (rec.date ? ' · ' + fmt(rec.date) + ' uygulandı' : ''),
           fmt(x.until) + ' · ' + left + ' gün', hiveHref(x.hive), 'blue');
       }).join('') || '<p class="bk-empty">İlaç bekleme süresinde kovan yok.</p>';
+      var dn = m.done || [];
+      document.getElementById('cDone').textContent = dn.length ? '(son 30 gün · ' + dn.length + ')' : '';
+      document.getElementById('bkDone').innerHTML = dn.slice(0, 20).map(function (x) {
+        return '<div class="bk-item bk-task done"><a href="' + (x.hive ? hiveHref(x.hive) : 'gorevler.html') + '"><span class="bk-ico" aria-hidden="true">✅</span>' +
+          '<span><span class="bk-t" style="display:block;">' + esc(x.title) + '</span><span class="bk-s" style="display:block;">' + esc((apName[x.apiaryId] || '') + (x.note ? ' · ' + x.note : '')) + '</span></span>' +
+          '<span class="bk-d">' + esc(fmt(x.date)) + '</span></a><button type="button" class="bk-undo-btn" data-undo="' + esc(x.id) + '">Geri al</button></div>';
+      }).join('') || '<p class="bk-empty">Son 30 günde tamamlanan görev yok. Görevlerdeki «✓ Bitti» ile işaretleyin.</p>';
       document.getElementById('bkKinds').innerHTML = KINDS.map(function (k) {
         var n = k[0] === 'all' ? m.recent.length : m.recent.filter(function (x) { return x.kind === k[0]; }).length;
         return '<button type="button" data-kind="' + k[0] + '" class="' + (kind === k[0] ? 'on' : '') + '">' + esc(k[1]) + ' ' + n + '</button>';
@@ -168,6 +193,13 @@
     document.getElementById('bkRecent').addEventListener('click', function (e) {
       if (e.target.id === 'bkMore') { recentMax += 30; render(); }
     });
+    document.querySelector('main').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-done],[data-undo]');
+      if (!b) return;
+      e.preventDefault();
+      if (b.hasAttribute('data-done')) K.openTaskDone(b.getAttribute('data-done'), render);
+      else K.undoTask(b.getAttribute('data-undo'), render);
+    });
     document.getElementById('bkQuick').addEventListener('click', function () {
       K.openQuickRecord({ apiaryId: scope !== 'all' ? scope : undefined, onSaved: render });
     });
@@ -175,6 +207,6 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-8"></script>
+  <script src="nav.js?v=koloni-9"></script>
 </body>
 </html>

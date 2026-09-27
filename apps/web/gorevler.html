@@ -5,12 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Görevler · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <style>
+    .gv-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .6rem;}
+    .gv-form label{display:grid;gap:.2rem;font-size:.78rem;font-weight:700;color:#5c4813;min-width:0;}
+    .gv-form .full{grid-column:1 / -1;}
+    .gv-form input,.gv-form select{font:inherit;font-size:.92rem;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
+    .gv-actions{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.45rem;}
+    .gv-actions button,.gv-actions a{font:inherit;font-size:.8rem;font-weight:800;padding:.4rem .65rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;text-decoration:none;}
+    .gv-actions .ok{border-color:#b2f2bb;background:#ebfbee;color:#2b8a3e;}
+    .gv-actions .del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
+    .item-card h3{overflow-wrap:anywhere;}
+    .item-card.done h3{text-decoration:line-through;color:var(--muted);}
+    .gv-tag{display:inline-block;font-size:.7rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;background:#e9ecef;color:#495057;margin-left:.3rem;vertical-align:middle;}
+    .gv-tag.late{background:#ffe3e3;color:#c92a2a;}
+    .gv-tag.auto{background:#e7f5ff;color:#1971c2;}
+    .gv-more{font:inherit;font-size:.82rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;}
+  </style>
 </head>
-<body>
+<body data-tabbar="fixed">
   <main class="wrap">
     <div class="nav">
       <a class="chip" href="ana.html">← Ana</a>
-      <a class="chip" href="arici.html">Arıcı</a>
+      <a class="chip" href="bugun.html">Bugün</a>
+      <a class="chip" href="bakim.html">Bakım</a>
     </div>
     <div class="brand">
       <div class="brand-badge">🐝</div>
@@ -18,74 +35,124 @@
     </div>
 
     <section class="card stack">
-      <h2 style="margin:0;">Görevler</h2>
-      <p class="muted" id="summary">Demo görev listesi…</p>
+      <h2 style="margin:0;">Açık görevler</h2>
+      <p class="muted" id="summary">Yükleniyor…</p>
       <div class="list" id="task-list"></div>
-      <div class="note">Statik demo görevler. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
 
-    <section class="card stack" id="queenTasks">
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 style="margin:0;">＋ Görev ekle</h2>
+      <form class="gv-form" id="addForm" autocomplete="off">
+        <label class="full">Görev<input name="title" maxlength="160" required placeholder="ör. Kovan 204'e kek ver"></label>
+        <label class="full">Kovan (isteğe bağlı)<select name="hive"></select></label>
+        <label>Tarih<input type="date" name="due"></label>
+        <label>Öncelik<select name="priority"><option value="1">1 · Acil</option><option value="2" selected>2 · Normal</option><option value="3">3 · Düşük</option></select></label>
+        <label class="full">Not<input name="note" maxlength="300"></label>
+        <button type="submit" class="btn full">Görevi ekle</button>
+      </form>
+    </section>
+
+    <section class="card stack" id="queenTasks" style="margin-top:1rem;">
       <h2 style="margin:0;">Otomatik görevler · ana arı</h2>
       <p class="muted" id="queenSummary">Koloni kayıtlarından hesaplanıyor…</p>
       <div class="list" id="queen-task-list"></div>
-      <div class="note">Ana arısı 2 yaş ve üzeri olan kovanlardan otomatik üretilir. Doğum yılını güncellemek için Koloni sayfasını kullanın.</div>
+      <div class="note">Ana arısı 2 yaş ve üzeri olan kovanlardan otomatik üretilir. Ana değişince (doğum yılı güncellenince) görev kendiliğinden kapanır.</div>
     </section>
+
+    <section class="card stack" style="margin-top:1rem;">
+      <h2 style="margin:0;">✅ Tamamlanan</h2>
+      <div class="list" id="done-list"></div>
+    </section>
+    <div class="note" id="modeNote" style="margin-top:1rem;"></div>
   </main>
-  <script src="demo-data.js?v=koloni-8"></script>
-  <script src="koloni.js?v=koloni-8"></script>
+  <script src="demo-data.js?v=koloni-9"></script>
+  <script src="koloni.js?v=koloni-9"></script>
   <script>
     (function () {
-      var D = window.SuperAriDemo;
-      var listEl = document.getElementById("task-list");
-      document.getElementById("summary").textContent =
-        D.tasks.length + " açık görev · önceliğe göre sıralı";
-
-      var sorted = D.tasks.slice().sort(function (a, b) { return a.priority - b.priority; });
-
-      listEl.innerHTML = sorted.map(function (t) {
-        var hive = D.hiveById(t.hiveId);
-        var hiveName = hive ? hive.name : ("Kovan " + t.hiveId);
-        var badgeClass = "priority-" + t.priority;
-        return (
-          '<article class="item-card">' +
-            '<div class="row">' +
-              '<h3>' + t.title + '</h3>' +
-              '<span class="badge ' + badgeClass + '">Öncelik ' + t.priority + '</span>' +
-            '</div>' +
-            '<div class="meta">' + hiveName +
-              ' · <a href="kovanlar.html?id=' + t.hiveId + '">Kovana git</a></div>' +
-          '</article>'
-        );
-      }).join("");
-
-      /* Türetilmiş görevler: Koloni kaydı (queenYear) tek kaynak. */
-      var C = D.colony, K = window.SuperAriKoloni;
-      var qList = document.getElementById("queen-task-list");
-      var qSum = document.getElementById("queenSummary");
-      if (!C || !qList) return;
-      var esc = function (t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
-      var hives = D.loadHives ? D.loadHives() : [];
-      var renew = hives.filter(function (h) { return C.queenStatus(h) === "Yenile"; })
-        .sort(function (a, b) { return (C.queenAge(b) - C.queenAge(a)) || (a.id - b.id); });
-      var unknownN = hives.filter(function (h) { return C.queenStatus(h) === "Bilinmiyor"; }).length;
-      qSum.textContent = renew.length + " ana arı yenilenmeli" + (unknownN ? " · " + unknownN + " kovanda ana yaşı bilinmiyor" : "");
-      qList.innerHTML = renew.map(function (h) {
-        var age = C.queenAge(h);
-        var pr = age >= 3 ? 2 : 3;
-        var ap = D.apiaryById ? D.apiaryById(h.apiaryId) : null;
-        return (
-          '<article class="item-card">' +
-            '<div class="row">' +
-              '<h3>' + (K ? K.dotHtml(h.queenYear) : "") + 'Ana arıyı yenile — ' + esc(h.name) + ' (' + age + ' yaş)</h3>' +
-              '<span class="badge priority-' + pr + '">Öncelik ' + pr + '</span>' +
-            '</div>' +
-            '<div class="meta">' + esc((ap ? ap.name + " · " : "") + (h.breed || "") + " · doğum yılı " + h.queenYear) +
-              ' · <a href="kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(h.id) + '">Düzenle</a>' +
-              ' · <a href="kovan.html?id=' + encodeURIComponent(h.id) + '">Kovana git</a></div>' +
-          '</article>'
-        );
-      }).join("") || '<p class="muted">Yenilenecek ana arı yok.</p>';
+      var D = window.SuperAriDemo, K = window.SuperAriKoloni;
+      if (!D || !D.taskStore || !K) return;
+      var TS = D.taskStore, R = D.records;
+      var esc = K.esc, fmt = K.fmtDate;
+      var live = R.workMode() === 'live';
+      var doneMax = 20, openMax = 40;
+      document.getElementById('modeNote').textContent = live
+        ? 'Canlı mod: yalnız sizin eklediğiniz görevler ve kayıtlarınızdan üretilen otomatik görevler.'
+        : 'Demo mod: örnek görevler «Demo» etiketlidir; canlı moda geçince görünmez.';
+      var form = document.getElementById('addForm');
+      var hives = D.loadHives();
+      var aps = D.loadApiaries();
+      form.elements.hive.innerHTML = '<option value="">Kovan yok (genel görev)</option>' + aps.map(function (a) {
+        var hs = hives.filter(function (h) { return String(h.apiaryId) === String(a.id); });
+        if (!hs.length) return '';
+        return '<optgroup label="' + esc(a.name) + '">' + hs.map(function (h) { return '<option value="' + esc(h.id) + '">' + esc(h.name) + '</option>'; }).join('') + '</optgroup>';
+      }).join('');
+      function hiveLabel(t) {
+        var h = t.hiveId != null ? D.hiveById(t.hiveId) : null;
+        var ap = D.apiaryById ? D.apiaryById(h ? h.apiaryId : t.apiaryId) : null;
+        return [h ? h.name : '', ap ? ap.name : ''].filter(Boolean).join(' · ');
+      }
+      function card(t) {
+        var today = R.todayLocal();
+        var late = t.due && t.due < today;
+        var h = t.hiveId != null ? D.hiveById(t.hiveId) : null;
+        var tags = (t.demo ? '<span class="gv-tag">Demo</span>' : '') + (t.auto ? '<span class="gv-tag auto">Otomatik</span>' : '') +
+          (late ? '<span class="gv-tag late">Gecikti</span>' : '');
+        var meta = [hiveLabel(t), t.due ? (t.due === today ? 'Bugün' : 'Tarih ' + fmt(t.due)) : '', t.note || ''].filter(Boolean).join(' · ');
+        return '<article class="item-card"><div class="row"><h3>' + esc(t.title) + tags + '</h3>' +
+          '<span class="badge priority-' + (t.priority || 3) + '">Öncelik ' + (t.priority || 3) + '</span></div>' +
+          '<div class="meta">' + esc(meta || '—') + '</div>' +
+          '<div class="gv-actions"><button type="button" class="ok" data-done="' + esc(t.id) + '">✓ Tamamlandı</button>' +
+          (h ? '<a href="kovan.html?id=' + encodeURIComponent(h.id) + '#btBox">Kovana git</a>' : '') +
+          (t.kind === 'ana' && h ? '<a href="kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(h.id) + '">Ana bilgisini düzenle</a>' : '') +
+          (t.manual ? '<button type="button" class="del" data-del="' + esc(t.id) + '">Sil</button>' : '') + '</div></article>';
+      }
+      function sortOpen(a, b) {
+        var ad = a.due || '9999-99-99', bd = b.due || '9999-99-99';
+        return ad < bd ? -1 : (ad > bd ? 1 : ((a.priority || 3) - (b.priority || 3)));
+      }
+      function render() {
+        var open = TS.open();
+        var normal = open.filter(function (t) { return t.kind !== 'ana'; }).sort(sortOpen);
+        var queen = open.filter(function (t) { return t.kind === 'ana'; }).sort(function (a, b) { return (a.priority - b.priority) || (a.hiveId - b.hiveId); });
+        var today = R.todayLocal();
+        var lateN = normal.filter(function (t) { return t.due && t.due < today; }).length;
+        document.getElementById('summary').textContent = normal.length + ' açık görev' + (lateN ? ' · ' + lateN + ' gecikmiş' : '') + ' · tarihe ve önceliğe göre sıralı';
+        document.getElementById('task-list').innerHTML = normal.slice(0, openMax).map(card).join('') +
+          (normal.length > openMax ? '<button type="button" class="gv-more" data-more-open="1">+' + (normal.length - openMax) + ' görev daha</button>' : '') ||
+          '<p class="muted">Açık görev yok.</p>';
+        var unknownN = hives.filter(function (h) { return D.colony.queenStatus(h) === 'Bilinmiyor'; }).length;
+        document.getElementById('queenSummary').textContent = queen.length + ' ana arı yenilenmeli' + (unknownN ? ' · ' + unknownN + ' kovanda ana yaşı bilinmiyor' : '');
+        document.getElementById('queen-task-list').innerHTML = queen.map(card).join('') || '<p class="muted">Yenilenecek ana arı yok.</p>';
+        var done = TS.done();
+        document.getElementById('done-list').innerHTML = done.slice(0, doneMax).map(function (t) {
+          return '<article class="item-card done"><div class="row"><h3>' + esc(t.title) + (t.demo ? '<span class="gv-tag">Demo</span>' : '') + '</h3>' +
+            '<span class="badge ok">' + esc(fmt(t.doneAt)) + '</span></div>' +
+            '<div class="meta">' + esc([hiveLabel(t), t.doneNote ? 'Not: ' + t.doneNote : '', t.orphan ? 'durum artık yok' : ''].filter(Boolean).join(' · ') || '—') + '</div>' +
+            '<div class="gv-actions"><button type="button" data-undo="' + esc(t.id) + '">Geri al</button></div></article>';
+        }).join('') + (done.length > doneMax ? '<button type="button" class="gv-more" data-more-done="1">+' + (done.length - doneMax) + ' daha</button>' : '') ||
+          '<p class="muted">Henüz tamamlanan görev yok.</p>';
+      }
+      document.querySelector('main').addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-done],[data-undo],[data-del],[data-more-open],[data-more-done]');
+        if (!b) return;
+        if (b.hasAttribute('data-done')) K.openTaskDone(b.getAttribute('data-done'), render);
+        else if (b.hasAttribute('data-undo')) K.undoTask(b.getAttribute('data-undo'), render);
+        else if (b.hasAttribute('data-del')) { if (confirm('Bu görev silinsin mi?')) { TS.remove(b.getAttribute('data-del')); render(); } }
+        else if (b.hasAttribute('data-more-open')) { openMax += 60; render(); }
+        else { doneMax += 40; render(); }
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var t = TS.add({ title: form.elements.title.value, hiveId: form.elements.hive.value || null, due: form.elements.due.value, priority: form.elements.priority.value, note: form.elements.note.value });
+        if (!t) { form.elements.title.focus(); return; }
+        form.reset();
+        render();
+        try { window.dispatchEvent(new Event('superari-records-changed')); } catch (err) { /* ignore */ }
+      });
+      window.addEventListener('superari-records-changed', render);
+      render();
     })();
   </script>
+  <script src="nav.js?v=koloni-9"></script>
 </body>
 </html>
