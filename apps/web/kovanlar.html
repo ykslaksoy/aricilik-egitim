@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-57" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -46,7 +47,11 @@
       </div>
     </div>
 
-    <section class="card stack">
+    <section id="ksScope" hidden></section>
+    <div class="ks-tools" id="ksTools" hidden></div>
+    <div class="ks-sec" id="ksSec" hidden><h3>Kovanlar</h3><small id="ksCount"></small></div>
+    <div class="ks-grid" id="ksTiles" hidden aria-label="Kovanlar (önce sorunlu)"></div>
+    <section class="card stack" id="oldCard">
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
       <div id="koloniGrid"></div>
       <p class="muted" id="summary">Demo kovan listesi…</p>
@@ -58,16 +63,17 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-56"></script>
-  <script src="rapor-store.js?v=koloni-56"></script>
-  <script src="sensor-health.js?v=koloni-56"></script>
-<script src="saglik-canli.js?v=koloni-56"></script>
-  <script src="koloni.js?v=koloni-56"></script>
-  <script src="ilac-katalog.js?v=koloni-56"></script>
-  <script src="bakim-plan.js?v=koloni-56"></script>
-  <script src="irk-tahmin.js?v=koloni-56"></script>
-  <script src="kovan-ara.js?v=koloni-56"></script>
-  <script src="tarti-elle.js?v=koloni-56"></script>
+  <script src="demo-data.js?v=koloni-57"></script>
+  <script src="rapor-store.js?v=koloni-57"></script>
+  <script src="sensor-health.js?v=koloni-57"></script>
+<script src="saglik-canli.js?v=koloni-57"></script>
+  <script src="koloni.js?v=koloni-57"></script>
+  <script src="ilac-katalog.js?v=koloni-57"></script>
+  <script src="bakim-plan.js?v=koloni-57"></script>
+  <script src="irk-tahmin.js?v=koloni-57"></script>
+  <script src="kovan-ara.js?v=koloni-57"></script>
+  <script src="tarti-elle.js?v=koloni-57"></script>
+  <script src="kapsam.js?v=koloni-57"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -276,6 +282,99 @@
         );
       }
 
+      /* Varsayılan Kovanlar görünümü: Kapsam kartı + Ana tarzı kovan döşemeleri (önce sorunlu). */
+      if (view === '' && window.SuperAriKapsam) {
+        var KS = window.SuperAriKapsam;
+        document.body.classList.add('ks-body', 'ks-page');
+        var brandEl = document.querySelector('.brand'); if (brandEl) brandEl.style.display = 'none';
+        var oldCard = document.getElementById('oldCard');
+        var tilesEl = document.getElementById('ksTiles'), toolsEl = document.getElementById('ksTools'), secEl = document.getElementById('ksSec');
+        var kvHostT = document.getElementById('kvSearch');
+        tilesEl.hidden = false; toolsEl.hidden = false; secEl.hidden = false; document.getElementById('ksScope').hidden = false;
+        oldCard.hidden = true; oldCard.style.display = 'none';
+        var isLiveT = KS.live();
+        function tileInfo(h, sum) {
+          var hl = KS.health(h), bh = sum.byHive[String(h.id)] || { alerts: [], high: 0, overdue: false };
+          var hi = bh.alerts.filter(function (a) { return a.severity === 'high'; })[0];
+          var line = '';
+          if (hi) line = KS.shortAlert(hi, h);
+          else if (hl.reasons && hl.reasons[0] && (hl.key === 'act' || hl.key === 'check')) line = String(hl.reasons[0]);
+          else if (bh.alerts[0]) line = KS.shortAlert(bh.alerts[0], h);
+          else if (bh.overdue) line = 'Muayene 21 günü geçti';
+          else { var qp = null; try { qp = D.colony && D.colony.queenPlan ? D.colony.queenPlan(h) : null; } catch (e) { qp = null; } line = qp && qp.key !== 'iyi' && qp.key !== 'bilinmiyor' ? 'Ana: ' + qp.label.toLocaleLowerCase('tr') : 'Sorun yok'; }
+          return { h: h, hl: hl, bh: bh, line: line, rank: KS.SEV[hl.key] != null ? KS.SEV[hl.key] : 3 };
+        }
+        function sortInfos(list) {
+          return list.sort(function (a, b) {
+            var pa = a.bh.high ? 0 : a.rank, pb = b.bh.high ? 0 : b.rank;
+            return (pa - pb) || (a.rank - b.rank) || (b.bh.high - a.bh.high) || (b.bh.alerts.length - a.bh.alerts.length) ||
+              ((b.bh.overdue ? 1 : 0) - (a.bh.overdue ? 1 : 0)) || (Number(KS.hiveNum(a.h)) - Number(KS.hiveNum(b.h))) || String(a.h.name).localeCompare(String(b.h.name), 'tr');
+          });
+        }
+        var lastSum = null;
+        function tilesHtml(list, sum) {
+          var infos = sortInfos(list.map(function (h) { return tileInfo(h, sum); }));
+          return infos.map(function (x) {
+            var h = x.h;
+            return '<a class="ks-tile' + (x.hl.key === 'act' ? ' sev-act' : (x.hl.key === 'check' ? ' sev-check' : '')) + '" data-hive="' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" aria-label="' + esc(h.name + ', ' + x.hl.label + ', ' + x.line) + '">' +
+              KS.hiveHtml({ num: KS.hiveNum(h) }) +
+              '<span class="ks-tl">' + esc(h.name) + '</span>' +
+              '<span class="ks-badge ' + x.hl.tone + '" data-health="' + esc(x.hl.key) + '">' + esc(x.hl.label) + '</span>' +
+              '<span class="ks-sub">' + esc(x.line) + '</span></a>';
+          }).join('') || '<p class="ks-empty">Kovan yok.</p>';
+        }
+        function drawTiles(list, active) {
+          var sum = lastSum || KS.summary(list);
+          tilesEl.innerHTML = list.length ? tilesHtml(list, sum) : '<p class="ks-empty">' + (active ? 'Eşleşen kovan yok.' : 'Bu kapsamda kovan yok. «＋ Kovan ekle» ile arılığa kovan ekleyin.') + '</p>';
+          document.getElementById('ksCount').textContent = list.length + ' kovan · önce sorunlu' + (isLiveT ? '' : ' · Demo');
+        }
+        var ctlT = null;
+        function mountSearch() {
+          if (!window.SuperAriKovanAra) { drawTiles(ctlT.hives(), false); return; }
+          kvHostT.hidden = false;
+          toolsEl.appendChild(kvHostT);
+          window.SuperAriKovanAra.create({
+            host: kvHostT,
+            hives: function () { return ctlT.hives(); },
+            allHives: function () { return D.loadHives(); },
+            apiaryId: function () { return ctlT.scope() !== 'all' ? ctlT.scope() : (K && K.lastApiary ? K.lastApiary() : ''); },
+            onChange: function (res, active) { drawTiles(res, active); }
+          });
+        }
+        var initScope = apiaryFilter || (modeParam === 'all' ? 'all' : '');
+        ctlT = KS.mount(document.getElementById('ksScope'), {
+          title: 'Kovanlar', icon: KS.ICON_KOVAN, page: 'kovanlar.html', initial: initScope,
+          stats: function (hs, scope, sm) {
+            var bad = 0; hs.forEach(function (h) { var k = KS.health(h).key; if (k === 'act' || k === 'check') bad++; });
+            var kolQ = scope !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(scope) : '&mode=all';
+            return [
+              { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'ariliklar.html' },
+              { k: 'sorun', v: bad, l: 'Kontrol / Müdahale', href: 'saglik.html', tone: bad ? 'hot' : '' },
+              { k: 'muayene', v: sm.hives ? sm.overdue : '—', l: 'Geciken muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: sm.overdue ? 'hot' : '' },
+              { k: 'uyari', v: sm.critical, l: 'Kritik uyarı', href: 'uyarilar.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: sm.critical ? 'hot' : '' },
+              { k: 'saat', v: sm.lastTxt, l: 'Son muayene', href: 'kovanlar.html?view=koloni&topic=guc' + kolQ }
+            ];
+          },
+          note: function (hs, scope, sm) {
+            if (!hs.length) return { t: 'Bu kapsamda kovan yok — arılığa kovan ekleyin', b: 'Ekle', href: scope !== 'all' ? 'arilik.html?id=' + encodeURIComponent(scope) : 'ariliklar.html', k: 'bos' };
+            var top = sortInfos(hs.map(function (h) { return tileInfo(h, sm); }))[0];
+            if (top && (top.rank <= 1 || top.bh.high)) return { t: '⚠️ ' + top.h.name + ' · ' + top.hl.label + (top.line && top.line !== 'Sorun yok' ? ' — ' + top.line : ''), b: 'Aç', href: 'kovan.html?id=' + encodeURIComponent(top.h.id), k: 'kovan' };
+            if (sm.overdue) return { t: '🔍 ' + sm.overdue + ' kovanın muayenesi 21 günü geçti', b: 'Muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), k: 'muayene' };
+            return { t: '✓ Bu kapsamda acil sorun yok', b: 'Muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), k: 'ok' };
+          },
+          onChange: function (scope, hs, sm) {
+            lastSum = sm;
+            var addHref = scope !== 'all' ? 'arilik.html?id=' + encodeURIComponent(scope) : 'ariliklar.html';
+            toolsEl.innerHTML = '<a class="ks-btn" id="ksAdd" href="' + addHref + '">＋ Kovan ekle <small style="font-weight:650;font-size:12px;color:#6b635a;">(' + (scope !== 'all' ? 'arılıkta kovan sayısı' : 'Arılıklar') + ')</small></a>';
+            if (ctlT) mountSearch();
+          }
+        });
+        mountSearch();
+        window.addEventListener('superari-records-changed', function () { ctlT.render(); });
+        window.addEventListener('pageshow', function (e) { if (e.persisted) ctlT.render(); });
+        return;
+      }
+
       var hives = D.loadHives ? D.loadHives().slice() : D.hives.slice();
       var groups = groupByApiary(hives);
 
@@ -477,6 +576,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-56"></script>
+<script src="pwa.js?v=koloni-57"></script>
 </body>
 </html>
