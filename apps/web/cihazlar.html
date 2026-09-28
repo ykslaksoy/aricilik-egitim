@@ -195,7 +195,7 @@
       banner.className = 'mode-banner';
       banner.innerHTML = '<strong>Demo</strong><span>· örnek cihazlar · Yok ima edilir (listede yok)</span>';
     } else {
-      banner.hidden = true; /* Canlı rozeti gösterilmez; yalnız Demo */
+      banner.hidden = true; banner.style.display = 'none'; /* Canlı rozeti gösterilmez; yalnız Demo */
       banner.innerHTML = '';
     }
   }

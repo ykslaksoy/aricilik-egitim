@@ -405,7 +405,8 @@
       '}' +
       '.mode-banner.live{' +
       'border-color:#cfd8e3;background:#f7f8fa;color:#6b635a;' +
-      '}';
+      '}' +
+      '.mode-banner[hidden]{display:none}'; /* Canlı'da mod rozeti yok (yalnız Demo) */
     document.head.appendChild(st);
   }
 

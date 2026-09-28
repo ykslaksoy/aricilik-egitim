@@ -151,7 +151,7 @@
       banner.className = 'mode-banner';
       banner.innerHTML = '<strong>Demo</strong><span>· örnek arılık kameraları</span>';
     } else {
-      banner.hidden = true; /* Canlı rozeti gösterilmez; yalnız Demo */
+      banner.hidden = true; banner.style.display = 'none'; /* Canlı rozeti gösterilmez; yalnız Demo */
       banner.innerHTML = '';
     }
   }
