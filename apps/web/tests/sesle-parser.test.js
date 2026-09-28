@@ -57,7 +57,7 @@ eq(P.parse('giris', 'dur'), { cmd: 'stop' });
 eq(P.parse('summary', 'merhaba'), { none: true });
 eq(P.parse('giris', 'not kapakta çatlak var'), { note: 'kapakta çatlak var' });
 eq(P.parse('giris', ''), { none: true });
-/* Bal / oğul memesi: tam çerçeve sayısı (koloni-59) */
+/* Bal / oğul memesi: tam çerçeve sayısı (koloni-60) */
 eq(P.parse('stok', 'dört', { count: { max: 30 } }), { value: 4 });
 eq(P.parse('stok', '6 çerçeve', { count: { max: 30 } }), { value: 6 });
 eq(P.parse('stok', 'on iki', { count: { max: 30 } }), { value: 12 });

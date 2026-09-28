@@ -149,7 +149,7 @@
           '</div></div>' +
         '</div>' +
         '<div class="bk-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
-        '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>';
+        (opts.bottom != null ? opts.bottom : '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>');
     } else {
     host.classList.add('ks-card');
     host.innerHTML =
@@ -177,8 +177,8 @@
       q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : [], SC);
       var n = opts.note ? opts.note(hs, scope, sum) : null;
       var ne = q('[data-ks-note]');
-      ne.hidden = !n;
-      if (n) {
+      if (ne) ne.hidden = !n;
+      if (ne && n) {
         q('[data-ks-nt]').textContent = n.t; q('[data-ks-nb]').textContent = n.b || 'Aç';
         ne.href = n.href || '#'; ne.setAttribute('data-note', n.k || ''); ne.setAttribute('aria-label', n.t + ' — ' + (n.b || 'Aç'));
       }

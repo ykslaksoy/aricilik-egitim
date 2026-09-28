@@ -182,6 +182,10 @@
       .then(function () { return need('mic-session.js', 'SuperAriMic').catch(function () { return null; }); })
       .then(function () { return need('kolay-muayene.js', 'SuperAriKolayMuayene').catch(function () { return null; }); });
   }
+  /* Bakım modu (bu oturum): «Muayeneyle birlikte bakım da yapacak mısın?» Evet → bakım kartları, Hayır → yalnız muayene */
+  var BAKIM_KEY = 'superari.akisBakim.v1';
+  function bakimPref() { try { var v = sessionStorage.getItem(BAKIM_KEY); return v === '1' ? true : (v === '0' ? false : null); } catch (e) { return null; } }
+  function setBakimPref(v) { try { if (v == null) sessionStorage.removeItem(BAKIM_KEY); else sessionStorage.setItem(BAKIM_KEY, v ? '1' : '0'); } catch (e) { /* ignore */ } }
   var VOICE_KEY = 'superari.akisSes.v1';
   function voicePref() { try { return localStorage.getItem(VOICE_KEY) === '1'; } catch (e) { return false; } }
   function setVoicePref(on) { try { localStorage.setItem(VOICE_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ } }
@@ -277,6 +281,13 @@
       note: '[muayene-oto:' + tag + '] ' + String(detail || '').slice(0, 240) });
     return tk ? { task: tk, existed: false } : null;
   }
+  /** Bakım kartında yapılan iş için açık otomatik ihtiyaç görevini kapat (geri alınabilir). */
+  function closeAuto(h, tag, undo) {
+    var open = []; try { open = D.taskStore.open(); } catch (e) { open = []; }
+    open.filter(function (x) { return String(x.hiveId) === String(h.id) && String(x.note || '').indexOf('[muayene-oto:' + tag + ']') >= 0; }).forEach(function (x) {
+      try { if (D.taskStore.complete(x.id, { note: 'Hızlı muayene · bakımda yapıldı' })) undo.push(function () { try { D.taskStore.undo(x.id); } catch (e) { /* ignore */ } }); } catch (e) { /* ignore */ }
+    });
+  }
   function autoNeeds(h, info) {
     var P = global.SuperAriPlan, out = [];
     if (!P || !info) return out;
@@ -286,7 +297,7 @@
     if (fp && fp.need) {
       var ft = P.feedText(fp), short = fp.type === 'kek' ? 'Kek ' + num(fp.kekKg) + ' kg' : (P.SYRUP[fp.type] ? P.SYRUP[fp.type].label + ' ' + num(fp.liters) + ' L' : 'besleme');
       var r1 = autoTask(h, 'besleme', 'Besleme gerekli: ' + short + (fp.feedings > 1 ? ' (' + fp.feedings + ' seferde)' : ''), today(), (sk === 'sonbahar' || sk === 'kis' || fp.cold) ? 1 : 2, ft);
-      if (r1) out.push({ ic: '🍯', t: 'Besleme ihtiyacı: ' + short, s: (r1.existed ? 'Zaten Görevler’de' : 'Görevler + Uyarılar’a eklendi') + ' · kışlık stok / Beslenme güncellendi', tag: 'o' });
+      if (r1) out.push({ tid: r1.task.id, ic: '🍯', t: 'Besleme ihtiyacı: ' + short, s: (r1.existed ? 'Zaten Görevler’de' : 'Görevler + Uyarılar’a eklendi') + ' · kışlık stok / Beslenme güncellendi', tag: 'o' });
     }
     var mp = null; try { mp = P.medPlan(h, st); } catch (e) { mp = null; }
     if (mp) {
@@ -295,13 +306,13 @@
         var ttl = 'Varroa: ' + (mp.level === 'tedavi' ? 'ilaçlama gerekli' : 'ilaçlama planla') + ' (%' + num(mp.infestation) + ')' + (blk ? ' · şimdi değil: ' + blk : '');
         var r2 = autoTask(h, 'ilac', ttl, blk ? plusDays(7) : (mp.level === 'tedavi' ? today() : plusDays(7)), mp.level === 'tedavi' ? 1 : 2,
           'İhtiyaç kaydı — uygulanmış tedavi değildir. Doz uygulama tarafından önerilmez: ruhsatlı ürünün etiketine / veteriner hekime bakın. ' + (mp.summary || ''));
-        if (r2) out.push({ ic: '🕷', t: 'Varroa: ' + (mp.level === 'tedavi' ? 'ilaçlama ihtiyacı' : 'ilaçlama planı') + ' kaydedildi', s: 'İlaç uygulanmış sayılmadı, doz yazılmadı · ' + (r2.existed ? 'zaten Görevler’de' : 'Görevler + Uyarılar'), tag: 'o' });
+        if (r2) out.push({ tid: r2.task.id, ic: '🕷', t: 'Varroa: ' + (mp.level === 'tedavi' ? 'ilaçlama ihtiyacı' : 'ilaçlama planı') + ' kaydedildi', s: 'İlaç uygulanmış sayılmadı, doz yazılmadı · ' + (r2.existed ? 'zaten Görevler’de' : 'Görevler + Uyarılar'), tag: 'o' });
       } else if (mp.level === 'sayim' && sk !== 'akim' && sk !== 'kis') {
         var r3 = autoTask(h, 'varroa', 'Varroa sayımı yap (≈300 arı, alkol yıkama)', plusDays(3), 2, mp.summary || 'Sayım yoksa ilaç ihtiyacı hesaplanamaz.');
-        if (r3) out.push({ ic: '🕷', t: 'Varroa takibi: sayım görevi', s: r3.existed ? 'Zaten Görevler’de' : 'Görevler + Uyarılar’a eklendi', tag: 'o' });
+        if (r3) out.push({ tid: r3.task.id, ic: '🕷', t: 'Varroa takibi: sayım görevi', s: r3.existed ? 'Zaten Görevler’de' : 'Görevler + Uyarılar’a eklendi', tag: 'o' });
       } else if (mp.countDate && mp.level === 'izle' && sk !== 'akim' && sk !== 'kis' && today() > R_addDays(mp.countDate, 30)) {
         var r4 = autoTask(h, 'varroa', 'Varroa sayımını yenile', plusDays(7), 3, mp.summary || '');
-        if (r4) out.push({ ic: '🕷', t: 'Varroa takibi: yeniden sayım görevi', s: r4.existed ? 'Zaten Görevler’de' : 'Görevler’e eklendi', tag: 'o' });
+        if (r4) out.push({ tid: r4.task.id, ic: '🕷', t: 'Varroa takibi: yeniden sayım görevi', s: r4.existed ? 'Zaten Görevler’de' : 'Görevler’e eklendi', tag: 'o' });
       }
     }
     var ws = null; try { ws = P.winterSeasonNow && P.winterSeasonNow() ? P.winterStock(h) : null; } catch (e) { ws = null; }
@@ -312,7 +323,8 @@
   function R_addDays(iso, n) { try { return D.records.addDays(iso, n); } catch (e) { var d = new Date(iso); d.setDate(d.getDate() + n); return isoOf(d); } }
 
   /* ---------------- Öneri adımları ---------------- */
-  function buildSteps(h, info) {
+  function buildSteps(h, info, bakim) {
+    if (bakim === false) return [];
     var P = global.SuperAriPlan, I = global.SuperAriIlac, R = D.records, a = (info && info.ans) || {};
     var steps = [], st = P ? P.hiveState(h) : { beeFrames: null }, sk = P ? P.seasonKind(h.apiaryId) : 'yaz';
     var bee = a.cerceve ? a.cerceve.bee : st.beeFrames;
@@ -320,7 +332,119 @@
     var box = null; try { box = D.colony.boxes(D.hiveById(h.id)); } catch (e) { box = null; }
     if (!box) box = { body: 1, kat: P && P.hasSuper && P.hasSuper(h.id) ? 1 : 0, ballik: false };
 
-    /* Besleme ve İlaçlama kartı yok: ihtiyaç muayeneden otomatik çıkarılıp kaydedilir (autoNeeds). */
+    /* Bakım modu (Evet): Besleme ve İlaçlama kartları; yapılınca kayıt «uygulandı» olur ve otomatik ihtiyaç görevi kapanır. Hayır modunda kart yok (autoNeeds). */
+    if (bakim) {
+    /* 1) Besleme (Bakım planı besleme hesabı; mevsime göre kek / şurup 1:1 / 2:1) */
+    if (P) {
+      var fp = null; try { fp = P.feedPlan(h, st); } catch (e) { fp = null; }
+      if (fp && fp.need) {
+        var ftype = fp.type, v, feedings = fp.feedings || 1;
+        if (ftype === 'kek') v = fp.perFeedKg;
+        else if (fp.cold) { ftype = 'kek'; v = Math.min(2, Math.max(1, r05(fp.deficitKg || 1))); feedings = 1; }
+        else v = fp.perFeedL;
+        v = Math.max(0.5, r05(v));
+        var FT = { kek: { label: 'Kek (fondan)', unit: 'kg' }, surup11: { label: 'Şurup 1:1', unit: 'L' }, surup21: { label: 'Şurup 2:1', unit: 'L' } };
+        var fmtF = function (x, t) { t = t || ftype; return t === 'kek' ? 'Kek ' + num(x) + ' kg' : FT[t].label + ' ' + num(x) + ' L'; };
+        var subF = function (x, t) { t = t || ftype; if (t === 'kek') return 'Fondan kek, çerçevelerin üstüne'; var S = P.SYRUP[t]; return '= ' + num(x * S.sugarKg) + ' kg şeker + ' + num(x * S.waterL) + ' L su'; };
+        var sayF = function (x, t) { t = t || ftype; if (t === 'kek') return sayNum(x) + ' kilo kek'; var S = P.SYRUP[t]; return sayNum(x) + ' litre ' + (t === 'surup21' ? 'ikiye bir' : 'bire bir') + ' şurup, yani ' + sayNum(x * S.sugarKg) + ' kilo şeker ve ' + sayNum(x * S.waterL) + ' litre su'; };
+        steps.push({ key: 'besleme', icon: '🍯', title: 'Besleme', kind: 'amount', type: ftype, unit: FT[ftype].unit, rec: v, inc: 0.5, min: 0.5, max: 20,
+          presets: amountPresets(v, 0.5, 0.5), fmt: fmtF, sub: subF, sayV: sayF,
+          why: SEASON_TXT[sk] + ' · stok ≈ ' + num(fp.storesKg) + ' kg' + (fp.targetKg ? ', hedef ' + fp.targetKg + ' kg' : '') + (feedings > 1 ? ' · ' + feedings + ' beslemenin 1.si; kalanlar görev olur' : '') + (fp.cold ? ' · kış ortası: şurup yerine kek' : '') + (fp.weak ? ' · zayıf koloni: birleştirmeyi düşünün' : ''),
+          types: ['kek', 'surup11', 'surup21'], typeInfo: FT,
+          save: function (res, step) {
+            var undo = [], t = res.type || step.type, amt = res.v;
+            var undo0 = undo; closeAuto(h, 'besleme', undo0);
+            var rec = addRec(h, 'feed', Object.assign({ date: today(), type: t, amount: amt, note: 'Hızlı muayene · bakım' + changed(res) + (demo() ? ' · Demo' : '') }, sugFields(res, step)), undo);
+            var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+            var msg = fmtF(amt, t);
+            if (t === 'kek') { var kk = list.filter(function (x) { return (x.category === 'kek' || x.feedType === 'kek') && x.unit === 'kg'; })[0]; if (kk && stockUse(kk, amt, 'Besleme · ' + h.name, undo)) msg += ' · stoktan düşüldü'; }
+            else {
+              var syr = list.filter(function (x) { return x.feedType === t && x.unit === 'L'; })[0], sug = list.filter(function (x) { return x.category === 'seker' && x.unit === 'kg'; })[0];
+              if (syr) { if (stockUse(syr, amt, 'Besleme · ' + h.name, undo)) msg += ' · stoktan düşüldü'; }
+              else if (sug) { if (stockUse(sug, Math.round(amt * P.SYRUP[t].sugarKg * 10) / 10, 'Besleme · ' + h.name, undo)) msg += ' · şeker stoktan düşüldü'; }
+            }
+            if (feedings > 1 && t === step.type) {
+              var every = (P.SYRUP[t] && P.SYRUP[t].everyDays) || 3;
+              for (var i = 1; i < feedings; i++) addTask(h, 'Besleme ' + (i + 1) + '/' + feedings + ': ' + fmtF(amt, t), plusDays(i * every), 2, undo);
+              msg += ' · ' + (feedings - 1) + ' besleme görevi';
+            }
+            return rec ? { text: msg, say: t === 'kek' ? sayNum(amt) + ' kilo kek' : sayNum(amt) + ' litre ' + (t === 'surup21' ? 'ikiye bir' : 'bire bir') + ' şurup', undo: undo } : null;
+          } });
+      }
+    }
+
+    /* 2) Varroa / İlaçlama (yalnız ruhsatlı etiket dozu) */
+    function countStep() {
+      return { key: 'sayim', icon: '🕷', title: 'Varroa sayımı', kind: 'choice', okCustom: true,
+        recLabel: 'Varroa sayımı yapın (≈300 arı, alkol yıkama) ve akar sayısını girin',
+        why: 'Sayım yoksa ilaç dozu önerilmez.', say: 'Varroa sayımı yok. Önerim: yaklaşık üç yüz arıyla alkol yıkama yapıp akar sayısını söyleyin. Sonra sayacaksanız sonra deyin, yapmadıysanız atla deyin.',
+        opts: [{ id: 'gorev', label: 'Sonra sayacağım (görev ekle)', say: ['sonra', 'gorev'] }],
+        custom: { unit: 'adet', min: 0, max: 300, inc: 1, big: 5, init: 3, label: 'Akar sayısı (≈300 arı)' },
+        save: function (res) {
+          var undo = [];
+          if (res.opt === 'gorev') { addTask(h, 'Varroa sayımı (≈300 arı, alkol yıkama)', plusDays(3), 2, undo); return { text: 'Varroa sayımı görevi eklendi', say: 'varroa sayımı görevi', undo: undo }; }
+          var c = Math.round(res.v); closeAuto(h, 'varroa', undo);
+          var rec = addRec(h, 'disease', Object.assign({ date: today(), disease: 'varroa', count: c, method: 'alkol', note: 'Hızlı muayene · ≈300 arı' + (demo() ? ' · Demo' : ''), akis: true, sug: 'kabul', sugText: 'Varroa sayımı yapın' }, demo() ? { demo: true } : {}), undo);
+          var inf = Math.round(c / 300 * 1000) / 10;
+          var out = { text: c + ' akar (≈ %' + num(inf) + ' bulaşma)', say: c + ' akar', undo: undo };
+          /* Sayım girildiyse ilaç önerisini yeniden hesapla ve sıradaki adım olarak ekle */
+          try { var mp2 = P.medPlan(D.hiveById(h.id)); if (mp2.level === 'tedavi' || mp2.level === 'planla') out.insert = treatStep(mp2, P.hiveState(D.hiveById(h.id))); } catch (e) { /* ignore */ }
+          return rec ? out : null;
+        } };
+    }
+    function treatStep(mp, st2) {
+      var best = mp.best, lvl = mp.level === 'tedavi' ? 'Tedavi önerilir' : 'Tedavi planlayın';
+      var ver = I.LIST.filter(function (p) { return p.dose; });
+      var custom = { unit: 'serit', min: 1, max: 50, inc: 1, init: best ? best.dose.qty : 2, label: 'Uyguladığınız miktar', units: ['serit', 'g', 'ml'],
+        products: ver.map(function (p) { return { id: p.id, label: p.name.split(' ')[0] }; }).concat([{ id: 'diger', label: 'Başka ürün' }]),
+        product: best ? best.id : 'diger', warn: 'Etiket dışı miktar önerilmez; yalnız uyguladığınızı kaydedin.' };
+      var saveT = function (res, step) {
+        var undo = [], pid = res.product || (best && best.id), p = pid && pid !== 'diger' ? I.byId(pid) : null, unit = res.unit || 'serit', qty = res.v, t = today();
+        var dur = p && p.durationDays ? p.durationDays[1] : 0, vr = (st2 || st).varroa || {};
+        var rec = addRec(h, 'disease', Object.assign({ date: t, disease: 'varroa', count: vr.count != null ? vr.count : null, method: vr.method || 'alkol', infestation: mp.infestation,
+          treatment: p ? p.name + ' (' + p.active + ')' : 'Başka ürün (Hızlı muayene)', dose: qty, doseUnit: unit, withdrawalDays: p && p.withdrawal === 'tedaviBoyunca' ? dur : 0,
+          checkDate: dur ? plusDays(dur) : plusDays(21), note: 'Hızlı muayene · bakım' + changed(res) + (p && p.dose ? ' · etiket: ' + p.dose.note.slice(0, 160) : '') + (demo() ? ' · Demo' : '') }, sugFields(res, step)), undo);
+        closeAuto(h, 'ilac', undo); closeAuto(h, 'varroa', undo);
+        var msg = (p ? p.name : 'Başka ürün') + ' ' + num(qty) + ' ' + UNIT_TXT[unit];
+        if (p && dur) { addTask(h, 'Şeritleri çıkar (' + p.name + ') ve varroa sayımı yap', plusDays(dur), 1, undo); msg += ' · çıkarma görevi ' + dur + ' gün sonra'; }
+        if (p && unit === 'serit') {
+          var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+          var nm = p.name.toLocaleLowerCase('tr').split(' ')[0];
+          var it = list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(nm) >= 0; })[0];
+          if (it && stockUse(it, qty, 'İlaçlama · ' + h.name, undo)) msg += ' · stoktan düşüldü';
+        }
+        return rec ? { text: msg, say: (p ? p.name : 'başka ürün') + ', ' + sayNum(qty) + ' ' + UNIT_SAY[unit], undo: undo } : null;
+      };
+      if (mp.blocks.length) {
+        return { key: 'ilac', icon: '💊', title: 'İlaçlama', kind: 'choice', recLabel: 'Şimdi ilaç uygulamayın', why: mp.blocks[0],
+          say: 'Varroa: ' + lvl.toLocaleLowerCase('tr') + ', ama şimdi ilaç uygulanmaz. ' + mp.blocks[0].split(' — ')[0].split(' (')[0] + '. Tamam deyin.',
+          opts: [], custom: Object.assign({}, custom, { warn: '⛔ ' + mp.blocks[0].split(' — ')[0] + ' — ilaç önerilmez. Yalnız uyguladıysanız kaydedin.' }), save: function (res, step) { if (res.custom) return saveT(res, step); var u = []; addEvent(h, 'bakim', 'İlaç uygulanmadı: ' + mp.blocks[0].slice(0, 120), res, step, u); return { text: 'İlaç uygulanmadı', say: 'ilaç uygulanmadı', undo: u }; } };
+      }
+      if (!best) {
+        var why0 = (mp.products.filter(function (x) { return x.verified; })[0] || {}).dose;
+        return { key: 'ilac', icon: '💊', title: 'İlaçlama', kind: 'choice', recLabel: 'Etiket dozu bulunamadı — veteriner hekime danışın',
+          why: (why0 && why0.reason ? why0.reason + ' ' : '') + 'Uygulama doz uydurmaz.', say: 'Varroa: ' + lvl.toLocaleLowerCase('tr') + '. Bu kovan için ruhsatlı etiket dozu bulunamadı, doz önermiyorum. Veteriner hekime danışın. Tamam deyin.',
+          opts: [], custom: custom, save: function (res, step) { if (res.custom) return saveT(res, step); var u = []; addTask(h, 'Varroa: veteriner hekime danış (etiket dozu yok)', plusDays(2), 1, u); return { text: 'Veteriner görevi eklendi', say: 'veteriner hekime danışma görevi', undo: u }; } };
+      }
+      var alts = mp.products.filter(function (x) { return x.verified && x.dose.ok && !x.blocks.length && x.id !== best.id; }).slice(0, 2);
+      var pb = I.byId(best.id);
+      return { key: 'ilac', icon: '💊', title: 'İlaçlama (etiket dozu)', kind: 'amount', noPresets: true, unit: 'serit', rec: best.dose.qty, product: best.id, inc: 1, min: 1, max: 50,
+        fmt: function (x) { return best.name + ' · ' + (x === best.dose.qty ? best.dose.text : num(x)) + ' şerit'; },
+        sub: function () { return 'Etiket: ' + (pb.durationDays ? pb.durationDays[0] + (pb.durationDays[1] !== pb.durationDays[0] ? '–' + pb.durationDays[1] : '') + ' gün kovanda' : '') + (best.warns.length ? ' · ' + best.warns[0] : ''); },
+        sayV: function () { return best.name + ', ' + best.dose.text.replace('–', ' ile ') + ' şerit'; },
+        why: lvl + ' (%' + num(mp.infestation) + ' bulaşma) · yalnız ruhsatlı ürün, etiket dozu',
+        opts: alts.map(function (x) { return { id: x.id, label: x.name + ' · ' + x.dose.text + ' şerit (etiket)', v: x.dose.qty, say: [fold(x.name).split(' ')[0]] }; }),
+        custom: custom,
+        save: function (res, step) { if (res.opt) { res.product = res.opt; res.unit = 'serit'; } return saveT(res, step); } };
+    }
+    if (P && I) {
+      var mp = null; try { mp = P.medPlan(h, st); } catch (e) { mp = null; }
+      if (mp && mp.level === 'sayim' && sk !== 'akim' && sk !== 'kis') steps.push(countStep());
+      else if (mp && (mp.level === 'tedavi' || mp.level === 'planla')) steps.push(treatStep(mp, st));
+    }
+
+    }
+
 
     /* 3) Çerçeve / kat */
     if (bee != null) {
@@ -481,6 +605,38 @@
       }
     }
 
+    /* 5b) Temizlik: dip tahtası / kovan temizliği, ölü arı, mum güvesi */
+    var weakC = bee != null && bee <= 5;
+    steps.push({ key: 'temizlik', icon: '🧹', title: 'Temizlik', kind: 'choice',
+      recLabel: a.giris === 'olu' ? 'Ölü arıları temizleyin, dip tahtasını kazıyın' : 'Dip tahtasını temizleyin; ölü arı ve mum güvesine bakın',
+      why: (a.giris === 'olu' ? 'Girişte ölü / sürünen arı işaretlendi · ' : '') + (weakC ? 'Zayıf koloni: mum güvesi riski yüksek · ' : '') + 'Dip tahtasında varroa, küf ve güve kalıntısı birikir',
+      say: 'Temizlik. Önerim: dip tahtasını temizleyin, ölü arı ve mum güvesine bakın. Tamam deyin, ya da yalnız dip tahtası, ölü arı, güve buldum deyin.',
+      opts: [{ id: 'dip', label: 'Yalnız dip tahtasını temizledim', say: ['dip', 'tahta'] }, { id: 'olu', label: 'Ölü arıları temizledim', say: ['olu'] },
+        { id: 'guve', label: 'Mum güvesi buldum, temizledim (petekleri ayırdım)', say: ['guve'] }, { id: 'sonra', label: 'Sonra yapacağım (görev ekle)', say: ['sonra'] }],
+      save: function (res, step) {
+        var u = [], T = { dip: 'Dip tahtası temizlendi', olu: 'Ölü arılar temizlendi', guve: 'Mum güvesi temizlendi', sonra: '' }, id = res.opt;
+        if (id === 'sonra') { addTask(h, 'Temizlik: dip tahtası, ölü arı, mum güvesi', plusDays(7), 3, u); return { text: 'Temizlik görevi eklendi', say: 'temizlik görevi', undo: u }; }
+        var txt = id ? T[id] : 'Kovan temizliği: dip tahtası + ölü arı + güve kontrolü';
+        addEvent(h, 'bakim', txt, res, step, u);
+        if (id === 'guve') addTask(h, 'Mum güvesi: 1 hafta sonra tekrar kontrol, boş petekleri dondur', plusDays(7), 2, u);
+        return { text: txt + (id === 'guve' ? ' · kontrol görevi' : ''), say: txt.toLocaleLowerCase('tr'), undo: u };
+      } });
+
+    /* 5c) Kapı (uçuş deliği) daraltma: zayıf koloni, yağma, sonbahar / kış (kışlık kartı yoksa) */
+    if (!steps.some(function (x) { return x.key === 'kislik'; }) && (weakC || a.giris === 'yagma' || a.giris === 'zayif' || sk === 'sonbahar' || sk === 'kis')) {
+      var kWhy = a.giris === 'yagma' ? 'Girişte yağma / kavga' : (weakC ? 'Zayıf koloni (' + bee + ' arılı çerçeve): girişi savunamaz' : SEASON_TXT[sk] + ': ısı kaybı ve yağma');
+      steps.push({ key: 'kapi', icon: '🚪', title: 'Kapı daraltma', kind: 'choice', recLabel: 'Uçuş deliğini 1–2 arı geçecek kadar daraltın', why: kWhy,
+        say: 'Kapı daraltma. ' + kWhy + '. Önerim: uçuş deliğini daraltın. Tamam deyin, ya da sonra deyin.',
+        opts: [{ id: 'yarim', label: 'Yarıya daralttım', say: ['yari', 'yariya'] }, { id: 'sonra', label: 'Sonra yapacağım (görev ekle)', say: ['sonra'] }],
+        save: function (res, step) {
+          var u = [];
+          if (res.opt === 'sonra') { addTask(h, 'Uçuş deliğini daralt', plusDays(2), a.giris === 'yagma' ? 1 : 2, u); return { text: 'Kapı daraltma görevi eklendi', say: 'kapı daraltma görevi', undo: u }; }
+          var txt = res.opt === 'yarim' ? 'Uçuş deliği yarıya daraltıldı' : 'Uçuş deliği daraltıldı (1–2 arı)';
+          addEvent(h, 'bakim', txt, res, step, u);
+          return { text: txt, say: txt.toLocaleLowerCase('tr'), undo: u };
+        } });
+    }
+
     /* 6) Hastalık belirtisi */
     if (a.hastalik === 'var') {
       steps.push({ key: 'hastalik', icon: '🔍', title: 'Hastalık belirtisi', kind: 'choice', recLabel: 'Fotoğrafla hastalık tahmini yapın', why: 'Muayenede belirti işaretlendi',
@@ -534,7 +690,9 @@
     '.ba-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #eadfcd;background:#fffdf8;}' +
     '.ba-vbar{background:#10381a;color:#fff;border-radius:14px;padding:10px 12px;font-size:15px;font-weight:700;display:flex;gap:10px;align-items:center;}.ba-vbar[hidden]{display:none;}.ba-vbar i{width:14px;height:14px;border-radius:50%;background:#8a8a8a;flex:none;}.ba-vbar i.on{background:#ff4d4d;box-shadow:0 0 0 4px rgba(255,77,77,.3);}' +
     '.ba-sum{border:2px solid #eadfcd;background:#fff;border-radius:14px;padding:4px 12px;}.ba-row{display:flex;gap:10px;padding:10px 0;border-top:1px solid #f1e8da;font-size:16px;line-height:1.35;font-weight:700;}.ba-row:first-child{border-top:0;}.ba-row>span{flex:none;font-size:20px;}.ba-row small{display:block;color:#5b4631;font-size:14px;font-weight:600;}' +
-    '.ba-tag{display:inline-block;font-size:13px;font-weight:800;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;}.ba-tag.k{background:#d3f9d8;color:#1b5e20;}.ba-tag.d{background:#dbe9ff;color:#0d3d73;}.ba-tag.s{background:#eee;color:#555;}.ba-tag.o{background:#fff3bf;color:#7a4b00;}' +
+    '.ba-tag{display:inline-block;font-size:13px;font-weight:800;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;}.ba-tag.k{background:#d3f9d8;color:#1b5e20;}.ba-tag.d{background:#dbe9ff;color:#0d3d73;}.ba-tag.s{background:#eee;color:#555;}.ba-tag.o{background:#fff3bf;color:#7a4b00;}.ba-mode{font-size:16px;font-weight:700;border-style:dashed;}' +
+    '.ba-q{font-size:28px;font-weight:900;line-height:1.2;text-align:center;margin:18px 4px 6px;}.ba-yes,.ba-no{min-height:88px;font-size:24px;}.ba-yes small,.ba-no small{display:block;font-size:15px;font-weight:700;margin-top:4px;}' +
+    '.ba-yes{background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border:2px solid #e0c56a;color:#4a2f1a;}' +
     '.ba-end{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;}.ba-end .ba-ok{grid-column:1/-1;}' +
     '.ba-goto{border:2px solid #1c5fa8;border-radius:16px;padding:12px;background:#f3f8ff;display:flex;flex-direction:column;gap:12px;}' +
     '.ba-gt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}.ba-gt button{min-height:72px;border-radius:14px;border:2px solid #7f9cc4;background:#fff;font:inherit;font-size:24px;font-weight:900;color:#0d3d73;cursor:pointer;padding:4px;line-height:1.05;}' +
@@ -616,7 +774,8 @@
   }
   function run(h, opts, info, voiceOn) {
     ensureCss(); close();
-    var st = { h: h, info: info, auto: autoNeeds(h, info), goto: false, steps: buildSteps(h, info), i: 0, res: {}, own: false, ownVal: null, ownType: null, ownUnit: null, ownProd: null, noteText: '', done: false, prefix: '' };
+    var bakim = opts.bakim != null ? !!opts.bakim : bakimPref() !== false;
+    var st = { h: h, info: info, bakim: bakim, auto: autoNeeds(h, info), goto: false, steps: buildSteps(h, info, bakim), i: 0, res: {}, own: false, ownVal: null, ownType: null, ownUnit: null, ownProd: null, noteText: '', done: false, prefix: '' };
     var back = document.createElement('div'); back.className = 'ba-back'; back.id = 'baSheet';
     back.innerHTML = '<div class="ba" role="dialog" aria-modal="true" aria-label="Hızlı muayene"><div class="ba-head"><div class="ba-t"><b data-ba-title></b><button type="button" class="ba-vt" data-ba-voice aria-pressed="false">🔈 Sesli<br>Kapalı</button><button type="button" class="ba-x" data-ba-close aria-label="Kapat">×</button></div>' +
       '<div class="ba-sub" data-ba-sub></div><div class="ba-bar"><i data-ba-bar></i></div></div><div class="ba-body" data-ba-body></div><div class="ba-foot" data-ba-foot></div></div>';
@@ -643,7 +802,7 @@
     function head() {
       var n = st.steps.length, fin = st.i >= n;
       back.querySelector('[data-ba-title]').textContent = 'Hızlı muayene · ' + st.h.name;
-      back.querySelector('[data-ba-sub]').textContent = (fin ? 'Özet' : 'Öneri ' + (st.i + 1) + ' / ' + n + (st.info ? ' · muayene kaydedildi' : '')) + (demo() ? ' · Demo' : '');
+      back.querySelector('[data-ba-sub]').textContent = (fin ? (st.bakim ? 'Özet' : 'Muayene kaydedildi') : 'Bakım ' + (st.i + 1) + ' / ' + n + (st.info ? ' · muayene kaydedildi' : '')) + (demo() ? ' · Demo' : '');
       back.querySelector('[data-ba-bar]').style.width = Math.round(((fin ? n : st.i) + 1) / (n + 1) * 100) + '%';
     }
     function fmtRec(s) { return s.kind === 'amount' ? s.fmt(s.rec, s.type) : s.recLabel; }
@@ -665,7 +824,7 @@
         if (s.sub) H += '<div class="ba-sub2">' + esc(s.sub(s.rec, s.type)) + '</div>';
         if (s.why) H += '<div class="ba-why">' + esc(s.why) + '</div>';
         if (r && r.out) H += '<div class="ba-done">✓ Kaydedildi: ' + esc(r.out.text) + (r.res.sug && r.res.sug !== 'kabul' ? ' <span class="ba-tag d">değiştirildi</span>' : ' <span class="ba-tag k">öneri</span>') + '<br><small style="font-weight:600;">Yeniden seçerseniz önceki kayıt silinir.</small></div>';
-        H += '<button type="button" class="ba-btn ba-ok" data-ba-ok>✓ Tamam (önerilen)</button>';
+        H += '<button type="button" class="ba-btn ba-ok" data-ba-ok>✓ Tamam (yaptım)</button>';
         if (s.kind === 'amount' && s.presets && !s.noPresets) {
           H += '<div class="ba-3" role="group" aria-label="Miktar seçenekleri">' + s.presets.map(function (p) {
             return '<button type="button" class="ba-btn' + (p.id === 'uygun' ? ' u' : '') + '" data-ba-pre="' + p.id + '">' + presetLabel(p.id) + '<b>' + esc(num(p.v) + ' ' + UNIT_TXT[s.unit]) + '</b></button>';
@@ -827,7 +986,11 @@
     function sumLines() {
       var L = [];
       if (st.info) L.push({ ic: '🔍', t: 'Muayene kaydedildi', s: (st.info.lines || []).slice(0, 4).join(' · '), tag: '' });
-      (st.auto || []).forEach(function (x) { L.push(x); });
+      /* Hayır modunda öneri gösterilmez (ihtiyaçlar sessizce kaydedildi); Evet modunda yalnız hâlâ açık kalan ihtiyaçlar */
+      if (st.bakim) {
+        var openIds = {}; try { D.taskStore.open().forEach(function (x) { openIds[x.id] = true; }); } catch (e) { /* ignore */ }
+        (st.auto || []).forEach(function (x) { if (!x.tid || openIds[x.tid]) L.push(x); });
+      }
       st.steps.forEach(function (s) {
         var r = st.res[s.key], recTxt = s.kind === 'amount' ? s.fmt(s.rec, s.type) : s.recLabel;
         if (!r || r.skipped) { if (s.kind !== 'note') L.push({ ic: s.icon, t: s.title + ': atlandı', s: 'Öneri: ' + recTxt, tag: 's' }); return; }
@@ -838,7 +1001,7 @@
     function sumSpeech() {
       var did = st.steps.filter(function (s) { var r = st.res[s.key]; return r && r.out; }).map(function (s) { return st.res[s.key].out.say; });
       var nx = nextHive();
-      var au = (st.auto || []).length ? 'İhtiyaçları görevlere ekledim. ' : '';
+      var au = st.bakim && (st.auto || []).length ? 'Yapılmayan ihtiyaçlar görevlerde. ' : '';
       return st.h.name + ' tamam. ' + (did.length ? 'Yapılanlar: ' + did.join(', ') + '. ' : '') + au + (nx ? 'Sıradaki kovan ' + nx.name + '. ' : 'Sırada bekleyen kovan yok. ') + 'Sonraki, bitir, ya da kovan numarasını söyleyip geç deyin.';
     }
     function renderSum(speak) {
@@ -853,12 +1016,13 @@
           '<button type="button" class="ba-btn ba-own" data-ba-gotoopen aria-expanded="' + (st.goto ? 'true' : 'false') + '">Kovan … geç</button>' +
           '<button type="button" class="ba-btn ba-skip" data-ba-finish>■ Bitir</button>' +
         '</div>' + (st.goto ? gotoPanel() : '') +
+        '<button type="button" class="ba-btn ba-mode" data-ba-mode aria-label="Bakım modu değiştir">Sonraki kovanlarda bakım: <b>' + (bakimPref() === false ? 'Hayır' : 'Evet') + '</b> · değiştir</button>' +
         '<div class="ba-sum">' + L.map(function (x) {
           return '<div class="ba-row"><span>' + x.ic + '</span><div>' + esc(x.t) + (x.tag === 'k' ? '<span class="ba-tag k">öneri kabul</span>' : x.tag === 'd' ? '<span class="ba-tag d">değiştirildi</span>' : x.tag === 's' ? '<span class="ba-tag s">atlandı</span>' : x.tag === 'o' ? '<span class="ba-tag o">otomatik</span>' : '') + (x.s ? '<small>' + esc(x.s) + '</small>' : '') + '</div></div>';
         }).join('') + '</div>';
       H += '<button type="button" class="ba-btn" data-ba-hive>Kovan detayı</button>';
       body.innerHTML = H;
-      foot.innerHTML = '<button type="button" class="ba-btn" data-ba-back>← Geri</button><button type="button" class="ba-btn ba-skip" data-ba-finish>Bitir</button>';
+      foot.innerHTML = st.steps.length ? '<button type="button" class="ba-btn" data-ba-back>← Geri</button><button type="button" class="ba-btn ba-skip" data-ba-finish>Bitir</button>' : '<button type="button" class="ba-btn ba-skip" data-ba-finish style="grid-column:1/-1;">Bitir</button>';
       if (st.goto) { var gp = back.querySelector('.ba-goto'); if (gp && gp.scrollIntoView) gp.scrollIntoView({ block: 'start' }); } else body.scrollTop = 0;
       if (speak !== false && V.on) promptVoice();
     }
@@ -913,6 +1077,7 @@
       if (t.hasAttribute('data-ba-fwd')) { var s1 = step(); if (s1 && st.res[s1.key]) { st.i++; st.own = false; st.ownVal = null; render(); } else skip(true); return; }
       if (t.hasAttribute('data-ba-back')) { goBack(); return; }
       if (t.hasAttribute('data-ba-nexthive')) { goNextHive(); return; }
+      if (t.hasAttribute('data-ba-mode')) { setBakimPref(bakimPref() === false); opts.bakim = bakimPref(); render(false); return; }
       if (t.hasAttribute('data-ba-gotoopen')) { st.goto = !st.goto; render(false); return; }
       if (t.hasAttribute('data-ba-goto')) { goToHive(t.getAttribute('data-ba-goto')); return; }
       if (t.hasAttribute('data-ba-hive')) { var id = st.h.id; close(); location.href = 'kovan.html?id=' + encodeURIComponent(id); return; }
@@ -920,8 +1085,44 @@
     });
     back.addEventListener('input', function (e) { if (e.target.hasAttribute('data-ba-note')) st.noteText = e.target.value; });
     if (voiceOn) setVoice(true);
-    if (st.info) st.prefix = 'Muayeneyi kaydettim. Şimdi öneriler.';
+    if (st.info) st.prefix = st.bakim && st.steps.length ? 'Muayeneyi kaydettim. Şimdi bakım.' : 'Muayeneyi kaydettim.';
     render();
+  }
+
+  /** Başlangıç sorusu (dokunma + ses): «Muayeneyle birlikte bakım da yapacak mısın?» → cb(true|false). Seçim bu oturum için saklanır. */
+  function askMode(cb, o) {
+    o = o || {}; ensureCss(); close();
+    var back = document.createElement('div'); back.className = 'ba-back'; back.id = 'baSheet';
+    back.innerHTML = '<div class="ba" role="dialog" aria-modal="true" aria-label="Bakım sorusu"><div class="ba-head"><div class="ba-t"><b>Hızlı muayene' + (o.hive ? ' · ' + esc(o.hive.name) : '') + '</b><button type="button" class="ba-x" data-q-close aria-label="Kapat">×</button></div>' +
+      '<div class="ba-sub">' + (demo() ? 'Demo' : '') + '</div></div><div class="ba-body">' +
+      '<div class="ba-vbar" data-q-vbar hidden><i></i><span></span></div>' +
+      '<div class="ba-q">Muayeneyle birlikte bakım da yapacak mısın?</div>' +
+      '<div class="ba-why" style="text-align:center;">Evet: her kovanın muayenesinden sonra bakım kartları (besleme, ilaçlama, temizlik, kapı daraltma, çerçeve/kat…) gelir. Hayır: yalnız muayene; ihtiyaçlar sessizce Görevler’e yazılır.</div>' +
+      '<button type="button" class="ba-btn ba-yes" data-q="1">✓ Evet<small>muayene + bakım</small></button>' +
+      '<button type="button" class="ba-btn ba-no" data-q="0">Hayır<small>yalnız muayene</small></button>' +
+      '<div class="ba-why" style="text-align:center;">Seçim bu oturum için hatırlanır; Sıra başlığından veya kovan sonunda değiştirebilirsiniz.' + (voicePref() ? ' Sesle: «evet» / «hayır».' : '') + '</div></div></div>';
+    document.body.appendChild(back); document.body.style.overflow = 'hidden';
+    var done = false;
+    function pick(v) { if (done) return; done = true; setBakimPref(v); if (V) V.off(true); close(); cb(v); }
+    var V = null;
+    if (voicePref()) {
+      V = new Voice(function (alts) {
+        for (var i = 0; i < alts.length; i++) {
+          var f = fold(alts[i]);
+          if (/\b(hayir|yalniz muayene|yapmayacagim|istemiyorum|yok)\b/.test(f)) { V.say('Tamam, yalnız muayene.', function () { pick(false); }); return; }
+          if (/\b(evet|yapacagim|olur|tamam|bakim da)\b/.test(f)) { V.say('Tamam, muayeneyle birlikte bakım.', function () { pick(true); }); return; }
+        }
+        V.say('Evet ya da hayır deyin.');
+      }, function (m, txt) { var vb = back.querySelector('[data-q-vbar]'); if (!vb) return; vb.hidden = false; vb.querySelector('span').textContent = m === 'say' ? '🔊 ' + txt : (m === 'listen' ? '🎙 Dinliyorum… «evet» / «hayır»' : ''); vb.querySelector('i').className = m === 'listen' ? 'on' : ''; });
+      cur = { voice: V };
+      V.start();
+      need('sesle-muayene.js', 'SuperAriSesle').catch(function () { return null; }).then(function () { if (!done) V.say('Muayeneyle birlikte bakım da yapacak mısın? Evet ya da hayır deyin.'); });
+    }
+    back.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
+      if (t.hasAttribute('data-q')) { pick(t.getAttribute('data-q') === '1'); return; }
+      if (t.hasAttribute('data-q-close')) { done = true; if (V) V.off(true); close(); if (o.onCancel) o.onCancel(); }
+    });
   }
 
   API.open = open;
@@ -933,6 +1134,9 @@
   API.markDone = markDone;
   API.autoNeeds = autoNeeds;
   API.voicePref = voicePref;
+  API.bakimPref = bakimPref;
+  API.setBakimPref = setBakimPref;
+  API.askMode = askMode;
   API.setVoicePref = setVoicePref;
   global.SuperAriBakimAkis = API;
 })(typeof window !== 'undefined' ? window : this);

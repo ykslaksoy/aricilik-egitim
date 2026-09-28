@@ -946,15 +946,21 @@
   .bk-top .bee-sound-toggle { margin-left: 2px; }
   .bk-top .bee-sound-toggle { position: relative; }
   .bk-top .bee-sound-toggle::after { content: ""; position: absolute; left: -2px; right: -2px; top: -14px; bottom: -14px; } /* dokunma alanı ≥ 48px yükseklik */
-  .ak-start { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; margin: 0 0 8px; padding: 8px 12px;
+  /* Başlat düğmesi Kapsam kartının içinde, krem not şeridinin yerinde (kart yüksekliği Bakım ile aynı: 205 px) */
+  .ak-start { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; margin: 0; padding: 6px 12px; box-sizing: border-box;
     border-radius: 14px; font: inherit; font-size: 17px; cursor: pointer; -webkit-tap-highlight-color: transparent;
     /* Ana'daki Hardal Arıcılık marka şeridinin renkleri (ana.html .brand-strip) */
     background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%); border: 1px solid #e0c56a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65); color: var(--brown); font-weight: 800; }
   .ak-start:active { transform: scale(.99); background: rgba(244, 227, 176, 0.85); }
   .ak-start[disabled] { opacity: .5; }
-  .ak-start small { display: inline-block; font-size: 11.5px; font-weight: 700; margin-top: 3px; padding: 1px 8px; border-radius: 999px; /* «Sabitlendi» hapının koyu altını */ background: rgba(240, 196, 58, 0.28); border: 1px solid rgba(184, 134, 11, 0.55); color: var(--brown-mid, #5c3a1f); }
+  .ak-start small { display: inline-block; font-size: 11px; font-weight: 700; margin-top: 3px; padding: 1px 8px; border-radius: 999px; /* «Sabitlendi» hapının koyu altını */ background: rgba(240, 196, 58, 0.28); border: 1px solid rgba(184, 134, 11, 0.55); color: var(--brown-mid, #5c3a1f); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ak-start .t b { font-size: 16px; font-weight: 800; }
+  .ak-start .t { flex: 0 1 auto; }
+  .ak-mode { position: relative; flex: 0 0 auto; min-width: 64px; padding: 3px 9px; border: 1px solid rgba(184, 134, 11, 0.55); border-radius: 999px; background: rgba(240, 196, 58, 0.28); color: var(--brown, #4a2f1a); font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .ak-mode::after { content: ""; position: absolute; left: -4px; right: -4px; top: -10px; bottom: -10px; }
+  .ak-sec { align-items: center; margin-top: 2px; }
   .ak-start .t { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; text-align: left; line-height: 1.15; }
-  .ak-sec { flex: 0 0 auto; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 2px 5px; font-size: 12px; font-weight: 800; color: var(--brown-mid); }
+  .ak-sec { flex: 0 0 auto; display: flex; justify-content: space-between; gap: 8px; margin: 0 2px 5px; font-size: 12px; font-weight: 800; color: var(--brown-mid); }
   .ak-sec small { font-size: 10.5px; font-weight: 700; color: var(--muted); }
   /* Sıra: Ana'daki 3 sütun döşeme, aynı satır yüksekliği (Ana 375×812'de 122 px) */
   .ak-grid { flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 122px; gap: 5px; }
@@ -975,8 +981,7 @@
 
   <div class="screen" id="akScreen">
     <section id="akScope" aria-label="Muayene kapsamı"></section>
-    <button type="button" class="ak-start" id="akStart"><span aria-hidden="true">▶</span><span class="t">Hızlı muayene başlat<small id="akStartSub"></small></span></button>
-    <div class="ak-sec"><span>Sıra</span><small>öncelikliler üstte · bugün yapılanlar en altta</small></div>
+    <div class="ak-sec"><span>Sıra <small>· öncelikliler üstte, bugün yapılanlar altta</small></span><button type="button" class="ak-mode" id="akMode" aria-label="Bakım modu">Bakım: ?</button></div>
     <section class="ak-grid" id="akList" aria-label="Muayene sırası"></section>
     <p class="ak-note" id="akNote"></p>
   </div>
@@ -989,16 +994,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-59"></script>
-<script src="sensor-health.js?v=koloni-59"></script>
-<script src="saglik-canli.js?v=koloni-59"></script>
-<script src="koloni.js?v=koloni-59"></script>
-<script src="ilac-katalog.js?v=koloni-59"></script>
-<script src="bakim-plan.js?v=koloni-59"></script>
-<script src="mic-session.js?v=koloni-59"></script>
-<script src="kolay-muayene.js?v=koloni-59"></script>
-<script src="bakim-akis.js?v=koloni-59"></script>
-<script src="kapsam.js?v=koloni-59"></script>
+<script src="demo-data.js?v=koloni-60"></script>
+<script src="sensor-health.js?v=koloni-60"></script>
+<script src="saglik-canli.js?v=koloni-60"></script>
+<script src="koloni.js?v=koloni-60"></script>
+<script src="ilac-katalog.js?v=koloni-60"></script>
+<script src="bakim-plan.js?v=koloni-60"></script>
+<script src="mic-session.js?v=koloni-60"></script>
+<script src="kolay-muayene.js?v=koloni-60"></script>
+<script src="bakim-akis.js?v=koloni-60"></script>
+<script src="kapsam.js?v=koloni-60"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, A = window.SuperAriBakimAkis, KS = window.SuperAriKapsam;
@@ -1046,7 +1051,7 @@
     $('akNote').textContent = 'Muayene normal muayene kaydı olarak saklanır. Besleme ve varroa/ilaç ihtiyacı muayeneden otomatik çıkarılıp Görevler, Uyarılar ve Beslenme’ye işlenir (ilaç uygulanmış sayılmaz, doz yazılmaz).' + (KS.live() ? '' : ' Demo verisi.');
   }
   ctl = KS.mount($('akScope'), {
-    bk: true, title: 'Muayene', icon: KS.ICON_MUAYENE.replace('class="ks-ico"', 'class="weather-icon"'), page: 'bakim-akis.html', topExtra: TOGGLE,
+    bk: true, bottom: '<button type="button" class="ak-start" id="akStart"><span aria-hidden="true">▶</span><span class="t"><b>Hızlı muayene başlat</b><small id="akStartSub"></small></span></button>', title: 'Muayene', icon: KS.ICON_MUAYENE.replace('class="ks-ico"', 'class="weather-icon"'), page: 'bakim-akis.html', topExtra: TOGGLE,
     initial: q.get('apiary') || (hh0 ? String(hh0.apiaryId) : ''),
     stats: function (hs, scope, s) {
       return [
@@ -1057,23 +1062,26 @@
         { k: 'saat', v: s.lastTxt, l: 'Son muayene', href: kolHref('guc') }
       ];
     },
-    note: function (hs, scope, s) {
-      if (!s.hives) return { t: 'Bu kapsamda kovan yok — Kovanlar’dan ekleyin', b: 'Kovanlar', href: 'kovanlar.html', k: 'bos' };
-      if (s.critical) return { t: '⚠️ ' + s.critical + ' kritik uyarı — sıra bu kovanlarla başlar', b: 'Başlat', href: '#akStart', k: 'start' };
-      if (s.overdue) return { t: '🔍 ' + s.overdue + ' kovanın muayenesi 21 günü geçti', b: 'Başlat', href: '#akStart', k: 'start' };
-      return { t: '✓ Muayeneler güncel' + (s.last ? ' · son muayene ' + s.lastTxt.toLocaleLowerCase('tr') : ''), b: 'Başlat', href: '#akStart', k: 'start' };
-    },
+    note: function () { return null; },
     onChange: function (scope, hs) { renderList(hs); }
   });
-  function render() { ctl.render(); voiceBtn(); }
-  function start(id) { A.open(id, { apiary: ap(), onClose: render }); }
+  function render() { ctl.render(); voiceBtn(); if ($('akMode')) modeBtn(); }
+  function modeBtn() { var v = A.bakimPref(); $('akMode').textContent = 'Bakım: ' + (v == null ? 'sorulacak' : (v ? 'Evet' : 'Hayır')); $('akMode').setAttribute('aria-label', 'Muayeneyle birlikte bakım: ' + (v == null ? 'başlarken sorulur' : (v ? 'Evet' : 'Hayır')) + ' — değiştir'); }
+  /* Başlarken tek soru: «Muayeneyle birlikte bakım da yapacak mısın?» (bu oturum için hatırlanır) */
+  function start(id) {
+    var go = function (v) { modeBtn(); A.open(id, { apiary: ap(), bakim: v, onClose: render }); };
+    var v = A.bakimPref();
+    if (v == null) A.askMode(go, { hive: D.hiveById(id), onCancel: render }); else go(v);
+  }
+  $('akMode').addEventListener('click', function () { var v = A.bakimPref(); A.setBakimPref(v == null ? true : (v ? false : null)); modeBtn(); });
   function startFirst() { var Q = queue(ctl.hives()); var h = (Q.open[0] || Q.rows[0] || {}).hive; if (h) start(h.id); }
   $('akScope').addEventListener('click', function (e) {
     var v = e.target.closest && e.target.closest('#akVoice');
     if (v) { e.preventDefault(); var on = !A.voicePref(); A.setVoicePref(on); voiceBtn(); if (on && window.SuperAriMic) window.SuperAriMic.warm(); return; }
     var n = e.target.closest && e.target.closest('[data-ks-note]'); if (n && n.getAttribute('data-note') === 'start') { e.preventDefault(); startFirst(); }
   });
-  $('akStart').addEventListener('click', startFirst);
+  $('akScope').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#akStart')) startFirst(); });
+  modeBtn();
   $('akList').addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) start(b.getAttribute('data-id')); });
   $('akList').addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; var b = e.target.closest('[data-id]'); if (b) { e.preventDefault(); start(b.getAttribute('data-id')); } });
   window.addEventListener('superari-records-changed', function () { if (!document.getElementById('baSheet') && !document.getElementById('kmSheet')) render(); });
@@ -1084,7 +1092,7 @@
   if (hh0) setTimeout(function () { start(hh0.id); }, 150);
 })();
 </script>
-<script src="nav.js?v=koloni-59"></script>
-<script src="pwa.js?v=koloni-59"></script>
+<script src="nav.js?v=koloni-60"></script>
+<script src="pwa.js?v=koloni-60"></script>
 </body>
 </html>
