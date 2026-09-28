@@ -35,6 +35,39 @@
     .bk-more{font:inherit;font-size:.82rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
+    /* Bakım bölüm düğmeleri — Ana ekran kartlarının birebir kopyası (ana.html .tile / .hive / .badge) */
+    .bkg{--card:#f4f5f7;--card-border:#e4e6ea;--brown-mid:#5c3a1f;--wood-hi:#e8c48e;--wood-lo:#c99755;--wood-edge:#8a6030;--hardal:#d4a017;
+      --green:#2f9e44;--green-bg:#d8f3dc;--tan-bg:#efe2cb;--tan-fg:#7a5a32;--blue:#1c7ed6;--blue-bg:#d0ebff;--red:#e03131;--red-bg:#ffe3e3;--purple:#7048e8;--purple-bg:#e5dbff;
+      display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+    .bkg .tile{background:var(--card);border:1px solid var(--card-border);border-radius:14px;position:relative;overflow:hidden;min-height:96px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px;box-sizing:border-box;text-decoration:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;min-width:0;}
+    .bkg .tile:focus-visible{outline:2px solid var(--hardal);outline-offset:2px;}
+    .bkg .tile:active{transform:scale(.985);}
+    .bkg .hive-area{position:relative;flex:0 0 auto;width:100%;display:flex;align-items:center;justify-content:center;}
+    .bkg .hive{width:58px;height:54px;position:relative;flex:0 0 auto;}
+    .bkg .hive-stack{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:44px;display:flex;flex-direction:column;align-items:stretch;}
+    .bkg .hive-lid{width:50px;height:6px;margin-left:-3px;background:linear-gradient(180deg,#f4f5f7 0%,#c8ccd2 48%,#9aa1aa 100%);border-radius:2px 2px 1px 1px;box-shadow:0 1px 0 #7c828a;position:relative;z-index:1;}
+    .bkg .hive-lid::after{content:"";position:absolute;left:50%;top:2.5px;transform:translateX(-50%);width:14px;height:1.5px;border-radius:1px;background:rgba(60,60,70,.45);}
+    .bkg .hive-box{height:18px;width:100%;background-color:var(--wood-hi);
+      background-image:repeating-linear-gradient(90deg,rgba(90,52,16,.07) 0 1px,transparent 1px 6px),linear-gradient(180deg,rgba(255,248,230,.35),transparent 42%,rgba(90,50,14,.16));
+      border-left:1px solid var(--wood-edge);border-right:1px solid var(--wood-edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);position:relative;box-sizing:border-box;}
+    .bkg .hive-box.top{border-top:1px solid var(--wood-edge);}
+    .bkg .hive-box.bottom{border-bottom:1px solid var(--wood-edge);border-top:1px solid var(--wood-edge);}
+    .bkg .hive-box::before,.bkg .hive-box::after{content:"";position:absolute;top:2px;bottom:2px;width:4px;background:repeating-linear-gradient(180deg,#7a5224 0 3px,#e0b87a 3px 7px);pointer-events:none;}
+    .bkg .hive-box::before{left:0;}.bkg .hive-box::after{right:0;}
+    .bkg .hive-entrance{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:10px;height:2px;background:#2a1a0c;border-radius:0 0 1px 1px;z-index:1;}
+    .bkg .hive-feet{display:flex;justify-content:space-between;padding:0 2px;margin-top:2px;}
+    .bkg .hive-feet span{width:7px;height:4px;background:var(--wood-lo);border-radius:1px;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
+    .bkg .hive-shadow{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:38px;height:3px;background:radial-gradient(ellipse,rgba(0,0,0,.12),transparent 70%);}
+    .bkg .hive-icon{position:absolute;left:50%;top:26px;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:3;pointer-events:none;}
+    .bkg .hive-icon img{width:100%;height:100%;display:block;border-radius:50%;object-fit:contain;mix-blend-mode:multiply;}
+    .bkg .hive-icon.hive-icon-burn{width:28px;height:28px;border-radius:0;overflow:visible;display:grid;place-items:center;}
+    .bkg .hive-icon.hive-icon-burn svg{width:100%;height:100%;display:block;fill:none;stroke:#1a0c06;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round;mix-blend-mode:multiply;}
+    .bkg .hive-icon .burn-ring{fill:none;stroke:#160a05;stroke-width:1.55;}
+    .bkg .tile-label{flex:0 0 auto;width:100%;margin-top:1px;font-size:10px;font-weight:700;color:var(--brown-mid);line-height:1.1;text-align:center;}
+    .bkg .badge{flex:0 0 auto;margin-top:2px;padding:1px 7px;border-radius:999px;font-size:9px;font-weight:700;line-height:1.35;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box;}
+    .bkg .badge.green{background:var(--green-bg);color:var(--green);}.bkg .badge.tan{background:var(--tan-bg);color:var(--tan-fg);}
+    .bkg .badge.blue{background:var(--blue-bg);color:var(--blue);}.bkg .badge.red{background:var(--red-bg);color:var(--red);}.bkg .badge.purple{background:var(--purple-bg);color:var(--purple);}
   </style>
 </head>
 <body data-tabbar="fixed">
@@ -60,6 +93,12 @@
       </div>
       <div class="bk-stats" id="bkStats"></div>
       <p class="muted" id="bkMode" style="margin:0;font-size:.8rem;"></p>
+    </section>
+
+    <section class="card stack" style="margin-top:1rem;" aria-label="Bakım bölümleri">
+      <h2 class="bk-h">🧰 Bölümler</h2>
+      <div class="bkg" id="bkGrid" role="navigation" aria-label="Bakım bölümleri"></div>
+      <div id="bkWinter"></div>
     </section>
 
     <section class="card stack" style="margin-top:1rem;">
@@ -90,9 +129,11 @@
 
     <div class="note" style="margin-top:1rem;">Bakım, Koloni sayfasındaki kovan kayıtlarını okur (tek kaynak). Kovana dokununca kovan detayı ve bakım geçmişi açılır.</div>
   </main>
-  <script src="demo-data.js?v=koloni-50"></script>
-  <script src="rapor-store.js?v=koloni-50"></script>
-  <script src="koloni.js?v=koloni-50"></script>
+  <script src="demo-data.js?v=koloni-51"></script>
+  <script src="rapor-store.js?v=koloni-51"></script>
+  <script src="koloni.js?v=koloni-51"></script>
+  <script src="ilac-katalog.js?v=koloni-51"></script>
+  <script src="bakim-plan.js?v=koloni-51"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -133,9 +174,66 @@
         (x.task ? '<button type="button" class="bk-done-btn" data-done="' + esc(x.id) + '" aria-label="Tamamlandı olarak işaretle">✓ Bitti</button>' : '<span></span>') + '</div>';
     }
     function hiveHref(h) { return 'kovan.html?id=' + encodeURIComponent(h.id) + '#btBox'; }
+    /* ---- Bölüm düğmeleri (Ana ekran kartlarıyla aynı görünüm) ---- */
+    var P = window.SuperAriPlan;
+    var BURN = {
+      muayene: '<circle cx="10.6" cy="10.6" r="3.9"/><path d="M13.4 13.4 17.2 17.2"/>',
+      besleme: '<path d="M12 5.6c2.5 3.2 3.9 5.4 3.9 7.4a3.9 3.9 0 0 1-7.8 0c0-2 1.4-4.2 3.9-7.4z"/><path d="M10.4 13.4a1.7 1.7 0 0 0 1.6 1.5"/>',
+      ilac: '<path d="M10.2 6.2h3.6M10.8 6.2v2.4l-2.2 2.6v6.6h6.8v-6.6l-2.2-2.6V6.2"/><path d="M8.6 13.4h6.8"/>',
+      hasat: '<rect x="8" y="9.4" width="8" height="8.4" rx="1.6"/><path d="M8.7 9.4V7.3h6.6v2.1"/><path d="M8 12.7h8"/>',
+      kis: '<path d="M12 6v12M6.8 9l10.4 6M6.8 15l10.4-6"/><path d="M10.6 6.9 12 8.3l1.4-1.4M10.6 17.1 12 15.7l1.4 1.4"/>',
+      yavru: '<path d="M12 6.3l4.6 2.65v5.3L12 16.9l-4.6-2.65v-5.3z"/><circle cx="12" cy="11.6" r="1.7"/>',
+      plan: '<rect x="6.8" y="7.6" width="10.4" height="9.6" rx="1.2"/><path d="M6.8 10.6h10.4M9.6 6.2v2.6M14.4 6.2v2.6"/><path d="M9.4 13.6l1.6 1.6 3-3"/>',
+      stok: '<path d="M6.8 9.4 12 6.8l5.2 2.6v5.4L12 17.4l-5.2-2.6z"/><path d="M6.8 9.4 12 12l5.2-2.6M12 12v5.4"/>'
+    };
+    function hiveHTML(key) {
+      var emblem = key === 'gorevler'
+        ? '<div class="hive-icon" aria-hidden="true"><img src="assets/emblems/gorevler.png" alt="" width="26" height="26" /></div>'
+        : '<div class="hive-icon hive-icon-burn" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="burn-ring" cx="12" cy="12" r="10.2"/>' + BURN[key] + '</svg></div>';
+      return '<div class="hive-area"><div class="hive"><div class="hive-stack"><div class="hive-lid"></div><div class="hive-box top"></div>' +
+        '<div class="hive-box bottom"><div class="hive-entrance"></div></div><div class="hive-feet"><span></span><span></span></div></div>' +
+        '<div class="hive-shadow"></div>' + emblem + '</div></div>';
+    }
+    function kolHref(topic, extra) {
+      return 'kovanlar.html?view=koloni&topic=' + topic + (extra || '') + (scope !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(scope) : '&mode=all');
+    }
+    function renderGrid(hs, m) {
+      var today = R.todayLocal(), all = R.loadAll(), inScope = {};
+      hs.forEach(function (h) { inScope[String(h.id)] = true; });
+      var noInsp = 0, brood = 0, harvestN = 0, winterRec = 0, yr = today.slice(0, 4);
+      hs.forEach(function (h) {
+        var st = R.status(h.id, all);
+        if (!st.strength || st.strength.date < R.addDays(today, -21)) noInsp++;
+        if (st.broodIssue) brood++;
+        (st.records.harvest || []).forEach(function (x) { if (String(x.date || '').slice(0, 4) === yr) harvestN++; });
+        try { if (R.winterStatus(h.id, all).rec) winterRec++; } catch (e) { /* ignore */ }
+      });
+      var wsA = P && P.winterStockAll ? P.winterStockAll(hs) : null, wc = wsA ? wsA.counts : null;
+      var low = wc ? wc.kritik + wc.az : 0;
+      var tasks = D.taskStore ? D.taskStore.open().filter(function (t) { return scope === 'all' || String(t.apiaryId) === scope || (t.hiveId != null && inScope[String(t.hiveId)]); }).length : 0;
+      var stockLow = 0; try { stockLow = D.stock ? D.stock.list().filter(function (x) { return x.low; }).length : 0; } catch (e) { stockLow = 0; }
+      var tiles = [
+        { key: 'muayene', label: 'Muayene', href: kolHref('guc'), badge: hs.length ? (noInsp ? noInsp + ' bekliyor' : 'Güncel') : '—', tone: noInsp ? 'red' : 'green' },
+        { key: 'besleme', label: 'Beslenme', href: P && P.besHref ? P.besHref(scope !== 'all' ? scope : '') : kolHref('besleme'), badge: !wc || !hs.length ? '—' : (wc.kritik ? wc.kritik + ' kritik' : (wc.az ? wc.az + ' az' : (wc.yeterli ? 'Yeterli' : 'Veri yok'))), tone: wc && wc.kritik ? 'red' : (low ? 'tan' : (wc && wc.yeterli ? 'green' : 'tan')) },
+        { key: 'ilac', label: 'İlaçlama', href: kolHref('hastalik'), badge: m.withdrawal.length ? m.withdrawal.length + ' bekleme' : 'Yok', tone: m.withdrawal.length ? 'blue' : 'green' },
+        { key: 'hasat', label: 'Hasat', href: 'rapor-bal.html', badge: String(harvestN), tone: 'tan' },
+        { key: 'kis', label: 'Kışlık hazırlık', href: kolHref('besleme', '&sub=kis'), badge: hs.length ? winterRec + '/' + hs.length : '—', tone: 'tan' },
+        { key: 'yavru', label: 'Yavru', href: kolHref('yavru'), badge: brood ? brood + ' sorun' : (hs.length ? 'İyi' : '—'), tone: brood ? 'red' : 'green' },
+        { key: 'plan', label: 'Bakım planı', href: 'bakim-plan.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), badge: 'Plan', tone: 'purple' },
+        { key: 'stok', label: 'Stok', href: 'stok.html', badge: stockLow ? stockLow + ' az' : 'Tamam', tone: stockLow ? 'red' : 'green' },
+        { key: 'gorevler', label: 'Görevler', href: 'gorevler.html', badge: String(tasks), tone: 'blue' }
+      ];
+      document.getElementById('bkGrid').innerHTML = tiles.map(function (t) {
+        var show = t.badge && t.badge !== '—';
+        return '<a class="tile" data-key="' + t.key + '" href="' + esc(t.href) + '" aria-label="' + esc(t.label + (show ? ', ' + t.badge : '')) + '">' + hiveHTML(t.key) +
+          '<div class="tile-label">' + esc(t.label) + '</div>' + (show ? '<div class="badge ' + t.tone + '">' + esc(t.badge) + '</div>' : '') + '</a>';
+      }).join('');
+      document.getElementById('bkWinter').innerHTML = P && P.winterNoteHtml ? P.winterNoteHtml(hs, { apiary: scope !== 'all' ? scope : '' }) : '';
+    }
     function render() {
       var hs = hivesInScope();
       var m = K.maintenance(hs);
+      renderGrid(hs, m);
       var today = R.todayLocal();
       var apName = {}; aps.forEach(function (a) { apName[a.id] = a.name; });
       document.getElementById('bkStats').innerHTML =
@@ -209,7 +307,7 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-50"></script>
-<script src="pwa.js?v=koloni-50"></script>
+  <script src="nav.js?v=koloni-51"></script>
+<script src="pwa.js?v=koloni-51"></script>
 </body>
 </html>

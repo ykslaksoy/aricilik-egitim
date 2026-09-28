@@ -84,6 +84,7 @@
     <section class="card-block card-fill">
       <h2>Durum</h2>
       <p class="meta" id="avgLine" style="margin-bottom:10px"></p>
+      <div id="winterNote"></div>
       <div class="band-grid" id="bandGrid"></div>
       <div id="liveList" style="margin-top:12px;"></div>
     </section>
@@ -93,9 +94,11 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-50"></script>
-<script src="sensor-health.js?v=koloni-50"></script>
-<script src="saglik-canli.js?v=koloni-50"></script>
+<script src="demo-data.js?v=koloni-51"></script>
+<script src="sensor-health.js?v=koloni-51"></script>
+<script src="saglik-canli.js?v=koloni-51"></script>
+<script src="ilac-katalog.js?v=koloni-51"></script>
+<script src="bakim-plan.js?v=koloni-51"></script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
@@ -136,6 +139,8 @@
     document.getElementById('liveList').innerHTML = (rows ? '<div style="font-weight:800;font-size:.95rem;">Öncelikli kovanlar</div>' + rows : '') +
       (un ? '<p class="meta" style="margin-top:8px;">Veri az: ' + unl + (un > 3 ? ' +' + (un - 3) : '') + ' — skor için bir muayene yapın.</p>' : '');
   }
+  /* Kışlık stok bilgi notu (Eylül–Şubat, stok az/kritikse) — sağlık puanını etkilemez */
+  try { if (window.SuperAriPlan && window.SuperAriPlan.winterNoteHtml) document.getElementById('winterNote').innerHTML = window.SuperAriPlan.winterNoteHtml(D.loadHives()); } catch (eW) { /* ignore */ }
   document.getElementById('bandGrid').innerHTML = bands.map(function (b) {
     return '<a class="band-card tone-' + b.tone + '" href="saglik-detay.html?band=' + encodeURIComponent(b.key) + '">' +
       '<div class="count">' + b.count + '</div>' +
@@ -159,7 +164,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-50"></script>
-<script src="pwa.js?v=koloni-50"></script>
+<script src="nav.js?v=koloni-51"></script>
+<script src="pwa.js?v=koloni-51"></script>
 </body>
 </html>

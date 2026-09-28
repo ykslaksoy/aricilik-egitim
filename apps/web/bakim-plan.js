@@ -100,6 +100,9 @@
     if (/yayla/.test(nm)) return 'yayla';
     if (HIGH_IL.indexOf(a.il) >= 0) return 'yayla';
     if (WARM_IL.indexOf(a.il) >= 0) return 'sicak';
+    var inName = function (list) { return list.some(function (il) { return nm.indexOf(il.toLocaleLowerCase('tr')) >= 0; }); };
+    if (!a.il && inName(HIGH_IL)) return 'yayla';
+    if (!a.il && inName(WARM_IL)) return 'sicak';
     return 'iliman';
   }
   function profileKey(apId) {
@@ -278,6 +281,78 @@
     if (out.cold) out.note = 'Kış ortası: şurup yerine kek (fondan) tercih edin; hesap yalnız bilgi amaçlıdır.';
     out.stock = feedStock(type, out);
     return out;
+  }
+  /* ---------------- Kışlık stok takibi (Beslenme bölümü) ----------------
+   * Elle girilen kayıtlardan tahmin: kışlık kaydındaki ölçüm → yoksa son muayenedeki bal çerçeveleri; sonraki sonbahar beslemeleri eklenir.
+   * Hedef: bölge profili (sıcak kıyı / ılıman / yayla / yüksek) + ırk (yerli, tutumlu ırklar biraz daha az). Sensör gerekmez. */
+  var WS_FAC = { surup11: 0.5, surup21: 0.8, kek: 1, balli: 1, polen: 0 };
+  var THRIFTY = /kafkas|karniyol|carnica|anadolu|yerli|muğla|mugla|karadeniz|trakya|iran|yığılca|gökçeada|kars|ardahan/i;
+  var PROLIFIC = /italyan|ligustica|buckfast/i;
+  function winterSeasonNow(d) { var m = Number(String(d || today()).slice(5, 7)); return m >= 9 || m <= 2; }
+  function winterTarget(h) {
+    var pk = profileKey(h.apiaryId), pr = PROFILES[pk] || PROFILES.iliman;
+    var breed = String(h.breed || h.irk || '');
+    var adj = THRIFTY.test(breed) ? -2 : (PROLIFIC.test(breed) ? 2 : 0);
+    var kg = Math.max(10, pr.winterKg + adj);
+    return { kg: kg, profile: pk, profileLabel: pr.label, breed: breed, breedNote: adj < 0 ? 'tutumlu / yerli ırk' : (adj > 0 ? 'tüketimi yüksek ırk' : '') };
+  }
+  var WS_LABEL = { yeterli: 'Yeterli', az: 'Az', kritik: 'Kritik', yok: 'Veri yok' };
+  function winterStock(h) {
+    var R = D.records, rec = R.recordsFor(h.id), t = today();
+    var season = R.currentSeason ? R.currentSeason() : Number(t.slice(0, 4));
+    var autumnFrom = season + '-08-15';
+    var tg = winterTarget(h);
+    var ws = null; try { ws = R.winterStatus(h.id); } catch (e) { ws = null; }
+    var base = null, baseDate = null, src = null, s = rec.strength[0] || null;
+    if (ws && ws.rec && ws.rec.storesKg != null && ws.rec.storesKg !== '') { base = Number(ws.rec.storesKg); baseDate = ws.rec.date; src = 'olcum'; }
+    else if (s && s.honeyFrames != null && s.honeyFrames !== '' && s.date >= addDays(t, -120)) { base = Number(s.honeyFrames) * KG_PER_HONEY_FRAME; baseDate = s.date; src = 'muayene'; }
+    var fed = 0, nFeeds = 0;
+    rec.feed.forEach(function (f) {
+      if (!f.date || f.date < autumnFrom) return;
+      if (baseDate && f.date <= baseDate && !(f.date === baseDate && src === 'muayene' && /Bakım planı/.test(f.note || ''))) return;
+      var add = (Number(f.amount) || 0) * (WS_FAC[f.type] || 0);
+      if (add > 0) { fed += add; nFeeds++; }
+    });
+    var out = { hive: h, target: tg.kg, targetInfo: tg, src: src, baseDate: baseDate, feeds: nFeeds, inSeason: winterSeasonNow(t) };
+    if (base == null && !nFeeds) { out.kg = null; out.key = 'yok'; out.label = WS_LABEL.yok; out.srcText = 'Muayene (bal çerçevesi) veya kışlık kayıt yok'; return out; }
+    if (base == null) src = out.src = 'besleme';
+    out.kg = Math.round(((base || 0) + fed) * 10) / 10;
+    out.needKg = Math.max(0, Math.ceil((tg.kg - out.kg) * 2) / 2);
+    out.key = out.kg >= tg.kg ? 'yeterli' : (out.kg >= tg.kg * 0.65 ? 'az' : 'kritik');
+    out.label = WS_LABEL[out.key];
+    out.srcText = (src === 'olcum' ? 'kışlık kayıttaki ölçüm (' + fmt(baseDate) + ')' : (src === 'muayene' ? 'muayene ' + fmt(baseDate) + ' · ' + s.honeyFrames + ' ballı çerçeve' : 'yalnız sonbahar beslemeleri (muayene yok)')) +
+      (nFeeds && src !== 'besleme' ? ' + sonraki ' + nFeeds + ' besleme' : (src === 'besleme' ? ' · ' + nFeeds + ' kayıt' : ''));
+    return out;
+  }
+  function winterStockAll(hives) {
+    var rows = (hives || []).filter(function (h) { return h && h.colonyState !== 'birlestirildi'; }).map(winterStock);
+    var c = { yeterli: 0, az: 0, kritik: 0, yok: 0 };
+    rows.forEach(function (x) { c[x.key]++; });
+    return { rows: rows, counts: c };
+  }
+  function besHref(apId) {
+    return 'kovanlar.html?view=koloni&topic=besleme&sub=stok' + (apId ? '&mode=apiary&apiary=' + encodeURIComponent(apId) : '&mode=all');
+  }
+  /** Eylül–Şubat: stok az/kritikse kısa bilgi notu (Beslenme bölümüne bağlantı). Değilse ''. opts: { apiary, force } */
+  function winterNoteHtml(hives, opts) {
+    opts = opts || {};
+    if (!opts.force && !winterSeasonNow()) return '';
+    var list = hives || [];
+    var single = list.length === 1;
+    var a = winterStockAll(list), c = a.counts;
+    if (!c.az && !c.kritik) return '';
+    var red = c.kritik > 0;
+    var ap = opts.apiary || (single ? list[0].apiaryId : '');
+    var txt;
+    if (single) {
+      var x = a.rows[0];
+      txt = 'Kışlık stok ' + (red ? 'kritik' : 'az') + ' (≈ ' + num(x.kg) + ' kg / hedef ' + x.target + ' kg)';
+    } else {
+      txt = 'Kışlık stok ' + (red ? 'kritik: ' + c.kritik + ' kovan' + (c.az ? ', az: ' + c.az + ' kovan' : '') : 'az: ' + c.az + ' kovan');
+    }
+    return '<a class="sa-winter-note" href="' + besHref(ap) + '" style="display:block;text-decoration:none;margin:0 0 .6rem;padding:.55rem .7rem;border-radius:12px;font-size:.84rem;font-weight:700;line-height:1.35;' +
+      (red ? 'background:#fff5f5;border:1px solid #ffc9c9;color:#a61e1e;' : 'background:#fff8df;border:1px solid #f1d98b;color:#6b5314;') + '">' +
+      'ℹ️ ' + esc(txt) + ' — <span style="text-decoration:underline;">Beslenme bölümünden takip edin →</span></a>';
   }
   function feedStock(type, fp) {
     var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
@@ -650,6 +725,7 @@
     PROFILES: PROFILES, JOBS: JOBS, profileKey: profileKey, autoProfile: autoProfile, setProfile: setProfile,
     camBali: camBali, setCamBali: setCamBali, hasSuper: hasSuper, setSuper: setSuper, openKolayMuayene: openKM,
     phases: phases, phaseStatus: phaseStatus, flowAt: flowAt, nextFlowStart: nextFlowStart, addPhaseTasks: addPhaseTasks,
+    winterStock: winterStock, winterStockAll: winterStockAll, winterTarget: winterTarget, winterNoteHtml: winterNoteHtml, winterSeasonNow: winterSeasonNow, besHref: besHref,
     esc: esc, fmt: fmt, num: num, mode: mode, today: today, addDays: addDays, loadSt: loadSt, saveSt: saveSt
   };
 })(window);

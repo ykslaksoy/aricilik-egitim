@@ -987,6 +987,49 @@
       (rows.join('') || '<p class="muted">Kovan bulunamadı.</p>');
   }
 
+  /** Beslenme › Kışlık stok: kovan başına tahmini stok / hedef ve durum (Yeterli / Az / Kritik). bakim-plan.js gerekir. */
+  function winterStockHtml(hives) {
+    ensureGridCss();
+    var P = global.SuperAriPlan, r = R();
+    if (!P || !P.winterStockAll || !r) return '<p class="muted">Kışlık stok hesabı yüklenemedi.</p>';
+    var a = P.winterStockAll(hives || []), c = a.counts;
+    var tone = { yeterli: 'green', az: 'orange', kritik: 'red', yok: '' };
+    var rank = { kritik: 0, az: 1, yok: 2, yeterli: 3 };
+    var season = P.winterSeasonNow();
+    var head = '<div class="kr-info" style="display:grid;gap:.35rem;">' +
+      '<div style="font-weight:800;color:#5c4813;">❄️ Kışlık stok' + (season ? '' : ' <span style="font-weight:650;">(kış dönemi dışında: bilgi amaçlı)</span>') + '</div>' +
+      '<div class="kr-chips">' + chip('Kritik ' + c.kritik, c.kritik ? 'red' : '') + chip('Az ' + c.az, c.az ? 'orange' : '') + chip('Yeterli ' + c.yeterli, c.yeterli ? 'green' : '') + (c.yok ? chip('Veri yok ' + c.yok, '') : '') + '</div>' +
+      '<div style="font-weight:600;">Stok; kışlık kayıtta ölçtüğünüz miktardan, yoksa son muayenedeki ballı çerçevelerden tahmin edilir ve sonraki sonbahar beslemeleri eklenir. Hedef arılığın bölgesine ve ırka göre seçilir. Sensör gerekmez; «Stok gir» ile elle yazabilirsiniz.</div></div>';
+    var rows = a.rows.slice().sort(function (x, y) { return rank[x.key] - rank[y.key]; }).map(function (x) {
+      var h = x.hive;
+      var pct = x.kg != null ? Math.max(0, Math.min(100, Math.round(x.kg / x.target * 100))) : 0;
+      var barCol = x.key === 'yeterli' ? '#40c057' : (x.key === 'az' ? '#fab005' : '#fa5252');
+      var main = x.kg != null ? '≈ ' + num(x.kg) + ' kg / hedef ' + x.target + ' kg' + (x.needKg ? ' · eksik ≈ ' + num(x.needKg) + ' kg' : '') : 'Stok bilinmiyor · hedef ' + x.target + ' kg';
+      return '<div class="item-card kol-card" style="display:grid;gap:.3rem;">' +
+        '<div class="row"><h3>' + esc(h.name) + '</h3><span class="kr-chips">' + chip(x.label, tone[x.key]) + '</span></div>' +
+        '<div style="font-size:.86rem;font-weight:750;color:var(--ink,#1f2933);">' + esc(main) + '</div>' +
+        (x.kg != null ? '<div style="height:7px;border-radius:99px;background:#f1f3f5;overflow:hidden;"><i style="display:block;height:100%;width:' + pct + '%;background:' + barCol + ';"></i></div>' : '') +
+        '<div class="kol-links">' + esc(x.srcText) + ' · ' + esc(x.targetInfo.profileLabel.split(' (')[0] + (x.targetInfo.breedNote ? ' · ' + x.targetInfo.breedNote : '')) + '</div>' +
+        '<div style="display:flex;gap:.4rem;flex-wrap:wrap;">' +
+          '<button type="button" class="kr-row" data-hive="' + esc(h.id) + '" data-topic="kis" style="font:inherit;font-size:.78rem;font-weight:800;padding:.35rem .6rem;border-radius:10px;border:1px solid #e0c56a;background:#fff8df;color:#5c4813;cursor:pointer;">✍️ Stok gir</button>' +
+          '<button type="button" class="kr-row" data-hive="' + esc(h.id) + '" data-topic="besleme" style="font:inherit;font-size:.78rem;font-weight:800;padding:.35rem .6rem;border-radius:10px;border:1px solid var(--border,#ead9b3);background:#fff;color:#5c4813;cursor:pointer;">＋ Besleme</button>' +
+          '<button type="button" class="kr-row" data-hive="' + esc(h.id) + '" data-topic="guc" style="font:inherit;font-size:.78rem;font-weight:800;padding:.35rem .6rem;border-radius:10px;border:1px solid var(--border,#ead9b3);background:#fff;color:#5c4813;cursor:pointer;">🔍 Muayene</button>' +
+        '</div></div>';
+    });
+    var mode = r.workMode() === 'live' ? 'Canlı mod: yalnız sizin girdiğiniz kayıtlar.' : 'Demo mod: örnek kayıtlar «Demo» etiketlidir.';
+    return head + '<p class="kol-sub" style="margin:0;">' + a.rows.length + ' kovan. ' + mode + '</p>' + (rows.join('') || '<p class="muted">Kovan bulunamadı.</p>');
+  }
+  /** Beslenme kayıtları sekmesinin üstünde kısa özet + bağlantı. */
+  function winterStockLineHtml(hives, href) {
+    var P = global.SuperAriPlan;
+    if (!P || !P.winterStockAll) return '';
+    var c = P.winterStockAll(hives || []).counts;
+    var red = c.kritik > 0, warn = red || c.az > 0;
+    return '<a href="' + href + '" class="' + (warn ? (red ? 'kr-warn' : 'kr-info') : 'kr-info') + '" style="display:block;text-decoration:none;">❄️ Kışlık stok: ' +
+      (c.kritik ? c.kritik + ' kritik · ' : '') + (c.az ? c.az + ' az · ' : '') + c.yeterli + ' yeterli' + (c.yok ? ' · ' + c.yok + ' veri yok' : '') +
+      ' — <span style="text-decoration:underline;">Kışlık stok sekmesi →</span></a>';
+  }
+
   function histRow(title, sub, rec, kind, hiveId) {
     return '<div class="kr-hrow"><div class="top"><span>' + esc(title) + (rec.demo ? ' <span class="kr-chip">Demo</span>' : '') + '</span>' +
       '<button type="button" data-del="' + esc(rec.id) + '" data-kind="' + kind + '" data-hive="' + esc(hiveId) + '">Sil</button></div>' +
@@ -2175,6 +2218,8 @@
     gridHtml: gridHtml,
     openSoon: openSoon,
     topicListHtml: topicListHtml,
+    winterStockHtml: winterStockHtml,
+    winterStockLineHtml: winterStockLineHtml,
     openRecordSheet: openRecordSheet,
     openWinterSheet: openWinterSheet,
     timelineHtml: timelineHtml,

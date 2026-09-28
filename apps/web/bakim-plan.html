@@ -73,6 +73,7 @@
     <section class="card stack" style="margin-top:1rem;" id="liste">
       <div class="bp-ph-h"><h2 class="bp-h">📋 Arılık bakım listesi</h2><b id="bpCount" style="font-size:.9rem;"></b></div>
       <div class="bp-prog"><i id="bpBar"></i></div>
+      <div id="bpWinter"></div>
       <div class="bp-find">
         <input type="search" id="bpSearch" placeholder="Kovan no / adı" aria-label="Kovan ara" enterkeyhint="go" />
         <button type="button" class="bp-btn" id="bpQr">📷 QR okut</button>
@@ -100,10 +101,10 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="demo-data.js?v=koloni-50"></script>
-  <script src="ilac-katalog.js?v=koloni-50"></script>
-  <script src="bakim-plan.js?v=koloni-50"></script>
-  <script src="kovan-ara.js?v=koloni-50"></script>
+  <script src="demo-data.js?v=koloni-51"></script>
+  <script src="ilac-katalog.js?v=koloni-51"></script>
+  <script src="bakim-plan.js?v=koloni-51"></script>
+  <script src="kovan-ara.js?v=koloni-51"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -192,7 +193,8 @@
       if (window.SuperAriKovanAra) window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: openHive });
     });
     document.getElementById('bpReset').addEventListener('click', function () { renderList(true); });
-    function render() { renderTop(); renderList(); renderTl(); renderHives(); }
+    function renderWinter() { var el = document.getElementById('bpWinter'); if (el && P.winterNoteHtml) el.innerHTML = P.winterNoteHtml(D.hivesForApiary ? D.hivesForApiary(ap) : D.loadHives().filter(function (h) { return String(h.apiaryId) === ap; }), { apiary: ap }); }
+    function render() { renderTop(); renderWinter(); renderList(); renderTl(); renderHives(); }
     apEl.addEventListener('change', function () {
       ap = apEl.value; try { localStorage.setItem('superari.lastApiary.v1', ap); } catch (e) { /* ignore */ }
       history.replaceState(null, '', 'bakim-plan.html?apiary=' + encodeURIComponent(ap)); render();
@@ -206,11 +208,11 @@
       var m = document.querySelector('[data-msg="' + k + '"]');
       if (m) m.textContent = r.created ? r.created + ' görev eklendi (' + r.hives + ' kovan)' + (r.skipped ? ' · ' + r.skipped + ' zaten vardı' : '') + '.' : (r.hives ? 'Bu evrenin görevleri zaten ekli.' : 'Bu arılıkta kovan yok.');
     });
-    window.addEventListener('superari-records-changed', function () { renderList(); renderHives(); });
+    window.addEventListener('superari-records-changed', function () { renderWinter(); renderList(); renderHives(); });
     renderMed(); render();
   })();
   </script>
-  <script src="nav.js?v=koloni-50"></script>
-  <script src="pwa.js?v=koloni-50"></script>
+  <script src="nav.js?v=koloni-51"></script>
+  <script src="pwa.js?v=koloni-51"></script>
 </body>
 </html>

@@ -58,14 +58,16 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-50"></script>
-  <script src="rapor-store.js?v=koloni-50"></script>
-  <script src="sensor-health.js?v=koloni-50"></script>
-<script src="saglik-canli.js?v=koloni-50"></script>
-  <script src="koloni.js?v=koloni-50"></script>
-  <script src="irk-tahmin.js?v=koloni-50"></script>
-  <script src="kovan-ara.js?v=koloni-50"></script>
-  <script src="tarti-elle.js?v=koloni-50"></script>
+  <script src="demo-data.js?v=koloni-51"></script>
+  <script src="rapor-store.js?v=koloni-51"></script>
+  <script src="sensor-health.js?v=koloni-51"></script>
+<script src="saglik-canli.js?v=koloni-51"></script>
+  <script src="koloni.js?v=koloni-51"></script>
+  <script src="ilac-katalog.js?v=koloni-51"></script>
+  <script src="bakim-plan.js?v=koloni-51"></script>
+  <script src="irk-tahmin.js?v=koloni-51"></script>
+  <script src="kovan-ara.js?v=koloni-51"></script>
+  <script src="tarti-elle.js?v=koloni-51"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -84,7 +86,7 @@
       if (TOPIC_KEYS.indexOf(topic) < 0) topic = '';
       if (!topic && view === 'koloni' && (params.get('tab') === 'queens' || editHiveId)) topic = 'ana';
       var gridEl = document.getElementById('koloniGrid');
-      var sub = (topic === 'guc' || topic === 'besleme') && params.get('sub') === 'kis' ? 'kis' : '';
+      var sub = (topic === 'guc' || topic === 'besleme') && params.get('sub') === 'kis' ? 'kis' : (topic === 'besleme' && params.get('sub') === 'stok' ? 'stok' : '');
       function topicHref(t) {
         if (t === 'bolme' || t === 'tasima' || t === 'uretim') {
           return 'koloni-islem.html?islem=' + t + (apiaryFilter ? '&apiary=' + encodeURIComponent(apiaryFilter) : '');
@@ -288,7 +290,7 @@
         if (view === 'koloni' && K && koloniTopEl) {
           renderGrid(hives);
           if (topic === 'ana' || !topic) {
-            koloniTopEl.innerHTML = K.summaryHtml(hives, 'Tüm kovanlar · ana arı özeti') + BULK_BTN;
+            koloniTopEl.innerHTML = (window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(hives) : '') + K.summaryHtml(hives, 'Tüm kovanlar · ana arı özeti') + BULK_BTN;
             bindBulk('', function () { renderGrid(D.loadHives()); koloniTopEl.innerHTML = K.summaryHtml(D.loadHives(), 'Tüm kovanlar · ana arı özeti') + BULK_BTN; });
           } else {
             koloniTopEl.innerHTML = '<p class="kol-sub" style="margin:0;font-weight:700;">' + esc(K.TOPIC_LABEL[topic]) + ' · kayıt için tüm kovanları veya bir arılığı seçin.</p>';
@@ -397,13 +399,18 @@
           if (recTopic) {
             koloniTopEl.innerHTML = (topic === 'guc' || topic === 'besleme')
               ? '<div class="kol-tabs">' +
-                '<a class="' + (sub !== 'kis' ? 'on' : '') + '" href="' + subHref('') + '">' + (topic === 'guc' ? 'Güç kayıtları' : 'Besleme kayıtları') + '</a>' +
+                '<a class="' + (!sub ? 'on' : '') + '" href="' + subHref('') + '">' + (topic === 'guc' ? 'Güç kayıtları' : 'Besleme kayıtları') + '</a>' +
+                (topic === 'besleme' ? '<a class="' + (sub === 'stok' ? 'on' : '') + '" href="' + subHref('stok') + '">Kışlık stok</a>' : '') +
                 '<a class="' + (sub === 'kis' ? 'on' : '') + '" href="' + subHref('kis') + '">Kışlık hazırlık</a></div>'
               : '';
-            listEl.innerHTML = K.topicListHtml(listTopic, scopeHives);
+            if (sub === 'stok') { listEl.innerHTML = K.winterStockHtml(scopeHives); return; }
+            listEl.innerHTML = (topic === 'besleme' && !sub && K.winterStockLineHtml ? K.winterStockLineHtml(scopeHives, subHref('stok')) : '') +
+              (topic === 'guc' && window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(scopeHives, { apiary: effectiveMode === 'apiary' ? apiaryFilter : '' }) : '') +
+              K.topicListHtml(listTopic, scopeHives);
             return;
           }
-          koloniTopEl.innerHTML = K.summaryHtml(scopeHives, scopeName + ' · ana arı özeti') + BULK_BTN;
+          koloniTopEl.innerHTML = (window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(scopeHives, { apiary: effectiveMode === 'apiary' ? apiaryFilter : '' }) : '') +
+            K.summaryHtml(scopeHives, scopeName + ' · ana arı özeti') + BULK_BTN;
           var apNames = {};
           D.loadApiaries().forEach(function (a) { apNames[a.id] = a.name; });
           koloniTopEl.innerHTML += '<div class="kol-tabs">' +
@@ -421,7 +428,9 @@
         renderKoloni();
         if (!recTopic) bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
         noteEl.textContent = recTopic
-          ? (sub === 'kis'
+          ? (sub === 'stok'
+            ? 'Kışlık stok tahminidir: kışlık kayıtta ölçtüğünüz stok varsa o, yoksa son muayenedeki ballı çerçeveler esas alınır; sonraki sonbahar beslemeleri eklenir. Hedef arılığın bölgesine (sıcak kıyı ≈ 13–15 kg, ılıman ≈ 18–20 kg, yayla 20 kg ve üstü) ve ırka göre seçilir. Durum: Yeterli / Az / Kritik. Sağlık puanını değiştirmez.'
+            : sub === 'kis'
             ? 'Kışlık hazırlık kovan başına tek kayıttır; Koloni gücü ve Besleme aynı kaydı açar. Son güç kaydı Zayıf ise durum «Birleştirilmeli» önerilir; varroa ilacı Hastalık kayıtlarından otomatik okunur, kışlık stok önerisi sonbahar beslemelerinden toplanır.'
             : topic === 'besleme'
             ? 'Her beslemeyi tarih, tür ve miktarla girin; kovan geçmişi ve arılık toplamı burada görünür. Sonbahar beslemeleri kışlık stok önerisine eklenir.'
@@ -467,6 +476,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-50"></script>
+<script src="pwa.js?v=koloni-51"></script>
 </body>
 </html>
