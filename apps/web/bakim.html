@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-54 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-55 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
@@ -956,7 +956,7 @@
           <path d="M11.5 17l3 3 6-6.5" fill="none" stroke="#5c3a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span class="bk-title">Bakım</span>
-        <span class="bk-mode" id="bkMode">Canlı</span>
+        <span class="bk-mode demo" id="bkMode" hidden>Demo</span>
         <div class="weather-loc bk-sel">
           <div class="arilik-loc-controls">
             <button type="button" class="arilik-nav" id="bkPrev" aria-label="Önceki kapsam" title="Önceki">
@@ -984,12 +984,12 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-54"></script>
-<script src="rapor-store.js?v=koloni-54"></script>
-<script src="koloni.js?v=koloni-54"></script>
-<script src="ilac-katalog.js?v=koloni-54"></script>
-<script src="bakim-plan.js?v=koloni-54"></script>
-<script src="ekipman-store.js?v=koloni-54"></script>
+<script src="demo-data.js?v=koloni-55"></script>
+<script src="rapor-store.js?v=koloni-55"></script>
+<script src="koloni.js?v=koloni-55"></script>
+<script src="ilac-katalog.js?v=koloni-55"></script>
+<script src="bakim-plan.js?v=koloni-55"></script>
+<script src="ekipman-store.js?v=koloni-55"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, P = window.SuperAriPlan, E = window.SuperAriEkipman;
@@ -1097,8 +1097,8 @@
     $('bkLabel').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
     var multi = scopeList().length > 1;
     $('bkPrev').disabled = !multi; $('bkNext').disabled = !multi;
-    $('bkMode').textContent = live() ? 'Canlı' : 'Demo';
-    $('bkMode').className = 'bk-mode' + (live() ? '' : ' demo');
+    $('bkMode').textContent = 'Demo'; /* Mod rozeti yalnız Demo'da; Canlı'da gizli (boşluk kalmaz) */
+    $('bkMode').hidden = live();
     var wc = M.wc || null, season = P && P.winterSeasonNow ? P.winterSeasonNow() : true;
     var bes = P && P.besHref ? P.besHref(scope !== 'all' ? scope : '') : kolHref('besleme', '&sub=stok');
     var planCnt = (M.planN || 0) + (M.planW || 0);
@@ -1158,7 +1158,7 @@
   render();
 })();
 </script>
-<script src="nav.js?v=koloni-54"></script>
-<script src="pwa.js?v=koloni-54"></script>
+<script src="nav.js?v=koloni-55"></script>
+<script src="pwa.js?v=koloni-55"></script>
 </body>
 </html>

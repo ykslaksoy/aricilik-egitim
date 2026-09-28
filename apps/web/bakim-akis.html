@@ -34,7 +34,7 @@
       <a class="chip" id="akGuc" href="kovanlar.html?view=koloni&amp;topic=guc&amp;mode=all">Koloni gücü kayıtları</a>
     </div>
     <section class="card stack ak-gap">
-      <div class="ak-h"><h2>🧭 Bakım akışı</h2><span class="ak-tag" id="akMode">Demo</span></div>
+      <div class="ak-h"><h2>🧭 Bakım akışı</h2><span class="ak-tag" id="akMode" hidden>Demo</span></div>
       <p class="ak-p">Önce muayene, sonra her adımda öneri: <b>Tamam</b> deyin/dokunun ya da kendi yaptığınızı girin. Sensör gerekmez.</p>
       <select class="ak-sel" id="akAp" aria-label="Arılık"></select>
       <button type="button" class="ak-btn" id="akVoice" aria-pressed="false">🔈 Sesli mod: Kapalı</button>
@@ -46,14 +46,14 @@
       <p class="ak-note" id="akNote"></p>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-54"></script>
-  <script src="sensor-health.js?v=koloni-54"></script>
-  <script src="saglik-canli.js?v=koloni-54"></script>
-  <script src="koloni.js?v=koloni-54"></script>
-  <script src="ilac-katalog.js?v=koloni-54"></script>
-  <script src="bakim-plan.js?v=koloni-54"></script>
-  <script src="kolay-muayene.js?v=koloni-54"></script>
-  <script src="bakim-akis.js?v=koloni-54"></script>
+  <script src="demo-data.js?v=koloni-55"></script>
+  <script src="sensor-health.js?v=koloni-55"></script>
+  <script src="saglik-canli.js?v=koloni-55"></script>
+  <script src="koloni.js?v=koloni-55"></script>
+  <script src="ilac-katalog.js?v=koloni-55"></script>
+  <script src="bakim-plan.js?v=koloni-55"></script>
+  <script src="kolay-muayene.js?v=koloni-55"></script>
+  <script src="bakim-akis.js?v=koloni-55"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, A = window.SuperAriBakimAkis;
@@ -61,7 +61,7 @@
     function $(id) { return document.getElementById(id); }
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
     var live = false; try { live = localStorage.getItem('superari.workMode') === 'live'; } catch (e) { live = false; }
-    $('akMode').textContent = live ? 'Canlı' : 'Demo'; if (live) $('akMode').classList.add('live');
+    $('akMode').hidden = live; /* rozet yalnız Demo'da */
     var q = new URLSearchParams(location.search);
     var aps = D.loadApiaries();
     var ap = q.get('apiary') || (aps.length === 1 ? String(aps[0].id) : 'all');
@@ -94,7 +94,7 @@
     if (q.get('id') && D.hiveById(q.get('id'))) { var hh = D.hiveById(q.get('id')); if (!q.get('apiary')) { ap = String(hh.apiaryId); $('akAp').value = ap; render(); } setTimeout(function () { start(hh.id); }, 150); }
   })();
   </script>
-  <script src="nav.js?v=koloni-54"></script>
-  <script src="pwa.js?v=koloni-54"></script>
+  <script src="nav.js?v=koloni-55"></script>
+  <script src="pwa.js?v=koloni-55"></script>
 </body>
 </html>

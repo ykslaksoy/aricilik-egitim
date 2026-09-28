@@ -129,7 +129,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-54"></script>
+<script src="demo-data.js?v=koloni-55"></script>
 <script src="device-runtime.js"></script>
 <script>
 (function () {
@@ -151,8 +151,8 @@
       banner.className = 'mode-banner';
       banner.innerHTML = '<strong>Demo</strong><span>· örnek arılık kameraları</span>';
     } else {
-      banner.className = 'mode-banner live';
-      banner.innerHTML = '<strong>Canlı</strong><span>· tak–çalıştır · yoksa Yok</span>';
+      banner.hidden = true; /* Canlı rozeti gösterilmez; yalnız Demo */
+      banner.innerHTML = '';
     }
   }
 
@@ -262,7 +262,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-54"></script>
-<script src="pwa.js?v=koloni-54"></script>
+<script src="nav.js?v=koloni-55"></script>
+<script src="pwa.js?v=koloni-55"></script>
 </body>
 </html>

@@ -64,7 +64,8 @@ assert.deepStrictEqual(tiles(bak), [
   ['<section class="weather bk-scope" id="bkScope"', 'Kapsam kartı'],
   ['class="bk-top"', 'Kapsam üst satırı'],
   ['<span class="bk-title">Bakım</span>', 'Kapsam başlığı'],
-  ['id="bkMode"', 'Canlı/Demo etiketi'],
+  ['<span class="bk-mode demo" id="bkMode" hidden>Demo</span>', 'Demo etiketi (yalnız Demo modda görünür)'],
+  ["$('bkMode').hidden = live();", 'Canlı modda rozet gizli'],
   ['id="bkPrev"', '‹ seçici'], ['id="bkLabel"', 'kapsam adı'], ['id="bkNext"', '› seçici'],
   ['<div class="bk-stats" id="bkStats"', '5 sütunlu özet'],
   ['id="bkNote"', 'not şeridi'],
@@ -75,4 +76,5 @@ assert.deepStrictEqual(tiles(bak), [
 ].forEach(([s, w]) => has(bak, s, 'Bakım ' + w));
 const cols = (bak.match(/'kovan'|Kovan'|Geciken muayene|Kritik stok|Açık görev|Bu hafta bakım/g) || []);
 ['Geciken muayene', 'Kritik stok', 'Açık görev', 'Bu hafta bakım'].forEach((c) => assert.ok(cols.indexOf(c) >= 0, 'Kapsam sütunu eksik: ' + c));
+assert.ok(!/'Canlı'/.test(bak) && !/>Canlı</.test(bak), 'Bakım: «Canlı» rozeti gösterilmemeli (yalnız Demo)');
 console.log('layout-lock: ok (Ana + Bakım 3×4 ve kartlar kilitli)');
