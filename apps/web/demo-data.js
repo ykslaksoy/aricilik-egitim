@@ -2310,6 +2310,8 @@
         var cc = intIn(r.cellCount, 1, 60); if (cc) o.cellCount = cc;
         var cp = pick(r.cellCapped, ['kapali', 'acik', ''], ''); if (cp) o.cellCapped = cp;
       }
+      /* Oğul memeli çerçeve sayısı (Hızlı muayene: tam sayı, 0 = yok) */
+      if (r.swarmCellFrames != null && r.swarmCellFrames !== '') { var sf = Number(r.swarmCellFrames); if (isFinite(sf) && sf >= 0 && sf <= 30) o.swarmCellFrames = Math.round(sf); }
       o.queenless = r.queenless === true;
       o.chilled = r.chilled === true;
       var vs1 = pick(r.varroaSeen, ['az', 'cok', ''], ''); if (vs1) o.varroaSeen = vs1; /* Kolay muayene: gözle varroa */
@@ -4608,6 +4610,17 @@
         try { extra = extra.concat(stockAlerts()); } catch (e) { /* ignore */ }
         /* Ana arı yaşı (ırka göre değişim zamanı). Demo modda Demo etiketi. */
         try { extra = extra.concat(queenAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
+        /* Muayeneden otomatik çıkan ihtiyaçlar (besleme / varroa): açık görev durdukça uyarı olarak da görünür. İlaç uygulanmış sayılmaz. */
+        try {
+          openTasks().forEach(function (t) {
+            var m = /\[muayene-oto:(besleme|varroa|ilac)\]/.exec(String(t.note || ''));
+            if (!m) return;
+            var a = { id: 'oto-' + m[1] + '-' + t.id, title: t.title, type: m[1] === 'besleme' ? 'besleme' : 'hastalik', severity: t.priority === 1 ? 'medium' : 'low',
+              hiveId: t.hiveId, apiaryId: t.apiaryId, date: String(t.createdAt || '').slice(0, 10), auto: true, source: 'muayene', taskId: t.id, text: 'Muayeneden otomatik · Görevler’de' };
+            if (workMode() === 'demo') a.demo = true;
+            extra.push(a);
+          });
+        } catch (e) { /* ignore */ }
         /* Oğul uyarıları statik değil; hesaplanan oğul riskinden (Yüksek / Çok yüksek). */
         try { extra = extra.concat(swarmAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
         var base = workMode() === 'demo' ? alerts.filter(function (x) { return x.type !== 'ogul'; }).map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];

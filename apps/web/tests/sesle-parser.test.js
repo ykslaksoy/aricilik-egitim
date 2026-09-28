@@ -57,4 +57,14 @@ eq(P.parse('giris', 'dur'), { cmd: 'stop' });
 eq(P.parse('summary', 'merhaba'), { none: true });
 eq(P.parse('giris', 'not kapakta çatlak var'), { note: 'kapakta çatlak var' });
 eq(P.parse('giris', ''), { none: true });
+/* Bal / oğul memesi: tam çerçeve sayısı (koloni-58) */
+eq(P.parse('stok', 'dört', { count: { max: 30 } }), { value: 4 });
+eq(P.parse('stok', '6 çerçeve', { count: { max: 30 } }), { value: 6 });
+eq(P.parse('stok', 'on iki', { count: { max: 30 } }), { value: 12 });
+eq(P.parse('ogul', 'yok', { count: { max: 20 } }), { value: 0 });
+eq(P.parse('ogul', 'hiç yok', { count: { max: 20 } }), { value: 0 });
+eq(P.parse('ogul', 'iki çerçevede var', { count: { max: 20 } }), { value: 2 });
+eq(P.parse('ogul', 'sıfır', { count: { max: 20 } }), { value: 0 });
+eq(P.parse('ogul', 'geç', { count: { max: 20 } }), { cmd: 'skip' });
+eq(P.parse('stok', 'bol', { count: { max: 30 } }), { none: true });
 console.log('sesle-parser: ' + n + ' test geçti');

@@ -32,6 +32,21 @@
     return '<div class="ks-hive" aria-hidden="true"><div class="hs"><div class="hl"></div><div class="hb"></div><div class="hb b"><div class="he"></div></div>' +
       '<div class="hf"><span></span><span></span></div></div>' + mid + (o.dot ? '<span class="hdot" style="background:' + esc(o.dot) + '"></span>' : '') + '</div>';
   }
+
+  /** Ana'daki döşemenin kovanı (ana.html hiveHTML ile aynı işaretleme; stil Ana CSS'inden gelir). Ortada yakma damga: burn veya numara. */
+  function anaHiveHtml(o) {
+    o = o || {};
+    var inner = '';
+    if (o.burn && BURN[o.burn]) inner = BURN[o.burn];
+    else if (o.num != null) {
+      var t = String(o.num), fs = t.length >= 4 ? 7.2 : t.length === 3 ? 8.6 : 10.5;
+      inner = '<text x="12" y="12.2" text-anchor="middle" dominant-baseline="central" font-size="' + fs + '" font-weight="800" fill="#1a0c06" stroke="none" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" letter-spacing="-.3">' + esc(t) + '</text>';
+    }
+    return '<div class="hive-area"><div class="hive"><div class="hive-stack"><div class="hive-lid"></div><div class="hive-box top"></div>' +
+      '<div class="hive-box bottom"><div class="hive-entrance"></div><div class="hive-door" aria-hidden="true"></div></div>' +
+      '<div class="hive-feet"><span></span><span></span></div></div><div class="hive-shadow"></div>' +
+      '<div class="hive-icon hive-icon-burn" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="burn-ring" cx="12" cy="12" r="10.2"/>' + inner + '</svg></div></div></div>';
+  }
   function hiveNum(h) {
     var m = /(\d+)\s*$/.exec(String(h && h.name || ''));
     if (m) return m[1];
@@ -97,9 +112,9 @@
     return out;
   }
 
-  function statsHtml(stats) {
+  function statsHtml(stats, cls) {
     return stats.map(function (x) {
-      return '<a class="ks-stat ' + (x.tone || '') + '" data-stat="' + esc(x.k) + '" href="' + esc(x.href || '#') + '" aria-label="' + esc(x.l + ': ' + x.v) + '">' + (ICO[x.icon || x.k] || ICO.kovan) +
+      return '<a class="' + (cls || 'ks-stat') + ' ' + (x.tone || '') + '" data-stat="' + esc(x.k) + '" href="' + esc(x.href || '#') + '" aria-label="' + esc(x.l + ': ' + x.v) + '">' + (ICO[x.icon || x.k] || ICO.kovan) +
         '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
     }).join('');
   }
@@ -118,8 +133,25 @@
     loadAps();
     var saved = null; try { saved = global.localStorage.getItem(SCOPE_KEY); } catch (e) { saved = null; }
     scope = valid(opts.initial || saved || 'all');
-    host.classList.add('ks-card');
     host.setAttribute('aria-label', (opts.title || 'Kapsam') + ' kapsamı');
+    var SC = opts.bk ? 'bk-stat' : 'ks-stat';
+    if (opts.bk) {
+      /* Bakım'daki Kapsam kartının birebir işaretlemesi (bakim.html #bkScope sınıfları; stil bakim-akis.html'e senkronlanır) */
+      host.classList.add('weather', 'bk-scope');
+      host.innerHTML =
+        '<div class="bk-top">' + (opts.icon || '') +
+          '<span class="bk-title">' + esc(opts.title || '') + '</span>' +
+          '<span class="bk-mode demo" data-ks-mode hidden>Demo</span>' + (opts.topExtra || '') +
+          '<div class="weather-loc bk-sel"><div class="arilik-loc-controls">' +
+            '<button type="button" class="arilik-nav" data-ks-prev aria-label="Önceki kapsam" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
+            '<span class="weather-loc-label" data-ks-label aria-live="polite">Tümü</span>' +
+            '<button type="button" class="arilik-nav" data-ks-next aria-label="Sonraki kapsam" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button>' +
+          '</div></div>' +
+        '</div>' +
+        '<div class="bk-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
+        '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>';
+    } else {
+    host.classList.add('ks-card');
     host.innerHTML =
       '<div class="ks-top">' + (opts.icon || '') +
         '<h2 class="ks-title">' + esc(opts.title || '') + '</h2>' +
@@ -132,6 +164,7 @@
       '</div>' +
       '<div class="ks-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
       '<a class="ks-note" data-ks-note href="#"><span class="ks-note-t" data-ks-nt>—</span><span class="ks-note-b" data-ks-nb>Aç</span></a>';
+    }
     function q(sel) { return host.querySelector(sel); }
     function render() {
       loadAps(); scope = valid(scope);
@@ -141,7 +174,7 @@
       var multi = list().length > 1;
       q('[data-ks-prev]').disabled = !multi; q('[data-ks-next]').disabled = !multi;
       q('[data-ks-mode]').hidden = live(); /* rozet yalnız Demo'da */
-      q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : []);
+      q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : [], SC);
       var n = opts.note ? opts.note(hs, scope, sum) : null;
       var ne = q('[data-ks-note]');
       ne.hidden = !n;
@@ -175,5 +208,5 @@
   var ICON_MUAYENE = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="18" height="22" rx="3" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/><rect x="11.5" y="3.5" width="9" height="5" rx="1.6" fill="#f7b731"/><circle cx="15" cy="17" r="4.2" fill="#fff" stroke="#5c3a1f" stroke-width="1.8"/><path d="M18 20l3.2 3.2" stroke="#5c3a1f" stroke-width="2" stroke-linecap="round"/></svg>';
   var ICON_KOVAN = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="5" rx="1.4" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><rect x="7" y="11" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="7" y="18.6" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="14" y="24" width="4" height="1.4" fill="#2a1a0c"/></svg>';
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, hiveNum: hiveNum, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN };
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, hiveNum: hiveNum, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN };
 })(typeof window !== 'undefined' ? window : this);

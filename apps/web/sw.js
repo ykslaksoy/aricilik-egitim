@@ -151,6 +151,7 @@ const SHELL = [
   "/logo-sec.html",
   "/logos/hardal-bees.js",
   "/manifest.json",
+  "/mic-session.js",
   "/nav.js",
   "/offline-sync.js",
   "/ogul-verdi.js",

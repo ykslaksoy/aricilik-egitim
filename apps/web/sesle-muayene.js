@@ -119,6 +119,13 @@
       }
     }
     if (stepId === 'summary') return { none: true };
+    /* Sayı adımları (bal / oğul memeli çerçeve): tam sayı; «yok», «hiç» → 0 */
+    if (opts.count) {
+      var cn = parseNumber(text);
+      if (cn != null) return { value: cn };
+      if (findPhrase(t, 'yok') >= 0 || findPhrase(t, 'hic') >= 0 || findPhrase(t, 'hic yok') >= 0) return { value: 0 };
+      return { none: true };
+    }
     if (stepId === 'cerceve' || opts.stepper) {
       if (opts.sub === 'brood') { var nb = parseNumber(text); return nb != null ? { frames: { bee: null, brood: nb } } : { none: true }; }
       var fr = parseFrames(text); return fr ? { frames: fr } : { none: true };
@@ -187,8 +194,9 @@
     yavru: 'Yavru düzeni nasıl? Düzenli mi, biraz boşluklu mu, dağınık mı?',
     kapali: 'Kapalı yavru kapakları düzgün mü, yoksa delikli, çökük olanlar var mı?',
     cerceve: 'Kaç çerçeve arıyla kaplı, kaçında yavru var? Mesela, sekiz arılı üç yavrulu.',
-    stok: 'Bal ve polen stoğu nasıl? Az mı, orta mı, bol mu?',
-    meme: 'Ana memesi var mı? Varsa alt kenarda mı, petek ortasında mı?',
+    stok: 'Kaç çerçevede bal var? Sayıyı söyleyin.',
+    ogul: 'Kaç çerçevede oğul memesi var? Yoksa yok deyin.',
+    meme: 'Başka ana memesi var mı? Petek ortasında mı, acil meme mi, yoksa yok mu?',
     varroa: 'Varroa gördünüz mü? Yok, birkaç ya da çok diyebilirsiniz.',
     hastalik: 'Hastalık belirtisi var mı?',
     huy: 'Arılar nasıldı? Sakin mi, sinirli mi?',
@@ -235,7 +243,9 @@
       '<p class="kv-help">Daha akıcı ses için — iPhone: Ayarlar › Erişilebilirlik › Seslendirme › Sesler › Türkçe › «Yelda (Gelişmiş)» indirin. Android: Ayarlar › Metin okuma › Google TTS › Türkçe yüksek kalite sesi indirin. Sonra buradan seçin.</p></div>' +
       '<div class="kv-help">Komutlar: «geç», «geri», «tekrar», «kaydet», «kaydet ve sıradaki», «dur», «not …»</div>';
     var $ = function (a) { return bar.querySelector('[data-kv-' + a + ']'); };
-    var rec = new SR();
+    /* Sayfanın tek mikrofon oturumu (mic-session.js): kovan / kart değişince yeni izin istenmez */
+    var rec = global.SuperAriMic && global.SuperAriMic.supported() ? global.SuperAriMic.create() : new SR();
+    if (global.SuperAriMic) global.SuperAriMic.warm();
     rec.lang = 'tr-TR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
     var st = { on: true, listening: false, speaking: false, sub: null, bee: null, busy: false, fails: 0, lastPrompt: '', prefix: '' };
     function state(txt, mode) { $('state').textContent = txt; var d = $('dot'); d.className = 'kv-dot' + (mode ? ' ' + mode : ''); }
@@ -287,7 +297,7 @@
     }
     function handle(text) {
       var c = api.cur(), id = c.summary ? 'summary' : c.id;
-      var r = parse(id, text, { options: c.def && c.def.opts, stepper: c.def && c.def.stepper, sub: st.sub });
+      var r = parse(id, text, { options: c.def && c.def.opts, stepper: c.def && c.def.stepper, count: c.def && c.def.count, sub: st.sub });
       if (r.cmd) {
         st.fails = 0;
         if (r.cmd === 'stop') { $('parsed').textContent = '✓ Durdu'; speak('Tamam, duruyorum.', function () { stop(); }); return; }
