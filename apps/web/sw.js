@@ -190,6 +190,7 @@ const SHELL = [
   "/sensor-health.js",
   "/sensorler.html",
   "/sesle-muayene.js",
+  "/stok-talep.js",
   "/stok.html",
   "/styles.css",
   "/tarti-elle.js",
@@ -312,6 +313,8 @@ self.addEventListener("fetch", (e) => {
     return;
   }
   if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") return;
+  /* Fiyat referansı her zaman ağdan (önbelleğe alınmaz, bayat fiyat gösterilmez) */
+  if (url.pathname === "/data/fiyat-ref.json") return;
   const isNav = req.mode === "navigate";
   if (isNav || /\.html$/i.test(url.pathname) || url.pathname === "/") {
     e.respondWith(staleWhileRevalidate(e, req));

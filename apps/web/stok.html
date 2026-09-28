@@ -951,7 +951,7 @@
   .st-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; }
   .st-panel[hidden], .grid[hidden] { display: none !important; }
   .st-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; background: var(--bg); padding-bottom: 2px; }
-  .st-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 48px; min-width: 64px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); font: inherit; font-size: 15px; font-weight: 800; color: var(--brown-mid); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .st-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 64px; min-width: 64px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); font: inherit; font-size: 15px; font-weight: 800; color: var(--brown-mid); cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .st-back:active { transform: scale(.985); }
   .st-htitle { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .st-htitle small { display: block; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1004,6 +1004,41 @@
   .st-mv .q.plus { color: var(--green); }
   .st-mv .q.minus { color: #c2410c; }
   button.tile { font: inherit; color: inherit; width: 100%; }
+  /* Alım talebi */
+  .st-src { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1.4; vertical-align: 2px; background: #fff3bf; color: #8a6100; }
+  .st-src.m { background: var(--green-bg); color: #1b5e20; }
+  .st-src.mt { background: #e7f5ff; color: #1864ab; }
+  .st-src.e { background: #f1f3f5; color: #495057; }
+  .st-grp { margin: 6px 2px 0; font-size: 12px; font-weight: 800; color: var(--brown-mid); text-transform: uppercase; letter-spacing: .03em; }
+  .st-sec { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 10px 2px 0; padding-bottom: 4px; border-bottom: 2px solid var(--card-border); min-width: 0; }
+  .st-sec b { font-size: 16px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
+  .st-sec span { font-size: 13px; font-weight: 800; color: var(--brown-mid); white-space: nowrap; }
+  .st-price { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .st-pbtn { min-height: 64px; padding: 6px 10px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); color: var(--text); font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; justify-content: center; min-width: 0; -webkit-tap-highlight-color: transparent; }
+  .st-pbtn b { font-size: 14px; font-weight: 800; }
+  .st-pbtn small { font-size: 11px; font-weight: 650; color: var(--muted); overflow-wrap: anywhere; line-height: 1.3; }
+  .st-pbtn small.warn { color: #a14a00; font-weight: 800; }
+  .st-pbtn.none { border-style: dashed; border-color: #e0a800; background: #fffbea; }
+  .st-pbtn.none b { color: #8a6100; }
+  .st-ltot { font-size: 16px; font-weight: 800; color: var(--text); white-space: nowrap; }
+  .st-sum { gap: 10px; }
+  .st-sumrow { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+  .st-sumrow > div { display: flex; flex-direction: column; min-width: 0; }
+  .st-sumrow i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); }
+  .st-sumrow b { font-size: 22px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-sumrow small { font-size: 11px; font-weight: 650; color: var(--muted); line-height: 1.3; }
+  .st-tol { display: grid; grid-template-columns: minmax(0, 1fr) 64px auto 64px; gap: 6px; align-items: center; }
+  .st-tol > span { font-size: 13px; font-weight: 800; color: var(--text); }
+  .st-tol > span small { display: block; font-size: 11px; font-weight: 650; color: var(--muted); }
+  .st-tol > b { min-width: 44px; text-align: center; font-size: 17px; font-weight: 800; }
+  .st-tol .st-btn { font-size: 22px; padding: 0; }
+  .st-warn { margin: 0; padding: 8px 10px; border-radius: 10px; background: #fff4e6; border: 1px solid #ffd8a8; color: #a14a00; font-size: 12.5px; font-weight: 800; line-height: 1.35; }
+  .st-done { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: var(--green-bg); border: 1px solid #b2f2bb; }
+  .st-done > b { color: #1b5e20; font-size: 14px; }
+  .st-done > small { font-size: 11.5px; font-weight: 650; color: #2b5d33; overflow-wrap: anywhere; }
+  .st-apsec { font: inherit; text-align: left; cursor: pointer; min-height: 64px; width: 100%; color: inherit; }
+  .st-apsec[data-ap]::after { content: "Aç ›"; align-self: flex-end; font-size: 12px; font-weight: 800; color: var(--brown-mid); }
+  .st-mini { font-size: 11.5px; font-weight: 650; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -1028,11 +1063,13 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-62"></script>
-<script src="koloni.js?v=koloni-62"></script>
-<script src="ilac-katalog.js?v=koloni-62"></script>
-<script src="bakim-plan.js?v=koloni-62"></script>
-<script src="kapsam.js?v=koloni-62"></script>
+<script src="demo-data.js?v=koloni-63"></script>
+<script src="koloni.js?v=koloni-63"></script>
+<script src="ilac-katalog.js?v=koloni-63"></script>
+<script src="bakim-plan.js?v=koloni-63"></script>
+<script src="kapsam.js?v=koloni-63"></script>
+<script src="rapor-store.js?v=koloni-63"></script>
+<script src="stok-talep.js?v=koloni-63"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1110,104 +1147,29 @@
   function apName(scope) { var a = ctl && scope !== 'all' ? ctl.apOf(scope) : null; return a ? a.name : ''; }
   function apShort(scope) { var nm = apName(scope); return nm ? nm.split(/\s+/)[0] : 'Tüm arılıklar'; }
 
-  /* ---- Alınacaklar: yaklaşan muayene/bakım ihtiyacı − stok, %20 pay ----
-   * Besleme: SuperAriPlan.feedPlan (şurup / kek); şurup eksiği şekere çevrilir (SYRUP oranı).
-   * İlaç: SuperAriPlan.medPlan → tedavi/planla + etiket dozu doğrulanmış ürün (şerit). Doz yalnız ilac-katalog.js etiketinden.
-   * Kat / çerçeve / temel petek: açık «[muayene-oto:yer]» görevleri (yer dar) × D.colony.boxes'taki kat = 10 çerçeve.
-   * Hesaplanamayanlar gösterilmez (polen, ekipman, diğer). */
-  var MARGIN = 1.2;
-  function sumQty(list, fn) { return Math.round(list.filter(fn).reduce(function (a, x) { return a + Math.max(0, x.qty); }, 0) * 10) / 10; }
-  function up(v, step) { step = step || 1; return Math.max(0, Math.ceil(v / step - 1e-9) * step); }
-  function needs(hs, scope) {
-    var Pl = P(), list = S.list(), rows = [], info = [];
-    if (!Pl) return { rows: rows, info: ['Bakım planı yüklenemedi; ihtiyaç hesaplanamadı.'], buyN: 0 };
-    var inScope = {}; hs.forEach(function (h) { inScope[String(h.id)] = true; });
-    var act = hs.filter(function (h) { return h && h.colonyState !== 'birlestirildi'; });
-    /* Besleme */
-    var syr = { surup21: { L: 0, n: 0 }, surup11: { L: 0, n: 0 } }, kek = { kg: 0, n: 0 }, noFeedData = 0;
-    /* hiveState bir kez; feedPlan/medPlan'ın erken dönüş koşulları önceden elenir (aynı sonuç, daha hızlı) */
-    var ST = {}; act.forEach(function (h) { try { ST[String(h.id)] = Pl.hiveState(h); } catch (e) { ST[String(h.id)] = null; } });
-    act.forEach(function (h) {
-      var st = ST[String(h.id)]; if (!st) return;
-      if (st.honeyFrames == null) { noFeedData++; return; }
-      var fp = null; try { fp = Pl.feedPlan(h, st); } catch (e) { fp = null; }
-      if (!fp) return;
-      if (!fp.need) return;
-      if (fp.type === 'kek') { kek.kg += Number(fp.kekKg) || 0; kek.n++; }
-      else if (syr[fp.type]) { syr[fp.type].L += Number(fp.liters) || 0; syr[fp.type].n++; }
-    });
-    var sugarNeed = 0, sugarFrom = [];
-    ['surup21', 'surup11'].forEach(function (t) {
-      var s = syr[t]; if (!s.L) return;
-      var have = sumQty(list, function (x) { return x.feedType === t && x.unit === 'L'; });
-      var shortL = Math.max(0, s.L * MARGIN - have), sk = Pl.SYRUP[t].sugarKg;
-      sugarNeed += shortL * sk;
-      if (shortL > 0) sugarFrom.push(Pl.SYRUP[t].label + ' ' + n1(up(shortL, 0.5)) + ' L');
-      rows.push({ cat: 'surup', name: Pl.SYRUP[t].label, unit: 'L', need: Math.round(s.L * 10) / 10, have: have, buy: 0, via: shortL > 0 ? 'şeker' : '',
-        sub: s.n + ' kovan besleme (bakım planı)' + (shortL > 0 ? ' · eksik ≈ ' + n1(up(shortL, 0.5)) + ' L şekerle yapılır' : '') });
-    });
-    if (sugarNeed > 0) {
-      var haveS = sumQty(list, function (x) { return x.category === 'seker' && x.unit === 'kg'; });
-      rows.push({ cat: 'seker', name: 'Şeker (şurup için)', unit: 'kg', need: up(sugarNeed, 0.5), have: haveS, buy: up(sugarNeed - haveS), sub: sugarFrom.join(' + ') + ' · %20 pay dahil' });
-    }
-    if (kek.kg > 0) {
-      var haveK = sumQty(list, function (x) { return (x.category === 'kek' || x.feedType === 'kek') && x.unit === 'kg'; });
-      rows.push({ cat: 'kek', name: 'Kek (fondan)', unit: 'kg', need: Math.round(kek.kg * 10) / 10, have: haveK, buy: up(kek.kg * MARGIN - haveK), sub: kek.n + ' kovan besleme (bakım planı)' });
-    }
-    /* İlaç (şerit, etiket dozu) */
-    var I = window.SuperAriIlac, prod = {}, noDose = 0;
-    act.forEach(function (h) {
-      var st = ST[String(h.id)], v = st && st.varroa;
-      if (!v || v.infestation == null || Number(v.infestation) < 2) return; /* medPlan: %2 altı izle / sayım → ilaç ihtiyacı yok */
-      var mp = null; try { mp = Pl.medPlan(h, st); } catch (e) { mp = null; }
-      if (!mp || (mp.level !== 'tedavi' && mp.level !== 'planla')) return;
-      if ((mp.blocks || []).some(function (b) { return /^Önceki tedavi sürüyor/.test(b); })) return;
-      var b = mp.best;
-      if (!b || !b.dose || !b.dose.ok) { noDose++; return; }
-      var p = prod[b.id] || (prod[b.id] = { id: b.id, name: b.name, qty: 0, n: 0 });
-      p.qty += Number(b.dose.qty) || 0; p.n++;
-    });
-    Object.keys(prod).forEach(function (id) {
-      var p = prod[id], pr = I ? I.byId(id) : null;
-      var nm = p.name.toLocaleLowerCase('tr').split(' ')[0], a = pr && pr.active ? pr.active.toLocaleLowerCase('tr').split(' ')[0] : '\u0000';
-      var have = sumQty(list, function (x) { var l = x.name.toLocaleLowerCase('tr'); return x.category === 'ilac' && x.unit === 'şerit' && (l.indexOf(nm) >= 0 || l.indexOf(a) >= 0); });
-      rows.push({ cat: 'ilac', name: p.name + ' (şerit)', unit: 'şerit', need: p.qty, have: have, buy: up(p.qty * MARGIN - have), sub: p.n + ' kovan varroa tedavisi · etiket dozu' + (pr && pr.active ? ' · ' + pr.active : '') });
-    });
-    if (noDose) info.push(noDose + ' kovanda varroa tedavisi gerekiyor ama etiket dozu hesaplanamadı (arılı çerçeve sayısı yok veya ürün doğrulanmadı) — şerit sayısı eklenmedi.');
-    /* Yer dar → kat + çerçeve + temel petek */
-    var katN = 0;
-    var open = []; try { open = D.taskStore.open(); } catch (e) { open = []; }
-    open.forEach(function (t) {
-      if (!/\[muayene-oto:yer\]/.test(String(t.note || ''))) return;
-      if (/Bal katını al/.test(String(t.title || ''))) return;
-      if (scope !== 'all' && !(t.hiveId != null && inScope[String(t.hiveId)]) && String(t.apiaryId) !== scope) return;
-      katN++;
-    });
-    if (katN) {
-      var fpk = 10; /* D.colony.boxes: kat başına 10 çerçeve */
-      try { var bx = D.colony.boxes(hs[0]); if (bx && bx.frames && (bx.body + bx.kat)) fpk = Math.round(bx.frames / (bx.body + bx.kat)); } catch (e) { fpk = 10; }
-      var src = katN + ' kovanda yer dar (muayene görevi)';
-      var hk = sumQty(list, function (x) { return x.category === 'kovan' && x.unit === 'adet'; });
-      rows.push({ cat: 'kovan', name: 'Kat (kovan/kat)', unit: 'adet', need: katN, have: hk, buy: up(katN * MARGIN - hk), sub: src + ' · kovan başına 1 kat' });
-      var hc = sumQty(list, function (x) { return x.category === 'cerceve' && x.unit === 'adet'; });
-      rows.push({ cat: 'cerceve', name: 'Çerçeve', unit: 'adet', need: katN * fpk, have: hc, buy: up(katN * fpk * MARGIN - hc), sub: src + ' · 1 kat = ' + fpk + ' çerçeve' });
-      var ht = sumQty(list, function (x) { return x.category === 'temelPetek' && x.unit === 'adet'; });
-      rows.push({ cat: 'temelPetek', name: 'Temel petek', unit: 'adet', need: katN * fpk, have: ht, buy: up(katN * fpk * MARGIN - ht), sub: src + ' · çerçeve başına 1' });
-    }
-    if (noFeedData) info.push(noFeedData + ' kovanda bal çerçevesi kaydı yok; besleme ihtiyacı hesaplanamadı.');
-    info.push('Polen, ekipman ve diğer malzemeler için ihtiyaç kayıtlardan hesaplanamıyor; listede yok.');
-    var buyN = rows.filter(function (r) { return r.buy > 0; }).length;
-    return { rows: rows, info: info, buyN: buyN, hives: act.length };
-  }
+  /* ---- Alınacaklar = alım talebi (stok-talep.js): muayeneye göre + tahmin, tahmin payı, fiyat (kullanıcı → fiyat-ref.json → «fiyat girin») ---- */
+  var TQ = window.SuperAriTalep;
+  function money(v) { return (Math.round(Number(v) || 0)).toLocaleString('tr-TR') + ' ₺'; }
+  function money2(v) { return (Number(v) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ₺'; }
+  var SRC = { m: ['Muayeneye göre', 'm'], t: ['Tahmin', 't'], mt: ['Muayene + tahmin', 'mt'], esik: ['Stok eşiği', 'e'] };
 
   /* ---- Görünüm ---- */
   function readHash() { var h = decodeURIComponent(location.hash.replace(/^#/, '')); return /^(c-[a-zA-Z]+|alinacak|hareket)$/.test(h) ? h : ''; }
   var view = readHash(), form = null, amt = null, lastNeed = null, needKey = '';
   function curScope() { return ctl ? ctl.scope() : 'all'; }
+  var priceEdit = null, talepDone = null, refBusy = false;
   function needFor(hs, scope) {
-    var k = scope + '|' + hs.length + '|' + JSON.stringify(S.list().map(function (x) { return [x.id, x.qty, x.category, x.unit, x.feedType || '']; })) + '|' + today();
-    if (k !== needKey || !lastNeed) { lastNeed = needs(hs, scope); needKey = k; }
+    if (!TQ) return { buyN: 0, total: 0, missing: 0, sections: [], combined: { lines: [] }, ortak: { lines: [] }, hives: 0, insp: 0, fc: 0, ref: {} };
+    var pr = ''; try { pr = localStorage.getItem('superari.stok.fiyat.v1') || ''; } catch (e) { pr = ''; }
+    var k = scope + '|' + TQ.tol() + '|' + pr + '|' + TQ.REF.at + '|' + JSON.stringify(S.list().map(function (x) { return [x.id, x.qty, x.category, x.unit, x.threshold, x.name]; })) + '|' + today();
+    if (k !== needKey || !lastNeed) { lastNeed = TQ.build(scope); needKey = k; }
     return lastNeed;
+  }
+  /* Fiyatlar her açılışta ve talep kaydından hemen önce taze okunur (no-store + ?t=) */
+  function refreshRef() {
+    if (!TQ) return Promise.resolve();
+    refBusy = true;
+    return TQ.loadRef().then(function () { refBusy = false; needKey = ''; if (view === 'alinacak') rerender(); else rerender(); });
   }
   function tileBadge(key, list, nd) {
     if (key === 'alinacak') return nd.buyN ? { t: nd.buyN + ' kalem', c: 'red' } : { t: 'Tamam', c: 'green' };
@@ -1288,19 +1250,105 @@
     h += '<p class="st-hint">Miktar eşik değerine inince veya altına düşünce Bugün sekmesinde ve Uyarılar’da «Stok azaldı» uyarısı çıkar. Hızlı kayıt › İlaçlama / Besleme kaydederken isteğe bağlı olarak stoktan düşebilirsiniz.</p>';
     return h;
   }
+  function lineHtml(l, secId, editable) {
+    var src = SRC[l.src] || SRC.t, p = l.price || {}, id = secId + ':' + l.key;
+    var sub = [l.why, l.note, l.confirm ? 'etiket dozu teyit edilmeli; miktar yalnız paket sayısı' : '', l.stockNote].filter(Boolean).join(' · ');
+    var h = '<article class="st-card st-line' + (l.buy > 0 ? ' low' : '') + '" data-line="' + esc(l.key) + '"><div class="st-top"><div class="st-name"><b>' + esc(l.name) + '</b>' +
+      '<span class="st-src ' + src[1] + '">' + src[0] + '</span>' + (l.confirm ? '<span class="st-tag red">Teyit</span>' : '') +
+      (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div>' +
+      '<div class="st-cols"><span><i>Gerekli</i><b>' + n1(l.need) + ' ' + esc(l.unit) + '</b></span><span><i>Stokta</i><b>' + n1(l.have) + ' ' + esc(l.unit) + '</b></span>' +
+      '<span class="' + (l.buy > 0 ? 'buy' : 'ok') + '"><i>Alınacak</i><b>' + (l.buy > 0 ? n1(l.buy) + ' ' + esc(l.unit) : '—') + '</b></span></div>';
+    if (!editable || !(l.buy > 0)) return h + '</article>';
+    if (priceEdit === l.key) {
+      return h + '<form class="st-amt" data-price-form="' + esc(l.key) + '"><input class="st-in" name="p" type="text" inputmode="decimal" autocomplete="off" placeholder="Birim fiyat ₺ / ' + esc(l.unit) + '" value="' + (p.src === 'user' ? esc(String(p.v).replace('.', ',')) : '') + '" aria-label="Birim fiyat">' +
+        '<button type="submit" class="st-btn in">Kaydet</button><button type="button" class="st-btn" data-price-cancel>Vazgeç</button></form>' +
+        (p.src === 'user' ? '<button type="button" class="st-btn del" data-price-clear="' + esc(l.key) + '" style="width:100%;">Fiyatımı sil (kaynak ortalamasına dön)</button>' : '') + '</article>';
+    }
+    var lab, info, warn = '';
+    if (p.v == null) { lab = 'fiyat girin'; info = 'birim fiyat yok · toplama katılmadı'; }
+    else {
+      lab = money2(p.v) + ' / ' + esc(l.unit);
+      if (p.src === 'user') {
+        info = 'sizin fiyatınız' + (p.date ? ' · ' + esc(dShort(p.date)) : '');
+        if (p.old) warn = 'fiyat eski, güncelleyin' + (p.ref ? ' · güncel ≈ ' + money2(p.ref.v) : '');
+      } else {
+        info = '≈ ' + (p.ref.n || '?') + ' kaynağın ortalaması · ' + esc(p.ref.updated || 'tarih yok');
+        if (p.ref.stale) warn = 'fiyat eski olabilir' + (p.ref.note ? ' · ' + p.ref.note : '');
+      }
+    }
+    return h + '<div class="st-price"><button type="button" class="st-pbtn' + (p.v == null ? ' none' : '') + '" data-price="' + esc(l.key) + '" aria-label="Birim fiyat: ' + esc(lab) + '"><b>' + lab + '</b><small>' + info + '</small>' +
+      (warn ? '<small class="warn">⚠ ' + esc(warn) + '</small>' : '') + '</button><b class="st-ltot">' + (l.cost ? money(l.cost) : '—') + '</b></div></article>';
+  }
+  function groupsHtml(lines, secId, editable) {
+    var h = '';
+    TQ.GROUPS.forEach(function (g) {
+      var ls = lines.filter(function (l) { return l.g === g.key && l.need > 0; }); if (!ls.length) return;
+      h += '<div class="st-grp">' + esc(g.label) + '</div>' + ls.map(function (l) { return lineHtml(l, secId, editable); }).join('');
+    });
+    return h || '<p class="st-empty">Bu bölümde ihtiyaç yok.</p>';
+  }
   function renderNeed(hs, scope) {
-    var nd = needFor(hs, scope);
-    var h = head('Alınacaklar', (scope === 'all' ? 'Tüm arılıklar' : apName(scope)) + ' · ' + nd.hives + ' kovan · ihtiyaç − stok, %20 pay');
-    h += nd.rows.length ? nd.rows.map(function (r) {
-      var buyTxt = r.via ? '→ ' + r.via : (r.buy > 0 ? n1(r.buy) + ' ' + r.unit : '—');
-      var cls = r.via ? '' : (r.buy > 0 ? 'buy' : 'ok');
-      return '<article class="st-card' + (r.buy > 0 ? ' low' : '') + '" data-need="' + esc(r.cat) + '"><div class="st-top"><div class="st-name"><b>' + esc(r.name) + '</b><small>' + esc(r.sub) + '</small></div></div>' +
-        '<div class="st-cols"><span><i>Gerekli</i><b>' + n1(r.need) + ' ' + esc(r.unit) + '</b></span><span><i>Stokta</i><b>' + n1(r.have) + ' ' + esc(r.unit) + '</b></span>' +
-        '<span class="' + cls + '"><i>Alınacak</i><b>' + esc(buyTxt) + '</b></span></div></article>';
-    }).join('') : '<p class="st-empty">Bu kapsamda yaklaşan muayene / bakım için hesaplanan malzeme ihtiyacı yok.</p>';
-    h += nd.info.map(function (t) { return '<p class="st-hint">' + esc(t) + '</p>'; }).join('');
-    h += '<p class="st-hint">Kaynak: bakım planı besleme ve ilaç hesabı (etiket dozu, tahmin), açık muayene görevleri. Stok tüm arılıklar için ortaktır.</p>';
+    if (!TQ) return head('Alınacaklar', '') + '<p class="st-empty">Talep modülü yüklenemedi.</p>';
+    var rq = needFor(hs, scope), ri = rq.ref || {}, nm = scope === 'all' ? 'Tüm arılıklar' : apName(scope);
+    var h = head('Alım talebi', nm + ' · ' + rq.hives + ' kovan · ' + rq.insp + ' muayeneli, ' + rq.fc + ' tahmin');
+    h += '<section class="st-card st-sum" aria-label="Talep özeti"><div class="st-sumrow"><div><i>Tahmini tutar</i><b>' + money(rq.total) + '</b>' +
+      '<small>' + (rq.missing ? rq.missing + ' kalemde fiyat yok — toplama katılmadı' : (rq.buyN ? 'fiyatlı kalemlerin toplamı' : 'alınacak kalem yok')) + '</small></div>' +
+      '<div><i>Alınacak</i><b>' + rq.buyN + ' kalem</b><small>stok düşüldü</small></div></div>' +
+      '<div class="st-tol"><span>Tahmin payı<small>muayenesiz kovanlara</small></span><button type="button" class="st-btn" data-tol="-5" aria-label="Tahmin payını azalt">−</button><b>%' + rq.tol + '</b><button type="button" class="st-btn" data-tol="5" aria-label="Tahmin payını artır">＋</button></div>' +
+      (refBusy ? '<p class="st-hint" style="margin:0;">Fiyatlar yenileniyor…</p>' : '') +
+      (ri.ok ? (ri.stale ? '<p class="st-warn">⚠ Kaynak fiyatlar ' + esc(ri.updated || '?') + ' tarihli (' + (ri.age != null ? ri.age + ' gün önce' : 'tarih yok') + '); fiyatlar güncel olmayabilir.</p>' : '<p class="st-hint" style="margin:0;">Kaynak fiyatlar: ' + esc(ri.updated) + ' (az önce yeniden okundu)</p>')
+        : '<p class="st-hint" style="margin:0;">Kaynak fiyat dosyası bulunamadı; yalnız sizin girdiğiniz fiyatlar kullanılır.</p>') +
+      '<button type="button" class="st-new" data-talep><span aria-hidden="true">📝</span> Talep oluştur</button>';
+    if (talepDone) {
+      h += '<div class="st-done"><b>✓ Talep kaydedildi</b><small>' + esc(dShort(talepDone.date) + ' · ' + talepDone.apiaryName + ' · ' + talepDone.buyN + ' kalem · ≈ ' + money(talepDone.total) + (talepDone.missing ? ' (' + talepDone.missing + ' kalem fiyatsız)' : '') +
+        ' · fiyat tarihi ' + (talepDone.priceRefDate || 'yalnız sizin fiyatlarınız')) + '</small>' +
+        '<div class="st-btns"><button type="button" class="st-btn" data-share>Paylaş</button><button type="button" class="st-btn" data-csv>CSV indir</button><button type="button" class="st-btn" data-print>Yazdır / PDF</button></div></div>';
+    }
+    var nT = TQ.talepler().length;
+    h += (nT ? '<p class="st-hint" style="margin:0;">Kayıtlı talep: ' + nT + (live() ? ' · buluta eşitlenir (girişliyse)' : ' · Demo, yalnız bu cihazda') + '</p>' : '') + '</section>';
+    h += '<p class="st-hint">Muayeneye göre: son ' + TQ.RULES.INSPECT_DAYS + ' günde muayene edilen kovanın bulguları. Tahmin: muayenesiz kovan için mevsim, ırk (kışlık hedef) ve bilinen güç; tahmin payı eklenir, kovan muayene edilince yerini gerçek ihtiyaç alır. İlaçta yalnız etiket şerit dozu; dozu bilinmeyen ürün yalnız paket sayısıyla «Teyit» işaretli. Fiyat sırası: sizin fiyatınız → kaynak ortalaması (≈, piyasa fiyatı değildir) → «fiyat girin».</p>';
+    if (scope === 'all') {
+      h += '<div class="st-sec"><b>Toplam talep</b><span>' + money(rq.total) + '</span></div>' + groupsHtml(rq.combined.lines, 'all', true);
+      h += '<div class="st-sec"><b>Arılık bazında</b><span>stok sırayla paylaştırıldı</span></div>';
+      rq.sections.concat([rq.ortak]).forEach(function (s) {
+        var buys = s.lines.filter(function (l) { return l.buy > 0; });
+        h += '<button type="button" class="st-card st-apsec"' + (s.ortak ? '' : ' data-ap="' + esc(s.id) + '"') + '><span class="st-top"><span class="st-name"><b>' + esc(s.name) + '</b><small>' +
+          (s.ortak ? 'dayanıklı aletler bir kez + stok eşikleri' : s.hives + ' kovan · ' + s.insp + ' muayeneli · ' + s.fc + ' tahmin') + (s.missing ? ' · ' + s.missing + ' fiyatsız' : '') + '</small></span><span class="st-qty">' + money(s.subtotal) + '</span></span>' +
+          '<span class="st-mini">' + (buys.length ? buys.map(function (l) { return esc(l.name.replace(/ \(.*\)$/, '') + ' ' + n1(l.buy) + ' ' + l.unit); }).join(' · ') : 'alınacak yok') + '</span></button>';
+      });
+    } else {
+      rq.sections.forEach(function (s) { h += '<div class="st-sec"><b>' + esc(s.name) + '</b><span>' + money(s.subtotal) + '</span></div>' + groupsHtml(s.lines, s.id, true); });
+      h += '<div class="st-sec"><b>' + esc(rq.ortak.name) + '</b><span>' + money(rq.ortak.subtotal) + '</span></div>' + groupsHtml(rq.ortak.lines, 'ortak', true);
+    }
+    h += '<p class="st-hint">Stok tüm arılıklar için ortaktır. Tahmin kuralları: arılı çerçeve bilinmiyorsa ' + TQ.RULES.BEE_DEFAULT + ' varsayılır; kışlık stok bilinmiyorsa hedefin %' + Math.round(TQ.RULES.UNKNOWN_STORE_FRAC * 100) + '’i beslenir (1 L 2:1 şurup ≈ 0,89 kg şeker, ≈ 0,8 kg kışlık stok); kovan başına en çok 15 L 2:1 şurup (≈ ' + String(TQ.HIVE_CAP.seker).replace('.', ',') + ' kg şeker), 4 kg kek, 4 şerit — açık daha büyükse kek ve birleştirme; tahmin payı yalnız kovan başı sarfa bir kez eklenir; eldiven / körük yakıtı ' + TQ.RULES.VISITS + ' ziyaret üzerinden.</p>';
     return h;
+  }
+  function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
+  function talepText(t) {
+    var lines = ['SüperArı alım talebi — ' + t.apiaryName + ' — ' + fmt(t.date)];
+    t.lines.forEach(function (l) { lines.push((t.apiaryId ? '' : '[' + l.apiaryName + '] ') + l.name + ': ' + n1(l.buy) + ' ' + l.unit + (l.cost ? ' (≈ ' + money(l.cost) + ')' : (l.price == null ? ' (fiyat yok)' : ''))); });
+    lines.push('Tahmini toplam: ' + money(t.total) + (t.missing ? ' · ' + t.missing + ' kalem fiyatsız' : '') + ' · tahmin payı %' + t.tol + ' · fiyat tarihi ' + (t.priceRefDate || '—'));
+    lines.push('Fiyatlar tahminidir; piyasa fiyatı değildir.');
+    return lines.join('\n');
+  }
+  function talepRows(t) {
+    return t.lines.map(function (l) { return [t.date, l.apiaryName, (TQ.GROUPS.filter(function (g) { return g.key === l.group; })[0] || {}).label || l.group, l.name, l.unit, l.need, l.have, l.buy, (SRC[l.src] || SRC.t)[0], l.price == null ? '' : l.price, l.priceSrc === 'user' ? 'sizin fiyatınız' : (l.priceSrc === 'ref' ? 'kaynak ortalaması' : ''), l.priceDate || '', l.cost || '']; });
+  }
+  var TALEP_HEAD = ['Tarih', 'Arılık', 'Grup', 'Kalem', 'Birim', 'Gerekli', 'Stokta', 'Alınacak', 'Kaynak', 'Birim fiyat (₺)', 'Fiyat kaynağı', 'Fiyat tarihi', 'Tutar (₺)'];
+  function exportCsv(t) {
+    var RS = window.SuperAriRapor, name = 'superari-alim-talebi-' + t.date + '.csv', rows = talepRows(t).concat([['', 'TOPLAM', '', '', '', '', '', '', '', '', '', t.priceRefDate || '', t.total]]);
+    if (RS && RS.downloadCsv) { RS.downloadCsv(name, TALEP_HEAD, rows); return; }
+    var csv = '\\uFEFF' + [TALEP_HEAD].concat(rows).map(function (r) { return r.map(function (v) { v = String(v == null ? '' : v); return /[";\\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';'); }).join('\\r\\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 500);
+  }
+  function printTalep(t) {
+    var rows = talepRows(t).map(function (r) { return '<tr>' + r.slice(1).map(function (v) { return '<td>' + esc(typeof v === 'number' ? String(v).replace('.', ',') : v) + '</td>'; }).join('') + '</tr>'; }).join('');
+    var html = '<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><title>Alım talebi ' + esc(t.date) + '</title><style>body{font:12px system-ui,sans-serif;margin:16px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px;text-align:left}th{background:#f4e3b0}</style></head><body>' +
+      '<h2>SüperArı alım talebi — ' + esc(t.apiaryName) + ' — ' + esc(fmt(t.date)) + '</h2><p>Tahmin payı %' + t.tol + ' · fiyat tarihi ' + esc(t.priceRefDate || '—') + ' · fiyatlar tahminidir, piyasa fiyatı değildir.</p>' +
+      '<table><tr>' + TALEP_HEAD.slice(1).map(function (x) { return '<th>' + esc(x) + '</th>'; }).join('') + '</tr>' + rows + '</table><p><b>Tahmini toplam: ' + esc(money(t.total)) + '</b>' + (t.missing ? ' · ' + t.missing + ' kalem fiyatsız' : '') + '</p><script>setTimeout(function(){print();},300)<\/script></body></html>';
+    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }
+    if (w && w.document) { w.document.open(); w.document.write(html); w.document.close(); return; }
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' })); a.download = 'superari-alim-talebi-' + t.date + '.html'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 500);
   }
   function renderMoves() {
     var rows = [];
@@ -1356,8 +1404,8 @@
     },
     note: function (hs, scope) {
       var nd = needFor(hs, scope), who = apShort(scope);
-      return nd.buyN ? { t: '🛒 ' + who + ' için ' + nd.buyN + ' malzeme alınacak', b: 'Liste', href: '#alinacak', k: 'alinacak' }
-        : { t: hs.length ? '✓ ' + who + ' için alınacak malzeme yok' : 'Bu kapsamda kovan yok', b: 'Liste', href: '#alinacak', k: 'ok' };
+      return nd.buyN ? { t: '🛒 ' + who + ' için ' + nd.buyN + ' kalem alınacak' + (nd.total ? ' · ≈ ' + money(nd.total) : '') + (nd.missing ? ' (' + nd.missing + ' fiyatsız)' : ''), b: 'Talep', href: '#alinacak', k: 'alinacak' }
+        : { t: hs.length ? '✓ ' + who + ' için alınacak malzeme yok' : 'Bu kapsamda kovan yok', b: 'Talep', href: '#alinacak', k: 'ok' };
     },
     onChange: function (scope, hs) {
       var row = $('stAps');
@@ -1383,7 +1431,7 @@
     else if (pushed && readHash()) { pushed = false; history.back(); }
     else { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ } view = ''; rerender(); }
   }
-  window.addEventListener('hashchange', function () { view = readHash(); form = null; amt = null; needKey = ''; $('stPanel').scrollTop = 0; rerender(); });
+  window.addEventListener('hashchange', function () { view = readHash(); form = null; amt = null; priceEdit = null; talepDone = null; needKey = ''; $('stPanel').scrollTop = 0; rerender(); if (view === 'alinacak') refreshRef(); });
 
   document.getElementById('stScreen').addEventListener('click', function (e) {
     var t = e.target.closest ? e.target : null; if (!t) return;
@@ -1402,6 +1450,31 @@
       if (tp) { f.elements.name.value = tp.n; f.elements.unit.value = tp.u; f.elements.qty.focus(); }
       return;
     }
+    if ((b = t.closest('[data-tol]'))) { TQ.setTol(TQ.tol() + Number(b.getAttribute('data-tol'))); needKey = ''; rerender(); return; }
+    if ((b = t.closest('[data-price]'))) { priceEdit = b.getAttribute('data-price'); rerender(); var pi = document.querySelector('[data-price-form] input'); if (pi) pi.focus(); return; }
+    if ((b = t.closest('[data-price-cancel]'))) { priceEdit = null; rerender(); return; }
+    if ((b = t.closest('[data-price-clear]'))) { TQ.setPrice(b.getAttribute('data-price-clear'), ''); priceEdit = null; needKey = ''; changed(); toast('Fiyatınız silindi'); return; }
+    if ((b = t.closest('.st-apsec[data-ap]'))) { ctl.setScope(b.getAttribute('data-ap')); $('stPanel').scrollTop = 0; return; }
+    if ((b = t.closest('[data-talep]'))) {
+      b.disabled = true;
+      /* Kaydetmeden hemen önce fiyatları taze oku ve yeniden hesapla */
+      refreshRef().then(function () {
+        var sc = ctl.scope(), rq = needFor(null, sc);
+        if (!rq.buyN) { toast('Alınacak kalem yok; talep kaydedilmedi'); return; }
+        talepDone = TQ.saveTalep(rq, sc === 'all' ? 'Tüm arılıklar' : apName(sc));
+        rerender(); toast('Talep kaydedildi · ' + rq.buyN + ' kalem');
+      });
+      return;
+    }
+    if ((b = t.closest('[data-share]')) && talepDone) {
+      var tx = talepText(talepDone);
+      if (navigator.share) { navigator.share({ title: 'SüperArı alım talebi', text: tx }).catch(function () { /* iptal */ }); }
+      else if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(tx).then(function () { toast('Talep panoya kopyalandı'); }, function () { alert(tx); }); }
+      else alert(tx);
+      return;
+    }
+    if ((b = t.closest('[data-csv]')) && talepDone) { exportCsv(talepDone); return; }
+    if ((b = t.closest('[data-print]')) && talepDone) { printTalep(talepDone); return; }
     if ((b = t.closest('[data-del]'))) {
       var it = S.list().filter(function (x) { return x.id === b.getAttribute('data-del'); })[0];
       if (!it || !confirm(it.name + ' silinsin mi?')) return;
@@ -1434,6 +1507,14 @@
       if (view !== 'c-' + saved.category) { location.hash = 'c-' + saved.category; }
       changed(); return;
     }
+    if (f.hasAttribute('data-price-form')) {
+      e.preventDefault();
+      var raw = String(f.elements.p.value).trim().replace(/\s|₺/g, '');
+      raw = raw.indexOf(',') >= 0 ? raw.replace(/\./g, '').replace(',', '.') : (/^\d{1,3}(\.\d{3})+$/.test(raw) ? raw.replace(/\./g, '') : raw);
+      var pv = Number(raw);
+      if (!(pv > 0)) { alert('Geçerli bir birim fiyat girin (ör. 42,50).'); return; }
+      TQ.setPrice(f.getAttribute('data-price-form'), pv); priceEdit = null; needKey = ''; changed(); toast('Fiyat kaydedildi'); return;
+    }
     if (f.hasAttribute('data-amt-form')) {
       e.preventDefault();
       var qv = Number(String(f.elements.q.value).replace(',', '.'));
@@ -1443,12 +1524,14 @@
       amt = null; changed();
     }
   });
+  /* Açılışta (ve Alınacaklar her açıldığında) fiyatlar ağdan taze okunur; önbellek / gömülü kopya yok */
+  refreshRef();
   window.addEventListener('superari-records-changed', function () { needKey = ''; rerender(); });
   window.addEventListener('superari-cloud-pulled', function () { needKey = ''; rerender(); });
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-62"></script>
-<script src="pwa.js?v=koloni-62"></script>
+<script src="nav.js?v=koloni-63"></script>
+<script src="pwa.js?v=koloni-63"></script>
 </body>
 </html>

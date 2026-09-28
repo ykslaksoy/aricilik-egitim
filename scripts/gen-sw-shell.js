@@ -4,7 +4,7 @@
 const fs = require('fs'), path = require('path');
 const web = path.join(__dirname, '..', 'apps', 'web');
 const SKIP_DIRS = new Set(['tests', 'node_modules', '.vercel', 'harita']); /* vendor/harita: yalnız bölge indirilince (superari-maps) */
-const SKIP_FILES = new Set(['sw.js', 'ana-LOCKED-FINAL.html', 'master-78.html']);
+const SKIP_FILES = new Set(['sw.js', 'ana-LOCKED-FINAL.html', 'master-78.html', 'fiyat-ref.json']); /* fiyat-ref.json: her zaman ağdan (bayat fiyat yok) */
 const OK = /\.(html|js|css|json|png|jpe?g|webp|svg|ico|gif|wav|mp3|ogg|woff2?)$/i;
 const out = ['/'];
 (function walk(dir, rel) {
