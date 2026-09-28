@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-58" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-59" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -63,17 +63,17 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-58"></script>
-  <script src="rapor-store.js?v=koloni-58"></script>
-  <script src="sensor-health.js?v=koloni-58"></script>
-<script src="saglik-canli.js?v=koloni-58"></script>
-  <script src="koloni.js?v=koloni-58"></script>
-  <script src="ilac-katalog.js?v=koloni-58"></script>
-  <script src="bakim-plan.js?v=koloni-58"></script>
-  <script src="irk-tahmin.js?v=koloni-58"></script>
-  <script src="kovan-ara.js?v=koloni-58"></script>
-  <script src="tarti-elle.js?v=koloni-58"></script>
-  <script src="kapsam.js?v=koloni-58"></script>
+  <script src="demo-data.js?v=koloni-59"></script>
+  <script src="rapor-store.js?v=koloni-59"></script>
+  <script src="sensor-health.js?v=koloni-59"></script>
+<script src="saglik-canli.js?v=koloni-59"></script>
+  <script src="koloni.js?v=koloni-59"></script>
+  <script src="ilac-katalog.js?v=koloni-59"></script>
+  <script src="bakim-plan.js?v=koloni-59"></script>
+  <script src="irk-tahmin.js?v=koloni-59"></script>
+  <script src="kovan-ara.js?v=koloni-59"></script>
+  <script src="tarti-elle.js?v=koloni-59"></script>
+  <script src="kapsam.js?v=koloni-59"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -503,7 +503,7 @@
                 '<a class="' + (sub === 'kis' ? 'on' : '') + '" href="' + subHref('kis') + '">Kışlık hazırlık</a></div>'
               : '';
             if (sub === 'stok') { listEl.innerHTML = K.winterStockHtml(scopeHives); return; }
-            listEl.innerHTML = (topic === 'guc' && !sub ? '<a class="btn" href="bakim-akis.html' + (effectiveMode === 'apiary' && apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '') + '" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:64px;margin:0 0 12px;font-size:1.1rem;font-weight:800;background:#1b5e20;border-color:#1b5e20;color:#fff;text-decoration:none;">🔍 Hızlı muayene başlat</a>' : '') +
+            listEl.innerHTML = (topic === 'guc' && !sub ? '<a class="btn" href="bakim-akis.html' + (effectiveMode === 'apiary' && apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '') + '" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:64px;margin:0 0 12px;font-size:1.1rem;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border:1px solid #e0c56a;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);color:#4a2f1a;font-weight:800;text-decoration:none;">🔍 Hızlı muayene başlat</a>' : '') +
               (topic === 'besleme' && !sub && K.winterStockLineHtml ? K.winterStockLineHtml(scopeHives, subHref('stok')) : '') +
               (topic === 'guc' && window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(scopeHives, { apiary: effectiveMode === 'apiary' ? apiaryFilter : '' }) : '') +
               K.topicListHtml(listTopic, scopeHives);
@@ -576,6 +576,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-58"></script>
+<script src="pwa.js?v=koloni-59"></script>
 </body>
 </html>

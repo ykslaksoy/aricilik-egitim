@@ -947,10 +947,12 @@
   .bk-top .bee-sound-toggle { position: relative; }
   .bk-top .bee-sound-toggle::after { content: ""; position: absolute; left: -2px; right: -2px; top: -14px; bottom: -14px; } /* dokunma alanı ≥ 48px yükseklik */
   .ak-start { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; margin: 0 0 8px; padding: 8px 12px;
-    border: 0; border-radius: 14px; background: #1b5e20; color: #fff; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); -webkit-tap-highlight-color: transparent; }
-  .ak-start:active { transform: scale(.99); }
+    border-radius: 14px; font: inherit; font-size: 17px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    /* Ana'daki Hardal Arıcılık marka şeridinin renkleri (ana.html .brand-strip) */
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%); border: 1px solid #e0c56a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65); color: var(--brown); font-weight: 800; }
+  .ak-start:active { transform: scale(.99); background: rgba(244, 227, 176, 0.85); }
   .ak-start[disabled] { opacity: .5; }
-  .ak-start small { display: block; font-size: 11.5px; font-weight: 700; opacity: .9; margin-top: 2px; }
+  .ak-start small { display: inline-block; font-size: 11.5px; font-weight: 700; margin-top: 3px; padding: 1px 8px; border-radius: 999px; /* «Sabitlendi» hapının koyu altını */ background: rgba(240, 196, 58, 0.28); border: 1px solid rgba(184, 134, 11, 0.55); color: var(--brown-mid, #5c3a1f); }
   .ak-start .t { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; text-align: left; line-height: 1.15; }
   .ak-sec { flex: 0 0 auto; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 2px 5px; font-size: 12px; font-weight: 800; color: var(--brown-mid); }
   .ak-sec small { font-size: 10.5px; font-weight: 700; color: var(--muted); }
@@ -987,16 +989,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-58"></script>
-<script src="sensor-health.js?v=koloni-58"></script>
-<script src="saglik-canli.js?v=koloni-58"></script>
-<script src="koloni.js?v=koloni-58"></script>
-<script src="ilac-katalog.js?v=koloni-58"></script>
-<script src="bakim-plan.js?v=koloni-58"></script>
-<script src="mic-session.js?v=koloni-58"></script>
-<script src="kolay-muayene.js?v=koloni-58"></script>
-<script src="bakim-akis.js?v=koloni-58"></script>
-<script src="kapsam.js?v=koloni-58"></script>
+<script src="demo-data.js?v=koloni-59"></script>
+<script src="sensor-health.js?v=koloni-59"></script>
+<script src="saglik-canli.js?v=koloni-59"></script>
+<script src="koloni.js?v=koloni-59"></script>
+<script src="ilac-katalog.js?v=koloni-59"></script>
+<script src="bakim-plan.js?v=koloni-59"></script>
+<script src="mic-session.js?v=koloni-59"></script>
+<script src="kolay-muayene.js?v=koloni-59"></script>
+<script src="bakim-akis.js?v=koloni-59"></script>
+<script src="kapsam.js?v=koloni-59"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, A = window.SuperAriBakimAkis, KS = window.SuperAriKapsam;
@@ -1082,7 +1084,7 @@
   if (hh0) setTimeout(function () { start(hh0.id); }, 150);
 })();
 </script>
-<script src="nav.js?v=koloni-58"></script>
-<script src="pwa.js?v=koloni-58"></script>
+<script src="nav.js?v=koloni-59"></script>
+<script src="pwa.js?v=koloni-59"></script>
 </body>
 </html>
