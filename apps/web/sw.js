@@ -95,6 +95,8 @@ const SHELL = [
   "/assets/logos/hardal-italyan-bee.png",
   "/ayarlar.html",
   "/bakici.html",
+  "/bakim-akis.html",
+  "/bakim-akis.js",
   "/bakim-plan.html",
   "/bakim-plan.js",
   "/bakim-yap.html",

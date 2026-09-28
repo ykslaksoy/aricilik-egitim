@@ -1,0 +1,28 @@
+/* Bakım akışı sesli komut / miktar çözümleyici. */
+const assert = require('assert');
+const A = require('../bakim-akis.js');
+const eq = (s, exp) => { const r = A.parseCmd(s); Object.keys(exp).forEach((k) => assert.strictEqual(r[k], exp[k], s + ' → ' + JSON.stringify(r))); };
+eq('bir buçuk kilo', { n: 1.5, unit: 'kg' });
+eq('1,5 kg', { n: 1.5, unit: 'kg' });
+eq('2.5 litre', { n: 2.5, unit: 'L' });
+eq('yarım kilo', { n: 0.5, unit: 'kg' });
+eq('on iki şerit', { n: 12, unit: 'serit' });
+eq('iki yüz elli gram', { n: 250, unit: 'g' });
+eq('bir virgül beş litre', { n: 1.5, unit: 'L' });
+eq('Üç buçuk kilo.', { n: 3.5, unit: 'kg' });
+eq('tamam', { cmd: 'tamam' });
+eq('evet', { cmd: 'tamam' });
+eq('az', { cmd: 'az' });
+eq('çok', { cmd: 'cok' });
+eq('uygun', { cmd: 'uygun' });
+eq('atla', { cmd: 'atla' });
+eq('geri', { cmd: 'geri' });
+eq('sonraki kovan', { cmd: 'sonraki' });
+eq('bir daha', { cmd: 'tekrar' });
+eq('ikinci', { ord: 2 });
+assert.strictEqual(A.parseCmd('biraz').none, true);
+assert.strictEqual(A.convert(250, 'g', 'kg'), 0.25);
+assert.strictEqual(A.convert(2, 'kg', 'L'), null);
+assert.strictEqual(A.sayNum(1.5), '1 buçuk');
+assert.strictEqual(A.sayNum(0.5), 'yarım');
+console.log('bakim-akis-parser: ok');

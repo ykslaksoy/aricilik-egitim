@@ -178,6 +178,8 @@
     '.km-ok{background:#ebfbee;border:1px solid #b2f2bb;color:#1b5e20;border-radius:12px;padding:10px;font-size:14px;margin-bottom:10px;}' +
     '.km-warn{background:#fff4e6;border:1px solid #ffd8a8;color:#8a4b00;border-radius:10px;padding:8px;font-size:13px;margin:8px 0;}' +
     '.km-link{font:inherit;font-size:15px;font-weight:800;width:100%;min-height:48px;border-radius:12px;border:2px solid #e56f1c;background:#fff;color:#b3470b;cursor:pointer;margin-top:10px;}' +
+    '.km-akis .km-opts{gap:12px;}.km-akis .km-opt{min-height:64px;font-size:18px;}.km-akis .km-foot{gap:12px;}.km-akis .km-foot button{min-height:64px;font-size:17px;}' +
+    '.km-akis .km-step button{width:72px;height:72px;}.km-akis .km-step.sm button{width:64px;height:64px;}.km-akis .km-x{width:48px;height:48px;}.km-akis .km-mic{min-height:48px;}.km-akis .km-tool{min-height:48px;}' +
     '.km-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}.km-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:8px;}';
   function ensureCss() { if (document.getElementById('kmCss')) return; var s = document.createElement('style'); s.id = 'kmCss'; s.textContent = css; document.head.appendChild(s); }
   function close() { try { if (global.SuperAriSesle) global.SuperAriSesle.stop(); } catch (e) { /* ignore */ } var b = document.getElementById('kmSheet'); if (b) { b.remove(); document.body.style.overflow = ''; } }
@@ -192,7 +194,7 @@
       bee: last ? last.beeFrames : 5, brood: last ? last.broodFrames : 3, sel: {} };
     try { var b0 = D.colony.boxes ? D.colony.boxes(h) : null; if (b0) st.box = { body: b0.body, kat: b0.kat, ballik: b0.ballik, known: b0.known }; } catch (e) { st.box = null; }
     var back = document.createElement('div'); back.className = 'km-back'; back.id = 'kmSheet';
-    back.innerHTML = '<div class="km" role="dialog" aria-modal="true" aria-label="Kolay muayene"><div class="km-head"><div class="km-top"><b data-km-title></b><button type="button" class="km-mic" data-km-voice-start aria-label="Sesle başlat">🎙 Sesle başlat</button><button type="button" class="km-x" data-km-close aria-label="Kapat">×</button></div>' +
+    back.innerHTML = '<div class="km' + (opts.akis ? ' km-akis' : '') + '" role="dialog" aria-modal="true" aria-label="Kolay muayene"><div class="km-head"><div class="km-top"><b data-km-title></b><button type="button" class="km-mic" data-km-voice-start aria-label="Sesle başlat">🎙 Sesle başlat</button><button type="button" class="km-x" data-km-close aria-label="Kapat">×</button></div>' +
       '<div class="km-sub" data-km-sub></div><div class="km-bar"><i data-km-bar></i></div></div><div class="km-voice" data-km-voice hidden></div><form class="km-body" data-km-body autocomplete="off" onsubmit="return false"></form><div class="km-foot" data-km-foot></div></div>';
     document.body.appendChild(back); document.body.style.overflow = 'hidden';
     var body = back.querySelector('[data-km-body]'), foot = back.querySelector('[data-km-foot]');
@@ -200,7 +202,7 @@
 
     function head() {
       var n = st.steps.length, fin = st.i >= n;
-      back.querySelector('[data-km-title]').textContent = (st.first ? 'İlk muayene' : 'Kolay muayene') + ' · ' + h.name;
+      back.querySelector('[data-km-title]').textContent = (opts.akis ? 'Bakım akışı · 1. Muayene' : (st.first ? 'İlk muayene' : 'Kolay muayene')) + ' · ' + h.name;
       back.querySelector('[data-km-sub]').innerHTML = fin ? 'Özet' + (mode() === 'demo' ? ' · Demo' : '') :
         'Adım ' + (st.i + 1) + ' / ' + n + (mode() === 'demo' ? ' · Demo' : '') + (st.i === 0 ? ' · <a href="#" data-km-variant style="color:#2b6cb0;">' + (st.first ? 'Kısa muayeneye geç (8 adım)' : 'İlk muayene (15 adım)') + '</a>' : '');
       back.querySelector('[data-km-bar]').style.width = Math.round((fin ? 1 : st.i / n) * 100) + '%';
@@ -305,11 +307,18 @@
         (b.boxes ? '<div class="km-row"><span>🏠 Kovan kutusu: ' + esc(boxText(b.boxes)) + '</span></div>' : (b.superOn ? '<div class="km-row"><span>📦 Bal katı takılı olarak işaretlenir</span></div>' : '')) +
         (b.queenYear ? '<div class="km-row"><span>🎨 Ana yılı: ' + b.queenYear + '</span></div>' : '') +
         (!b.strength && !b.brood && !b.calm && !b.boxes ? '<p class="km-help">Kaydedilecek bilgi yok; en az bir adımı yanıtlayın.</p>' : '<p class="km-help" style="margin:6px 0 0;">Oğul riski, sağlık durumu ve görevler bu kayıtlardan yeniden hesaplanır.</p>') + '</div>';
-      H += '<div class="km-sum"><h3>Önerilen görevler</h3>' + (sug.length ? sug.map(function (x, i) {
+      if (!opts.akis) H += '<div class="km-sum"><h3>Önerilen görevler</h3>' + (sug.length ? sug.map(function (x, i) {
         return '<label class="km-task"><input type="checkbox" data-km-sel="' + i + '"' + (st.sel[i] ? ' checked' : '') + (st.done ? ' disabled' : '') + '><span>' + esc(x.title) + (x.why ? '<small>' + esc(x.why) + '</small>' : '') + '</span></label>';
       }).join('') : '<p class="km-help" style="margin:0;">Ek görev önerisi yok.</p>') + '</div>';
       if (st.ans.hastalik === 'var' || st.ans.kapali === 'cok') H += '<button type="button" class="km-link" data-km-hz>🔍 Hastalık tahminini aç</button>';
       body.innerHTML = H;
+      if (opts.akis) {
+        H += '<p class="km-help" style="margin:6px 0 0;">Kaydettikten sonra bu muayeneye göre öneriler adım adım gelir.</p>';
+        body.innerHTML = H;
+        if (st.done) { foot.innerHTML = '<button type="button" disabled>Kaydediliyor…</button>'; return; }
+        foot.innerHTML = '<button type="button" data-km-back style="min-height:64px;">← Geri</button><button type="button" class="pri" data-km-save style="min-height:64px;flex:2;">Kaydet ve önerilere geç →</button>';
+        return;
+      }
       var nx = nextHive();
       foot.innerHTML = st.done ? '<button type="button" data-km-close>Kapat</button>' + (nx ? '<button type="button" class="pri" data-km-gonext>Sıradaki: ' + esc(nx.name) + ' →</button>' : '')
         : '<button type="button" data-km-back>← Geri</button><button type="button" class="pri" data-km-save>Kaydet</button>' + (nx ? '<button type="button" class="pri" data-km-save="next">Kaydet + Sıradaki</button>' : '');
@@ -340,7 +349,7 @@
       else if (b.superOn && P && P.setSuper) { P.setSuper(h.id, true); msgs.push('bal katı'); }
       var open = []; try { open = D.taskStore.open().map(function (x) { return x.title; }); } catch (e) { open = []; }
       var nt = 0;
-      (st.sugg || []).forEach(function (x, i) {
+      (opts.akis ? [] : (st.sugg || [])).forEach(function (x, i) {
         if (!st.sel[i]) return;
         var title = x.title + ' — ' + h.name + (mode() === 'demo' ? ' · Demo' : '');
         if (open.indexOf(title) >= 0) return;
@@ -357,8 +366,13 @@
       if (typeof opts.onSaved === 'function') { try { opts.onSaved(); } catch (e) { /* ignore */ } }
       function finish(np) {
         if (files.length) st.done = st.done.replace(' · fotoğraflar kaydediliyor…', np ? ' · ' + np + ' fotoğraf' : ' · fotoğraflar kaydedilemedi');
+        if (typeof opts.afterSave === 'function') {
+          var info = { ans: st.ans, notes: st.notes, lines: b.lines, strength: b.strength, brood: b.brood, calm: b.calm, boxes: b.boxes, msg: st.done, photos: np || 0, voice: !!vapi.onRender };
+          close(); opts.afterSave(info); return;
+        }
         if (andNext) goNext(); else render();
       }
+      if (typeof opts.afterSave === 'function' && files.length && ids.length) { st.done = st.done.replace(' · fotoğraflar kaydediliyor…', ''); }
       if (!files.length || !ids.length) { finish(0); return; }
       render();
       need('foto.js', 'SuperAriFoto').then(function (F) {

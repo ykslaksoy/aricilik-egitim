@@ -362,16 +362,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-53"></script>
-<script src="rapor-store.js?v=koloni-53"></script>
-<script src="sensor-health.js?v=koloni-53"></script>
-<script src="saglik-canli.js?v=koloni-53"></script>
-<script src="koloni.js?v=koloni-53"></script>
-<script src="ilac-katalog.js?v=koloni-53"></script>
-<script src="bakim-plan.js?v=koloni-53"></script>
-<script src="ogul.js?v=koloni-53"></script>
-<script src="ogul-verdi.js?v=koloni-53"></script>
-<script src="tarti-elle.js?v=koloni-53"></script>
+<script src="demo-data.js?v=koloni-54"></script>
+<script src="rapor-store.js?v=koloni-54"></script>
+<script src="sensor-health.js?v=koloni-54"></script>
+<script src="saglik-canli.js?v=koloni-54"></script>
+<script src="koloni.js?v=koloni-54"></script>
+<script src="ilac-katalog.js?v=koloni-54"></script>
+<script src="bakim-plan.js?v=koloni-54"></script>
+<script src="ogul.js?v=koloni-54"></script>
+<script src="ogul-verdi.js?v=koloni-54"></script>
+<script src="tarti-elle.js?v=koloni-54"></script>
 <script>(function () {
   if (window.SuperAriTarti) SuperAriTarti.ensureCss();
   document.addEventListener('click', function (e) {
@@ -388,7 +388,7 @@
   else if (window.SuperAriKutu) SuperAriKutu.open(t.getAttribute('data-kutu-open'), rl);
 });
 new MutationObserver(function () { if (window.__ovReload && !document.getElementById('ovSheet')) { window.__ovReload = false; location.reload(); } }).observe(document.body, { childList: true });</script>
-<script src="irk-tahmin.js?v=koloni-53"></script>
+<script src="irk-tahmin.js?v=koloni-54"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>(function () {
   function kmOpen(id) { if (window.SuperAriKoloni && SuperAriKoloni.openKolayMuayene) SuperAriKoloni.openKolayMuayene(id, { onSaved: function () { window.__kmReload = true; } }); }
@@ -967,6 +967,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
         var bx = null; try { bx = window.SuperAriDemo.colony.boxes(hive); } catch (e) { bx = null; }
         var sw = hive.lastSwarmDate ? ' · 🐝 Oğul verdi (' + hive.lastSwarmDate.split('-').reverse().join('.') + ')' : '';
         return '<button type="button" class="btn" data-km-open="' + escapeHtml(hive.id) + '" style="width:100%;margin:10px 0 4px;min-height:52px;font-size:1.05rem;">🐝 ' + (first ? 'İlk muayene (adım adım)' : 'Kolay muayene (≈1 dk)') + '</button>' +
+          '<a class="btn" href="bakim-akis.html?id=' + encodeURIComponent(hive.id) + '&amp;apiary=' + encodeURIComponent(hive.apiaryId) + '" style="display:flex;align-items:center;justify-content:center;width:100%;margin:12px 0 4px;min-height:64px;font-size:1.05rem;background:#1b5e20;border-color:#1b5e20;color:#fff;text-decoration:none;">🧭 Bakım akışı (muayene + öneriler)</a>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 6px;font-size:.88rem;">' +
             '<span style="flex:1 1 150px;min-width:0;">🏠 ' + escapeHtml(bx ? bx.label + (bx.known ? '' : ' (tahmini)') : '—') + escapeHtml(sw) + '</span>' +
             '<button type="button" class="chip" data-kutu-open="' + escapeHtml(hive.id) + '" style="font:inherit;font-size:.82rem;cursor:pointer;">Kutu: değiştir</button>' +
@@ -1088,7 +1089,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-53"></script>
-<script src="pwa.js?v=koloni-53"></script>
+<script src="nav.js?v=koloni-54"></script>
+<script src="pwa.js?v=koloni-54"></script>
 </body>
 </html>

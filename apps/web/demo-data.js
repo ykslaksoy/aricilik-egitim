@@ -884,6 +884,8 @@
       out.colonyEvents = h.colonyEvents.filter(function (e) { return e && e.date && e.text; }).slice(-30).map(function (e) {
         var o = { id: String(e.id || '').slice(0, 40), date: String(e.date).slice(0, 10), type: String(e.type || '').slice(0, 20), text: String(e.text).slice(0, 300) };
         if (e.otherHiveId != null) o.otherHiveId = Number(e.otherHiveId);
+        if (e.sug && /^(kabul|az|cok|alternatif|degisti)$/.test(e.sug)) { o.sug = e.sug; if (e.sugText) o.sugText = String(e.sugText).slice(0, 120); }
+        if (e.demo === true) o.demo = true;
         return o;
       });
     }
@@ -2170,6 +2172,11 @@
     if (r.demo === true) o.demo = true;
     var note = txt(r.note, 300); if (note) o.note = note;
     var pcnt = intIn(r.photoCount, 0, 50); if (pcnt) o.photoCount = pcnt;
+    /* Bakım akışı: önerinin kabul edilip edilmediği (sonradan öğrenme için) */
+    if (r.akis === true) o.akis = true;
+    var sg = pick(r.sug, ['kabul', 'az', 'cok', 'alternatif', 'degisti', ''], ''); if (sg) o.sug = sg;
+    var sgv = numIn(r.sugVal, 0, 5000); if (sgv != null && sg) o.sugVal = sgv;
+    var sgt = txt(r.sugText, 120); if (sgt && sg) o.sugText = sgt;
     if (kind === 'strength') {
       o.beeFrames = intIn(r.beeFrames, 0, 40) || 0;
       o.broodFrames = intIn(r.broodFrames, 0, 30) || 0;
@@ -4002,6 +4009,35 @@
     b.frames = 10 * (b.body + b.kat); b.label = boxLabel(b); b.known = known;
     return b;
   }
+  /** Kovan geçmişine olay ekle (Bakım akışı: çerçeve/kat, ana, not). { type, text, sug?, sugText? } → olay id */
+  function addHiveEvent(hiveId, ev) {
+    var n = Number(hiveId), list = loadHives(), id = null;
+    var text = txt(ev && ev.text, 300); if (!text) return null;
+    var out = list.map(function (h) {
+      if (h.id !== n) return h;
+      var c = cloneObj(h); id = opsId('ev');
+      var e = { id: id, date: isoDate(ev.date) || todayLocal(), type: txt(ev.type, 20) || 'bakim', text: text };
+      if (ev.sug) { e.sug = ev.sug; if (ev.sugText) e.sugText = ev.sugText; }
+      if (workMode() === 'demo') e.demo = true;
+      pushEvent(c, e);
+      return normalizeHive(c);
+    });
+    if (!id) return null;
+    saveHives(out);
+    return id;
+  }
+  function removeHiveEvent(hiveId, evId) {
+    var n = Number(hiveId), list = loadHives(), hit = false;
+    var out = list.map(function (h) {
+      if (h.id !== n || !Array.isArray(h.colonyEvents)) return h;
+      var c = cloneObj(h), before = c.colonyEvents.length;
+      c.colonyEvents = c.colonyEvents.filter(function (e) { return e && e.id !== evId; });
+      if (c.colonyEvents.length !== before) { hit = true; c.colonyUpdatedAt = new Date().toISOString(); }
+      return normalizeHive(c);
+    });
+    if (hit) saveHives(out);
+    return hit;
+  }
   function setHiveBoxes(hiveId, box) {
     var n = Number(hiveId), list = loadHives(), found = null;
     var bx = normBoxes(box); if (!bx) return null;
@@ -4514,6 +4550,8 @@
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },
         setBoxes: setHiveBoxes,
+        addEvent: addHiveEvent,
+        removeEvent: removeHiveEvent,
         boxLabel: boxLabel,
         recordSwarm: function (o) { return recordSwarm(o); },
         swarmEvents: swarmEvents,

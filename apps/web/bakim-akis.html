@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bakım akışı · SüperArı</title>
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .ak-h{display:flex;gap:10px;align-items:center;}
+    .ak-h h2{margin:0;font-size:1.35rem;flex:1;min-width:0;}
+    .ak-tag{font-size:.8rem;font-weight:800;border-radius:999px;padding:2px 10px;background:#fff3bf;color:#5c4813;border:1px solid #e0c56a;white-space:nowrap;}
+    .ak-tag.live{background:#d3f9d8;color:#1b5e20;border-color:#8ce99a;}
+    .ak-p{margin:0;font-size:.98rem;line-height:1.4;color:#3d2616;}
+    .ak-big{display:block;width:100%;min-height:80px;border-radius:16px;border:2px solid #1b5e20;background:#1b5e20;color:#fff;font:inherit;font-size:1.3rem;font-weight:900;cursor:pointer;padding:10px 14px;line-height:1.2;text-align:center;}
+    .ak-big small{display:block;font-size:.95rem;font-weight:700;opacity:.9;margin-top:2px;}
+    .ak-btn{display:block;width:100%;min-height:64px;border-radius:16px;border:2px solid #b8a386;background:#fff;color:#2a1a0e;font:inherit;font-size:1.1rem;font-weight:800;cursor:pointer;padding:8px 12px;text-align:center;}
+    .ak-btn.on{background:#1b5e20;border-color:#1b5e20;color:#fff;}
+    .ak-sel{width:100%;min-height:64px;border-radius:16px;border:2px solid #b8a386;background:#fff;font:inherit;font-size:1.1rem;font-weight:800;padding:0 12px;color:#2a1a0e;}
+    .ak-list{display:flex;flex-direction:column;gap:12px;}
+    .ak-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;min-height:72px;border-radius:16px;border:2px solid #d8c8ae;background:#fff;color:#2a1a0e;font:inherit;cursor:pointer;padding:10px 12px;text-align:left;}
+    .ak-row b{display:block;font-size:1.15rem;}
+    .ak-row small{display:block;font-size:.9rem;color:#5b4631;font-weight:700;margin-top:2px;}
+    .ak-row .go{font-size:1.05rem;font-weight:900;color:#1b5e20;white-space:nowrap;}
+    .ak-row.p0{border-color:#e03131;background:#fff5f5;}.ak-row.p1{border-color:#f08c00;background:#fff9db;}
+    .ak-row.done{opacity:.6;}
+    .ak-gap{display:flex;flex-direction:column;gap:12px;}
+    .ak-note{font-size:.9rem;color:#5b4631;margin:0;}
+  </style>
+</head>
+<body data-tabbar="fixed">
+  <main class="wrap">
+    <div class="nav">
+      <a class="chip" href="bakim.html">← Bakım</a>
+      <a class="chip" id="akGuc" href="kovanlar.html?view=koloni&amp;topic=guc&amp;mode=all">Koloni gücü kayıtları</a>
+    </div>
+    <section class="card stack ak-gap">
+      <div class="ak-h"><h2>🧭 Bakım akışı</h2><span class="ak-tag" id="akMode">Demo</span></div>
+      <p class="ak-p">Önce muayene, sonra her adımda öneri: <b>Tamam</b> deyin/dokunun ya da kendi yaptığınızı girin. Sensör gerekmez.</p>
+      <select class="ak-sel" id="akAp" aria-label="Arılık"></select>
+      <button type="button" class="ak-btn" id="akVoice" aria-pressed="false">🔈 Sesli mod: Kapalı</button>
+      <button type="button" class="ak-big" id="akStart">▶ Bakım akışı başlat<small id="akStartSub"></small></button>
+    </section>
+    <section class="card stack ak-gap" style="margin-top:1rem;">
+      <h3 style="margin:0;font-size:1.1rem;">Sıra <small style="font-weight:600;color:#5b4631;">(önce uyarı / kritik, sonra geciken muayene)</small></h3>
+      <div class="ak-list" id="akList"></div>
+      <p class="ak-note" id="akNote"></p>
+    </section>
+  </main>
+  <script src="demo-data.js?v=koloni-54"></script>
+  <script src="sensor-health.js?v=koloni-54"></script>
+  <script src="saglik-canli.js?v=koloni-54"></script>
+  <script src="koloni.js?v=koloni-54"></script>
+  <script src="ilac-katalog.js?v=koloni-54"></script>
+  <script src="bakim-plan.js?v=koloni-54"></script>
+  <script src="kolay-muayene.js?v=koloni-54"></script>
+  <script src="bakim-akis.js?v=koloni-54"></script>
+  <script>
+  (function () {
+    var D = window.SuperAriDemo, A = window.SuperAriBakimAkis;
+    if (!D || !A) return;
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    var live = false; try { live = localStorage.getItem('superari.workMode') === 'live'; } catch (e) { live = false; }
+    $('akMode').textContent = live ? 'Canlı' : 'Demo'; if (live) $('akMode').classList.add('live');
+    var q = new URLSearchParams(location.search);
+    var aps = D.loadApiaries();
+    var ap = q.get('apiary') || (aps.length === 1 ? String(aps[0].id) : 'all');
+    $('akAp').innerHTML = '<option value="all">Tüm arılıklar</option>' + aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    $('akAp').value = ap; if ($('akAp').value !== ap) { ap = 'all'; $('akAp').value = 'all'; }
+    function hives() { return ap === 'all' ? D.loadHives() : D.hivesForApiary(ap); }
+    function voiceBtn() { var on = A.voicePref(); var b = $('akVoice'); b.classList.toggle('on', on); b.textContent = on ? '🔊 Sesli mod: Açık' : '🔈 Sesli mod: Kapalı'; b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    function render() {
+      $('akGuc').href = 'kovanlar.html?view=koloni&topic=guc' + (ap !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(ap) : '&mode=all');
+      var rows = A.order(hives());
+      var open = rows.filter(function (r) { return !A.isDone(r.hive.id); });
+      $('akStartSub').textContent = open.length ? 'İlk kovan: ' + open[0].hive.name + ' · ' + open.length + ' kovan sırada' : (rows.length ? 'Bugün hepsi tamam — yine de kovan seçebilirsiniz' : 'Kovan yok');
+      $('akStart').disabled = !rows.length;
+      $('akList').innerHTML = rows.length ? rows.map(function (r) {
+        var dn = A.isDone(r.hive.id);
+        return '<button type="button" class="ak-row' + (dn ? ' done' : (r.pri <= 1 ? ' p' + r.pri : '')) + '" data-id="' + esc(r.hive.id) + '"><span><b>' + esc(r.hive.name) + '</b><small>' + esc(dn ? '✓ Bugün yapıldı' : (r.why.slice(0, 3).join(' · ') || 'Rutin bakım')) + (r.hive.demo || !live ? ' · Demo' : '') + '</small></span><span class="go">' + (dn ? 'Tekrar' : 'Başla →') + '</span></button>';
+      }).join('') : '<p class="ak-note">Bu kapsamda kovan yok. Önce kovan ekleyin.</p>';
+      $('akNote').textContent = 'Muayene her kovanda normal muayene kaydı olarak saklanır; önerileri kabul etmeniz veya değiştirmeniz kayda işlenir.';
+    }
+    function start(id) { A.open(id, { apiary: ap, onClose: render }); }
+    $('akAp').addEventListener('change', function () { ap = this.value; render(); });
+    $('akVoice').addEventListener('click', function () { A.setVoicePref(!A.voicePref()); voiceBtn(); });
+    $('akStart').addEventListener('click', function () {
+      var rows = A.order(hives()), open = rows.filter(function (r) { return !A.isDone(r.hive.id); });
+      var h = (open[0] || rows[0] || {}).hive; if (h) start(h.id);
+    });
+    $('akList').addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) start(b.getAttribute('data-id')); });
+    window.addEventListener('superari-records-changed', function () { if (!document.getElementById('baSheet') && !document.getElementById('kmSheet')) render(); });
+    voiceBtn(); render();
+    if (q.get('id') && D.hiveById(q.get('id'))) { var hh = D.hiveById(q.get('id')); if (!q.get('apiary')) { ap = String(hh.apiaryId); $('akAp').value = ap; render(); } setTimeout(function () { start(hh.id); }, 150); }
+  })();
+  </script>
+  <script src="nav.js?v=koloni-54"></script>
+  <script src="pwa.js?v=koloni-54"></script>
+</body>
+</html>

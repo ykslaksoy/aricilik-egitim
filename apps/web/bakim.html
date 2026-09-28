@@ -983,12 +983,12 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-53"></script>
-<script src="rapor-store.js?v=koloni-53"></script>
-<script src="koloni.js?v=koloni-53"></script>
-<script src="ilac-katalog.js?v=koloni-53"></script>
-<script src="bakim-plan.js?v=koloni-53"></script>
-<script src="ekipman-store.js?v=koloni-53"></script>
+<script src="demo-data.js?v=koloni-54"></script>
+<script src="rapor-store.js?v=koloni-54"></script>
+<script src="koloni.js?v=koloni-54"></script>
+<script src="ilac-katalog.js?v=koloni-54"></script>
+<script src="bakim-plan.js?v=koloni-54"></script>
+<script src="ekipman-store.js?v=koloni-54"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, P = window.SuperAriPlan, E = window.SuperAriEkipman;
@@ -1068,7 +1068,7 @@
     var planN = m.overdue.length, planW = m.week.length, none = !hs.length;
     lastM = { hives: hs.length, noInsp: noInsp, queenless: queenless, wc: wc, tasks: tasks, planN: planN, planW: planW, brood: brood, stockLow: stockLow, wd: m.withdrawal.length, none: none };
     return [
-      { key: 'muayene', label: 'Muayene', href: kolHref('guc'), badge: none ? '—' : (noInsp ? noInsp + ' bekliyor' : 'Güncel'), tone: noInsp ? 'red' : 'green' },
+      { key: 'muayene', label: 'Muayene', href: 'bakim-akis.html' + apQ(), badge: none ? '—' : (noInsp ? noInsp + ' bekliyor' : 'Güncel'), tone: noInsp ? 'red' : 'green' },
       { key: 'besleme', label: 'Beslenme', href: P && P.besHref ? P.besHref(scope !== 'all' ? scope : '') : kolHref('besleme'), badge: !wc || none ? '—' : (wc.kritik ? wc.kritik + ' kritik' : (wc.az ? wc.az + ' az' : (wc.yeterli ? 'Yeterli' : 'Veri yok'))), tone: wc && wc.kritik ? 'red' : (low ? 'tan' : (wc && wc.yeterli ? 'green' : 'tan')) },
       { key: 'ilac', label: 'İlaçlama', href: kolHref('hastalik'), badge: m.withdrawal.length ? m.withdrawal.length + ' bekleme' : 'Yok', tone: m.withdrawal.length ? 'blue' : 'green' },
       { key: 'hasat', label: 'Hasat', href: 'rapor-bal.html' + apQ(), badge: String(harvestN), tone: 'tan' },
@@ -1119,7 +1119,7 @@
       note = { t: 'ℹ️ Kışlık stok: ' + parts.join(' · ') + ' — takip edin', b: 'Beslenme', href: bes, k: 'stok' };
     } else if (M.queenless) note = { t: '⚠️ ' + M.queenless + ' kovan anasız görünüyor', b: 'Ana arı', href: kolHref('ana'), k: 'ana' };
     else if (M.planN) note = { t: '⏰ ' + M.planN + ' bakım gecikti', b: 'Plan', href: 'bakim-plan.html' + apQ(), k: 'plan' };
-    else if (M.noInsp && !M.none) note = { t: '🔍 ' + M.noInsp + ' kovanın muayenesi 21 günü geçti', b: 'Muayene', href: kolHref('guc'), k: 'muayene' };
+    else if (M.noInsp && !M.none) note = { t: '🔍 ' + M.noInsp + ' kovanın muayenesi 21 günü geçti', b: 'Başlat', href: 'bakim-akis.html' + apQ(), k: 'muayene' };
     else note = { t: M.none ? 'Bu kapsamda kovan yok — Kovanlar’dan ekleyin' : '✓ Bu kapsamda acil bakım yok', b: M.none ? 'Kovanlar' : 'Plan', href: M.none ? 'kovanlar.html' : 'bakim-plan.html' + apQ(), k: 'ok' };
     $('bkNoteText').textContent = note.t;
     $('bkNoteBtn').textContent = note.b;
@@ -1157,7 +1157,7 @@
   render();
 })();
 </script>
-<script src="nav.js?v=koloni-53"></script>
-<script src="pwa.js?v=koloni-53"></script>
+<script src="nav.js?v=koloni-54"></script>
+<script src="pwa.js?v=koloni-54"></script>
 </body>
 </html>
