@@ -2,6 +2,12 @@
 
 Akıllı kovan: **beepack** donanım + **SüperArı** web panelleri (eski ad: koloni).
 
+## KİLİTLİ DÜZEN: Ana ve Bakım
+
+`apps/web/ana.html` (Ana) ve `apps/web/bakim.html` (Bakım) **koloni-54 durumunda kilitlidir — kullanıcı onayı olmadan değiştirmeyin.**
+3×4 kutu sırası/etiketleri/bağlantıları, Ana marka şeridi + hava kartı ve Bakım Kapsam kartı yapısı `apps/web/tests/layout-lock.test.js` ile korunur
+(`for t in apps/web/tests/*.test.js; do node $t; done`). Değişiklik gerekiyorsa önce kullanıcı onayı alın, sonra testi bilinçli olarak güncelleyin.
+
 ## Çalıştır
 
 ```bash
