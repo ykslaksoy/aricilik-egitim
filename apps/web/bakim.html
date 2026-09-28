@@ -915,33 +915,26 @@
 </style>
 <!-- ANA-CSS:END -->
 <style>
-  /* Bakım · Kapsam kartı: Ana'daki marka şeridi + hava kartının kapladığı alanın aynısı (42+4+159+8 px) → 3×4 düğmeler Ana ile aynı yerde/boyda */
-  .bk-scope {
-    flex: 0 0 205px; height: 205px; margin: 0 0 8px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    padding: 10px 12px 9px;
-    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 60%, #ebd9a0 100%);
-    border: 1px solid #e0c56a; border-radius: 14px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.65), 0 1px 2px rgba(0,0,0,.04);
-    color: var(--brown); overflow: hidden; min-width: 0;
-  }
-  .bk-scope-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .bk-scope-title { font-size: 13px; font-weight: 800; letter-spacing: .03em; color: var(--brown); display: flex; align-items: center; gap: 6px; }
-  .bk-scope-title svg { width: 18px; height: 18px; fill: none; stroke: var(--brown-mid); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-  .bk-mode { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(184,134,11,.45); background: rgba(255,255,255,.55); color: var(--brown-mid); white-space: nowrap; }
+  /* Bakım · Kapsam kartı = Ana'daki hava kartının görünümü (aynı .weather sınıfı), alanı marka şeridi + hava kartı kadar
+     (42+4+159+8 px) → 3×4 düğmeler Ana ile aynı yerde/boyda. Hava bilgisi yok. */
+  .weather.bk-scope { flex: 0 0 205px; height: 205px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .bk-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .bk-title { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .bk-mode { flex: 0 0 auto; padding: 2px 6px; border: 1px solid #e0d6c8; border-radius: 8px; background: #faf7f2; color: var(--brown-mid); font-size: 10px; font-weight: 700; line-height: 1.2; }
   .bk-mode.demo { background: #e7f5ff; border-color: #a5d8ff; color: #1864ab; }
-  .bk-sel { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
-  .bk-sel .arilik-nav { font-size: 20px; min-width: 34px; min-height: 34px; background: rgba(255,255,255,.5); color: var(--brown-mid); }
-  .bk-sel .arilik-nav svg { width: 16px; height: 16px; stroke-width: 1.9; }
-  .bk-sel-label { flex: 0 1 auto; min-width: 0; max-width: 220px; text-align: center; font-size: 23px; font-weight: 800; letter-spacing: .01em; color: var(--brown); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
-  .bk-sum { text-align: center; font-size: 12.5px; font-weight: 650; color: var(--tan-fg); margin-top: -2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bk-chips { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 1px 1px 2px; min-width: 0; -webkit-overflow-scrolling: touch; }
-  .bk-chips::-webkit-scrollbar { display: none; }
-  .bk-chip { flex: 0 0 auto; font: inherit; font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid #e0c56a; background: rgba(255,255,255,.7); color: var(--brown-mid); cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
-  .bk-chip.on { background: var(--hardal); border-color: var(--hardal-lo); color: #fff; }
-  .bk-winter { display: block; font-size: 11.5px; font-weight: 700; line-height: 1.25; color: #a61e1e; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 5px 8px; border-radius: 8px; background: rgba(255, 227, 227, .85); border: 1px solid #ffc9c9; }
-  .bk-winter.az { color: #8a5a00; background: rgba(255, 243, 191, .9); border-color: #ffe066; }
-  .bk-winter[hidden] { display: none; }
+  .bk-sel { margin-left: auto; min-width: 0; max-width: 62%; }
+  .bk-sel .weather-loc-label { font-size: 13px; max-width: 9.5em; }
+  /* Mini özet: hava kartındaki 7 günlük satırın biçimi (ad · değer · simge) */
+  .bk-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; text-align: center; }
+  .bk-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 3px; border-radius: 10px; border: 1px solid transparent; text-decoration: none; color: inherit; -webkit-tap-highlight-color: transparent; min-width: 0; }
+  .bk-stat:active { background: #fff8df; border-color: #e0c56a; }
+  .bk-stat svg { width: 22px; height: 22px; display: block; }
+  .bk-stat .v { font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.05; }
+  .bk-stat .l { font-size: 10.5px; font-weight: 700; color: var(--muted); line-height: 1.15; max-width: 100%; min-height: 2.3em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bk-stat.hot .v { color: var(--red); }
+  .bk-stat.gold .v { color: var(--hardal-lo, #b8860b); }
+  a.muayene-hint.bk-note { text-decoration: none; margin-top: 0; }
+  .bk-note .muayene-hint-text { padding-left: 2px; }
   a.tile { text-decoration: none; color: inherit; }
 </style>
 </head>
@@ -954,23 +947,29 @@
   </div>
 
   <div class="screen">
-    <section class="bk-scope" id="bkScope" aria-label="Bakım kapsamı">
-      <div class="bk-scope-top">
-        <div class="bk-scope-title"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım · Kapsam</div>
+    <section class="weather bk-scope" id="bkScope" aria-label="Bakım kapsamı">
+      <div class="bk-top">
+        <svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="7" y="6" width="18" height="22" rx="3" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/>
+          <rect x="11.5" y="3.5" width="9" height="5" rx="1.6" fill="#f7b731"/>
+          <path d="M11.5 17l3 3 6-6.5" fill="none" stroke="#5c3a1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="bk-title">Bakım</span>
         <span class="bk-mode" id="bkMode">Canlı</span>
+        <div class="weather-loc bk-sel">
+          <div class="arilik-loc-controls">
+            <button type="button" class="arilik-nav" id="bkPrev" aria-label="Önceki kapsam" title="Önceki">
+              <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg>
+            </button>
+            <span class="weather-loc-label" id="bkLabel" aria-live="polite">Tümü</span>
+            <button type="button" class="arilik-nav" id="bkNext" aria-label="Sonraki kapsam" title="Sonraki">
+              <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="bk-sel">
-        <button type="button" class="arilik-nav" id="bkPrev" aria-label="Önceki kapsam" title="Önceki">
-          <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg>
-        </button>
-        <span class="bk-sel-label" id="bkLabel" aria-live="polite">Tümü</span>
-        <button type="button" class="arilik-nav" id="bkNext" aria-label="Sonraki kapsam" title="Sonraki">
-          <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg>
-        </button>
-      </div>
-      <div class="bk-sum" id="bkSum">—</div>
-      <div class="bk-chips" id="bkChips" role="tablist" aria-label="Arılık seç"></div>
-      <a class="bk-winter" id="bkWinter" href="#" hidden></a>
+      <div class="bk-stats" id="bkStats" aria-label="Kapsam özeti"></div>
+      <a class="muayene-hint is-active bk-note" id="bkNote" href="#"><span class="muayene-hint-text" id="bkNoteText">—</span><span class="muayene-hint-ok" id="bkNoteBtn">Aç</span></a>
     </section>
 
     <section class="grid" id="grid" aria-label="Bakım bölümleri"></section>
@@ -984,12 +983,12 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-52"></script>
-<script src="rapor-store.js?v=koloni-52"></script>
-<script src="koloni.js?v=koloni-52"></script>
-<script src="ilac-katalog.js?v=koloni-52"></script>
-<script src="bakim-plan.js?v=koloni-52"></script>
-<script src="ekipman-store.js?v=koloni-52"></script>
+<script src="demo-data.js?v=koloni-53"></script>
+<script src="rapor-store.js?v=koloni-53"></script>
+<script src="koloni.js?v=koloni-53"></script>
+<script src="ilac-katalog.js?v=koloni-53"></script>
+<script src="bakim-plan.js?v=koloni-53"></script>
+<script src="ekipman-store.js?v=koloni-53"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, P = window.SuperAriPlan, E = window.SuperAriEkipman;
@@ -1047,6 +1046,7 @@
       '<div class="hive-feet"><span></span><span></span></div></div><div class="hive-shadow"></div>' + emblemInner + '</div></div>';
   }
 
+  var lastM = null;
   function tilesFor(hs) {
     var today = R.todayLocal(), yr = today.slice(0, 4), all = R.loadAll(), inScope = {};
     hs.forEach(function (h) { inScope[String(h.id)] = true; });
@@ -1066,6 +1066,7 @@
     var gocN = 0; try { gocN = (scope === 'all' ? D.goc.list() : D.goc.forApiary(scope)).filter(function (g) { return String(g.date || '').slice(0, 4) === yr; }).length; } catch (e) { gocN = 0; }
     var ekN = 0; try { ekN = E ? E.list({ apiaryId: scope !== 'all' ? scope : '', since: R.addDays(today, -30) }).length : 0; } catch (e) { ekN = 0; }
     var planN = m.overdue.length, planW = m.week.length, none = !hs.length;
+    lastM = { hives: hs.length, noInsp: noInsp, queenless: queenless, wc: wc, tasks: tasks, planN: planN, planW: planW, brood: brood, stockLow: stockLow, wd: m.withdrawal.length, none: none };
     return [
       { key: 'muayene', label: 'Muayene', href: kolHref('guc'), badge: none ? '—' : (noInsp ? noInsp + ' bekliyor' : 'Güncel'), tone: noInsp ? 'red' : 'green' },
       { key: 'besleme', label: 'Beslenme', href: P && P.besHref ? P.besHref(scope !== 'all' ? scope : '') : kolHref('besleme'), badge: !wc || none ? '—' : (wc.kritik ? wc.kritik + ' kritik' : (wc.az ? wc.az + ' az' : (wc.yeterli ? 'Yeterli' : 'Veri yok'))), tone: wc && wc.kritik ? 'red' : (low ? 'tan' : (wc && wc.yeterli ? 'green' : 'tan')) },
@@ -1082,32 +1083,49 @@
     ];
   }
 
+  var ICO = {
+    kovan: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="4" width="12" height="3.2" rx="1" fill="#f7b731"/><rect x="4.6" y="8" width="10.8" height="3.6" rx=".8" fill="#e8c48e" stroke="#c99755" stroke-width=".8"/><rect x="4.6" y="12.2" width="10.8" height="3.6" rx=".8" fill="#e8c48e" stroke="#c99755" stroke-width=".8"/></svg>',
+    muayene: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="4.4" fill="#d0ebff" stroke="#5b8def" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#5b8def" stroke-width="2" stroke-linecap="round"/></svg>',
+    stok: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5c2.6 3.3 4.1 5.6 4.1 7.7a4.1 4.1 0 0 1-8.2 0c0-2.1 1.5-4.4 4.1-7.7z" fill="#f7b731" stroke="#b8860b" stroke-width=".9"/></svg>',
+    gorev: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="3.5" width="10" height="13.5" rx="1.6" fill="#cfd8e3" stroke="#9aa8b8" stroke-width=".9"/><path d="M7.6 8h4.8M7.6 11h4.8M7.6 14h3" stroke="#5c3a1f" stroke-width="1.2" stroke-linecap="round"/></svg>',
+    plan: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3.8" y="5" width="12.4" height="11.2" rx="1.6" fill="#fff" stroke="#9aa8b8" stroke-width="1"/><path d="M3.8 8.4h12.4" stroke="#e03131" stroke-width="1.6"/><path d="M7 3.6v2.6M13 3.6v2.6" stroke="#9aa8b8" stroke-width="1.2" stroke-linecap="round"/><path d="M7.4 12.2l1.7 1.7 3.4-3.4" fill="none" stroke="#2f9e44" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
   function renderScope(hs) {
-    var ap = scope === 'all' ? null : apOf(scope);
+    var ap = scope === 'all' ? null : apOf(scope), M = lastM || {};
     $('bkLabel').textContent = ap ? ap.name : 'Tümü';
-    $('bkLabel').title = ap ? ap.name : 'Tüm arılıklar';
-    var nHives = hs.length;
-    $('bkSum').textContent = ap
-      ? nHives + ' kovan' + (ap.place && ap.place !== ap.name ? ' · ' + ap.place : '')
-      : aps.length + ' arılık · ' + nHives + ' kovan';
+    $('bkLabel').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
     var multi = scopeList().length > 1;
     $('bkPrev').disabled = !multi; $('bkNext').disabled = !multi;
     $('bkMode').textContent = live() ? 'Canlı' : 'Demo';
     $('bkMode').className = 'bk-mode' + (live() ? '' : ' demo');
-    $('bkChips').innerHTML = scopeList().map(function (id) {
-      var a = id === 'all' ? null : apOf(id);
-      return '<button type="button" class="bk-chip' + (id === scope ? ' on' : '') + '" role="tab" aria-selected="' + (id === scope) + '" data-scope="' + esc(id) + '">' + esc(a ? a.name : 'Tümü') + '</button>';
+    var wc = M.wc || null, season = P && P.winterSeasonNow ? P.winterSeasonNow() : true;
+    var bes = P && P.besHref ? P.besHref(scope !== 'all' ? scope : '') : kolHref('besleme', '&sub=stok');
+    var planCnt = (M.planN || 0) + (M.planW || 0);
+    var stats = [
+      { k: 'kovan', v: M.hives || 0, l: 'Kovan', href: 'kovanlar.html' + (scope !== 'all' ? '?mode=apiary&apiary=' + encodeURIComponent(scope) : ''), tone: '' },
+      { k: 'muayene', v: M.none ? '—' : (M.noInsp || 0), l: 'Geciken muayene', href: kolHref('guc'), tone: M.noInsp ? 'hot' : '' },
+      { k: 'stok', v: !wc || M.none ? '—' : (wc.kritik || 0), l: 'Kritik stok', href: bes, tone: wc && wc.kritik ? 'hot' : '' },
+      { k: 'gorev', v: M.tasks || 0, l: 'Açık görev', href: 'gorevler.html', tone: '' },
+      { k: 'plan', v: planCnt, l: 'Bu hafta bakım', href: 'bakim-plan.html' + apQ(), tone: M.planN ? 'hot' : (planCnt ? 'gold' : '') }
+    ];
+    $('bkStats').innerHTML = stats.map(function (x) {
+      return '<a class="bk-stat ' + x.tone + '" data-stat="' + x.k + '" href="' + esc(x.href) + '" aria-label="' + esc(x.l + ': ' + x.v) + '">' + ICO[x.k] +
+        '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
     }).join('');
-    var on = $('bkChips').querySelector('.on'); if (on && on.scrollIntoView) { try { var c = $('bkChips'); c.scrollLeft = Math.max(0, on.offsetLeft - (c.clientWidth - on.offsetWidth) / 2); } catch (e) { /* ignore */ } }
-    /* Kışlık stok: Eyl–Şub ve az/kritik kovan varsa tek ince satır */
-    var w = $('bkWinter'), wc = P && P.winterStockAll && P.winterSeasonNow && P.winterSeasonNow() ? P.winterStockAll(hs).counts : null;
-    if (wc && (wc.kritik || wc.az)) {
+    /* En önemli not (krem şerit): kritik/az kışlık stok (Eyl–Şub) → anasız → geciken bakım → geciken muayene → durum iyi */
+    var note = null;
+    if (season && wc && (wc.kritik || wc.az)) {
       var parts = []; if (wc.kritik) parts.push(wc.kritik + ' kritik'); if (wc.az) parts.push(wc.az + ' az');
-      w.textContent = 'ℹ️ Kışlık stok: ' + parts.join(' · ') + ' — Beslenme’den takip edin →';
-      w.href = P.besHref(scope !== 'all' ? scope : '');
-      w.className = 'bk-winter' + (wc.kritik ? '' : ' az');
-      w.hidden = false;
-    } else w.hidden = true;
+      note = { t: 'ℹ️ Kışlık stok: ' + parts.join(' · ') + ' — takip edin', b: 'Beslenme', href: bes, k: 'stok' };
+    } else if (M.queenless) note = { t: '⚠️ ' + M.queenless + ' kovan anasız görünüyor', b: 'Ana arı', href: kolHref('ana'), k: 'ana' };
+    else if (M.planN) note = { t: '⏰ ' + M.planN + ' bakım gecikti', b: 'Plan', href: 'bakim-plan.html' + apQ(), k: 'plan' };
+    else if (M.noInsp && !M.none) note = { t: '🔍 ' + M.noInsp + ' kovanın muayenesi 21 günü geçti', b: 'Muayene', href: kolHref('guc'), k: 'muayene' };
+    else note = { t: M.none ? 'Bu kapsamda kovan yok — Kovanlar’dan ekleyin' : '✓ Bu kapsamda acil bakım yok', b: M.none ? 'Kovanlar' : 'Plan', href: M.none ? 'kovanlar.html' : 'bakim-plan.html' + apQ(), k: 'ok' };
+    $('bkNoteText').textContent = note.t;
+    $('bkNoteBtn').textContent = note.b;
+    $('bkNote').href = note.href;
+    $('bkNote').setAttribute('data-note', note.k);
+    $('bkNote').setAttribute('aria-label', note.t + ' — ' + note.b);
   }
   function renderGrid(hs) {
     $('grid').innerHTML = tilesFor(hs).map(function (t) {
@@ -1119,7 +1137,7 @@
   function render() {
     loadAps(); scope = validScope(scope);
     var hs = hivesInScope();
-    renderScope(hs); renderGrid(hs);
+    renderGrid(hs); renderScope(hs);
   }
   function setScope(s) {
     scope = validScope(s);
@@ -1133,14 +1151,13 @@
   function step(d) { var l = scopeList(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
   $('bkPrev').addEventListener('click', function () { step(-1); });
   $('bkNext').addEventListener('click', function () { step(1); });
-  $('bkChips').addEventListener('click', function (e) { var b = e.target.closest('[data-scope]'); if (b) setScope(b.getAttribute('data-scope')); });
   window.addEventListener('superari-records-changed', render);
   window.addEventListener('superari-cloud-pulled', render);
   window.addEventListener('pageshow', function (e) { if (e.persisted) render(); });
   render();
 })();
 </script>
-<script src="nav.js?v=koloni-52"></script>
-<script src="pwa.js?v=koloni-52"></script>
+<script src="nav.js?v=koloni-53"></script>
+<script src="pwa.js?v=koloni-53"></script>
 </body>
 </html>

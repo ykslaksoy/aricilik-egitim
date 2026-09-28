@@ -18,6 +18,7 @@ const SHELL = [
   "/admin.css",
   "/admin.html",
   "/admin.js",
+  "/ana-ipucu.js",
   "/ana.css",
   "/ana.html",
   "/ana.js",

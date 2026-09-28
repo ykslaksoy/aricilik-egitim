@@ -1051,11 +1051,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-52"></script>
+<script src="demo-data.js?v=koloni-53"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-52"></script>
-<script src="saglik-canli.js?v=koloni-52"></script>
+<script src="sensor-health.js?v=koloni-53"></script>
+<script src="saglik-canli.js?v=koloni-53"></script>
 <script src="hava-kayit.js"></script>
+<script src="ilac-katalog.js?v=koloni-53"></script>
+<script src="bakim-plan.js?v=koloni-53"></script>
+<script src="ana-ipucu.js?v=koloni-53"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
 (function () {
@@ -1277,6 +1280,43 @@
       'Ana kontrolü: yumurta ve larva var mı?'
     ];
     var tipPoolIdx = 0;
+    /* Sezon dışı (kış / bölgede sezon başlamadı): muayeneye yönlendirmeyen ipuçları */
+    var tipPoolOff = [
+      'Kovan girişi açık mı? Ölü arıyla tıkanmasın.',
+      'Kovanı kaldırıp ağırlığını dıştan yoklayın.',
+      'Rüzgâr ve nem: kapak ve yalıtımı kontrol edin.'
+    ];
+    /* Akıllı not: ileti anahtarına göre «Tamam» (anahtar değişince yeniden görünür) */
+    var HINT_DISMISS_KEY = 'superari.ana.hintDismiss.v2';
+    var lastBest = null;
+    function readHintDismiss() {
+      try { var o = JSON.parse(localStorage.getItem(HINT_DISMISS_KEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; }
+    }
+    function dismissHintKey(k) {
+      if (!k) return;
+      var o = readHintDismiss(), now = Date.now();
+      Object.keys(o).forEach(function (x) { if (now - Number(o[x]) > 45 * 86400000) delete o[x]; });
+      o[k] = now;
+      try { localStorage.setItem(HINT_DISMISS_KEY, JSON.stringify(o)); } catch (e) { /* ignore */ }
+    }
+    function smartTip(onlyLevel) {
+      var A = window.SuperAriAnaIpucu;
+      if (!A) return null;
+      var a = currentApiary(), list = [];
+      try { list = A.candidates({ apiaryId: a && a.id, best: lastBest }); } catch (e) { list = []; }
+      var gone = readHintDismiss();
+      for (var i = 0; i < list.length; i++) {
+        var t = list[i];
+        if (gone[t.key]) continue;
+        if (t.level === 'hava' && isMuayeneDismissed(t.date)) continue;
+        if (onlyLevel && onlyLevel.indexOf(t.level) < 0) continue;
+        return t;
+      }
+      return null;
+    }
+    function smartMeta(t) {
+      return { sticky: false, fromSmart: true, fromAlert: t.level === 'critical', hintKey: t.key, level: t.level, href: t.href || currentApiaryHref() };
+    }
 
     function emitHintState(show) {
       hintVisible = !!show;
@@ -1334,6 +1374,7 @@
       if (lastHintMeta && lastHintMeta.fromAlert && lastHintMeta.alertId) {
         dismissAlertId(lastHintMeta.alertId);
       }
+      if (lastHintMeta && lastHintMeta.hintKey) dismissHintKey(lastHintMeta.hintKey);
       if (activeMuayeneTipDate) {
         try {
           localStorage.setItem(
@@ -1414,6 +1455,9 @@
     }
 
     function nextRotatingTip() {
+      /* 1) Akıllı not: kritik / önemli durum özeti (Müdahale, kritik stok, anasız, kritik uyarı …) */
+      var crit = smartTip(['critical']);
+      if (crit) { activeMuayeneTipDate = null; activeAlertHref = crit.href; var cm = smartMeta(crit); cm.text = crit.text; return cm; }
       /* Priority: open hive alerts (same list as Uyarılar) at bee-exit dock */
       var alerts = openAlerts();
       if (alerts.length) {
@@ -1445,17 +1489,20 @@
           href: 'gorevler.html'
         };
       }
-      if (pendingMuayeneTip && !isMuayeneDismissed(pendingMuayeneTip.date)) {
+      /* 2) Muayene sezonu: uygun gün + geciken muayene · yalnız hava ipucu · sezon dışı kısa not */
+      var sm = smartTip(['muayene', 'hava', 'mevsim']);
+      if (sm && sm.level !== 'mevsim') {
         tipPoolIdx += 1;
-        activeMuayeneTipDate = pendingMuayeneTip.date;
-        return {
-          text: 'Uygun muayene: ' + pendingMuayeneTip.dayLabel + ' — ' + pendingMuayeneTip.reason,
-          sticky: false,
-          fromMuayene: true,
-          href: currentApiaryHref()
-        };
+        activeMuayeneTipDate = sm.level === 'hava' ? sm.date : null;
+        var mm = smartMeta(sm); mm.text = sm.text; mm.fromMuayene = true; return mm;
       }
-      var t = tipPool[tipPoolIdx % tipPool.length];
+      var offSeason = window.SuperAriAnaIpucu && !window.SuperAriAnaIpucu.inspectionSeason(null) ? true : (sm && sm.level === 'mevsim');
+      if (sm && sm.level === 'mevsim' && tipPoolIdx % 3 === 0) {
+        tipPoolIdx += 1; activeMuayeneTipDate = null;
+        var ms = smartMeta(sm); ms.text = sm.text; return ms;
+      }
+      var pool = offSeason ? tipPoolOff : tipPool;
+      var t = pool[tipPoolIdx % pool.length];
       tipPoolIdx += 1;
       activeMuayeneTipDate = null;
       return { text: t, sticky: false, fromMuayene: false, href: currentApiaryHref() };
@@ -1469,7 +1516,7 @@
         if (tip && tip.text) showHintMessage(tip.text, tip);
       }, TIP_GAP_MS);
       /* Alerts / Bugün task: show soon at bee exit; generic tips wait longer */
-      var firstDelay = openAlerts().length ? 6000 : (topOpenTask() ? 8000 : 45000);
+      var firstDelay = (openAlerts().length || smartTip(['critical'])) ? 6000 : (topOpenTask() ? 8000 : 45000);
       setTimeout(function () {
         if (!hintVisible) {
           var tip = nextRotatingTip();
@@ -1481,6 +1528,19 @@
     function updateMuayeneHint(daily) {
       if (!muayeneEl) return;
       pendingMuayeneTip = null;
+      /* Akıllı not: kritik durum → muayene ihtiyacı + uygun gün → hava ipucu → sezon notu */
+      if (window.SuperAriAnaIpucu) {
+        lastBest = window.SuperAriHava && daily ? window.SuperAriHava.bestInspectionDay(daily) : null;
+        var st = smartTip();
+        pendingMuayeneTip = st && st.level === 'hava' ? lastBest : null;
+        if (!st) { if (!hintVisible) setHintDock(); return; }
+        if (!hintVisible || (lastHintMeta && lastHintMeta.fromSmart && lastHintMeta.hintKey !== st.key && st.level === 'critical')) {
+          activeMuayeneTipDate = st.level === 'hava' ? st.date : null;
+          activeAlertHref = st.level === 'critical' ? st.href : null;
+          showHintMessage(st.text, smartMeta(st));
+        }
+        return;
+      }
       if (!window.SuperAriHava || !daily) {
         if (!hintVisible) setHintDock();
         return;
@@ -3086,7 +3146,7 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-52"></script>
-<script src="pwa.js?v=koloni-52"></script>
+<script src="nav.js?v=koloni-53"></script>
+<script src="pwa.js?v=koloni-53"></script>
 </body>
 </html>
