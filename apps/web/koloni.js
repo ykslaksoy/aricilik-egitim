@@ -128,6 +128,14 @@
     '.qbadge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;white-space:nowrap;margin-left:.3rem;}' +
     '.qbadge.renew{background:#ffe3e3;color:#c92a2a;}' +
     '.qbadge.unk{background:#e9ecef;color:#495057;}' +
+    '.qbadge.q-green{background:#d3f9d8;color:#1b5e20;}.qbadge.q-yellow{background:#fff3bf;color:#7a4b00;}.qbadge.q-red{background:#ffe3e3;color:#a61e1e;}.qbadge.q-gray{background:#e9ecef;color:#343a40;}' +
+    '.qplan{display:grid;gap:.45rem;padding:.75rem .85rem;border-radius:14px;background:#fff;border:2px solid #e9ecef;margin-top:.45rem;font-size:.92rem;line-height:1.35;color:var(--ink,#1f2933);}' +
+    '.qplan.q-green{border-color:#8ce99a;}.qplan.q-yellow{border-color:#ffd43b;background:#fffbea;}.qplan.q-red{border-color:#ff8787;background:#fff5f5;}.qplan.q-gray{border-color:#ced4da;background:#f8f9fa;}' +
+    '.qplan-head{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;font-weight:800;font-size:1rem;}' +
+    '.qplan-head .qbadge{margin-left:0;font-size:.85rem;padding:.25rem .6rem;}' +
+    '.qplan-sub{font-size:.82rem;color:#495057;}' +
+    '.qplan-btn{display:flex;align-items:center;justify-content:center;min-height:64px;width:100%;box-sizing:border-box;border-radius:14px;background:#1f2933;color:#fff !important;font-weight:800;font-size:1.05rem;text-decoration:none !important;padding:.5rem 1rem;text-align:center;}' +
+    '.qplan-btn.alt{background:#fff;color:#1f2933 !important;border:2px solid #1f2933;}' +
     '.kol-sum{display:grid;gap:.5rem;padding:.8rem .9rem;border-radius:14px;background:#fff8df;border:1px solid var(--border,#ead9b3);}' +
     '.kol-sum .kol-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;}' +
     '.kol-sum .kol-stat{background:#fff;border:1px solid var(--border,#ead9b3);border-radius:10px;padding:.45rem .5rem;min-width:0;}' +
@@ -243,13 +251,34 @@
     return '<div class="qlabel-hint">🏷️ <b>Etiketi yenile:</b> basılı etikette ana yılı ' + esc(s.printedYear != null ? s.printedYear : 'yok') + ', şu anki ana ' + esc(h.queenYear != null ? h.queenYear : 'bilinmiyor') +
       '. <a href="qr-etiket.html?apiary=' + encodeURIComponent(h.apiaryId) + '&yenile=1">Etiket bas</a></div>';
   }
+  function planOf(h) { var c = C(); return c && c.queenPlan ? c.queenPlan(h) : null; }
+  /** Ana arı durum rozeti: yeşil (genç) / sarı (yaklaşıyor, zamanı) / kırmızı (riskli, gecikti) / gri (bilinmiyor). */
   function statusBadgeHtml(h) {
     ensureCss();
     var c = C(); if (!c) return '';
+    var p = planOf(h);
+    if (p) return '<span class="qbadge q-' + p.tone + '" data-qstatus="' + p.key + '">' + esc(p.key === 'iyi' ? 'İyi' : p.label) + '</span>';
     var st = c.queenStatus(h);
     if (st === 'Yenile') return '<span class="qbadge renew">Yenile</span>';
     if (st === 'Bilinmiyor') return '<span class="qbadge unk">Bilinmiyor</span>';
     return '';
+  }
+  function editHref(h) { return 'kovanlar.html?view=koloni&hiveId=' + encodeURIComponent(h.id); }
+  /** Kovan detayı / Koloni: yaş + rozet + ırka göre değişim yaşı + mevsim notu; bilinmiyorsa elle giriş düğmesi (≥64px). */
+  function queenPlanHtml(h, opts) {
+    ensureCss();
+    opts = opts || {};
+    var p = planOf(h); if (!p) return '';
+    var head = '<div class="qplan-head">👑 ' + (p.known ? esc(p.age + ' yaş') : 'Ana yaşı bilinmiyor') +
+      ' <span class="qbadge q-' + p.tone + '">' + esc(p.key === 'iyi' ? 'İyi' : p.label) + '</span></div>';
+    var prof = p.profile;
+    var sub = '<div class="qplan-sub">' + esc(prof.label + ' · değişim yaşı ' + prof.ideal + ' yıl · 3. yaş riski: ' + prof.riskLabel + (prof.known ? '' : ' (varsayılan)')) + '</div>';
+    var body = '<div>' + esc(p.text) + '</div>';
+    var season = p.key !== 'bilinmiyor' && p.key !== 'iyi' ? '<div class="qplan-sub">🌱 ' + esc(p.seasonNote) + '</div>' : '';
+    var btn = '';
+    if (p.key === 'bilinmiyor' && !opts.noButton) btn = '<a class="qplan-btn" href="' + editHref(h) + '">✎ Ana yılını gir (elle)</a>';
+    else if ((p.key === 'zamani' || p.key === 'gecti') && !opts.noButton) btn = '<a class="qplan-btn alt" href="' + editHref(h) + '">👑 Ana değişimini kaydet</a>';
+    return '<div class="qplan q-' + p.tone + '" data-qplan="' + p.key + '">' + head + sub + body + season + btn + '</div>';
   }
   /** «● 2025 · 1 yaş · Sarı» + rozet */
   function queenHtml(h) {
@@ -264,7 +293,8 @@
     var age = c.queenAge(h);
     if (age == null) return 'Bilinmiyor (yıl girilmemiş)';
     var col = c.queenColor(h.queenYear);
-    return h.queenYear + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '') + (age >= 2 ? ' · Yenile' : '');
+    var p = planOf(h);
+    return h.queenYear + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '') + (p && p.key !== 'iyi' ? ' · ' + p.label : '');
   }
   function calmText(h) {
     var c = C(); var t = c ? c.calmLabel(h && h.calmness) : '';
@@ -281,9 +311,11 @@
       '<div class="kol-breeds" aria-label="Irk dağılımı">' + (breeds || '<span>Irk kaydı yok</span>') + '</div>' +
       '<div class="kol-stats">' +
         '<div class="kol-stat"><b>' + (s.avgQueenAge != null ? String(s.avgQueenAge).replace('.', ',') : '—') + '</b><span>Ort. ana arı yaşı</span></div>' +
-        '<div class="kol-stat"><b style="color:#c92a2a">' + s.requeen + '</b><span>Yenilenecek ana (≥ 2 yaş)</span></div>' +
+        '<div class="kol-stat"><b style="color:#c92a2a">' + s.requeen + '</b><span>Değişim zamanı (ırka göre)</span></div>' +
         '<div class="kol-stat"><b>' + s.unknown + '</b><span>Yaşı bilinmiyor</span></div>' +
-      '</div></div>';
+      '</div>' +
+      '<div class="qplan-sub">👑 Değişim yaşı: Buckfast ve melezler/İtalyan/Karadeniz 2 yıl · Anadolu, Kafkas 3 yıl · diğer 2 yıl. ' + esc(c.QUEEN_SEASON_NOTE || '') + '</div>' +
+      '</div>';
   }
   /** Tek satır özet (arılık kartları / rapor). */
   function summaryLineHtml(hives, apiaryId) {
@@ -310,7 +342,7 @@
         '<div><span class="k">Ana arı yaşı</span>' + queenHtml(h) + '</div>' +
         '<div><span class="k">Sakinlik</span>' + esc(calmText(h)) + '</div>' +
         '<div><span class="k">Oğul eğilimi</span><span' + swTone + '>' + esc(sw) + '</span></div>' +
-      '</div>' + (extraHtml || '') +
+      '</div>' + (function () { var p = planOf(h); return p && p.key !== 'iyi' ? '<div class="qplan-sub" style="color:' + p.color + ';font-weight:700;">👑 ' + esc(p.text) + '</div>' : ''; })() + (extraHtml || '') +
       '<div class="kol-links">' + esc(apiaryName || '') + ' · Düzenlemek için dokunun · <a href="kovan.html?id=' + encodeURIComponent(h.id) + '" onclick="event.stopPropagation();">Kovan detayı</a></div>' +
     '</button>';
   }
@@ -364,6 +396,7 @@
       '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="kolTitle">' +
         '<h3 id="kolTitle">' + esc(h.name) + ' · Koloni</h3>' +
         '<p class="kol-sub">' + esc(ap ? ap.name : '') + ' · Mevcut ana: <b>' + esc(q ? q.id : '—') + '</b></p>' +
+        queenPlanHtml(h, { noButton: true }) +
         '<div class="kol-seg" role="tablist">' +
           '<button type="button" data-mode="correct" class="on" aria-selected="true">Bilgileri düzelt</button>' +
           '<button type="button" data-mode="replace" aria-selected="false">Ana arıyı değiştir</button>' +
@@ -687,7 +720,7 @@
       return '<details class="item-card kol-queen">' +
         '<summary>' +
           '<div class="row"><span class="qid">' + dotHtml(q.year) + esc(q.id) + '</span>' +
-            (isCurrent ? (age != null && age >= 2 ? '<span class="qbadge renew">Yenile</span>' : (age == null ? '<span class="qbadge unk">Bilinmiyor</span>' : '<span class="badge ok">Aktif</span>'))
+            (isCurrent ? statusBadgeHtml(hv || { breed: q.breed, queenYear: q.year })
               : '<span class="badge cevrimdisi">Geçmiş</span>') + '</div>' +
           '<div class="qmeta">' + esc((q.year != null ? q.year + ' · ' + age + ' yaş' + (col ? ' · ' + col.name : '') : 'Yıl bilinmiyor') +
             ' · ' + (q.breed ? q.breed + (q.breedEstimated ? ' (tahmini)' : '') : 'Irk bilinmiyor') + (q.source ? ' · ' + q.source : '') + (q.marked === true ? ' · işaretli' : '') + (q.clipped === true ? ' · kanadı kırpık' + (q.clippedAt ? ' (' + q.clippedAt.split('-').reverse().join('.') + ')' : '') : '')) + '</div>' +
@@ -2254,6 +2287,7 @@
     labelStatus: labelStatus,
     labelHintHtml: labelHintHtml,
     statusBadgeHtml: statusBadgeHtml,
+    queenPlanHtml: queenPlanHtml,
     queenHtml: queenHtml,
     queenText: queenText,
     calmText: calmText,

@@ -406,6 +406,49 @@
       ana('degistir', 'Ana değişimini planlayın (çok sinirli)', 'Muayenede çok sinirli', 'Koloni çok sinirli. Önerim: ana değişimini planlayın. Tamam ya da izle deyin.',
         [{ id: 'izle', label: 'Şimdilik izleyeceğim', say: ['izle'] }]);
     }
+    /* 4b) Ana arı yaşı (ırka göre değişim yaşı; kayıt yoksa elle giriş) — acil ana durumu yoksa */
+    if (!anaStep && D.colony && D.colony.queenPlan) {
+      var qh = D.hiveById(h.id) || h, qp = null;
+      try { qp = D.colony.queenPlan(qh); } catch (e) { qp = null; }
+      if (qp && (qp.key === 'zamani' || qp.key === 'gecti')) {
+        var inSeason = sk === 'ilkbahar' || sk === 'akim' || sk === 'yaz';
+        var qDue = inSeason ? plusDays(14) : (Number(today().slice(0, 4)) + (today().slice(5) >= '04-01' ? 1 : 0)) + '-04-01';
+        var qTask = 'Ana arıyı değiştir (' + qp.age + ' yaş · ' + qp.profile.label + ' değişim yaşı ' + qp.ideal + ')';
+        anaStep = { key: 'ana', icon: '👑', title: 'Ana arı', kind: 'choice', recId: 'yasDegistir',
+          recLabel: 'Ana değişimini planlayın' + (inSeason ? ' (2 hafta içinde)' : ' (ilkbahar – yaz başı)'),
+          why: qp.label + ' · ' + qp.text, say: qp.say + ' En iyi dönem ilkbahar ve yaz başı. Tamam ya da izle deyin.',
+          opts: [{ id: 'yasIzle', label: 'Şimdilik izleyeceğim (performansı iyi)', say: ['izle', 'izleyecegim'] }],
+          save: function (res, step) {
+            var u = [];
+            if ((res.opt || 'yasDegistir') === 'yasIzle') { addEvent(h, 'ana', 'Yaşlı ana izlemede (' + qp.age + ' yaş)', res, step, u); return { text: 'Ana izlemede', say: 'ana izlemede', undo: u }; }
+            addEvent(h, 'ana', 'Ana değişimi planlandı (yaş ' + qp.age + ')', res, step, u);
+            addTask(h, qTask, qDue, qp.tone === 'red' ? 1 : 2, u);
+            return { text: 'Ana değişimi planlandı · görev eklendi', say: 'ana değişimi planlandı', undo: u };
+          } };
+      } else if (qp && qp.key === 'bilinmiyor') {
+        var cy = Number(today().slice(0, 4));
+        var setYear = function (yr, res, step) {
+          var u = [], old = qh.queenYear == null ? null : qh.queenYear;
+          var ok = null; try { ok = D.colony.updateHive(h.id, { queenYear: yr }, 'correct'); } catch (e) { ok = null; }
+          if (ok) u.push(function () { try { D.colony.updateHive(h.id, { queenYear: old }, 'correct'); } catch (e) { /* ignore */ } });
+          addEvent(h, 'ana', 'Ana yılı girildi: ' + yr, res, step, u);
+          return { text: 'Ana yılı ' + yr + ' kaydedildi', say: 'ana yılı ' + yr + ' kaydedildi', undo: u };
+        };
+        var yOpt = function (yy, lbl, sy) { return { id: 'yil' + yy, label: lbl + ' (' + yy + ')', say: sy, year: yy }; };
+        var yOpts = [yOpt(cy, 'Bu yıl', ['bu yil']), yOpt(cy - 1, 'Geçen yıl', ['gecen yil']), yOpt(cy - 2, '2 yıl önce', ['iki yil']), yOpt(cy - 3, '3 yıl veya daha önce', ['uc yil'])];
+        anaStep = { key: 'ana', icon: '👑', title: 'Ana arı yaşı', kind: 'choice', recId: 'yilSonra',
+          recLabel: 'Ana yılını girin (işaret rengine bakın) — bilmiyorsanız görev ekleyeyim',
+          why: 'Ana arı yılı kayıtlı değil; değişim zamanı hesaplanamıyor', say: 'Ana arı yaşı bilinmiyor. Bu yıl, geçen yıl, iki yıl ya da üç yıl deyin. Bilmiyorsanız tamam deyin, görev ekleyeyim.',
+          opts: yOpts,
+          save: function (res, step) {
+            var hit = null; yOpts.forEach(function (o) { if (o.id === res.opt) hit = o; });
+            if (hit) return setYear(hit.year, res, step);
+            var u = []; addTask(h, 'Ana arı yılını gir (işaret rengi / kayıt)', plusDays(7), 3, u);
+            addEvent(h, 'ana', 'Ana yılı bilinmiyor · görev eklendi', res, step, u);
+            return { text: 'Ana yılı için görev eklendi', say: 'görev eklendi', undo: u };
+          } };
+      }
+    }
     if (anaStep) steps.push(anaStep);
 
     /* 5) Kışlık hazırlık */

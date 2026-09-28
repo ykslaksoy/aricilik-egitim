@@ -930,11 +930,125 @@
     if (y == null) return null;
     return QUEEN_COLORS[y % 10];
   }
-  /** 'Yenile' (yaş ≥ 2), 'Bilinmiyor' (yıl yok) veya null (sorun yok). */
+  /* ---------- Ana arı değişim yaşı (ırka göre) ----------
+   * ideal: değişim yaşı (yıl). risk: 3. yaşındaki ana için risk düzeyi (kullanıcı tablosu, doğrulanmış).
+   * Vade: ana yılı + ideal yılın 1 Nisan'ı (ilkbahar = en iyi değişim dönemi). */
+  var QUEEN_PROFILES = [
+    { key: 'buckfast', test: function (b) { return /buckfast|belfast/.test(b); }, label: 'Buckfast', ideal: 2, risk: 'cok-yuksek', note: 'Hibrit; melez gücü nesilde kaybolur' },
+    { key: 'karniyol-mugla', test: function (b) { return /karniyol/.test(b) && /mugla/.test(b); }, label: 'Karniyol × Muğla melezi', ideal: 2, risk: 'yuksek', note: 'Melez; Karniyol tarafı oğul eğilimli' },
+    { key: 'kafkas-karniyol', test: function (b) { return /kafkas/.test(b) && /karniyol/.test(b); }, label: 'Kafkas × Karniyol melezi', ideal: 2, risk: 'yuksek', note: 'Melez; Karniyol tarafı oğul eğilimli' },
+    { key: 'karniyol', test: function (b) { return /karniyol/.test(b); }, label: 'Karniyol', ideal: 2, risk: 'yuksek', note: 'Oğul eğilimi yüksek' },
+    { key: 'italyan', test: function (b) { return /italyan/.test(b); }, label: 'İtalyan', ideal: 2, risk: 'yuksek', note: 'Kışın çok tüketir, yağmacı' },
+    { key: 'kafkas-karadeniz', test: function (b) { return /kafkas/.test(b) && /karadeniz/.test(b); }, label: 'Kafkas × Karadeniz melezi', ideal: 2, risk: 'orta', note: 'Oğul eğilimi düşük melez' },
+    { key: 'karadeniz', test: function (b) { return /karadeniz/.test(b); }, label: 'Karadeniz (sarı Kafkas)', ideal: 2, risk: 'orta', note: 'Kafkas ekotipi' },
+    { key: 'anadolu', test: function (b) { return /anadolu/.test(b); }, label: 'Anadolu arısı', ideal: 3, risk: 'dusuk', note: 'Yerli, uzun ömürlü, az tüketir' },
+    { key: 'kafkas', test: function (b) { return /kafkas/.test(b); }, label: 'Kafkas arısı', ideal: 3, risk: 'dusuk', note: 'Yerli, oğul eğilimi düşük' }
+  ];
+  var QUEEN_RISK = {
+    'cok-yuksek': { label: 'Çok yüksek', tone: 'red' },
+    yuksek: { label: 'Yüksek', tone: 'red' },
+    orta: { label: 'Orta', tone: 'yellow' },
+    dusuk: { label: 'Düşük', tone: 'green' }
+  };
+  var QUEEN_SEASON_NOTE = 'En iyi değişim dönemi: ilkbahar – yaz başı (bol nektar/polen, çiftleşme kolay). Olmazsa yaz sonu–sonbahar başı; genç ana ile kışlatma ilkbahar oğulunu azaltır.';
+  function foldBreed(s) {
+    return String(s || '').toLocaleLowerCase('tr').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/i̇/g, 'i');
+  }
+  function queenProfile(breed) {
+    var b = foldBreed(breed);
+    for (var i = 0; b && i < QUEEN_PROFILES.length; i++) {
+      var p = QUEEN_PROFILES[i];
+      if (p.test(b)) return { key: p.key, label: p.label, ideal: p.ideal, risk: p.risk, riskLabel: QUEEN_RISK[p.risk].label, note: p.note, known: true };
+    }
+    return { key: 'varsayilan', label: breed ? String(breed) : 'Irk bilinmiyor', ideal: 2, risk: 'orta', riskLabel: QUEEN_RISK.orta.label, note: 'Tabloda yok: varsayılan 2 yıl', known: false };
+  }
+  var QUEEN_TONE_COLOR = { green: '#2b8a3e', yellow: '#e67700', red: '#c92a2a', gray: '#6b7280' };
+  /**
+   * Ana arı değişim planı. key: iyi | yaklasiyor | zamani | gecti | bilinmiyor
+   * tone: green | yellow | red | gray. 3. yaşta renk ırk riskine göre (Yüksek kırmızı, Orta sarı, Düşük yeşil/bilgi);
+   * 4+ yaş her ırkta kırmızı. Yaklaşıyor = vadeye ≤ 60 gün.
+   */
+  function queenPlan(h, date) {
+    var d = isoDate(date) || todayLocal();
+    var prof = queenProfile(h && h.breed);
+    var y = parseQueenYear(h && h.queenYear);
+    var out = { profile: prof, ideal: prof.ideal, seasonNote: QUEEN_SEASON_NOTE, year: y, known: y != null };
+    if (y == null) {
+      out.key = 'bilinmiyor'; out.label = 'Yaş bilinmiyor'; out.tone = 'gray'; out.color = QUEEN_TONE_COLOR.gray; out.severity = 'low';
+      out.text = 'Ana arı yılı girilmemiş — yaşı bilinmeden değişim zamanı hesaplanamaz. Ana yılını elle girin.';
+      out.say = 'Ana arı yaşı bilinmiyor. Ana yılını girin.';
+      return out;
+    }
+    var cy = Number(d.slice(0, 4));
+    out.age = Math.max(0, cy - y);
+    var due = (y + prof.ideal) + '-04-01';
+    out.dueDate = due; out.dueYear = y + prof.ideal;
+    var ms = Date.parse(due + 'T00:00:00Z') - Date.parse(d + 'T00:00:00Z');
+    out.daysToDue = Math.round(ms / 86400000);
+    /* etkin yaş: ana yılından bu yana geçen ilkbahar (1 Nisan) sayısı */
+    var eff = cy - y - (d.slice(5) < '04-01' ? 1 : 0);
+    out.effAge = Math.max(0, eff);
+    var tone;
+    if (out.daysToDue > 60) { out.key = 'iyi'; tone = 'green'; }
+    else if (out.daysToDue > 0) { out.key = 'yaklasiyor'; tone = 'yellow'; }
+    else {
+      out.key = out.effAge >= prof.ideal + 1 ? 'gecti' : 'zamani';
+      tone = out.effAge >= 4 ? 'red' : (out.effAge === 3 ? QUEEN_RISK[prof.risk].tone : 'yellow');
+    }
+    out.tone = tone; out.color = QUEEN_TONE_COLOR[tone];
+    out.severity = out.key === 'iyi' ? null : (out.key === 'yaklasiyor' ? 'low' : (tone === 'red' ? 'high' : (tone === 'yellow' ? 'medium' : 'low')));
+    var season = 'İlkbahar ' + out.dueYear;
+    if (out.key === 'iyi') {
+      out.label = 'Genç ana'; out.text = out.age + ' yaş · ' + prof.label + ' için değişim yaşı ' + prof.ideal + ' · sonraki değişim: ' + season;
+      out.say = 'Ana arı ' + out.age + ' yaşında, değişim ' + out.dueYear + ' ilkbaharında.';
+    } else if (out.key === 'yaklasiyor') {
+      out.label = 'Değişim yaklaşıyor'; out.text = out.age + ' yaş · ' + prof.label + ' için değişim yaşı ' + prof.ideal + ' · ' + season + ' değiştirin (≈ ' + out.daysToDue + ' gün). Yeni anayı şimdiden ayarlayın.';
+      out.say = 'Ana arı değişimi yaklaşıyor. ' + out.dueYear + ' ilkbaharında değiştirin.';
+    } else {
+      var over = out.effAge - prof.ideal;
+      out.label = out.key === 'gecti' ? 'Değişim gecikti' : 'Değişim zamanı';
+      out.text = out.age + ' yaş · ' + prof.label + ' için değişim yaşı ' + prof.ideal +
+        (out.key === 'gecti' ? ' · ' + over + ' yıl gecikti' : '') +
+        (out.effAge === 3 ? ' · 3. yaş riski: ' + prof.riskLabel : '') + ' · anayı değiştirin (en iyisi ilkbahar – yaz başı).';
+      out.say = 'Ana arı ' + out.age + ' yaşında. ' + (out.key === 'gecti' ? 'Değişim gecikti.' : 'Değişim zamanı geldi.') + ' Önerim: ana değişimini planlayın.';
+    }
+    return out;
+  }
+  /** Uyarılar: kırmızı → kovan başına; sarı/yeşil "zamanı", yaklaşıyor ve bilinmeyen → arılık başına özet. */
+  function queenAlerts(date) {
+    var out = [], groups = {};
+    var aps = {};
+    try { loadApiaries().forEach(function (a) { aps[a.id] = a; }); } catch (e) { /* ignore */ }
+    loadHives().forEach(function (h) {
+      if (!h || h.colonyState === 'birlestirildi' || h.queenless) return;
+      var p = queenPlan(h, date);
+      if (p.key === 'iyi') return;
+      if (p.tone === 'red') {
+        out.push({ id: 'ana-yas-' + h.id, title: p.label + ' — ' + h.name + ': ana ' + p.age + ' yaş (' + p.profile.label + ', değişim yaşı ' + p.ideal + ')',
+          type: 'ana', hiveId: h.id, apiaryId: h.apiaryId, severity: 'high', auto: true, queen: p.key });
+        return;
+      }
+      var g = (h.apiaryId || 'none') + '|' + p.key;
+      if (!groups[g]) groups[g] = { apiaryId: h.apiaryId, key: p.key, label: p.label, hives: [], sev: p.severity };
+      groups[g].hives.push(h);
+      if (p.severity === 'medium') groups[g].sev = 'medium';
+    });
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k], ap = aps[g.apiaryId], n = g.hives.length;
+      var names = g.hives.slice(0, 3).map(function (h) { return h.name; }).join(', ') + (n > 3 ? ' +' + (n - 3) : '');
+      var title = g.key === 'bilinmiyor' ? 'Ana yaşı bilinmiyor — ' + n + ' kovan (' + names + '): ana yılını girin'
+        : g.label + ' — ' + n + ' kovan (' + names + ')';
+      out.push({ id: 'ana-yas-' + g.key + '-' + g.apiaryId, title: title + (ap ? ' · ' + ap.name : ''), type: 'ana', apiaryId: g.apiaryId,
+        hiveId: n === 1 ? g.hives[0].id : undefined, severity: g.key === 'bilinmiyor' ? 'low' : g.sev, auto: true, queen: g.key,
+        href: 'kovanlar.html?view=koloni&topic=ana&mode=apiary&apiary=' + encodeURIComponent(g.apiaryId || '') });
+    });
+    return out;
+  }
+  /** 'Yenile' (ırka göre değişim zamanı geldi/geçti), 'Bilinmiyor' (yıl yok) veya null (sorun yok). */
   function queenStatus(h) {
-    var age = queenAge(h);
-    if (age == null) return 'Bilinmiyor';
-    return age >= 2 ? 'Yenile' : null;
+    var p = queenPlan(h);
+    if (p.key === 'bilinmiyor') return 'Bilinmiyor';
+    return (p.key === 'zamani' || p.key === 'gecti') ? 'Yenile' : null;
   }
   function calmLabel(n) {
     var c = parseCalmness(n);
@@ -953,7 +1067,7 @@
       if (age == null) unknown++;
       else {
         ageSum += age; ageN++;
-        if (age >= 2) requeen++;
+        if (queenStatus(h) === 'Yenile') requeen++;
       }
     });
     var breeds = order.map(function (b, i) { return { breed: b, count: counts[b], i: i }; })
@@ -4373,7 +4487,7 @@
       if (queenStatus(h) !== 'Yenile') return;
       var age = queenAge(h);
       out.push({ id: 'kr-ana-yenile-' + h.id, title: 'Ana arıyı yenile — ' + h.name + ' (' + age + ' yaş)', hiveId: h.id, apiaryId: h.apiaryId,
-        priority: age >= 3 ? 2 : 3, auto: true, kind: 'ana', sig: 'q' + h.queenYear });
+        priority: queenPlan(h).tone === 'red' ? 2 : 3, auto: true, kind: 'ana', sig: 'q' + h.queenYear });
     });
     return out;
   }
@@ -4492,6 +4606,8 @@
         var extra = [];
         try { extra = colonyRecords.derived().alerts; } catch (e) { extra = []; }
         try { extra = extra.concat(stockAlerts()); } catch (e) { /* ignore */ }
+        /* Ana arı yaşı (ırka göre değişim zamanı). Demo modda Demo etiketi. */
+        try { extra = extra.concat(queenAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
         /* Oğul uyarıları statik değil; hesaplanan oğul riskinden (Yüksek / Çok yüksek). */
         try { extra = extra.concat(swarmAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
         var base = workMode() === 'demo' ? alerts.filter(function (x) { return x.type !== 'ogul'; }).map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];
@@ -4526,6 +4642,10 @@
         queenAge: queenAge,
         queenColor: queenColor,
         queenStatus: queenStatus,
+        queenPlan: queenPlan,
+        queenProfile: queenProfile,
+        queenAlerts: queenAlerts,
+        QUEEN_SEASON_NOTE: QUEEN_SEASON_NOTE,
         calmLabel: calmLabel,
         summary: colonySummary,
         summaryText: colonySummaryText,

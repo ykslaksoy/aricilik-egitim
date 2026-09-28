@@ -79,8 +79,8 @@
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-55"></script>
-  <script src="ogul.js?v=koloni-55"></script>
+  <script src="demo-data.js?v=koloni-56"></script>
+  <script src="ogul.js?v=koloni-56"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -145,8 +145,9 @@
       }
 
       function alertApiaryId(a) {
-        var hive = D.hiveById(a.hiveId);
-        return hive && hive.apiaryId ? String(hive.apiaryId) : 'none';
+        var hive = a.hiveId != null ? D.hiveById(a.hiveId) : null;
+        if (hive && hive.apiaryId) return String(hive.apiaryId);
+        return a.apiaryId ? String(a.apiaryId) : 'none';
       }
 
       function groupAlertsByApiary(alerts) {
@@ -172,7 +173,7 @@
 
       function renderAlertCard(a) {
         var hive = a.hiveId != null ? D.hiveById(a.hiveId) : null;
-        var hiveName = hive ? hive.name : (a.hiveId != null ? 'Kovan ' + a.hiveId : 'Genel');
+        var hiveName = hive ? hive.name : (a.hiveId != null ? 'Kovan ' + a.hiveId : (a.type === 'ana' ? 'Ana arı' : 'Genel'));
         var pri = a.severity === 'high' ? 1 : (a.severity === 'medium' ? 2 : 3);
         return (
           '<article class="item-card">' +
@@ -181,7 +182,8 @@
               '<span class="badge priority-' + pri + '">' + esc(a.type || 'uyarı') + '</span>' +
             '</div>' +
             '<div class="meta">' + esc(hiveName) +
-              (a.hiveId != null ? ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>' : (a.href ? ' · <a href="' + esc(a.href) + '">Aç</a>' : '')) +
+              (a.hiveId != null ? ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>' : (a.href ? ' · <a href="' + esc(a.href) + '">' + (a.queen === 'bilinmiyor' ? 'Ana yılını gir' : 'Aç') + '</a>' : '')) +
+              (a.type === 'ana' && a.queen !== 'bilinmiyor' ? '<br><small>🌱 En iyi değişim: ilkbahar – yaz başı</small>' : '') +
               (a.type === 'ogul' && a.hiveId != null ? ' · <a href="#" data-ogul-open="' + esc(a.hiveId) + '">Ayrıntı ve öneriler</a>' : '') + '</div>' +
           '</article>'
         );
@@ -336,6 +338,6 @@
       listEl.innerHTML = alerts.map(renderAlertCard).join('') || '<p class="muted">Açık uyarı yok.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-55"></script>
+<script src="pwa.js?v=koloni-56"></script>
 </body>
 </html>
