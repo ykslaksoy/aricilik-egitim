@@ -1315,7 +1315,7 @@
       return null;
     }
     function smartMeta(t) {
-      return { sticky: false, fromSmart: true, fromAlert: t.level === 'critical', hintKey: t.key, level: t.level, href: t.href || currentApiaryHref() };
+      return { sticky: false, fromSmart: true, fromAlert: t.level === 'critical', hintKey: t.key, level: t.level, full: t.full || t.text, href: t.href || currentApiaryHref() };
     }
 
     function emitHintState(show) {
@@ -1355,8 +1355,9 @@
         muayeneText.hidden = false;
         muayeneText.setAttribute(
           'aria-label',
-          (opts.href ? 'Nota git: ' : '') + short
+          (opts.href ? 'Nota git: ' : '') + (opts.full || short)
         );
+        muayeneText.title = opts.full || short;
       }
       if (muayeneOk) muayeneOk.hidden = false;
       emitHintState(true);

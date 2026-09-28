@@ -74,6 +74,12 @@
     });
     return n;
   }
+  /* Not şeridi dar (375px'te ~20 harf): sığdığı kadar parça, kalanı «+N» */
+  function shortJoin(parts) {
+    var out = '⚠️ ' + parts[0], i = 1;
+    while (i < parts.length && (out + ' · ' + parts[i]).length <= 19) { out += ' · ' + parts[i]; i++; }
+    return out + (i < parts.length ? ' +' + (parts.length - i) : '');
+  }
   function dayText(best) { return best.date === today() ? 'Bugün' : best.dayLabel; }
 
   /** Aday notlar (öncelik sırasıyla). opts: { apiaryId, best } — best = SuperAriHava.bestInspectionDay(daily) */
@@ -84,18 +90,18 @@
     var parts = [], href = null, sig = [];
     function add(n, txt, h, k) { if (!n) return; parts.push(txt); sig.push(k + n); if (!href) href = h; }
     add(c.alerts, c.alerts + ' kritik uyarı', 'uyarilar.html', 'al');
-    add(c.act, c.act + ' kovan Müdahale', 'saglik.html', 'act');
+    add(c.act, c.act + ' Müdahale', 'saglik.html', 'act');
     add(c.queenless, c.queenless + ' anasız', kol('ana', ap), 'q');
     add(c.stock, c.stock + ' kritik stok', global.SuperAriPlan && global.SuperAriPlan.besHref ? global.SuperAriPlan.besHref(ap ? ap.id : '') : kol('besleme', ap, '&sub=stok'), 'stk');
-    add(c.check, c.check + ' kovan Kontrol', 'saglik.html', 'chk');
-    add(c.checks, c.checks + ' ilaç kontrolü gecikti', kol('hastalik', ap), 'ilc');
+    add(c.check, c.check + ' Kontrol', 'saglik.html', 'chk');
+    add(c.checks, c.checks + ' ilaç gecikti', kol('hastalik', ap), 'ilc');
     if (parts.length) {
-      list.push({ level: 'critical', key: 'crit|' + (ap ? ap.id : 'all') + '|' + sig.join(',') + '|' + t, text: '⚠️ ' + parts.slice(0, 2).join(' · ') + (parts.length > 2 ? ' +' + (parts.length - 2) : ''), href: href });
+      list.push({ level: 'critical', key: 'crit|' + (ap ? ap.id : 'all') + '|' + sig.join(',') + '|' + t, text: shortJoin(parts), full: '⚠️ ' + parts.join(' · '), href: href });
     }
     if (inspectionSeason(ap)) {
       var od = overdueCount(sc);
-      if (best && od) list.push({ level: 'muayene', key: 'muayene|' + (ap ? ap.id : 'all') + '|' + best.date + '|' + od, text: 'Muayene: ' + dayText(best) + ' uygun · ' + od + ' kovan gecikti', href: kol('guc', ap) });
-      else if (od && !best) list.push({ level: 'muayene', key: 'muayene-nowx|' + (ap ? ap.id : 'all') + '|' + t + '|' + od, text: od + ' kovanın muayenesi gecikti', href: kol('guc', ap) });
+      if (best && od) list.push({ level: 'muayene', key: 'muayene|' + (ap ? ap.id : 'all') + '|' + best.date + '|' + od, text: '🔍 ' + dayText(best) + ' · ' + od + ' gecikti', full: 'Muayene: ' + dayText(best) + ' uygun · ' + od + ' kovan gecikti', href: kol('guc', ap) });
+      else if (od && !best) list.push({ level: 'muayene', key: 'muayene-nowx|' + (ap ? ap.id : 'all') + '|' + t + '|' + od, text: '🔍 ' + od + ' muayene gecikti', full: od + ' kovanın muayenesi gecikti', href: kol('guc', ap) });
       else if (best) list.push({ level: 'hava', key: 'hava|' + best.date, date: best.date, text: 'Muayene: ' + dayText(best) + ' · ' + best.reason, href: null });
     } else {
       var m = Number(t.slice(5, 7));
