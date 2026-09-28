@@ -114,7 +114,7 @@
 
   function statsHtml(stats, cls) {
     return stats.map(function (x) {
-      return '<a class="' + (cls || 'ks-stat') + ' ' + (x.tone || '') + '" data-stat="' + esc(x.k) + '" href="' + esc(x.href || '#') + '" aria-label="' + esc(x.l + ': ' + x.v) + '">' + (ICO[x.icon || x.k] || ICO.kovan) +
+      return '<a class="' + (cls || 'ks-stat') + ' ' + (x.tone || '') + '" data-stat="' + esc(x.k) + '" href="' + esc(x.href || '#') + '" aria-label="' + esc(x.l + ': ' + x.v) + '">' + (x.svg || ICO[x.icon || x.k] || ICO.kovan) +
         '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
     }).join('');
   }

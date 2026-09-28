@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Bakım ve Muayene ekranları Ana ile aynı görünsün: ana.html'deki <style> bloğunu ve alt menüyü
  * bakim.html ve bakim-akis.html'deki ANA-CSS / ANA-TABBAR işaretleri arasına birebir kopyalar.
- * Muayene (bakim-akis.html) ayrıca Bakım'ın Kapsam kartı stilini (bakim.html'deki ikinci <style>) BK-SCOPE-CSS arasına alır.
+ * Muayene (bakim-akis.html) ve Stok (stok.html) ayrıca Bakım'ın Kapsam kartı stilini (bakim.html'deki ikinci <style>) BK-SCOPE-CSS arasına alır.
  *   node scripts/sync-bakim-ana.js        (yazar)
  *   node scripts/sync-bakim-ana.js --check (fark varsa çıkış kodu 1) */
 const fs = require('fs'), path = require('path');
@@ -22,7 +22,8 @@ const bkScope = /<!-- ANA-CSS:END -->\s*(<style>[\s\S]*?<\/style>)/.exec(bk);
 if (!bkScope) { console.error('bakim.html: Kapsam kartı <style> bulunamadı'); process.exit(2); }
 const targets = [
   { file: 'bakim.html', parts: [['ANA-CSS', css[0]], ['ANA-TABBAR', tab]] },
-  { file: 'bakim-akis.html', parts: [['ANA-CSS', css[0]], ['BK-SCOPE-CSS', bkScope[1]], ['ANA-TABBAR', tab]] }
+  { file: 'bakim-akis.html', parts: [['ANA-CSS', css[0]], ['BK-SCOPE-CSS', bkScope[1]], ['ANA-TABBAR', tab]] },
+  { file: 'stok.html', parts: [['ANA-CSS', css[0]], ['BK-SCOPE-CSS', bkScope[1]], ['ANA-TABBAR', tab]] }
 ];
 const check = process.argv.includes('--check');
 let bad = 0;

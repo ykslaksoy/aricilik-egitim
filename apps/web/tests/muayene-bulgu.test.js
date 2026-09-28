@@ -1,4 +1,4 @@
-/* Muayene bulgularından otomatik görevler (koloni-61): Hayır modunda ve atlanan kartlarda sessizce kaydedilir. */
+/* Muayene bulgularından otomatik görevler (koloni-62): Hayır modunda ve atlanan kartlarda sessizce kaydedilir. */
 const assert = require('assert');
 const A = require('../bakim-akis.js');
 const F = (c) => A.findings(c);

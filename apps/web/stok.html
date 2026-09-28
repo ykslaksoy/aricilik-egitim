@@ -1,163 +1,1454 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Malzeme stoku · SüperArı</title>
-  <link rel="stylesheet" href="panels.css" />
-  <style>
-    .st-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;}
-    .st-stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.45rem .4rem;text-align:center;min-width:0;}
-    .st-stat b{display:block;font-size:1.15rem;}
-    .st-stat span{display:block;font-size:.7rem;color:var(--muted);font-weight:700;}
-    .st-stat.red b{color:#c92a2a}
-    .st-list{display:grid;gap:.45rem;}
-    .st-item{background:#fff;border:1px solid var(--border);border-radius:14px;padding:.6rem .7rem;display:grid;gap:.35rem;}
-    .st-item.low{border-color:#ffa8a8;background:#fff5f5;}
-    .st-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem;align-items:start;}
-    .st-top b{font-size:.95rem;overflow-wrap:anywhere;}
-    .st-top small{display:block;font-size:.76rem;color:var(--muted);overflow-wrap:anywhere;}
-    .st-qty{font-size:1.1rem;font-weight:800;white-space:nowrap;text-align:right;}
-    .st-qty.low{color:#c92a2a;}
-    .st-btns{display:flex;flex-wrap:wrap;gap:.3rem;}
-    .st-btns button{font:inherit;font-size:.78rem;font-weight:800;padding:.38rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
-    .st-btns .del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
-    .st-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .6rem;}
-    .st-form label{display:grid;gap:.2rem;font-size:.76rem;font-weight:700;color:#5c4813;min-width:0;}
-    .st-form .full{grid-column:1 / -1;}
-    .st-form input,.st-form select{font:inherit;font-size:.92rem;padding:.55rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:0;width:100%;box-sizing:border-box;}
-    .st-log{font-size:.76rem;color:var(--muted);display:grid;gap:.15rem;}
-    .st-tag{display:inline-block;font-size:.68rem;font-weight:800;padding:.08rem .4rem;border-radius:999px;background:#e9ecef;color:#495057;margin-left:.3rem;vertical-align:middle;}
-    .st-tag.red{background:#ffe3e3;color:#c92a2a;}
-    .st-chips{display:flex;flex-wrap:wrap;gap:.3rem;}
-    .st-chips button{font:inherit;font-size:.76rem;font-weight:800;padding:.32rem .65rem;border-radius:999px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
-    .st-chips button.on{background:#fff3bf;border-color:#e0c56a;}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#f7b731" />
+<title>Stok · SüperArı</title>
+<!-- ANA-CSS:BEGIN — ana.html stil bloğunun birebir kopyası; elle düzenlemeyin: node scripts/sync-bakim-ana.js -->
+<style>
+  :root {
+    --bg: #f0f1f3;
+    --card: #f4f5f7;
+    --card-border: #e4e6ea;
+    --brown: #4a2f1a;
+    --brown-mid: #5c3a1f;
+    --text: #2c241c;
+    --muted: #6b635a;
+    --phone-w: 390px;
+    --phone-h: 844px;
+    --green: #2f9e44;
+    --green-bg: #d8f3dc;
+    --tan-bg: #efe2cb;
+    --tan-fg: #7a5a32;
+    --blue: #1c7ed6;
+    --blue-bg: #d0ebff;
+    --red: #e03131;
+    --red-bg: #ffe3e3;
+    --purple: #7048e8;
+    --purple-bg: #e5dbff;
+    --orange: #f08c00;
+    /* Restored warmer yakma-era wood (pre-Grok 0a61b12): was --wood-1/#e8c48e + --wood-2/#c99755 */
+    --wood: #d9ae6a;
+    --wood-hi: #e8c48e;
+    --wood-lo: #c99755;
+    --wood-edge: #8a6030;
+    --hardal: #d4a017;
+    --hardal-hi: #f0c43a;
+    --hardal-lo: #b8860b;
+    --hardal-soft: #f4e3b0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%;
+    min-height: 100%;
+    background: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Top-align phone so Hardal brand strip stays on-screen when viewport < 844px
+     (center alignment previously clipped the strip to a mustard sliver). */
+  body {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px 0 28px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .phone {
+    width: var(--phone-w); height: var(--phone-h);
+    background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+  }
+  .phone-notch {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 118px; height: 28px; background: #111; border-radius: 18px; z-index: 50;
+  }
+  .status-bar {
+    height: 48px; padding: 16px 22px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa;
+  }
+  .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .02em; }
+
+  .screen {
+    height: calc(var(--phone-h) - 48px - 72px);
+    overflow: hidden; display: flex; flex-direction: column; background: var(--bg);
+    padding: 2px 12px 6px;
+   position: relative;
+  }
+
+  /* Hardal işletme şeridi — 3D bee logo + brand + lock; location lives in weather card below */
+  .brand-strip {
+    position: relative;
+    z-index: 12;
+    flex: 0 0 auto;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 5px 10px 5px 6px;
+    margin-bottom: 4px;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%);
+    border: 1px solid #e0c56a;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    color: var(--brown);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    overflow: visible;
+  }
+  .brand-logo-btn {
+    flex: 0 0 auto;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    cursor: default;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    overflow: visible;
+  }
+  .brand-logo-btn:focus-visible {
+    outline: 2px solid rgba(212, 160, 23, 0.45);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .brand-logo-btn .bee-3d,
+  .brand-logo-btn .bee-logo-img {
+    width: 40px;
+    height: auto;
+    max-height: 30px;
+    display: block;
+    object-fit: contain;
+    /* Daha çizim: kenar vurgusu + kontrast */
+    filter:
+      contrast(1.12) saturate(1.08)
+      drop-shadow(0 0 0.4px #3d2616)
+      drop-shadow(0 0 0.4px #3d2616)
+      drop-shadow(0 1px 1.5px rgba(61, 38, 22, 0.28));
+    transform: none;
+  }
+  .brand-logo-btn .bee-emoji {
+    font-size: 22px;
+    line-height: 1;
+    display: block;
+    transform: perspective(120px) rotateX(8deg) rotateY(-6deg) translateZ(2px);
+    filter: drop-shadow(0 2px 2px rgba(61, 38, 22, 0.3));
+    user-select: none;
+  }
+  .brand-strip .brand-name {
+    flex: 0 1 auto;
+    text-align: left;
+    line-height: 1.2;
+    color: var(--brown);
+    margin-left: 2px;
+  }
+  .brand-strip .brand-lock-btn {
+    margin-left: auto;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 5px 11px;
+    border: 1px solid rgba(176, 140, 60, 0.35);
+    border-radius: 999px;
+    background: rgba(255, 252, 244, 0.72);
+    color: var(--brown-mid, #5c3a1f);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .015em;
+    line-height: 1.2;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    box-shadow: none;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .brand-strip .brand-lock-btn:hover {
+    background: rgba(255, 248, 230, 0.95);
+    border-color: rgba(176, 140, 60, 0.55);
+  }
+  .brand-strip .brand-lock-btn:active {
+    background: rgba(244, 227, 176, 0.85);
+  }
+  .brand-strip .brand-lock-btn:focus-visible {
+    outline: 2px solid rgba(212, 160, 23, 0.55);
+    outline-offset: 2px;
+  }
+  .brand-strip .brand-lock-btn[aria-pressed="true"] {
+    background: rgba(240, 196, 58, 0.28);
+    border-color: rgba(184, 134, 11, 0.55);
+    color: var(--brown, #3d2616);
+    font-weight: 600;
+  }
+  .weather-loc-label.is-fading {
+    opacity: 0;
+  }
+  .weather-loc-label {
+    transition: opacity 0.35s ease;
+  }
+
+  .weather-loc {
+    position: relative;
+  }
+  /* Invisible exit marker: bees emerge just right of the arılık label (pre-flex stretch) */
+  .bee-exit {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin-left: 10px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  /* Breed name under bee exit point */
+  .bee-podium {
+    position: absolute;
+    left: 100%;
+    top: calc(50% + 10px);
+    transform: translateY(0);
+    margin-left: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    z-index: 9;
+    pointer-events: none;
+  }
+  .bee-podium.is-hidden { display: none; }
+  .bee-podium .podium-stage {
+    flex: 0 0 10px;
+    width: 22px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, rgba(90,60,30,.22) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .bee-podium.is-ready .podium-stage { opacity: 1; }
+  .bee-podium .podium-name {
+    font-size: 8px; font-weight: 800; color: var(--brown-mid);
+    background: rgba(255,248,238,.96); border: 1px solid #e8dcc8;
+    border-radius: 999px; padding: 1px 6px; line-height: 1.35;
+    opacity: 0; transform: translateY(-4px);
+    transition: opacity .35s ease, transform .35s ease;
+    margin: 0; white-space: nowrap; max-width: 148px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .bee-podium .podium-name.is-on {
+    opacity: 1; transform: translateY(0);
+  }
+
+  /* Butonlar %5 kısaldı; açılan alan hava kartına verildi */
+  .weather {
+    flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 14px;
+    padding: 10px 10px 10px; margin-top: 0; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    overflow: hidden; /* breed podium taşmasın, kart büyümüş gibi görünmesin */
+  }
+  .weather-top {
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 0;
+    min-height: 0;
+    padding: 0;
+  }
+  .weather-icon { width: 24px; height: 24px; flex: 0 0 auto; }
+  /* Content-sized (not flex:1) so #beeExit stays at end of short label — restores d6cf379 exit */
+  .weather-loc { font-size: 14px; font-weight: 650; color: var(--text); flex: 0 1 auto; max-width: 52%; }
+  .arilik-loc-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    max-width: 100%;
+    min-width: 0;
+  }
+  /* Şık kibar prev/next — light tap targets, quiet chevrons, warm ink */
+  .arilik-nav {
+    flex: 0 0 auto;
+    box-sizing: content-box;
+    width: 1em;
+    height: 1em;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+    margin: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #8a7358;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .18s ease, background .18s ease;
+  }
+  .arilik-nav:hover {
+    color: var(--brown-mid, #5c3a1f);
+    background: rgba(232, 220, 200, 0.45);
+  }
+  .arilik-nav:active {
+    color: var(--brown, #3d2616);
+    background: rgba(224, 208, 180, 0.55);
+  }
+  .arilik-nav:focus-visible {
+    outline: 1.5px solid rgba(184, 134, 11, 0.55);
+    outline-offset: 1px;
+  }
+  .arilik-nav:disabled {
+    opacity: 0.28;
+    cursor: default;
+    background: transparent;
+  }
+  .arilik-nav svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .weather-loc-label {
+    display: block;
+    max-width: 7.2em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 1px;
+    text-align: center;
+    font-weight: 600;
+    letter-spacing: .01em;
+    color: var(--text);
+  }
+  /* Live °C from Open-Meteo (see liveWeather) — far right of weather-top */
+  .weather-temp {
+    margin-left: auto; font-size: 25px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .weather-temp:focus-visible {
+    outline: 2px solid rgba(212, 160, 23, 0.55);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .bee-toggle {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: 1px solid #e0d6c8;
+    border-radius: 8px;
+    background: #faf7f2;
+    color: var(--brown-mid);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 11;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bee-toggle:hover { background: #f3ebe0; }
+  .bee-toggle:focus-visible {
+    outline: 2px solid var(--hardal);
+    outline-offset: 2px;
+  }
+  .bee-toggle[aria-pressed="false"] {
+    color: var(--muted);
+    background: #f3f4f6;
+    border-color: #e4e6ea;
+  }
+  .bee-toggle-ico {
+    width: 14px;
+    height: 14px;
+    display: block;
+    flex: 0 0 auto;
+  }
+  .bee-sound-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    margin-left: 4px;
+    padding: 4px 7px;
+    /* «Sessiz» ve «Ses» aynı kutuda — metin değişince boyut oynasın */
+    box-sizing: border-box;
+    width: 68px;
+    min-width: 68px;
+    max-width: 68px;
+    border: 1px solid #e0d6c8;
+    border-radius: 8px;
+    background: #faf7f2;
+    color: var(--brown-mid);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 11;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bee-sound-text {
+    display: inline-block;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .bee-sound-toggle:hover { background: #f3ebe0; }
+  .bee-sound-toggle:focus-visible {
+    outline: 2px solid var(--hardal);
+    outline-offset: 2px;
+  }
+  .bee-sound-toggle[aria-pressed="false"] {
+    color: var(--muted);
+    background: #f3f4f6;
+    border-color: #e4e6ea;
+  }
+  .bee-sound-toggle-ico {
+    width: 13px;
+    height: 13px;
+    display: block;
+    flex: 0 0 auto;
+  }
+  .bee-controls {
+    display: contents; /* children participate in hint flex row */
+  }
+  .bee-toggle { margin-left: 0; }
+  .bee-sound-toggle { margin-left: 0; }
+  .muayene-hint .bee-toggle,
+  .muayene-hint .bee-sound-toggle {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    font-size: 10px;
+    z-index: 12;
+  }
+  .muayene-hint .bee-sound-toggle {
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .muayene-hint-mid {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    overflow: hidden;
+  }
+  .muayene-hint.is-idle .muayene-hint-mid {
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+  }
+  .muayene-hint.is-active .muayene-hint-mid {
+    justify-content: flex-start;
+  }
+  .forecast {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+    text-align: center;
+    margin-top: 1px;
+  }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 0; }
+  .day-name { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.1; }
+  .day-date { font-size: 12px; font-weight: 800; color: var(--text); line-height: 1.05; }
+  .day.is-today .day-name,
+  .day.is-today .day-date { color: var(--hardal-lo, #b8860b); }
+  .day-ico { width: 17px; height: 17px; margin: 0; }
+  .day-temps { font-size: 11px; font-weight: 800; color: var(--text); line-height: 1.1; white-space: nowrap; }
+  .day-temps .lo { font-weight: 600; color: #8a8278; }
+  .day-hi { font-size: 10px; font-weight: 700; color: var(--text); }
+  .day-lo { font-size: 9px; color: #8a8278; }
+  .muayene-hint {
+    position: relative;
+    margin-top: 2px; padding: 4px 6px; border-radius: 10px;
+    background: #fff8df; border: 1px solid #e0c56a;
+    color: var(--brown, #4a2f1a); font-size: 11px; font-weight: 650; line-height: 1.2;
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 6px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    /* Not gelince ASLA büyümesin */
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    overflow: hidden !important;
+    box-sizing: border-box;
+  }
+  /* Idle = bee dock under forecast; active = reminder text */
+  .muayene-hint.is-idle {
+    background: transparent;
+    border-color: transparent;
+    cursor: default;
+    justify-content: center;
+    padding: 4px 6px;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+  }
+  .muayene-hint.is-idle .muayene-hint-text,
+  .muayene-hint.is-idle .muayene-hint-ok { display: none !important; }
+  .muayene-hint.is-active .bee-exit,
+  .muayene-hint.is-active .bee-podium { display: none !important; }
+  .muayene-hint-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .muayene-hint-text:active { opacity: .75; }
+  .muayene-hint-ok {
+    flex: 0 0 auto;
+    height: 26px;
+    min-height: 26px;
+    max-height: 26px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(176, 140, 60, 0.45);
+    border-radius: 8px;
+    background: rgba(255, 252, 244, 0.95);
+    color: var(--brown, #4a2f1a);
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .01em;
+    cursor: pointer;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .muayene-hint-ok:active {
+    background: rgba(240, 196, 58, 0.28);
+  }
+  /* Exit + breed label live in dock mid (between Arılar / Ses) */
+  .muayene-hint-mid .bee-exit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .muayene-hint-mid .bee-podium {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + 11px);
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: 2;
+  }
+
+  .grid {
+    flex: 1 1 auto; display: grid; grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr); gap: 5px; min-height: 0;
+  }
+  /* LOCKED: centered hive+text (PR #16) — do not regress */
+  .tile {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
+    position: relative; overflow: hidden; min-height: 0; height: 100%;
+    /* Center hive + label + badge as one group in the button */
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 4px 3px;
+    box-sizing: border-box;
+  }
+  .hive-area {
+    position: relative; flex: 0 0 auto; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding-top: 0;
+  }
+
+  /* ===== Shared hive: EQUAL tiers, FLUSH sides ===== */
+  .hive {
+    width: 58px; height: 54px; position: relative; flex: 0 0 auto; margin-top: 0;
+  }
+  .hive-stack {
+    position: absolute; left: 50%; top: 1px; transform: translateX(-50%);
+    width: 44px; display: flex; flex-direction: column; align-items: stretch;
+  }
+  .hive-lid {
+    width: 50px; height: 6px; margin-left: -3px; margin-bottom: 0;
+    /* Brighter lid from pre-Grok ana.css (4994d59) */
+    background: linear-gradient(180deg, #f4f5f7 0%, #c8ccd2 48%, #9aa1aa 100%);
+    border-radius: 2px 2px 1px 1px;
+    box-shadow: 0 1px 0 #7c828a;
+    position: relative; z-index: 1;
+  }
+  .hive-lid::after {
+    content: ""; position: absolute; left: 50%; top: 2.5px; transform: translateX(-50%);
+    width: 14px; height: 1.5px; border-radius: 1px; background: rgba(60,60,70,.45);
+  }
+  /* Two boxes: IDENTICAL height & width → equal + flush */
+  .hive-box {
+    height: 18px; /* EQUAL */
+    width: 100%;
+    /* Warmer fill + highlight wash from 4994d59 .hive-box */
+    background-color: var(--wood-hi);
+    background-image:
+      repeating-linear-gradient(
+        90deg,
+        rgba(90, 52, 16, 0.07) 0 1px,
+        transparent 1px 6px
+      ),
+      linear-gradient(180deg, rgba(255, 248, 230, 0.35), transparent 42%, rgba(90, 50, 14, 0.16));
+    border-left: 1px solid var(--wood-edge);
+    border-right: 1px solid var(--wood-edge);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    position: relative;
+    box-sizing: border-box;
+  }
+  .hive-box.top {
+    border-top: 1px solid var(--wood-edge);
+  }
+  .hive-box.bottom {
+    border-bottom: 1px solid var(--wood-edge);
+    border-top: 1px solid var(--wood-edge); /* seam matches wood edge (a16661d) */
+  }
+  /* finger joints INSIDE edges — warm #e0b87a accents from 4994d59 */
+  .hive-box::before,
+  .hive-box::after {
+    content: ""; position: absolute; top: 2px; bottom: 2px; width: 4px;
+    background: repeating-linear-gradient(
+      180deg,
+      #7a5224 0 3px,
+      #e0b87a 3px 7px
+    );
+    pointer-events: none;
+  }
+  .hive-box::before { left: 0; }
+  .hive-box::after { right: 0; }
+  .hive-entrance {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 10px; height: 2px; background: #2a1a0c; border-radius: 0 0 1px 1px; z-index: 1;
+  }
+  /* Invisible landing target centered on the entrance slit (kapı) */
+  .hive-door {
+    position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%);
+    width: 14px; height: 6px; z-index: 2; pointer-events: none;
+  }
+  .hive-feet {
+    display: flex; justify-content: space-between; padding: 0 2px; margin-top: 2px;
+  }
+  .hive-feet span {
+    width: 7px; height: 4px; background: var(--wood-lo); border-radius: 1px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .hive-shadow {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 38px; height: 3px; background: radial-gradient(ellipse, rgba(0,0,0,.12), transparent 70%);
+  }
+
+  /* Burned (yakma) emblem — branded into wood, not flat dark disc */
+  .hive-icon {
+    position: absolute;
+    left: 50%;
+    top: 26px; /* lid(6)+half of equal boxes(18) from stack top+1 */
+    transform: translate(-50%, -50%);
+    width: 26px; height: 26px; border-radius: 50%;
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: none;
+    overflow: hidden; /* clip fringe; PNG stamps are transparent circles */
+    z-index: 3;
+    pointer-events: none;
+  }
+  .hive-icon img {
+    width: 100%; height: 100%; display: block; border-radius: 50%;
+    object-fit: contain; /* keep circular stamp geometry */
+    /* multiply so wood grain reads through — burned branding look */
+    mix-blend-mode: multiply;
+    background: transparent;
+  }
+  .hive-icon svg { width: 14px; height: 14px; display: block; }
+  /* Tartı yakma damga — restored from 17d44cf/4994d59 ana.js + ana.css */
+  .hive-icon.hive-icon-burn {
+    width: 28px; height: 28px;
+    border-radius: 0;
+    overflow: visible;
+    background: none;
+    display: grid;
+    place-items: center;
+  }
+  .hive-icon.hive-icon-burn svg {
+    width: 100%; height: 100%;
+    display: block;
+    fill: none;
+    stroke: #1a0c06;
+    stroke-width: 1.35;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    mix-blend-mode: multiply;
+    background: none;
+  }
+  .hive-icon .burn-ring {
+    fill: none;
+    stroke: #160a05;
+    stroke-width: 1.55;
+  }
+
+  .tile-label {
+    /* Flow under hive; centered with the tile group */
+    position: relative; left: auto; right: auto; bottom: auto;
+    flex: 0 0 auto; width: 100%; margin-top: 1px;
+    font-size: 10px; font-weight: 700; color: var(--brown-mid); line-height: 1.1;
+    text-align: center;
+  }
+  /* Oğul: leading O emphasized (user request) */
+  .tile[data-key="ogul"] .tile-label .cap {
+    font-size: 1.55em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    vertical-align: -0.06em;
+  }
+  .badge {
+    /* Keep prior label↔badge gap (~4px): was bottom 28px vs 5px + badge height */
+    position: relative; left: auto; bottom: auto; transform: none;
+    flex: 0 0 auto; margin-top: 2px;
+    padding: 1px 7px; border-radius: 999px;
+    font-size: 9px; font-weight: 700; line-height: 1.35; white-space: nowrap;
+  }
+  .badge.green { background: var(--green-bg); color: var(--green); }
+  .badge.tan { background: var(--tan-bg); color: var(--tan-fg); }
+  .badge.blue { background: var(--blue-bg); color: var(--blue); }
+  .badge.red { background: var(--red-bg); color: var(--red); }
+  .badge.purple { background: var(--purple-bg); color: var(--purple); }
+
+  .tile {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tile:focus-visible {
+    outline: 2px solid var(--hardal);
+    outline-offset: 2px;
+  }
+  .tile:active { transform: scale(.985); }
+
+  /* In-phone “yakında” sheet — last resort when no real route */
+  .tile-sheet {
+    position: absolute; inset: 0; z-index: 40;
+    display: flex; align-items: flex-end; justify-content: center;
+    background: rgba(20, 16, 12, .35);
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s ease;
+  }
+  .tile-sheet.is-open { opacity: 1; pointer-events: auto; }
+  .tile-sheet-card {
+    width: 100%;
+    background: #fff;
+    border-radius: 18px 18px 0 0;
+    padding: 16px 18px 28px;
+    box-shadow: 0 -8px 28px rgba(0,0,0,.12);
+    transform: translateY(12px);
+    transition: transform .22s ease;
+  }
+  .tile-sheet.is-open .tile-sheet-card { transform: translateY(0); }
+  .tile-sheet-title {
+    font-size: 17px; font-weight: 800; color: var(--brown); margin: 0 0 6px;
+  }
+  .tile-sheet-body {
+    font-size: 13px; color: var(--muted); line-height: 1.45; margin: 0 0 14px;
+  }
+  .tile-sheet-close {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 36px; padding: 0 14px;
+    border: 1px solid #e4e6ea; border-radius: 10px;
+    background: #f7f8fa; color: var(--text);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+
+  .tabbar {
+    height: 72px;
+    background: #fffdf8;
+    border-top: 1px solid #e4d6c2;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    padding: 0 2px 10px;
+  }
+  /* Restored warm remake nav (4994d59 .nav-btn) — şık kibar, not loud orange chrome */
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    padding: 4px 2px;
+    border-radius: 10px;
+    color: #8a7764;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    text-decoration: none;
+    background: transparent;
+    -webkit-tap-highlight-color: transparent;
+    transition: color .18s ease, background .18s ease;
+  }
+  .tab:hover {
+    color: var(--brown-mid, #5c3a1f);
+    background: rgba(232, 220, 200, 0.35);
+  }
+  .tab:active {
+    background: rgba(224, 208, 180, 0.45);
+  }
+  .tab:focus-visible {
+    outline: 1.5px solid rgba(184, 134, 11, 0.5);
+    outline-offset: 1px;
+  }
+  .tab.active {
+    color: #e56f1c;
+    background: transparent;
+  }
+  .tab svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .home-indicator {
+    position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 4px; background: #222; border-radius: 4px; z-index: 60;
+  }
+
+  body.shot, html.shot { background: #f7f8fa !important; width: 390px; height: 844px; overflow: hidden; }
+  body.shot { display: block; margin: 0; padding: 0; }
+  body.shot .phone { box-shadow: none !important; border-radius: 0 !important; width: 390px; height: 844px; }
+  body.shot .phone-notch, body.shot .home-indicator { display: none !important; }
+
+  .screen { position: relative; }
+  .mascot-bee {
+    position: absolute; z-index: 10;
+    left: 0; top: 0;
+    width: 48px; height: 48px; pointer-events: none;
+    --bee-scale: 0.55;
+    --bee-rot: 0deg; /* 6-frame sheet picks facing; no upside-down CSS yaw */
+    transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
+    opacity: 0;
+    transition:
+      left 1.45s cubic-bezier(.45,.05,.25,1),
+      top 1.45s cubic-bezier(.35,.8,.25,1),
+      transform .45s ease,
+      opacity .4s ease;
+    will-change: left, top, transform, opacity;
+  }
+  .mascot-bee.is-off {
+    opacity: 0 !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .mascot-bee.is-shown {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
+  }
+  .mascot-bee.is-flying {
+    transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
+    /* Flight: position eases fully; scale stays near depth until door-mouth enter */
+    transition:
+      left 1.45s cubic-bezier(.45,.05,.25,1),
+      top 1.45s cubic-bezier(.35,.8,.25,1),
+      transform .85s cubic-bezier(.35,.2,.2,1),
+      opacity .4s ease;
+  }
+  .mascot-bee.is-entering {
+    transform: translate(-50%, -50%) scale(var(--bee-scale)) rotate(var(--bee-rot));
+    opacity: 0;
+    /* Slow ease-in into the hole — avoid snap/throw feel */
+    transition:
+      left 1.8s cubic-bezier(.45,.05,.25,1),
+      top 1.8s cubic-bezier(.45,.05,.25,1),
+      transform 2.4s cubic-bezier(.55,.02,.35,1),
+      opacity 1.5s ease .55s;
+  }
+  .mascot-bee canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.18));
+    animation: bee-hover 0.55s ease-in-out infinite;
+  }
+  .mascot-bee.is-flying canvas {
+    animation: bee-hover 0.28s ease-in-out infinite;
+  }
+  .mascot-bee img.bee-sheet { display: none !important; }
+  @keyframes bee-hover {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(0, -2.5px); }
+  }
+</style>
+<!-- ANA-CSS:END -->
+<!-- BK-SCOPE-CSS:BEGIN — bakim.html Kapsam kartı stilinin birebir kopyası; elle düzenlemeyin: node scripts/sync-bakim-ana.js -->
+<style>
+  /* Bakım · Kapsam kartı = Ana'daki hava kartının görünümü (aynı .weather sınıfı), alanı marka şeridi + hava kartı kadar
+     (42+4+159+8 px) → 3×4 düğmeler Ana ile aynı yerde/boyda. Hava bilgisi yok. */
+  .weather.bk-scope { flex: 0 0 205px; height: 205px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .bk-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .bk-title { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .bk-mode { flex: 0 0 auto; padding: 2px 6px; border: 1px solid #e0d6c8; border-radius: 8px; background: #faf7f2; color: var(--brown-mid); font-size: 10px; font-weight: 700; line-height: 1.2; }
+  .bk-mode.demo { background: #e7f5ff; border-color: #a5d8ff; color: #1864ab; }
+  .bk-sel { margin-left: auto; min-width: 0; max-width: 62%; }
+  .bk-sel .weather-loc-label { font-size: 13px; max-width: 9.5em; }
+  /* Mini özet: hava kartındaki 7 günlük satırın biçimi (ad · değer · simge) */
+  .bk-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; text-align: center; }
+  .bk-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 3px; border-radius: 10px; border: 1px solid transparent; text-decoration: none; color: inherit; -webkit-tap-highlight-color: transparent; min-width: 0; }
+  .bk-stat:active { background: #fff8df; border-color: #e0c56a; }
+  .bk-stat svg { width: 22px; height: 22px; display: block; }
+  .bk-stat .v { font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.05; }
+  .bk-stat .l { font-size: 10.5px; font-weight: 700; color: var(--muted); line-height: 1.15; max-width: 100%; min-height: 2.3em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .bk-stat.hot .v { color: var(--red); }
+  .bk-stat.gold .v { color: var(--hardal-lo, #b8860b); }
+  a.muayene-hint.bk-note { text-decoration: none; margin-top: 0; }
+  .bk-note .muayene-hint-text { padding-left: 2px; }
+  a.tile { text-decoration: none; color: inherit; }
+</style>
+<!-- BK-SCOPE-CSS:END -->
+<style>
+  /* Stok: Bakım ile aynı telefon çerçevesi + Kapsam kartı (205 px) + Ana 3×4 döşemeleri. Kategori / Alınacaklar / Hareketler aynı sayfada panel. */
+  .st-aps { display: flex; gap: 2px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; min-width: 0; margin: 0 -2px; }
+  .st-aps::-webkit-scrollbar { display: none; }
+  .st-ap { flex: 1 0 auto; min-width: 46px; max-width: 120px; min-height: 34px; padding: 2px 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; justify-content: center; }
+  .st-ap .day-name { white-space: nowrap; }
+  .st-ap.is-today { background: #fff8df; border-color: #e0c56a; }
+  .st-ap:active { background: rgba(224, 208, 180, 0.45); }
+  .st-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; }
+  .st-panel[hidden], .grid[hidden] { display: none !important; }
+  .st-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; background: var(--bg); padding-bottom: 2px; }
+  .st-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 48px; min-width: 64px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); font: inherit; font-size: 15px; font-weight: 800; color: var(--brown-mid); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .st-back:active { transform: scale(.985); }
+  .st-htitle { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-htitle small { display: block; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-card { background: #fff; border: 1px solid #e6e8ec; border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04); min-width: 0; }
+  .st-card.low { border-color: #ffc9c9; background: #fff5f5; }
+  .st-top { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+  .st-name { flex: 1 1 auto; min-width: 0; }
+  .st-name b { font-size: 15px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
+  .st-name small { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 650; color: var(--muted); overflow-wrap: anywhere; line-height: 1.3; }
+  .st-qty { flex: 0 0 auto; font-size: 19px; font-weight: 800; color: var(--text); white-space: nowrap; text-align: right; }
+  .st-qty.low { color: var(--red); }
+  .st-tag { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; line-height: 1.4; vertical-align: 2px; background: #e7f5ff; color: #1864ab; }
+  .st-tag.red { background: var(--red-bg); color: var(--red); }
+  .st-log { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+  .st-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .st-btn { min-height: 64px; padding: 4px 6px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); color: var(--brown-mid); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .st-btn:active { transform: scale(.985); }
+  .st-btn.in { background: var(--green-bg); border-color: #b2f2bb; color: #1b5e20; }
+  .st-btn.out { background: #fff4e6; border-color: #ffd8a8; color: #a14a00; }
+  .st-btn.del { background: #fff5f5; border-color: #ffc9c9; color: var(--red); }
+  .st-amt { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: stretch; }
+  .st-amt .st-btn { min-width: 76px; }
+  .st-in { font: inherit; font-size: 16px; min-height: 48px; padding: 8px 10px; border-radius: 10px; border: 1px solid #d8d2c6; background: #fff; color: var(--text); width: 100%; min-width: 0; box-sizing: border-box; }
+  .st-amt .st-in { min-height: 64px; font-size: 18px; font-weight: 700; }
+  .st-new { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 64px; padding: 6px 12px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%); border: 1px solid #e0c56a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65); color: var(--brown); }
+  .st-new:active { transform: scale(.99); }
+  .st-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .st-form label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 800; color: var(--brown-mid); min-width: 0; }
+  .st-form .full { grid-column: 1 / -1; }
+  .st-ftitle { font-size: 15px; font-weight: 800; color: var(--text); }
+  .st-tpl { display: flex; flex-wrap: wrap; gap: 6px; }
+  .st-tpl button { min-height: 44px; padding: 4px 10px; border-radius: 10px; border: 1px solid #e0c56a; background: #fff8df; color: var(--brown); font: inherit; font-size: 12.5px; font-weight: 750; cursor: pointer; }
+  .st-hint { font-size: 11.5px; font-weight: 600; color: var(--muted); line-height: 1.35; margin: 0 2px; }
+  .st-empty { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px; font-size: 13px; font-weight: 700; color: var(--brown-mid); text-align: center; }
+  .st-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; text-align: center; }
+  .st-cols span { display: flex; flex-direction: column; gap: 1px; padding: 4px 2px; border-radius: 10px; background: var(--card); min-width: 0; }
+  .st-cols i { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+  .st-cols b { font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-cols .buy { background: var(--red-bg); }
+  .st-cols .buy b { color: var(--red); }
+  .st-cols .ok { background: var(--green-bg); }
+  .st-cols .ok b { color: var(--green); }
+  .st-mv { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 8px; align-items: center; background: #fff; border: 1px solid #e6e8ec; border-radius: 12px; padding: 8px 10px; min-height: 52px; }
+  .st-mv .d { font-size: 11.5px; font-weight: 800; color: var(--muted); }
+  .st-mv .n { min-width: 0; }
+  .st-mv .n b { display: block; font-size: 13.5px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-mv .n small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-mv .q { font-size: 15px; font-weight: 800; white-space: nowrap; }
+  .st-mv .q.plus { color: var(--green); }
+  .st-mv .q.minus { color: #c2410c; }
+  button.tile { font: inherit; color: inherit; width: 100%; }
+</style>
 </head>
-<body data-tabbar="fixed">
-  <main class="wrap">
-    <div class="nav">
-      <a class="chip" href="bakim.html">← Bakım</a>
-      <a class="chip" href="ayarlar.html">Ayarlar</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p>Malzeme stoku</p></div>
-    </div>
-    <section class="card stack">
-      <div class="st-stats" id="stats"></div>
-      <div class="st-chips" id="cats"></div>
-      <p class="muted" id="modeNote" style="margin:0;font-size:.8rem;"></p>
-    </section>
-    <section class="card stack" style="margin-top:1rem;">
-      <h2 style="margin:0;font-size:1.05rem;">Kalemler</h2>
-      <div class="st-list" id="list"></div>
-    </section>
-    <section class="card stack" style="margin-top:1rem;" id="formCard">
-      <h2 style="margin:0;font-size:1.05rem;" id="formTitle">＋ Yeni kalem</h2>
-      <form class="st-form" id="f" autocomplete="off">
-        <input type="hidden" name="id">
-        <label class="full">Ad<input name="name" maxlength="80" required placeholder="ör. Şurup 2:1, Amitraz şerit"></label>
-        <label>Tür<select name="category"></select></label>
-        <label>Birim<select name="unit"></select></label>
-        <label>Miktar<input type="number" name="qty" step="0.1" inputmode="decimal" required></label>
-        <label>Uyarı eşiği<input type="number" name="threshold" min="0" step="0.1" inputmode="decimal" placeholder="ör. 10"></label>
-        <label class="full">Besleme türü eşleşmesi (Hızlı kayıt › Besleme)<select name="feedType"><option value="">Yok</option></select></label>
-        <label class="full">Not<input name="note" maxlength="200"></label>
-        <button type="submit" class="btn full" id="fSave">Kaydet</button>
-        <button type="button" class="btn secondary full" id="fCancel" hidden>Vazgeç</button>
-      </form>
-      <p class="muted" style="margin:0;font-size:.8rem;">Miktar eşik değerine inince veya altına düşünce Bugün sekmesinde ve Uyarılar'da «Stok azaldı» uyarısı çıkar. Hızlı kayıt › İlaçlama / Besleme kaydederken isteğe bağlı olarak stoktan düşebilirsiniz.</p>
-    </section>
-  </main>
-  <script src="demo-data.js?v=koloni-61"></script>
-  <script src="koloni.js?v=koloni-61"></script>
-  <script>
-  (function () {
-    var D = window.SuperAriDemo, K = window.SuperAriKoloni;
-    if (!D || !D.stock) return;
-    var S = D.stock, R = D.records;
-    var esc = K ? K.esc : function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-    var fmt = K ? K.fmtDate : function (d) { return d; };
-    var cat = 'all';
-    var f = document.getElementById('f');
-    f.elements.category.innerHTML = S.CATS.map(function (c) { return '<option value="' + c.key + '">' + esc(c.label) + '</option>'; }).join('');
-    f.elements.unit.innerHTML = S.UNITS.map(function (u) { return '<option value="' + esc(u) + '">' + esc(u) + '</option>'; }).join('');
-    f.elements.feedType.innerHTML += R.FEED_TYPES.map(function (t) { return '<option value="' + t.key + '">' + esc(t.label + ' (' + t.unit + ')') + '</option>'; }).join('');
-    document.getElementById('modeNote').textContent = R.workMode() === 'live'
-      ? 'Canlı mod: yalnız sizin eklediğiniz kalemler. Kayıtlar bu cihazda saklanır.'
-      : 'Demo mod: örnek kalemler «Demo» etiketlidir; canlı moda geçince görünmez.';
-    function n(v) { return String(Math.round((Number(v) || 0) * 10) / 10).replace('.', ','); }
-    function render() {
-      var list = S.list();
-      var low = list.filter(function (x) { return x.low; });
-      document.getElementById('stats').innerHTML = '<div class="st-stat"><b>' + list.length + '</b><span>Kalem</span></div>' +
-        '<div class="st-stat red"><b>' + low.length + '</b><span>Azalan</span></div>' +
-        '<div class="st-stat"><b>' + list.filter(function (x) { return x.qty <= 0; }).length + '</b><span>Tükenen</span></div>';
-      var used = {}; list.forEach(function (x) { used[x.category] = (used[x.category] || 0) + 1; });
-      document.getElementById('cats').innerHTML = '<button type="button" data-cat="all" class="' + (cat === 'all' ? 'on' : '') + '">Tümü ' + list.length + '</button>' +
-        (low.length ? '<button type="button" data-cat="low" class="' + (cat === 'low' ? 'on' : '') + '">Azalan ' + low.length + '</button>' : '') +
-        S.CATS.filter(function (c) { return used[c.key]; }).map(function (c) { return '<button type="button" data-cat="' + c.key + '" class="' + (cat === c.key ? 'on' : '') + '">' + esc(c.label) + ' ' + used[c.key] + '</button>'; }).join('');
-      var shown = list.filter(function (x) { return cat === 'all' || (cat === 'low' ? x.low : x.category === cat); });
-      document.getElementById('list').innerHTML = shown.map(function (x) {
-        var last = x.log.slice(-3).reverse();
-        return '<div class="st-item' + (x.low ? ' low' : '') + '" data-id="' + esc(x.id) + '"><div class="st-top"><span><b>' + esc(x.name) + '</b>' +
-          (x.demo ? '<span class="st-tag">Demo</span>' : '') + (x.low ? '<span class="st-tag red">' + (x.qty <= 0 ? 'Tükendi' : 'Azaldı') + '</span>' : '') +
-          '<small>' + esc(S.CAT_LABEL[x.category] + (x.threshold ? ' · eşik ' + n(x.threshold) + ' ' + x.unit : ' · eşik yok') + (x.note ? ' · ' + x.note : '')) + '</small></span>' +
-          '<span class="st-qty' + (x.low ? ' low' : '') + '">' + n(x.qty) + ' ' + esc(x.unit) + '</span></div>' +
-          (last.length ? '<div class="st-log">' + last.map(function (l) { return '<span>' + esc(fmt(l.date)) + ' · ' + (l.delta > 0 ? '+' : '') + n(l.delta) + ' ' + esc(x.unit) + ' · ' + esc(l.reason) + '</span>'; }).join('') + '</div>' : '') +
-          '<div class="st-btns"><button type="button" data-in="' + esc(x.id) + '">＋ Giriş</button><button type="button" data-out="' + esc(x.id) + '">− Kullanım</button>' +
-          '<button type="button" data-edit="' + esc(x.id) + '">Düzenle</button><button type="button" class="del" data-del="' + esc(x.id) + '">Sil</button></div></div>';
-      }).join('') || '<p class="muted" style="margin:0;">' + (list.length ? 'Bu türde kalem yok.' : 'Henüz kalem yok. Aşağıdan şurup, kek, ilaç, çerçeve gibi malzemeleri ekleyin.') + '</p>';
-    }
-    function resetForm() {
-      f.reset(); f.elements.id.value = '';
-      document.getElementById('formTitle').textContent = '＋ Yeni kalem';
-      document.getElementById('fCancel').hidden = true;
-    }
-    document.querySelector('main').addEventListener('click', function (e) {
-      var b = e.target.closest && e.target.closest('[data-cat],[data-in],[data-out],[data-edit],[data-del]');
-      if (!b) return;
-      if (b.hasAttribute('data-cat')) { cat = b.getAttribute('data-cat'); render(); return; }
-      var id = b.getAttribute('data-in') || b.getAttribute('data-out') || b.getAttribute('data-edit') || b.getAttribute('data-del');
-      var it = S.list().filter(function (x) { return x.id === id; })[0];
-      if (!it) return;
-      if (b.hasAttribute('data-in') || b.hasAttribute('data-out')) {
-        var inn = b.hasAttribute('data-in');
-        var v = prompt((inn ? 'Giriş' : 'Kullanım') + ' miktarı (' + it.unit + ') — ' + it.name + ':', '');
-        if (v == null) return;
-        var q = Number(String(v).replace(',', '.'));
-        if (!(q > 0)) { alert('Geçerli bir miktar girin.'); return; }
-        S.adjust(id, inn ? q : -q, inn ? 'Giriş (elle)' : 'Kullanım (elle)');
-      } else if (b.hasAttribute('data-edit')) {
-        f.elements.id.value = it.id; f.elements.name.value = it.name; f.elements.category.value = it.category; f.elements.unit.value = it.unit;
-        f.elements.qty.value = it.qty; f.elements.threshold.value = it.threshold || ''; f.elements.feedType.value = it.feedType || ''; f.elements.note.value = it.note || '';
-        document.getElementById('formTitle').textContent = 'Düzenle · ' + it.name;
-        document.getElementById('fCancel').hidden = false;
-        document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
-        return;
-      } else {
-        if (!confirm(it.name + ' silinsin mi?')) return;
-        S.remove(id);
-      }
-      try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
-      render();
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <div id="statusClock" aria-live="polite">9:41</div>
+    <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
+  </div>
+
+  <div class="screen" id="stScreen">
+    <section id="stScope" aria-label="Stok kapsamı"></section>
+    <section class="grid" id="grid" aria-label="Stok bölümleri"></section>
+    <section class="st-panel" id="stPanel" hidden aria-live="polite"></section>
+  </div>
+
+  <!-- ANA-TABBAR:BEGIN -->
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab active" href="bakim.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
+  </nav>
+  <!-- ANA-TABBAR:END -->
+  <div class="home-indicator"></div>
+</div>
+
+<script src="demo-data.js?v=koloni-62"></script>
+<script src="koloni.js?v=koloni-62"></script>
+<script src="ilac-katalog.js?v=koloni-62"></script>
+<script src="bakim-plan.js?v=koloni-62"></script>
+<script src="kapsam.js?v=koloni-62"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
+  if (!D || !D.stock || !KS) return;
+  var S = D.stock, R = D.records;
+  function $(id) { return document.getElementById(id); }
+  var esc = KS.esc;
+  function P() { return window.SuperAriPlan || null; }
+  function today() { return R.todayLocal(); }
+  function n1(v) { return String(Math.round((Number(v) || 0) * 10) / 10).replace('.', ','); }
+  var AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function dShort(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? Number(m[3]) + ' ' + AY[Number(m[2]) - 1] : ''; }
+  function fmt(d) { return K && K.fmtDate ? K.fmtDate(d) : d; }
+  /* Kısa bildirim: telefon çerçevesinin düzenine girmesin diye sabit konumlu (koloni.js kol-toast stili bu sayfada yok) */
+  function toast(msg) {
+    var t = document.createElement('div'); t.textContent = msg; t.setAttribute('role', 'status');
+    t.style.cssText = 'position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:calc(100vw - 32px);background:#1f2933;color:#fff;padding:.55rem .9rem;border-radius:999px;font:600 13px system-ui,sans-serif;z-index:99999;box-shadow:0 6px 18px rgba(0,0,0,.25);text-align:center;pointer-events:none;';
+    document.body.appendChild(t); setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 2600);
+  }
+  function changed() { try { window.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
+  (function () { var el = $('statusClock'); function t() { var n = new Date(); el.textContent = n.getHours() + ':' + (n.getMinutes() < 10 ? '0' : '') + n.getMinutes(); } t(); setInterval(t, 1000); })();
+
+  /* ---- Döşemeler (Bakım sırası değil; Stok'a özel 3×4) ---- */
+  var TILES = [
+    { key: 'surup', label: 'Şurup' }, { key: 'seker', label: 'Şeker' }, { key: 'kek', label: 'Kek' },
+    { key: 'polen', label: 'Polen' }, { key: 'ilac', label: 'İlaç' }, { key: 'temelPetek', label: 'Temel petek' },
+    { key: 'cerceve', label: 'Çerçeve' }, { key: 'kovan', label: 'Kovan/kat' }, { key: 'ekipman', label: 'Ekipman' },
+    { key: 'diger', label: 'Diğer' }, { key: 'alinacak', label: 'Alınacaklar' }, { key: 'hareket', label: 'Hareketler' }
+  ];
+  var TLABEL = {}; TILES.forEach(function (t) { TLABEL[t.key] = t.label; });
+  /* Ana'daki yakma damga (burn-ring + çizgi) biçimi */
+  var BURN = {
+    surup: '<path d="M12 5.6c2.5 3.2 3.9 5.4 3.9 7.4a3.9 3.9 0 0 1-7.8 0c0-2 1.4-4.2 3.9-7.4z"/><path d="M10.4 13.4a1.7 1.7 0 0 0 1.6 1.5"/>',
+    seker: '<path d="M7.4 9.6 12 7.2l4.6 2.4v5L12 17l-4.6-2.4z"/><path d="M7.4 9.6 12 12l4.6-2.4M12 12v5"/>',
+    kek: '<rect x="6.6" y="9.6" width="10.8" height="6.4" rx="1.2"/><path d="M6.6 12.4h10.8M9.4 9.6V8.2M12 9.6V7.6M14.6 9.6V8.2"/>',
+    polen: '<circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="7.8" r="1.7"/><circle cx="12" cy="16.2" r="1.7"/><circle cx="8.2" cy="10" r="1.7"/><circle cx="15.8" cy="10" r="1.7"/><circle cx="8.2" cy="14" r="1.7"/><circle cx="15.8" cy="14" r="1.7"/>',
+    ilac: '<path d="M10.2 6.2h3.6M10.8 6.2v2.4l-2.2 2.6v6.6h6.8v-6.6l-2.2-2.6V6.2"/><path d="M8.6 13.4h6.8"/>',
+    temelPetek: '<path d="M9.6 6.6l2.4 1.4v2.8l-2.4 1.4-2.4-1.4V8zM14.4 6.6l2.4 1.4v2.8l-2.4 1.4-2.4-1.4V8zM12 10.8l2.4 1.4V15L12 16.4 9.6 15v-2.8z"/>',
+    cerceve: '<rect x="6.8" y="7.4" width="10.4" height="9.2" rx=".8"/><path d="M5.6 7.4h12.8M8.8 9.6v5M12 9.6v5M15.2 9.6v5"/>',
+    kovan: '<path d="M6.2 7.4h11.6v2H6.2z"/><rect x="6.8" y="9.4" width="10.4" height="3.6"/><rect x="6.8" y="13" width="10.4" height="3.6"/><path d="M11 16.6h2"/>',
+    ekipman: '<path d="M14.7 6.3a3 3 0 0 0-3.9 3.9l-4.4 4.4a1.3 1.3 0 0 0 1.8 1.8l4.4-4.4a3 3 0 0 0 3.9-3.9l-1.9 1.9-1.6-.3-.3-1.6z"/>',
+    diger: '<circle cx="8.2" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="15.8" cy="12" r="1.3"/>',
+    alinacak: '<path d="M5.8 7h1.9l1.5 7.2h7.1l1.5-5.2H8.3"/><circle cx="10" cy="16.6" r="1"/><circle cx="15.2" cy="16.6" r="1"/>',
+    hareket: '<path d="M9 16.8V7.2M6.8 9.4 9 7.2l2.2 2.2M15 7.2v9.6M12.8 14.6l2.2 2.2 2.2-2.2"/>'
+  };
+  /* Ana'daki hiveHTML ile birebir aynı işaretleme */
+  function hiveHTML(key) {
+    return '<div class="hive-area"><div class="hive"><div class="hive-stack"><div class="hive-lid"></div><div class="hive-box top"></div>' +
+      '<div class="hive-box bottom"><div class="hive-entrance"></div><div class="hive-door" aria-hidden="true"></div></div>' +
+      '<div class="hive-feet"><span></span><span></span></div></div><div class="hive-shadow"></div>' +
+      '<div class="hive-icon hive-icon-burn" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="burn-ring" cx="12" cy="12" r="10.2"/>' + (BURN[key] || '') + '</svg></div></div></div>';
+  }
+  var SICO = {
+    kalem: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7 10 4l6 3v6.4L10 16.6 4 13.4z" fill="#e8c48e" stroke="#8a6030" stroke-width=".9" stroke-linejoin="round"/><path d="M4 7l6 3 6-3M10 10v6.6" fill="none" stroke="#8a6030" stroke-width=".9"/></svg>',
+    azalan: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="10" height="12.4" rx="1.6" fill="#fff" stroke="#9aa8b8" stroke-width="1"/><rect x="6.4" y="11.4" width="7.2" height="3.6" rx=".8" fill="#f08c00"/></svg>',
+    tukenen: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="5" y="4" width="10" height="12.4" rx="1.6" fill="#fff" stroke="#e03131" stroke-width="1.2"/><path d="M7.6 8.2l4.8 4.8M12.4 8.2l-4.8 4.8" stroke="#e03131" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    alinacak: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.4 4.6h2l1.6 7.8h7.6l1.6-5.6H6" fill="none" stroke="#5c3a1f" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="6.6" y="7.6" width="8.4" height="3.6" rx=".6" fill="#f7b731"/><circle cx="8" cy="15.2" r="1.2" fill="#5c3a1f"/><circle cx="13.6" cy="15.2" r="1.2" fill="#5c3a1f"/></svg>',
+    son: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.4" fill="#fff8df" stroke="#b8860b" stroke-width="1.3"/><path d="M10 6.4V10l2.6 1.8" fill="none" stroke="#5c3a1f" stroke-width="1.5" stroke-linecap="round"/></svg>'
+  };
+  var ICON_STOK = '<svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M5.5 11 16 5.5 26.5 11v10.5L16 27 5.5 21.5z" fill="#e8c48e" stroke="#8a6030" stroke-width="1.1" stroke-linejoin="round"/><path d="M5.5 11 16 16.4 26.5 11M16 16.4V27" fill="none" stroke="#8a6030" stroke-width="1.1"/><path d="M10.6 8.3 21.2 13.8v3.6" fill="none" stroke="#f7b731" stroke-width="2" stroke-linecap="round"/></svg>';
+
+  /* ---- Yeni kalem şablonları (yalnız öneri; stok eklemez, doz yazılmaz) ---- */
+  var TPL = {
+    ilac: [{ n: 'Varroa şeridi (amitraz)', u: 'şerit' }, { n: 'Varroa şeridi (flumetrin)', u: 'şerit' }, { n: 'Varroa şeridi (tau-fluvalinat)', u: 'şerit' },
+      { n: 'Okzalik asit', u: 'paket' }, { n: 'Formik asit', u: 'paket' }, { n: 'Timol', u: 'paket' }],
+    ekipman: [{ n: 'Okzalik buharlaştırıcı', u: 'adet' }, { n: 'Damlatma şırıngası', u: 'adet' }, { n: 'Eldiven', u: 'adet' }, { n: 'Koruyucu gözlük', u: 'adet' },
+      { n: 'Maske', u: 'adet' }, { n: 'Yapışkanlı alt tabla (akar sayımı)', u: 'adet' }, { n: 'Alkol yıkama kabı', u: 'adet' }]
+  };
+  var DEF_UNIT = { surup: 'L', seker: 'kg', kek: 'kg', polen: 'kg', ilac: 'şerit', cerceve: 'adet', temelPetek: 'adet', kovan: 'adet', ekipman: 'adet', diger: 'adet' };
+
+  /* ---- Durum ---- */
+  function isOut(x) { return x.qty <= 0; }
+  function isLow(x) { return x.low && x.qty > 0; }
+  function lastIn(list) { var d = ''; list.forEach(function (x) { x.log.forEach(function (l) { if (l.delta > 0 && l.date > d) d = l.date; }); }); return d; }
+  function apName(scope) { var a = ctl && scope !== 'all' ? ctl.apOf(scope) : null; return a ? a.name : ''; }
+  function apShort(scope) { var nm = apName(scope); return nm ? nm.split(/\s+/)[0] : 'Tüm arılıklar'; }
+
+  /* ---- Alınacaklar: yaklaşan muayene/bakım ihtiyacı − stok, %20 pay ----
+   * Besleme: SuperAriPlan.feedPlan (şurup / kek); şurup eksiği şekere çevrilir (SYRUP oranı).
+   * İlaç: SuperAriPlan.medPlan → tedavi/planla + etiket dozu doğrulanmış ürün (şerit). Doz yalnız ilac-katalog.js etiketinden.
+   * Kat / çerçeve / temel petek: açık «[muayene-oto:yer]» görevleri (yer dar) × D.colony.boxes'taki kat = 10 çerçeve.
+   * Hesaplanamayanlar gösterilmez (polen, ekipman, diğer). */
+  var MARGIN = 1.2;
+  function sumQty(list, fn) { return Math.round(list.filter(fn).reduce(function (a, x) { return a + Math.max(0, x.qty); }, 0) * 10) / 10; }
+  function up(v, step) { step = step || 1; return Math.max(0, Math.ceil(v / step - 1e-9) * step); }
+  function needs(hs, scope) {
+    var Pl = P(), list = S.list(), rows = [], info = [];
+    if (!Pl) return { rows: rows, info: ['Bakım planı yüklenemedi; ihtiyaç hesaplanamadı.'], buyN: 0 };
+    var inScope = {}; hs.forEach(function (h) { inScope[String(h.id)] = true; });
+    var act = hs.filter(function (h) { return h && h.colonyState !== 'birlestirildi'; });
+    /* Besleme */
+    var syr = { surup21: { L: 0, n: 0 }, surup11: { L: 0, n: 0 } }, kek = { kg: 0, n: 0 }, noFeedData = 0;
+    /* hiveState bir kez; feedPlan/medPlan'ın erken dönüş koşulları önceden elenir (aynı sonuç, daha hızlı) */
+    var ST = {}; act.forEach(function (h) { try { ST[String(h.id)] = Pl.hiveState(h); } catch (e) { ST[String(h.id)] = null; } });
+    act.forEach(function (h) {
+      var st = ST[String(h.id)]; if (!st) return;
+      if (st.honeyFrames == null) { noFeedData++; return; }
+      var fp = null; try { fp = Pl.feedPlan(h, st); } catch (e) { fp = null; }
+      if (!fp) return;
+      if (!fp.need) return;
+      if (fp.type === 'kek') { kek.kg += Number(fp.kekKg) || 0; kek.n++; }
+      else if (syr[fp.type]) { syr[fp.type].L += Number(fp.liters) || 0; syr[fp.type].n++; }
     });
-    document.getElementById('fCancel').addEventListener('click', resetForm);
-    f.addEventListener('submit', function (e) {
+    var sugarNeed = 0, sugarFrom = [];
+    ['surup21', 'surup11'].forEach(function (t) {
+      var s = syr[t]; if (!s.L) return;
+      var have = sumQty(list, function (x) { return x.feedType === t && x.unit === 'L'; });
+      var shortL = Math.max(0, s.L * MARGIN - have), sk = Pl.SYRUP[t].sugarKg;
+      sugarNeed += shortL * sk;
+      if (shortL > 0) sugarFrom.push(Pl.SYRUP[t].label + ' ' + n1(up(shortL, 0.5)) + ' L');
+      rows.push({ cat: 'surup', name: Pl.SYRUP[t].label, unit: 'L', need: Math.round(s.L * 10) / 10, have: have, buy: 0, via: shortL > 0 ? 'şeker' : '',
+        sub: s.n + ' kovan besleme (bakım planı)' + (shortL > 0 ? ' · eksik ≈ ' + n1(up(shortL, 0.5)) + ' L şekerle yapılır' : '') });
+    });
+    if (sugarNeed > 0) {
+      var haveS = sumQty(list, function (x) { return x.category === 'seker' && x.unit === 'kg'; });
+      rows.push({ cat: 'seker', name: 'Şeker (şurup için)', unit: 'kg', need: up(sugarNeed, 0.5), have: haveS, buy: up(sugarNeed - haveS), sub: sugarFrom.join(' + ') + ' · %20 pay dahil' });
+    }
+    if (kek.kg > 0) {
+      var haveK = sumQty(list, function (x) { return (x.category === 'kek' || x.feedType === 'kek') && x.unit === 'kg'; });
+      rows.push({ cat: 'kek', name: 'Kek (fondan)', unit: 'kg', need: Math.round(kek.kg * 10) / 10, have: haveK, buy: up(kek.kg * MARGIN - haveK), sub: kek.n + ' kovan besleme (bakım planı)' });
+    }
+    /* İlaç (şerit, etiket dozu) */
+    var I = window.SuperAriIlac, prod = {}, noDose = 0;
+    act.forEach(function (h) {
+      var st = ST[String(h.id)], v = st && st.varroa;
+      if (!v || v.infestation == null || Number(v.infestation) < 2) return; /* medPlan: %2 altı izle / sayım → ilaç ihtiyacı yok */
+      var mp = null; try { mp = Pl.medPlan(h, st); } catch (e) { mp = null; }
+      if (!mp || (mp.level !== 'tedavi' && mp.level !== 'planla')) return;
+      if ((mp.blocks || []).some(function (b) { return /^Önceki tedavi sürüyor/.test(b); })) return;
+      var b = mp.best;
+      if (!b || !b.dose || !b.dose.ok) { noDose++; return; }
+      var p = prod[b.id] || (prod[b.id] = { id: b.id, name: b.name, qty: 0, n: 0 });
+      p.qty += Number(b.dose.qty) || 0; p.n++;
+    });
+    Object.keys(prod).forEach(function (id) {
+      var p = prod[id], pr = I ? I.byId(id) : null;
+      var nm = p.name.toLocaleLowerCase('tr').split(' ')[0], a = pr && pr.active ? pr.active.toLocaleLowerCase('tr').split(' ')[0] : '\u0000';
+      var have = sumQty(list, function (x) { var l = x.name.toLocaleLowerCase('tr'); return x.category === 'ilac' && x.unit === 'şerit' && (l.indexOf(nm) >= 0 || l.indexOf(a) >= 0); });
+      rows.push({ cat: 'ilac', name: p.name + ' (şerit)', unit: 'şerit', need: p.qty, have: have, buy: up(p.qty * MARGIN - have), sub: p.n + ' kovan varroa tedavisi · etiket dozu' + (pr && pr.active ? ' · ' + pr.active : '') });
+    });
+    if (noDose) info.push(noDose + ' kovanda varroa tedavisi gerekiyor ama etiket dozu hesaplanamadı (arılı çerçeve sayısı yok veya ürün doğrulanmadı) — şerit sayısı eklenmedi.');
+    /* Yer dar → kat + çerçeve + temel petek */
+    var katN = 0;
+    var open = []; try { open = D.taskStore.open(); } catch (e) { open = []; }
+    open.forEach(function (t) {
+      if (!/\[muayene-oto:yer\]/.test(String(t.note || ''))) return;
+      if (/Bal katını al/.test(String(t.title || ''))) return;
+      if (scope !== 'all' && !(t.hiveId != null && inScope[String(t.hiveId)]) && String(t.apiaryId) !== scope) return;
+      katN++;
+    });
+    if (katN) {
+      var fpk = 10; /* D.colony.boxes: kat başına 10 çerçeve */
+      try { var bx = D.colony.boxes(hs[0]); if (bx && bx.frames && (bx.body + bx.kat)) fpk = Math.round(bx.frames / (bx.body + bx.kat)); } catch (e) { fpk = 10; }
+      var src = katN + ' kovanda yer dar (muayene görevi)';
+      var hk = sumQty(list, function (x) { return x.category === 'kovan' && x.unit === 'adet'; });
+      rows.push({ cat: 'kovan', name: 'Kat (kovan/kat)', unit: 'adet', need: katN, have: hk, buy: up(katN * MARGIN - hk), sub: src + ' · kovan başına 1 kat' });
+      var hc = sumQty(list, function (x) { return x.category === 'cerceve' && x.unit === 'adet'; });
+      rows.push({ cat: 'cerceve', name: 'Çerçeve', unit: 'adet', need: katN * fpk, have: hc, buy: up(katN * fpk * MARGIN - hc), sub: src + ' · 1 kat = ' + fpk + ' çerçeve' });
+      var ht = sumQty(list, function (x) { return x.category === 'temelPetek' && x.unit === 'adet'; });
+      rows.push({ cat: 'temelPetek', name: 'Temel petek', unit: 'adet', need: katN * fpk, have: ht, buy: up(katN * fpk * MARGIN - ht), sub: src + ' · çerçeve başına 1' });
+    }
+    if (noFeedData) info.push(noFeedData + ' kovanda bal çerçevesi kaydı yok; besleme ihtiyacı hesaplanamadı.');
+    info.push('Polen, ekipman ve diğer malzemeler için ihtiyaç kayıtlardan hesaplanamıyor; listede yok.');
+    var buyN = rows.filter(function (r) { return r.buy > 0; }).length;
+    return { rows: rows, info: info, buyN: buyN, hives: act.length };
+  }
+
+  /* ---- Görünüm ---- */
+  function readHash() { var h = decodeURIComponent(location.hash.replace(/^#/, '')); return /^(c-[a-zA-Z]+|alinacak|hareket)$/.test(h) ? h : ''; }
+  var view = readHash(), form = null, amt = null, lastNeed = null, needKey = '';
+  function curScope() { return ctl ? ctl.scope() : 'all'; }
+  function needFor(hs, scope) {
+    var k = scope + '|' + hs.length + '|' + JSON.stringify(S.list().map(function (x) { return [x.id, x.qty, x.category, x.unit, x.feedType || '']; })) + '|' + today();
+    if (k !== needKey || !lastNeed) { lastNeed = needs(hs, scope); needKey = k; }
+    return lastNeed;
+  }
+  function tileBadge(key, list, nd) {
+    if (key === 'alinacak') return nd.buyN ? { t: nd.buyN + ' kalem', c: 'red' } : { t: 'Tamam', c: 'green' };
+    if (key === 'hareket') {
+      var since = R.addDays(today(), -30), c = 0;
+      list.forEach(function (x) { x.log.forEach(function (l) { if (l.date >= since) c++; }); });
+      return { t: c ? c + ' · 30 gün' : 'Yok', c: 'blue' };
+    }
+    var its = list.filter(function (x) { return x.category === key; });
+    if (!its.length) return { t: 'Boş', c: 'tan' };
+    if (its.some(isOut)) return { t: 'Yok', c: 'red' };
+    if (its.some(isLow)) return { t: 'Az', c: 'red' };
+    var u = its[0].unit, same = its.every(function (x) { return x.unit === u; });
+    return same ? { t: n1(its.reduce(function (a, x) { return a + x.qty; }, 0)) + ' ' + u, c: 'green' } : { t: its.length + ' kalem', c: 'green' };
+  }
+  function renderGrid(nd) {
+    var list = S.list();
+    $('grid').innerHTML = TILES.map(function (t) {
+      var b = tileBadge(t.key, list, nd);
+      return '<button type="button" class="tile" data-key="' + t.key + '" data-go="' + (t.key === 'alinacak' || t.key === 'hareket' ? t.key : 'c-' + t.key) + '" aria-label="' + esc(t.label + ', ' + b.t) + '">' + hiveHTML(t.key) +
+        '<div class="tile-label">' + esc(t.label) + '</div><div class="badge ' + b.c + '">' + esc(b.t) + '</div></button>';
+    }).join('');
+  }
+  function head(title, sub) {
+    return '<div class="st-head"><button type="button" class="st-back" data-back aria-label="Stok ana görünüme dön"><span aria-hidden="true">‹</span> Stok</button>' +
+      '<div class="st-htitle">' + esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div>';
+  }
+  function itemCard(x) {
+    var last = x.log.slice(-3).reverse(), ft = x.feedType ? (R.FEED_TYPES.filter(function (f) { return f.key === x.feedType; })[0] || {}).label : '';
+    var meta = (x.threshold ? 'eşik ' + n1(x.threshold) + ' ' + x.unit : 'eşik yok') + (ft ? ' · besleme: ' + ft : '') + (x.note ? ' · ' + x.note : '');
+    var h = '<article class="st-card' + (isOut(x) || isLow(x) ? ' low' : '') + '" data-item="' + esc(x.id) + '"><div class="st-top"><div class="st-name"><b>' + esc(x.name) + '</b>' +
+      (x.demo ? '<span class="st-tag">Demo</span>' : '') + (isOut(x) ? '<span class="st-tag red">Tükendi</span>' : (isLow(x) ? '<span class="st-tag red">Azaldı</span>' : '')) +
+      '<small>' + esc(meta) + '</small></div><div class="st-qty' + (isOut(x) || isLow(x) ? ' low' : '') + '">' + n1(x.qty) + ' ' + esc(x.unit) + '</div></div>' +
+      (last.length ? '<div class="st-log">' + last.map(function (l) { return '<span>' + esc(fmt(l.date)) + ' · ' + (l.delta > 0 ? '+' : '') + n1(l.delta) + ' ' + esc(x.unit) + ' · ' + esc(l.reason) + '</span>'; }).join('') + '</div>' : '');
+    if (amt && amt.id === x.id) {
+      h += '<form class="st-amt" data-amt-form><input class="st-in" name="q" type="number" step="0.1" min="0.1" inputmode="decimal" required placeholder="' + (amt.inn ? 'Giriş' : 'Kullanım') + ' (' + esc(x.unit) + ')" aria-label="' + (amt.inn ? 'Giriş' : 'Kullanım') + ' miktarı">' +
+        '<button type="submit" class="st-btn ' + (amt.inn ? 'in' : 'out') + '">Kaydet</button><button type="button" class="st-btn" data-amt-cancel>Vazgeç</button></form>';
+    } else {
+      h += '<div class="st-btns"><button type="button" class="st-btn in" data-in="' + esc(x.id) + '">＋ Giriş</button><button type="button" class="st-btn out" data-out="' + esc(x.id) + '">− Kullanım</button>' +
+        '<button type="button" class="st-btn" data-edit="' + esc(x.id) + '">Düzenle</button></div>';
+    }
+    return h + '</article>';
+  }
+  function tplHtml(cat) {
+    var t = TPL[cat]; if (!t) return '';
+    return '<div class="full"><span class="st-hint" style="margin:0;">Hazır adlar (dokununca ad ve birim dolar):</span><div class="st-tpl" style="margin-top:4px;">' +
+      t.map(function (x, i) { return '<button type="button" data-tpl="' + i + '">' + esc(x.n) + '</button>'; }).join('') + '</div></div>';
+  }
+  function formHtml() {
+    var it = form.id ? S.list().filter(function (x) { return x.id === form.id; })[0] : null;
+    var v = it || { name: '', category: form.cat, unit: DEF_UNIT[form.cat] || 'adet', qty: '', threshold: '', feedType: '', note: '' };
+    var cat = form.catSel || v.category;
+    return '<form class="st-card st-form" id="stForm" autocomplete="off"><div class="st-ftitle full">' + (it ? 'Düzenle · ' + esc(it.name) : '＋ Yeni kalem · ' + esc(TLABEL[cat] || '')) + '</div>' +
+      '<label class="full">Ad<input class="st-in" name="name" maxlength="80" required list="stTpl" value="' + esc(v.name) + '" placeholder="ör. Şurup 2:1, Varroa şeridi (amitraz)"></label>' +
+      '<datalist id="stTpl">' + (TPL[cat] || []).map(function (x) { return '<option value="' + esc(x.n) + '"></option>'; }).join('') + '</datalist>' +
+      (it ? '' : tplHtml(cat)) +
+      '<label>Tür<select class="st-in" name="category">' + S.CATS.map(function (c) { return '<option value="' + c.key + '"' + (c.key === cat ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Birim<select class="st-in" name="unit">' + S.UNITS.map(function (u) { return '<option value="' + esc(u) + '"' + (u === v.unit ? ' selected' : '') + '>' + esc(u) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Miktar<input class="st-in" type="number" name="qty" step="0.1" inputmode="decimal" required value="' + esc(v.qty) + '"></label>' +
+      '<label>Uyarı eşiği<input class="st-in" type="number" name="threshold" min="0" step="0.1" inputmode="decimal" placeholder="ör. 10" value="' + esc(v.threshold || '') + '"></label>' +
+      '<label class="full">Besleme türü eşleşmesi (Hızlı kayıt › Besleme)<select class="st-in" name="feedType"><option value="">Yok</option>' +
+        R.FEED_TYPES.map(function (t) { return '<option value="' + t.key + '"' + (t.key === v.feedType ? ' selected' : '') + '>' + esc(t.label + ' (' + t.unit + ')') + '</option>'; }).join('') + '</select></label>' +
+      '<label class="full">Not<input class="st-in" name="note" maxlength="200" value="' + esc(v.note || '') + '"></label>' +
+      (cat === 'ilac' ? '<p class="st-hint full" style="margin:0;">İlaç: miktar yalnız şerit / paket sayısıdır; uygulama doz yazmaz. Etiket dozunu kontrol edin.</p>' : '') +
+      '<button type="submit" class="st-btn in full">Kaydet</button>' +
+      '<button type="button" class="st-btn" data-form-cancel' + (it ? '' : ' style="grid-column:1 / -1;"') + '>Vazgeç</button>' + (it ? '<button type="button" class="st-btn del" data-del="' + esc(it.id) + '">Sil</button>' : '') +
+      '</form>';
+  }
+  function renderCat(key) {
+    var list = S.list(), its = list.filter(function (x) { return x.category === key; });
+    var low = its.filter(isLow).length, out = its.filter(isOut).length;
+    var sub = its.length + ' kalem' + (low ? ' · ' + low + ' azalan' : '') + (out ? ' · ' + out + ' tükenen' : '') + ' · stok tüm arılıklar için ortak';
+    var h = head(TLABEL[key] || S.CAT_LABEL[key] || key, sub);
+    if (form && !form.id) h += formHtml();
+    else h += '<button type="button" class="st-new" data-new="' + key + '"><span aria-hidden="true">＋</span> Yeni kalem</button>';
+    if (form && form.id) h += formHtml();
+    h += its.length ? its.map(itemCard).join('') : '<p class="st-empty">Bu türde kalem yok. «Yeni kalem» ile ekleyin.</p>';
+    h += '<p class="st-hint">Miktar eşik değerine inince veya altına düşünce Bugün sekmesinde ve Uyarılar’da «Stok azaldı» uyarısı çıkar. Hızlı kayıt › İlaçlama / Besleme kaydederken isteğe bağlı olarak stoktan düşebilirsiniz.</p>';
+    return h;
+  }
+  function renderNeed(hs, scope) {
+    var nd = needFor(hs, scope);
+    var h = head('Alınacaklar', (scope === 'all' ? 'Tüm arılıklar' : apName(scope)) + ' · ' + nd.hives + ' kovan · ihtiyaç − stok, %20 pay');
+    h += nd.rows.length ? nd.rows.map(function (r) {
+      var buyTxt = r.via ? '→ ' + r.via : (r.buy > 0 ? n1(r.buy) + ' ' + r.unit : '—');
+      var cls = r.via ? '' : (r.buy > 0 ? 'buy' : 'ok');
+      return '<article class="st-card' + (r.buy > 0 ? ' low' : '') + '" data-need="' + esc(r.cat) + '"><div class="st-top"><div class="st-name"><b>' + esc(r.name) + '</b><small>' + esc(r.sub) + '</small></div></div>' +
+        '<div class="st-cols"><span><i>Gerekli</i><b>' + n1(r.need) + ' ' + esc(r.unit) + '</b></span><span><i>Stokta</i><b>' + n1(r.have) + ' ' + esc(r.unit) + '</b></span>' +
+        '<span class="' + cls + '"><i>Alınacak</i><b>' + esc(buyTxt) + '</b></span></div></article>';
+    }).join('') : '<p class="st-empty">Bu kapsamda yaklaşan muayene / bakım için hesaplanan malzeme ihtiyacı yok.</p>';
+    h += nd.info.map(function (t) { return '<p class="st-hint">' + esc(t) + '</p>'; }).join('');
+    h += '<p class="st-hint">Kaynak: bakım planı besleme ve ilaç hesabı (etiket dozu, tahmin), açık muayene görevleri. Stok tüm arılıklar için ortaktır.</p>';
+    return h;
+  }
+  function renderMoves() {
+    var rows = [];
+    S.list().forEach(function (x) { x.log.forEach(function (l, i) { rows.push({ x: x, l: l, i: i }); }); });
+    rows.sort(function (a, b) { return a.l.date === b.l.date ? (a.x.id === b.x.id ? b.i - a.i : 0) : (a.l.date < b.l.date ? 1 : -1); });
+    var h = head('Hareketler', rows.length + ' kayıt · giriş ve kullanım, yeniden eskiye');
+    h += rows.length ? rows.slice(0, 150).map(function (r) {
+      var p = r.l.delta > 0;
+      return '<div class="st-mv"><span class="d">' + esc(dShort(r.l.date)) + '</span><span class="n"><b>' + esc(r.x.name) + (r.x.demo ? ' <span class="st-tag">Demo</span>' : '') + '</b><small>' + esc(r.l.reason || (p ? 'Giriş' : 'Kullanım')) + '</small></span>' +
+        '<b class="q ' + (p ? 'plus' : 'minus') + '">' + (p ? '+' : '') + n1(r.l.delta) + ' ' + esc(r.x.unit) + '</b></div>';
+    }).join('') : '<p class="st-empty">Henüz stok hareketi yok.</p>';
+    return h;
+  }
+  function renderView(hs, scope) {
+    var nd = needFor(hs, scope);
+    renderGrid(nd);
+    var panel = $('stPanel'), main = !view;
+    $('grid').hidden = !main; panel.hidden = main;
+    if (main) { panel.innerHTML = ''; return; }
+    var keep = panel.scrollTop;
+    if (view.indexOf('c-') === 0) panel.innerHTML = renderCat(view.slice(2));
+    else if (view === 'alinacak') panel.innerHTML = renderNeed(hs, scope);
+    else if (view === 'hareket') panel.innerHTML = renderMoves();
+    panel.scrollTop = keep;
+  }
+
+  /* ---- Kapsam kartı (Bakım/Muayene ile ortak seçim: superari.bakim.scope) ---- */
+  var q = new URLSearchParams(location.search), ctl = null;
+  function apsRow(scope) {
+    var aps = []; try { aps = D.loadApiaries() || []; } catch (e) { aps = []; }
+    var hs = []; try { hs = D.loadHives() || []; } catch (e) { hs = []; }
+    var cnt = {}; hs.forEach(function (h) { cnt[String(h.apiaryId)] = (cnt[String(h.apiaryId)] || 0) + 1; });
+    var all = [{ id: 'all', name: 'Tümü', n: hs.length }].concat(aps.map(function (a) { return { id: String(a.id), name: a.name, n: cnt[String(a.id)] || 0 }; }));
+    return all.map(function (a) {
+      var on = a.id === scope, short = a.id === 'all' ? 'Tümü' : String(a.name).split(/\s+/)[0];
+      return '<button type="button" class="day st-ap' + (on ? ' is-today' : '') + '" data-ap="' + esc(a.id) + '" aria-pressed="' + on + '" aria-label="' + esc(a.name + ', ' + a.n + ' kovan') + '" title="' + esc(a.name) + '">' +
+        '<span class="day-name">' + esc(short) + '</span><span class="day-date">' + a.n + '</span></button>';
+    }).join('');
+  }
+  ctl = KS.mount($('stScope'), {
+    bk: true, title: 'Stok', icon: ICON_STOK, page: 'stok.html',
+    initial: q.get('ap') || q.get('apiary') || '',
+    stats: function (hs, scope) {
+      var list = S.list(), nd = needFor(hs, scope), li = lastIn(list);
+      var low = list.filter(isLow).length, out = list.filter(isOut).length;
+      return [
+        { k: 'kalem', svg: SICO.kalem, v: list.length, l: 'Kalem', href: '#' },
+        { k: 'azalan', svg: SICO.azalan, v: low, l: 'Azalan', href: '#', tone: low ? 'hot' : '' },
+        { k: 'tukenen', svg: SICO.tukenen, v: out, l: 'Tükenen', href: '#', tone: out ? 'hot' : '' },
+        { k: 'alinacak', svg: SICO.alinacak, v: nd.buyN, l: 'Alınacak', href: '#alinacak', tone: nd.buyN ? 'gold' : '' },
+        { k: 'son', svg: SICO.son, v: li ? KS.fmtAgo(li, today()) : '—', l: 'Son giriş', href: '#hareket' }
+      ];
+    },
+    note: function (hs, scope) {
+      var nd = needFor(hs, scope), who = apShort(scope);
+      return nd.buyN ? { t: '🛒 ' + who + ' için ' + nd.buyN + ' malzeme alınacak', b: 'Liste', href: '#alinacak', k: 'alinacak' }
+        : { t: hs.length ? '✓ ' + who + ' için alınacak malzeme yok' : 'Bu kapsamda kovan yok', b: 'Liste', href: '#alinacak', k: 'ok' };
+    },
+    onChange: function (scope, hs) {
+      var row = $('stAps');
+      if (row) { row.innerHTML = apsRow(scope); var on = row.querySelector('.is-today'); if (on && on.scrollIntoView && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, on.offsetLeft - row.clientWidth / 2 + on.offsetWidth / 2); }
+      renderView(hs, scope);
+    }
+  });
+  /* Arılık düğmeleri (hava kartındaki gün düğmeleri biçimi; seçili altın) — Kapsam kartının içinde, özet satırının üstünde */
+  (function () {
+    var host = $('stScope'), stats = host.querySelector('[data-ks-stats]'), row = document.createElement('div');
+    row.className = 'st-aps'; row.id = 'stAps'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Arılık seçimi');
+    host.insertBefore(row, stats);
+    row.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-ap]'); if (b) ctl.setScope(b.getAttribute('data-ap')); });
+    ctl.render();
+  })();
+  function rerender() { ctl.render(); }
+
+  /* ---- Yönlendirme (#c-ilac, #alinacak, #hareket) ---- */
+  var pushed = false;
+  function go(v) {
+    form = null; amt = null;
+    if (v) { pushed = true; location.hash = v; }
+    else if (pushed && readHash()) { pushed = false; history.back(); }
+    else { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ } view = ''; rerender(); }
+  }
+  window.addEventListener('hashchange', function () { view = readHash(); form = null; amt = null; needKey = ''; $('stPanel').scrollTop = 0; rerender(); });
+
+  document.getElementById('stScreen').addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target : null; if (!t) return;
+    var b;
+    if ((b = t.closest('[data-go]'))) { go(b.getAttribute('data-go')); return; }
+    if ((b = t.closest('[data-back]'))) { go(''); return; }
+    if ((b = t.closest('a[data-stat]'))) { var hr = b.getAttribute('href'); e.preventDefault(); go(hr && hr !== '#' ? hr.slice(1) : ''); return; }
+    if ((b = t.closest('a[data-ks-note]'))) { e.preventDefault(); go('alinacak'); return; }
+    if ((b = t.closest('[data-new]'))) { form = { cat: b.getAttribute('data-new') }; amt = null; rerender(); focusForm(); return; }
+    if ((b = t.closest('[data-edit]'))) { form = { id: b.getAttribute('data-edit') }; amt = null; rerender(); focusForm(); return; }
+    if ((b = t.closest('[data-form-cancel]'))) { form = null; rerender(); return; }
+    if ((b = t.closest('[data-in],[data-out]'))) { amt = { id: b.getAttribute('data-in') || b.getAttribute('data-out'), inn: b.hasAttribute('data-in') }; rerender(); var inp = document.querySelector('[data-amt-form] input'); if (inp) inp.focus(); return; }
+    if ((b = t.closest('[data-amt-cancel]'))) { amt = null; rerender(); return; }
+    if ((b = t.closest('[data-tpl]'))) {
+      var f = $('stForm'), tp = (TPL[f.elements.category.value] || [])[Number(b.getAttribute('data-tpl'))];
+      if (tp) { f.elements.name.value = tp.n; f.elements.unit.value = tp.u; f.elements.qty.focus(); }
+      return;
+    }
+    if ((b = t.closest('[data-del]'))) {
+      var it = S.list().filter(function (x) { return x.id === b.getAttribute('data-del'); })[0];
+      if (!it || !confirm(it.name + ' silinsin mi?')) return;
+      S.remove(it.id); form = null; changed(); return;
+    }
+  });
+  function focusForm() {
+    /* Yalnız paneli kaydır (sayfa / telefon çerçevesi yerinde kalsın); form yapışkan başlığın hemen altında */
+    var f = $('stForm'), pn = $('stPanel'), hd = pn.querySelector('.st-head'); if (!f) return;
+    pn.scrollTop += f.getBoundingClientRect().top - pn.getBoundingClientRect().top - (hd ? hd.offsetHeight + 6 : 0);
+  }
+  document.getElementById('stScreen').addEventListener('change', function (e) {
+    var f = $('stForm'); if (!f || e.target !== f.elements.category || form.id) return;
+    /* Yeni kalemde tür değişince şablonlar / varsayılan birim güncellensin (girilen değerler korunur) */
+    var keep = { name: f.elements.name.value, qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value };
+    form.catSel = f.elements.category.value; rerender();
+    f = $('stForm'); if (!f) return;
+    f.elements.unit.value = DEF_UNIT[form.catSel] || 'adet';
+    Object.keys(keep).forEach(function (k) { f.elements[k].value = keep[k]; });
+  });
+  document.getElementById('stScreen').addEventListener('submit', function (e) {
+    var f = e.target;
+    if (f.id === 'stForm') {
       e.preventDefault();
-      var saved = S.save({ id: f.elements.id.value || undefined, name: f.elements.name.value, category: f.elements.category.value, unit: f.elements.unit.value,
+      var saved = S.save({ id: form && form.id ? form.id : undefined, name: f.elements.name.value, category: f.elements.category.value, unit: f.elements.unit.value,
         qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value });
       if (!saved) return;
-      if (K && K.toast) K.toast('Kaydedildi · ' + saved.name);
-      resetForm();
-      try { window.dispatchEvent(new Event('superari-records-changed')); } catch (er) { /* ignore */ }
-      render();
-    });
-    render();
-  })();
-  </script>
-  <script src="nav.js?v=koloni-61"></script>
-<script src="pwa.js?v=koloni-61"></script>
+      toast('Kaydedildi · ' + saved.name);
+      form = null;
+      if (view !== 'c-' + saved.category) { location.hash = 'c-' + saved.category; }
+      changed(); return;
+    }
+    if (f.hasAttribute('data-amt-form')) {
+      e.preventDefault();
+      var qv = Number(String(f.elements.q.value).replace(',', '.'));
+      if (!(qv > 0)) { alert('Geçerli bir miktar girin.'); return; }
+      var r = S.adjust(amt.id, amt.inn ? qv : -qv, amt.inn ? 'Giriş (elle)' : 'Kullanım (elle)');
+      if (r) toast((amt.inn ? 'Giriş' : 'Kullanım') + ' · ' + r.name + ': ' + n1(r.qty) + ' ' + r.unit);
+      amt = null; changed();
+    }
+  });
+  window.addEventListener('superari-records-changed', function () { needKey = ''; rerender(); });
+  window.addEventListener('superari-cloud-pulled', function () { needKey = ''; rerender(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
+})();
+</script>
+<script src="nav.js?v=koloni-62"></script>
+<script src="pwa.js?v=koloni-62"></script>
 </body>
 </html>
