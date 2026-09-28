@@ -149,7 +149,52 @@
     return null;
   }
 
-  var API = { fold: fold, parseAmount: parseAmount, parseCmd: parseCmd, sayNum: sayNum, convert: convert, numberGroups: numberGroups, parseGoto: parseGoto };
+  /* ---- Muayene bulgularından otomatik görevler (saf; node testi) ----
+   * c: { ans, brood, notes, bee, cap, sk, kat, body, queenPlan:{key,age,ideal,label,tone}, winter:{key,kg,target}, feedTask }
+   * Döner: { add: [{ tag, title, pri, days, detail }], resolve: [tag] } — resolve: bu muayenede sorun görülmedi → açık otomatik görev kapanır. */
+  var FIND_DUP = { ana: /anasiz|ana ver|yumurta kontrol|ana kontrol|yumurtlam/, meme: /ana memesi|sessiz ana/, ogul: /ogul memesi|bolme yap/, hastalik: /hastalik/,
+    zayif: /zayif koloni|birlestir/, yagma: /yagma|ucus deligini daralt/, olu: /\bolu\b|surunen|zehirlen/, anayas: /ana ariyi degistir|ana ariyi yenile|ana degis|ana yenile|ana ari yilini/,
+    kislik: /kislik/, yer: /yer dar|kat at|kat ekle|bos cerceve|dolmak uzere|bal katini al/, guve: /guve/ };
+  function findings(c) {
+    c = c || {}; var a = c.ans || {}, add = [], res = [];
+    function t(tag, title, pri, days, detail) { add.push({ tag: tag, title: title, pri: pri, days: days || 0, detail: detail || '' }); }
+    var bee = c.bee, growing = c.sk === 'ilkbahar' || c.sk === 'akim' || c.sk === 'yaz';
+    var queenless = !!(c.brood && c.brood.queenless) || (a.ana === 'hicbiri' && (a.yavru === 'yok' || a.yavru == null));
+    if (queenless) t('ana', 'Anasız görünüyor: ana ver veya güçlü kovanla birleştir', 1, 0, 'Ne ana ne yumurta, yavru yok');
+    else if (a.ana === 'hicbiri') t('ana', 'Ana kontrolü: 3–4 gün sonra yumurta var mı bak', 2, 4, 'Ana ve yumurta görülmedi, yavru var');
+    else if (a.ana === 'ana' && a.yavru === 'yok') t('ana', 'Ana yumurtlamıyor: 1 hafta sonra yumurta kontrolü', 2, 7, 'Ana var, yavru yok');
+    else if (a.ana === 'anaYumurta' || a.ana === 'yumurta') res.push('ana');
+    if (a.meme === 'acil') t('meme', 'Acil ana memesi: memelere dokunma, 3 hafta sonra yumurta kontrolü', 1, 21, 'Genç larvadan acil meme (anasız kalmış olabilir)');
+    else if (a.meme === 'yenileme') t('meme', 'Sessiz ana değiştirme: memelere dokunma, 2–3 hafta sonra yumurta kontrolü', 3, 18, 'Petek ortasında ana memesi');
+    else if (a.meme === 'yok') res.push('meme');
+    var og = a.ogul != null ? Number(a.ogul) : null;
+    if (og > 0 || a.meme === 'ogul') t('ogul', 'Oğul memesi' + (og > 0 ? ' (' + og + ' çerçeve)' : '') + ': bölme yap veya yer aç — oğul riski', 1, 0, 'Oğul memesi görüldü');
+    else if (og === 0) res.push('ogul');
+    if (a.hastalik === 'var' || a.kapali === 'cok') t('hastalik', 'Hastalık belirtisi: fotoğrafla tahmin yap, gerekirse numune gönder', 1, 0, a.kapali === 'cok' ? 'Çok sayıda delikli / çökük kapak' : 'Muayenede belirti işaretlendi');
+    else if (a.hastalik === 'yok') res.push('hastalik');
+    if (bee != null && bee <= 3) t('zayif', 'Zayıf koloni (' + bee + ' arılı çerçeve): birleştirme veya daraltma', 2, 7, 'Arılı çerçeve az');
+    else if (bee != null && bee >= 6) res.push('zayif');
+    if (a.giris === 'yagma') t('yagma', 'Yağma: uçuş deliğini daralt, açıkta bal/şurup bırakma', 1, 0, 'Girişte yağma / kavga');
+    if (a.giris === 'olu') t('olu', 'Kovan önünde ölü/sürünen arı: zehirlenme ve hastalık kontrolü', 1, 1, 'Girişte ölü / sürünen arı');
+    if (a.giris === 'normal' || a.giris === 'yogun') { res.push('yagma'); res.push('olu'); }
+    var qp = c.queenPlan;
+    if (qp && (qp.key === 'zamani' || qp.key === 'gecti')) t('anayas', 'Ana arıyı değiştir (' + qp.age + ' yaş' + (qp.label ? ' · ' + qp.label : '') + (qp.ideal ? ', değişim yaşı ' + qp.ideal : '') + ')', qp.tone === 'red' ? 1 : 2, growing ? 14 : 60, 'Ana arı yaşı');
+    var w = c.winter;
+    if (w && w.key === 'kritik' && !c.feedTask) t('kislik', 'Kışlık stok kritik' + (w.kg != null ? ' (≈ ' + w.kg + ' / ' + w.target + ' kg)' : '') + ': besle', 1, 0, 'Kışlık stok');
+    var cap = c.cap || 10, ratio = bee != null ? bee / cap : 0;
+    if (growing && (a.yer === 'dolu' || ratio >= 0.9)) t('yer', c.kat ? 'Yer dar: 1 kat daha / boş çerçeve ver' : 'Yer dar: kat at (bal katı ver)', 1, 1, bee + ' arılı çerçeve · ' + cap + ' çerçeve yer');
+    else if (growing && (a.yer === 'dolmak' || ratio >= 0.8)) t('yer', 'Kovan dolmak üzere: boş çerçeve / kat hazırla', 2, 5, bee + ' arılı çerçeve · ' + cap + ' çerçeve yer');
+    else if ((c.sk === 'sonbahar' || c.sk === 'kis') && c.kat > 0 && bee != null && bee <= 10 * (c.body || 1)) t('yer', 'Bal katını al (kışa gövdeyle girsin)', 2, 7, bee + ' arılı çerçeve · ' + c.kat + ' kat takılı');
+    else if (a.yer === 'bol' || a.yer === 'kat') res.push('yer');
+    var nt = Object.keys(c.notes || {}).map(function (k) { return c.notes[k]; }).join(' ');
+    if (/\bguve/.test(fold(nt))) t('guve', 'Mum güvesi: temizle, boş petekleri dondur, 1 hafta sonra kontrol', 2, 2, 'Muayene notunda güve');
+    return { add: add, resolve: res.filter(function (x) { return !add.some(function (y) { return y.tag === x; }); }) };
+  }
+  /** Bakım kartı anahtarı → kapattığı otomatik görev etiketleri */
+  var CARD_TAGS = { besleme: ['besleme', 'kislik'], sayim: ['varroa'], ilac: ['ilac', 'varroa'], cerceve: ['yer', 'zayif'], ana: ['ana', 'meme', 'ogul', 'anayas'],
+    kislik: ['kislik'], kapi: ['yagma', 'zayif'], temizlik: ['guve', 'olu'], hastalik: ['hastalik'] };
+
+  var API = { findings: findings, FIND_DUP: FIND_DUP, CARD_TAGS: CARD_TAGS, fold: fold, parseAmount: parseAmount, parseCmd: parseCmd, sayNum: sayNum, convert: convert, numberGroups: numberGroups, parseGoto: parseGoto };
   if (typeof document === 'undefined') { if (typeof module !== 'undefined') module.exports = API; return; }
 
   /* ================= Uygulama ================= */
@@ -275,7 +320,8 @@
    * İlaç: uygulanmış tedavi olarak KAYDEDİLMEZ, doz yazılmaz; yalnız ihtiyaç / görev. */
   function autoTask(h, tag, title, due, pri, detail) {
     var open = []; try { open = D.taskStore.open(); } catch (e) { open = []; }
-    var ex = open.filter(function (x) { return String(x.hiveId) === String(h.id) && String(x.note || '').indexOf('[muayene-oto:' + tag + ']') >= 0; })[0];
+    var dup = FIND_DUP[tag];
+    var ex = open.filter(function (x) { return String(x.hiveId) === String(h.id) && (String(x.note || '').indexOf('[muayene-oto:' + tag + ']') >= 0 || (dup && dup.test(fold(x.title)))); })[0];
     if (ex) return { task: ex, existed: true };
     var tk = D.taskStore.add({ title: title + ' — ' + h.name + (demo() ? ' · Demo' : ''), hiveId: h.id, due: due, priority: pri,
       note: '[muayene-oto:' + tag + '] ' + String(detail || '').slice(0, 240) });
@@ -288,19 +334,19 @@
       try { if (D.taskStore.complete(x.id, { note: 'Hızlı muayene · bakımda yapıldı' })) undo.push(function () { try { D.taskStore.undo(x.id); } catch (e) { /* ignore */ } }); } catch (e) { /* ignore */ }
     });
   }
-  function autoNeeds(h, info) {
-    var P = global.SuperAriPlan, out = [];
+  function autoNeeds(h, info, o) {
+    var P = global.SuperAriPlan, out = [], skip = (o && o.skip) || [];
     if (!P || !info) return out;
     h = D.hiveById(h.id) || h;
     var st = null, sk = 'yaz'; try { st = P.hiveState(h); sk = P.seasonKind(h.apiaryId); } catch (e) { return out; }
     var fp = null; try { fp = P.feedPlan(h, st); } catch (e) { fp = null; }
-    if (fp && fp.need) {
+    if (fp && fp.need && skip.indexOf('besleme') < 0) {
       var ft = P.feedText(fp), short = fp.type === 'kek' ? 'Kek ' + num(fp.kekKg) + ' kg' : (P.SYRUP[fp.type] ? P.SYRUP[fp.type].label + ' ' + num(fp.liters) + ' L' : 'besleme');
       var r1 = autoTask(h, 'besleme', 'Besleme gerekli: ' + short + (fp.feedings > 1 ? ' (' + fp.feedings + ' seferde)' : ''), today(), (sk === 'sonbahar' || sk === 'kis' || fp.cold) ? 1 : 2, ft);
       if (r1) out.push({ tid: r1.task.id, ic: '🍯', t: 'Besleme ihtiyacı: ' + short, s: (r1.existed ? 'Zaten Görevler’de' : 'Görevler + Uyarılar’a eklendi') + ' · kışlık stok / Beslenme güncellendi', tag: 'o' });
     }
     var mp = null; try { mp = P.medPlan(h, st); } catch (e) { mp = null; }
-    if (mp) {
+    if (mp && skip.indexOf('ilac') < 0 && skip.indexOf('varroa') < 0) {
       if (mp.level === 'tedavi' || mp.level === 'planla') {
         var blk = mp.blocks && mp.blocks.length ? mp.blocks[0].split(' — ')[0].split(' (')[0] : '';
         var ttl = 'Varroa: ' + (mp.level === 'tedavi' ? 'ilaçlama gerekli' : 'ilaçlama planla') + ' (%' + num(mp.infestation) + ')' + (blk ? ' · şimdi değil: ' + blk : '');
@@ -316,7 +362,22 @@
       }
     }
     var ws = null; try { ws = P.winterSeasonNow && P.winterSeasonNow() ? P.winterStock(h) : null; } catch (e) { ws = null; }
-    if (ws && (ws.key === 'kritik' || ws.key === 'az')) out.push({ ic: '❄️', t: 'Kışlık stok: ' + (ws.label || ws.key), s: (ws.kg != null ? '≈ ' + num(ws.kg) + ' kg' : '') + (ws.target ? ' / hedef ' + ws.target + ' kg' : '') + ' · muayeneden güncellendi', tag: 'o' });
+    /* Diğer önemli bulgular: anasız, ana memesi, oğul, hastalık, zayıf/yağma, ana yaşı, kışlık stok, yer/kat, mum güvesi */
+    var a = info.ans || {}, bee = a.cerceve ? a.cerceve.bee : st.beeFrames;
+    var box = null; try { box = D.colony.boxes(h); } catch (e) { box = null; }
+    if (!box) box = { body: 1, kat: P.hasSuper && P.hasSuper(h.id) ? 1 : 0 };
+    var qp = null; try { qp = D.colony.queenPlan ? D.colony.queenPlan(h) : null; } catch (e) { qp = null; }
+    var feedOpen = false; try { feedOpen = D.taskStore.open().some(function (x) { return String(x.hiveId) === String(h.id) && /\[muayene-oto:besleme\]/.test(String(x.note || '')); }); } catch (e) { feedOpen = false; }
+    var F = findings({ ans: a, brood: info.brood, notes: info.notes, bee: bee, cap: 10 * (box.body + Math.max(box.kat, a.yer === 'kat' ? 1 : 0)), sk: sk, kat: box.kat, body: box.body,
+      queenPlan: qp ? { key: qp.key, age: qp.age, ideal: qp.ideal, label: qp.profile && qp.profile.label, tone: qp.tone } : null,
+      winter: ws ? { key: ws.key, kg: ws.kg != null ? Math.round(ws.kg) : null, target: ws.target } : null, feedTask: feedOpen || (fp && fp.need) });
+    var ICF = { ana: '👑', meme: '🏺', ogul: '🐝', hastalik: '🔍', zayif: '🪵', yagma: '🚪', olu: '⚠️', anayas: '👑', kislik: '❄️', yer: '📦', guve: '🧹' };
+    F.resolve.forEach(function (tag) { closeAuto(h, tag, []); });
+    F.add.forEach(function (f) {
+      if (skip.indexOf(f.tag) >= 0) return;
+      var r = autoTask(h, f.tag, f.title, plusDays(f.days), f.pri, f.detail);
+      if (r) out.push({ tid: r.task.id, ic: ICF[f.tag] || '•', t: f.title, s: r.existed ? 'Zaten Görevler’de' : 'Görevler + Uyarılar’a eklendi', tag: 'o' });
+    });
     try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
     return out;
   }
@@ -775,7 +836,7 @@
   function run(h, opts, info, voiceOn) {
     ensureCss(); close();
     var bakim = opts.bakim != null ? !!opts.bakim : bakimPref() !== false;
-    var st = { h: h, info: info, bakim: bakim, auto: autoNeeds(h, info), goto: false, steps: buildSteps(h, info, bakim), i: 0, res: {}, own: false, ownVal: null, ownType: null, ownUnit: null, ownProd: null, noteText: '', done: false, prefix: '' };
+    var st = { h: h, info: info, bakim: bakim, auto: bakim ? null : autoNeeds(h, info), goto: false, steps: buildSteps(h, info, bakim), i: 0, res: {}, own: false, ownVal: null, ownType: null, ownUnit: null, ownProd: null, noteText: '', done: false, prefix: '' };
     var back = document.createElement('div'); back.className = 'ba-back'; back.id = 'baSheet';
     back.innerHTML = '<div class="ba" role="dialog" aria-modal="true" aria-label="Hızlı muayene"><div class="ba-head"><div class="ba-t"><b data-ba-title></b><button type="button" class="ba-vt" data-ba-voice aria-pressed="false">🔈 Sesli<br>Kapalı</button><button type="button" class="ba-x" data-ba-close aria-label="Kapat">×</button></div>' +
       '<div class="ba-sub" data-ba-sub></div><div class="ba-bar"><i data-ba-bar></i></div></div><div class="ba-body" data-ba-body></div><div class="ba-foot" data-ba-foot></div></div>';
@@ -875,6 +936,10 @@
       var out = null;
       try { out = s.save(res, s); } catch (e) { out = null; if (global.console) global.console.error(e); }
       if (!out) { delete st.res[s.key]; if (V.on) V.say('Kaydedemedim. Dokunarak deneyin.'); return; }
+      /* Yapıldıysa (sonra / görev değil) bu konunun açık otomatik ihtiyaç görevi kapanır */
+      if (CARD_TAGS[s.key] && ['sonra', 'gorev', 'yok', 'birak', 'yasIzle', 'izle', 'yilSonra'].indexOf(res.opt) < 0 && !(res.opt == null && s.recId === 'yilSonra')) {
+        out.undo = out.undo || []; CARD_TAGS[s.key].forEach(function (tg) { closeAuto(st.h, tg, out.undo); });
+      }
       var entry = { res: res, out: out };
       if (out.insert) { st.steps.splice(st.i + 1, 0, out.insert); entry.inserted = out.insert; }
       st.res[s.key] = entry;
@@ -1005,6 +1070,11 @@
       return st.h.name + ' tamam. ' + (did.length ? 'Yapılanlar: ' + did.join(', ') + '. ' : '') + au + (nx ? 'Sıradaki kovan ' + nx.name + '. ' : 'Sırada bekleyen kovan yok. ') + 'Sonraki, bitir, ya da kovan numarasını söyleyip geç deyin.';
     }
     function renderSum(speak) {
+      if (st.auto == null) {
+        /* Evet: kartlardan sonra — yapılan / «sonra» görevi eklenen kartların konuları atlanır, atlananlar otomatik görev olur */
+        var sk2 = []; st.steps.forEach(function (s) { var r = st.res[s.key]; if (r && r.out && CARD_TAGS[s.key]) sk2 = sk2.concat(CARD_TAGS[s.key]); });
+        st.auto = autoNeeds(st.h, st.info, { skip: sk2 });
+      }
       if (!st.done) { st.done = true; markDone(st.h.id); try { var P = global.SuperAriPlan; if (P && P.tourMarkDone && (!opts.apiary || String(opts.apiary) === String(st.h.apiaryId))) P.tourMarkDone(String(st.h.apiaryId), st.h.id); } catch (e) { /* ignore */ } }
       var L = sumLines(), nx = nextHive(), cs = null;
       try { cs = D.records.status(st.h.id); } catch (e) { cs = null; }

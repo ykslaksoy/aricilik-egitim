@@ -26,7 +26,7 @@ assert.strictEqual(A.convert(2, 'kg', 'L'), null);
 assert.strictEqual(A.sayNum(1.5), '1 buçuk');
 assert.strictEqual(A.sayNum(0.5), 'yarım');
 
-/* Kovan sonu: «Sonraki kovan», «Bitir», «Kovan … geç» (koloni-60) */
+/* Kovan sonu: «Sonraki kovan», «Bitir», «Kovan … geç» (koloni-61) */
 const NUMS = ['6219', '101', '105', '12', '42', '6205', '118', '211', '4083'];
 const G = (t) => A.parseGoto(t, NUMS);
 assert.deepStrictEqual(A.numberGroups('altmış iki on dokuz'), ['62', '19']);

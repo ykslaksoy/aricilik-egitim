@@ -4610,19 +4610,24 @@
         try { extra = extra.concat(stockAlerts()); } catch (e) { /* ignore */ }
         /* Ana arı yaşı (ırka göre değişim zamanı). Demo modda Demo etiketi. */
         try { extra = extra.concat(queenAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
-        /* Muayeneden otomatik çıkan ihtiyaçlar (besleme / varroa): açık görev durdukça uyarı olarak da görünür. İlaç uygulanmış sayılmaz. */
+        /* Oğul uyarıları statik değil; hesaplanan oğul riskinden (Yüksek / Çok yüksek). */
+        try { extra = extra.concat(swarmAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
+        /* Muayeneden otomatik çıkan ihtiyaç / bulgular: açık görev durdukça uyarı olarak da görünür (aynı kovan + tür uyarısı varsa tekrar edilmez). İlaç uygulanmış sayılmaz. */
         try {
+          var OTO_TYPE = { besleme: 'besleme', kislik: 'besleme', varroa: 'hastalik', ilac: 'hastalik', hastalik: 'hastalik', olu: 'hastalik', ana: 'ana', meme: 'ana', anayas: 'ana', ogul: 'ogul', yagma: 'bakim', zayif: 'bakim', yer: 'bakim', guve: 'bakim' };
+          var seen = {}; extra.forEach(function (x) { if (x && x.hiveId != null) seen[String(x.hiveId) + '|' + x.type] = true; });
           openTasks().forEach(function (t) {
-            var m = /\[muayene-oto:(besleme|varroa|ilac)\]/.exec(String(t.note || ''));
+            var m = /\[muayene-oto:([a-z]+)\]/.exec(String(t.note || ''));
             if (!m) return;
-            var a = { id: 'oto-' + m[1] + '-' + t.id, title: t.title, type: m[1] === 'besleme' ? 'besleme' : 'hastalik', severity: t.priority === 1 ? 'medium' : 'low',
+            var ty = OTO_TYPE[m[1]] || 'bakim';
+            if ((ty === 'ogul' || ty === 'ana') && seen[String(t.hiveId) + '|' + ty]) return; /* hesaplanan oğul riski / anasız / ana yaşı uyarısı zaten var */
+            var hi = t.priority === 1 && (m[1] === 'ana' || m[1] === 'hastalik');
+            var a = { id: 'oto-' + m[1] + '-' + t.id, title: t.title, type: ty, severity: hi ? 'high' : (t.priority === 1 ? 'medium' : 'low'),
               hiveId: t.hiveId, apiaryId: t.apiaryId, date: String(t.createdAt || '').slice(0, 10), auto: true, source: 'muayene', taskId: t.id, text: 'Muayeneden otomatik · Görevler’de' };
             if (workMode() === 'demo') a.demo = true;
             extra.push(a);
           });
         } catch (e) { /* ignore */ }
-        /* Oğul uyarıları statik değil; hesaplanan oğul riskinden (Yüksek / Çok yüksek). */
-        try { extra = extra.concat(swarmAlerts().map(function (x) { if (workMode() === 'demo') x.demo = true; return x; })); } catch (e) { /* ignore */ }
         var base = workMode() === 'demo' ? alerts.filter(function (x) { return x.type !== 'ogul'; }).map(function (x) { var c = {}; Object.keys(x).forEach(function (k) { c[k] = x[k]; }); c.demo = true; return c; }) : [];
         return base.concat(extra);
       },
