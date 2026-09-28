@@ -15,7 +15,7 @@
     'superari.koloniKayit.v1': 'Muayene / bakım kayıtları', 'superari.koloniIslem.v1': 'Koloni işlemleri', 'superari.gorevler.v1': 'Görevler',
     'superari.gorevTamam.v1': 'Tamamlanan görevler', 'superari.stok.v1': 'Stok', 'superari.malzemeler.v1': 'Malzemeler',
     'superari.giderler.v1': 'Giderler', 'superari.tasimalar.v1': 'Taşımalar', 'superari.goc.v1': 'Göç kayıtları',
-    'superari.satislar.v1': 'Satışlar', 'superari.musteriler.v1': 'Müşteriler', 'superari.rapor.gelir.live.v1': 'Gelirler',
+    'superari.satislar.v1': 'Satışlar', 'superari.ekipman.v1': 'Ekipman / temizlik', 'superari.musteriler.v1': 'Müşteriler', 'superari.rapor.gelir.live.v1': 'Gelirler',
     'superari.hasat.v2': 'Hasat', 'superari.rapor.hasat.v1': 'Hasat (rapor)', 'superari.tartiElle.v1': 'Elle tartım',
     'superari.bakimPlan.v1': 'Bakım planı ayarları', 'superari.bakimTur.v1': 'Bakım turu', 'superari.devices': 'Cihazlar / sensörler',
     'superari.etiketAnaYili.v1': 'Ana arı yılı etiketi', 'superari.rapor.muayene.v1': 'Muayene raporu', 'superari.workMode': 'Çalışma modu'

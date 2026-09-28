@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Ekipman / temizlik</title>
+<link rel="stylesheet" href="rapor-common.css" />
+<style>
+  .wk-list{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .form-grid .wk-item{display:flex !important;flex-direction:row !important;align-items:center;gap:7px;font-size:13px;font-weight:650;color:var(--text,#2b2410);border:1px solid var(--border,#eadfbe);border-radius:10px;padding:7px 8px;background:#fff;}
+  .form-grid .wk-item input{width:18px !important;height:18px;flex:0 0 auto;padding:0;margin:0;}
+  .demo-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:4px;}
+  .flt{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;}
+  .flt button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:999px;padding:4px 10px;color:#5c4813;}
+  .flt button.on{background:#f4e3b0;border-color:#d4a017;}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <span id="clock">9:41</span>
+    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+  </div>
+  <div class="screen">
+    <div class="brand-strip">Hardal Arıcılık</div>
+    <div class="page-head">
+      <div>
+        <h1>Ekipman / temizlik</h1>
+        <p id="pageSub">Çerçeve, kovan temizliği, dezenfeksiyon, onarım</p>
+      </div>
+      <div class="nav-chips">
+        <a class="back-chip" href="bakim.html" id="backBk">← Bakım</a>
+      </div>
+    </div>
+    <section class="card-block">
+      <h2>Yeni kayıt</h2>
+      <form class="form-grid" id="ekForm" novalidate>
+        <div class="pair">
+          <label>Tarih
+            <input type="date" id="eDate" required />
+          </label>
+          <label>Arılık
+            <select id="eAp"></select>
+          </label>
+        </div>
+        <label>Kovan (isteğe bağlı)
+          <select id="eHive"></select>
+        </label>
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Yapılan iş</div>
+          <div class="wk-list" id="eWorks"></div>
+        </div>
+        <label>Not
+          <input type="text" id="eNote" maxlength="200" placeholder="ör. 20 çerçeve kazındı, alevden geçirildi" />
+        </label>
+        <button type="submit" class="btn" id="eSave">Kaydet</button>
+        <p class="form-msg" id="eMsg" aria-live="polite"></p>
+      </form>
+    </section>
+    <section class="card-block">
+      <h2 id="histTitle">Geçmiş</h2>
+      <div class="flt" id="eFlt"></div>
+      <div id="histList"></div>
+    </section>
+    <p class="hint" id="modeHint"></p>
+  </div>
+  <nav class="tabbar" aria-label="Alt menü">
+    <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div>
+<script src="demo-data.js?v=koloni-52"></script>
+<script src="ekipman-store.js?v=koloni-52"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, E = window.SuperAriEkipman;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function fmt(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY[Number(m[2]) - 1] + ' ' + m[1] : (d || ''); }
+  function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
+  var q = new URLSearchParams(location.search), apFilter = q.get('apiary') || '';
+  function aps() { try { return D.loadApiaries() || []; } catch (e) { return []; } }
+  function apName(id) { var a = aps().filter(function (x) { return String(x.id) === String(id); })[0]; return a ? a.name : ''; }
+  function msg(t, err) { var m = $('eMsg'); m.textContent = t || ''; m.className = 'form-msg' + (err ? ' err' : ''); }
+  if (apFilter) $('backBk').href = 'bakim.html?apiary=' + encodeURIComponent(apFilter);
+  function fillAp() {
+    var list = aps(), cur = $('eAp').value || apFilter || '';
+    $('eAp').innerHTML = '<option value="">Arılık seçin (isteğe bağlı)</option>' + list.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
+    $('eAp').value = cur;
+    fillHive();
+  }
+  function fillHive() {
+    var ap = $('eAp').value, hs = ap ? D.hivesForApiary(ap) : (D.loadHives() || []);
+    $('eHive').innerHTML = '<option value="">Tüm arılık / kovan seçilmedi</option>' + hs.map(function (h) { return '<option value="' + esc(h.id) + '">' + esc(h.name || ('Kovan ' + h.id)) + '</option>'; }).join('');
+  }
+  $('eWorks').innerHTML = E.WORKS.map(function (w) { return '<label class="wk-item"><input type="checkbox" value="' + w.key + '"> ' + esc(w.label) + '</label>'; }).join('');
+  function renderFlt() {
+    var list = aps();
+    $('eFlt').innerHTML = list.length > 1 ? ['<button type="button" data-ap="" class="' + (apFilter ? '' : 'on') + '">Tümü</button>'].concat(list.map(function (a) {
+      return '<button type="button" data-ap="' + esc(a.id) + '" class="' + (String(apFilter) === String(a.id) ? 'on' : '') + '">' + esc(a.name) + '</button>';
+    })).join('') : '';
+  }
+  function renderHist() {
+    renderFlt();
+    var list = E.list({ apiaryId: apFilter || '' }), hs = {};
+    (D.loadHives() || []).forEach(function (h) { hs[String(h.id)] = h.name || ('Kovan ' + h.id); });
+    $('histTitle').textContent = apFilter ? 'Geçmiş · ' + apName(apFilter) : 'Geçmiş';
+    $('histList').innerHTML = list.map(function (x) {
+      var where = [apName(x.apiaryId), x.hiveId != null ? hs[String(x.hiveId)] || ('Kovan ' + x.hiveId) : ''].filter(Boolean).join(' · ');
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(fmt(x.date)) + ' · ' + esc(E.worksText(x)) + (x.demo ? '<span class="demo-chip">Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + esc(where || 'Genel') + (x.note ? '<br>' + esc(x.note) : '') + '</div></div>' +
+        '<div class="right"><button type="button" class="del" data-del="' + esc(x.id) + '">Sil</button></div></div>';
+    }).join('') || '<p class="hint" style="margin:0;">Henüz ekipman / temizlik kaydı yok.</p>';
+  }
+  $('eDate').value = D.records.todayLocal();
+  $('modeHint').textContent = live() ? 'Canlı mod · arılık seçilen kayıtlar buluta eşitlenir; arılıksız kayıt yalnız sizin hesabınızda tutulur.' : 'Demo mod · örnek kayıtlar «Demo» etiketlidir, buluta gitmez.';
+  fillAp(); renderHist();
+  $('eAp').addEventListener('change', function () { fillHive(); msg(''); });
+  $('eFlt').addEventListener('click', function (e) { var b = e.target.closest('[data-ap]'); if (!b) return; apFilter = b.getAttribute('data-ap'); renderHist(); });
+  $('ekForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var works = Array.prototype.map.call($('eWorks').querySelectorAll('input:checked'), function (i) { return i.value; });
+    try {
+      E.add({ date: $('eDate').value, apiaryId: $('eAp').value, hiveId: $('eHive').value, works: works, note: $('eNote').value });
+      msg('Kaydedildi.');
+      $('eNote').value = ''; $('eWorks').querySelectorAll('input').forEach(function (i) { i.checked = false; });
+      renderHist();
+    } catch (err) { msg(err.message || String(err), true); }
+  });
+  $('histList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]'); if (!b) return;
+    if (!confirm('Kayıt silinsin mi?')) return;
+    E.remove(b.getAttribute('data-del')); renderHist();
+  });
+  window.addEventListener('superari-cloud-pulled', function () { fillAp(); renderHist(); });
+})();
+</script>
+<script src="nav.js?v=koloni-52"></script>
+<script src="pwa.js?v=koloni-52"></script>
+</body>
+</html>

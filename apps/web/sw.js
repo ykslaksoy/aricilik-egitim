@@ -107,6 +107,8 @@ const SHELL = [
   "/components/sensor-chart.js",
   "/demo-data.js",
   "/device-runtime.js",
+  "/ekipman-store.js",
+  "/ekipman.html",
   "/forage-analysis.js",
   "/forage-yield-estimate.js",
   "/foto.js",

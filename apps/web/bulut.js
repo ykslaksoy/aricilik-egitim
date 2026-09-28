@@ -31,6 +31,7 @@
     goc: 'superari.goc.v1', /* Canlı arılık göçü kayıtları: local_id 'gc:<id>' (arılık = hedef) */
     musteri: 'superari.musteriler.v1', /* Canlı müşteriler: local_id 'mu:<id>', arılıksız (yalnız sahibi görür) */
     satis: 'superari.satislar.v1', /* Canlı satışlar: local_id 'sa:<id>', arılık seçildiyse arılığa bağlı */
+    ekipman: 'superari.ekipman.v1', /* Ekipman / temizlik kayıtları: local_id 'ek:<id>', arılık seçildiyse arılığa bağlı */
     plan: 'superari.bakimPlan.v1' /* Bakım planı: arılık profili / çam balı (apiaries.data._plan), bal katı (hives.data._superSince) */
   };
   var SENSOR_FIELDS = ['weightKg', 'deltaKg', 'health', 'healthScore', 'colonyScore', 'swarmRisk'];
@@ -411,6 +412,7 @@
     }
     ownRows('musteri', 'mu', 'musteri');
     ownRows('satis', 'sa', 'satis');
+    ownRows('ekipman', 'ek', 'ekipman');
     function scopeOf(o) {
       if (o.apiaryId != null && o.apiaryId !== '') return { u: X.apUuid(o.apiaryId), ref: true };
       if (o.hiveId != null && o.hiveId !== '') { var hk = X.hiveKey(o.hiveId); return { u: hk ? hk.split(':')[0] : null, ref: !!X.hiveAp[String(Number(o.hiveId))] }; }
@@ -516,9 +518,9 @@
       apiaries: raw('apiaries', []), hives: raw('hives', []), queens: raw('queens', []), records: raw('records', {}),
       harvest: raw('harvest', []), ops: raw('ops', { events: [], batches: [] }), tasks: raw('tasks', []), done: raw('done', {}), stock: raw('stock', []),
       plan: raw('plan', {}), tarti: raw('tarti', []), saglik: raw('saglik', {}),
-      gider: raw('gider', []), tasima: raw('tasima', []), gelir: raw('gelir', []), goc: raw('goc', []), musteri: raw('musteri', []), satis: raw('satis', [])
+      gider: raw('gider', []), tasima: raw('tasima', []), gelir: raw('gelir', []), goc: raw('goc', []), musteri: raw('musteri', []), satis: raw('satis', []), ekipman: raw('ekipman', [])
     };
-    ['gider', 'tasima', 'gelir', 'goc', 'musteri', 'satis'].forEach(function (k) { if (!Array.isArray(L[k])) L[k] = []; });
+    ['gider', 'tasima', 'gelir', 'goc', 'musteri', 'satis', 'ekipman'].forEach(function (k) { if (!Array.isArray(L[k])) L[k] = []; });
     if (!L.saglik || typeof L.saglik !== 'object' || Array.isArray(L.saglik)) L.saglik = {};
     if (!Array.isArray(L.tarti)) L.tarti = [];
     if (!L.plan || typeof L.plan !== 'object' || Array.isArray(L.plan)) L.plan = {};
@@ -618,9 +620,9 @@
         if (d) { var al = X.apLocal(r.apiary_id); if (al) d.apiaryId = al; delete d.demo; }
         upsertBy(L.harvest, lid, d); dirty.harvest = 1; done(r, 'harvest', lid); return;
       }
-      var mm = r.kind === 'colony_event' && /^(gd|ts|gl|gc|mu|sa):(.+)$/.exec(lid);
+      var mm = r.kind === 'colony_event' && /^(gd|ts|gl|gc|mu|sa|ek):(.+)$/.exec(lid);
       if (mm) {
-        var mn = { gd: 'gider', ts: 'tasima', gl: 'gelir', gc: 'goc', mu: 'musteri', sa: 'satis' }[mm[1]];
+        var mn = { gd: 'gider', ts: 'tasima', gl: 'gelir', gc: 'goc', mu: 'musteri', sa: 'satis', ek: 'ekipman' }[mm[1]];
         if (d) { delete d.type; delete d.demo; d.id = mm[2]; var mal = X.apLocal(r.apiary_id); if (mal != null) d.apiaryId = mal; else if (typeof d.apiaryId === 'string' && d.apiaryId.indexOf('ap:') === 0) d.apiaryId = ''; }
         upsertBy(L[mn], mm[2], d); dirty[mn] = 1; done(r, mn, lid); return;
       }
