@@ -5,7 +5,7 @@
  * Etkinleşince eski sürüm önbellekleri silinir (veri önbelleği «superari-data» korunur).
  * HTML: bayat-iken-yenile (önbellekten anında açılır, arka planda güncellenir).
  * JS / CSS / görsel / ses / yazı tipi: önce önbellek (sürüm değişince yeni önbellek). Sayfa başka bir ?v= isterse önce ağ.
- * /api/ ve Supabase: yalnız ağ (SW karışmaz; uygulama çevrimdışını kendisi yönetir, kayıtlar outbox'ta bekler).
+ * /api/ (canlı fiyat /api/fiyat dahil) ve Supabase: yalnız ağ, asla önbelleğe alınmaz (SW karışmaz; uygulama çevrimdışını kendisi yönetir, kayıtlar outbox'ta bekler).
  * Hava durumu (open-meteo) ve Google yazı tipleri: ağ yoksa son alınan yanıt («superari-data»).
  */
 const VERSION = new URL(self.location.href).searchParams.get("v") || "dev";
@@ -112,6 +112,7 @@ const SHELL = [
   "/device-runtime.js",
   "/ekipman-store.js",
   "/ekipman.html",
+  "/fiyat-live.js",
   "/forage-analysis.js",
   "/forage-yield-estimate.js",
   "/foto.js",
