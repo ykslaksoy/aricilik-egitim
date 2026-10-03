@@ -637,6 +637,7 @@
       t.lines.forEach(function (l) {
         var p = priceFor(l.key);
         l.price = p.v; l.priceSrc = p.src; l.priceDate = p.date || '';
+        delete l.est0; delete l.src0; delete l.date0; /* yeni anlık görüntü: geri dönüş noktası bu */
         l.cost = p.v != null ? r2(l.buy * p.v) : 0; if (p.v == null) miss++; tot += l.cost;
       });
       t.total = r2(tot); t.missing = miss; t.priceRefDate = ri.ok ? ri.updated : ''; t.priceRefStale = !!(ri.ok && ri.stale); t.priceAt = ri.ok ? (REF.fetchedAt || '') : ''; t.repricedAt = today();
@@ -649,11 +650,28 @@
     var t = updateTalep(id, function (t) {
       var st = statusOf(t); if (st === 'iptal' || st === 'tamam') return;
       var l = t.lines[i]; if (!l) return;
+      if (!('est0' in l)) { l.est0 = l.price != null ? l.price : null; l.src0 = l.priceSrc || ''; l.date0 = l.priceDate || ''; }
       key = l.key; l.price = Math.round(n * 100) / 100; l.priceSrc = 'user'; l.priceDate = today(); l.cost = r2(l.buy * l.price);
       t.total = r2(t.lines.reduce(function (a, x) { return a + (x.cost || 0); }, 0)); t.missing = t.lines.filter(function (x) { return x.price == null; }).length;
     });
     if (key) setPrice(key, n);
     return t;
+  }
+  /** Açık talepte tahmini fiyat alanı boşaltıldı: talebin kayıttaki (anlık görüntü) tahmini fiyatına dön. Ödenen fiyatlara dokunmaz. */
+  function clearTalepLinePrice(id, i) {
+    var done = false, edited = null;
+    var t = updateTalep(id, function (t) {
+      var st = statusOf(t); if (st === 'iptal' || st === 'tamam') return;
+      var l = t.lines[i]; if (!l || !('est0' in l)) return;
+      edited = { key: l.key, v: l.price };
+      l.price = l.est0; l.priceSrc = l.src0 || (l.est0 != null ? 'ref' : null); l.priceDate = l.date0 || '';
+      delete l.est0; delete l.src0; delete l.date0;
+      l.cost = l.price != null ? r2(l.buy * l.price) : 0; done = true;
+      t.total = r2(t.lines.reduce(function (a, x) { return a + (x.cost || 0); }, 0)); t.missing = t.lines.filter(function (x) { return x.price == null; }).length;
+    });
+    /* bu düzenlemenin yazdığı «sizin fiyatınız» da geri alınır (başka bir değer girilmişse dokunulmaz) */
+    if (done && edited) { var u = userPrice(edited.key); if (u && Math.abs(u.v - edited.v) < 0.005) setPrice(edited.key, ''); }
+    return done ? t : null;
   }
   function cancelTalep(id) { return updateTalep(id, function (t) { t.status = 'iptal'; t.cancelledAt = today(); }); }
   function deleteTalep(id) {
@@ -714,7 +732,7 @@
 
   global.SuperAriTalep = {
     CAT: CAT, GROUPS: GROUPS, BY: BY, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
-    userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
+    userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, clearTalepLinePrice: clearTalepLinePrice, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
     RULES: { INSPECT_DAYS: INSPECT_DAYS, BEE_DEFAULT: BEE_DEFAULT, VISITS: VISITS, UNKNOWN_STORE_FRAC: UNKNOWN_STORE_FRAC },
     setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,
     refItem: function (k) { return REF.byKey[k] || null; }, parseNum: parseNum, talepForLog: talepForLog, dShortT: dShortT, STATUS: STATUS, statusOf: statusOf, talepSums: talepSums, talepById: talepById, cancelTalep: cancelTalep, deleteTalep: deleteTalep, recordPurchase: recordPurchase, stockTarget: stockTarget,
