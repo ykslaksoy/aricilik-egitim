@@ -7,13 +7,13 @@
   var LS = global.localStorage;
   var FORMAT = 'superari-cihaz-yedegi';
   var SKIP = [/\.demo(\.|$)/i, /demo/i, /seed/i, /^superari\.bulut\./, /^superari\.session\./, /^superari\.account/, /^superari\.push\./,
-    /^superari\.hava\./, /^superari\.harita/, /^superari\.waterSources/, /^superari\.discovered/, /^superari\.workMode\.ping/,
+    /^superari\.hava\./, /^superari\.stok\.fiyatcache/, /^superari\.harita/, /^superari\.waterSources/, /^superari\.discovered/, /^superari\.workMode\.ping/,
     /^superari\.saglikKick/, /^superari\.davet\./, /^superari\.hataLog\./, /^superari\.sartlar\./, /^superari\.bildirimGonderildi/,
     /Mig(\.|ration)|migrated|orphanPurge|canliTemizlik\.v1$/];
   var LABELS = {
     'superari.ariliklar.v1': 'Arılıklar', 'superari.kovanlar.v1': 'Kovanlar', 'superari.anaArilar.v1': 'Ana arılar',
     'superari.koloniKayit.v1': 'Muayene / bakım kayıtları', 'superari.koloniIslem.v1': 'Koloni işlemleri', 'superari.gorevler.v1': 'Görevler',
-    'superari.gorevTamam.v1': 'Tamamlanan görevler', 'superari.stok.v1': 'Stok', 'superari.stok.talep.v1': 'Stok alım talepleri', 'superari.stok.fiyat.v1': 'Stok birim fiyatları', 'superari.stok.tolerans.v1': 'Stok tahmin payı', 'superari.malzemeler.v1': 'Malzemeler',
+    'superari.gorevTamam.v1': 'Tamamlanan görevler', 'superari.stok.v1': 'Stok', 'superari.stok.talep.v1': 'Stok alım talepleri (durum, alınan miktar ve ödenen fiyatlarla)', 'superari.stok.fiyat.v1': 'Stok birim fiyatları', 'superari.stok.mevcut.v1': 'Stok alım talebi — elde olan (Mevcut) miktarlar', 'superari.stok.tolerans.v1': 'Stok tahmin payı', 'superari.malzemeler.v1': 'Malzemeler',
     'superari.giderler.v1': 'Giderler', 'superari.tasimalar.v1': 'Taşımalar', 'superari.goc.v1': 'Göç kayıtları',
     'superari.satislar.v1': 'Satışlar', 'superari.ekipman.v1': 'Ekipman / temizlik', 'superari.musteriler.v1': 'Müşteriler', 'superari.rapor.gelir.live.v1': 'Gelirler',
     'superari.hasat.v2': 'Hasat', 'superari.rapor.hasat.v1': 'Hasat (rapor)', 'superari.tartiElle.v1': 'Elle tartım',

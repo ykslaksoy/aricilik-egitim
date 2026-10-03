@@ -35,3 +35,15 @@ assert.deepStrictEqual([c.m, c.t], [5, 5]);
 c = T.capHive(3, 1, 0.2, null);                // sınır yok
 assert.deepStrictEqual([c.m, c.t, c.capped], [3, 1, false]);
 console.log('stok-talep-besleme: OK');
+
+// Nitril eldiven (koloni-64): arılık × ziyaret × 2 çift + asit (arılık başına +2) + hastalık/ölü arı kovanı başına +1; pay yok; Tümü tek seferde kutuya yuvarlanır
+assert.strictEqual(T.GLOVE.PER_BOX, 50);
+assert.strictEqual(T.glovePairs({ aps: 5, acid: 5, dis: 0 }), 40);               // 5 × 3 × 2 + 5 × 2
+assert.strictEqual(Math.ceil(T.glovePairs({ aps: 5, acid: 5, dis: 0 }) / 50), 1); // eski model: 12 kutu
+assert.strictEqual(T.glovePairs({ aps: 1, acid: 1, dis: 2 }), 10);
+assert.ok(/^5 arılık × 3 ziyaret × 2 çift \+ asit uygulaması = 40 çift$/.test(T.gloveWhy({ aps: 5, acid: 5, dis: 0 })));
+assert.ok(/3 ziyaret × 2 çift \+ 2 hastalık\/ölü arı bulgulu kovan = 8 çift/.test(T.gloveWhy({ aps: 1, acid: 0, dis: 2 })));
+assert.strictEqual(T.tolOn(T.BY.nitril), false);                                 // eldivene tahmin payı eklenmez
+// Arılık başı tavanlar toplanmaz: 5 arılık × 8 çift = 40 çift → 1 kutu (5 × ceil(8/50) = 5 değil)
+assert.strictEqual(Math.ceil(5 * 8 / 50), 1);
+console.log('stok-talep-eldiven: OK');

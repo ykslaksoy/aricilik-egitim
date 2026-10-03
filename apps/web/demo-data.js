@@ -4384,7 +4384,9 @@
     var note = txt(it.note, 200); if (note) o.note = note;
     if (it.demo === true) o.demo = true;
     o.log = (Array.isArray(it.log) ? it.log : []).filter(Boolean).slice(-40).map(function (l) {
-      return { date: isoDate(l.date) || todayLocal(), delta: Number(l.delta) || 0, reason: txt(l.reason, 160) };
+      var r = { date: isoDate(l.date) || todayLocal(), delta: Number(l.delta) || 0, reason: txt(l.reason, 160) };
+      if (typeof l.at === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(l.at)) r.at = l.at.slice(0, 30); /* kayıt saati: aynı gün sıralaması */
+      return r;
     });
     o.low = o.threshold > 0 && o.qty <= o.threshold;
     return o;
@@ -4443,7 +4445,7 @@
       if (!x || x.id !== id) return x;
       var m = cloneObj(x);
       m.qty = Math.round(((Number(m.qty) || 0) + d) * 10) / 10;
-      m.log = (Array.isArray(m.log) ? m.log : []).concat([{ date: isoDate(date) || todayLocal(), delta: d, reason: txt(reason, 160) || (d > 0 ? 'Giriş' : 'Kullanım') }]);
+      m.log = (Array.isArray(m.log) ? m.log : []).concat([{ date: isoDate(date) || todayLocal(), delta: d, reason: txt(reason, 160) || (d > 0 ? 'Giriş' : 'Kullanım'), at: new Date().toISOString() }]);
       out = normalizeStock(m);
       return out;
     });

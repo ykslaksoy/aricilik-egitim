@@ -38,26 +38,26 @@
     { key: 'polen', g: 'besleme', name: 'Polen / polen ikamesi', unit: 'kg', step: 0.5, re: /polen/, cats: ['polen'] },
     { key: 'vitamin', g: 'besleme', name: 'Vitamin / besin takviyesi', unit: 'paket', step: 1, scope: 'apiary', re: /vitamin|takviye/, note: 'etiketteki kullanıma göre; doz yazılmaz' },
     { key: 'tuz', g: 'besleme', name: 'Tuz (suluk / tuzlu su)', unit: 'kg', step: 1, scope: 'apiary', re: /\btuz/ },
-    { key: 'serit_amitraz', g: 'ilac', name: 'Varroa şeridi — amitraz', unit: 'şerit', step: 1, re: /amitraz|beeraz|rulamit|vamitrat/ },
-    { key: 'serit_flumetrin', g: 'ilac', name: 'Varroa şeridi — flumetrin', unit: 'şerit', step: 1, re: /flumetrin|bayvarol|beevarflu|varodur|fumbee|polyvar/ },
-    { key: 'serit_taufluvalinat', g: 'ilac', name: 'Varroa şeridi — tau-fluvalinat', unit: 'şerit', step: 1, re: /fluvalinat|apistan/ },
-    { key: 'serit_koumafos', g: 'ilac', name: 'Varroa şeridi — koumafos', unit: 'şerit', step: 1, re: /koumafos|kumafos|checkmite/ },
+    { key: 'serit_amitraz', notol: true, g: 'ilac', name: 'Varroa şeridi — amitraz', unit: 'şerit', step: 1, re: /amitraz|beeraz|rulamit|vamitrat/ },
+    { key: 'serit_flumetrin', notol: true, g: 'ilac', name: 'Varroa şeridi — flumetrin', unit: 'şerit', step: 1, re: /flumetrin|bayvarol|beevarflu|varodur|fumbee|polyvar/ },
+    { key: 'serit_taufluvalinat', notol: true, g: 'ilac', name: 'Varroa şeridi — tau-fluvalinat', unit: 'şerit', step: 1, re: /fluvalinat|apistan/ },
+    { key: 'serit_koumafos', notol: true, g: 'ilac', name: 'Varroa şeridi — koumafos', unit: 'şerit', step: 1, re: /koumafos|kumafos|checkmite/ },
     { key: 'ilac_teyit', g: 'ilac', name: 'Varroa ilacı — etiket dozu teyit edilecek', unit: 'paket', step: 1, scope: 'apiary', confirm: true, re: null },
     { key: 'okzalik', g: 'ilac', name: 'Okzalik asit', unit: 'paket', step: 1, scope: 'apiary', confirm: true, re: /ok[sz]alik|oxalic/ },
     { key: 'formik', g: 'ilac', name: 'Formik asit', unit: 'paket', step: 1, scope: 'apiary', confirm: true, re: /formik|formic/ },
     { key: 'timol', g: 'ilac', name: 'Timol', unit: 'paket', step: 1, scope: 'apiary', confirm: true, re: /timol|thymol/ },
-    { key: 'nitril', g: 'koruyucu', name: 'Nitril eldiven (100’lük kutu)', unit: 'paket', step: 1, re: /nitril/ },
+    { key: 'nitril', g: 'koruyucu', name: 'Nitril eldiven (100’lük kutu)', unit: 'paket', step: 1, scope: 'apiary', re: /nitril/ },
     { key: 'gozluk', g: 'koruyucu', name: 'Koruyucu gözlük', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /gozluk/ },
     { key: 'maske', g: 'koruyucu', name: 'Maske / respiratör (asit)', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /maske|respirator/ },
     { key: 'arici_eldiven', g: 'koruyucu', name: 'Arıcı eldiveni (çift)', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /eldiven/ },
-    { key: 'siringa', g: 'uygulama', name: 'Damlatma şırıngası', unit: 'adet', step: 1, scope: 'apiary', dur: true, re: /siringa|damlatma/ },
+    { key: 'siringa', g: 'uygulama', name: 'Damlatma şırıngası', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /siringa|damlatma/ },
     { key: 'buharlastirici', g: 'uygulama', name: 'Okzalik buharlaştırıcı', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /buharlastirici|sublimat/ },
     { key: 'olcu_kabi', g: 'uygulama', name: 'Ölçü kabı', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /olcu kab|olcek/ },
-    { key: 'alt_tabla', g: 'uygulama', name: 'Yapışkanlı alt tabla (akar sayımı)', unit: 'adet', step: 1, re: /alt tabla|yapiskanli/ },
+    { key: 'alt_tabla', g: 'uygulama', name: 'Yapışkanlı alt tabla (akar sayımı)', unit: 'adet', step: 1, scope: 'apiary', dur: true, re: /alt tabla|yapiskanli/ },
     { key: 'alkol_kabi', g: 'uygulama', name: 'Alkol yıkama kabı', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /yikama kab/ },
-    { key: 'alkol', g: 'uygulama', name: 'Alkol (akar sayımı için)', unit: 'L', step: 0.5, re: /alkol|etanol|etil/ },
+    { key: 'alkol', g: 'uygulama', name: 'Alkol (akar sayımı için)', unit: 'L', step: 0.5, scope: 'apiary', re: /alkol|etanol|etil/ },
     { key: 'koruk', g: 'tutsu', name: 'Tütsü körüğü', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /koruk|tutsu/ },
-    { key: 'koruk_yakit', g: 'tutsu', name: 'Körük yakıtı (çuval / talaş / pamuk)', unit: 'kg', step: 1, re: /yakit|cuval|talas|pamuk/ },
+    { key: 'koruk_yakit', g: 'tutsu', name: 'Körük yakıtı (çuval / talaş / pamuk)', unit: 'kg', step: 1, scope: 'apiary', re: /yakit|cuval|talas|pamuk/ },
     { key: 'cakmak', g: 'tutsu', name: 'Çakmak / kibrit', unit: 'paket', step: 1, scope: 'apiary', re: /cakmak|kibrit/ },
     { key: 'cerceve', g: 'kovan', name: 'Çerçeve', unit: 'adet', step: 1, re: /cerceve/, cats: ['cerceve'] },
     { key: 'temel_petek', g: 'kovan', name: 'Temel petek', unit: 'adet', step: 1, re: /temel|petek/, cats: ['temelPetek'] },
@@ -65,7 +65,7 @@
     { key: 'kapi_daraltici', g: 'kovan', name: 'Kapı daraltıcı', unit: 'adet', step: 1, dur: true, re: /daraltic/ },
     { key: 'besleyici', g: 'kovan', name: 'Besleyici (feeder)', unit: 'adet', step: 1, dur: true, re: /besleyici|feeder|beslik/ },
     { key: 'ana_izgarasi', g: 'kovan', name: 'Ana ızgarası', unit: 'adet', step: 1, dur: true, re: /izgara/ },
-    { key: 'dezenfektan', g: 'temizlik', name: 'Dezenfektan', unit: 'L', step: 0.5, re: /dezenfektan|hipoklorit|camasir suyu|kostik/ },
+    { key: 'dezenfektan', g: 'temizlik', name: 'Dezenfektan', unit: 'L', step: 0.5, scope: 'apiary', re: /dezenfektan|hipoklorit|camasir suyu|kostik/ },
     { key: 'kaziyici', g: 'temizlik', name: 'Kazıyıcı / el aleti', unit: 'adet', step: 1, scope: 'operator', dur: true, re: /kaziyici|el aleti|maspala/ }
   ];
   var BY = {}; CAT.forEach(function (c) { BY[c.key] = c; });
@@ -85,35 +85,99 @@
     if (typeof p === 'number') return { v: p, d: '' };
     return p && isFinite(Number(p.v)) && Number(p.v) > 0 ? { v: Number(p.v), d: String(p.d || '') } : null;
   }
+  /** Türkçe sayı: «1.250,50» / «42,5» / «42.5» / «1.250» → sayı */
+  function parseNum(v) {
+    var r = String(v == null ? '' : v).trim().replace(/\s|₺/g, '');
+    if (!r) return NaN;
+    if (r.indexOf(',') >= 0) r = r.replace(/\./g, '').replace(',', '.');
+    else if (/^\d{1,3}(\.\d{3})+$/.test(r)) r = r.replace(/\./g, '');
+    return /^\d+(\.\d+)?$/.test(r) ? Number(r) : NaN;
+  }
   function setPrice(key, v) {
-    var o = prices(), n = Number(String(v).replace(/\./g, '').replace(',', '.'));
+    var o = prices(), n = typeof v === 'number' ? v : parseNum(v);
     if (v === '' || v == null || !(n > 0)) delete o[key]; else o[key] = { v: Math.round(n * 100) / 100, d: today() };
     writeJ(PRICE_KEY, o);
   }
 
   /* ---------------- Referans fiyatlar (data/fiyat-ref.json; her seferinde taze) ---------------- */
-  var REF = { status: 'idle', data: null, byKey: {}, at: 0 };
-  function loadRef() {
-    REF.status = 'loading';
-    var url = 'data/fiyat-ref.json?t=' + Date.now();
-    if (!global.fetch) { REF.status = 'none'; return Promise.resolve(REF); }
-    return global.fetch(url, { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
-      if (!r.ok || !/json/i.test(r.headers.get('content-type') || '')) return null;
+  /* Etkin fiyat dosyası (hesapta kullanılan) + son başarılı dosyanın çevrimdışı yedeği (superari.stok.fiyatcache.v1).
+   * Yeni dosya etkin olandan farklıysa ve kullanıcı listeye bakıyorsa sessizce değiştirilmez: REF.pending + bildirim. */
+  var CACHE_KEY = 'superari.stok.fiyatcache.v1';
+  var REF = { status: 'idle', data: null, byKey: {}, at: 0, fromCache: false, fail: null, pending: null, dismissed: '', loading: false };
+  function liveCount(j) {
+    var n = 0; ((j && j.items) || []).forEach(function (it) { n += it && it.liveCount != null ? Number(it.liveCount) || 0 : ((it && it.sources) || []).filter(function (x) { return x && x.live === true; }).length; });
+    return n;
+  }
+  function setActive(j, fromCache) {
+    REF.liveN = liveCount(j);
+    REF.data = j; REF.byKey = {}; REF.at = Date.now(); REF.status = 'ok'; REF.fromCache = !!fromCache;
+    j.items.forEach(function (it) { if (it && it.key) REF.byKey[String(it.key)] = it; });
+  }
+  function refSig(j) { return j && Array.isArray(j.items) ? String(j.updated || '') + '|' + j.items.map(function (i) { return i.key + ':' + (i.ref == null ? '' : Number(i.ref)); }).sort().join(',') : ''; }
+  function diffRef(a, b) {
+    var A = {}, B = {}, out = [];
+    ((a && a.items) || []).forEach(function (i) { if (i && i.key) A[i.key] = i; });
+    ((b && b.items) || []).forEach(function (i) { if (i && i.key) B[i.key] = i; });
+    Object.keys(A).concat(Object.keys(B).filter(function (k) { return !A[k]; })).forEach(function (k) {
+      var o = A[k], n = B[k], ov = o && o.ref != null && Number(o.ref) > 0 ? Number(o.ref) : null, nv = n && n.ref != null && Number(n.ref) > 0 ? Number(n.ref) : null;
+      if (ov !== nv) out.push({ key: k, name: (n || o).name || (BY[k] ? BY[k].name : k), unit: (n || o).unit || '', old: ov, nw: nv });
+    });
+    return out;
+  }
+  (function initCache() {
+    var c = readJ(CACHE_KEY, null);
+    if (c && c.data && Array.isArray(c.data.items)) { setActive(c.data, true); REF.cachedAt = c.at || ''; REF.fetchedAt = c.at || ''; REF.src = 'cache'; }
+  })();
+  function writeCache(j) { writeJ(CACHE_KEY, { at: new Date().toISOString(), data: j }); }
+  /**
+   * Fiyat dosyasını taze oku (no-store + ?t=). opts.ask(): true dönerse (kullanıcı listeye bakıyor) farklı dosya bekletilir (REF.pending).
+   * Dönen: { applied, pending, same, failed, changes }
+   */
+  function loadRef(opts) {
+    opts = opts || {};
+    REF.loading = true;
+    var url = 'data/fiyat-ref.json?t=' + Date.now(), kind = null;
+    var p = !global.fetch ? Promise.resolve(null) : global.fetch(url, { cache: 'no-store', credentials: 'same-origin' }).then(function (r) {
+      if (!r.ok || !/json/i.test(r.headers.get('content-type') || '')) { kind = 'error'; return null; }
       return r.json();
-    }).catch(function () { return null; }).then(function (j) {
-      REF.data = null; REF.byKey = {}; REF.at = Date.now();
-      if (j && Array.isArray(j.items)) {
-        REF.data = j;
-        j.items.forEach(function (it) { if (it && it.key) REF.byKey[String(it.key)] = it; });
-        REF.status = 'ok';
-      } else REF.status = 'none';
-      return REF;
+    }, function () { kind = 'offline'; return null; }).catch(function () { kind = kind || 'error'; return null; });
+    return p.then(function (j) {
+      if (!j || !Array.isArray(j.items)) kind = kind || 'error';
+      return offerRef(j, opts, 'file', kind);
     });
   }
+  /** Gelen fiyat dosyasını değerlendir (dosya veya canlı uç nokta SuperAriFiyatLive.refresh() ile aynı biçim). */
+  function offerRef(j, opts, src, kind) {
+    opts = opts || {}; REF.loading = false;
+    if (!j || !Array.isArray(j.items)) {
+      REF.fail = kind === 'offline' || (global.navigator && global.navigator.onLine === false) ? 'offline' : 'error';
+      if (!REF.data) REF.status = 'none';
+      return { failed: true, kind: REF.fail };
+    }
+    REF.fail = null;
+    var sig = refSig(j), now = new Date().toISOString();
+    if (REF.data && refSig(REF.data) === sig) { REF.fromCache = false; REF.pending = null; REF.fetchedAt = now; REF.src = src || 'file'; writeCache(j); return { same: true, changes: [] }; }
+    var ch = REF.data ? diffRef(REF.data, j) : [];
+    if (REF.data && !opts.force && opts.ask && opts.ask()) {
+      if (REF.dismissed === sig && !opts.always) return { kept: true, changes: ch };
+      REF.pending = { data: j, sig: sig, changes: ch, at: now, src: src || 'file' };
+      return { pending: true, changes: ch };
+    }
+    setActive(j, false); REF.fetchedAt = now; REF.src = src || 'file'; writeCache(j); REF.pending = null;
+    return { applied: true, changes: ch };
+  }
+  function applyPending() { var p = REF.pending; if (!p) return false; setActive(p.data, false); REF.fetchedAt = p.at; REF.src = p.src; writeCache(p.data); REF.pending = null; return true; }
+  function dismissPending() { if (REF.pending) REF.dismissed = REF.pending.sig; REF.pending = null; }
+  /** fn() içindeki hesap verilen fiyat dosyasıyla yapılır (bildirimde «tahmini toplam A → B» için) */
+  function withRef(data, fn) {
+    var sd = REF.data, sb = REF.byKey, sa = REF.at, sf = REF.fromCache;
+    setActive(data, false);
+    try { return fn(); } finally { REF.data = sd; REF.byKey = sb; REF.at = sa; REF.fromCache = sf; }
+  }
   function refInfo() {
-    var d = REF.data; if (!d) return { ok: false, status: REF.status };
+    var d = REF.data; if (!d) return { ok: false, status: REF.status, fail: REF.fail, loading: REF.loading };
     var upd = String(d.updated || '').slice(0, 10), age = upd ? daysSince(upd) : null;
-    return { ok: true, updated: upd, age: age, stale: age == null || age > 7, currency: d.currency || 'TRY' };
+    return { ok: true, updated: upd, age: age, stale: age == null || age > 7, currency: d.currency || 'TRY', fromCache: REF.fromCache, fail: REF.fail, loading: REF.loading, pending: !!REF.pending, src: REF.fromCache ? 'cache' : (REF.src || 'file'), liveN: REF.liveN || 0 };
   }
   /** Birim fiyat: kullanıcı → referans → yok. */
   function priceFor(key) {
@@ -127,6 +191,15 @@
   /* ---------------- Stok eşleşmesi ---------------- */
   var CONV = { 'ml>L': 0.001, 'g>kg': 0.001, 'L>ml': 1000, 'kg>g': 1000 };
   function conv(q, from, to) { if (from === to) return q; var f = CONV[from + '>' + to]; return f ? q * f : null; }
+  function matchCat(x, n) {
+    n = n == null ? norm(x.name) : n;
+    for (var i = 0; i < MATCH.length; i++) {
+      var c = MATCH[i]; if (!c.re) continue;
+      if (c.key === 'arici_eldiven' && /nitril/.test(n)) continue;
+      if (c.re.test(n) || (c.cats && c.cats.indexOf(x.category) >= 0)) return c;
+    }
+    return null;
+  }
   function stockIndex(list) {
     var P = global.SuperAriPlan, out = {}, thr = {}, notes = {}, used = {};
     list.forEach(function (x) {
@@ -137,11 +210,7 @@
         (notes.seker = notes.seker || []).push(x.name + ' ' + fmtN(x.qty) + ' L (≈ ' + fmtN(Math.max(0, x.qty) * P.SYRUP[x.feedType].sugarKg) + ' kg şeker)');
         used[x.id] = 'seker'; return;
       }
-      for (var i = 0; i < MATCH.length && !hit; i++) {
-        var c = MATCH[i]; if (!c.re) continue;
-        if (c.key === 'arici_eldiven' && /nitril/.test(n)) continue;
-        if (c.re.test(n) || (c.cats && c.cats.indexOf(x.category) >= 0)) hit = c;
-      }
+      hit = matchCat(x, n);
       if (!hit) return;
       used[x.id] = hit.key;
       var q = conv(Math.max(0, x.qty), x.unit, hit.unit);
@@ -157,7 +226,23 @@
 
   /* ---------------- İhtiyaç modeli ---------------- */
   var INSPECT_DAYS = 21, BEE_DEFAULT = 8, VISITS = 3, UNKNOWN_STORE_FRAC = 0.3;
-  var GLOVE_PAIRS_PER_BOX = 50, FUEL_KG_PER_HIVE_VISIT = 0.05;
+  var GLOVE_PAIRS_PER_BOX = 50;
+  /* Gerçekçi arılık / kovan oranları (denetim koloni-64):
+   * körük yakıtı: ziyaret başına arılıkta 0,1 kg + kovan başına 0,005 kg · alt tabla: arılıkta 3 örnek kovan (yeniden kullanılır)
+   * alkol: arılıkta 0,5 L (örnek kovan yıkaması, süzülüp yeniden kullanılır) + sayımı istenen muayeneli kovan başına 0,1 L
+   * vitamin: 1 paket / 40 beslenen kovan · okzalik: 1 paket / 25 kovan (damlatma) · formik: 1 paket / 10 kovan
+   * kapı daraltıcı: kovanların çoğunda var → bulgu (yağma / zayıf) + yedek %10 · besleyici: yalnız stokta izleniyorsa, eksik kadar
+   * dezenfektan: arılıkta 0,5 L alet hijyeni + hastalık bulgulu kovan başına 0,5 L */
+  var FUEL_KG_PER_APIARY_VISIT = 0.1, FUEL_KG_PER_HIVE_VISIT = 0.005, STICKY_PER_APIARY = 3, ALCOHOL_L_PER_APIARY = 0.5, ALCOHOL_L_PER_COUNT = 0.1;
+  var HIVES_PER_VITAMIN = 40, HIVES_PER_OXALIC = 25, HIVES_PER_FORMIC = 10, REDUCER_SPARE = 0.1, DISINFECT_L_PER_APIARY = 0.5;
+  /* Tek kullanımlık nitril: arılık ziyareti başına 2 çift (1 çalışma + 1 yedek); asit uygulanan arılıkta +2 çift (arılık başına);
+   * şerit uygulaması ziyaret çiftlerine dahil; hastalık / ölü arı bulgulu kovanda +1 çift (kovanlar arası değişim). Tahmin payı yok. */
+  var GLOVE_PAIRS_PER_VISIT = 2, GLOVE_PAIRS_ACID = 2, GLOVE_PAIRS_DISEASE_HIVE = 1;
+  function glovePairs(o) { return (o.aps || 0) * VISITS * GLOVE_PAIRS_PER_VISIT + (o.acid || 0) * GLOVE_PAIRS_ACID + (o.dis || 0) * GLOVE_PAIRS_DISEASE_HIVE; }
+  function gloveWhy(o) {
+    return (o.aps > 1 ? o.aps + ' arılık × ' : '') + VISITS + ' ziyaret × ' + GLOVE_PAIRS_PER_VISIT + ' çift' + (o.acid ? ' + asit uygulaması' + (o.aps > 1 && o.acid < o.aps ? ' (' + o.acid + ' arılık)' : '') : '') +
+      (o.dis ? ' + ' + o.dis + ' hastalık/ölü arı bulgulu kovan' : '') + ' = ' + glovePairs(o) + ' çift';
+  }
   /* Besleme dönüşümü (bakim-plan.js SYRUP ile aynı katsayılar):
    * 2:1 şurup ağırlıkça 2 kg şeker + 1 kg su = 3 kg, yoğunluk ≈ 1,33 → ≈ 2,25 L; yani 1 L 2:1 şurupta ≈ 0,89 kg şeker, 0,44 L su.
    * 1 L 2:1 şurup kışlık stoğa ≈ 0,8 kg katkı (arının işleme kaybı dahil). 1:1: 0,62 kg şeker/L, 0,5 kg stok/L.
@@ -174,13 +259,13 @@
   function syrupSugar(L, type) { return Math.round(Math.max(0, Number(L) || 0) * FEED[type || 'surup21'].sugarKg * 10) / 10; }
   /* Kovan başına makul üst sınırlar (tahmin payı dahil; muayene bulgusu da bu sınırı aşamaz) */
   var HIVE_CAP = {
-    seker: syrupSugar(15, 'surup21'), kek: 4, polen: 1, besleyici: 1, alt_tabla: 1, alkol: 0.2,
+    seker: syrupSugar(15, 'surup21'), kek: 4, polen: 1, besleyici: 1, alkol: 0.1,
     serit_amitraz: 4, serit_flumetrin: 4, serit_taufluvalinat: 4, serit_koumafos: 4,
     kat: 2, ana_izgarasi: 1, kapi_daraltici: 1, dezenfektan: 1
   };
   /** m (muayene) + t (tahmin) × (1 + T) ≤ sınır; pay yalnız bir kez, yalnız tahmine eklenir. */
   /* Tahmin payı yalnız kovan başına ölçeklenen sarf malzemesine; dayanıklı alet ve arılık başı tek paketlere eklenmez (1 → 2 şişmesin) */
-  function tolOn(c) { return !!c && !c.dur && (!c.scope || c.scope === 'hive'); }
+  function tolOn(c) { return !!c && !c.dur && !c.notol && (!c.scope || c.scope === 'hive'); } /* şerit: etiket dozu kesin → pay yok */
   function capHive(m, t, T, cap) {
     m = Math.max(0, m || 0); t = Math.max(0, t || 0);
     if (cap == null || !(cap > 0)) return { m: m, t: t, capped: false };
@@ -248,7 +333,7 @@
       } catch (e) { rep = false; }
       return rep;
     }
-    var gloves = { m: 0, t: 0 }, teyit = null, sugarAny = false, acid = false;
+    var disHives = 0, fedN = 0, teyit = null, sugarAny = false, acid = false;
     act.forEach(function (h) {
       var st = null; try { st = P.hiveState(h); } catch (e) { st = null; }
       if (!st) return;
@@ -269,39 +354,37 @@
         var mp = null; try { mp = P.medPlan(h, st); } catch (e) { mp = null; }
         if (mp && (mp.level === 'tedavi' || mp.level === 'planla') && mp.best && mp.best.dose && mp.best.dose.ok) {
           add(stripKey(I.byId(mp.best.id) || mp.best), Number(mp.best.dose.qty), 'm', mp.best.name + ' (etiket)');
-          add('alt_tabla', 1, 'm'); gloves.m += 2;
         } else if (mp && (mp.level === 'tedavi' || mp.level === 'planla')) teyit = teyit || 'm';
       } else if (!(insp && inf != null) && !treated && autumn) {
         /* sayım yok / muayenesiz: sonbahar tedavisi tahmini (etiket bandı, bilinen arılı çerçeve; yoksa varsayılan) */
         var pr = repProduct(), dz = pr ? I.doseFor(pr.id, beeEst) : null;
         if (pr && dz && dz.ok) add(stripKey(pr), Number(dz.qty), 't', pr.name + ' (etiket' + (bee == null ? ', güç bilinmiyor → ' + BEE_DEFAULT + ' çerçeve varsayıldı' : '') + ')');
         else teyit = teyit || 't';
-        add('alt_tabla', 1, 't'); gloves.t += 2;
+
       }
-      if (tg.varroa || (insp && inf == null)) add('alkol', 0.1, 'm', 'varroa sayımı');
-      else if (!insp && sk !== 'kis' && !(sk === 'akim' && !autumn)) add('alkol', 0.1, 't', 'varroa sayımı');
+      if (tg.varroa || (insp && inf == null)) add('alkol', ALCOHOL_L_PER_COUNT, 'm', 'sayımı istenen muayeneli kovan');
       /* --- Besleme --- */
       if (insp && st.honeyFrames != null && st.honeyFrames !== '') {
         var fp = null; try { fp = P.feedPlan(h, st); } catch (e) { fp = null; }
         if (fp && fp.need) {
           if (fp.type === 'kek') add('kek', Number(fp.kekKg) || 0, 'm', 'bakım planı besleme');
           else { add('seker', Number(fp.sugarKg) || 0, 'm', 'bakım planı besleme'); sugarAny = true; }
-          add('besleyici', 1, 'm');
+          add('besleyici', 1, 'm'); fedN++;
         }
       } else if (autumn) {
         var ws = null; try { ws = P.winterStock(h); } catch (e) { ws = null; }
         var needKg = !ws ? 0 : (ws.key === 'yeterli' ? 0 : (ws.needKg != null ? ws.needKg : (ws.target || 18) * UNKNOWN_STORE_FRAC));
-        if (needKg > 0) { var ff = feedFromDeficit(needKg, 'surup21'); add('seker', ff.sugarKg, src, ws && ws.kg == null ? 'kışlık hedef (ırk/bölge), stok bilinmiyor' : 'kışlık stok açığı'); add('besleyici', 1, src); sugarAny = true; }
+        if (needKg > 0) { var ff = feedFromDeficit(needKg, 'surup21'); add('seker', ff.sugarKg, src, ws && ws.kg == null ? 'kışlık hedef (ırk/bölge), stok bilinmiyor' : 'kışlık stok açığı'); add('besleyici', 1, src); sugarAny = true; fedN++; }
       } else if (sk === 'kis') add('kek', 2, src, 'kış ortası kek');
-      else if (sk === 'ilkbahar') { add('seker', 3.7, src, 'uyarıcı besleme 1:1'); add('polen', 0.5, src, 'ilkbahar gelişimi'); add('besleyici', 1, src); sugarAny = true; }
+      else if (sk === 'ilkbahar') { add('seker', 3.7, src, 'uyarıcı besleme 1:1'); add('polen', 0.5, src, 'ilkbahar gelişimi'); add('besleyici', 1, src); sugarAny = true; fedN++; }
       if (insp && st.cls === 'Zayıf' && (autumn || sk === 'ilkbahar')) { add('polen', 0.5, 'm', 'zayıf koloni'); if (autumn) add('kek', 1, 'm', 'zayıf koloni'); }
       /* --- Kovan (bulgu etiketleri: bakim-akis.js CARD_TAGS ile aynı eşleme: cerceve←yer, kapi←yagma/zayif, temizlik←guve/olu, hastalik) --- */
       if (tg.yer) { add('kat', 1, 'm', 'yer dar'); add('cerceve', fpk, 'm', 'yer dar'); add('temel_petek', fpk, 'm', 'yer dar'); if (growing) add('ana_izgarasi', 1, 'm'); }
       else if (!insp && growing && (bee == null || bee >= 8) && !box.kat) { add('kat', 1, 't', 'gelişim'); add('cerceve', fpk, 't', 'gelişim'); add('temel_petek', fpk, 't', 'gelişim'); add('ana_izgarasi', 1, 't'); }
       if (!insp && sk === 'ilkbahar') add('temel_petek', 2, 't', 'petek yenileme');
       if (tg.yagma || tg.zayif) add('kapi_daraltici', 1, 'm', tg.yagma ? 'yağma' : 'zayıf koloni');
-      else if (autumn || sk === 'kis') add('kapi_daraltici', 1, src, 'kışa hazırlık');
-      if (tg.hastalik || tg.olu) { add('dezenfektan', 0.5, 'm', 'hastalık / ölü arı bulgusu'); gloves.m += 2; }
+
+      if (tg.hastalik || tg.olu) { add('dezenfektan', 0.5, 'm', 'hastalık / ölü arı bulgusu'); disHives++; }
       if (tg.guve) add('dezenfektan', 0.5, 'm', 'mum güvesi');
       flushHive(fpk);
     });
@@ -309,18 +392,24 @@
     Object.keys(capN).forEach(function (k) { if (acc[k]) acc[k].why[capN[k] + ' kovanda üst sınır (' + (k === 'seker' ? '15 L 2:1 şurup ≈ ' + fmtN(HIVE_CAP.seker) + ' kg şeker' : (k === 'cerceve' || k === 'temel_petek' ? '2 kat' : fmtN(HIVE_CAP[k]) + ' ' + BY[k].unit)) + '/kovan)'] = 1; });
     /* --- Arılık başına --- */
     if (teyit) add('ilac_teyit', 1, teyit, 'etiket dozu doğrulanmadı / arılı çerçeve yok');
-    if (autumn || sk === 'kis') { add('okzalik', 1, 't', 'yavrusuz dönem (kış) uygulaması'); add('siringa', 1, 't'); acid = true; out.flags.buharlastirici = true; }
-    if (sk === 'yaz') { add('formik', 1, 't', 'hasat sonrası'); acid = true; }
-    if (sugarAny) add('vitamin', 1, 't', 'besleme dönemi');
+    var nH = act.length, winterish = autumn || sk === 'kis';
+    /* Okzalik damlatma (şırınga, işletmede bir kez); buharlaştırıcı ayrı bir yöntem → kendiliğinden eklenmez */
+    if (winterish) { add('okzalik', nH / HIVES_PER_OXALIC, 't', 'yavrusuz dönem damlatma · 1 paket ≈ ' + HIVES_PER_OXALIC + ' kovan'); acid = true; out.flags.siringa = true; }
+    if (sk === 'yaz') { add('formik', nH / HIVES_PER_FORMIC, 't', 'hasat sonrası · 1 paket ≈ ' + HIVES_PER_FORMIC + ' kovan'); acid = true; out.flags.maske = true; }
+    if (fedN) add('vitamin', fedN / HIVES_PER_VITAMIN, 't', 'beslenen kovan · 1 paket ≈ ' + HIVES_PER_VITAMIN + ' kovan');
+    if (sk !== 'kis') add('alt_tabla', STICKY_PER_APIARY, 't', STICKY_PER_APIARY + ' örnek kovan, yeniden kullanılır');
+    if (sk !== 'kis') add('alkol', ALCOHOL_L_PER_APIARY, 't', 'örnek kovan yıkaması; süzülüp yeniden kullanılır');
+    if (winterish) add('kapi_daraltici', nH * REDUCER_SPARE, 't', 'kışa hazırlık · kayıp/kırık yedeği %' + Math.round(REDUCER_SPARE * 100));
     add('tuz', 1, 't', 'suluk');
-    gloves.t += 5 * VISITS;
-    if (gloves.m) add('nitril', gloves.m / GLOVE_PAIRS_PER_BOX, 'm');
-    add('nitril', gloves.t / GLOVE_PAIRS_PER_BOX, 't', VISITS + ' ziyaret');
-    add('koruk_yakit', act.length * VISITS * FUEL_KG_PER_HIVE_VISIT, 't', VISITS + ' ziyaret × kovan');
-    add('cakmak', 1, 't');
-    add('dezenfektan', 1, 't', 'alet hijyeni');
+    var gm = { aps: 1, acid: acid ? 1 : 0, dis: disHives };
+    add('nitril', (VISITS * GLOVE_PAIRS_PER_VISIT + gm.acid * GLOVE_PAIRS_ACID) / GLOVE_PAIRS_PER_BOX, 't');
+    if (disHives) add('nitril', disHives * GLOVE_PAIRS_DISEASE_HIVE / GLOVE_PAIRS_PER_BOX, 'm');
+    acc.nitril.meta = gm; acc.nitril.why = {}; acc.nitril.why[gloveWhy(gm)] = 1;
+    add('koruk_yakit', VISITS * (FUEL_KG_PER_APIARY_VISIT + nH * FUEL_KG_PER_HIVE_VISIT), 't', VISITS + ' ziyaret × (' + fmtN(FUEL_KG_PER_APIARY_VISIT) + ' kg/arılık + ' + fmtN(FUEL_KG_PER_HIVE_VISIT * 1000) + ' g/kovan)');
+    add('cakmak', 0.2, 't', '1 paket ≈ 5 arılık');
+    add('dezenfektan', DISINFECT_L_PER_APIARY, 't', 'alet hijyeni');
     out.flags.koruk = out.flags.kaziyici = out.flags.arici_eldiven = true;
-    if (acid) out.flags.gozluk = out.flags.maske = true;
+    if (acid) out.flags.gozluk = true;
     if (acid || sugarAny) out.flags.olcu_kabi = true;
     if (acc.alkol) out.flags.alkol_kabi = true;
     return out;
@@ -334,36 +423,45 @@
     var SI = stockIndex(list), ctx = { tags: tagsByHive() };
     var apList = scope === 'all' ? aps : aps.filter(function (a) { return String(a.id) === String(scope); });
     var secs = apList.map(function (a) { return apiaryNeeds(a, all.filter(function (h) { return String(h.apiaryId) === String(a.id); }), ctx); });
+    /* Besleyici yeniden kullanılır: stokta izlenmiyorsa (kalem yok) var sayılır, satır çıkmaz; izleniyorsa eksik kadar alınır */
+    if (SI.have.besleyici == null) secs.forEach(function (s) { delete s.acc.besleyici; });
     /* işletme geneli (bir kez) + stok eşiği */
     var op = { id: 'ortak', name: 'Ortak (işletme geneli, bir kez)', hives: 0, insp: 0, fc: 0, acc: {}, ortak: true };
     CAT.forEach(function (c) { if (c.scope === 'operator' && secs.some(function (s) { return s.flags && s.flags[c.key]; })) op.acc[c.key] = { m: 0, t: 1, why: { 'dayanıklı, bir kez': 1 } }; });
     function lineOf(key, a, have) {
       var c = BY[key], need = up(a.m + a.t * (tolOn(c) ? 1 + T : 1), c.step);
       return { key: key, g: c.g, name: c.name, unit: c.unit, m: a.m, t: a.t, need: need, have: have, buy: 0, confirm: !!c.confirm, note: c.note || '',
-        src: a.esik ? 'esik' : (a.m && a.t ? 'mt' : (a.m ? 'm' : 't')), why: Object.keys(a.why || {}).sort(function (x, y) { return (/üst sınır/.test(y) ? 1 : 0) - (/üst sınır/.test(x) ? 1 : 0); }).slice(0, 3).join(' · '), stockNote: (SI.notes[key] || []).join('; ') };
+        meta: a.meta ? JSON.parse(JSON.stringify(a.meta)) : null, src: a.esik ? 'esik' : (a.m && a.t ? 'mt' : (a.m ? 'm' : 't')), why: Object.keys(a.why || {}).sort(function (x, y) { return (/üst sınır/.test(y) ? 1 : 0) - (/üst sınır/.test(x) ? 1 : 0); }).slice(0, 3).join(' · '), stockNote: (SI.notes[key] || []).join('; ') };
     }
-    var remaining = {}; Object.keys(SI.have).forEach(function (k) { remaining[k] = SI.have[k]; });
+    var MV = mevcut(), haveT = {};
+    Object.keys(SI.have).forEach(function (k) { haveT[k] = SI.have[k]; });
+    Object.keys(MV).forEach(function (k) { if (Number(MV[k]) > 0) haveT[k] = (haveT[k] || 0) + Number(MV[k]); });
+    /* önce stok, sonra elde olan (Mevcut) payı dağıtılır */
+    var remaining = {}, remM = {}; Object.keys(SI.have).forEach(function (k) { remaining[k] = SI.have[k]; });
+    Object.keys(MV).forEach(function (k) { if (Number(MV[k]) > 0) remM[k] = Number(MV[k]); });
     var totalNeed = {};
     secs.concat([op]).forEach(function (s) { Object.keys(s.acc).forEach(function (k) { var c = BY[k]; totalNeed[k] = (totalNeed[k] || 0) + up(s.acc[k].m + s.acc[k].t * (tolOn(c) ? 1 + T : 1), c.step); }); });
     /* stok eşiği: arılık ihtiyaçları düşüldükten sonra stok eşik + pay altına inecekse, fark ortak bölümde «stok eşiği» satırı olur */
     Object.keys(SI.thr).forEach(function (k) {
-      var target = up(SI.thr[k] * (1 + T), BY[k].step), left = (SI.have[k] || 0) - (totalNeed[k] || 0);
+      var target = up(SI.thr[k] * (1 + T), BY[k].step), left = (haveT[k] || 0) - (totalNeed[k] || 0);
       if (left < target) { op.acc[k] = op.acc[k] || { m: 0, t: 0, why: {} }; op.acc[k].m += target; op.acc[k].esik = true; op.acc[k].why['stok eşiği ' + fmtN(SI.thr[k]) + ' + %' + tol() + ' pay'] = 1; }
     });
     var extra = [];
     list.forEach(function (x) {
       if (SI.used[x.id] || !(x.threshold > 0) || x.qty > x.threshold) return;
-      var need = up(x.threshold * (1 + T), 0.5); /* eşik + pay */
-      extra.push({ key: 'stok:' + x.id, g: CATGROUP[x.category] || 'diger', name: x.name, unit: x.unit, m: need, t: 0, need: need, have: Math.max(0, x.qty), buy: up(need - Math.max(0, x.qty), 0.5), src: 'esik', why: 'eşik ' + fmtN(x.threshold) + ' ' + x.unit + ' + %' + tol() + ' pay', note: '', stockNote: '' });
+      var need = up(x.threshold * (1 + T), 0.5), xm = Number(MV['stok:' + x.id]) || 0; /* eşik + pay; elde olan düşülür */
+      extra.push({ key: 'stok:' + x.id, g: CATGROUP[x.category] || 'diger', name: x.name, unit: x.unit, m: need, t: 0, need: need, have: Math.max(0, x.qty), mev: xm, buy: up(Math.max(0, need - Math.max(0, x.qty) - xm), 0.5), src: 'esik', why: 'eşik ' + fmtN(x.threshold) + ' ' + x.unit + ' + %' + tol() + ' pay', note: '', stockNote: '' });
     });
     function finish(s, alloc) {
       var lines = Object.keys(s.acc).map(function (k) { return lineOf(k, s.acc[k], 0); });
       lines.forEach(function (l) {
-        var avail = alloc ? (remaining[l.key] || 0) : (SI.have[l.key] || 0);
-        l.have = Math.round(Math.min(avail, l.need) * 10) / 10;
+        var avail = alloc ? (remaining[l.key] || 0) : (SI.have[l.key] || 0), mAv = alloc ? (remM[l.key] || 0) : (Number(MV[l.key]) || 0);
+        var fromS = Math.min(avail, l.need), fromM = Math.min(mAv, Math.max(0, l.need - fromS));
+        l.have = Math.round(fromS * 10) / 10;
         l.haveAll = Math.round((SI.have[l.key] || 0) * 10) / 10;
-        l.buy = up(l.need - avail, BY[l.key].step);
-        if (alloc) remaining[l.key] = Math.max(0, avail - l.need);
+        l.mev = Number(MV[l.key]) || 0; l.mevUsed = Math.round(fromM * 100) / 100;
+        l.buy = up(Math.max(0, l.need - fromS - fromM), BY[l.key].step);
+        if (alloc) { remaining[l.key] = Math.max(0, avail - fromS); remM[l.key] = Math.max(0, mAv - fromM); }
       });
       if (s.ortak) lines = lines.concat(extra);
       var order = {}; GROUPS.forEach(function (g, i) { order[g.key] = i; });
@@ -382,14 +480,23 @@
     secs.concat([op]).forEach(function (s) {
       s.lines.forEach(function (l) {
         var c = comb[l.key];
-        if (!c) { c = comb[l.key] = JSON.parse(JSON.stringify(l)); c.need = 0; c.buy = 0; c.m = 0; c.t = 0; c.srcs = {}; c.why = ''; }
+        if (!c) { c = comb[l.key] = JSON.parse(JSON.stringify(l)); c.need = 0; c.buy = 0; c.m = 0; c.t = 0; c.srcs = {}; c.why = ''; c.meta = null; }
         c.need += l.need; c.buy += l.buy; c.m += l.m; c.t += l.t; c.srcs[l.src] = 1; if (l.why && c.why.indexOf(l.why) < 0) c.why = c.why ? c.why : l.why;
+        if (l.meta) { c.meta = c.meta || { aps: 0, acid: 0, dis: 0 }; if (c.meta !== l.meta) { c.meta.aps += l.meta.aps || 0; c.meta.acid += l.meta.acid || 0; c.meta.dis += l.meta.dis || 0; } }
       });
     });
     var clines = Object.keys(comb).map(function (k) {
       var c = comb[k], ks = Object.keys(c.srcs);
       c.src = ks.length === 1 ? ks[0] : (c.srcs.m || c.srcs.mt) && (c.srcs.t || c.srcs.mt) ? 'mt' : ks.filter(function (x) { return x !== 'esik'; })[0] || 'esik';
       c.have = c.haveAll != null ? c.haveAll : c.have; delete c.srcs;
+      /* Tümü: arılık ihtiyaçları ham toplanır, tek seferde yukarı yuvarlanır (arılık tavanları toplanmaz) */
+      var bc = BY[k];
+      if (bc) {
+        var nd = up(c.m + c.t * (tolOn(bc) ? 1 + T : 1), bc.step);
+        c.mev = Number(MV[k]) || 0;
+        if (nd < c.need) { c.need = nd; c.buy = up(Math.max(0, nd - (c.haveAll || 0) - c.mev), bc.step); }
+      }
+      if (k === 'nitril' && c.meta) c.why = gloveWhy(c.meta);
       return c;
     });
     var order = {}; GROUPS.forEach(function (g, i) { order[g.key] = i; }); var ci = {}; CAT.forEach(function (c, i) { ci[c.key] = i; });
@@ -409,30 +516,209 @@
   function sum(lines) { return Math.round(lines.reduce(function (a, l) { return a + (l.cost || 0); }, 0) * 100) / 100; }
 
   /* ---------------- Talep kaydı ---------------- */
+  /* ---------------- Mevcut (elde olan, stoğa henüz girilmemiş) ----------------
+   * Alım talebi satırında girilir; alınacak = max(0, gerekli − stokta − mevcut). Anahtar başına saklanır;
+   * «Talep oluştur» kaydında stoğa «Giriş (mevcut, talep sırasında)» olarak işlenir ve temizlenir (çift sayım yok). */
+  function mevKey() { return live() ? 'superari.stok.mevcut.v1' : 'superari.stok.mevcut.demo.v1'; }
+  function mevcut() { var o = readJ(mevKey(), {}); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; }
+  function setMevcut(key, v) {
+    var o = mevcut(), n = typeof v === 'number' ? v : parseNum(v);
+    if (!(n > 0)) delete o[key]; else o[key] = Math.round(n * 100) / 100;
+    writeJ(mevKey(), o); return o[key] || 0;
+  }
+  function clearMevcut() { try { global.localStorage.removeItem(mevKey()); } catch (e) { /* ignore */ } }
+  /** Kayıt sırasında: girilen mevcutları stoğa ekler. lines: kalem adı/birimi için (combined). */
+  function applyMevcut(lines, d) {
+    var mv = mevcut(), out = [], byKey = {};
+    (lines || []).forEach(function (l) { byKey[l.key] = l; });
+    Object.keys(mv).forEach(function (k) {
+      var q = Number(mv[k]); if (!(q > 0)) return;
+      var l = byKey[k] || { key: k, name: BY[k] ? BY[k].name : k, unit: BY[k] ? BY[k].unit : 'adet', g: BY[k] ? BY[k].g : 'diger' };
+      var tg = stockTarget(l, true); if (!tg) return;
+      var dq = Math.round(q * tg.f * 100) / 100, it = null;
+      try { it = D.stock.adjust(tg.id, dq, 'Giriş (mevcut, talep sırasında)', d || today()); } catch (e) { it = null; }
+      if (it) out.push({ key: k, id: tg.id, name: tg.name, q: q, unit: l.unit, created: !!tg.created });
+    });
+    clearMevcut();
+    return out;
+  }
   function talepKey() { return live() ? 'superari.stok.talep.v1' : 'superari.stok.talep.demo.v1'; }
   function talepler() { var a = readJ(talepKey(), []); return Array.isArray(a) ? a : []; }
   function saveTalep(rq, apName) {
     var ri = rq.ref || {};
     var rows = [];
     function push(s, lines) { lines.forEach(function (l) { if (l.buy > 0) rows.push({ apiaryId: s ? s.id : '', apiaryName: s ? s.name : 'Toplam', key: l.key, group: l.g, name: l.name, unit: l.unit, need: l.need, have: l.have, buy: l.buy, src: l.src, price: l.price.v, priceSrc: l.price.src, priceDate: l.price.date || '', cost: l.cost }); }); }
-    rq.sections.forEach(function (s) { push(s, s.lines); });
-    push(rq.ortak, rq.ortak.lines);
+    if (rq.scope === 'all') {
+      /* Tümü: kalem başına tek satır (alım kaydı kolay), arılık dağılımı satırda saklanır */
+      var per = {};
+      rq.sections.concat([rq.ortak]).forEach(function (s) { s.lines.forEach(function (l) { if (l.buy > 0) (per[l.key] = per[l.key] || []).push({ id: s.ortak ? '' : s.id, name: s.name, buy: l.buy }); }); });
+      push({ id: '', name: 'Tümü' }, rq.combined.lines);
+      rows.forEach(function (r) { if (per[r.key]) r.aps = per[r.key]; });
+    } else {
+      rq.sections.forEach(function (s) { push(s, s.lines); });
+      push(rq.ortak, rq.ortak.lines);
+    }
     var t = {
       id: 'tl' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), date: today(), createdAt: new Date().toISOString(),
       apiaryId: rq.scope === 'all' ? '' : String(rq.scope), apiaryName: apName, tol: rq.tol, hives: rq.hives, insp: rq.insp, fc: rq.fc,
-      total: rq.total, missing: rq.missing, buyN: rq.buyN, priceRefDate: ri.ok ? ri.updated : '', priceRefStale: !!(ri.ok && ri.stale), lines: rows
+      status: 'acik', total: rq.total, missing: rq.missing, buyN: rq.buyN, priceRefDate: ri.ok ? ri.updated : '', priceRefStale: !!(ri.ok && ri.stale),
+      priceAt: ri.ok ? (REF.fetchedAt || '') : '', priceSource: ri.ok ? (REF.fromCache ? 'cache' : (REF.src || 'file')) : 'user', lines: rows
     };
     if (!live()) t.demo = true;
+    /* elde olan (Mevcut) miktarlar stoğa girer, alanlar temizlenir; talep zaten bunlar düşülerek hesaplandı */
+    var mvLines = (rq.combined && rq.combined.lines || []).slice();
+    rq.sections.concat([rq.ortak]).forEach(function (s) { (s.lines || []).forEach(function (l) { mvLines.push(l); }); });
+    var mvAdded = applyMevcut(mvLines, t.date);
+    if (mvAdded.length) t.mevcutAdded = mvAdded.map(function (x) { return { key: x.key, name: x.name, q: x.q, unit: x.unit }; });
     var a = talepler(); a.push(t); if (a.length > 50) a = a.slice(-50);
     writeJ(talepKey(), a);
     try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
     return t;
   }
 
+  /* ---------------- Kayıtlı talepler: durum, iptal / sil, alım kaydı ---------------- */
+  var STATUS = { acik: 'Açık', kismen: 'Alındı (kısmen)', tamam: 'Tamamlandı', iptal: 'İptal' };
+  function r2(v) { return Math.round((Number(v) || 0) * 100) / 100; }
+  function gotQ(l) { return l && l.got && Number(l.got.q) > 0 ? Number(l.got.q) : 0; }
+  function statusOf(t) {
+    if (!t) return 'acik';
+    if (t.status === 'iptal') return 'iptal';
+    var ls = t.lines || [], n = ls.filter(function (l) { return gotQ(l) > 0; }).length;
+    return !ls.length || !n ? 'acik' : (n === ls.length ? 'tamam' : 'kismen');
+  }
+  /** Tahmini vs gerçek: est = talep tahmini toplamı; act = ödenen (miktar × ödenen birim); estBought = alınan miktarlar × tahmini birim (fark bunun üzerinden) */
+  function talepSums(t) {
+    var o = { est: r2(t.total), act: 0, estBought: 0, bought: 0, n: (t.lines || []).length, actMissing: 0, estMissing: 0 };
+    (t.lines || []).forEach(function (l) {
+      var q = gotQ(l); if (!q) return;
+      o.bought++;
+      if (l.got.p != null && Number(l.got.p) > 0) o.act += q * Number(l.got.p); else o.actMissing++;
+      if (l.price != null) o.estBought += q * Number(l.price); else o.estMissing++;
+    });
+    o.act = r2(o.act); o.estBought = r2(o.estBought); o.diff = r2(o.act - o.estBought);
+    return o;
+  }
+  var AYT = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function dShortT(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? Number(m[3]) + ' ' + AYT[Number(m[2]) - 1] + ' ' + m[1] : ''; }
+  /** Hareketler: «Giriş (alım talebi · 3 Eki 2026)» satırından talebi bul (stok kalemi + talep tarihi; aynı gün birden çoksa en yenisi) */
+  function talepForLog(itemId, reason) {
+    var m = /alım talebi · ([^)]+)\)/.exec(String(reason || '')); if (!m) return null;
+    var hit = null;
+    talepler().forEach(function (t) {
+      if (!t || dShortT(t.date) !== m[1]) return;
+      if ((t.lines || []).some(function (l) { return l.stk && l.stk.id === itemId; }) && (!hit || String(t.createdAt) > String(hit.createdAt))) hit = t;
+    });
+    return hit;
+  }
+  function talepById(id) { return talepler().filter(function (t) { return t && t.id === id; })[0] || null; }
+  function writeTalepler(a) { writeJ(talepKey(), a); try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
+  function updateTalep(id, fn) {
+    var a = talepler(), out = null;
+    a = a.map(function (t) { if (!t || t.id !== id) return t; var c = JSON.parse(JSON.stringify(t)); fn(c); c.updatedAt = new Date().toISOString(); if (c.status !== 'iptal') c.status = statusOf(c); out = c; return c; });
+    if (out) writeTalepler(a);
+    return out;
+  }
+  /** Açık talepte tahmini fiyatlar güncel fiyatlardan farklı mı (sizin fiyatınız → kaynak ortalaması) */
+  function talepPriceDiff(t) {
+    var n = 0, nt = 0;
+    (t.lines || []).forEach(function (l) {
+      var p = priceFor(l.key), nv = p.v != null ? Number(p.v) : null, ov = l.price != null ? Number(l.price) : null;
+      if ((nv == null) !== (ov == null) || (nv != null && Math.abs(nv - ov) > 0.004)) n++;
+      if (nv != null) nt += l.buy * nv;
+    });
+    return { n: n, total: r2(nt) };
+  }
+  /** Güncel fiyatlarla yeniden hesapla: yalnız tahmini birim / tutar değişir; ödenen gerçek fiyatlar (got) korunur */
+  function repriceTalep(id) {
+    var ri = refInfo();
+    return updateTalep(id, function (t) {
+      if (statusOf(t) === 'iptal' || statusOf(t) === 'tamam') return;
+      var miss = 0, tot = 0;
+      t.lines.forEach(function (l) {
+        var p = priceFor(l.key);
+        l.price = p.v; l.priceSrc = p.src; l.priceDate = p.date || '';
+        l.cost = p.v != null ? r2(l.buy * p.v) : 0; if (p.v == null) miss++; tot += l.cost;
+      });
+      t.total = r2(tot); t.missing = miss; t.priceRefDate = ri.ok ? ri.updated : ''; t.priceRefStale = !!(ri.ok && ri.stale); t.priceAt = ri.ok ? (REF.fetchedAt || '') : ''; t.repricedAt = today();
+    });
+  }
+  /** Açık talepte tahmini birim fiyatı elle değiştir: talep satırı + sizin fiyatınız (kendi fiyatınız her zaman önce gelir) */
+  function setTalepLinePrice(id, i, v) {
+    var n = typeof v === 'number' ? v : parseNum(v); if (!(n > 0)) return null;
+    var key = null;
+    var t = updateTalep(id, function (t) {
+      var st = statusOf(t); if (st === 'iptal' || st === 'tamam') return;
+      var l = t.lines[i]; if (!l) return;
+      key = l.key; l.price = Math.round(n * 100) / 100; l.priceSrc = 'user'; l.priceDate = today(); l.cost = r2(l.buy * l.price);
+      t.total = r2(t.lines.reduce(function (a, x) { return a + (x.cost || 0); }, 0)); t.missing = t.lines.filter(function (x) { return x.price == null; }).length;
+    });
+    if (key) setPrice(key, n);
+    return t;
+  }
+  function cancelTalep(id) { return updateTalep(id, function (t) { t.status = 'iptal'; t.cancelledAt = today(); }); }
+  function deleteTalep(id) {
+    var a = talepler(), t = a.filter(function (x) { return x && x.id === id; })[0];
+    if (!t || statusOf(t) !== 'iptal') return false;   /* yalnız iptal edilen silinir */
+    writeTalepler(a.filter(function (x) { return x && x.id !== id; }));
+    return true;
+  }
+  /* Satırın stok kalemi: stok:<id> → o kalem; yoksa katalog anahtarıyla eşleşen (şurup hariç, aynı / çevrilebilir birim); yoksa doğru türde yeni kalem */
+  var NEW_CAT = { seker: 'seker', kek: 'kek', polen: 'polen', vitamin: 'polen', cerceve: 'cerceve', temel_petek: 'temelPetek', kat: 'kovan' };
+  function newCatFor(l) { var c = BY[l.key]; if (NEW_CAT[l.key]) return NEW_CAT[l.key]; if (!c) return 'diger'; return c.g === 'ilac' ? 'ilac' : (c.g === 'besleme' ? 'diger' : 'ekipman'); }
+  function stockTarget(l, create) {
+    var S = D.stock, list = []; try { list = S.list(); } catch (e) { list = []; }
+    var m = /^stok:(.+)$/.exec(String(l.key || ''));
+    if (m) { var it0 = list.filter(function (x) { return x.id === m[1]; })[0]; return it0 ? { id: it0.id, f: conv(1, l.unit, it0.unit) || 1, name: it0.name } : null; }
+    var best = null;
+    list.forEach(function (x) {
+      if (x.feedType === 'surup21' || x.feedType === 'surup11') return;
+      var c = matchCat(x); if (!c || c.key !== l.key) return;
+      var f = conv(1, l.unit, x.unit); if (f == null) return;
+      if (!best || (best.f !== 1 && f === 1)) best = { id: x.id, f: f, name: x.name };
+    });
+    if (best || !create) return best;
+    var c = BY[l.key], it = S.save({ name: (c ? c.name : l.name).slice(0, 80), category: newCatFor(l), unit: l.unit, qty: 0, threshold: 0, note: 'Alım talebinden oluşturuldu', demo: !live() || undefined });
+    return it ? { id: it.id, f: 1, name: it.name, created: true } : null;
+  }
+  /**
+   * Alım kaydı. entries: [{ i, q, p }] (q boş/0 → alınmadı). opts: { stock: true, savePrice: true }.
+   * Stok: daha önce stoğa eklenen miktar değişirse yalnız fark işlenir (çift ekleme yok); ilk ekleme yalnız «Stoğa ekle» açıkken.
+   */
+  function recordPurchase(id, entries, opts) {
+    opts = opts || {};
+    var t0 = talepById(id); if (!t0 || statusOf(t0) === 'iptal') return null;
+    var res = { moves: [], created: [], prices: 0, lines: 0 }, d = today(), tag = ' · ' + dShortT(t0.date) + ')';
+    var R_IN = 'Giriş (alım talebi' + tag, R_FIX = 'Düzeltme (alım talebi' + tag;
+    var t = updateTalep(id, function (t) {
+      entries.forEach(function (e) {
+        var l = t.lines[e.i]; if (!l) return;
+        var q = Math.max(0, Math.round((Number(e.q) || 0) * 100) / 100), p = Number(e.p) > 0 ? Math.round(Number(e.p) * 100) / 100 : null;
+        var prevQ = gotQ(l), prevP = l.got ? l.got.p : null;
+        if (q > 0) l.got = { q: q, p: p, d: (l.got && l.got.d && prevQ === q && prevP === p) ? l.got.d : d }; else delete l.got;
+        if (q !== prevQ || p !== prevP) res.lines++;
+        /* stok */
+        var added = l.stk && Number(l.stk.a) > 0 ? Number(l.stk.a) : 0;
+        var want = added > 0 || opts.stock ? q : added, delta = Math.round((want - added) * 100) / 100;
+        if (delta) {
+          var tg = l.stk && l.stk.id ? { id: l.stk.id, f: Number(l.stk.f) || 1 } : null;
+          var out = tg ? D.stock.adjust(tg.id, delta * tg.f, delta > 0 ? R_IN : R_FIX, d) : null;
+          if (!out && delta > 0) { tg = stockTarget(l, true); out = tg ? D.stock.adjust(tg.id, delta * tg.f, R_IN, d) : null; if (tg && tg.created) res.created.push(tg.name); }
+          if (out) { l.stk = { id: tg.id, a: Math.max(0, Math.round((added + delta) * 100) / 100), f: tg.f }; res.moves.push({ name: out.name, delta: delta * tg.f, unit: out.unit }); if (!l.stk.a) delete l.stk; }
+        }
+        if (opts.savePrice && q > 0 && p != null) { setPrice(l.key, p); res.prices++; }
+      });
+    });
+    res.talep = t;
+    return res;
+  }
+
   global.SuperAriTalep = {
     CAT: CAT, GROUPS: GROUPS, BY: BY, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
-    userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, norm: norm, REF: REF,
+    userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
     RULES: { INSPECT_DAYS: INSPECT_DAYS, BEE_DEFAULT: BEE_DEFAULT, VISITS: VISITS, UNKNOWN_STORE_FRAC: UNKNOWN_STORE_FRAC },
+    setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,
+    refItem: function (k) { return REF.byKey[k] || null; }, parseNum: parseNum, talepForLog: talepForLog, dShortT: dShortT, STATUS: STATUS, statusOf: statusOf, talepSums: talepSums, talepById: talepById, cancelTalep: cancelTalep, deleteTalep: deleteTalep, recordPurchase: recordPurchase, stockTarget: stockTarget,
+    tolOn: tolOn, glovePairs: glovePairs, gloveWhy: gloveWhy, GLOVE: { PER_VISIT: GLOVE_PAIRS_PER_VISIT, ACID: GLOVE_PAIRS_ACID, DISEASE_HIVE: GLOVE_PAIRS_DISEASE_HIVE, PER_BOX: GLOVE_PAIRS_PER_BOX },
     FEED: FEED, HIVE_CAP: HIVE_CAP, feedFromDeficit: feedFromDeficit, syrupSugar: syrupSugar, capHive: capHive
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.SuperAriTalep;

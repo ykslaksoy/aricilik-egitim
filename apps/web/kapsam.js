@@ -194,7 +194,7 @@
         if (scope === 'all') { u.delete('apiary'); if (u.get('mode') === 'apiary') u.set('mode', 'all'); }
         else { u.set('apiary', scope); if (u.has('mode')) u.set('mode', 'apiary'); }
         u.delete('id');
-        global.history.replaceState(null, '', (opts.page || global.location.pathname.split('/').pop()) + (u.toString() ? '?' + u.toString() : ''));
+        global.history.replaceState(null, '', (opts.page || global.location.pathname.split('/').pop()) + (u.toString() ? '?' + u.toString() : '') + (global.location.hash || '')); /* görünüm (#…) korunur; geri tuşu doğru yere döner */
       } catch (e) { /* ignore */ }
       render();
     }
