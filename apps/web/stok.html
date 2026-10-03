@@ -1141,14 +1141,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-65"></script>
-<script src="koloni.js?v=koloni-65"></script>
-<script src="ilac-katalog.js?v=koloni-65"></script>
-<script src="bakim-plan.js?v=koloni-65"></script>
-<script src="kapsam.js?v=koloni-65"></script>
-<script src="rapor-store.js?v=koloni-65"></script>
-<script src="fiyat-live.js?v=koloni-65"></script>
-<script src="stok-talep.js?v=koloni-65"></script>
+<script src="demo-data.js?v=koloni-66"></script>
+<script src="koloni.js?v=koloni-66"></script>
+<script src="ilac-katalog.js?v=koloni-66"></script>
+<script src="bakim-plan.js?v=koloni-66"></script>
+<script src="kapsam.js?v=koloni-66"></script>
+<script src="rapor-store.js?v=koloni-66"></script>
+<script src="fiyat-live.js?v=koloni-66"></script>
+<script src="stok-talep.js?v=koloni-66"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1259,7 +1259,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-65'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-66'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1479,7 +1479,7 @@
     var h = head('Alım talebi', nm + ' · ' + rq.hives + ' kovan · ' + rq.insp + ' muayeneli, ' + rq.fc + ' tahmin');
     h += noticeHtml(scope) + '<section class="st-card st-sum" aria-label="Talep özeti">' + priceDateHtml(ri) + '<div class="st-sumrow"><div><i>Tahmini tutar</i><b>' + money(rq.total) + '</b>' +
       '<small>' + (rq.missing ? rq.missing + ' kalemde fiyat yok — toplama katılmadı' : (rq.buyN ? 'fiyatlı kalemlerin toplamı' : 'alınacak kalem yok')) + '</small></div>' +
-      '<div><i>Alınacak</i><b>' + rq.buyN + ' kalem</b><small>stok düşüldü</small></div></div>' +
+      '<div><i>Alınacak</i><b>' + rq.buyN + ' kalem</b><small>mevcut stok düşüldü</small></div></div>' +
       '<div class="st-tol"><span>Tahmin payı<small>muayenesiz kovanlara</small></span><button type="button" class="st-btn" data-tol="-5" aria-label="Tahmin payını azalt">−</button><b>%' + rq.tol + '</b><button type="button" class="st-btn" data-tol="5" aria-label="Tahmin payını artır">＋</button></div>' +
       (saving ? '<button type="button" class="st-new" disabled aria-busy="true"><span class="st-spin" aria-hidden="true"></span> Güncel fiyatlar alınıyor…</button>'
         : '<button type="button" class="st-new" data-talep><span aria-hidden="true">📝</span> Talep oluştur</button>');
@@ -1933,7 +1933,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-65"></script>
-<script src="pwa.js?v=koloni-65"></script>
+<script src="nav.js?v=koloni-66"></script>
+<script src="pwa.js?v=koloni-66"></script>
 </body>
 </html>

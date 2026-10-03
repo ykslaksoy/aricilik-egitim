@@ -1,4 +1,4 @@
-/* Fiyat / Mevcut alanı boşaltılınca geri dönüş (koloni-65):
+/* Fiyat / Mevcut alanı boşaltılınca geri dönüş (koloni-66):
  * - satır ₺ alanı boş → sizin fiyatınız silinir, önerilen (kaynak ortalaması) fiyat
  * - açık talepte tahmini fiyat boş → talebin kayıttaki (anlık görüntü) tahmini fiyatı; ödenen fiyatlar korunur
  * - Mevcut boş → 0
