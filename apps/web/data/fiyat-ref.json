@@ -1,0 +1,1245 @@
+{
+ "updated": "2026-10-03",
+ "currency": "TRY",
+ "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan.",
+ "items": [
+  {
+   "key": "seker",
+   "name": "Şeker (toz)",
+   "unit": "kg",
+   "ref": 79.67,
+   "min": 52.5,
+   "max": 96.04,
+   "n": 5,
+   "sources": [
+    {
+     "name": "A101 (Onedio aktüel 3–9 Eki 2026) Irmak Bal Küpü Toz Şeker 1 kg",
+     "url": "https://onedio.com/haber/indirim-gunleri-basliyor-3-9-ekim-2026-haftasinda-a101-ve-bim-aktuel-urunler-listesinde-ne-var-1385681",
+     "price": 52.5,
+     "pack": "1 kg",
+     "unitPrice": 52.5
+    },
+    {
+     "name": "n11 Bal Küpü Kristal Toz Şeker 5 kg",
+     "url": "https://www.n11.com/urun/bal-kupu-kristal-toz-seker-5-kg-1212009",
+     "price": 358.75,
+     "pack": "5 kg",
+     "unitPrice": 71.75
+    },
+    {
+     "name": "n11 Tatküpü Toz Şeker 5 kg × 4",
+     "url": "https://www.n11.com/urun/tatkupu-toz-seker-5-kg-x-4-adet-133786775",
+     "price": 1549,
+     "pack": "20 kg",
+     "unitPrice": 77.45
+    },
+    {
+     "name": "n11 Tatküpü Kristal Toz Şeker 5 kg",
+     "url": "https://www.n11.com/urun/tatkupu-kristal-toz-seker-5-kg-1119917",
+     "price": 449,
+     "pack": "5 kg",
+     "unitPrice": 89.8
+    },
+    {
+     "name": "n11 Türk Şeker Toz Şeker 5 kg",
+     "url": "https://www.n11.com/urun/turk-seker-toz-seker-5-kg-1790139",
+     "price": 480.18,
+     "pack": "5 kg",
+     "unitPrice": 96.04
+    }
+   ]
+  },
+  {
+   "key": "kek",
+   "name": "Kek / fondan",
+   "unit": "kg",
+   "ref": 105.66,
+   "min": 87.0,
+   "max": 142.81,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Apieko %1.4 Proteinli Arı Keki 20 kg",
+     "url": "https://www.n11.com/urun/20-kg-apieko-14-proteinli-ari-keki-12609365",
+     "price": 1900,
+     "pack": "20 kg",
+     "unitPrice": 95.0
+    },
+    {
+     "name": "n11 Arısan Arı Keki 1 kg × 20",
+     "url": "https://www.n11.com/urun/arisan-ari-keki-1-kg-x-20-adet-20-kg-4187708",
+     "price": 2162,
+     "pack": "20 kg",
+     "unitPrice": 108.1
+    },
+    {
+     "name": "n11 Muğla Petek Fondan Arı Keki 10 kg",
+     "url": "https://www.n11.com/urun/mugla-petek-fondan-seker-ari-keki-10-kg-53039322",
+     "price": 1428.05,
+     "pack": "10 kg",
+     "unitPrice": 142.81
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Muğla Fondan Arı Keki 20 kg",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-mugla-fondan-ari-keki-20-kg-66663874",
+     "price": 2277.49,
+     "pack": "20 kg",
+     "unitPrice": 113.87
+    },
+    {
+     "name": "Arıcımarketi Gür Petek Proteinli Arı Keki 1 kg",
+     "url": "https://www.aricimarketi.com/urun/gur-petek-proteinli-ari-keki",
+     "price": 87,
+     "pack": "1 kg",
+     "unitPrice": 87.0
+    }
+   ]
+  },
+  {
+   "key": "polen",
+   "name": "Polen / polen ikamesi",
+   "unit": "kg",
+   "ref": 920.0,
+   "min": 600.0,
+   "max": 1288.0,
+   "n": 3,
+   "sources": [
+    {
+     "name": "Polenza Bal Neobee Neo Ari-Pro (polen alternatifi) 10 kg",
+     "url": "https://polenzabal.com/product/neobee-neo-ari-pro",
+     "price": 6000,
+     "pack": "10 kg",
+     "unitPrice": 600.0
+    },
+    {
+     "name": "n11 Yaş Arı Poleni 1 kg",
+     "url": "https://www.n11.com/urun/yas-ari-poleni-1-kg-110978813",
+     "price": 920,
+     "pack": "1 kg",
+     "unitPrice": 920.0
+    },
+    {
+     "name": "n11 Yaş Arı Poleni 500 g",
+     "url": "https://www.n11.com/urun/yas-ari-poleni-500-gr-110978806",
+     "price": 644,
+     "pack": "0,5 kg",
+     "unitPrice": 1288.0
+    }
+   ]
+  },
+  {
+   "key": "vitamin",
+   "name": "Vitamin / besin takviyesi",
+   "unit": "paket",
+   "ref": 740.0,
+   "min": 700.0,
+   "max": 780.0,
+   "n": 2,
+   "sources": [
+    {
+     "name": "n11 Ecotec Pharma Ecotonic Plus Arı Vitamini 1 L",
+     "url": "https://www.n11.com/urun/ecotec-pharma-ecotonic-plus-ari-vitamini-1-lt-119587967",
+     "price": 700,
+     "pack": "1 L şişe",
+     "unitPrice": 700.0
+    },
+    {
+     "name": "n11 Vetorax Arı Vitamini, Amino Asit, Mineral 250 g",
+     "url": "https://www.n11.com/urun/vetorax-ari-vitaminiamino-asitmineral-250-gr-101514727",
+     "price": 780,
+     "pack": "250 g paket",
+     "unitPrice": 780.0
+    },
+    {
+     "name": "n11 Vitformila Arı Vitamini 100 g",
+     "url": "https://www.n11.com/urun/vitformila-ari-vitamini-100-g-12609325",
+     "price": 195.8,
+     "pack": "100 g paket",
+     "unitPrice": 195.8,
+     "outlier": true
+    },
+    {
+     "name": "n11 Vetorax Vetomin Plus Arı Vitamini 1 L",
+     "url": "https://www.n11.com/urun/vetorax-vetomin-plus-ari-vitamini-amino-asit-mineral-1-lt-101514730",
+     "price": 2520,
+     "pack": "1 L şişe",
+     "unitPrice": 2520.0,
+     "outlier": true
+    }
+   ]
+  },
+  {
+   "key": "tuz",
+   "name": "Tuz (suluk / tuzlu su)",
+   "unit": "kg",
+   "ref": 34.06,
+   "min": 27.82,
+   "max": 59.8,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Salti İyotsuz Kaya Tuzu 10 kg",
+     "url": "https://www.n11.com/urun/salti-iyotsuz-kaya-tuzu-10-kg-1246731",
+     "price": 295,
+     "pack": "10 kg",
+     "unitPrice": 29.5
+    },
+    {
+     "name": "n11 Salti Çankırı Kaya Tuzu 10 kg",
+     "url": "https://www.n11.com/urun/salti-cankiri-kaya-tuzu-10-kg-52780962",
+     "price": 322,
+     "pack": "10 kg",
+     "unitPrice": 32.2
+    },
+    {
+     "name": "n11 Çankırı Rafine Edilmemiş İri Kaya Tuzu 10 kg",
+     "url": "https://www.n11.com/urun/cankiri-rafine-edilmemis-iri-kaya-tuzu-10-kg-1335958",
+     "price": 404.8,
+     "pack": "10 kg",
+     "unitPrice": 40.48
+    },
+    {
+     "name": "n11 Öğütülmüş Çankırı Kaya Tuzu 25 kg",
+     "url": "https://www.n11.com/urun/ogutulmus-cankiri-kaya-tuzu-25-kg-1268602",
+     "price": 695.52,
+     "pack": "25 kg",
+     "unitPrice": 27.82
+    },
+    {
+     "name": "n11 Tuzcu Ahmet İri Taneli Çankırı Kaya Tuzu 5 kg",
+     "url": "https://www.n11.com/urun/tuzcu-ahmet-5-kg-iri-taneli-kristal-cankiri-kaya-tuzu-yesil-etike-5984412",
+     "price": 299,
+     "pack": "5 kg",
+     "unitPrice": 59.8
+    }
+   ]
+  },
+  {
+   "key": "serit_amitraz",
+   "name": "Varroa şeridi — amitraz",
+   "unit": "şerit",
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Ruhsatlı amitraz şerit (Beeraz, Rulamit vb.) reçeteli veteriner ilacı; çevrimiçi Türk satıcıda fiyat bulunamadı — fiyatı kendiniz girin."
+  },
+  {
+   "key": "serit_flumetrin",
+   "name": "Varroa şeridi — flumetrin",
+   "unit": "şerit",
+   "ref": null,
+   "min": 22.5,
+   "max": 22.5,
+   "n": 1,
+   "sources": [
+    {
+     "name": "Muğla Bal Bayvarol (stokta yok)",
+     "url": "https://www.muglabal.com/bayvarol",
+     "price": 450,
+     "pack": "20 şerit (5×4)",
+     "unitPrice": 22.5
+    }
+   ],
+   "note": "Yalnız 1 fiyat bulundu (Bayvarol, stokta yok); ortalama için yetersiz — fiyatı kendiniz girin."
+  },
+  {
+   "key": "serit_taufluvalinat",
+   "name": "Varroa şeridi — tau-fluvalinat",
+   "unit": "şerit",
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Apistan Türkiye’de geçici olarak temin edilemiyor; çevrimiçi fiyat bulunamadı — fiyatı kendiniz girin."
+  },
+  {
+   "key": "serit_koumafos",
+   "name": "Varroa şeridi — koumafos",
+   "unit": "şerit",
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Koumafos şerit (Checkmite) için çevrimiçi Türk satıcıda fiyat bulunamadı — fiyatı kendiniz girin."
+  },
+  {
+   "key": "okzalik",
+   "name": "Okzalik asit",
+   "unit": "paket",
+   "ref": 307.1,
+   "min": 202.0,
+   "max": 430.31,
+   "n": 5,
+   "sources": [
+    {
+     "name": "Avrasya Arıcılık Oksalik Asit 1 kg",
+     "url": "https://www.avrasyaaricilik.com.tr/oksalik-asit-1-kg/",
+     "price": 202,
+     "pack": "1 kg",
+     "unitPrice": 202.0
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Oksalik Asit 1 kg",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-oksalik-asit-1-kg-66827499",
+     "price": 430.31,
+     "pack": "1 kg",
+     "unitPrice": 430.31
+    },
+    {
+     "name": "n11 Oksalik Asit 1 kg (02983)",
+     "url": "https://www.n11.com/urun/oksalik-asit-1-kg-02983-43638453",
+     "price": 350,
+     "pack": "1 kg",
+     "unitPrice": 350.0
+    },
+    {
+     "name": "n11 Luxor Kimya Oksalik Asit 1 kg",
+     "url": "https://www.n11.com/urun/luxor-kimya-oksalik-asit-1-kg-tekli-125464235",
+     "price": 271.4,
+     "pack": "1 kg",
+     "unitPrice": 271.4
+    },
+    {
+     "name": "n11 Oksalik Asit (Okzalik Asit) 1 kg",
+     "url": "https://www.n11.com/urun/oksalik-asit-okzalik-asit-1-kg-30242209",
+     "price": 299.9,
+     "pack": "1 kg",
+     "unitPrice": 299.9
+    }
+   ]
+  },
+  {
+   "key": "formik",
+   "name": "Formik asit",
+   "unit": "paket",
+   "ref": 411.97,
+   "min": 360.0,
+   "max": 456.67,
+   "n": 3,
+   "sources": [
+    {
+     "name": "n11 Avrasya Arıcılık Formik Asit 1 L",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-formik-asit-1-lt-66827294",
+     "price": 411.97,
+     "pack": "1 L",
+     "unitPrice": 411.97
+    },
+    {
+     "name": "n11 Formik Asit 1 L (02982)",
+     "url": "https://www.n11.com/urun/formik-asit-1lt-02982-43638501",
+     "price": 456.67,
+     "pack": "1 L",
+     "unitPrice": 456.67
+    },
+    {
+     "name": "n11 %85 Formik Asit 1 L",
+     "url": "https://www.n11.com/urun/85-formik-asit-1-litre-34198540",
+     "price": 360,
+     "pack": "1 L",
+     "unitPrice": 360.0
+    }
+   ]
+  },
+  {
+   "key": "timol",
+   "name": "Timol",
+   "unit": "paket",
+   "ref": 284.5,
+   "min": 169.0,
+   "max": 400.0,
+   "n": 2,
+   "sources": [
+    {
+     "name": "n11 Varro Stop Thymol Damla",
+     "url": "https://www.n11.com/urun/varro-stop-thymol-damla-54742355",
+     "price": 1008,
+     "pack": "1 paket",
+     "unitPrice": 1008.0,
+     "outlier": true
+    },
+    {
+     "name": "n11 Bee Strips Timolin Varro Şerit",
+     "url": "https://www.n11.com/urun/bee-strips-timolin-varro-serit-39712086",
+     "price": 400,
+     "pack": "1 paket",
+     "unitPrice": 400.0
+    },
+    {
+     "name": "Arıcımarketi Bee Strips Esmolin 20'li Timol Katkılı Şerit",
+     "url": "https://www.aricimarketi.com/urun/timolin-varro-serit-varroa-icin-timol-katkili-serit",
+     "price": 169,
+     "pack": "20 şerit paket",
+     "unitPrice": 169.0
+    }
+   ]
+  },
+  {
+   "key": "nitril",
+   "name": "Nitril eldiven (100’lük kutu)",
+   "unit": "paket",
+   "ref": 358.67,
+   "min": 284.71,
+   "max": 436.1,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Drema Nitril Muayene Eldiveni 100 adet",
+     "url": "https://www.n11.com/urun/drema-nitril-muayene-eldiveni-mavi-1-kutu-100-adet-small-medium-large-137396021",
+     "price": 284.71,
+     "pack": "100’lük kutu",
+     "unitPrice": 284.71
+    },
+    {
+     "name": "n11 Broche Pudrasız Nitril Eldiven 100 adet",
+     "url": "https://www.n11.com/urun/broche-pudrasiz-kobalt-mavi-nitril-eldiven-100-adet-27449648",
+     "price": 356,
+     "pack": "100’lük kutu",
+     "unitPrice": 356.0
+    },
+    {
+     "name": "n11 Dolphin Pudrasız Siyah Nitril Eldiven 100'lü L",
+     "url": "https://www.n11.com/urun/dolphin-pudrasiz-cok-amacli-siyah-nitril-eldiven-100lu-l-2495662",
+     "price": 436.1,
+     "pack": "100’lük kutu",
+     "unitPrice": 436.1
+    },
+    {
+     "name": "n11 Has-Pet Mavi Nitril Muayene Eldiveni 100'lü",
+     "url": "https://www.n11.com/urun/has-pet-mavi-nitril-pudrasiz-muayene-eldiveni-100lu-2494760",
+     "price": 373.8,
+     "pack": "100’lük kutu",
+     "unitPrice": 373.8
+    },
+    {
+     "name": "n11 Mavi Nitril Eldiven Medium 100 adet",
+     "url": "https://www.n11.com/urun/mavi-nitril-eldiven-medium-100-adet-134989457",
+     "price": 346.21,
+     "pack": "100’lük kutu",
+     "unitPrice": 346.21
+    }
+   ]
+  },
+  {
+   "key": "gozluk",
+   "name": "Koruyucu gözlük",
+   "unit": "adet",
+   "ref": 65.34,
+   "min": 34.08,
+   "max": 102.25,
+   "n": 4,
+   "sources": [
+    {
+     "name": "n11 S1551 Ventilli Koruyucu Gözlük",
+     "url": "https://www.n11.com/urun/s1551-ventilli-koruyucu-gozluk-seffaf-google-is-guvenlik-gozlugu-22224810",
+     "price": 102.25,
+     "pack": "1 adet",
+     "unitPrice": 102.25
+    },
+    {
+     "name": "n11 Ozeller19 Koruyucu Gözlük",
+     "url": "https://www.n11.com/urun/ozeller19-koruyucu-gozluk-13193332",
+     "price": 64.34,
+     "pack": "1 adet",
+     "unitPrice": 64.34
+    },
+    {
+     "name": "n11 Baymax S-400 Koruyucu İş Gözlüğü 3 adet",
+     "url": "https://www.n11.com/urun/baymax-s-400-standart-seffaf-koruyucu-capak-is-gozlugu-3-adet-60437279",
+     "price": 199,
+     "pack": "3 adet",
+     "unitPrice": 66.33
+    },
+    {
+     "name": "n11 Baymax S-400 Koruyucu İş Gözlüğü 12 adet",
+     "url": "https://www.n11.com/urun/baymax-s-400-standart-seffaf-koruyucu-capak-is-gozlugu-12-adet-1-kutu-60437169",
+     "price": 409,
+     "pack": "12 adet",
+     "unitPrice": 34.08
+    },
+    {
+     "name": "n11 Baymax BX-2550 Antifog İş Güvenlik Gözlüğü",
+     "url": "https://www.n11.com/urun/baymax-bx-2550-armor-antifog-seffaf-bugu-yapmayan-toz-capak-koruyucu-uv-korumali-laboratuvar-isci-is-guvenlik-gozlugu-124697597",
+     "price": 569,
+     "pack": "1 adet",
+     "unitPrice": 569.0,
+     "outlier": true
+    }
+   ]
+  },
+  {
+   "key": "maske",
+   "name": "Maske / respiratör (asit)",
+   "unit": "adet",
+   "ref": 1162.64,
+   "min": 1048.07,
+   "max": 1420.0,
+   "n": 4,
+   "sources": [
+    {
+     "name": "n11 3M 6200 Yarım Yüz Maske + 6059 ABEK1 filtre",
+     "url": "https://www.n11.com/urun/3m-6200-yarim-yuz-gaz-maskesi-3m-6059-abek1-maske-filtresi-12946794",
+     "price": 1048.07,
+     "pack": "maske + filtre",
+     "unitPrice": 1048.07
+    },
+    {
+     "name": "n11 3M 6200 Yarım Yüz Maske + 6051 A1 filtre",
+     "url": "https://www.n11.com/urun/3m-6200-yarim-yuz-gaz-maskesi-3m-6051-a1-maske-filtresi-12946728",
+     "price": 1081.65,
+     "pack": "maske + filtre",
+     "unitPrice": 1081.65
+    },
+    {
+     "name": "n11 3M 6200 Orta Boy Yarım Yüz Maske + A1 filtre",
+     "url": "https://www.n11.com/urun/3m-6200-orta-boy-yarim-yuz-mask-a1-filtre-takim-12946969",
+     "price": 1420,
+     "pack": "maske + filtre",
+     "unitPrice": 1420.0
+    },
+    {
+     "name": "n11 Milla Vulkano Yarım Yüz Maske Kiti A2P3",
+     "url": "https://www.n11.com/urun/milla-vulkano-maske-kiti-yarim-yuz-maskesi-a2p3-filitre-78972272",
+     "price": 1243.64,
+     "pack": "maske + filtre",
+     "unitPrice": 1243.64
+    }
+   ]
+  },
+  {
+   "key": "arici_eldiven",
+   "name": "Arıcı eldiveni (çift)",
+   "unit": "adet",
+   "ref": 463.65,
+   "min": 290.0,
+   "max": 826.38,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Vinlex Arıcı Eldiveni",
+     "url": "https://www.n11.com/urun/vinlex-arici-eldiveni-vinlex-gloves-12597095",
+     "price": 290,
+     "pack": "1 çift",
+     "unitPrice": 290.0
+    },
+    {
+     "name": "Erdoğan Arıcılık Arıcı Eldiveni Nitril",
+     "url": "https://erdoganaricilik.com/urunler/aricilik-kiyafetleri/arici-eldiveni-su-gecirmez-nitril-s-beden/",
+     "price": 300,
+     "pack": "1 çift",
+     "unitPrice": 300.0
+    },
+    {
+     "name": "n11 Vinleks Arıcı Eldiveni",
+     "url": "https://www.n11.com/urun/vinleks-arici-eldiveni-69933986",
+     "price": 538.75,
+     "pack": "1 çift",
+     "unitPrice": 538.75
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Arıcı Deri Eldiveni",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-arici-deri-eldiveni-66828176",
+     "price": 552.2,
+     "pack": "1 çift",
+     "unitPrice": 552.2
+    },
+    {
+     "name": "n11 Deri Arıcı Eldiveni",
+     "url": "https://www.n11.com/urun/deri-arici-eldiveni-12597051",
+     "price": 826.38,
+     "pack": "1 çift",
+     "unitPrice": 826.38
+    }
+   ]
+  },
+  {
+   "key": "siringa",
+   "name": "Damlatma şırıngası",
+   "unit": "adet",
+   "ref": 538.6,
+   "min": 249.0,
+   "max": 669.11,
+   "n": 4,
+   "sources": [
+    {
+     "name": "Arıcımarketi Pet Şişeye Uyumlu Ölçekli Oksalik Asit Uygulama Şırıngası",
+     "url": "https://www.aricimarketi.com/urun/pet-siseye-uyumlu-olcekli-oksalik-asit-uygulama-siringasi",
+     "price": 249,
+     "pack": "1 adet",
+     "unitPrice": 249.0
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Şişeye Uyumlu Arıcı İlaç Pompası Şırınga",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-siseye-uyumlu-arici-ilac-pompasi-siringa-66827756",
+     "price": 462.2,
+     "pack": "1 adet",
+     "unitPrice": 462.2
+    },
+    {
+     "name": "Avrasya Arıcılık Otomatik Enjektör Hortumlu 5 cc",
+     "url": "https://www.avrasyaaricilik.com.tr/otomatik-enjektor-hortumlu-5-cclik-asi-tabancasi/",
+     "price": 615,
+     "pack": "1 adet",
+     "unitPrice": 615.0
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Oksalik Asit Aparatı Şırınga",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-oksalik-asit-aparati-siringa-66664014",
+     "price": 669.11,
+     "pack": "1 adet",
+     "unitPrice": 669.11
+    }
+   ]
+  },
+  {
+   "key": "buharlastirici",
+   "name": "Okzalik buharlaştırıcı",
+   "unit": "adet",
+   "ref": 6822.44,
+   "min": 4350.0,
+   "max": 14000.0,
+   "n": 5,
+   "sources": [
+    {
+     "name": "Avrasya Arıcılık Oksalik Asit Buhar Aparatı",
+     "url": "https://www.avrasyaaricilik.com.tr/oksalik-asit-buhar-aparati/",
+     "price": 4350,
+     "pack": "1 adet",
+     "unitPrice": 4350.0
+    },
+    {
+     "name": "Avrasya Arıcılık Oksalik Asit Buharlaştırma Aparatı",
+     "url": "https://www.avrasyaaricilik.com.tr/oksalik-asit-buharlastirma-aparati/",
+     "price": 6276,
+     "pack": "1 adet",
+     "unitPrice": 6276.0
+    },
+    {
+     "name": "Arıcımarketi Oksalik Asit Buharlaştırma Aparatı Yaylı Kapaklı",
+     "url": "https://www.aricimarketi.com/urun/oksalik-asit-buharlastirma-aparati-yayli-kapakli-model",
+     "price": 6450,
+     "pack": "1 adet",
+     "unitPrice": 6450.0
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Oksalik Asit Buharlaştırma Aparatı",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-oksalik-asit-buharlastirma-aparati-66827247",
+     "price": 7741.33,
+     "pack": "1 adet",
+     "unitPrice": 7741.33
+    },
+    {
+     "name": "Arıcımarketi Oksalik Asit Buharlaştırıcı",
+     "url": "https://www.aricimarketi.com/urun/oksalik-asit-buharlastirici",
+     "price": 14000,
+     "pack": "1 adet",
+     "unitPrice": 14000.0
+    }
+   ]
+  },
+  {
+   "key": "olcu_kabi",
+   "name": "Ölçü kabı",
+   "unit": "adet",
+   "ref": 229.73,
+   "min": 179.9,
+   "max": 289.9,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Özel Ölçü Kabı 1 L Şeffaf",
+     "url": "https://www.n11.com/urun/ozel-olcu-kabi-1-litre-seffaf-132657360",
+     "price": 245.2,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 245.2
+    },
+    {
+     "name": "n11 1 Litre Ölçü Kabı Şeffaf",
+     "url": "https://www.n11.com/urun/1-litre-olcu-kabi-seffaf-125696643",
+     "price": 238,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 238.0
+    },
+    {
+     "name": "n11 1 Litre Ölçü Kabı Çok Renkli",
+     "url": "https://www.n11.com/urun/1-litre-olcu-kabi-cok-renkli-121098077",
+     "price": 206,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 206.0
+    },
+    {
+     "name": "n11 Plastik Kulplu Ölçü Kabı Beher 1 L",
+     "url": "https://www.n11.com/urun/plastik-kulplu-olcu-kabi-beher-1-litre-seffaf-130026272",
+     "price": 179.9,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 179.9
+    },
+    {
+     "name": "n11 1 Litre Ölçü Kabı",
+     "url": "https://www.n11.com/urun/1-litre-olcu-kabi-121110021",
+     "price": 289.9,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 289.9
+    }
+   ]
+  },
+  {
+   "key": "alt_tabla",
+   "name": "Yapışkanlı alt tabla (akar sayımı)",
+   "unit": "adet",
+   "ref": 65.0,
+   "min": 65.0,
+   "max": 65.0,
+   "n": 2,
+   "sources": [
+    {
+     "name": "ApiMaye Ergonomik Taban Varroa Çekmecesi Küçük",
+     "url": "https://www.apimaye.com.tr/urunler/ergonomik-taban-varroa-cekmecesi-kucuk-937/",
+     "price": 65,
+     "pack": "1 adet",
+     "unitPrice": 65.0
+    },
+    {
+     "name": "Ermiş Arıcılık Apimaye Ergonomik Taban Varroa Çekmecesi Küçük",
+     "url": "https://ermisaricilik.com/urun/apimaye-ergonomik-taban-varroa-cekmecesi-kucuk",
+     "price": 65,
+     "pack": "1 adet",
+     "unitPrice": 65.0
+    }
+   ]
+  },
+  {
+   "key": "alkol_kabi",
+   "name": "Alkol yıkama kabı",
+   "unit": "adet",
+   "ref": 632.5,
+   "min": 600.0,
+   "max": 665.0,
+   "n": 2,
+   "sources": [
+    {
+     "name": "Civan Varroa Tester 3 in 1",
+     "url": "https://www.civan.com.tr/urun/varroa-tester-3-in-1",
+     "price": 600,
+     "pack": "1 adet",
+     "unitPrice": 600.0
+    },
+    {
+     "name": "ApiMaye Varroa Test Aparatı (3’ü 1 arada)",
+     "url": "https://market.apimaye.com.tr/urunler/varroa-test-aparati-ap10411-974/",
+     "price": 665,
+     "pack": "1 adet",
+     "unitPrice": 665.0
+    }
+   ]
+  },
+  {
+   "key": "alkol",
+   "name": "Alkol (akar sayımı için)",
+   "unit": "L",
+   "ref": 317.68,
+   "min": 267.0,
+   "max": 415.99,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Stein %96 Etil 1 L",
+     "url": "https://www.n11.com/urun/stein-96-etil-dezenfektan-kimyasali-1lt-7168373",
+     "price": 267,
+     "pack": "1 L",
+     "unitPrice": 267.0
+    },
+    {
+     "name": "n11 Luxor Kimya İzopropil Alkol %99.9 1 L",
+     "url": "https://www.n11.com/urun/luxor-kimya-spreyli-1-lt-saf-ipa-999-izopropil-alkol-26555008",
+     "price": 289.98,
+     "pack": "1 L",
+     "unitPrice": 289.98
+    },
+    {
+     "name": "n11 İzopropil Alkol %99,8 1 L",
+     "url": "https://www.n11.com/urun/izopropil-alkol-ipa-998-1-lt-14747703",
+     "price": 316.06,
+     "pack": "1 L",
+     "unitPrice": 316.06
+    },
+    {
+     "name": "n11 Stein İzopropil Alkol %99.9 1 L",
+     "url": "https://www.n11.com/urun/stein-yuzde-yuz-saf-999-izopropil-alkol-1-lt-7168038",
+     "price": 347,
+     "pack": "1 L",
+     "unitPrice": 347.0
+    },
+    {
+     "name": "n11 Akbel İzopropil Alkol %99.9 1 L",
+     "url": "https://www.n11.com/urun/akbel-izopropil-alkol-999-saflik-1-lt-7717198",
+     "price": 415.99,
+     "pack": "1 L",
+     "unitPrice": 415.99
+    }
+   ]
+  },
+  {
+   "key": "koruk",
+   "name": "Tütsü körüğü",
+   "unit": "adet",
+   "ref": 870.09,
+   "min": 682.5,
+   "max": 1032.3,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Arı Körüğü Galvaniz",
+     "url": "https://www.n11.com/urun/ari-korugu-arici-korugu-galvaniz-paslanmaz-aricilik-malzemesi-12742167",
+     "price": 682.5,
+     "pack": "1 adet",
+     "unitPrice": 682.5
+    },
+    {
+     "name": "n11 Krom Arıcı Körüğü Tel Kafesli",
+     "url": "https://www.n11.com/urun/krom-arici-korugu-tel-kafesli-koruk-39521965",
+     "price": 700,
+     "pack": "1 adet",
+     "unitPrice": 700.0
+    },
+    {
+     "name": "n11 Galvanizli Deri Arıcı Körüğü",
+     "url": "https://www.n11.com/urun/galvanizli-deri-arici-korugu-138052762",
+     "price": 895.51,
+     "pack": "1 adet",
+     "unitPrice": 895.51
+    },
+    {
+     "name": "n11 Paslanmaz İlaçlama Arıcı Körüğü",
+     "url": "https://www.n11.com/urun/paslanmaz-ilaclama-arici-korugu-138052728",
+     "price": 1014.77,
+     "pack": "1 adet",
+     "unitPrice": 1014.77
+    },
+    {
+     "name": "n11 Paslanmaz Kovalı Deri Arıcı Körüğü",
+     "url": "https://www.n11.com/urun/paslanmaz-kovali-deri-arici-korugu-138052803",
+     "price": 1032.3,
+     "pack": "1 adet",
+     "unitPrice": 1032.3
+    }
+   ]
+  },
+  {
+   "key": "koruk_yakit",
+   "name": "Körük yakıtı (çuval / talaş / pamuk)",
+   "unit": "kg",
+   "ref": 104.74,
+   "min": 100.0,
+   "max": 149.79,
+   "n": 3,
+   "sources": [
+    {
+     "name": "Avrasya Arıcılık Arıcı Körüğü Yakıtı 1 kg",
+     "url": "https://www.avrasyaaricilik.com.tr/arici-korugu-yakiti-1-kg/",
+     "price": 35,
+     "pack": "1 kg",
+     "unitPrice": 35.0,
+     "outlier": true
+    },
+    {
+     "name": "Nurel Arıcılık Körük Yakıtı 500 g",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/koruk-yakiti-500-gr/",
+     "price": 50,
+     "pack": "0,5 kg",
+     "unitPrice": 100.0
+    },
+    {
+     "name": "Arıçobanı Ak Arıcılık Körük Yakıtı 1 kg",
+     "url": "https://www.aricobani.net/urun/ak-aricilik-arici-koruk-yakiti-koruk-dumani-1kg",
+     "price": 104.74,
+     "pack": "1 kg",
+     "unitPrice": 104.74
+    },
+    {
+     "name": "n11 Körük Yakıtı 1000 g",
+     "url": "https://www.n11.com/urun/koruk-yakiti-1000-gr-12740440",
+     "price": 149.79,
+     "pack": "1 kg",
+     "unitPrice": 149.79
+    },
+    {
+     "name": "n11 Lyson Körük Yakıtı Apidou 1 kg",
+     "url": "https://www.n11.com/urun/lyson-ly-32282-koruk-yakiti-apidou-1-kg-12893060",
+     "price": 345,
+     "pack": "1 kg",
+     "unitPrice": 345.0,
+     "outlier": true
+    }
+   ]
+  },
+  {
+   "key": "cakmak",
+   "name": "Çakmak / kibrit",
+   "unit": "paket",
+   "ref": 129.03,
+   "min": 83.3,
+   "max": 296.9,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Kav Kibrit 10 Paket",
+     "url": "https://www.n11.com/urun/kav-kibrit-10-paket-581323",
+     "price": 157.07,
+     "pack": "10 kutu kibrit",
+     "unitPrice": 157.07
+    },
+    {
+     "name": "n11 Kav Kibrit 10 Paket (40 çöp × 10)",
+     "url": "https://www.n11.com/urun/kav-kibrit-10-paket-ortalama-40-cop-x-10-paket-12362890",
+     "price": 296.9,
+     "pack": "10 kutu kibrit",
+     "unitPrice": 296.9
+    },
+    {
+     "name": "n11 Toscow Taşlı Şeffaf Çakmak 50 adet",
+     "url": "https://www.n11.com/urun/toscow-tasli-seffaf-cakmak-50-adet-12360258",
+     "price": 416.52,
+     "pack": "50 çakmak → 10’lu paket",
+     "unitPrice": 83.3
+    },
+    {
+     "name": "n11 Taşlı Çakmak Toscow 50 adet",
+     "url": "https://www.n11.com/urun/tasli-cakmak-toscow-50-adet-12375489",
+     "price": 525.1,
+     "pack": "50 çakmak → 10’lu paket",
+     "unitPrice": 105.02
+    },
+    {
+     "name": "n11 Ardahan Ticaret Manyetolu Çakmak 50 adet",
+     "url": "https://www.n11.com/urun/ardahan-ticaret-cakmak-manyetolu-518-seffaf-50-adet-12360609",
+     "price": 625,
+     "pack": "50 çakmak → 10’lu paket",
+     "unitPrice": 125.0
+    }
+   ]
+  },
+  {
+   "key": "cerceve",
+   "name": "Çerçeve",
+   "unit": "adet",
+   "ref": 58.1,
+   "min": 45.0,
+   "max": 90.5,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 10'lu Telli Arı Çıtası",
+     "url": "https://www.n11.com/urun/10i-telli-ari-citasi-aricilik-malzemesi-yuksek-kaliteli-telli-bal-arisi-kovan-cerceveleribee-slat-49313277",
+     "price": 905,
+     "pack": "10 adet",
+     "unitPrice": 90.5
+    },
+    {
+     "name": "n11 20'li Telli Arı Çıtası",
+     "url": "https://www.n11.com/urun/20li-telli-ari-citasi-aricilik-malzemesi-yuksek-kaliteli-telli-bal-arisi-kovan-cerceveleribee-slat-49313275",
+     "price": 1086,
+     "pack": "20 adet",
+     "unitPrice": 54.3
+    },
+    {
+     "name": "n11 40'lı Telli Arı Çıtası",
+     "url": "https://www.n11.com/urun/40li-telli-ari-citasi-aricilik-malzemesi-yuksek-kaliteli-telli-bal-arisi-kovan-cerceveleri-28636979",
+     "price": 2400,
+     "pack": "40 adet",
+     "unitPrice": 60.0
+    },
+    {
+     "name": "n11 50'li Telli Arı Çıtası",
+     "url": "https://www.n11.com/urun/50li-telli-ari-citasi-aricilik-malzemesi-yuksek-kaliteli-telli-bal-arisi-kovan-cerceveleri-28636864",
+     "price": 3000,
+     "pack": "50 adet",
+     "unitPrice": 60.0
+    },
+    {
+     "name": "n11 Çakılmamış Ahşap Çerçeve 24'lük 10 adet",
+     "url": "https://www.n11.com/urun/cakilmamis-ahsap-cerceve-24luk-10-adet-119776521",
+     "price": 450,
+     "pack": "10 adet",
+     "unitPrice": 45.0
+    }
+   ]
+  },
+  {
+   "key": "temel_petek",
+   "name": "Temel petek",
+   "unit": "adet",
+   "ref": 47.44,
+   "min": 30.74,
+   "max": 56.1,
+   "n": 5,
+   "sources": [
+    {
+     "name": "Arıcımarketi 10 kg Temel Petek Sıcak Döküm",
+     "url": "https://www.aricimarketi.com/urun/toptan-temel-petek-sicak-dokum",
+     "price": 4300,
+     "pack": "10 kg ≈ 135 levha (13,5/kg, 21×41)",
+     "unitPrice": 31.85
+    },
+    {
+     "name": "Arıcımarketi Gür Petek Sıcak Döküm 1 kg",
+     "url": "https://www.aricimarketi.com/urun/toptan-temel-petek-sicak-dokum",
+     "price": 415,
+     "pack": "1 kg ≈ 13,5 levha",
+     "unitPrice": 30.74
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Temel Petek Sıcak Döküm 1 kg",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-temel-petek-sicak-dokum-1-kg-66910453",
+     "price": 757.33,
+     "pack": "1 kg ≈ 13,5 levha",
+     "unitPrice": 56.1
+    },
+    {
+     "name": "n11 Temel Petek Soğuk Döküm 1 kg",
+     "url": "https://www.n11.com/urun/temel-petek-soguk-dokum-1-kg-12594847",
+     "price": 753.5,
+     "pack": "1 kg ≈ 13,5 levha",
+     "unitPrice": 55.81
+    },
+    {
+     "name": "n11 Temel Petek Sıcak Döküm 1 kg",
+     "url": "https://www.n11.com/urun/temel-petek-sicak-dokum-1-kg-12594888",
+     "price": 737.9,
+     "pack": "1 kg ≈ 13,5 levha",
+     "unitPrice": 54.66
+    }
+   ]
+  },
+  {
+   "key": "kat",
+   "name": "Kat / ballık",
+   "unit": "adet",
+   "ref": 1062.5,
+   "min": 500.0,
+   "max": 2210.0,
+   "n": 4,
+   "sources": [
+    {
+     "name": "Akabebal AKB Ahşap Ballık Katı (10 çerçeveli)",
+     "url": "https://akabebal.com/urun/akb-ahsap-ballik-kati-10-cerceveli/",
+     "price": 500,
+     "pack": "1 adet (çıtasız)",
+     "unitPrice": 500.0
+    },
+    {
+     "name": "Aslan Petek Çam Ballık",
+     "url": "https://www.aslanpetek.com/cam-ballik-ari-kovani-ustu-ilave-kat",
+     "price": 875,
+     "pack": "1 adet (çıtasız)",
+     "unitPrice": 875.0
+    },
+    {
+     "name": "Erdoğan Arıcılık Ahşap Ballık",
+     "url": "https://erdoganaricilik.com/urunler/kovan-ve-gerecleri/kovan-cesitleri/ahsap-ballik/",
+     "price": 1250,
+     "pack": "1 adet",
+     "unitPrice": 1250.0
+    },
+    {
+     "name": "İhsaniye Arıcılık Ahşap Kovan Kat - Ballık Çıtasız",
+     "url": "https://www.ihsaniyearicilik.com/ahsap-kovan-kat-ballik-183",
+     "price": 2210,
+     "pack": "1 adet (çıtasız)",
+     "unitPrice": 2210.0
+    }
+   ]
+  },
+  {
+   "key": "kapi_daraltici",
+   "name": "Kapı daraltıcı",
+   "unit": "adet",
+   "ref": 29.5,
+   "min": 24.9,
+   "max": 35.0,
+   "n": 3,
+   "sources": [
+    {
+     "name": "Arıcımarketi Kovan Kapama - Metal Kovan Sürgüsü",
+     "url": "https://www.aricimarketi.com/urun/aricilik-kovan-kapama-metal-kovan-surgusu",
+     "price": 24.9,
+     "pack": "1 adet",
+     "unitPrice": 24.9
+    },
+    {
+     "name": "Arıcı Çarşısı Havalandırmalı Ayarlı Arı Girişi",
+     "url": "https://aricicarsisi.com/ayarli-ari-girisi/",
+     "price": 29.5,
+     "pack": "1 adet",
+     "unitPrice": 29.5
+    },
+    {
+     "name": "Avrasya Arıcılık Plastik Ayarlı Arı Girişi - Mini",
+     "url": "https://www.avrasyaaricilik.com.tr/plastik-ayarli-ari-girisi-mini/",
+     "price": 35,
+     "pack": "1 adet",
+     "unitPrice": 35.0
+    }
+   ]
+  },
+  {
+   "key": "besleyici",
+   "name": "Besleyici (feeder)",
+   "unit": "adet",
+   "ref": 69.0,
+   "min": 45.0,
+   "max": 99.0,
+   "n": 3,
+   "sources": [
+    {
+     "name": "Ege Tarım Kayık Yemlik Şurupluk 1,5 L (çerçeve tipi)",
+     "url": "https://www.egetarim.com.tr/gri-kayik-yemlik-surupluk-1-5-lt--2-kalite----kovan-ici-cerceve-tipi-ari-besleme-aparati-gri-kayik-yemlik-surupluk-1-5-lt--2-kalite----kovan-ici-cerceve-tipi-ari-besleme-aparati",
+     "price": 45,
+     "pack": "1 adet",
+     "unitPrice": 45.0
+    },
+    {
+     "name": "n11 10 Adet Plastik Arı Yemliği",
+     "url": "https://www.n11.com/urun/10-adet-plastik-ari-yemligi-12604534",
+     "price": 690,
+     "pack": "10 adet",
+     "unitPrice": 69.0
+    },
+    {
+     "name": "Arıcımarketi Çerçeve Tipi Bölme Yemlik - Gri",
+     "url": "https://www.aricimarketi.com/urun/aricilik-cerceve-tipi-bolme-ari-yemligi-gri",
+     "price": 99,
+     "pack": "1 adet",
+     "unitPrice": 99.0
+    }
+   ]
+  },
+  {
+   "key": "ana_izgarasi",
+   "name": "Ana ızgarası",
+   "unit": "adet",
+   "ref": 380.58,
+   "min": 240.71,
+   "max": 599.28,
+   "n": 5,
+   "sources": [
+    {
+     "name": "n11 Avrasya Arıcılık Ana Arı Izgarası Plastik",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-ana-ari-izgarasi-plastik-66664050",
+     "price": 240.71,
+     "pack": "1 adet",
+     "unitPrice": 240.71
+    },
+    {
+     "name": "n11 Ana Arı Izgarası Plastik",
+     "url": "https://www.n11.com/urun/ana-ari-izgarasi-plastik-138052726",
+     "price": 296.73,
+     "pack": "1 adet",
+     "unitPrice": 296.73
+    },
+    {
+     "name": "n11 Ergonomik Kovan Ana Arı Izgarası 42×49",
+     "url": "https://www.n11.com/urun/ergonomik-kovan-ana-ari-izgarasi-42x49-aricilik-12596848",
+     "price": 345,
+     "pack": "1 adet",
+     "unitPrice": 345.0
+    },
+    {
+     "name": "n11 Ana Arı Izgarası Metal",
+     "url": "https://www.n11.com/urun/ana-ari-izgarasi-metal-36594542",
+     "price": 500,
+     "pack": "1 adet",
+     "unitPrice": 500.0
+    },
+    {
+     "name": "n11 Avrasya Arıcılık Ana Arı Izgarası Metal",
+     "url": "https://www.n11.com/urun/avrasya-aricilik-ana-ari-izgarasi-metal-66910619",
+     "price": 599.28,
+     "pack": "1 adet",
+     "unitPrice": 599.28
+    }
+   ]
+  },
+  {
+   "key": "dezenfektan",
+   "name": "Dezenfektan",
+   "unit": "L",
+   "ref": 133.5,
+   "min": 81.14,
+   "max": 179.0,
+   "n": 4,
+   "sources": [
+    {
+     "name": "n11 Çamaşır Suyu 4 L",
+     "url": "https://www.n11.com/urun/camasir-suyu-4-lt-diger-120217576",
+     "price": 324.55,
+     "pack": "4 L",
+     "unitPrice": 81.14
+    },
+    {
+     "name": "n11 Ace Çamaşır Suyu 4 L",
+     "url": "https://www.n11.com/urun/ace-camasir-suyu-4-lt-tekli-125395607",
+     "price": 506.19,
+     "pack": "4 L",
+     "unitPrice": 126.55
+    },
+    {
+     "name": "n11 Nily Bleach Kıvamlı Çamaşır Suyu 5 L",
+     "url": "https://www.n11.com/urun/nily-bleach-kivamli-camasir-suyu-5-lt54-kg-tekli-118991047",
+     "price": 702.19,
+     "pack": "5 L",
+     "unitPrice": 140.44
+    },
+    {
+     "name": "n11 Bioxi Beezy Arıcılık ve Koloni Dezenfektanı 5 L",
+     "url": "https://www.n11.com/urun/bioxi-beezy-aricilik-ve-koloni-dezenfektani-5-lt-20181137",
+     "price": 895,
+     "pack": "5 L",
+     "unitPrice": 179.0
+    }
+   ]
+  },
+  {
+   "key": "kaziyici",
+   "name": "Kazıyıcı / el aleti",
+   "unit": "adet",
+   "ref": 224.5,
+   "min": 172.9,
+   "max": 299.0,
+   "n": 4,
+   "sources": [
+    {
+     "name": "n11 Arıcı El Demiri Plastik Saplı Kazımalı",
+     "url": "https://www.n11.com/urun/arici-el-demiri-plastik-sapli-kazimali-12742210",
+     "price": 172.9,
+     "pack": "1 adet",
+     "unitPrice": 172.9
+    },
+    {
+     "name": "n11 Arıcı Çok Fonksiyonlu El Demiri",
+     "url": "https://www.n11.com/urun/arici-cok-fonksiyonlu-el-demiri-12594293",
+     "price": 199,
+     "pack": "1 adet",
+     "unitPrice": 199.0
+    },
+    {
+     "name": "n11 Mini Arıcı El Demiri Galvanizli",
+     "url": "https://www.n11.com/urun/mini-arici-el-demiri-galvanizli-12594703",
+     "price": 250,
+     "pack": "1 adet",
+     "unitPrice": 250.0
+    },
+    {
+     "name": "n11 Astor Plastik Saplı J Tipi Arıcı El Demiri",
+     "url": "https://www.n11.com/urun/astor-plastik-sapli-j-tipi-arici-el-demiri-12594116",
+     "price": 299,
+     "pack": "1 adet",
+     "unitPrice": 299.0
+    }
+   ]
+  }
+ ]
+}
