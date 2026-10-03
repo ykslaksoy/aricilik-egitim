@@ -1011,8 +1011,15 @@
   .st-src.mt { background: #e7f5ff; color: #1864ab; }
   .st-src.e { background: #f1f3f5; color: #495057; }
   .st-src.el { background: #f3e8ff; color: #6b21a8; }
-  /* koloni-75: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
+  /* koloni-76: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
   .st-form [hidden] { display: none !important; }
+  .st-tag.skt { background: #fff4e6; color: #a14a00; }
+  .st-sktf { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; font-size: 11.5px; font-weight: 800; color: var(--brown-mid); }
+  .st-vt { display: inline-flex; gap: 2px; padding: 2px; border-radius: 999px; background: #f3ead2; flex: 0 0 auto; }
+  .st-vt button { min-height: 32px; padding: 2px 10px; border: 0; border-radius: 999px; background: transparent; font: inherit; font-size: 12px; font-weight: 800; color: var(--brown-mid); cursor: pointer; position: relative; }
+  .st-vt button::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+  .st-vt button[aria-pressed="true"] { background: #fff; color: var(--brown); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .st-where { font-size: 11.5px; font-weight: 700; color: #6b4a1f; line-height: 1.35; overflow-wrap: anywhere; }
   .screen.st-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .screen.st-scroll .grid { flex: 0 0 auto; grid-template-rows: none; padding-bottom: 8px; }
   .st-catops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
@@ -1020,7 +1027,7 @@
   .st-rm { min-height: 36px; padding: 2px 10px; border-radius: 10px; border: 1px solid #ffc9c9; background: #fff5f5; color: var(--red); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; align-self: flex-start; }
   .st-sel { font: inherit; font-size: 16px; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 1px solid #d8d2c6; background: #fff; color: var(--text); width: 100%; }
   .st-grp { margin: 6px 2px 0; font-size: 12px; font-weight: 800; color: var(--brown-mid); text-transform: uppercase; letter-spacing: .03em; }
-  .st-sec { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 10px 2px 0; padding-bottom: 4px; border-bottom: 2px solid var(--card-border); min-width: 0; }
+  .st-sec { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 8px; margin: 10px 2px 0; padding-bottom: 4px; border-bottom: 2px solid var(--card-border); min-width: 0; }
   .st-sec b { font-size: 16px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
   .st-sec span { font-size: 13px; font-weight: 800; color: var(--brown-mid); white-space: nowrap; }
   .st-sec span .st-fchip { margin-right: 8px; vertical-align: middle; }
@@ -1160,14 +1167,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-75"></script>
-<script src="koloni.js?v=koloni-75"></script>
-<script src="ilac-katalog.js?v=koloni-75"></script>
-<script src="bakim-plan.js?v=koloni-75"></script>
-<script src="kapsam.js?v=koloni-75"></script>
-<script src="rapor-store.js?v=koloni-75"></script>
-<script src="fiyat-live.js?v=koloni-75"></script>
-<script src="stok-talep.js?v=koloni-75"></script>
+<script src="demo-data.js?v=koloni-76"></script>
+<script src="koloni.js?v=koloni-76"></script>
+<script src="ilac-katalog.js?v=koloni-76"></script>
+<script src="bakim-plan.js?v=koloni-76"></script>
+<script src="kapsam.js?v=koloni-76"></script>
+<script src="rapor-store.js?v=koloni-76"></script>
+<script src="fiyat-live.js?v=koloni-76"></script>
+<script src="stok-talep.js?v=koloni-76"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1250,6 +1257,10 @@
   /* ---- Durum ---- */
   function isOut(x) { return x.qty <= 0; }
   function isLow(x) { return x.low && x.qty > 0; }
+  /* SKT (son kullanma, yalnız ilaç): geçti / ≤60 gün yaklaşıyor — yalnız Stok › İlaç içinde gösterilir (Uyarılar'a gitmez) */
+  var SKT_DAYS = 60;
+  function sktDays(x) { if (!x || !x.skt) return null; var a = Date.parse(x.skt + 'T00:00:00Z'), b = Date.parse(today() + 'T00:00:00Z'); return isFinite(a) ? Math.round((a - b) / 86400000) : null; }
+  function sktState(x) { var d = sktDays(x); return d == null ? '' : (d < 0 ? 'gecti' : (d <= SKT_DAYS ? 'yakin' : 'ok')); }
   function lastIn(list) { var d = ''; list.forEach(function (x) { x.log.forEach(function (l) { if (l.delta > 0 && l.date > d) d = l.date; }); }); return d; }
   function apName(scope) { var a = ctl && scope !== 'all' ? ctl.apOf(scope) : null; return a ? a.name : ''; }
   function apShort(scope) { var nm = apName(scope); return nm ? nm.split(/\s+/)[0] : 'Tüm arılıklar'; }
@@ -1265,7 +1276,22 @@
   var view = readHash(), form = null, amt = null, lastNeed = null, needKey = '';
   function curScope() { return ctl ? ctl.scope() : 'all'; }
   var refBusy = false, buyEdit = false, confirmAct = null, detailPushed = false, srcOpen = {};
-  var kalem = null, catEdit = false; /* «Kalem ekle» formu (Alım talebi / talep ayrıntısı) · kullanıcı kategorisi yeniden adlandırma */
+  var kalem = null, catEdit = false;
+  /* Liste görünümü: «Kaleme göre» (gruplar) / «Satıcıya göre» (en uygun kaynak) — cihazda hatırlanır */
+  var VT_KEY = 'superari.stok.gorunum.v1';
+  function bySeller() { try { return localStorage.getItem(VT_KEY) === 'satici'; } catch (e) { return false; } }
+  function vtHtml() { var on = bySeller(); return '<span class="st-vt" role="group" aria-label="Liste görünümü"><button type="button" data-vt="kalem" aria-pressed="' + !on + '">Kaleme göre</button><button type="button" data-vt="satici" aria-pressed="' + on + '">Satıcıya göre</button></span>'; }
+  function whereHtml(key) { var w = TQ.whereToBuy ? TQ.whereToBuy(key) : []; return w.length ? '<p class="st-where">Şuradan alınabilir: ' + esc(w.join(' · ')) + '</p>' : ''; }
+  function withExtra(card, extra) { if (!extra) return card; var i = card.lastIndexOf('</article>'); return i < 0 ? card + extra : card.slice(0, i) + extra + card.slice(i); }
+  /** Satıcıya göre gruplar: «Apimaye: 4 kalem · ≈ X ₺»; fiyatsızlar «Fiyat bulunamadı» + bilinen satış kanalı */
+  function sellerHtml(lines, render, filt) {
+    var sg = TQ.sellerGroups(lines.filter(function (l) { return !filt || filt(l); })), h = '';
+    sg.sellers.concat(sg.unknown.n ? [sg.unknown] : []).forEach(function (g) {
+      h += '<div class="st-grp">' + esc(g.name) + ': ' + g.n + ' kalem · ≈ ' + money(g.total) + '</div>' + g.lines.map(function (l) { return render(l, ''); }).join('');
+    });
+    if (sg.none.n) h += '<div class="st-grp">Fiyat bulunamadı: ' + sg.none.n + ' kalem</div>' + sg.none.lines.map(function (l) { return render(l, whereHtml(l.key)); }).join('');
+    return h || '<p class="st-empty">Alınacak kalem yok.</p>';
+  } /* «Kalem ekle» formu (Alım talebi / talep ayrıntısı) · kullanıcı kategorisi yeniden adlandırma */
   /* «N fiyatsız» dokununca yalnız fiyatsız kalemler; «Tümü» ile hepsi (sayfa/görünüm değişince sıfırlanır) */
   var missOnly = false;
   function isMiss(l) { return l.buy > 0 && (!l.price || l.price.v == null); }
@@ -1296,7 +1322,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-75'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-76'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1398,9 +1424,11 @@
   }
   function itemCard(x) {
     var last = x.log.slice(-3).reverse(), ft = x.feedType ? (R.FEED_TYPES.filter(function (f) { return f.key === x.feedType; })[0] || {}).label : '';
-    var meta = (x.threshold ? 'eşik ' + n1(x.threshold) + ' ' + x.unit : 'eşik yok') + (ft ? ' · besleme: ' + ft : '') + (x.note ? ' · ' + x.note : '');
+    var ss = sktState(x);
+    var meta = (x.threshold ? 'eşik ' + n1(x.threshold) + ' ' + x.unit : 'eşik yok') + (x.skt ? ' · SKT ' + fmt(x.skt) + (ss === 'gecti' ? ' (talepte mevcut sayılmaz)' : '') : '') + (ft ? ' · besleme: ' + ft : '') + (x.note ? ' · ' + x.note : '');
     var h = '<article class="st-card' + (isOut(x) || isLow(x) ? ' low' : '') + '" data-item="' + esc(x.id) + '"><div class="st-top"><div class="st-name"><b>' + esc(x.name) + '</b>' +
       (x.demo ? '<span class="st-tag">Demo</span>' : '') + (isOut(x) ? '<span class="st-tag red">Tükendi</span>' : (isLow(x) ? '<span class="st-tag red">Azaldı</span>' : '')) +
+      (ss === 'gecti' ? '<span class="st-tag red">SKT geçti</span>' : (ss === 'yakin' ? '<span class="st-tag skt">SKT yaklaşıyor</span>' : '')) +
       '<small>' + esc(meta) + '</small></div><div class="st-qty' + (isOut(x) || isLow(x) ? ' low' : '') + '">' + n1(x.qty) + ' ' + esc(x.unit) + '</div></div>' +
       (last.length ? '<div class="st-log">' + last.map(function (l) { return '<span>' + esc(fmt(l.date)) + ' · ' + (l.delta > 0 ? '+' : '') + n1(l.delta) + ' ' + esc(x.unit) + ' · ' + esc(l.reason) + '</span>'; }).join('') + '</div>' : '');
     if (amt && amt.id === x.id) {
@@ -1450,7 +1478,8 @@
       '<label class="full">Besleme türü eşleşmesi (Hızlı kayıt › Besleme)<select class="st-in" name="feedType"><option value="">Yok</option>' +
         R.FEED_TYPES.map(function (t) { return '<option value="' + t.key + '"' + (t.key === v.feedType ? ' selected' : '') + '>' + esc(t.label + ' (' + t.unit + ')') + '</option>'; }).join('') + '</select></label>' +
       '<label class="full">Not<input class="st-in" name="note" maxlength="200" value="' + esc(v.note || '') + '"></label>' +
-      (cat === 'ilac' ? '<p class="st-hint full" style="margin:0;">İlaç: miktar yalnız şerit / paket sayısıdır; uygulama doz yazmaz. Etiket dozunu kontrol edin.</p>' : '') +
+      (cat === 'ilac' ? '<label class="full">Son kullanma tarihi (SKT, isteğe bağlı)<input class="st-in" type="date" name="skt" value="' + esc(v.skt || '') + '"></label>' +
+        '<p class="st-hint full" style="margin:0;">İlaç: miktar yalnız şerit / paket sayısıdır; uygulama doz yazmaz. Etiket dozunu kontrol edin. SKT’si geçen ilaç alım talebinde mevcut sayılmaz.</p>' : '') +
       '<button type="submit" class="st-btn in full">Kaydet</button>' +
       '<button type="button" class="st-btn" data-form-cancel' + (it ? '' : ' style="grid-column:1 / -1;"') + '>Vazgeç</button>' + (it ? '<button type="button" class="st-btn del" data-del="' + esc(it.id) + '">Sil</button>' : '') +
       '</form>';
@@ -1460,6 +1489,10 @@
     var low = its.filter(isLow).length, out = its.filter(isOut).length;
     var sub = its.length + ' kalem' + (low ? ' · ' + low + ' azalan' : '') + (out ? ' · ' + out + ' tükenen' : '') + ' · stok tüm arılıklar için ortak';
     var h = head(catLbl(key), sub), custom = S.isBuiltinCat && !S.isBuiltinCat(key);
+    if (key === 'ilac') {
+      var sg = its.filter(function (x) { return sktState(x) === 'gecti'; }), sy = its.filter(function (x) { return sktState(x) === 'yakin'; });
+      if (sg.length || sy.length) h += '<p class="st-warn" role="status">' + [sg.length ? '⚠ SKT geçti: ' + sg.map(function (x) { return x.name; }).join(', ') + ' — alım talebinde mevcut sayılmaz' : '', sy.length ? 'SKT yaklaşıyor (≤' + SKT_DAYS + ' gün): ' + sy.map(function (x) { return x.name + ' (' + fmt(x.skt) + ')'; }).join(', ') : ''].filter(Boolean).map(esc).join('<br>') + '</p>';
+    }
     if (form && !form.id) h += formHtml();
     else h += '<button type="button" class="st-new" data-new="' + key + '"><span aria-hidden="true">＋</span> Yeni kalem</button>';
     if (form && form.id) h += formHtml();
@@ -1559,7 +1592,8 @@
     h += '</section>' + (kalem && !kalem.tid ? kalemFormHtml() : '<button type="button" class="st-new" data-kalem-open><span aria-hidden="true">＋</span> Kalem ekle (listede olmayan)</button>') + savedListHtml(scope);
     h += '<p class="st-hint">Muayeneye göre: son ' + TQ.RULES.INSPECT_DAYS + ' günde muayene edilen kovanın bulguları. Tahmin: muayenesiz kovan için mevsim, ırk (kışlık hedef) ve bilinen güç; tahmin payı eklenir, kovan muayene edilince yerini gerçek ihtiyaç alır. İlaçta yalnız etiket şerit dozu; dozu bilinmeyen ürün yalnız paket sayısıyla «Teyit» işaretli. Fiyat sırası: sizin fiyatınız → kaynak ortalaması (≈, piyasa fiyatı değildir) → «fiyat girin».</p>';
     if (scope === 'all') {
-      h += '<div class="st-sec"><b>Toplam talep</b><span>' + missChip(rq.missing) + money(rq.total) + '</span></div>' + groupsHtml(rq.combined.lines, 'all', true);
+      h += '<div class="st-sec"><b>Toplam talep</b>' + vtHtml() + '<span>' + missChip(rq.missing) + money(rq.total) + '</span></div>' +
+        (bySeller() ? sellerHtml(rq.combined.lines, function (l, x) { return withExtra(lineHtml(l, 'all', true), x); }, function (l) { return !missOnly || isMiss(l); }) : groupsHtml(rq.combined.lines, 'all', true));
       h += '<div class="st-sec"><b>Arılık bazında</b><span>stok sırayla paylaştırıldı</span></div>';
       rq.sections.concat([rq.ortak]).forEach(function (s) {
         if (missOnly && !s.missing) return;
@@ -1568,10 +1602,13 @@
           (s.ortak ? 'dayanıklı aletler bir kez + stok eşikleri' : s.hives + ' kovan · ' + s.insp + ' muayeneli · ' + s.fc + ' tahmin') + (s.missing ? ' · ' + s.missing + ' fiyatsız' : '') + '</small></span><span class="st-qty">' + money(s.subtotal) + '</span></span>' +
           '<span class="st-mini">' + (buys.length ? buys.map(function (l) { return esc(l.name.replace(/ \(.*\)$/, '') + ' ' + n1(l.buy) + ' ' + l.unit); }).join(' · ') : 'alınacak yok') + '</span></button>';
       });
+    } else if (bySeller()) {
+      h += '<div class="st-sec"><b>Toplam talep</b>' + vtHtml() + '<span>' + missChip(rq.missing) + money(rq.total) + '</span></div>' +
+        sellerHtml(rq.combined.lines, function (l, x) { return withExtra(lineHtml(l, 'all', true), x); }, function (l) { return !missOnly || isMiss(l); });
     } else {
-      rq.sections.concat([rq.ortak]).forEach(function (s) {
+      rq.sections.concat([rq.ortak]).forEach(function (s, si) {
         if (missOnly && !s.missing) return;
-        h += '<div class="st-sec"><b>' + esc(s.name) + '</b><span>' + missChip(s.missing) + money(s.subtotal) + '</span></div>' + groupsHtml(s.lines, s.ortak ? 'ortak' : s.id, true);
+        h += '<div class="st-sec"><b>' + esc(s.name) + '</b>' + (si === 0 ? vtHtml() : '') + '<span>' + missChip(s.missing) + money(s.subtotal) + '</span></div>' + groupsHtml(s.lines, s.ortak ? 'ortak' : s.id, true);
       });
     }
     h += '<p class="st-hint">Stok tüm arılıklar için ortaktır. Tahmin kuralları: arılı çerçeve bilinmiyorsa ' + TQ.RULES.BEE_DEFAULT + ' varsayılır; kışlık stok bilinmiyorsa hedefin %' + Math.round(TQ.RULES.UNKNOWN_STORE_FRAC * 100) + '’i beslenir (1 L 2:1 şurup ≈ 0,89 kg şeker, ≈ 0,8 kg kışlık stok); kovan başına en çok 15 L 2:1 şurup (≈ ' + String(TQ.HIVE_CAP.seker).replace('.', ',') + ' kg şeker), 4 kg kek, 4 şerit — açık daha büyükse kek ve birleştirme; tahmin payı yalnız kovan başı sarfa bir kez eklenir; eldiven / körük yakıtı ' + TQ.RULES.VISITS + ' ziyaret üzerinden.</p>';
@@ -1627,6 +1664,10 @@
     groups.sort(function (a, b) { return (order[a] == null ? 99 : order[a]) - (order[b] == null ? 99 : order[b]); });
     if ((st === 'acik' || st === 'kismen') && !buyEdit) h += kalem && kalem.tid === t.id ? kalemFormHtml() : '<button type="button" class="st-new" data-kalem-open><span aria-hidden="true">＋</span> Kalem ekle</button>';
     var body = '';
+    if (!buyEdit && bySeller()) {
+      body = '<div class="st-sec"><b>Kalemler</b>' + vtHtml() + '</div>' + sellerHtml(t.lines.map(function (l, i) { var c = Object.assign({}, l); c.__i = i; return c; }), function (l, x) { return withExtra(buyLine(t, t.lines[l.__i], l.__i, off), x); }, function (l) { return !missOnly || l.price == null || !(Number(l.price) > 0); });
+      groups = [];
+    } else if (!buyEdit) body = '<div class="st-sec"><b>Kalemler</b>' + vtHtml() + '</div>';
     groups.forEach(function (g) {
       var gb = '';
       t.lines.forEach(function (l, i) { if (l.group === g && (!missOnly || l.price == null || !(Number(l.price) > 0))) gb += buyEdit ? buyLineEdit(t, l, i) : buyLine(t, l, i, off); });
@@ -1646,7 +1687,7 @@
     var stt = TQ.statusOf(t), open = stt === 'acik' || stt === 'kismen';
     var q = l.got && l.got.q > 0 ? l.got.q : 0, pp = q && l.got.p > 0 ? l.got.p : null;
     var est = l.price != null ? l.price : null, act = q && pp != null ? Math.round(q * pp * 100) / 100 : null;
-    var sub = [apsTxt(l), l.stk && l.stk.a ? 'stoğa işlendi: ' + n1(l.stk.a) + ' ' + l.unit : ''].filter(Boolean).join(' · ');
+    var sub = [apsTxt(l), l.stk && l.stk.a ? 'stoğa işlendi: ' + n1(l.stk.a) + ' ' + l.unit : '', l.skt ? 'SKT ' + fmt(l.skt) : ''].filter(Boolean).join(' · ');
     var h = '<article class="st-card st-tline' + (q ? ' got' : '') + (off ? ' is-off' : '') + '"><div class="st-top"><div class="st-name"><b>' + esc(l.name) + '</b>' +
       (q ? '<span class="st-stat tamam">' + (q + 1e-9 < l.buy ? 'Alındı · eksik ' + n1(l.buy - q) : 'Alındı') + '</span>' : '') + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div>' +
       (open ? '<div class="st-cols"><span><i>Gerekli</i><b>' + n1(l.need) + ' ' + esc(l.unit) + '</b></span><span><i>Stokta</i><b>' + n1(l.have) + ' ' + esc(l.unit) + '</b></span><span class="buy"><i>Alınacak</i><b>' + n1(l.buy) + ' ' + esc(l.unit) + '</b></span></div>' +
@@ -1666,7 +1707,8 @@
     return '<div class="st-card st-tline" data-bi="' + i + '"><div class="st-name"><b>' + esc(l.name) + '</b><small>Planlanan ' + n1(l.buy) + ' ' + esc(l.unit) + (l.price != null ? ' · tahmini ' + money2(l.price) + ' / ' + esc(l.unit) : ' · tahmini fiyat yok') +
       (l.stk && l.stk.a ? ' · stoğa işlenen ' + n1(l.stk.a) + ' ' + esc(l.unit) : '') + '</small></div>' +
       '<div class="st-buyrow"><label class="st-pfield"><input name="q' + i + '" type="text" inputmode="decimal" autocomplete="off" value="' + (q === '' ? '' : esc(numTr(q))) + '" placeholder="Alınan" data-plan="' + esc(numTr(l.buy)) + '" aria-label="' + esc(l.name) + ' alınan miktar (' + esc(l.unit) + ')"><span>' + esc(l.unit) + '</span></label>' +
-      '<label class="st-pfield"><input name="p' + i + '" type="text" inputmode="decimal" autocomplete="off"' + (l.price != null ? ' data-est="' + esc(numTr(l.price)) + '"' : '') + ' value="' + (pp === '' ? '' : esc(numTr(pp))) + '" placeholder="' + (l.price != null ? '≈ ' + esc(numTr(l.price)) : 'Ödenen') + '" aria-label="' + esc(l.name) + ' ödenen birim fiyat (₺ / ' + esc(l.unit) + ')"><span>₺ / ' + esc(l.unit) + '</span></label></div></div>';
+      '<label class="st-pfield"><input name="p' + i + '" type="text" inputmode="decimal" autocomplete="off"' + (l.price != null ? ' data-est="' + esc(numTr(l.price)) + '"' : '') + ' value="' + (pp === '' ? '' : esc(numTr(pp))) + '" placeholder="' + (l.price != null ? '≈ ' + esc(numTr(l.price)) : 'Ödenen') + '" aria-label="' + esc(l.name) + ' ödenen birim fiyat (₺ / ' + esc(l.unit) + ')"><span>₺ / ' + esc(l.unit) + '</span></label></div>' +
+      (l.group === 'ilac' || l.cat === 'ilac' ? '<label class="st-sktf">SKT (isteğe bağlı)<input class="st-in" type="date" name="skt' + i + '" value="' + esc(l.skt || '') + '" aria-label="' + esc(l.name) + ' son kullanma tarihi"></label>' : '') + '</div>';
   }
   function talepText(t) {
     var st = TQ.statusOf(t), sm = TQ.talepSums(t);
@@ -1678,6 +1720,13 @@
     });
     lines.push('Tahmini toplam: ' + (Number(t.total) > 0 ? money(t.total) : 'fiyatsız') + (missN(t) && Number(t.total) > 0 ? ' · ' + missN(t) + ' kalem fiyatsız' : '') + ' · tahmin payı %' + t.tol + ' · fiyat tarihi ' + (t.priceRefDate || '—'));
     if (sm.bought) lines.push('Gerçek toplam: ' + money(sm.act) + ' · fark ' + (sm.diff > 0 ? '+' : '') + money(sm.diff) + ' (' + sm.bought + '/' + sm.n + ' kalem alındı)');
+    if (TQ.sellerGroups) {
+      var sg = TQ.sellerGroups(t.lines);
+      lines.push('', 'Satıcıya göre (en uygun kaynak):');
+      sg.sellers.concat(sg.unknown.n ? [sg.unknown] : []).forEach(function (g) { lines.push('• ' + g.name + ': ' + g.n + ' kalem · ≈ ' + money(g.total) + ' — ' + g.lines.map(function (l) { return l.name; }).join(', ')); });
+      if (sg.none.n) lines.push('• Fiyat bulunamadı: ' + sg.none.n + ' kalem — ' + sg.none.lines.map(function (l) { var w = TQ.whereToBuy(l.key); return l.name + (w.length ? ' (Şuradan alınabilir: ' + w.join(' · ') + ')' : ''); }).join(', '));
+      lines.push('');
+    }
     lines.push('Tahmini fiyatlar piyasa fiyatı değildir.');
     return lines.join('\n');
   }
@@ -1836,6 +1885,7 @@
     if ((b = t.closest('[data-form-cancel]'))) { form = null; if (view === 'yeni') { go(''); return; } rerender(); return; }
     if ((b = t.closest('[data-in],[data-out]'))) { amt = { id: b.getAttribute('data-in') || b.getAttribute('data-out'), inn: b.hasAttribute('data-in') }; rerender(); var inp = document.querySelector('[data-amt-form] input'); if (inp) inp.focus(); return; }
     if ((b = t.closest('[data-amt-cancel]'))) { amt = null; rerender(); return; }
+    if ((b = t.closest('[data-vt]'))) { try { localStorage.setItem(VT_KEY, b.getAttribute('data-vt')); } catch (e2) { /* ignore */ } srcOpen = {}; rerender(); return; }
     if ((b = t.closest('[data-kalem-open]'))) { kalem = { tid: view.indexOf('talep-') === 0 ? view.slice(6) : '' }; rerender(); focusKalem(); return; }
     if ((b = t.closest('[data-kalem-cancel]'))) { kalem = null; rerender(); return; }
     if ((b = t.closest('[data-el-del]'))) { if (TQ.removeManual(b.getAttribute('data-el-del'))) { needKey = ''; toast('Kalem kaldırıldı'); } return; }
@@ -2019,7 +2069,7 @@
       e.preventDefault();
       var rc = resolveCat(f); if (!rc.ok) return;
       var saved = S.save({ id: form && form.id ? form.id : undefined, name: f.elements.name.value, category: rc.cat, unit: f.elements.unit.value,
-        qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value });
+        qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value, skt: f.elements.skt ? f.elements.skt.value : '' });
       if (!saved) return;
       toast('Kaydedildi · ' + saved.name);
       form = null;
@@ -2058,14 +2108,15 @@
         var qs = String(qe.value).trim(), ps = String(pe.value).trim();
         var qn = qs ? TQ.parseNum(qs) : 0, pn = ps ? TQ.parseNum(ps) : null;
         if (qs && !(qn >= 0)) bad = bad || qe; if (ps && !(pn > 0)) bad = bad || pe;
-        entries.push({ i: i, q: qn > 0 ? qn : 0, p: pn > 0 ? pn : null });
+        var ske = f.elements['skt' + i];
+        entries.push({ i: i, q: qn > 0 ? qn : 0, p: pn > 0 ? pn : null, skt: ske ? ske.value : '' });
       });
       if (bad) { alert('Geçerli bir sayı girin (ör. 12 veya 42,50).'); bad.focus(); return; }
       buyEdit = false;
       var res = TQ.recordPurchase(tid, entries, { stock: f.elements.stock.checked, savePrice: f.elements.price.checked });
       if (!res) { rerender(); return; }
       needKey = '';
-      toast('Alım kaydedildi' + (res.moves.length ? ' · stoğa ' + res.moves.length + ' hareket' : '') + (res.created.length ? ' · ' + res.created.length + ' yeni stok kalemi' : '') + (res.prices ? ' · ' + res.prices + ' fiyat' : ''));
+      toast('Alım kaydedildi' + (res.skt ? ' · SKT ' + res.skt + ' kalemde' : '') + (res.moves.length ? ' · stoğa ' + res.moves.length + ' hareket' : '') + (res.created.length ? ' · ' + res.created.length + ' yeni stok kalemi' : '') + (res.prices ? ' · ' + res.prices + ' fiyat' : ''));
       changed(); $('stPanel').scrollTop = 0; return;
     }
     if (f.hasAttribute('data-amt-form')) {
@@ -2097,7 +2148,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-75"></script>
-<script src="pwa.js?v=koloni-75"></script>
+<script src="nav.js?v=koloni-76"></script>
+<script src="pwa.js?v=koloni-76"></script>
 </body>
 </html>

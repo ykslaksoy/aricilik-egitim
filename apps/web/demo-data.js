@@ -4437,6 +4437,7 @@
     var q = numIn(it.qty, -100000, 1000000); o.qty = q == null ? 0 : q;
     var th = numIn(it.threshold, 0, 1000000); o.threshold = th == null ? 0 : th;
     if (it.feedType && FEED_LABEL[it.feedType]) o.feedType = it.feedType;
+    if (o.category === 'ilac') { var skt = isoDate(it.skt); if (skt) o.skt = skt; } /* son kullanma tarihi (isteğe bağlı, yalnız ilaç) */
     var note = txt(it.note, 200); if (note) o.note = note;
     if (it.demo === true) o.demo = true;
     o.log = (Array.isArray(it.log) ? it.log : []).filter(Boolean).slice(-40).map(function (l) {
@@ -4479,7 +4480,8 @@
     if (!isNew) a.forEach(function (x) { if (x && x.id === it.id) base = x; });
     if (!base) return null;
     var m = cloneObj(base);
-    ['name', 'category', 'unit', 'threshold', 'feedType', 'note'].forEach(function (k) { if (Object.prototype.hasOwnProperty.call(it, k)) m[k] = it[k]; });
+    ['name', 'category', 'unit', 'threshold', 'feedType', 'note', 'skt'].forEach(function (k) { if (Object.prototype.hasOwnProperty.call(it, k)) m[k] = it[k]; });
+    if (!m.skt) delete m.skt;
     if (m.category && !isBuiltinCat(m.category)) m.catLabel = catLabel(m.category); else delete m.catLabel;
     if (!it.feedType) delete m.feedType;
     var newQty = numIn(it.qty, -100000, 1000000);

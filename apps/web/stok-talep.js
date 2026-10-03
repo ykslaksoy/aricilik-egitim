@@ -218,6 +218,63 @@
     return { v: null, src: null, ref: null };
   }
 
+  /* ---------------- Satıcıya göre (koloni-76) ----------------
+   * En uygun satıcı = fiyat dosyasındaki (aykırı olmayan) en düşük birim fiyatlı kaynak; ad kaynak adresinden (bilinen mağaza adları).
+   * Fiyatsız kalemde «Şuradan alınabilir»: yalnız gerçek, bilinen satış kanalı (ruhsatlı veteriner ilacı: veteriner hekim / ecza deposu,
+   * ruhsat sahibi firma — Bakanlık ruhsatlı ilaç listesi ve üretici sayfası). Uydurma satıcı yok; bilinmiyorsa öneri satırı çıkmaz. */
+  var SELLER_HOSTS = {
+    'n11.com': 'n11', 'avrasyaaricilik.com.tr': 'Avrasya Arıcılık', 'ermisaricilik.com': 'Ermiş Arıcılık', 'sokmarket.com.tr': 'ŞOK Market', 'aricimarketi.com': 'Arıcı Marketi',
+    'bizimtoptan.com.tr': 'Bizim Toptan', 'apimaye.com.tr': 'Apimaye', 'nurelaricilikmalzemeleri.com': 'Nurel Arıcılık', 'erdoganaricilik.com': 'Erdoğan Arıcılık', 'aslanpetek.com': 'Aslan Petek',
+    'aricobani.net': 'Arı Çobanı', 'eylularicilik.com': 'Eylül Arıcılık', 'ihsaniyearicilik.com': 'İhsaniye Arıcılık', 'egetarim.com.tr': 'Ege Tarım', 'beybi.com.tr': 'Beybi', 'akakce.com': 'Akakçe',
+    'aricicarsisi.com': 'Arıcı Çarşısı', 'akabebal.com': 'Akabe Bal', 'polenzabal.com': 'Polenza Bal', 'muglabal.com': 'Muğla Bal', 'blabmarket.com': 'Blab Market', 'nalburtek.com': 'Nalburtek',
+    'sanplaza.com': 'Sanplaza', 'ilkisguvenligi.com': 'İlk İş Güvenliği', 'civilcivilal.com': 'Civil Civil Al', 'endustriburaya.com': 'Endüstri Burada', 'artizanmutfak.com': 'Artizan Mutfak',
+    'enkatarim.com.tr': 'Enka Tarım', 'byhirdavat.com': 'By Hırdavat', 'civan.com.tr': 'Civan', 'prosmt-market.com': 'ProSMT Market', 'ipekelektromarket.com': 'İpek Elektromarket'
+  };
+  function sellerName(src) {
+    var nm = String(src && src.name || '');
+    if (/^A101\b/.test(nm)) return 'A101'; /* aktüel ilanı (Onedio sayfası) */
+    var m = /^https?:\/\/([^/]+)/i.exec(String(src && src.url || '')), h = m ? m[1].toLowerCase().replace(/^(www|market|shop)\./, '') : '';
+    if (SELLER_HOSTS[h]) return SELLER_HOSTS[h];
+    if (h) { var b = h.split('.')[0]; return b.charAt(0).toLocaleUpperCase('tr') + b.slice(1); }
+    return nm.split(/\s+/)[0] || 'Satıcı';
+  }
+  /** Kalemin en uygun satıcısı (fiyat dosyası): { name, url, unitPrice } | null */
+  function bestSeller(key) {
+    var it = REF.byKey[key]; if (!it || !Array.isArray(it.sources)) return null;
+    var ok = it.sources.filter(function (x) { return x && !x.outlier && isFinite(Number(x.unitPrice)) && Number(x.unitPrice) > 0; }).sort(function (a, b) { return a.unitPrice - b.unitPrice; });
+    return ok.length ? { name: sellerName(ok[0]), url: ok[0].url || '', unitPrice: Number(ok[0].unitPrice) } : null;
+  }
+  var VET = 'Veteriner hekim / veteriner ecza deposu (ruhsatlı veteriner ilacı)';
+  var WHERE = {
+    serit_amitraz: [VET, 'Ruhsat sahipleri: Albafarma (Beeraz), Teknovet (Rulamit) — bayi bilgisi üreticiden'],
+    amitraz_yakma: [VET, 'Ruhsat sahibi: Teknovet (Vamitrat-VA) — bayi bilgisi üreticiden'],
+    amitraz_tutsu: [VET, 'Aslan Petek (Rulamit-VA)'],
+    serit_flumetrin: [VET],
+    serit_koumafos: [VET, 'Ruhsat sahibi: Elanco (Checkmite) — bayi bilgisi üreticiden']
+  };
+  /** Fiyatsız kalem için bilinen satış kanalları (yoksa []) */
+  function whereToBuy(key) { return (WHERE[key] || []).slice(); }
+  /**
+   * Satırları en uygun satıcıya göre grupla. lines: Alım talebi satırı (price {v}) veya kayıtlı talep satırı (price sayı).
+   * Dönen: { sellers:[{ name, url, lines, n, total }], unknown:{ lines, n, total } (fiyatlı ama kaynak satıcısı yok — sizin fiyatınız), none:{ lines, n } (fiyat bulunamadı) }
+   */
+  function sellerGroups(lines) {
+    var by = {}, order = [], unknown = { name: 'Satıcı bilinmiyor (sizin fiyatınız)', lines: [], n: 0, total: 0 }, none = { name: 'Fiyat bulunamadı', lines: [], n: 0 };
+    (lines || []).forEach(function (l) {
+      if (!l || !(Number(l.buy) > 0)) return;
+      var pv = l.price != null && typeof l.price === 'object' ? l.price.v : l.price;
+      if (pv == null || !(Number(pv) > 0)) { none.lines.push(l); none.n++; return; }
+      var bs = bestSeller(l.key), cost = Number(l.cost) || 0;
+      if (!bs) { unknown.lines.push(l); unknown.n++; unknown.total += cost; return; }
+      var g = by[bs.name]; if (!g) { g = by[bs.name] = { name: bs.name, url: bs.url, lines: [], n: 0, total: 0 }; order.push(g); }
+      g.lines.push(l); g.n++; g.total += cost;
+    });
+    order.forEach(function (g) { g.total = Math.round(g.total * 100) / 100; });
+    order.sort(function (a, b) { return (b.n - a.n) || (b.total - a.total) || a.name.localeCompare(b.name, 'tr'); });
+    unknown.total = Math.round(unknown.total * 100) / 100;
+    return { sellers: order, unknown: unknown, none: none };
+  }
+
   /* ---------------- Stok eşleşmesi ---------------- */
   var CONV = { 'ml>L': 0.001, 'g>kg': 0.001, 'L>ml': 1000, 'kg>g': 1000 };
   function conv(q, from, to) { if (from === to) return q; var f = CONV[from + '>' + to]; return f ? q * f : null; }
@@ -232,8 +289,11 @@
   }
   function stockIndex(list) {
     var P = global.SuperAriPlan, out = {}, thr = {}, notes = {}, used = {};
+    var td = today();
     list.forEach(function (x) {
       var n = norm(x.name), hit = null;
+      /* SKT geçmiş ilaç mevcut sayılmaz (koloni-76) */
+      if (x.skt && x.skt < td) { var hx = matchCat(x, n); if (hx) { used[x.id] = hx.key; (notes[hx.key] = notes[hx.key] || []).push(x.name + ' ' + fmtN(x.qty) + ' ' + x.unit + ' (SKT geçti, sayılmadı)'); if (x.threshold > 0) { var tx = conv(x.threshold, x.unit, hx.unit); if (tx != null) thr[hx.key] = (thr[hx.key] || 0) + tx; } } return; }
       /* şurup → şeker karşılığı */
       if ((x.feedType === 'surup21' || x.feedType === 'surup11') && x.unit === 'L' && P && P.SYRUP[x.feedType]) {
         out.seker = (out.seker || 0) + Math.max(0, x.qty) * P.SYRUP[x.feedType].sugarKg;
@@ -861,6 +921,16 @@
           if (!out && delta > 0) { tg = stockTarget(l, true); out = tg ? D.stock.adjust(tg.id, delta * tg.f, R_IN, d) : null; if (tg && tg.created) res.created.push(tg.name); }
           if (out) { l.stk = { id: tg.id, a: Math.max(0, Math.round((added + delta) * 100) / 100), f: tg.f }; res.moves.push({ name: out.name, delta: delta * tg.f, unit: out.unit }); if (!l.stk.a) delete l.stk; }
         }
+        /* İlaç alımında SKT (isteğe bağlı): stok kalemine yazılır — mevcut SKT geçmişse veya yeni tarih daha erkense yenisi (en erken geçerli SKT) */
+        var sk = /^\d{4}-\d{2}-\d{2}$/.test(String(e.skt || '')) ? String(e.skt) : '';
+        if (sk && q > 0) {
+          l.skt = sk;
+          var sid = l.stk && l.stk.id ? l.stk.id : null;
+          if (sid) {
+            var si = null; try { si = D.stock.list().filter(function (x) { return x.id === sid; })[0]; } catch (e2) { si = null; }
+            if (si && si.category === 'ilac' && (!si.skt || si.skt < d || sk < si.skt)) { try { D.stock.save({ id: si.id, skt: sk }); res.skt = (res.skt || 0) + 1; } catch (e3) { /* ignore */ } }
+          }
+        }
         if (opts.savePrice && q > 0 && p != null) { setPrice(l.key, p); res.prices++; }
       });
     });
@@ -917,7 +987,7 @@
   }
 
   global.SuperAriTalep = {
-    CAT: CAT, GROUPS: GROUPS, BY: BY, groupList: groupList, groupLabel: groupLabel, groupOfCat: groupOfCat, manual: manual, addManual: addManual, removeManual: removeManual, addTalepLine: addTalepLine, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
+    CAT: CAT, GROUPS: GROUPS, BY: BY, sellerName: sellerName, bestSeller: bestSeller, whereToBuy: whereToBuy, sellerGroups: sellerGroups, groupList: groupList, groupLabel: groupLabel, groupOfCat: groupOfCat, manual: manual, addManual: addManual, removeManual: removeManual, addTalepLine: addTalepLine, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
     userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, clearTalepLinePrice: clearTalepLinePrice, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
     RULES: { INSPECT_DAYS: INSPECT_DAYS, BEE_DEFAULT: BEE_DEFAULT, VISITS: VISITS, UNKNOWN_STORE_FRAC: UNKNOWN_STORE_FRAC },
     setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, priceChangeText: priceChangeText, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,
