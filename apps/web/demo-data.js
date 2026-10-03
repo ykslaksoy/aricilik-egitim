@@ -4340,7 +4340,30 @@
     gocWrite(n);
     return n.length !== a.length;
   }
-  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, airKm: gocAirKm, add: gocAdd, remove: gocRemove };
+  /** Kovanın taşınma geçmişi (eskiden yeniye): [{ date, fromApiaryId, toApiaryId, fromName, toName, gocId }] — göç kaydı silinse de kovan olayından ad okunur */
+  function gocMovesForHive(hiveId) {
+    var n = Number(hiveId), out = [], seen = {};
+    gocList().forEach(function (g) {
+      if (!(g.hiveIds || []).some(function (x) { return Number(x) === n; })) return;
+      seen[g.id] = 1;
+      out.push({ date: g.date, fromApiaryId: String(g.fromApiaryId), toApiaryId: String(g.toApiaryId), fromName: apiaryNameOf(g.fromApiaryId) || g.fromName || '', toName: apiaryNameOf(g.toApiaryId) || g.toName || '', gocId: g.id });
+    });
+    var h = hiveById(n);
+    ((h && h.colonyEvents) || []).forEach(function (e) {
+      if (!e || e.type !== 'goc' || (e.gocId && seen[e.gocId])) return;
+      var m = /^(.+?) → (.+?) \(/.exec(String(e.text || '')); if (!m) return;
+      if (out.some(function (o) { return o.date === e.date && (o.fromName === m[1] || o.toName === m[2]); }) || (e.id && seen[String(e.id).replace(/-\d+$/, '')])) return;
+      out.push({ date: e.date, fromApiaryId: '', toApiaryId: '', fromName: m[1], toName: m[2], gocId: e.gocId || '' });
+    });
+    return out.sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+  }
+  /** Kovanın verilen tarihteki arılığı (göç geçmişine göre; bilinmiyorsa bugünkü) */
+  function gocApiaryAt(hiveId, date) {
+    var h = hiveById(hiveId), ap = h ? String(h.apiaryId) : '', ms = gocMovesForHive(hiveId), d = String(date || '').slice(0, 10);
+    for (var i = ms.length - 1; i >= 0; i--) { if (ms[i].date > d && ms[i].fromApiaryId) ap = ms[i].fromApiaryId; else break; }
+    return ap;
+  }
+  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, movesForHive: gocMovesForHive, apiaryAt: gocApiaryAt, airKm: gocAirKm, add: gocAdd, remove: gocRemove };
 
   var colonyOps = {
     GRAFT_TIMELINE: GRAFT_TIMELINE,

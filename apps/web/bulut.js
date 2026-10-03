@@ -242,11 +242,24 @@
     var hives = raw('hives', []); if (!Array.isArray(hives)) hives = [];
     var hiveAp = {}; hives.forEach(function (h) { if (h && h.id != null) hiveAp[String(Number(h.id))] = String(h.apiaryId); });
     var revLink = {}; Object.keys(st.links).forEach(function (l) { revLink[st.links[l]] = l; });
+    /* Taşınan kovan (koloni-78): göç kayıtlarından kovan başına { date, from, to } — kayıt, tarihindeki arılığa bağlanır */
+    var moves = {}, gl = raw('goc', []); if (!Array.isArray(gl)) gl = [];
+    gl.filter(function (g) { return g && !g.demo && g.date && g.fromApiaryId != null && g.toApiaryId != null; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : String(a.createdAt || '').localeCompare(String(b.createdAt || ''))); })
+      .forEach(function (g) { (g.hiveIds || []).forEach(function (hid) { var n = String(Number(hid)); (moves[n] = moves[n] || []).push({ date: String(g.date).slice(0, 10), from: String(g.fromApiaryId), to: String(g.toApiaryId) }); }); });
     var revHive = {}; Object.keys(st.keys).forEach(function (k) { if (k.indexOf('hives:') === 0) revHive[st.keys[k]] = Number(k.slice(6)); });
     var c = {
       hives: hives,
       apUuid: function (localAp) { return localAp == null || localAp === '' ? null : (st.links[String(localAp)] || null); },
       apLocal: function (u) { return u ? (revLink[u] || null) : null; },
+      /** Kovanın verilen tarihteki arılığının bulut kimliği; göç kaydı yoksa fb (kovan anahtarındaki arılık, eski davranış) */
+      apAt: function (hid, date, fb) {
+        var n = String(Number(hid)), ms = moves[n]; if (!ms || !ms.length) return fb;
+        var d = String(date || '').slice(0, 10), ap = hiveAp[n];
+        if (d) for (var i = ms.length - 1; i >= 0; i--) { if (ms[i].date > d) ap = ms[i].from; else break; }
+        return c.apUuid(ap) || fb;
+      },
+      moves: moves,
       hiveKey: function (hid) {
         if (hid == null || hid === '' || !isFinite(Number(hid))) return null;
         var n = Number(hid), k = st.keys['hives:' + n];
@@ -345,7 +358,7 @@
         (Array.isArray(byKind[kind]) ? byKind[kind] : []).forEach(function (r) {
           if (!r || !r.id || r.demo) return;
           var k = keyFor(st, 'records', r.id, u);
-          add(entry('records', k, { key: k, apiary_id: u, local_id: String(r.id), hive_key: hk, kind: kind, record_date: isoDate(r.date), data: mapRefs(r, toCloud) }));
+          add(entry('records', k, { key: k, apiary_id: X.apAt(hid, isoDate(r.date), u), local_id: String(r.id), hive_key: hk, kind: kind, record_date: isoDate(r.date), data: mapRefs(r, toCloud) }));
         });
       });
     });
@@ -376,7 +389,7 @@
       if (!x || !x.id || x.demo) return;
       var hk = X.hiveKey(x.hiveId); if (!hk) return;
       var u = hk.split(':')[0], k = keyFor(st, 'tarti', x.id, u), dd = mapRefs(x, toCloud); dd.type = 'elle_tarti';
-      add(entry('records', k, { key: k, apiary_id: u, local_id: String(x.id), hive_key: hk, kind: 'colony_event', record_date: isoDate(x.date || x.at), data: dd }));
+      add(entry('records', k, { key: k, apiary_id: X.apAt(x.hiveId, isoDate(x.date || x.at), u), local_id: String(x.id), hive_key: hk, kind: 'colony_event', record_date: isoDate(x.date || x.at), data: dd }));
     });
     var hsMap = raw('saglik', {}); if (!hsMap || typeof hsMap !== 'object' || Array.isArray(hsMap)) hsMap = {};
     Object.keys(hsMap).forEach(function (hid) {
@@ -384,7 +397,7 @@
         if (!x || !x.id || x.demo) return;
         var hk = X.hiveKey(x.hiveId != null ? x.hiveId : hid); if (!hk) return;
         var u = hk.split(':')[0], k = keyFor(st, 'saglik', x.id, u), dd = mapRefs(x, toCloud); dd.type = 'saglik';
-        add(entry('records', k, { key: k, apiary_id: u, local_id: String(x.id), hive_key: hk, kind: 'colony_event', record_date: isoDate(x.date || x.at), data: dd }));
+        add(entry('records', k, { key: k, apiary_id: X.apAt(x.hiveId != null ? x.hiveId : hid, isoDate(x.date || x.at), u), local_id: String(x.id), hive_key: hk, kind: 'colony_event', record_date: isoDate(x.date || x.at), data: dd }));
       });
     });
     opsRow(ops.batches, 'opsb', 'graft_batch');
