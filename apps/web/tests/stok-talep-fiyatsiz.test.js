@@ -108,7 +108,7 @@ function load(iso) {
   T.withRef(FILE, () => {
     const pf = T.priceFor('serit_flumetrin');
     assert.strictEqual(pf.v, 22.5); assert.strictEqual(pf.src, 'ref'); assert.ok(pf.ref.single && /^Tek kaynak/.test(pf.ref.note));
-    assert.strictEqual(T.priceFor('serit_taufluvalinat').v, 19);
+    assert.strictEqual(T.priceFor('serit_taufluvalinat').v, null); assert.strictEqual(T.priceFor('timol').v, null);
     assert.strictEqual(T.priceFor('serit_amitraz').v, null);
     assert.ok(!T.priceFor('seker').ref.single);
   });

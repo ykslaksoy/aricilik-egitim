@@ -1,7 +1,7 @@
 {
  "updated": "2026-10-03",
  "currency": "TRY",
- "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir.",
+ "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir. Varroa ilacı anahtarlarına yalnız Bakanlık ruhsatlı veteriner ürünleri (hbs.tarbil.gov.tr) fiyatlanır; ruhsatsız «kovan içi» ürünler alınmaz.",
  "items": [
   {
    "key": "seker",
@@ -402,20 +402,12 @@
    "key": "serit_taufluvalinat",
    "name": "Varroa şeridi — tau-fluvalinat",
    "unit": "şerit",
-   "ref": 19,
-   "min": 19,
-   "max": 19,
-   "n": 1,
-   "sources": [
-    {
-     "name": "Ermiş Arıcılık Mavrilk Fluvalinate Şerit (stokta yok)",
-     "url": "https://ermisaricilik.com/urun/mavrilk-fluvalinate-varrro-serit",
-     "price": 380.0,
-     "pack": "20 şerit (paket içeriği üretici Sichuan Wangshi ve diğer satıcı sayfalarından; Ermiş sayfasında yazmıyor)",
-     "unitPrice": 19.0
-    }
-   ],
-   "note": "Tek kaynak: Ermiş Arıcılık Mavrilk (fluvalinat) 380 TL / 20 şerit, stokta yok — ortalama değil, tek satıcının fiyatı. Paketteki 20 şerit Ermiş sayfasında yazmıyor; üretici (Sichuan Wangshi, bee-keepingequipment.com: «20 Strips per Package») ve diğer satıcılar (ukrbee.ua, uleyshop.com) 20 şerit diyor. Apistan Türkiye’de geçici olarak temin edilemiyor."
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Kaynak yok: Bakanlığın ruhsatlı veteriner ilaç listesinde (hbs.tarbil.gov.tr, hedef tür Arı, 4 Eki 2026) yalnız flumetrin (Bayvarol, Beevarflu, Fumbee, Polyvar Yellow, Varodur), amitraz (Beeraz, Rulamit, Rulamit-VA, Vamitrat-VA, Varroset) ve koumafos (Checkmite) ürünleri var; tau-fluvalinatlı ruhsatlı ürün yok (Apistan listede değil). Ermiş’teki Mavrilk ruhsatsız olduğu için fiyatı alınmadı. Fiyatı kendiniz girin."
   },
   {
    "key": "serit_koumafos",
@@ -566,62 +558,12 @@
    "key": "timol",
    "name": "Timol",
    "unit": "paket",
-   "ref": 175.25,
-   "min": 150,
-   "max": 400,
-   "n": 6,
-   "sources": [
-    {
-     "name": "n11 Varro Stop Thymol Damla",
-     "url": "https://www.n11.com/urun/varro-stop-thymol-damla-54742355",
-     "price": 1008,
-     "pack": "1 paket",
-     "unitPrice": 1008.0,
-     "outlier": true
-    },
-    {
-     "name": "n11 Bee Strips Timolin Varro Şerit",
-     "url": "https://www.n11.com/urun/bee-strips-timolin-varro-serit-39712086",
-     "price": 400,
-     "pack": "1 paket",
-     "unitPrice": 400.0
-    },
-    {
-     "name": "Arıcımarketi Bee Strips Esmolin 20'li Timol Katkılı Şerit",
-     "url": "https://www.aricimarketi.com/urun/timolin-varro-serit-varroa-icin-timol-katkili-serit",
-     "price": 169,
-     "pack": "20 şerit paket",
-     "unitPrice": 169.0
-    },
-    {
-     "name": "Ermiş Arıcılık Bee Strips Timolin Varro Şerit",
-     "url": "https://ermisaricilik.com/urun/bee-strips-timolin-varro-serit",
-     "price": 175,
-     "pack": "1 paket",
-     "unitPrice": 175.0
-    },
-    {
-     "name": "Ermiş Arıcılık BeeShields Thymo Timol Şeridi",
-     "url": "https://ermisaricilik.com/urun/beeshields-thymo-timol-seridi",
-     "price": 200,
-     "pack": "1 paket",
-     "unitPrice": 200.0
-    },
-    {
-     "name": "Avrasya BeeShields Thymo Timol Şeridi",
-     "url": "https://www.avrasyaaricilik.com.tr/beeshields-thymo-timol-seriti/",
-     "price": 157,
-     "pack": "1 paket",
-     "unitPrice": 157.0
-    },
-    {
-     "name": "Aslan Petek BeeShields Thymo",
-     "url": "https://www.aslanpetek.com/beeshields-thymo",
-     "price": 150,
-     "pack": "1 paket",
-     "unitPrice": 150.0
-    }
-   ]
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Kaynak yok: Bakanlığın ruhsatlı veteriner ilaç listesinde (hbs.tarbil.gov.tr, hedef tür Arı, 4 Eki 2026) yalnız flumetrin (Bayvarol, Beevarflu, Fumbee, Polyvar Yellow, Varodur), amitraz (Beeraz, Rulamit, Rulamit-VA, Vamitrat-VA, Varroset) ve koumafos (Checkmite) ürünleri var; timollü ruhsatlı ürün yok. Satılan timol şeritleri (Bee Strips Esmolin / Timolin, BeeShields Thymo vb.) ruhsatsız olduğu için fiyatları alınmadı. Fiyatı kendiniz girin."
   },
   {
    "key": "nitril",
