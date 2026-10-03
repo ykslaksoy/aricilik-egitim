@@ -4368,15 +4368,71 @@
   var STOCK_CATS = [
     { key: 'surup', label: 'Şurup' }, { key: 'seker', label: 'Şeker' }, { key: 'kek', label: 'Kek' }, { key: 'polen', label: 'Polen / katkı' },
     { key: 'ilac', label: 'İlaç' }, { key: 'cerceve', label: 'Çerçeve' }, { key: 'temelPetek', label: 'Temel petek' }, { key: 'kovan', label: 'Kovan / kat' },
-    { key: 'ekipman', label: 'Ekipman' }, { key: 'diger', label: 'Diğer' }
+    { key: 'ekipman', label: 'Ekipman' }, { key: 'anaari', label: 'Ana arı' }, { key: 'ariKoloni', label: 'Arı / koloni' }
   ];
   var STOCK_UNITS = ['L', 'kg', 'adet', 'şerit', 'ml', 'g', 'paket', 'kutu'];
-  var STOCK_CAT_LABEL = {}; STOCK_CATS.forEach(function (c) { STOCK_CAT_LABEL[c.key] = c.label; });
+  var STOCK_CAT_LABEL = { diger: 'Diğer' }; STOCK_CATS.forEach(function (c) { STOCK_CAT_LABEL[c.key] = c.label; });
+  /* Kullanıcı kategorileri (koloni-75): { id, label, at } — id 'u…' (eski «Diğer» kalemleri için 'diger').
+   * superari.stok.kategoriler.v1 (canlı, bulut.js ile eşitlenir) / .demo.v1. Yeniden adlandırma / silme yalnız boşken. */
+  var SCAT_LIVE = 'superari.stok.kategoriler.v1', SCAT_DEMO = 'superari.stok.kategoriler.demo.v1';
+  function isBuiltinCat(k) { return Object.prototype.hasOwnProperty.call(STOCK_CAT_LABEL, k) && k !== 'diger'; }
+  function isCustomCatKey(k) { return k === 'diger' || /^u[a-z0-9]{3,24}$/.test(String(k || '')); }
+  function scatKey() { return workMode() === 'live' ? SCAT_LIVE : SCAT_DEMO; }
+  function readScat() { try { var a = JSON.parse(localStorage.getItem(scatKey()) || '[]'); return Array.isArray(a) ? a.filter(function (c) { return c && isCustomCatKey(c.id); }) : []; } catch (e) { return []; } }
+  function writeScat(a) { try { localStorage.setItem(scatKey(), JSON.stringify(a || [])); } catch (e) { /* ignore */ } }
+  function trKey(s) { return String(s || '').trim().toLocaleLowerCase('tr').replace(/\s+/g, ' '); }
+  /** Kullanıcı kategorileri; kategorisi listede olmayan kalem varsa (eski «Diğer», başka cihazdan gelen) kendiliğinden eklenir — kalem kaybolmaz. */
+  function customCats() {
+    var a = readScat(), have = {}, ch = false;
+    a.forEach(function (c) { have[c.id] = 1; });
+    readStock().forEach(function (x) {
+      if (!x) return;
+      var k = x.category && (isBuiltinCat(x.category) || isCustomCatKey(x.category)) ? x.category : 'diger';
+      if (isBuiltinCat(k) || have[k]) return;
+      have[k] = 1; ch = true;
+      a.push({ id: k, label: k === 'diger' ? 'Diğer' : (txt(x.catLabel, 30) || 'Kategori'), at: new Date().toISOString() });
+    });
+    if (ch) writeScat(a);
+    return a.map(function (c) { return { id: c.id, key: c.id, label: txt(c.label, 30) || 'Kategori', custom: true }; });
+  }
+  function catLabel(k) { if (isBuiltinCat(k)) return STOCK_CAT_LABEL[k]; var c = readScat().filter(function (x) { return x.id === k; })[0]; return c ? (txt(c.label, 30) || 'Kategori') : (k === 'diger' ? 'Diğer' : 'Kategori'); }
+  function labelTaken(label, except) {
+    var t = trKey(label);
+    return STOCK_CATS.some(function (c) { return trKey(c.label) === t; }) || readScat().some(function (c) { return c.id !== except && trKey(c.label) === t; });
+  }
+  function catCount(id) { return readStock().filter(function (x) { return x && x.category === id; }).length; }
+  /** Yeni kategori: { ok, id, label } | { ok:false, error } — aynı ad varsa o kategori döner. */
+  function addCat(label) {
+    var l = txt(label, 30); if (!l) return { ok: false, error: 'Kategori adı girin.' };
+    var t = trKey(l), b = STOCK_CATS.filter(function (c) { return trKey(c.label) === t; })[0];
+    if (b) return { ok: true, id: b.key, label: b.label, existing: true };
+    var ex = readScat().filter(function (c) { return trKey(c.label) === t; })[0];
+    if (ex) return { ok: true, id: ex.id, label: ex.label, existing: true };
+    var c = { id: 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), label: l, at: new Date().toISOString() };
+    if (workMode() !== 'live') c.demo = true;
+    var a = readScat(); a.push(c); writeScat(a);
+    return { ok: true, id: c.id, label: c.label };
+  }
+  function renameCat(id, label) {
+    var l = txt(label, 30); if (!l) return { ok: false, error: 'Kategori adı girin.' };
+    if (!isCustomCatKey(id) || !readScat().some(function (c) { return c.id === id; })) return { ok: false, error: 'Kategori bulunamadı.' };
+    if (catCount(id)) return { ok: false, error: 'Kategoride kalem var; yalnız boş kategori yeniden adlandırılabilir.' };
+    if (labelTaken(l, id)) return { ok: false, error: 'Bu adda bir kategori zaten var.' };
+    writeScat(readScat().map(function (c) { return c.id === id ? Object.assign({}, c, { label: l }) : c; }));
+    return { ok: true, id: id, label: l };
+  }
+  function removeCat(id) {
+    if (!isCustomCatKey(id)) return { ok: false, error: 'Bu kategori silinemez.' };
+    if (catCount(id)) return { ok: false, error: 'Kategoride kalem var; yalnız boş kategori silinebilir.' };
+    var a = readScat(), n = a.filter(function (c) { return c.id !== id; });
+    writeScat(n); return { ok: n.length !== a.length };
+  }
   function stockKey() { return workMode() === 'live' ? STOCK_LIVE : STOCK_DEMO; }
   function normalizeStock(it) {
     if (!it || !it.id) return null;
     var o = { id: String(it.id).slice(0, 40), name: txt(it.name, 80) || 'Kalem' };
-    o.category = pick(it.category, STOCK_CATS.map(function (c) { return c.key; }), 'diger');
+    o.category = it.category && (isBuiltinCat(it.category) || isCustomCatKey(it.category)) ? String(it.category) : 'diger';
+    if (!isBuiltinCat(o.category)) { var cl = txt(it.catLabel, 30); if (cl) o.catLabel = cl; } /* başka cihazda kategori adı (bulutla gelen kalem) */
     o.unit = pick(it.unit, STOCK_UNITS, 'adet');
     var q = numIn(it.qty, -100000, 1000000); o.qty = q == null ? 0 : q;
     var th = numIn(it.threshold, 0, 1000000); o.threshold = th == null ? 0 : th;
@@ -4424,6 +4480,7 @@
     if (!base) return null;
     var m = cloneObj(base);
     ['name', 'category', 'unit', 'threshold', 'feedType', 'note'].forEach(function (k) { if (Object.prototype.hasOwnProperty.call(it, k)) m[k] = it[k]; });
+    if (m.category && !isBuiltinCat(m.category)) m.catLabel = catLabel(m.category); else delete m.catLabel;
     if (!it.feedType) delete m.feedType;
     var newQty = numIn(it.qty, -100000, 1000000);
     if (newQty != null && newQty !== Number(base.qty || 0)) {
@@ -4479,6 +4536,7 @@
   }
   var stockStore = {
     CATS: STOCK_CATS, CAT_LABEL: STOCK_CAT_LABEL, UNITS: STOCK_UNITS,
+    cats: customCats, catLabel: catLabel, addCat: addCat, renameCat: renameCat, removeCat: removeCat, catCount: catCount, isBuiltinCat: isBuiltinCat,
     list: listStock, save: saveStockItem, adjust: adjustStock, unlog: unlogStock, remove: removeStock, alerts: stockAlerts
   };
 

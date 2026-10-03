@@ -951,7 +951,7 @@
   .st-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; }
   .st-panel[hidden], .grid[hidden] { display: none !important; }
   .st-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; background: var(--bg); padding-bottom: 2px; }
-  .st-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 64px; min-width: 64px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); font: inherit; font-size: 15px; font-weight: 800; color: var(--brown-mid); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .st-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); font: inherit; font-size: 15px; font-weight: 800; color: var(--brown-mid); cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .st-back:active { transform: scale(.985); }
   .st-htitle { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .st-htitle small { display: block; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -967,7 +967,7 @@
   .st-tag.red { background: var(--red-bg); color: var(--red); }
   .st-log { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
   .st-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .st-btn { min-height: 64px; padding: 4px 6px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); color: var(--brown-mid); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .st-btn { min-height: 44px; padding: 4px 6px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); color: var(--brown-mid); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .st-btn:active { transform: scale(.985); }
   .st-btn.in { background: var(--green-bg); border-color: #b2f2bb; color: #1b5e20; }
   .st-btn.out { background: #fff4e6; border-color: #ffd8a8; color: #a14a00; }
@@ -975,8 +975,8 @@
   .st-amt { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: stretch; }
   .st-amt .st-btn { min-width: 76px; }
   .st-in { font: inherit; font-size: 16px; min-height: 48px; padding: 8px 10px; border-radius: 10px; border: 1px solid #d8d2c6; background: #fff; color: var(--text); width: 100%; min-width: 0; box-sizing: border-box; }
-  .st-amt .st-in { min-height: 64px; font-size: 18px; font-weight: 700; }
-  .st-new { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 64px; padding: 6px 12px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  .st-amt .st-in { min-height: 44px; font-size: 16px; font-weight: 700; }
+  .st-new { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 6px 12px; border-radius: 14px; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent;
     background: linear-gradient(180deg, #fff6df 0%, var(--hardal-soft) 55%, #ebd9a0 100%); border: 1px solid #e0c56a; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65); color: var(--brown); }
   .st-new:active { transform: scale(.99); }
   .st-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
@@ -996,7 +996,7 @@
   .st-cols .ok { background: var(--green-bg); }
   .st-cols .ok b { color: var(--green); }
   .st-mv { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 8px; align-items: center; background: #fff; border: 1px solid #e6e8ec; border-radius: 12px; padding: 8px 10px; min-height: 52px; }
-  .st-mvlink { font: inherit; text-align: left; width: 100%; color: inherit; cursor: pointer; min-height: 64px; border-color: #d8c48a; -webkit-tap-highlight-color: transparent; }
+  .st-mvlink { font: inherit; text-align: left; width: 100%; color: inherit; cursor: pointer; min-height: 52px; border-color: #d8c48a; -webkit-tap-highlight-color: transparent; }
   .st-mv .d { font-size: 11.5px; font-weight: 800; color: var(--muted); }
   .st-mv .n { min-width: 0; }
   .st-mv .n b { display: block; font-size: 13.5px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1010,6 +1010,15 @@
   .st-src.m { background: var(--green-bg); color: #1b5e20; }
   .st-src.mt { background: #e7f5ff; color: #1864ab; }
   .st-src.e { background: #f1f3f5; color: #495057; }
+  .st-src.el { background: #f3e8ff; color: #6b21a8; }
+  /* koloni-75: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
+  .st-form [hidden] { display: none !important; }
+  .screen.st-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .screen.st-scroll .grid { flex: 0 0 auto; grid-template-rows: none; padding-bottom: 8px; }
+  .st-catops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .st-catops .st-hint { grid-column: 1 / -1; }
+  .st-rm { min-height: 36px; padding: 2px 10px; border-radius: 10px; border: 1px solid #ffc9c9; background: #fff5f5; color: var(--red); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; align-self: flex-start; }
+  .st-sel { font: inherit; font-size: 16px; min-height: 44px; padding: 8px 10px; border-radius: 10px; border: 1px solid #d8d2c6; background: #fff; color: var(--text); width: 100%; }
   .st-grp { margin: 6px 2px 0; font-size: 12px; font-weight: 800; color: var(--brown-mid); text-transform: uppercase; letter-spacing: .03em; }
   .st-sec { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 10px 2px 0; padding-bottom: 4px; border-bottom: 2px solid var(--card-border); min-width: 0; }
   .st-sec b { font-size: 16px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
@@ -1037,7 +1046,7 @@
   .st-tol > b { min-width: 44px; text-align: center; font-size: 17px; font-weight: 800; }
   .st-tol .st-btn { font-size: 22px; padding: 0; }
   .st-warn { margin: 0; padding: 8px 10px; border-radius: 10px; background: #fff4e6; border: 1px solid #ffd8a8; color: #a14a00; font-size: 12.5px; font-weight: 800; line-height: 1.35; }
-  .st-apsec { font: inherit; text-align: left; cursor: pointer; min-height: 64px; width: 100%; color: inherit; }
+  .st-apsec { font: inherit; text-align: left; cursor: pointer; min-height: 52px; width: 100%; color: inherit; }
   .st-apsec[data-ap]::after { content: "Aç ›"; align-self: flex-end; font-size: 12px; font-weight: 800; color: var(--brown-mid); }
   .st-mini { font-size: 11.5px; font-weight: 650; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
   /* Birim fiyat alanı (canlı talep) ve alım kaydı */
@@ -1068,7 +1077,7 @@
   .st-pfield span { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; color: var(--brown-mid); white-space: nowrap; }
   .st-pinfo { display: block; font-size: 11px; font-weight: 650; color: var(--muted); line-height: 1.3; overflow-wrap: anywhere; }
   .st-pinfo em { font-style: normal; color: #a14a00; font-weight: 800; }
-  .st-tl { font: inherit; text-align: left; cursor: pointer; min-height: 64px; width: 100%; color: inherit; gap: 4px; }
+  .st-tl { font: inherit; text-align: left; cursor: pointer; min-height: 52px; width: 100%; color: inherit; gap: 4px; }
   .st-tl1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
   .st-tl1 b { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .st-tl1 .st-qty { font-size: 15px; }
@@ -1124,7 +1133,7 @@
   .st-srow.out { opacity: .55; filter: grayscale(1); }
   .st-sname b { font-size: 12.5px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
   .st-sname small { display: block; font-size: 11.5px; font-weight: 700; color: var(--brown-mid); }
-  .st-slink { display: flex; align-items: center; justify-content: center; min-height: 64px; border-radius: 12px; border: 1px solid var(--card-border); background: #fff; font-size: 13px; font-weight: 800; color: #1864ab; text-decoration: none; }
+  .st-slink { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 12px; border: 1px solid var(--card-border); background: #fff; font-size: 13px; font-weight: 800; color: #1864ab; text-decoration: none; }
   [data-buy-form] { display: flex; flex-direction: column; gap: 6px; margin: 0; }
   .st-bar { position: sticky; bottom: 0; z-index: 2; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 6px; padding: 8px 0 4px; background: var(--bg); }
 </style>
@@ -1151,14 +1160,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-74"></script>
-<script src="koloni.js?v=koloni-74"></script>
-<script src="ilac-katalog.js?v=koloni-74"></script>
-<script src="bakim-plan.js?v=koloni-74"></script>
-<script src="kapsam.js?v=koloni-74"></script>
-<script src="rapor-store.js?v=koloni-74"></script>
-<script src="fiyat-live.js?v=koloni-74"></script>
-<script src="stok-talep.js?v=koloni-74"></script>
+<script src="demo-data.js?v=koloni-75"></script>
+<script src="koloni.js?v=koloni-75"></script>
+<script src="ilac-katalog.js?v=koloni-75"></script>
+<script src="bakim-plan.js?v=koloni-75"></script>
+<script src="kapsam.js?v=koloni-75"></script>
+<script src="rapor-store.js?v=koloni-75"></script>
+<script src="fiyat-live.js?v=koloni-75"></script>
+<script src="stok-talep.js?v=koloni-75"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1186,9 +1195,13 @@
     { key: 'surup', label: 'Şurup' }, { key: 'seker', label: 'Şeker' }, { key: 'kek', label: 'Kek' },
     { key: 'polen', label: 'Polen' }, { key: 'ilac', label: 'İlaç' }, { key: 'temelPetek', label: 'Temel petek' },
     { key: 'cerceve', label: 'Çerçeve' }, { key: 'kovan', label: 'Kovan/kat' }, { key: 'ekipman', label: 'Ekipman' },
-    { key: 'diger', label: 'Diğer' }, { key: 'alinacak', label: 'Alınacaklar' }, { key: 'hareket', label: 'Hareketler' }
+    { key: 'anaari', label: 'Ana arı' }, { key: 'alinacak', label: 'Alınacaklar' }, { key: 'hareket', label: 'Hareketler' }
   ];
-  var TLABEL = {}; TILES.forEach(function (t) { TLABEL[t.key] = t.label; });
+  /* 12'nin altındaki ek döşemeler: önce sabit «Arı / koloni», sonra kullanıcı kategorileri (eski «Diğer» kalemleri «Diğer» kullanıcı kategorisi olur) */
+  var EXTRA = [{ key: 'ariKoloni', label: 'Arı / koloni' }];
+  var TLABEL = {}; TILES.concat(EXTRA).forEach(function (t) { TLABEL[t.key] = t.label; });
+  function catLbl(k) { return TLABEL[k] || (S.catLabel ? S.catLabel(k) : (S.CAT_LABEL[k] || k)); }
+  function extraTiles() { return EXTRA.concat(S.cats ? S.cats().map(function (c) { return { key: c.id, label: c.label, custom: true }; }) : []); }
   /* Ana'daki yakma damga (burn-ring + çizgi) biçimi */
   var BURN = {
     surup: '<path d="M12 5.6c2.5 3.2 3.9 5.4 3.9 7.4a3.9 3.9 0 0 1-7.8 0c0-2 1.4-4.2 3.9-7.4z"/><path d="M10.4 13.4a1.7 1.7 0 0 0 1.6 1.5"/>',
@@ -1200,12 +1213,15 @@
     cerceve: '<rect x="6.8" y="7.4" width="10.4" height="9.2" rx=".8"/><path d="M5.6 7.4h12.8M8.8 9.6v5M12 9.6v5M15.2 9.6v5"/>',
     kovan: '<path d="M6.2 7.4h11.6v2H6.2z"/><rect x="6.8" y="9.4" width="10.4" height="3.6"/><rect x="6.8" y="13" width="10.4" height="3.6"/><path d="M11 16.6h2"/>',
     ekipman: '<path d="M14.7 6.3a3 3 0 0 0-3.9 3.9l-4.4 4.4a1.3 1.3 0 0 0 1.8 1.8l4.4-4.4a3 3 0 0 0 3.9-3.9l-1.9 1.9-1.6-.3-.3-1.6z"/>',
-    diger: '<circle cx="8.2" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="15.8" cy="12" r="1.3"/>',
+    anaari: '<path d="M9.6 8.4 10.4 6l1.6 1.3L13.6 6l.8 2.4z"/><ellipse cx="12" cy="13.4" rx="2.3" ry="3.8"/><path d="M9.9 12.4h4.2M10.1 14.6h3.8"/><path d="M9.8 11c-1.6-.9-3.3-.5-3.3.6 0 1 1.6 1.4 3.3.4M14.2 11c1.6-.9 3.3-.5 3.3.6 0 1-1.6 1.4-3.3.4"/>',
+    ariKoloni: '<path d="M8.2 7.2 12 5.4l3.8 1.8v4.2L12 13.2l-3.8-1.8z"/><path d="M8.2 7.2 12 9l3.8-1.8M12 9v4.2"/><circle cx="9" cy="16.4" r="1.2"/><circle cx="12" cy="17.4" r="1.2"/><circle cx="15" cy="16.4" r="1.2"/>',
+    kat: '<path d="M6.8 8.4h4l1.2 1.4h5.2v6.4H6.8z"/><path d="M9.6 13h4.8"/>',
     alinacak: '<path d="M5.8 7h1.9l1.5 7.2h7.1l1.5-5.2H8.3"/><circle cx="10" cy="16.6" r="1"/><circle cx="15.2" cy="16.6" r="1"/>',
     hareket: '<path d="M9 16.8V7.2M6.8 9.4 9 7.2l2.2 2.2M15 7.2v9.6M12.8 14.6l2.2 2.2 2.2-2.2"/>'
   };
   /* Ana'daki hiveHTML ile birebir aynı işaretleme */
   function hiveHTML(key) {
+    if (!BURN[key]) key = 'kat'; /* kullanıcı kategorisi: klasör damgası */
     return '<div class="hive-area"><div class="hive"><div class="hive-stack"><div class="hive-lid"></div><div class="hive-box top"></div>' +
       '<div class="hive-box bottom"><div class="hive-entrance"></div><div class="hive-door" aria-hidden="true"></div></div>' +
       '<div class="hive-feet"><span></span><span></span></div></div><div class="hive-shadow"></div>' +
@@ -1224,10 +1240,12 @@
   var TPL = {
     ilac: [{ n: 'Varroa şeridi (amitraz)', u: 'şerit' }, { n: 'Varroa şeridi (flumetrin)', u: 'şerit' }, { n: 'Varroa şeridi (tau-fluvalinat)', u: 'şerit' },
       { n: 'Amitraz tütsü plakası (Rulamit-VA)', u: 'kutu' }, { n: 'Amitraz yakma şeridi (Vamitrat-VA)', u: 'şerit' }, { n: 'Okzalik asit', u: 'paket' }, { n: 'Formik asit', u: 'paket' }, { n: 'Timol', u: 'paket' }],
+    anaari: [{ n: 'Ana arı', u: 'adet' }, { n: 'Ana kafesi', u: 'adet' }, { n: 'Yedek ana', u: 'adet' }],
+    ariKoloni: [{ n: 'Paket arı', u: 'adet' }, { n: 'Çekirdek koloni', u: 'adet' }, { n: 'Oğul alımı', u: 'adet' }],
     ekipman: [{ n: 'Okzalik buharlaştırıcı', u: 'adet' }, { n: 'Damlatma şırıngası', u: 'adet' }, { n: 'Eldiven', u: 'adet' }, { n: 'Koruyucu gözlük', u: 'adet' },
       { n: 'Maske', u: 'adet' }, { n: 'Yapışkanlı alt tabla (akar sayımı)', u: 'adet' }, { n: 'Alkol yıkama kabı', u: 'adet' }]
   };
-  var DEF_UNIT = { surup: 'L', seker: 'kg', kek: 'kg', polen: 'kg', ilac: 'şerit', cerceve: 'adet', temelPetek: 'adet', kovan: 'adet', ekipman: 'adet', diger: 'adet' };
+  var DEF_UNIT = { surup: 'L', seker: 'kg', kek: 'kg', polen: 'kg', ilac: 'şerit', cerceve: 'adet', temelPetek: 'adet', kovan: 'adet', ekipman: 'adet', anaari: 'adet', ariKoloni: 'adet' };
 
   /* ---- Durum ---- */
   function isOut(x) { return x.qty <= 0; }
@@ -1240,13 +1258,14 @@
   var TQ = window.SuperAriTalep;
   function money(v) { return (Math.round(Number(v) || 0)).toLocaleString('tr-TR') + ' ₺'; }
   function money2(v) { return (Number(v) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ₺'; }
-  var SRC = { m: ['Muayeneye göre', 'm'], t: ['Tahmin', 't'], mt: ['Muayene + tahmin', 'mt'], esik: ['Stok eşiği', 'e'] };
+  var SRC = { m: ['Muayeneye göre', 'm'], t: ['Tahmin', 't'], mt: ['Muayene + tahmin', 'mt'], esik: ['Stok eşiği', 'e'], elle: ['Elle', 'el'] };
 
   /* ---- Görünüm ---- */
-  function readHash() { var h = decodeURIComponent(location.hash.replace(/^#/, '')); return /^(c-[a-zA-Z]+|alinacak|hareket|talep-[a-z0-9]+)$/.test(h) ? h : ''; }
+  function readHash() { var h = decodeURIComponent(location.hash.replace(/^#/, '')); return /^(c-[a-zA-Z0-9]+|alinacak|hareket|yeni|talep-[a-z0-9]+)$/.test(h) ? h : ''; }
   var view = readHash(), form = null, amt = null, lastNeed = null, needKey = '';
   function curScope() { return ctl ? ctl.scope() : 'all'; }
   var refBusy = false, buyEdit = false, confirmAct = null, detailPushed = false, srcOpen = {};
+  var kalem = null, catEdit = false; /* «Kalem ekle» formu (Alım talebi / talep ayrıntısı) · kullanıcı kategorisi yeniden adlandırma */
   /* «N fiyatsız» dokununca yalnız fiyatsız kalemler; «Tümü» ile hepsi (sayfa/görünüm değişince sıfırlanır) */
   var missOnly = false;
   function isMiss(l) { return l.buy > 0 && (!l.price || l.price.v == null); }
@@ -1277,7 +1296,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-74'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-75'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1356,13 +1375,21 @@
     var u = its[0].unit, same = its.every(function (x) { return x.unit === u; });
     return same ? { t: n1(its.reduce(function (a, x) { return a + x.qty; }, 0)) + ' ' + u, c: 'green' } : { t: its.length + ' kalem', c: 'green' };
   }
+  var tileH = 0;
+  function tileHtml(t, list, nd) {
+    var b = tileBadge(t.key, list, nd);
+    return '<button type="button" class="tile' + (t.custom ? ' st-ctile' : '') + '" data-key="' + esc(t.key) + '" data-go="' + (t.key === 'alinacak' || t.key === 'hareket' ? t.key : 'c-' + esc(t.key)) + '" aria-label="' + esc(t.label + ', ' + b.t) + '">' + hiveHTML(t.key) +
+      '<div class="tile-label">' + esc(t.label) + '</div><div class="badge ' + b.c + '">' + esc(b.t) + '</div></button>';
+  }
   function renderGrid(nd) {
-    var list = S.list();
-    $('grid').innerHTML = TILES.map(function (t) {
-      var b = tileBadge(t.key, list, nd);
-      return '<button type="button" class="tile" data-key="' + t.key + '" data-go="' + (t.key === 'alinacak' || t.key === 'hareket' ? t.key : 'c-' + t.key) + '" aria-label="' + esc(t.label + ', ' + b.t) + '">' + hiveHTML(t.key) +
-        '<div class="tile-label">' + esc(t.label) + '</div><div class="badge ' + b.c + '">' + esc(b.t) + '</div></button>';
-    }).join('');
+    var list = S.list(), g = $('grid'), sc = $('stScreen'), ex = extraTiles();
+    /* önce 3×4 (ekran boyunu dolduran) düzende ölç → ek döşemeler aynı yükseklikte, sayfa kayar */
+    sc.classList.remove('st-scroll'); g.style.gridAutoRows = '';
+    g.innerHTML = TILES.map(function (t) { return tileHtml(t, list, nd); }).join('');
+    if (!g.hidden && g.firstChild && g.firstChild.offsetHeight > 40) tileH = g.firstChild.offsetHeight;
+    if (!ex.length) return;
+    g.insertAdjacentHTML('beforeend', ex.map(function (t) { return tileHtml(t, list, nd); }).join(''));
+    if (!g.hidden) { sc.classList.add('st-scroll'); g.style.gridAutoRows = (tileH || 120) + 'px'; }
   }
   function head(title, sub, toNeed) {
     return '<div class="st-head">' + (toNeed ? '<button type="button" class="st-back" data-back-need aria-label="Alım talebine dön"><span aria-hidden="true">‹</span> Talep</button>'
@@ -1390,15 +1417,33 @@
     return '<div class="full"><span class="st-hint" style="margin:0;">Hazır adlar (dokununca ad ve birim dolar):</span><div class="st-tpl" style="margin-top:4px;">' +
       t.map(function (x, i) { return '<button type="button" data-tpl="' + i + '">' + esc(x.n) + '</button>'; }).join('') + '</div></div>';
   }
+  /** Kategori seçimi: sabit türler + kullanıcı kategorileri + «Yeni kategori…» (seçilince ad alanı açılır) */
+  function catOptions() { return S.CATS.map(function (c) { return { key: c.key, label: c.label }; }).concat(S.cats ? S.cats().map(function (c) { return { key: c.id, label: c.label }; }) : []); }
+  function catSelHtml(lbl, cat) {
+    var opts = catOptions(), has = opts.some(function (c) { return c.key === cat; });
+    return '<label>' + esc(lbl) + '<select class="st-in" name="category">' + opts.map(function (c) { return '<option value="' + esc(c.key) + '"' + (c.key === cat ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') +
+      '<option value="__new"' + (!has && cat === '__new' ? ' selected' : '') + '>Yeni kategori…</option></select></label>' +
+      '<label class="full" data-newcat' + (cat === '__new' ? '' : ' hidden') + '>Yeni kategori adı<input class="st-in" name="newcat" maxlength="30" placeholder="ör. Ambalaj, Kavanoz"></label>';
+  }
+  /** «Yeni kategori…» seçiliyse oluştur; { ok, cat } | { ok:false } (uyarı gösterildi) */
+  function resolveCat(f) {
+    var v = f.elements.category.value;
+    if (v !== '__new') return { ok: true, cat: v };
+    var r = S.addCat ? S.addCat(f.elements.newcat.value) : { ok: false, error: 'Kategori eklenemedi.' };
+    if (!r.ok) { alert(r.error || 'Kategori eklenemedi.'); f.elements.newcat.focus(); return { ok: false }; }
+    if (!r.existing) toast('Yeni kategori · ' + r.label);
+    return { ok: true, cat: r.id };
+  }
   function formHtml() {
     var it = form.id ? S.list().filter(function (x) { return x.id === form.id; })[0] : null;
     var v = it || { name: '', category: form.cat, unit: DEF_UNIT[form.cat] || 'adet', qty: '', threshold: '', feedType: '', note: '' };
+    if (!it && !form.cat) v.category = 'surup';
     var cat = form.catSel || v.category;
-    return '<form class="st-card st-form" id="stForm" autocomplete="off"><div class="st-ftitle full">' + (it ? 'Düzenle · ' + esc(it.name) : '＋ Yeni kalem · ' + esc(TLABEL[cat] || '')) + '</div>' +
+    return '<form class="st-card st-form" id="stForm" autocomplete="off"><div class="st-ftitle full">' + (it ? 'Düzenle · ' + esc(it.name) : '＋ Yeni kalem · ' + esc(catLbl(cat))) + '</div>' +
       '<label class="full">Ad<input class="st-in" name="name" maxlength="80" required list="stTpl" value="' + esc(v.name) + '" placeholder="ör. Şurup 2:1, Varroa şeridi (amitraz)"></label>' +
       '<datalist id="stTpl">' + (TPL[cat] || []).map(function (x) { return '<option value="' + esc(x.n) + '"></option>'; }).join('') + '</datalist>' +
       (it ? '' : tplHtml(cat)) +
-      '<label>Tür<select class="st-in" name="category">' + S.CATS.map(function (c) { return '<option value="' + c.key + '"' + (c.key === cat ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('') + '</select></label>' +
+      catSelHtml('Tür', cat) +
       '<label>Birim<select class="st-in" name="unit">' + S.UNITS.map(function (u) { return '<option value="' + esc(u) + '"' + (u === v.unit ? ' selected' : '') + '>' + esc(u) + '</option>'; }).join('') + '</select></label>' +
       '<label>Miktar<input class="st-in" type="number" name="qty" step="0.1" inputmode="decimal" required value="' + esc(v.qty) + '"></label>' +
       '<label>Uyarı eşiği<input class="st-in" type="number" name="threshold" min="0" step="0.1" inputmode="decimal" placeholder="ör. 10" value="' + esc(v.threshold || '') + '"></label>' +
@@ -1414,11 +1459,17 @@
     var list = S.list(), its = list.filter(function (x) { return x.category === key; });
     var low = its.filter(isLow).length, out = its.filter(isOut).length;
     var sub = its.length + ' kalem' + (low ? ' · ' + low + ' azalan' : '') + (out ? ' · ' + out + ' tükenen' : '') + ' · stok tüm arılıklar için ortak';
-    var h = head(TLABEL[key] || S.CAT_LABEL[key] || key, sub);
+    var h = head(catLbl(key), sub), custom = S.isBuiltinCat && !S.isBuiltinCat(key);
     if (form && !form.id) h += formHtml();
     else h += '<button type="button" class="st-new" data-new="' + key + '"><span aria-hidden="true">＋</span> Yeni kalem</button>';
     if (form && form.id) h += formHtml();
     h += its.length ? its.map(itemCard).join('') : '<p class="st-empty">Bu türde kalem yok. «Yeni kalem» ile ekleyin.</p>';
+    if (custom) {
+      if (catEdit && !its.length) h += '<form class="st-card st-form" data-cat-rename="' + esc(key) + '"><label class="full">Kategori adı<input class="st-in" name="label" maxlength="30" required value="' + esc(catLbl(key)) + '"></label><button type="submit" class="st-btn in">Kaydet</button><button type="button" class="st-btn" data-cat-cancel>Vazgeç</button></form>';
+      else h += '<div class="st-card st-catops"><b class="st-ftitle" style="grid-column:1 / -1;">Kategori: ' + esc(catLbl(key)) + '</b>' +
+        (its.length ? '<p class="st-hint">Yeniden adlandırmak veya silmek için önce kategoriyi boşaltın (kalemleri silin ya da Düzenle › Tür ile taşıyın).</p>'
+          : '<button type="button" class="st-btn" data-cat-edit>Yeniden adlandır</button><button type="button" class="st-btn del" data-cat-del="' + esc(key) + '">Kategoriyi sil</button>') + '</div>';
+    }
     h += '<p class="st-hint">Miktar eşik değerine inince veya altına düşünce Bugün sekmesinde ve Uyarılar’da «Stok azaldı» uyarısı çıkar. Hızlı kayıt › İlaçlama / Besleme kaydederken isteğe bağlı olarak stoktan düşebilirsiniz.</p>';
     return h;
   }
@@ -1428,7 +1479,7 @@
     var mev = Number(l.mev) || 0, enough = editable && !(l.buy > 0) && mev > 0;
     var h = '<article class="st-card st-line' + (l.buy > 0 ? ' low' : '') + (enough ? ' enough' : '') + '" data-line="' + esc(l.key) + '"><div class="st-top"><div class="st-name"><b>' + esc(l.name) + '</b>' +
       '<span class="st-src ' + src[1] + '">' + src[0] + '</span>' + (l.confirm ? '<span class="st-tag red">Teyit</span>' : '') + (enough ? '<span class="st-stat tamam">Yeterli</span>' : '') +
-      (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div></div>' +
+      (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' + (editable && l.manual ? '<button type="button" class="st-rm" data-el-del="' + esc(l.key.slice(3)) + '" aria-label="' + esc(l.name) + ' kalemini kaldır">Kaldır</button>' : '') + '</div>' +
       (editable && (l.buy > 0 || mev > 0) ? mevHtml(l, id) : '') +
       '<div class="st-cols"><span><i>Gerekli</i><b>' + n1(l.need) + ' ' + esc(l.unit) + '</b></span><span><i>Stokta</i><b>' + n1(l.have) + ' ' + esc(l.unit) + '</b></span>' +
       '<span class="' + (l.buy > 0 ? 'buy' : 'ok') + '"><i>Alınacak</i><b>' + (l.buy > 0 ? n1(l.buy) + ' ' + esc(l.unit) : (enough ? 'Yeterli' : '—')) + '</b></span></div>';
@@ -1486,7 +1537,7 @@
   function numTr(v) { return (Number(v) || 0).toLocaleString('tr-TR', { maximumFractionDigits: 2 }); }
   function groupsHtml(lines, secId, editable) {
     var h = '';
-    TQ.GROUPS.forEach(function (g) {
+    (TQ.groupList ? TQ.groupList(lines) : TQ.GROUPS).forEach(function (g) {
       var ls = lines.filter(function (l) { return l.g === g.key && l.need > 0 && (!missOnly || !editable || isMiss(l)); }); if (!ls.length) return;
       h += '<div class="st-grp">' + esc(g.label) + '</div>' + ls.map(function (l) { return lineHtml(l, secId, editable); }).join('');
     });
@@ -1505,7 +1556,7 @@
       '<div class="st-tol"><span>Tahmin payı<small>muayenesiz kovanlara</small></span><button type="button" class="st-btn" data-tol="-5" aria-label="Tahmin payını azalt">−</button><b>%' + rq.tol + '</b><button type="button" class="st-btn" data-tol="5" aria-label="Tahmin payını artır">＋</button></div>' +
       (saving ? '<button type="button" class="st-new" disabled aria-busy="true"><span class="st-spin" aria-hidden="true"></span> Güncel fiyatlar alınıyor…</button>'
         : '<button type="button" class="st-new" data-talep><span aria-hidden="true">📝</span> Talep oluştur</button>');
-    h += '</section>' + savedListHtml(scope);
+    h += '</section>' + (kalem && !kalem.tid ? kalemFormHtml() : '<button type="button" class="st-new" data-kalem-open><span aria-hidden="true">＋</span> Kalem ekle (listede olmayan)</button>') + savedListHtml(scope);
     h += '<p class="st-hint">Muayeneye göre: son ' + TQ.RULES.INSPECT_DAYS + ' günde muayene edilen kovanın bulguları. Tahmin: muayenesiz kovan için mevsim, ırk (kışlık hedef) ve bilinen güç; tahmin payı eklenir, kovan muayene edilince yerini gerçek ihtiyaç alır. İlaçta yalnız etiket şerit dozu; dozu bilinmeyen ürün yalnız paket sayısıyla «Teyit» işaretli. Fiyat sırası: sizin fiyatınız → kaynak ortalaması (≈, piyasa fiyatı değildir) → «fiyat girin».</p>';
     if (scope === 'all') {
       h += '<div class="st-sec"><b>Toplam talep</b><span>' + missChip(rq.missing) + money(rq.total) + '</span></div>' + groupsHtml(rq.combined.lines, 'all', true);
@@ -1546,7 +1597,7 @@
   }
   function missN(t) { return (t.lines || []).filter(function (l) { return l.price == null || !(Number(l.price) > 0); }).length; }
   function mevList(a) { return (a || []).map(function (x) { return x.name + ' ' + numTr(x.q) + ' ' + x.unit; }).join(', '); }
-  function grpLabel(k) { return (TQ.GROUPS.filter(function (g) { return g.key === k; })[0] || {}).label || k || 'Diğer'; }
+  function grpLabel(k) { return TQ.groupLabel ? TQ.groupLabel(k) : ((TQ.GROUPS.filter(function (g) { return g.key === k; })[0] || {}).label || k || 'Diğer'); }
   function renderTalep(id) {
     var t = TQ.talepById(id);
     if (!t) return head('Talep', '', true) + '<p class="st-empty">Talep bulunamadı (silinmiş olabilir).</p>';
@@ -1574,6 +1625,7 @@
     var groups = []; t.lines.forEach(function (l, i) { if (groups.indexOf(l.group) < 0) groups.push(l.group); });
     var order = {}; TQ.GROUPS.forEach(function (g, i) { order[g.key] = i; });
     groups.sort(function (a, b) { return (order[a] == null ? 99 : order[a]) - (order[b] == null ? 99 : order[b]); });
+    if ((st === 'acik' || st === 'kismen') && !buyEdit) h += kalem && kalem.tid === t.id ? kalemFormHtml() : '<button type="button" class="st-new" data-kalem-open><span aria-hidden="true">＋</span> Kalem ekle</button>';
     var body = '';
     groups.forEach(function (g) {
       var gb = '';
@@ -1669,16 +1721,44 @@
     }).join('') : '<p class="st-empty">Henüz stok hareketi yok.</p>';
     return h;
   }
+  /* «Kalem ekle»: elle satır (ad, kategori, miktar, birim, isteğe bağlı fiyat) — taslak talebe veya açık talep ayrıntısına */
+  function kalemFormHtml() {
+    var k = kalem || {}, cat = k.cat || 'ekipman', names = [];
+    Object.keys(TPL).forEach(function (c) { TPL[c].forEach(function (x) { names.push(x.n); }); });
+    S.list().forEach(function (x) { if (names.indexOf(x.name) < 0) names.push(x.name); });
+    return '<form class="st-card st-form" id="stKalem" data-kalem-form autocomplete="off"><div class="st-ftitle full">＋ Kalem ekle' + (k.tid ? ' · bu talebe' : ' · taslak talebe') + '</div>' +
+      '<label class="full">Ad<input class="st-in" name="name" maxlength="80" required list="stKalemDl" placeholder="ör. Ana kafesi, Kavanoz"></label><datalist id="stKalemDl">' + names.map(function (n) { return '<option value="' + esc(n) + '"></option>'; }).join('') + '</datalist>' +
+      catSelHtml('Kategori', cat) +
+      '<label>Birim<select class="st-in" name="unit">' + S.UNITS.map(function (u) { return '<option value="' + esc(u) + '"' + (u === (DEF_UNIT[cat] || 'adet') ? ' selected' : '') + '>' + esc(u) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Miktar<input class="st-in" name="q" type="text" inputmode="decimal" required placeholder="ör. 5"></label>' +
+      '<label class="full">Birim fiyat (₺, isteğe bağlı)<input class="st-in" name="p" type="text" inputmode="decimal" placeholder="boş = fiyatsız"></label>' +
+      '<button type="submit" class="st-btn in">Ekle</button><button type="button" class="st-btn" data-kalem-cancel>Vazgeç</button></form>';
+  }
+  function focusKalem() { var f = $('stKalem'), pn = $('stPanel'), hd = pn.querySelector('.st-head'); if (!f) return; pn.scrollTop += f.getBoundingClientRect().top - pn.getBoundingClientRect().top - (hd ? hd.offsetHeight + 6 : 0); try { f.elements.name.focus({ preventScroll: true }); } catch (e) { f.elements.name.focus(); } }
+  /* Alt ＋ (ana döşemeler / Hareketler): «Stoğa giriş / Yeni malzeme» */
+  function renderYeni() {
+    if (!form) form = { cat: 'surup' };
+    var list = S.list().slice().sort(function (a, b) { return catLbl(a.category).localeCompare(catLbl(b.category), 'tr') || a.name.localeCompare(b.name, 'tr'); });
+    var h = head('Stoğa giriş / Yeni malzeme', list.length ? 'var olan kaleme giriş veya yeni kalem' : 'yeni kalem ekleyin');
+    if (list.length) {
+      h += '<form class="st-card st-form" data-giris-form autocomplete="off"><div class="st-ftitle full">Stoğa giriş (var olan kalem)</div>' +
+        '<label class="full">Kalem<select class="st-in" name="id">' + list.map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(catLbl(x.category) + ' · ' + x.name + ' (' + n1(x.qty) + ' ' + x.unit + ')') + '</option>'; }).join('') + '</select></label>' +
+        '<label>Miktar<input class="st-in" name="q" type="text" inputmode="decimal" required placeholder="Giriş"></label><button type="submit" class="st-btn in" style="align-self:end;">＋ Giriş</button></form>';
+    }
+    return h + formHtml();
+  }
   function renderView(hs, scope) {
     var nd = needFor(hs, scope);
-    renderGrid(nd);
     var panel = $('stPanel'), main = !view;
     $('grid').hidden = !main; panel.hidden = main;
+    renderGrid(nd);
+    if (!main) $('stScreen').scrollTop = 0; /* panel kendi içinde kayar; ek döşemelerden kalan ekran kaydırması sıfırlanır */
     if (main) { panel.innerHTML = ''; return; }
     var keep = panel.scrollTop;
     if (view.indexOf('c-') === 0) panel.innerHTML = renderCat(view.slice(2));
     else if (view === 'alinacak') panel.innerHTML = renderNeed(hs, scope);
     else if (view === 'hareket') panel.innerHTML = renderMoves();
+    else if (view === 'yeni') panel.innerHTML = renderYeni();
     else if (view.indexOf('talep-') === 0) panel.innerHTML = renderTalep(view.slice(6));
     panel.scrollTop = keep;
   }
@@ -1734,12 +1814,12 @@
   /* ---- Yönlendirme (#c-ilac, #alinacak, #hareket) ---- */
   var pushed = false;
   function go(v) {
-    form = null; amt = null;
+    form = null; amt = null; kalem = null; catEdit = false;
     if (v) { pushed = true; location.hash = v; }
     else if (pushed && readHash()) { pushed = false; history.back(); }
     else { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ } view = ''; rerender(); }
   }
-  function onHash() { view = readHash(); missOnly = false; form = null; amt = null; buyEdit = false; confirmAct = null; srcOpen = {}; needKey = ''; $('stPanel').scrollTop = 0; saveAsk = false; rerender(); if (view === 'alinacak') refreshRef(); }
+  function onHash() { view = readHash(); missOnly = false; form = null; amt = null; kalem = null; catEdit = false; buyEdit = false; confirmAct = null; srcOpen = {}; needKey = ''; $('stPanel').scrollTop = 0; saveAsk = false; rerender(); if (view === 'alinacak') refreshRef(); }
   window.addEventListener('hashchange', onHash);
   /* Kapsam seçimi URL sorgusunu değiştirince geri tuşu yalnız popstate verir: görünümü yine hash’ten oku */
   window.addEventListener('popstate', function () { if (readHash() !== view) onHash(); });
@@ -1753,9 +1833,20 @@
     if ((b = t.closest('a[data-ks-note]'))) { e.preventDefault(); go('alinacak'); return; }
     if ((b = t.closest('[data-new]'))) { form = { cat: b.getAttribute('data-new') }; amt = null; rerender(); focusForm(); return; }
     if ((b = t.closest('[data-edit]'))) { form = { id: b.getAttribute('data-edit') }; amt = null; rerender(); focusForm(); return; }
-    if ((b = t.closest('[data-form-cancel]'))) { form = null; rerender(); return; }
+    if ((b = t.closest('[data-form-cancel]'))) { form = null; if (view === 'yeni') { go(''); return; } rerender(); return; }
     if ((b = t.closest('[data-in],[data-out]'))) { amt = { id: b.getAttribute('data-in') || b.getAttribute('data-out'), inn: b.hasAttribute('data-in') }; rerender(); var inp = document.querySelector('[data-amt-form] input'); if (inp) inp.focus(); return; }
     if ((b = t.closest('[data-amt-cancel]'))) { amt = null; rerender(); return; }
+    if ((b = t.closest('[data-kalem-open]'))) { kalem = { tid: view.indexOf('talep-') === 0 ? view.slice(6) : '' }; rerender(); focusKalem(); return; }
+    if ((b = t.closest('[data-kalem-cancel]'))) { kalem = null; rerender(); return; }
+    if ((b = t.closest('[data-el-del]'))) { if (TQ.removeManual(b.getAttribute('data-el-del'))) { needKey = ''; toast('Kalem kaldırıldı'); } return; }
+    if ((b = t.closest('[data-cat-edit]'))) { catEdit = true; rerender(); var ci0 = document.querySelector('[data-cat-rename] input'); if (ci0) ci0.focus(); return; }
+    if ((b = t.closest('[data-cat-cancel]'))) { catEdit = false; rerender(); return; }
+    if ((b = t.closest('[data-cat-del]'))) {
+      var ck = b.getAttribute('data-cat-del');
+      if (!confirm('«' + catLbl(ck) + '» kategorisi silinsin mi?')) return;
+      var cr = S.removeCat(ck); if (!cr.ok) { alert(cr.error || 'Silinemedi.'); return; }
+      toast('Kategori silindi'); go(''); changed(); return;
+    }
     if ((b = t.closest('[data-tpl]'))) {
       var f = $('stForm'), tp = (TPL[f.elements.category.value] || [])[Number(b.getAttribute('data-tpl'))];
       if (tp) { f.elements.name.value = tp.n; f.elements.unit.value = tp.u; f.elements.qty.focus(); }
@@ -1909,7 +2000,12 @@
       setTimeout(function () { TQ.setTalepLinePrice(tl0.id, ti, tv); toast('Tahmini fiyat güncellendi · sizin fiyatınız: ' + money2(tv)); }, 0);
       return;
     }
-    var f = $('stForm'); if (!f || e.target !== f.elements.category || form.id) return;
+    if (e.target.name === 'category' && e.target.form) {
+      var nc = e.target.form.querySelector('[data-newcat]');
+      if (nc) { nc.hidden = e.target.value !== '__new'; if (!nc.hidden) { nc.querySelector('input').focus(); return; } }
+      if (e.target.form.id === 'stKalem') { kalem.cat = e.target.value; var un = e.target.form.elements.unit; if (un && DEF_UNIT[e.target.value]) un.value = DEF_UNIT[e.target.value]; return; }
+    }
+    var f = $('stForm'); if (!f || e.target !== f.elements.category || form.id || e.target.value === '__new') return;
     /* Yeni kalemde tür değişince şablonlar / varsayılan birim güncellensin (girilen değerler korunur) */
     var keep = { name: f.elements.name.value, qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value };
     form.catSel = f.elements.category.value; rerender();
@@ -1921,13 +2017,35 @@
     var f = e.target;
     if (f.id === 'stForm') {
       e.preventDefault();
-      var saved = S.save({ id: form && form.id ? form.id : undefined, name: f.elements.name.value, category: f.elements.category.value, unit: f.elements.unit.value,
+      var rc = resolveCat(f); if (!rc.ok) return;
+      var saved = S.save({ id: form && form.id ? form.id : undefined, name: f.elements.name.value, category: rc.cat, unit: f.elements.unit.value,
         qty: f.elements.qty.value, threshold: f.elements.threshold.value, feedType: f.elements.feedType.value, note: f.elements.note.value });
       if (!saved) return;
       toast('Kaydedildi · ' + saved.name);
       form = null;
       if (view !== 'c-' + saved.category) { location.hash = 'c-' + saved.category; }
       changed(); return;
+    }
+    if (f.hasAttribute('data-kalem-form')) {
+      e.preventDefault();
+      var kc = resolveCat(f); if (!kc.ok) return;
+      var ko = { name: f.elements.name.value, cat: kc.cat, q: f.elements.q.value, unit: f.elements.unit.value, p: String(f.elements.p.value).trim() };
+      var kr = kalem && kalem.tid ? TQ.addTalepLine(kalem.tid, ko) : TQ.addManual(curScope(), ko);
+      if (!kr.ok) { alert(kr.error); return; }
+      kalem = null; needKey = ''; toast('Kalem eklendi · ' + String(ko.name).trim()); changed(); return;
+    }
+    if (f.hasAttribute('data-giris-form')) {
+      e.preventDefault();
+      var gq = TQ.parseNum(f.elements.q.value); if (!(gq > 0)) { alert('Geçerli bir miktar girin.'); return; }
+      var gr = S.adjust(f.elements.id.value, gq, 'Giriş (elle)');
+      if (gr) { toast('Giriş · ' + gr.name + ': ' + n1(gr.qty) + ' ' + gr.unit); form = null; location.hash = 'c-' + gr.category; changed(); }
+      return;
+    }
+    if (f.hasAttribute('data-cat-rename')) {
+      e.preventDefault();
+      var rr = S.renameCat(f.getAttribute('data-cat-rename'), f.elements.label.value);
+      if (!rr.ok) { alert(rr.error); return; }
+      catEdit = false; toast('Kategori adı · ' + rr.label); changed(); return;
     }
     if (f.hasAttribute('data-pf') || f.hasAttribute('data-tpf')) { e.preventDefault(); f.elements.p.blur(); return; }
     if (f.hasAttribute('data-mev')) { e.preventDefault(); f.elements.m.blur(); return; }
@@ -1959,6 +2077,18 @@
       amt = null; changed();
     }
   });
+  /* Alt ＋ (Kayıt) yalnız bu sayfada bağlama göre: ana döşemeler / Hareketler → «Stoğa giriş / Yeni malzeme»; kategori → o türde yeni kalem;
+     Alım talebi → «Kalem ekle» (taslak talebe); açık talep ayrıntısı → o talebe «Kalem ekle». nav.js diğer sayfalarda varsayılanı (Hızlı kayıt) korur. */
+  window.SuperAriQuickHandler = function () {
+    if (view === 'alinacak') { kalem = { tid: '' }; rerender(); focusKalem(); return true; }
+    if (view.indexOf('talep-') === 0) {
+      var tq = TQ.talepById(view.slice(6)), sq = tq ? TQ.statusOf(tq) : '';
+      if (tq && (sq === 'acik' || sq === 'kismen')) { buyEdit = false; kalem = { tid: tq.id }; rerender(); focusKalem(); return true; }
+    }
+    if (view.indexOf('c-') === 0) { form = { cat: view.slice(2) }; amt = null; rerender(); focusForm(); return true; }
+    if (view === 'yeni') { focusForm(); return true; }
+    go('yeni'); return true;
+  };
   /* Açılışta (ve Alınacaklar her açıldığında) fiyatlar ağdan taze okunur; çevrimdışıyken son başarılı dosya (superari.stok.fiyatcache.v1) */
   refreshRef();
   window.addEventListener('online', function () { refreshRef(); });
@@ -1967,7 +2097,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-74"></script>
-<script src="pwa.js?v=koloni-74"></script>
+<script src="nav.js?v=koloni-75"></script>
+<script src="pwa.js?v=koloni-75"></script>
 </body>
 </html>

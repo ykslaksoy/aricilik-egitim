@@ -30,8 +30,8 @@
   var GROUPS = [
     { key: 'besleme', label: 'Besleme' }, { key: 'ilac', label: 'İlaç' }, { key: 'koruyucu', label: 'Koruyucu' },
     { key: 'uygulama', label: 'Uygulama ekipmanı' }, { key: 'tutsu', label: 'Tütsü' }, { key: 'kovan', label: 'Kovan' },
-    { key: 'temizlik', label: 'Temizlik / hijyen' }, { key: 'diger', label: 'Diğer' }
-  ];
+    { key: 'temizlik', label: 'Temizlik / hijyen' }, { key: 'anaari', label: 'Ana arı' }, { key: 'ariKoloni', label: 'Arı / koloni' }
+  ]; /* koloni-75: «Diğer» başlığı yok — listede olmayan her şey «Kalem ekle» ile kategorisiyle girilir (kullanıcı kategorisi = kendi başlığı) */
   var CAT = [
     { key: 'seker', g: 'besleme', name: 'Şeker (toz)', unit: 'kg', step: 1, re: /seker/, cats: ['seker'], note: 'şurup için; stoktaki şurup şeker karşılığıyla sayılır' },
     { key: 'kek', g: 'besleme', name: 'Kek / fondan', unit: 'kg', step: 0.5, re: /\bkek|fondan/, cats: ['kek'] },
@@ -79,7 +79,21 @@
   /* Eşleşme sırası: özel adlar önce (ör. «Okzalik buharlaştırıcı» asit değil, «Körük yakıtı» körük değil, «Alkol yıkama kabı» alkol değil) */
   var FIRST = ['buharlastirici', 'alkol_kabi', 'koruk_yakit', 'nitril', 'siringa', 'alt_tabla', 'temel_petek'];
   var MATCH = FIRST.map(function (k) { return BY[k]; }).concat(CAT.filter(function (c) { return FIRST.indexOf(c.key) < 0; }));
-  var CATGROUP = { surup: 'besleme', seker: 'besleme', kek: 'besleme', polen: 'besleme', ilac: 'ilac', cerceve: 'kovan', temelPetek: 'kovan', kovan: 'kovan', ekipman: 'uygulama', diger: 'diger' };
+  var CATGROUP = { surup: 'besleme', seker: 'besleme', kek: 'besleme', polen: 'besleme', ilac: 'ilac', cerceve: 'kovan', temelPetek: 'kovan', kovan: 'kovan', ekipman: 'uygulama', anaari: 'anaari', ariKoloni: 'ariKoloni' };
+  /** Stok kategorisi → talep grubu (kullanıcı kategorisi kendi grubudur) */
+  function groupOfCat(cat) { return CATGROUP[cat] || String(cat || 'ekipman'); }
+  function groupLabel(k) {
+    var g = GROUPS.filter(function (x) { return x.key === k; })[0]; if (g) return g.label;
+    try { if (D.stock && D.stock.catLabel) return D.stock.catLabel(k); } catch (e) { /* ignore */ }
+    return k === 'diger' ? 'Diğer' : String(k || 'Kalem');
+  }
+  /** Satırlardaki gruplar: sabit sıra + sonra kullanıcı kategorileri (ilk görülme sırası) */
+  function groupList(lines) {
+    var out = GROUPS.slice(), seen = {}; GROUPS.forEach(function (g) { seen[g.key] = 1; });
+    (lines || []).forEach(function (l) { var k = l && (l.g || l.group); if (k && !seen[k]) { seen[k] = 1; out.push({ key: k, label: groupLabel(k), custom: true }); } });
+    return out;
+  }
+  function gOrder(k) { for (var i = 0; i < GROUPS.length; i++) if (GROUPS[i].key === k) return i; return 90; }
 
   /* ---------------- Ayarlar: tahmin payı, fiyatlar ---------------- */
   var TOL_KEY = 'superari.stok.tolerans.v1', PRICE_KEY = 'superari.stok.fiyat.v1';
@@ -468,7 +482,12 @@
     list.forEach(function (x) {
       if (SI.used[x.id] || !(x.threshold > 0) || x.qty > x.threshold) return;
       var need = up(x.threshold * (1 + T), 0.5), xm = Number(MV['stok:' + x.id]) || 0; /* eşik + pay; elde olan düşülür */
-      extra.push({ key: 'stok:' + x.id, g: CATGROUP[x.category] || 'diger', name: x.name, unit: x.unit, m: need, t: 0, need: need, have: Math.max(0, x.qty), mev: xm, buy: up(Math.max(0, need - Math.max(0, x.qty) - xm), 0.5), src: 'esik', why: 'eşik ' + fmtN(x.threshold) + ' ' + x.unit + ' + %' + tol() + ' pay', note: '', stockNote: '' });
+      extra.push({ key: 'stok:' + x.id, g: groupOfCat(x.category), cat: x.category, name: x.name, unit: x.unit, m: need, t: 0, need: need, have: Math.max(0, x.qty), mev: xm, buy: up(Math.max(0, need - Math.max(0, x.qty) - xm), 0.5), src: 'esik', why: 'eşik ' + fmtN(x.threshold) + ' ' + x.unit + ' + %' + tol() + ' pay', note: '', stockNote: '' });
+    });
+    /* Elle eklenen kalemler («Kalem ekle»): bu kapsamın taslağı, ortak bölümde; Mevcut düşülür */
+    manual(scope).forEach(function (x) {
+      var k = 'el:' + x.id, xm = Number(MV[k]) || 0, q = Number(x.q) || 0;
+      extra.push({ key: k, g: groupOfCat(x.cat), cat: x.cat, name: x.name, unit: x.unit, m: q, t: 0, need: q, have: 0, mev: xm, buy: Math.max(0, Math.round((q - xm) * 100) / 100), src: 'elle', why: 'elle eklendi', note: '', stockNote: '', manual: true });
     });
     function finish(s, alloc) {
       var lines = Object.keys(s.acc).map(function (k) { return lineOf(k, s.acc[k], 0); });
@@ -484,7 +503,7 @@
       if (s.ortak) lines = lines.concat(extra);
       var order = {}; GROUPS.forEach(function (g, i) { order[g.key] = i; });
       var ci = {}; CAT.forEach(function (c, i) { ci[c.key] = i; });
-      lines.sort(function (a, b) { return (order[a.g] - order[b.g]) || ((ci[a.key] == null ? 99 : ci[a.key]) - (ci[b.key] == null ? 99 : ci[b.key])); });
+      lines.sort(function (a, b) { return (gOrder(a.g) - gOrder(b.g)) || ((ci[a.key] == null ? 99 : ci[a.key]) - (ci[b.key] == null ? 99 : ci[b.key])); });
       price(lines);
       s.lines = lines; s.subtotal = sum(lines); s.missing = lines.filter(function (l) { return l.buy > 0 && l.price.v == null; }).length;
       return s;
@@ -518,7 +537,7 @@
       return c;
     });
     var order = {}; GROUPS.forEach(function (g, i) { order[g.key] = i; }); var ci = {}; CAT.forEach(function (c, i) { ci[c.key] = i; });
-    clines.sort(function (a, b) { return (order[a.g] - order[b.g]) || ((ci[a.key] == null ? 99 : ci[a.key]) - (ci[b.key] == null ? 99 : ci[b.key])); });
+    clines.sort(function (a, b) { return (gOrder(a.g) - gOrder(b.g)) || ((ci[a.key] == null ? 99 : ci[a.key]) - (ci[b.key] == null ? 99 : ci[b.key])); });
     price(clines);
     var combined = { lines: clines, total: sum(clines), missing: clines.filter(function (l) { return l.buy > 0 && l.price.v == null; }).length };
     return {
@@ -588,7 +607,7 @@
     (lines || []).forEach(function (l) { byKey[l.key] = l; });
     Object.keys(mv).forEach(function (k) {
       var q = Number(mv[k]); if (!(q > 0)) return;
-      var l = byKey[k] || { key: k, name: BY[k] ? BY[k].name : k, unit: BY[k] ? BY[k].unit : 'adet', g: BY[k] ? BY[k].g : 'diger' };
+      var l = byKey[k] || { key: k, name: BY[k] ? BY[k].name : k, unit: BY[k] ? BY[k].unit : 'adet', g: BY[k] ? BY[k].g : 'ekipman' };
       var tg = stockTarget(l, true); if (!tg) return;
       var dq = Math.round(q * tg.f * 100) / 100, it = null;
       try { it = D.stock.adjust(tg.id, dq, MEV_REASON, d || today()); } catch (e) { it = null; }
@@ -598,12 +617,42 @@
     clearMevcut();
     return out;
   }
+  /* ---------------- Elle kalem («Kalem ekle», koloni-75) ----------------
+   * Alım talebi taslağına: superari.stok.talep.elle.v1 (canlı) / .demo.v1 — [{ id, scope, name, cat, q, unit, at }].
+   * Fiyat girilirse «sizin fiyatınız» olarak 'el:<id>' anahtarıyla saklanır. «Talep oluştur» kaydında talebe geçer, taslak temizlenir. */
+  function manKey() { return live() ? 'superari.stok.talep.elle.v1' : 'superari.stok.talep.elle.demo.v1'; }
+  function manualAll() { var a = readJ(manKey(), []); return Array.isArray(a) ? a.filter(function (x) { return x && x.id && x.name; }) : []; }
+  function manual(scope) { var sc = String(scope == null ? 'all' : scope); return manualAll().filter(function (x) { return String(x.scope) === sc; }); }
+  function cleanManual(o) {
+    var name = String(o && o.name || '').trim().slice(0, 80), q = typeof o.q === 'number' ? o.q : parseNum(o.q), unit = String(o && o.unit || 'adet').slice(0, 12);
+    if (!name) return { error: 'Kalem adı girin.' };
+    if (!(q > 0)) return { error: 'Geçerli bir miktar girin.' };
+    var p = o.p === '' || o.p == null ? null : (typeof o.p === 'number' ? o.p : parseNum(o.p));
+    if (p != null && !(p > 0)) return { error: 'Geçerli bir birim fiyat girin (ör. 42,50) veya boş bırakın.' };
+    return { name: name, q: Math.round(q * 100) / 100, unit: unit, cat: String(o.cat || 'ekipman'), p: p != null ? Math.round(p * 100) / 100 : null };
+  }
+  /** Taslağa elle kalem: { ok, line } | { ok:false, error } */
+  function addManual(scope, o) {
+    var c = cleanManual(o || {}); if (c.error) return { ok: false, error: c.error };
+    var x = { id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), scope: String(scope == null ? 'all' : scope), name: c.name, cat: c.cat, q: c.q, unit: c.unit, at: new Date().toISOString() };
+    var a = manualAll(); a.push(x); writeJ(manKey(), a);
+    if (c.p != null) setPrice('el:' + x.id, c.p);
+    try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+    return { ok: true, line: x };
+  }
+  function removeManual(id) {
+    var a = manualAll(), n = a.filter(function (x) { return x.id !== id; }); if (n.length === a.length) return false;
+    writeJ(manKey(), n); setPrice('el:' + id, ''); setMevcut('el:' + id, 0);
+    try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+    return true;
+  }
+  function clearManual(scope) { var sc = String(scope == null ? 'all' : scope); writeJ(manKey(), manualAll().filter(function (x) { return String(x.scope) !== sc; })); }
   function talepKey() { return live() ? 'superari.stok.talep.v1' : 'superari.stok.talep.demo.v1'; }
   function talepler() { var a = readJ(talepKey(), []); return Array.isArray(a) ? a : []; }
   function saveTalep(rq, apName) {
     var ri = rq.ref || {};
     var rows = [];
-    function push(s, lines) { lines.forEach(function (l) { if (l.buy > 0) rows.push({ apiaryId: s ? s.id : '', apiaryName: s ? s.name : 'Toplam', key: l.key, group: l.g, name: l.name, unit: l.unit, need: l.need, have: l.have, buy: l.buy, src: l.src, price: l.price.v, priceSrc: l.price.src, priceDate: l.price.date || '', cost: l.cost }); }); }
+    function push(s, lines) { lines.forEach(function (l) { if (l.buy > 0) rows.push({ apiaryId: s ? s.id : '', apiaryName: s ? s.name : 'Toplam', key: l.key, group: l.g, cat: l.cat || undefined, manual: l.manual || undefined, name: l.name, unit: l.unit, need: l.need, have: l.have, buy: l.buy, src: l.src, price: l.price.v, priceSrc: l.price.src, priceDate: l.price.date || '', cost: l.cost }); }); }
     if (rq.scope === 'all') {
       /* Tümü: kalem başına tek satır (alım kaydı kolay), arılık dağılımı satırda saklanır */
       var per = {};
@@ -628,6 +677,7 @@
     if (mvAdded.length) t.mevcutAdded = mvAdded.map(function (x) { return { key: x.key, name: x.name, q: x.q, unit: x.unit, id: x.id, dq: x.dq, at: x.at, created: x.created || undefined }; }); /* iptalde geri almak için hareket kimliği */
     var a = talepler(); a.push(t); if (a.length > 50) a = a.slice(-50);
     writeJ(talepKey(), a);
+    clearManual(rq.scope); /* elle eklenen kalemler artık talepte */
     try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
     return t;
   }
@@ -699,6 +749,21 @@
       t.total = r2(tot); t.missing = miss; t.priceRefDate = ri.ok ? ri.updated : ''; t.priceRefStale = !!(ri.ok && ri.stale); t.priceAt = ri.ok ? (REF.fetchedAt || '') : ''; t.repricedAt = today();
     });
   }
+  /** Kayıtlı açık talebe elle kalem ekle (Talep ayrıntısında «Kalem ekle»): toplam / fiyatsız sayısı yeniden hesaplanır */
+  function addTalepLine(id, o) {
+    var c = cleanManual(o || {}); if (c.error) return { ok: false, error: c.error };
+    var t0 = talepById(id); if (!t0) return { ok: false, error: 'Talep bulunamadı.' };
+    var st0 = statusOf(t0); if (st0 === 'iptal' || st0 === 'tamam') return { ok: false, error: 'Kapalı talebe kalem eklenemez.' };
+    var key = 'el:m' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    if (c.p != null) setPrice(key, c.p);
+    var t = updateTalep(id, function (t) {
+      t.lines.push({ apiaryId: '', apiaryName: t.apiaryId ? t.apiaryName : 'Tümü', key: key, group: groupOfCat(c.cat), cat: c.cat, manual: true, name: c.name, unit: c.unit, need: c.q, have: 0, buy: c.q, src: 'elle',
+        price: c.p, priceSrc: c.p != null ? 'user' : null, priceDate: c.p != null ? today() : '', cost: c.p != null ? r2(c.q * c.p) : 0 });
+      t.total = r2(t.lines.reduce(function (a, l) { return a + (Number(l.cost) || 0); }, 0));
+      t.missing = t.lines.filter(function (l) { return l.price == null || !(Number(l.price) > 0); }).length; t.buyN = t.lines.length;
+    });
+    return t ? { ok: true, talep: t } : { ok: false, error: 'Talep güncellenemedi.' };
+  }
   /** Açık talepte tahmini birim fiyatı elle değiştir: talep satırı + sizin fiyatınız (kendi fiyatınız her zaman önce gelir) */
   function setTalepLinePrice(id, i, v) {
     var n = typeof v === 'number' ? v : parseNum(v); if (!(n > 0)) return null;
@@ -747,12 +812,20 @@
   }
   /* Satırın stok kalemi: stok:<id> → o kalem; yoksa katalog anahtarıyla eşleşen (şurup hariç, aynı / çevrilebilir birim); yoksa doğru türde yeni kalem */
   var NEW_CAT = { seker: 'seker', kek: 'kek', polen: 'polen', vitamin: 'polen', cerceve: 'cerceve', temel_petek: 'temelPetek', kat: 'kovan' };
-  function newCatFor(l) { var c = BY[l.key]; if (NEW_CAT[l.key]) return NEW_CAT[l.key]; if (!c) return 'diger'; return c.g === 'ilac' ? 'ilac' : (c.g === 'besleme' ? 'diger' : 'ekipman'); }
+  function newCatFor(l) { if (l.cat) return l.cat; var c = BY[l.key]; if (NEW_CAT[l.key]) return NEW_CAT[l.key]; if (!c) return 'ekipman'; return c.g === 'ilac' ? 'ilac' : (c.g === 'besleme' ? 'polen' : 'ekipman'); }
   function stockTarget(l, create) {
     var S = D.stock, list = []; try { list = S.list(); } catch (e) { list = []; }
     var m = /^stok:(.+)$/.exec(String(l.key || ''));
     if (m) { var it0 = list.filter(function (x) { return x.id === m[1]; })[0]; return it0 ? { id: it0.id, f: conv(1, l.unit, it0.unit) || 1, name: it0.name } : null; }
     var best = null;
+    if (/^el:/.test(String(l.key || ''))) {
+      /* elle eklenen kalem: aynı ad (+ kategori) ve çevrilebilir birimdeki stok kalemi, yoksa yeni kalem */
+      var nn = norm(l.name);
+      list.forEach(function (x) { if (norm(x.name) !== nn || (l.cat && x.category !== l.cat)) return; var f = conv(1, l.unit, x.unit); if (f == null) return; if (!best || (best.f !== 1 && f === 1)) best = { id: x.id, f: f, name: x.name }; });
+      if (best || !create) return best;
+      var itm = S.save({ name: String(l.name || 'Kalem').slice(0, 80), category: newCatFor(l), unit: l.unit, qty: 0, threshold: 0, note: 'Alım talebinden oluşturuldu', demo: !live() || undefined });
+      return itm ? { id: itm.id, f: 1, name: itm.name, created: true } : null;
+    }
     list.forEach(function (x) {
       if (x.feedType === 'surup21' || x.feedType === 'surup11') return;
       var c = matchCat(x); if (!c || c.key !== l.key) return;
@@ -808,7 +881,7 @@
     var ri = refInfo(); if (!ri.ok) return 0;
     var m = missLog(), now = new Date().toISOString(), day = todayIso(), n = 0;
     (lines || []).forEach(function (l) {
-      if (!l || !l.key || !(l.buy > 0) || (l.price && l.price.v != null)) return;
+      if (!l || !l.key || !(l.buy > 0) || (l.price && l.price.v != null) || /^el:/.test(l.key)) return; /* elle eklenen kalem: kaynak fiyatı beklenmez */
       var e = m.items[l.key] || { key: l.key, first: now, count: 0 };
       e.name = String(l.name || l.key).slice(0, 120); e.unit = String(l.unit || '').slice(0, 20); e.scope = String(scopeName || '').slice(0, 80);
       if (e.day !== day) { e.count = (Number(e.count) || 0) + 1; e.day = day; e.last = now; n++; }
@@ -844,7 +917,7 @@
   }
 
   global.SuperAriTalep = {
-    CAT: CAT, GROUPS: GROUPS, BY: BY, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
+    CAT: CAT, GROUPS: GROUPS, BY: BY, groupList: groupList, groupLabel: groupLabel, groupOfCat: groupOfCat, manual: manual, addManual: addManual, removeManual: removeManual, addTalepLine: addTalepLine, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
     userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, clearTalepLinePrice: clearTalepLinePrice, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
     RULES: { INSPECT_DAYS: INSPECT_DAYS, BEE_DEFAULT: BEE_DEFAULT, VISITS: VISITS, UNKNOWN_STORE_FRAC: UNKNOWN_STORE_FRAC },
     setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, priceChangeText: priceChangeText, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,

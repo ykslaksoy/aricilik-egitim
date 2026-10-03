@@ -63,9 +63,16 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-74'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-74'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-75'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-75'); });
     chain.then(go, go);
+  }
+  /* Sayfa kendi ＋ davranışını kaydedebilir (yalnız stok.html: window.SuperAriQuickHandler / SuperAriNav.setQuickHandler).
+   * İşleyici yoksa veya false dönerse varsayılan Hızlı kayıt açılır — diğer sayfalar değişmez. */
+  function onPlus() {
+    var h = global.SuperAriQuickHandler;
+    if (typeof h === 'function') { try { if (h() !== false) return; } catch (err) { /* varsayılana düş */ } }
+    openQuick();
   }
   function init() {
     if (!document.getElementById('saNavCss')) {
@@ -86,11 +93,11 @@
     Array.prototype.forEach.call(navs, function (n) {
       n.innerHTML = navHtml(active);
       n.addEventListener('click', function (e) {
-        if (e.target.closest && e.target.closest('[data-quick-record]')) { e.preventDefault(); openQuick(); }
+        if (e.target.closest && e.target.closest('[data-quick-record]')) { e.preventDefault(); onPlus(); }
       });
     });
     if (global.SuperAriDemo) updateBadge();
-    else loadScript('demo-data.js?v=koloni-74').then(updateBadge, updateBadge);
+    else loadScript('demo-data.js?v=koloni-75').then(updateBadge, updateBadge);
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
   function updateBadge() {
@@ -113,6 +120,6 @@
     });
   }
   global.addEventListener('superari-records-changed', function () { setTimeout(updateBadge, 0); });
-  global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, V: V };
+  global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);
