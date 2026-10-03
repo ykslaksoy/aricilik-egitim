@@ -686,10 +686,10 @@
    "key": "gozluk",
    "name": "Koruyucu gözlük",
    "unit": "adet",
-   "ref": 52.23,
+   "ref": 66.24,
    "min": 34.08,
-   "max": 102.25,
-   "n": 7,
+   "max": 129.9,
+   "n": 8,
    "sources": [
     {
      "name": "n11 S1551 Ventilli Koruyucu Gözlük",
@@ -742,19 +742,18 @@
      "unitPrice": 42.0
     },
     {
-     "name": "İsmont Koruyucu Laboratuvar Gözlüğü Şeffaf",
-     "url": "https://www.ismont.com.tr/koruyucu-laboratuvar-gozlugu-seffaf-standart?c=353",
-     "price": 50,
+     "name": "Sanplaza Baymax S-550 Standart Şeffaf Koruyucu İş Gözlüğü",
+     "url": "https://www.sanplaza.com/urun/baymax-s-550-standart-seffaf-koruyucu-capak-is-gozlugu-7812",
+     "price": 129.9,
      "pack": "1 adet",
-     "unitPrice": 50.0
+     "unitPrice": 129.9
     },
     {
-     "name": "İsmont Cerva Crystallux Gözlük Şeffaf",
-     "url": "https://www.ismont.com.tr/cerva-crystallux-gozluk-seffaf-seffaf-standart?c=352",
-     "price": 251,
+     "name": "İlk İş Güvenliği Baymax S500 Şeffaf Koruyucu Gözlük",
+     "url": "https://www.ilkisguvenligi.com/urun/s500-koruyucu-seffaf-gozluk",
+     "price": 84,
      "pack": "1 adet",
-     "unitPrice": 251.0,
-     "outlier": true
+     "unitPrice": 84.0
     }
    ]
   },

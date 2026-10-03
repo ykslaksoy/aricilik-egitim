@@ -160,7 +160,7 @@ async function fetchHtml(url, deadline) {
 }
 
 /* Ana makine başına eşzamanlılık: küçük mağazalar 429 döndürmesin; n11 paralel kaldırabiliyor. */
-const HOST_LIMIT = { 'n11.com': 64, 'aricimarketi.com': 2, 'avrasyaaricilik.com.tr': 8, 'ermisaricilik.com': 20, 'sokmarket.com.tr': 6 };
+const HOST_LIMIT = { 'n11.com': 64, 'aricimarketi.com': 2, 'avrasyaaricilik.com.tr': 8, 'ermisaricilik.com': 20, 'sokmarket.com.tr': 6, 'aricobani.net': 2 };
 /* ermisaricilik, akabebal: önbellekte olmayan sayfa ~5–6 sn'de üretiliyor (paralel istekler de aynı sürede döner) → daha uzun istek süresi */
 const HOST_TIMEOUT = { 'ermisaricilik.com': 7500, 'akabebal.com': 7500 };
 const DEFAULT_LIMIT = 3;
@@ -185,7 +185,7 @@ async function fetchWithRetry(url, deadline) {
   } catch (e) {
     const msg = String((e && e.message) || e);
     if (!/zaman aşımı|HTTP (429|5\d\d)|fetch failed/.test(msg) || deadline - Date.now() < 2000) throw e;
-    await new Promise((r) => setTimeout(r, /429/.test(msg) ? 400 : 50));
+    await new Promise((r) => setTimeout(r, /429/.test(msg) ? 1200 : 50));
     return limited(host, () => fetchHtml(url, deadline));
   }
 }
