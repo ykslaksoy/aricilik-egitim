@@ -1,7 +1,7 @@
 {
  "updated": "2026-10-03",
  "currency": "TRY",
- "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan. Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir.",
+ "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir.",
  "items": [
   {
    "key": "seker",
@@ -377,13 +377,13 @@
    "max": null,
    "n": 0,
    "sources": [],
-   "note": "Kaynak yok: amitrazlı şeritler (Beeraz, Rulamit, Rulamit-VA, Vamitrat) reçeteli veteriner ilacı; Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde satılmıyor, Tarım Kredi / arı yetiştiricileri birlikleri internette fiyat yayımlamıyor. Aslan Petek «Rulamit» 130 TL gösteriyor ama paketteki şerit sayısı yazmıyor (Teknovet: 10 şeritlik poşet; kutuda 1, 3 veya 5 poşet) — şerit fiyatına çevrilemedi. Fiyatı kendiniz girin."
+   "note": "Kaynak yok: amitrazlı şeritler (Beeraz, Rulamit, Rulamit-VA, Vamitrat) reçeteli veteriner ilacı; Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde satılmıyor, Tarım Kredi / arı yetiştiricileri birlikleri internette fiyat yayımlamıyor. Aslan Petek «Rulamit» 130 TL gösteriyor ama paket içeriği yazmıyor; üretici Teknovet Rulamit’i kutuda 1 veya 5 poşet × 10 şerit (10 ya da 50 şerit) olarak satıyor — hangisi olduğu bilinmediği için şerit fiyatına çevrilmedi. Fiyatı kendiniz girin."
   },
   {
    "key": "serit_flumetrin",
    "name": "Varroa şeridi — flumetrin",
    "unit": "şerit",
-   "ref": null,
+   "ref": 22.5,
    "min": 22.5,
    "max": 22.5,
    "n": 1,
@@ -396,18 +396,26 @@
      "unitPrice": 22.5
     }
    ],
-   "note": "Yalnız 1 fiyat bulundu (Muğla Bal Bayvarol 450 TL / 20 şerit, stokta yok); ortalama için yetersiz. Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde flumetrinli şerit yok (reçeteli veteriner ilacı). Fiyatı kendiniz girin."
+   "note": "Tek kaynak: Muğla Bal Bayvarol 450 TL / 20 şerit (5×4), stokta yok — ortalama değil, tek satıcının fiyatı. Flumetrinli şerit reçeteli veteriner ilacı; Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde yok."
   },
   {
    "key": "serit_taufluvalinat",
    "name": "Varroa şeridi — tau-fluvalinat",
    "unit": "şerit",
-   "ref": null,
-   "min": null,
-   "max": null,
-   "n": 0,
-   "sources": [],
-   "note": "Kaynak yok: Apistan Kayra Arı Çiftliği’nde «geçici olarak temin edilemiyor»; Ermiş Arıcılık «Mavrilk Fluvalinate» 380 TL gösteriyor ama stokta yok ve paketteki şerit sayısı yazmıyor. Diğer satıcılarda yok. Fiyatı kendiniz girin."
+   "ref": 19,
+   "min": 19,
+   "max": 19,
+   "n": 1,
+   "sources": [
+    {
+     "name": "Ermiş Arıcılık Mavrilk Fluvalinate Şerit (stokta yok)",
+     "url": "https://ermisaricilik.com/urun/mavrilk-fluvalinate-varrro-serit",
+     "price": 380.0,
+     "pack": "20 şerit (paket içeriği üretici Sichuan Wangshi ve diğer satıcı sayfalarından; Ermiş sayfasında yazmıyor)",
+     "unitPrice": 19.0
+    }
+   ],
+   "note": "Tek kaynak: Ermiş Arıcılık Mavrilk (fluvalinat) 380 TL / 20 şerit, stokta yok — ortalama değil, tek satıcının fiyatı. Paketteki 20 şerit Ermiş sayfasında yazmıyor; üretici (Sichuan Wangshi, bee-keepingequipment.com: «20 Strips per Package») ve diğer satıcılar (ukrbee.ua, uleyshop.com) 20 şerit diyor. Apistan Türkiye’de geçici olarak temin edilemiyor."
   },
   {
    "key": "serit_koumafos",

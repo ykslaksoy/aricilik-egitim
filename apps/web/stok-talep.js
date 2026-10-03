@@ -182,7 +182,7 @@
   /** Birim fiyat: kullanıcı → referans → yok. */
   function priceFor(key) {
     var u = userPrice(key), rf = REF.byKey[key], ri = refInfo();
-    var ref = rf && rf.ref != null && isFinite(Number(rf.ref)) && Number(rf.ref) > 0 ? { v: Number(rf.ref), n: Number(rf.n) || 0, min: rf.min, max: rf.max, updated: ri.updated, note: rf.note || '', stale: !!rf.note || !!ri.stale } : null;
+    var ref = rf && rf.ref != null && isFinite(Number(rf.ref)) && Number(rf.ref) > 0 ? { v: Number(rf.ref), n: Number(rf.n) || 0, min: rf.min, max: rf.max, updated: ri.updated, note: rf.note || '', stale: !!rf.note || !!ri.stale, dateStale: !!ri.stale, single: (Number(rf.n) || 0) === 1 } : null;
     if (u) { var ua = u.d ? daysSince(u.d) : null; return { v: u.v, src: 'user', date: u.d, old: ua == null || ua > 30, ref: ref }; }
     if (ref) return { v: ref.v, src: 'ref', date: ref.updated, ref: ref, stale: ref.stale };
     return { v: null, src: null, ref: null };

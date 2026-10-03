@@ -7,11 +7,34 @@ const path = require('path');
 const api = require(path.join(__dirname, '..', '..', '..', 'api', 'fiyat.js'));
 const BASE = require(path.join(__dirname, '..', 'data', 'fiyat-ref.json'));
 
-// ref hesabı dosyadakiyle birebir (aykırı 2,5×, 4+ kırpılmış ortalama, 2–3 medyan, <2 null)
+// ref hesabı dosyadakiyle birebir (aykırı 2,5× yalnız 3+ kaynakta, 4+ kırpılmış ortalama, 2–3 medyan, 1 → o fiyat «Tek kaynak», 0 → null)
 for (const it of BASE.items) {
   const c = api.recompute(JSON.parse(JSON.stringify(it)));
   assert.deepStrictEqual([c.ref, c.n, c.min, c.max], [it.ref, it.n, it.min, it.max], it.key);
 }
+// koloni-69: tek kaynak da referans olur; aykırı ayıklama yalnız 3+ kaynakta
+const rc = (vals, note) => api.recompute({ note, sources: vals.map((v, i) => ({ name: 'S' + i, unitPrice: v })) });
+let r1 = rc([22.5]);
+assert.deepStrictEqual([r1.ref, r1.n, r1.min, r1.max], [22.5, 1, 22.5, 22.5]);
+assert.ok(/^Tek kaynak: S0/.test(r1.note));
+assert.strictEqual(rc([22.5], 'Tek kaynak: özel not').note, 'Tek kaynak: özel not', 'elle yazılmış tek kaynak notu korunur');
+assert.strictEqual(rc([5, 6], 'Tek kaynak: eski').note, undefined, 'kaynak artınca tek kaynak notu kalkar');
+assert.strictEqual(rc([5, 6], 'başka not').note, 'başka not');
+let r2 = rc([10, 100]);
+assert.deepStrictEqual([r2.ref, r2.n], [55, 2]); assert.ok(r2.sources.every((x) => !x.outlier), '2 kaynakta aykırı ayıklanmaz');
+let r3 = rc([10, 11, 100]);
+assert.deepStrictEqual([r3.ref, r3.n], [10.5, 2]); assert.ok(r3.sources[2].outlier, '3 kaynakta aykırı ayıklanır');
+assert.deepStrictEqual([rc([]).ref, rc([]).n], [null, 0]);
+assert.deepStrictEqual([rc([0]).ref, rc([0]).sources[0].outlier], [null, true], 'geçersiz fiyat sayılmaz');
+// dosya: flumetrin (Bayvarol 450/20, stokta yok) ve tau-fluvalinat (Mavrilk 380/20, stokta yok) tek kaynak; amitraz / kumafos kaynaksız
+const BY = Object.fromEntries(BASE.items.map((i) => [i.key, i]));
+assert.deepStrictEqual([BY.serit_flumetrin.ref, BY.serit_flumetrin.n], [22.5, 1]);
+assert.ok(/^Tek kaynak/.test(BY.serit_flumetrin.note) && /stokta yok/.test(BY.serit_flumetrin.sources[0].name));
+assert.deepStrictEqual([BY.serit_taufluvalinat.ref, BY.serit_taufluvalinat.n], [19, 1]);
+assert.ok(/^Tek kaynak/.test(BY.serit_taufluvalinat.note) && /stokta yok/.test(BY.serit_taufluvalinat.sources[0].name) && /20 şerit/.test(BY.serit_taufluvalinat.sources[0].pack));
+assert.strictEqual(BY.serit_amitraz.ref, null); assert.ok(/Rulamit/.test(BY.serit_amitraz.note));
+assert.strictEqual(BY.serit_koumafos.ref, null); assert.ok(BY.serit_koumafos.note);
+BASE.items.forEach((it) => { if (it.n === 1) assert.ok(/^Tek kaynak/.test(it.note || ''), it.key + ' tek kaynak notu'); });
 // sayı ayrıştırma
 assert.deepStrictEqual(['389.95', '1.549,00', '358,75', '1,549.00', '2.210', '104,74 TL'].map(api.num), [389.95, 1549, 358.75, 1549, 2210, 104.74]);
 // n11: dosyadaki fiyat finalP (sepette) alanı; JSON-LD liste fiyatından önce gelir

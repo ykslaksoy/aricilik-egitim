@@ -5,7 +5,8 @@
  *   - Fiyat: n11 için sayfa içi finalP / priceFloat (dosyadaki fiyatla aynı alan), sonra JSON-LD offers.price,
  *     itemprop/og/product meta, mağazaya özgü alanlar (IdeaSoft salePrice, aslanpetek pbProductPriceCurrent…).
  *   - Birim fiyat: yeniBirim = eskiBirim × yeniFiyat / eskiFiyat (paket oranı korunur).
- *   - ref: medyanın 2,5 katı dışı aykırı → atılır; 4+ fiyatta kırpılmış ortalama (en düşük + en yüksek atılır), 2–3 fiyatta medyan, <2 → null.
+ *   - ref: (3+ kaynakta) medyanın 2,5 katı dışı aykırı → atılır; 4+ fiyatta kırpılmış ortalama (en düşük + en yüksek atılır), 2–3 fiyatta medyan,
+ *     tek kaynakta o fiyat («Tek kaynak» notu), kaynak yoksa null.
  *   - Okunamayan / şüpheli (eski fiyatın 0,4–2,5 katı dışı) kaynak son bilinen fiyatıyla kalır: live:false.
  *   - Fiyat UYDURULMAZ. Yanıt: Cache-Control: no-store.
  * Kaynak başına: live (bool), fetchedAt (canlıysa şimdi; değilse son bilinen tarih), canlı değilse error.
@@ -200,26 +201,35 @@ function median(a) {
   return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null;
 }
 
-/* fiyat-ref.json yöntemi: medyanın 2,5 katı dışı aykırı; 4+ → kırpılmış ortalama, 2–3 → medyan, <2 → ref yok */
+/* fiyat-ref.json yöntemi: aykırı (medyanın 2,5 katı dışı) yalnız 3+ kaynakta; 4+ → kırpılmış ortalama, 2–3 → medyan,
+   1 → o fiyat (not «Tek kaynak …» ile işaretlenir), 0 → ref yok. */
+const TEK = 'Tek kaynak';
 function recompute(item) {
   const src = item.sources || [];
-  const vals = src.map((s) => s.unitPrice).filter((v) => typeof v === 'number' && v > 0);
-  const med = median(vals);
+  const ok = (v) => typeof v === 'number' && v > 0;
+  const vals = src.map((s) => s.unitPrice).filter(ok);
+  const med = vals.length >= 3 ? median(vals) : null;
   const kept = [];
+  let one = null;
   for (const s of src) {
     const v = s.unitPrice;
-    const out = !(typeof v === 'number' && v > 0) || (med && (v > med * 2.5 || v < med / 2.5));
-    if (out) s.outlier = true; else { delete s.outlier; kept.push(v); }
+    const out = !ok(v) || (med && (v > med * 2.5 || v < med / 2.5));
+    if (out) s.outlier = true; else { delete s.outlier; kept.push(v); one = s; }
   }
   kept.sort((a, b) => a - b);
   const n = kept.length;
   let ref = null;
   if (n >= 4) ref = kept.slice(1, -1).reduce((a, b) => a + b, 0) / (n - 2);
   else if (n >= 2) ref = median(kept);
+  else if (n === 1) ref = kept[0];
   item.ref = ref == null ? null : r2(ref);
   item.min = n ? r2(kept[0]) : null;
   item.max = n ? r2(kept[n - 1]) : null;
   item.n = n;
+  /* tek kaynak notu: varsa korunur, yoksa yazılır; kaynak sayısı artınca kaldırılır */
+  const note = String(item.note || '');
+  if (n === 1) { if (note.indexOf(TEK) !== 0) item.note = TEK + ': ' + (one.name || 'satıcı') + ' — ortalama değil, tek satıcının fiyatı.' + (note ? ' ' + note : ''); }
+  else if (note.indexOf(TEK) === 0) delete item.note;
   return item;
 }
 
@@ -262,7 +272,7 @@ async function refresh() {
   for (const item of data.items || []) {
     const hadRef = item.ref != null;
     recompute(item);
-    if (hadRef && item.ref == null && !item.note) item.note = 'Güncel fiyatlarla aykırı olmayan kaynak 2’nin altına düştü; referans hesaplanamadı — fiyatı kendiniz girin.';
+    if (hadRef && item.ref == null && !item.note) item.note = 'Güncel fiyatlarla geçerli kaynak kalmadı; referans hesaplanamadı — fiyatı kendiniz girin.';
     item.liveCount = (item.sources || []).filter((s) => s.live).length;
     for (const s of item.sources || []) {
       const h = hostKey(s.url);

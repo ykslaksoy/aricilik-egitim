@@ -1151,14 +1151,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-68"></script>
-<script src="koloni.js?v=koloni-68"></script>
-<script src="ilac-katalog.js?v=koloni-68"></script>
-<script src="bakim-plan.js?v=koloni-68"></script>
-<script src="kapsam.js?v=koloni-68"></script>
-<script src="rapor-store.js?v=koloni-68"></script>
-<script src="fiyat-live.js?v=koloni-68"></script>
-<script src="stok-talep.js?v=koloni-68"></script>
+<script src="demo-data.js?v=koloni-69"></script>
+<script src="koloni.js?v=koloni-69"></script>
+<script src="ilac-katalog.js?v=koloni-69"></script>
+<script src="bakim-plan.js?v=koloni-69"></script>
+<script src="kapsam.js?v=koloni-69"></script>
+<script src="rapor-store.js?v=koloni-69"></script>
+<script src="fiyat-live.js?v=koloni-69"></script>
+<script src="stok-talep.js?v=koloni-69"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1277,7 +1277,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-68'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-69'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1439,8 +1439,9 @@
       info = 'sizin fiyatınız' + (p.date ? ' · ' + esc(dShort(p.date)) : '') + (p.ref && !p.old ? ' · kaynak ≈ ' + money2(p.ref.v) : '');
       if (p.old) warn = 'fiyat eski, güncelleyin' + (p.ref ? ' · güncel ≈ ' + money2(p.ref.v) : '');
     } else {
-      info = '≈ ' + (p.ref.n || '?') + ' kaynağın ortalaması · ' + esc(p.ref.updated || 'tarih yok');
-      if (p.ref.stale) warn = 'fiyat eski olabilir' + (p.ref.note ? ' · ' + p.ref.note : '');
+      /* tek kaynak: ortalama değil, o satıcının fiyatı (not uyarı olarak görünür, ör. «stokta yok») */
+      info = (p.ref.single ? '≈ tek kaynak' : '≈ ' + (p.ref.n || '?') + ' kaynağın ortalaması') + ' · ' + esc(p.ref.updated || 'tarih yok');
+      warn = [p.ref.dateStale ? 'fiyat eski olabilir' : '', p.ref.note].filter(Boolean).join(' · ');
     }
     /* Birim fiyat her satırda görünür ₺ alanı: değiştirip Enter / dışarı dokununca kaydedilir; boşaltınca sizin fiyatınız silinir */
     return h + '<form class="st-pf" data-pf="' + esc(id) + '" data-key="' + esc(l.key) + '"><label class="st-pfield' + (p.v == null ? ' none' : '') + '"><input name="p" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" value="' + (p.v == null ? '' : esc(numTr(p.v))) + '" placeholder="fiyat girin" aria-label="' + esc(l.name) + ' birim fiyatı, ₺ / ' + esc(l.unit) + '"><span>₺ / ' + esc(l.unit) + '</span></label>' +
@@ -1599,7 +1600,7 @@
         '<form class="st-pf" data-tpf="' + i + '"><label class="st-pfield' + (est == null ? ' none' : '') + '"><input name="p" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" value="' + (est == null ? '' : esc(numTr(est))) + '" placeholder="fiyat girin" aria-label="' + esc(l.name) + ' tahmini birim fiyatı, ₺ / ' + esc(l.unit) + '"><span>₺ / ' + esc(l.unit) + '</span></label><b class="st-ltot">' + (l.cost ? money(l.cost) : '—') + '</b></form>'
       : '<div class="st-cols"><span><i>Alınacak</i><b>' + n1(l.buy) + ' ' + esc(l.unit) + '</b></span><span><i>Tahmini birim</i><b>' + (est != null ? money2(est) : 'fiyat yok') + '</b></span><span><i>Tahmini tutar</i><b>' + (l.cost ? money(l.cost) : '—') + '</b></span></div>');
     var it = TQ.refItem(l.key);
-    if (it) h += srcToggle('tl' + i + ':' + l.key, l.key, l.priceSrc === 'ref' ? '≈ ' + (it.n || '?') + ' kaynağın ortalaması · ' + esc(l.priceDate || '') : (l.priceSrc === 'user' ? 'sizin fiyatınız' + (it.ref != null ? ' · güncel kaynak ≈ ' + money2(it.ref) : '') + ' · kaynak fiyatları' : 'kaynak fiyatları'), '');
+    if (it) h += srcToggle('tl' + i + ':' + l.key, l.key, l.priceSrc === 'ref' ? (Number(it.n) === 1 ? '≈ tek kaynak · ' : '≈ ' + (it.n || '?') + ' kaynağın ortalaması · ') + esc(l.priceDate || '') : (l.priceSrc === 'user' ? 'sizin fiyatınız' + (it.ref != null ? ' · güncel kaynak ≈ ' + money2(it.ref) : '') + ' · kaynak fiyatları' : 'kaynak fiyatları'), '');
     if (q) {
       var d = act != null && est != null ? Math.round((act - q * est) * 100) / 100 : null;
       h += '<div class="st-cols real"><span><i>Alınan</i><b>' + n1(q) + ' ' + esc(l.unit) + '</b></span><span><i>Ödenen birim</i><b>' + (pp != null ? money2(pp) : '—') + '</b></span><span><i>Gerçek tutar</i><b>' + (act != null ? money(act) : '—') + '</b></span></div>' +
@@ -1965,7 +1966,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-68"></script>
-<script src="pwa.js?v=koloni-68"></script>
+<script src="nav.js?v=koloni-69"></script>
+<script src="pwa.js?v=koloni-69"></script>
 </body>
 </html>

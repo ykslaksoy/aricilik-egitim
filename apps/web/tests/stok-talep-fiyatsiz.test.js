@@ -103,5 +103,15 @@ function load(iso) {
   assert.ok(/grant execute on function public\.sa_report_fiyat_eksik\(jsonb, text\) to authenticated/.test(sql));
   assert.ok(!/sa_report_fiyat_eksik\(jsonb, text\) to anon/.test(sql));
   assert.ok(/if not public\.sa_is_admin\(\) then raise/.test(sql));
+  /* koloni-69: tek kaynaklı kalem fiyatlı sayılır (ortalama değil «tek kaynak»); kaynaksız kalem fiyatsız kalır */
+  const FILE = JSON.parse(fs.readFileSync(W + 'data/fiyat-ref.json', 'utf8'));
+  T.withRef(FILE, () => {
+    const pf = T.priceFor('serit_flumetrin');
+    assert.strictEqual(pf.v, 22.5); assert.strictEqual(pf.src, 'ref'); assert.ok(pf.ref.single && /^Tek kaynak/.test(pf.ref.note));
+    assert.strictEqual(T.priceFor('serit_taufluvalinat').v, 19);
+    assert.strictEqual(T.priceFor('serit_amitraz').v, null);
+    assert.ok(!T.priceFor('seker').ref.single);
+  });
+  assert.ok(/≈ tek kaynak/.test(html), 'satırda «tek kaynak» yazar');
   console.log('stok-talep-fiyatsiz: tamam (' + miss.length + ' fiyatsız anahtar: ' + miss.join(', ') + ')');
 })().catch((e) => { console.error(e); process.exit(1); });
