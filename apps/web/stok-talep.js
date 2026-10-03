@@ -777,12 +777,60 @@
     return res;
   }
 
+  /* ---------------- Fiyatı bulunamayan kalemler → yönetici ----------------
+   * Kullanıcıya uyarı gösterilmez. Alım talebinde alınacak olup fiyatı olmayan kalem anahtarları
+   * cihazda (superari.stok.fiyatsiz.v1, çevrimdışı yedek) toplanır ve oturum açıksa buluta
+   * (Supabase sa_report_fiyat_eksik → public.fiyat_eksik) gönderilir; yonetici.html listeler.
+   * Aynı kalem günde bir kez sayılır; fiyat kaynağı hiç yüklenemediyse kayıt yapılmaz. */
+  var MISS_KEY = 'superari.stok.fiyatsiz.v1';
+  function todayIso() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function missLog() { var m = readJ(MISS_KEY, null); return m && typeof m === 'object' && m.items && typeof m.items === 'object' ? m : { items: {} }; }
+  /** Fiyatsız satırları kaydeder; dönüş: bugün yeni sayılan anahtar sayısı. */
+  function noteMissing(lines, scopeName) {
+    var ri = refInfo(); if (!ri.ok) return 0;
+    var m = missLog(), now = new Date().toISOString(), day = todayIso(), n = 0;
+    (lines || []).forEach(function (l) {
+      if (!l || !l.key || !(l.buy > 0) || (l.price && l.price.v != null)) return;
+      var e = m.items[l.key] || { key: l.key, first: now, count: 0 };
+      e.name = String(l.name || l.key).slice(0, 120); e.unit = String(l.unit || '').slice(0, 20); e.scope = String(scopeName || '').slice(0, 80);
+      if (e.day !== day) { e.count = (Number(e.count) || 0) + 1; e.day = day; e.last = now; n++; }
+      m.items[l.key] = e;
+    });
+    if (n) { writeJ(MISS_KEY, m); flushMissing(); }
+    return n;
+  }
+  /** Buluta gönderilmemiş kayıtlar (sayım gönderilenden fazla). */
+  function missPending() { var m = missLog(); return Object.keys(m.items).map(function (k) { return m.items[k]; }).filter(function (e) { return e && (Number(e.count) || 0) > (Number(e.sentN) || 0); }); }
+  var flushing = false, flushTry = 0;
+  function flushMissing() {
+    var B = global.SuperAriBulut, items = missPending();
+    if (!items.length || flushing || global.navigator.onLine === false) return Promise.resolve(false);
+    if (!B || !B.client) { /* bulut.js pwa.js ile sonradan yüklenebilir */ if (flushTry++ < 3) setTimeout(flushMissing, 6000); return Promise.resolve(false); }
+    var m0 = missLog(); if (m0.cloud === 'migration' && m0.cloudDay === todayIso()) return Promise.resolve(false);
+    flushing = true;
+    var payload = items.slice(0, 60).map(function (e) { return { n: Number(e.count) || 0, key: e.key, name: e.name, unit: e.unit, scope: e.scope, first: e.first, last: e.last }; });
+    var v = (global.document && global.document.querySelector && (global.document.querySelector('script[src*="stok-talep.js"]') || {}).src || '').replace(/^.*[?&]v=/, '').slice(0, 40);
+    return B.session().then(function (s) {
+      if (!s) return false;
+      return B.client().then(function (c) { return c.rpc('sa_report_fiyat_eksik', { p_items: payload, p_version: v || null }); }).then(function (r) {
+        var m = missLog();
+        if (r && r.error) {
+          if (/Could not find the function|schema cache|does not exist|PGRST202|42883/i.test(String(r.error.message || r.error.code || ''))) { m.cloud = 'migration'; m.cloudDay = todayIso(); writeJ(MISS_KEY, m); }
+          return false;
+        }
+        payload.forEach(function (p) { var e = m.items[p.key]; if (e) e.sentN = Math.max(Number(e.sentN) || 0, p.n); });
+        m.cloud = 'ok'; m.cloudAt = new Date().toISOString(); writeJ(MISS_KEY, m);
+        return true;
+      });
+    }).catch(function () { return false; }).then(function (ok) { flushing = false; return ok; });
+  }
+
   global.SuperAriTalep = {
     CAT: CAT, GROUPS: GROUPS, BY: BY, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
     userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, clearTalepLinePrice: clearTalepLinePrice, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
     RULES: { INSPECT_DAYS: INSPECT_DAYS, BEE_DEFAULT: BEE_DEFAULT, VISITS: VISITS, UNKNOWN_STORE_FRAC: UNKNOWN_STORE_FRAC },
     setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,
-    refItem: function (k) { return REF.byKey[k] || null; }, parseNum: parseNum, talepForLog: talepForLog, dShortT: dShortT, STATUS: STATUS, statusOf: statusOf, talepSums: talepSums, talepById: talepById, cancelTalep: cancelTalep, deleteTalep: deleteTalep, recordPurchase: recordPurchase, stockTarget: stockTarget,
+    refItem: function (k) { return REF.byKey[k] || null; }, noteMissing: noteMissing, missLog: missLog, missPending: missPending, flushMissing: flushMissing, MISS_KEY: MISS_KEY, parseNum: parseNum, talepForLog: talepForLog, dShortT: dShortT, STATUS: STATUS, statusOf: statusOf, talepSums: talepSums, talepById: talepById, cancelTalep: cancelTalep, deleteTalep: deleteTalep, recordPurchase: recordPurchase, stockTarget: stockTarget,
     tolOn: tolOn, glovePairs: glovePairs, gloveWhy: gloveWhy, GLOVE: { PER_VISIT: GLOVE_PAIRS_PER_VISIT, ACID: GLOVE_PAIRS_ACID, DISEASE_HIVE: GLOVE_PAIRS_DISEASE_HIVE, PER_BOX: GLOVE_PAIRS_PER_BOX },
     FEED: FEED, HIVE_CAP: HIVE_CAP, feedFromDeficit: feedFromDeficit, syrupSugar: syrupSugar, capHive: capHive
   };

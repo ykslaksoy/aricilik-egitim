@@ -1014,6 +1014,15 @@
   .st-sec { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 10px 2px 0; padding-bottom: 4px; border-bottom: 2px solid var(--card-border); min-width: 0; }
   .st-sec b { font-size: 16px; font-weight: 800; color: var(--text); overflow-wrap: anywhere; }
   .st-sec span { font-size: 13px; font-weight: 800; color: var(--brown-mid); white-space: nowrap; }
+  .st-sec span .st-fchip { margin-right: 8px; vertical-align: middle; }
+  /* «N fiyatsız» filtre çipi + «Tümü» (hap stili; görünür 30px, dokunma ≥44px) */
+  .st-mrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; min-width: 0; }
+  .st-fchip { position: relative; display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px dashed #e0a800; background: #fffaf0; color: var(--brown-mid); font: inherit; font-size: 12.5px; font-weight: 800; white-space: nowrap; cursor: pointer; box-sizing: border-box; }
+  .st-fchip::after { content: ''; position: absolute; left: -2px; right: -2px; top: -7px; bottom: -7px; }
+  .st-fchip.on { border-style: solid; border-color: var(--hardal, #d4a017); background: #fdecc0; color: var(--text); cursor: default; }
+  .st-fchip.on::after { display: none; }
+  .st-fchip.all { border-style: solid; border-color: #e6d29c; color: var(--text); }
+  .st-fchip:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(212,160,23,.25); }
   .st-price { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
   .st-ltot { font-size: 15px; font-weight: 800; color: var(--text); white-space: nowrap; }
   .st-sum { gap: 10px; }
@@ -1142,14 +1151,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-67"></script>
-<script src="koloni.js?v=koloni-67"></script>
-<script src="ilac-katalog.js?v=koloni-67"></script>
-<script src="bakim-plan.js?v=koloni-67"></script>
-<script src="kapsam.js?v=koloni-67"></script>
-<script src="rapor-store.js?v=koloni-67"></script>
-<script src="fiyat-live.js?v=koloni-67"></script>
-<script src="stok-talep.js?v=koloni-67"></script>
+<script src="demo-data.js?v=koloni-68"></script>
+<script src="koloni.js?v=koloni-68"></script>
+<script src="ilac-katalog.js?v=koloni-68"></script>
+<script src="bakim-plan.js?v=koloni-68"></script>
+<script src="kapsam.js?v=koloni-68"></script>
+<script src="rapor-store.js?v=koloni-68"></script>
+<script src="fiyat-live.js?v=koloni-68"></script>
+<script src="stok-talep.js?v=koloni-68"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1238,6 +1247,14 @@
   var view = readHash(), form = null, amt = null, lastNeed = null, needKey = '';
   function curScope() { return ctl ? ctl.scope() : 'all'; }
   var refBusy = false, buyEdit = false, confirmAct = null, detailPushed = false, srcOpen = {};
+  /* «N fiyatsız» dokununca yalnız fiyatsız kalemler; «Tümü» ile hepsi (sayfa/görünüm değişince sıfırlanır) */
+  var missOnly = false;
+  function isMiss(l) { return l.buy > 0 && (!l.price || l.price.v == null); }
+  function missChip(n, lbl) {
+    if (!n) return '';
+    return missOnly ? '<span class="st-fchip on" aria-current="true">' + esc(lbl || n + ' fiyatsız') + '</span><button type="button" class="st-fchip all" data-miss="0">Tümü</button>'
+      : '<button type="button" class="st-fchip" data-miss="1" aria-label="' + n + ' fiyatsız kalemi göster">' + esc(lbl || n + ' fiyatsız') + '</button>';
+  }
   function needFor(hs, scope) {
     if (!TQ) return { buyN: 0, total: 0, missing: 0, sections: [], combined: { lines: [] }, ortak: { lines: [] }, hives: 0, insp: 0, fc: 0, ref: {} };
     var pr = ''; try { pr = localStorage.getItem('superari.stok.fiyat.v1') || ''; } catch (e) { pr = ''; }
@@ -1260,7 +1277,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-67'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-68'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1469,17 +1486,20 @@
   function groupsHtml(lines, secId, editable) {
     var h = '';
     TQ.GROUPS.forEach(function (g) {
-      var ls = lines.filter(function (l) { return l.g === g.key && l.need > 0; }); if (!ls.length) return;
+      var ls = lines.filter(function (l) { return l.g === g.key && l.need > 0 && (!missOnly || !editable || isMiss(l)); }); if (!ls.length) return;
       h += '<div class="st-grp">' + esc(g.label) + '</div>' + ls.map(function (l) { return lineHtml(l, secId, editable); }).join('');
     });
-    return h || '<p class="st-empty">Bu bölümde ihtiyaç yok.</p>';
+    return h || (missOnly && editable ? '' : '<p class="st-empty">Bu bölümde ihtiyaç yok.</p>');
   }
   function renderNeed(hs, scope) {
     if (!TQ) return head('Alınacaklar', '') + '<p class="st-empty">Talep modülü yüklenemedi.</p>';
     var rq = needFor(hs, scope), ri = rq.ref || {}, nm = scope === 'all' ? 'Tüm arılıklar' : apName(scope);
+    if (!rq.missing) missOnly = false;
+    /* Fiyatı bulunamayan kalemler kullanıcıya uyarı olarak gösterilmez; yöneticiye bildirilir (cihaz kaydı + bulut, günde bir kez) */
+    if (ri.ok && !ri.loading && rq.missing && TQ.noteMissing) TQ.noteMissing(rq.combined.lines, nm);
     var h = head('Alım talebi', nm + ' · ' + rq.hives + ' kovan · ' + rq.insp + ' muayeneli, ' + rq.fc + ' tahmin');
     h += noticeHtml(scope) + '<section class="st-card st-sum" aria-label="Talep özeti">' + priceDateHtml(ri) + '<div class="st-sumrow"><div><i>Tahmini tutar</i><b>' + money(rq.total) + '</b>' +
-      '<small>' + (rq.missing ? rq.missing + ' kalemde fiyat yok — toplama katılmadı' : (rq.buyN ? 'fiyatlı kalemlerin toplamı' : 'alınacak kalem yok')) + '</small></div>' +
+      (rq.missing ? '<div class="st-mrow">' + missChip(rq.missing, missOnly ? '' : rq.missing + ' kalemde fiyat yok') + '<small>toplama katılmadı</small></div>' : '<small>' + (rq.buyN ? 'fiyatlı kalemlerin toplamı' : 'alınacak kalem yok') + '</small>') + '</div>' +
       '<div><i>Alınacak</i><b>' + rq.buyN + ' kalem</b><small>mevcut stok düşüldü</small></div></div>' +
       '<div class="st-tol"><span>Tahmin payı<small>muayenesiz kovanlara</small></span><button type="button" class="st-btn" data-tol="-5" aria-label="Tahmin payını azalt">−</button><b>%' + rq.tol + '</b><button type="button" class="st-btn" data-tol="5" aria-label="Tahmin payını artır">＋</button></div>' +
       (saving ? '<button type="button" class="st-new" disabled aria-busy="true"><span class="st-spin" aria-hidden="true"></span> Güncel fiyatlar alınıyor…</button>'
@@ -1487,17 +1507,20 @@
     h += '</section>' + savedListHtml(scope);
     h += '<p class="st-hint">Muayeneye göre: son ' + TQ.RULES.INSPECT_DAYS + ' günde muayene edilen kovanın bulguları. Tahmin: muayenesiz kovan için mevsim, ırk (kışlık hedef) ve bilinen güç; tahmin payı eklenir, kovan muayene edilince yerini gerçek ihtiyaç alır. İlaçta yalnız etiket şerit dozu; dozu bilinmeyen ürün yalnız paket sayısıyla «Teyit» işaretli. Fiyat sırası: sizin fiyatınız → kaynak ortalaması (≈, piyasa fiyatı değildir) → «fiyat girin».</p>';
     if (scope === 'all') {
-      h += '<div class="st-sec"><b>Toplam talep</b><span>' + money(rq.total) + '</span></div>' + groupsHtml(rq.combined.lines, 'all', true);
+      h += '<div class="st-sec"><b>Toplam talep</b><span>' + missChip(rq.missing) + money(rq.total) + '</span></div>' + groupsHtml(rq.combined.lines, 'all', true);
       h += '<div class="st-sec"><b>Arılık bazında</b><span>stok sırayla paylaştırıldı</span></div>';
       rq.sections.concat([rq.ortak]).forEach(function (s) {
+        if (missOnly && !s.missing) return;
         var buys = s.lines.filter(function (l) { return l.buy > 0; });
         h += '<button type="button" class="st-card st-apsec"' + (s.ortak ? '' : ' data-ap="' + esc(s.id) + '"') + '><span class="st-top"><span class="st-name"><b>' + esc(s.name) + '</b><small>' +
           (s.ortak ? 'dayanıklı aletler bir kez + stok eşikleri' : s.hives + ' kovan · ' + s.insp + ' muayeneli · ' + s.fc + ' tahmin') + (s.missing ? ' · ' + s.missing + ' fiyatsız' : '') + '</small></span><span class="st-qty">' + money(s.subtotal) + '</span></span>' +
           '<span class="st-mini">' + (buys.length ? buys.map(function (l) { return esc(l.name.replace(/ \(.*\)$/, '') + ' ' + n1(l.buy) + ' ' + l.unit); }).join(' · ') : 'alınacak yok') + '</span></button>';
       });
     } else {
-      rq.sections.forEach(function (s) { h += '<div class="st-sec"><b>' + esc(s.name) + '</b><span>' + money(s.subtotal) + '</span></div>' + groupsHtml(s.lines, s.id, true); });
-      h += '<div class="st-sec"><b>' + esc(rq.ortak.name) + '</b><span>' + money(rq.ortak.subtotal) + '</span></div>' + groupsHtml(rq.ortak.lines, 'ortak', true);
+      rq.sections.concat([rq.ortak]).forEach(function (s) {
+        if (missOnly && !s.missing) return;
+        h += '<div class="st-sec"><b>' + esc(s.name) + '</b><span>' + missChip(s.missing) + money(s.subtotal) + '</span></div>' + groupsHtml(s.lines, s.ortak ? 'ortak' : s.id, true);
+      });
     }
     h += '<p class="st-hint">Stok tüm arılıklar için ortaktır. Tahmin kuralları: arılı çerçeve bilinmiyorsa ' + TQ.RULES.BEE_DEFAULT + ' varsayılır; kışlık stok bilinmiyorsa hedefin %' + Math.round(TQ.RULES.UNKNOWN_STORE_FRAC * 100) + '’i beslenir (1 L 2:1 şurup ≈ 0,89 kg şeker, ≈ 0,8 kg kışlık stok); kovan başına en çok 15 L 2:1 şurup (≈ ' + String(TQ.HIVE_CAP.seker).replace('.', ',') + ' kg şeker), 4 kg kek, 4 şerit — açık daha büyükse kek ve birleştirme; tahmin payı yalnız kovan başı sarfa bir kez eklenir; eldiven / körük yakıtı ' + TQ.RULES.VISITS + ' ziyaret üzerinden.</p>';
     return h;
@@ -1526,13 +1549,14 @@
   function renderTalep(id) {
     var t = TQ.talepById(id);
     if (!t) return head('Talep', '', true) + '<p class="st-empty">Talep bulunamadı (silinmiş olabilir).</p>';
-    var st = TQ.statusOf(t), sm = TQ.talepSums(t), off = st === 'iptal';
+    var st = TQ.statusOf(t), sm = TQ.talepSums(t), off = st === 'iptal', tmiss = missN(t);
+    if (!tmiss || buyEdit) missOnly = false;
     var h = head('Talep · ' + dShort(t.date), t.apiaryName + ' · ' + t.lines.length + ' kalem', true);
     h += '<section class="st-card st-sum' + (off ? ' is-off' : '') + '" aria-label="Talep durumu"><div class="st-tl2">' + statBadge(st) + ' · ' + sm.bought + '/' + sm.n + ' kalem alındı' + (t.cancelledAt ? ' · iptal ' + esc(dShort(t.cancelledAt)) : '') + '</div>' +
       '<div class="st-sum3"><div><i>Tahmini toplam</i><b>' + (sm.est > 0 ? money(sm.est) : 'fiyatsız') + '</b></div><div><i>Gerçek toplam</i><b>' + (sm.bought ? money(sm.act) : '—') + '</b></div>' +
       '<div><i>Fark</i><b class="' + (sm.diff > 0 ? 'up' : (sm.diff < 0 ? 'down' : '')) + '">' + (sm.bought ? (sm.diff > 0 ? '+' : '') + money(sm.diff) : '—') + '</b></div></div>' +
-      '<small class="st-pinfo">Fark = ödenen − alınan miktarların tahmini (' + money(sm.estBought) + ')' + (sm.actMissing ? ' · ' + sm.actMissing + ' alımda ödenen fiyat yok' : '') + (missN(t) ? ' · talepte ' + missN(t) + ' kalem fiyatsız' : '') +
-      ' · fiyat tarihi ' + esc(t.priceRefDate || 'yalnız sizin fiyatlarınız') + (t.priceRefStale ? ' (eski)' : '') + (t.mevcutAdded && t.mevcutAdded.length ? (t.mevcutReverted ? ' · İptalle Mevcut alanlarına geri döndü: ' : ' · Mevcut stoğa eklendi: ') + esc(mevList(t.mevcutAdded)) : '') + '</small>' +
+      '<small class="st-pinfo">Fark = ödenen − alınan miktarların tahmini (' + money(sm.estBought) + ')' + (sm.actMissing ? ' · ' + sm.actMissing + ' alımda ödenen fiyat yok' : '') + ' · fiyat tarihi ' + esc(t.priceRefDate || 'yalnız sizin fiyatlarınız') + (t.priceRefStale ? ' (eski)' : '') + (t.mevcutAdded && t.mevcutAdded.length ? (t.mevcutReverted ? ' · İptalle Mevcut alanlarına geri döndü: ' : ' · Mevcut stoğa eklendi: ') + esc(mevList(t.mevcutAdded)) : '') + '</small>' +
+      (tmiss && !buyEdit ? '<div class="st-mrow">' + missChip(tmiss, 'talepte ' + tmiss + ' kalem fiyatsız') + '</div>' : '') +
       '<div class="st-btns"><button type="button" class="st-btn" data-share>Paylaş</button><button type="button" class="st-btn" data-csv>CSV</button><button type="button" class="st-btn" data-print>PDF</button></div>';
     if ((st === 'acik' || st === 'kismen') && !buyEdit) {
       var pdf = TQ.talepPriceDiff(t);
@@ -1550,8 +1574,9 @@
     groups.sort(function (a, b) { return (order[a] == null ? 99 : order[a]) - (order[b] == null ? 99 : order[b]); });
     var body = '';
     groups.forEach(function (g) {
-      body += '<div class="st-grp">' + esc(grpLabel(g)) + '</div>';
-      t.lines.forEach(function (l, i) { if (l.group === g) body += buyEdit ? buyLineEdit(t, l, i) : buyLine(t, l, i, off); });
+      var gb = '';
+      t.lines.forEach(function (l, i) { if (l.group === g && (!missOnly || l.price == null || !(Number(l.price) > 0))) gb += buyEdit ? buyLineEdit(t, l, i) : buyLine(t, l, i, off); });
+      if (gb) body += '<div class="st-grp">' + esc(grpLabel(g)) + '</div>' + gb;
     });
     if (buyEdit) {
       h += '<form data-buy-form="' + esc(t.id) + '" novalidate><div class="st-card st-buyopts">' +
@@ -1712,7 +1737,7 @@
     else if (pushed && readHash()) { pushed = false; history.back(); }
     else { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ } view = ''; rerender(); }
   }
-  function onHash() { view = readHash(); form = null; amt = null; buyEdit = false; confirmAct = null; srcOpen = {}; needKey = ''; $('stPanel').scrollTop = 0; saveAsk = false; rerender(); if (view === 'alinacak') refreshRef(); }
+  function onHash() { view = readHash(); missOnly = false; form = null; amt = null; buyEdit = false; confirmAct = null; srcOpen = {}; needKey = ''; $('stPanel').scrollTop = 0; saveAsk = false; rerender(); if (view === 'alinacak') refreshRef(); }
   window.addEventListener('hashchange', onHash);
   /* Kapsam seçimi URL sorgusunu değiştirince geri tuşu yalnız popstate verir: görünümü yine hash’ten oku */
   window.addEventListener('popstate', function () { if (readHash() !== view) onHash(); });
@@ -1770,6 +1795,7 @@
     if ((b = t.closest('[data-ref-apply]'))) { TQ.applyPending(); needKey = ''; noticeCalc = null; rerender(); toast('Güncel fiyatlar uygulandı'); return; }
     if ((b = t.closest('[data-ref-keep]'))) { TQ.dismissPending(); noticeCalc = null; rerender(); toast('Şimdilik eski fiyatlar kullanılıyor'); return; }
     if ((b = t.closest('[data-reprice]'))) { var rid = view.slice(6); if (TQ.repriceTalep(rid)) toast('Tahmini fiyatlar güncellendi · ödenen fiyatlar değişmedi'); return; }
+    if ((b = t.closest('[data-miss]'))) { missOnly = b.getAttribute('data-miss') === '1'; srcOpen = {}; rerender(); var mr = document.querySelector('#stPanel .st-mrow, #stPanel .st-fchip'); if (missOnly && mr) mr.scrollIntoView({ block: 'nearest' }); return; }
     if ((b = t.closest('[data-src]'))) { var sid = b.getAttribute('data-src'); srcOpen[sid] = !srcOpen[sid]; rerender(); return; }
     if ((b = t.closest('[data-tl]'))) { detailPushed = true; location.hash = 'talep-' + b.getAttribute('data-tl'); return; }
     if ((b = t.closest('[data-back-need]'))) { backToNeed(); return; }
@@ -1939,7 +1965,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-67"></script>
-<script src="pwa.js?v=koloni-67"></script>
+<script src="nav.js?v=koloni-68"></script>
+<script src="pwa.js?v=koloni-68"></script>
 </body>
 </html>

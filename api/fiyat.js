@@ -164,6 +164,11 @@ const HOST_LIMIT = { 'n11.com': 64, 'aricimarketi.com': 2, 'avrasyaaricilik.com.
 /* ermisaricilik, akabebal: önbellekte olmayan sayfa ~5–6 sn'de üretiliyor (paralel istekler de aynı sürede döner) → daha uzun istek süresi */
 const HOST_TIMEOUT = { 'ermisaricilik.com': 7500, 'akabebal.com': 7500 };
 const DEFAULT_LIMIT = 3;
+/* Otomatik okunamayan siteler: istek atılmaz, dosyadaki fiyatla kalır (live:false), sayfadan elle güncellenir. */
+const NO_FETCH = {
+  'akakce.com': 'Cloudflare bot koruması (403/429)',
+  'eylularicilik.com': 'sunucu yurt dışı / veri merkezi bağlantısını kesiyor (TLS)'
+};
 const lanes = new Map();
 function limited(host, fn) {
   let L = lanes.get(host);
@@ -228,6 +233,8 @@ async function refresh() {
   for (const item of data.items || []) {
     for (const s of item.sources || []) {
       if (!s.url || !(s.price > 0) || !(s.unitPrice > 0)) { s.live = false; s.fetchedAt = s.fetchedAt || baseDate; s.error = 'eksik kaynak'; continue; }
+      const nf = NO_FETCH[hostKey(s.url)];
+      if (nf) { s.live = false; s.fetchedAt = s.fetchedAt || baseDate; s.error = 'otomatik okunmuyor: ' + nf; continue; }
       if (!cache.has(s.url)) cache.set(s.url, fetchWithRetry(s.url, deadline).then((html) => ({ html }), (e) => ({ err: String((e && e.message) || e) })));
       jobs.push(cache.get(s.url).then((res) => {
         const now = new Date().toISOString();
@@ -288,3 +295,4 @@ module.exports.refresh = refresh;
 module.exports.recompute = recompute;
 module.exports.extractPrice = extractPrice;
 module.exports.num = num;
+module.exports.NO_FETCH = NO_FETCH;

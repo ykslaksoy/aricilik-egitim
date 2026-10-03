@@ -1,7 +1,7 @@
 {
  "updated": "2026-10-03",
  "currency": "TRY",
- "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan.",
+ "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan. Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir.",
  "items": [
   {
    "key": "seker",
@@ -377,7 +377,7 @@
    "max": null,
    "n": 0,
    "sources": [],
-   "note": "Ruhsatlı amitraz şerit (Beeraz, Rulamit vb.) reçeteli veteriner ilacı; çevrimiçi Türk satıcıda fiyat bulunamadı — fiyatı kendiniz girin."
+   "note": "Kaynak yok: amitrazlı şeritler (Beeraz, Rulamit, Rulamit-VA, Vamitrat) reçeteli veteriner ilacı; Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde satılmıyor, Tarım Kredi / arı yetiştiricileri birlikleri internette fiyat yayımlamıyor. Aslan Petek «Rulamit» 130 TL gösteriyor ama paketteki şerit sayısı yazmıyor (Teknovet: 10 şeritlik poşet; kutuda 1, 3 veya 5 poşet) — şerit fiyatına çevrilemedi. Fiyatı kendiniz girin."
   },
   {
    "key": "serit_flumetrin",
@@ -396,7 +396,7 @@
      "unitPrice": 22.5
     }
    ],
-   "note": "Yalnız 1 fiyat bulundu (Bayvarol, stokta yok); ortalama için yetersiz — fiyatı kendiniz girin."
+   "note": "Yalnız 1 fiyat bulundu (Muğla Bal Bayvarol 450 TL / 20 şerit, stokta yok); ortalama için yetersiz. Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde flumetrinli şerit yok (reçeteli veteriner ilacı). Fiyatı kendiniz girin."
   },
   {
    "key": "serit_taufluvalinat",
@@ -407,7 +407,7 @@
    "max": null,
    "n": 0,
    "sources": [],
-   "note": "Apistan Türkiye’de geçici olarak temin edilemiyor; çevrimiçi fiyat bulunamadı — fiyatı kendiniz girin."
+   "note": "Kaynak yok: Apistan Kayra Arı Çiftliği’nde «geçici olarak temin edilemiyor»; Ermiş Arıcılık «Mavrilk Fluvalinate» 380 TL gösteriyor ama stokta yok ve paketteki şerit sayısı yazmıyor. Diğer satıcılarda yok. Fiyatı kendiniz girin."
   },
   {
    "key": "serit_koumafos",
@@ -418,16 +418,16 @@
    "max": null,
    "n": 0,
    "sources": [],
-   "note": "Koumafos şerit (Checkmite) için çevrimiçi Türk satıcıda fiyat bulunamadı — fiyatı kendiniz girin."
+   "note": "Kaynak yok: kumafos (Checkmite) şeridi Türkiye’deki çevrimiçi arıcılık mağazalarında, Tarım Kredi’de ve birliklerin sitelerinde satılmıyor / fiyatlı değil. Fiyatı kendiniz girin."
   },
   {
    "key": "okzalik",
    "name": "Okzalik asit",
    "unit": "paket",
-   "ref": 291.3,
+   "ref": 281.83,
    "min": 202,
    "max": 430.31,
-   "n": 8,
+   "n": 9,
    "sources": [
     {
      "name": "Avrasya Arıcılık Oksalik Asit 1 kg",
@@ -484,6 +484,13 @@
      "price": 230,
      "pack": "800 g → 1 kg",
      "unitPrice": 287.5
+    },
+    {
+     "name": "Eylül Arıcılık Oksalik Asit (Dihidrat) 1 kg",
+     "url": "https://www.eylularicilik.com/oksalik-asit-dihidrat-1-kg-pmu27",
+     "price": 225.0,
+     "pack": "1 kg",
+     "unitPrice": 225.0
     }
    ]
   },
@@ -821,10 +828,10 @@
    "key": "arici_eldiven",
    "name": "Arıcı eldiveni (çift)",
    "unit": "adet",
-   "ref": 336.96,
-   "min": 269,
+   "ref": 313.84,
+   "min": 150,
    "max": 552.2,
-   "n": 8,
+   "n": 10,
    "sources": [
     {
      "name": "n11 Vinlex Arıcı Eldiveni",
@@ -889,6 +896,20 @@
      "price": 299,
      "pack": "1 çift",
      "unitPrice": 299.0
+    },
+    {
+     "name": "Eylül Arıcılık Arıcı Nitril Eldiven (Daldırma)",
+     "url": "https://www.eylularicilik.com/arici-nitril-eldiven-daldirma--pmu284",
+     "price": 220.0,
+     "pack": "1 çift",
+     "unitPrice": 220.0
+    },
+    {
+     "name": "Apimaye Arıcı Eldiveni Su Geçirmez Nitril (L)",
+     "url": "https://market.apimaye.com.tr/urunler/kolluklu-sari-nitril-kapli-arici-eldiven-sdf0002-310/",
+     "price": 150.0,
+     "pack": "1 çift",
+     "unitPrice": 150.0
     }
    ]
   },
@@ -1173,10 +1194,10 @@
    "key": "koruk",
    "name": "Tütsü körüğü",
    "unit": "adet",
-   "ref": 741.97,
+   "ref": 710.64,
    "min": 330,
    "max": 1032.3,
-   "n": 9,
+   "n": 12,
    "sources": [
     {
      "name": "n11 Arı Körüğü Galvaniz",
@@ -1240,6 +1261,27 @@
      "price": 555,
      "pack": "1 adet",
      "unitPrice": 555.0
+    },
+    {
+     "name": "Akakçe Arıcı Körüğü Galvaniz Kovalı (en ucuz)",
+     "url": "https://www.akakce.com/kovan-ari-ekipmanlari/en-ucuz-arici-korugu-galveniz-kovali-fiyati,561582542.html",
+     "price": 531.05,
+     "pack": "1 adet",
+     "unitPrice": 531.05
+    },
+    {
+     "name": "Akakçe Krom İlaçlama Körüğü (en ucuz)",
+     "url": "https://www.akakce.com/kovan-ari-ekipmanlari/en-ucuz-krom-ilaclama-korugu-fiyati,993385540.html",
+     "price": 828.59,
+     "pack": "1 adet",
+     "unitPrice": 828.59
+    },
+    {
+     "name": "Akakçe Krom Kovasız Arıcı Körüğü (en ucuz)",
+     "url": "https://www.akakce.com/kovan-ari-ekipmanlari/en-ucuz-krom-kovasiz-arici-korugu-temiz-is-koruk-fiyati,324062637.html",
+     "price": 552.96,
+     "pack": "1 adet",
+     "unitPrice": 552.96
     }
    ]
   },
@@ -1247,10 +1289,10 @@
    "key": "koruk_yakit",
    "name": "Körük yakıtı (çuval / talaş / pamuk)",
    "unit": "kg",
-   "ref": 104.74,
+   "ref": 124.87,
    "min": 100,
    "max": 149.79,
-   "n": 3,
+   "n": 4,
    "sources": [
     {
      "name": "Avrasya Arıcılık Arıcı Körüğü Yakıtı 1 kg",
@@ -1288,6 +1330,13 @@
      "pack": "1 kg",
      "unitPrice": 345.0,
      "outlier": true
+    },
+    {
+     "name": "Apimaye Lyson Körük Yakıtı Apidou 1 kg",
+     "url": "https://market.apimaye.com.tr/urunler/koruk-yakiti-apidou-1kg-ly32282-236/",
+     "price": 145.0,
+     "pack": "1 kg",
+     "unitPrice": 145.0
     }
    ]
   },
@@ -1450,10 +1499,10 @@
    "key": "temel_petek",
    "name": "Temel petek",
    "unit": "adet",
-   "ref": 40.44,
-   "min": 27.78,
+   "ref": 38.63,
+   "min": 27.41,
    "max": 56.1,
-   "n": 8,
+   "n": 9,
    "sources": [
     {
      "name": "Arıcımarketi 10 kg Temel Petek Sıcak Döküm",
@@ -1510,6 +1559,13 @@
      "price": 3750,
      "pack": "10 kg ≈ 135 levha",
      "unitPrice": 27.78
+    },
+    {
+     "name": "Eylül Arıcılık Ana Petek Sıcak Döküm Temel Petek 10 kg",
+     "url": "https://www.eylularicilik.com/temel-petek-pmt180",
+     "price": 3700.0,
+     "pack": "10 kg ≈ 135 levha (13,5/kg, 21×41)",
+     "unitPrice": 27.41
     }
    ]
   },
@@ -1556,10 +1612,10 @@
    "key": "kapi_daraltici",
    "name": "Kapı daraltıcı",
    "unit": "adet",
-   "ref": 29.5,
-   "min": 24.9,
-   "max": 35,
-   "n": 3,
+   "ref": 35.68,
+   "min": 22.5,
+   "max": 55,
+   "n": 7,
    "sources": [
     {
      "name": "Arıcımarketi Kovan Kapama - Metal Kovan Sürgüsü",
@@ -1581,6 +1637,34 @@
      "price": 35,
      "pack": "1 adet",
      "unitPrice": 35.0
+    },
+    {
+     "name": "Eylül Arıcılık Plastik Ayarlı Arı Girişi",
+     "url": "https://www.eylularicilik.com/plastik-ayarli-ari-girisi-pmu208",
+     "price": 55.0,
+     "pack": "1 adet",
+     "unitPrice": 55.0
+    },
+    {
+     "name": "Avrasya Arıcılık Plastik Ayarlı Arı Girişi",
+     "url": "https://www.avrasyaaricilik.com.tr/plastik-ayarli-ari-girisi/",
+     "price": 44.0,
+     "pack": "1 adet",
+     "unitPrice": 44.0
+    },
+    {
+     "name": "Arıcımarketi Ayarlı Arı Girişi",
+     "url": "https://www.aricimarketi.com/urun/ayarli-ari-girisi",
+     "price": 45.0,
+     "pack": "1 adet",
+     "unitPrice": 45.0
+    },
+    {
+     "name": "Ermiş Arıcılık Kovan Sürgüsü Plastik (2 adet)",
+     "url": "https://ermisaricilik.com/urun/kovan-surgusu-plastik-2-adet",
+     "price": 45.0,
+     "pack": "2 adet → 1 adet",
+     "unitPrice": 22.5
     }
    ]
   },
@@ -1655,10 +1739,10 @@
    "key": "ana_izgarasi",
    "name": "Ana ızgarası",
    "unit": "adet",
-   "ref": 350.19,
-   "min": 240.71,
+   "ref": 292.98,
+   "min": 100,
    "max": 599.28,
-   "n": 8,
+   "n": 11,
    "sources": [
     {
      "name": "n11 Avrasya Arıcılık Ana Arı Izgarası Plastik",
@@ -1730,8 +1814,7 @@
      "url": "https://akabebal.com/urun/akb-metal-ana-ari-izgarasi/",
      "price": 100,
      "pack": "1 adet",
-     "unitPrice": 100.0,
-     "outlier": true
+     "unitPrice": 100.0
     },
     {
      "name": "Arıcı Obası Metal Ana Arı Izgarası",
@@ -1739,6 +1822,28 @@
      "price": 436.41,
      "pack": "1 adet",
      "unitPrice": 436.41
+    },
+    {
+     "name": "Eylül Arıcılık Ana Arı Izgarası Plastik",
+     "url": "https://www.eylularicilik.com/ana-ari-izgarasi-plastik-pmu316",
+     "price": 38.0,
+     "pack": "1 adet",
+     "unitPrice": 38.0,
+     "outlier": true
+    },
+    {
+     "name": "Apimaye Termo Kovan Ana Arı Izgarası",
+     "url": "https://market.apimaye.com.tr/urunler/termo-kovan-ana-ari-izgarasi-68/",
+     "price": 160.0,
+     "pack": "1 adet",
+     "unitPrice": 160.0
+    },
+    {
+     "name": "Apimaye Ergonomik Kovan Ana Arı Izgarası 42×49",
+     "url": "https://market.apimaye.com.tr/urunler/ergonomik-kovan-ana-ari-izgarasi-42x49-69/",
+     "price": 135.0,
+     "pack": "1 adet",
+     "unitPrice": 135.0
     }
    ]
   },

@@ -5,6 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Yönetici · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <style>
+    .fe { margin-top: 1rem; }
+    .fe h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
+    .fe-sub { margin: 0 0 .75rem; color: var(--muted); font-size: .88rem; line-height: 1.4; }
+    .fe-sub a { text-decoration: underline; }
+    .fe-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+    .fe-list li { border: 1px solid var(--border); border-radius: 14px; padding: .65rem .8rem; background: #fffaf0; min-width: 0; }
+    .fe-top { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+    .fe-top b { font-size: .98rem; overflow-wrap: anywhere; }
+    .fe-top span { flex: 0 0 auto; font-size: .78rem; font-weight: 700; color: var(--accent-dark); white-space: nowrap; }
+    .fe-meta { display: block; margin-top: .2rem; font-size: .8rem; color: var(--muted); line-height: 1.4; overflow-wrap: anywhere; }
+    .fe-tag { display: inline-block; margin-left: .35rem; padding: 0 .45rem; border-radius: 999px; font-size: .72rem; font-weight: 700; background: #eef6ee; color: var(--ok); vertical-align: middle; }
+    .fe-tag.dev { background: #f3efe4; color: var(--muted); }
+    .fe-empty { color: var(--muted); font-size: .9rem; margin: 0; }
+  </style>
 </head>
 <body>
   <main class="wrap">
@@ -42,7 +57,69 @@
         <p>Tüm kullanıcı yönetimi (ayrı navigasyon)</p>
       </a>
     </section>
+    <section class="card fe" aria-labelledby="feH">
+      <h2 id="feH">Fiyatı bulunamayan kalemler</h2>
+      <p class="fe-sub" id="feSub">Yükleniyor…</p>
+      <ol class="fe-list" id="feList"></ol>
+    </section>
   </main>
-<script src="pwa.js?v=koloni-67"></script>
+<script src="pwa.js?v=koloni-68"></script>
+<script src="bulut.js?v=koloni-68"></script>
+<script>
+/* Fiyatı bulunamayan kalemler: Alım talebinde alınacak olup fiyatı olmayan kalemler (kullanıcıya uyarı gösterilmez).
+   Bulut: sa_fiyat_eksik_list (yalnız yönetici) · Çevrimdışı yedek: bu cihazın superari.stok.fiyatsiz.v1 kaydı.
+   Tekilleştirilmiş (kalem anahtarı), en yeni önce. Kaynak dosyasında şimdi fiyatı olanlar işaretlenir. */
+(function () {
+  'use strict';
+  var MIG = 'supabase/migrations/20261003230000_fiyat_eksik.sql';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function dt(iso) { var d = new Date(iso); return isNaN(d) ? '—' : d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  function money(v) { return Number(v).toLocaleString('tr-TR', { maximumFractionDigits: 2 }) + ' ₺'; }
+  function local() {
+    try { var m = JSON.parse(localStorage.getItem('superari.stok.fiyatsiz.v1') || 'null'); var it = m && m.items || {};
+      return Object.keys(it).map(function (k) { var e = it[k]; return { key: k, name: e.name, unit: e.unit, last_scope: e.scope, first_seen: e.first, last_seen: e.last, seen_count: e.count, local: true }; });
+    } catch (e) { return []; }
+  }
+  function cloud() {
+    var B = window.SuperAriBulut; if (!B) return Promise.resolve({ msg: 'Bulut modülü yüklenemedi.' });
+    return B.loadConfig().then(function (cfg) {
+      if (!cfg || !cfg.enabled) return { msg: 'Bulut kapalı.' };
+      return B.session().then(function (s) {
+        if (!s) return { msg: 'Tüm kullanıcılardan gelen liste için <a href="hesap.html">Hesap</a> sayfasından yönetici hesabıyla oturum açın.' };
+        return B.client().then(function (c) { return c.rpc('sa_fiyat_eksik_list', { p_limit: 200 }); }).then(function (r) {
+          if (!r.error) return { rows: r.data || [] };
+          var m = String(r.error.message || '') + ' ' + String(r.error.code || '');
+          if (/42501|Yalnız yönetici/.test(m)) return { msg: 'Bu hesap yönetici değil; bulut listesi yalnız yöneticiye açıktır.' };
+          if (/Could not find the function|schema cache|does not exist|PGRST202|42883/i.test(m)) return { msg: 'Veritabanı güncellemesi gerekli (' + esc(MIG) + ').' };
+          return { msg: 'Bulut listesi alınamadı: ' + esc(r.error.message || 'hata') };
+        });
+      });
+    }).catch(function () { return { msg: 'Bulut listesi alınamadı (bağlantı yok olabilir).' }; });
+  }
+  function refFile() { return fetch('data/fiyat-ref.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function paint(c, ref) {
+    var by = {}, refBy = {};
+    ((ref && ref.items) || []).forEach(function (x) { if (x && x.key) refBy[x.key] = x; });
+    (c.rows || []).forEach(function (r) { by[r.key] = r; });
+    local().forEach(function (r) { if (!by[r.key]) by[r.key] = r; });
+    var rows = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return String(b.last_seen || '').localeCompare(String(a.last_seen || '')); });
+    var nLocal = rows.filter(function (r) { return r.local; }).length;
+    $('feSub').innerHTML = (c.rows ? 'Buluttan ' + c.rows.length + ' kalem' + (nLocal ? ' + yalnız bu cihazda görülen ' + nLocal : '') + '. ' : (c.msg ? c.msg + ' ' : '') + (rows.length ? 'Aşağıda yalnız bu cihazda görülenler var. ' : '')) +
+      'Alım talebinde alınacak olup fiyatı bulunamayan kalemler; kullanıcıya uyarı gösterilmez. Fiyatı <code>data/fiyat-ref.json</code> kaynaklarına eklenince bir sonraki talepte görünür.';
+    if (!rows.length) { $('feList').innerHTML = '<li class="fe-empty">Kayıt yok.</li>'; return; }
+    $('feList').innerHTML = rows.map(function (r) {
+      var rf = refBy[r.key], has = rf && rf.ref != null && Number(rf.ref) > 0;
+      var why = has ? '' : (rf ? (rf.note || 'kaynak dosyasında var, fiyatı yok') : (/^stok:/.test(r.key) ? 'kullanıcının kendi stok kalemi (katalogda yok)' : 'kaynak dosyasında yok'));
+      return '<li><div class="fe-top"><b>' + esc(r.name || r.key) + (has ? '<span class="fe-tag">şimdi fiyatı var ≈ ' + esc(money(rf.ref)) + (r.unit ? ' / ' + esc(r.unit) : '') + '</span>' : '') + (r.local ? '<span class="fe-tag dev">bu cihaz</span>' : '') + '</b>' +
+        '<span>' + (Number(r.seen_count) || 1) + ' kez' + (r.users ? ' · ' + r.users + ' kişi' : '') + '</span></div>' +
+        '<small class="fe-meta">Anahtar <code>' + esc(r.key) + '</code>' + (r.unit ? ' · birim ' + esc(r.unit) : '') + (r.last_scope ? ' · son: ' + esc(r.last_scope) : '') + (r.last_email ? ' · ' + esc(r.last_email) : '') + '</small>' +
+        '<small class="fe-meta">Son görülme ' + esc(dt(r.last_seen)) + ' · ilk ' + esc(dt(r.first_seen)) + (why ? ' · ' + esc(why) : '') + '</small></li>';
+    }).join('');
+  }
+  paint({ msg: 'Bulut kontrol ediliyor…' }, null);
+  Promise.all([cloud(), refFile()]).then(function (a) { paint(a[0], a[1]); });
+})();
+</script>
 </body>
 </html>

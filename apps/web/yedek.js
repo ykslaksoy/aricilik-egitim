@@ -6,7 +6,7 @@
 (function (global) {
   var LS = global.localStorage;
   var FORMAT = 'superari-cihaz-yedegi';
-  var SKIP = [/\.demo(\.|$)/i, /demo/i, /seed/i, /^superari\.bulut\./, /^superari\.session\./, /^superari\.account/, /^superari\.push\./,
+  var SKIP = [/\.demo(\.|$)/i, /demo/i, /seed/i, /^superari\.bulut\./, /^superari\.session\./, /^superari\.account/, /^superari\.push\./, /^superari\.stok\.fiyatsiz\./ /* yöneticiye giden tanı kaydı */,
     /^superari\.hava\./, /^superari\.stok\.fiyatcache/, /^superari\.harita/, /^superari\.waterSources/, /^superari\.discovered/, /^superari\.workMode\.ping/,
     /^superari\.saglikKick/, /^superari\.davet\./, /^superari\.hataLog\./, /^superari\.sartlar\./, /^superari\.bildirimGonderildi/,
     /Mig(\.|ration)|migrated|orphanPurge|canliTemizlik\.v1$/];
