@@ -38,6 +38,10 @@
     { key: 'polen', g: 'besleme', name: 'Polen / polen ikamesi', unit: 'kg', step: 0.5, re: /polen/, cats: ['polen'] },
     { key: 'vitamin', g: 'besleme', name: 'Vitamin / besin takviyesi', unit: 'paket', step: 1, scope: 'apiary', re: /vitamin|takviye/, note: 'etiketteki kullanıma göre; doz yazılmaz' },
     { key: 'tuz', g: 'besleme', name: 'Tuz (suluk / tuzlu su)', unit: 'kg', step: 1, scope: 'apiary', re: /\btuz/ },
+    /* Rulamit-VA tütsü plakası (ruhsatlı, şerit değil): tahmine KENDİLİĞİNDEN girmez (şeritle çift tedavi olmasın); stokta eşik verilirse talebe girer.
+       Şerit anahtarından önce durur: «Rulamit-VA» / «Amitraz tütsü plakası» şeride sayılmaz. */
+    { key: 'amitraz_tutsu', g: 'ilac', name: 'Amitraz tütsü plakası (Rulamit-VA)', unit: 'kutu', step: 1, scope: 'apiary', manual: true, re: /rulamit va\b|tutsu plaka|amitraz tutsu/,
+      note: 'kutuda 3 poşet × 1 plaka; şeritle birlikte kendiliğinden eklenmez — etiket: kovan başına 7 duman darbesi, 3 gün ara ile 3 kez' },
     { key: 'serit_amitraz', notol: true, g: 'ilac', name: 'Varroa şeridi — amitraz', unit: 'şerit', step: 1, re: /amitraz|beeraz|rulamit|vamitrat/ },
     { key: 'serit_flumetrin', notol: true, g: 'ilac', name: 'Varroa şeridi — flumetrin', unit: 'şerit', step: 1, re: /flumetrin|bayvarol|beevarflu|varodur|fumbee|polyvar/ },
     { key: 'serit_taufluvalinat', notol: true, g: 'ilac', name: 'Varroa şeridi — tau-fluvalinat', unit: 'şerit', step: 1, re: /fluvalinat|apistan/ },

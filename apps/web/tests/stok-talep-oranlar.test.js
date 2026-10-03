@@ -16,6 +16,7 @@ const LIM = {
   tuz: { a: 1 },
   serit_amitraz: { h: 4, why: 'etiket: kuluçkalık başına 2 şerit' }, serit_flumetrin: { h: 4 }, serit_taufluvalinat: { h: 4 }, serit_koumafos: { h: 4 },
   ilac_teyit: { a: 1 },
+  amitraz_tutsu: { a: 0, why: 'Rulamit-VA tütsü: kendiliğinden eklenmez, yalnız stok eşiği' },
   okzalik: { h: 1 / 25, r: 1, why: 'damlatma: 1 paket ≈ 25 kovan' }, formik: { h: 1 / 10, r: 1 }, timol: { a: 1 },
   nitril: { a: 8 / 50, h: 1 / 50, r: 1, why: 'arılık × ziyaret × 2 çift + asit; 50 çift/kutu' },
   gozluk: { once: 1 }, maske: { once: 1 }, arici_eldiven: { once: 1 }, siringa: { once: 1 }, buharlastirici: { once: 1 },

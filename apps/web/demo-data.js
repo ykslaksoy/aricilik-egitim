@@ -4370,7 +4370,7 @@
     { key: 'ilac', label: 'İlaç' }, { key: 'cerceve', label: 'Çerçeve' }, { key: 'temelPetek', label: 'Temel petek' }, { key: 'kovan', label: 'Kovan / kat' },
     { key: 'ekipman', label: 'Ekipman' }, { key: 'diger', label: 'Diğer' }
   ];
-  var STOCK_UNITS = ['L', 'kg', 'adet', 'şerit', 'ml', 'g', 'paket'];
+  var STOCK_UNITS = ['L', 'kg', 'adet', 'şerit', 'ml', 'g', 'paket', 'kutu'];
   var STOCK_CAT_LABEL = {}; STOCK_CATS.forEach(function (c) { STOCK_CAT_LABEL[c.key] = c.label; });
   function stockKey() { return workMode() === 'live' ? STOCK_LIVE : STOCK_DEMO; }
   function normalizeStock(it) {

@@ -114,7 +114,8 @@ function load(iso) {
     const pf = T.priceFor('serit_flumetrin');
     assert.strictEqual(pf.v, 22.5); assert.strictEqual(pf.src, 'ref'); assert.ok(pf.ref.single && /^Tek kaynak/.test(pf.ref.note));
     assert.strictEqual(T.priceFor('serit_taufluvalinat').v, null); assert.strictEqual(T.priceFor('timol').v, null);
-    assert.strictEqual(T.priceFor('serit_amitraz').v, 13); assert.ok(T.priceFor('serit_amitraz').ref.single);
+    assert.strictEqual(T.priceFor('serit_amitraz').v, null);
+    assert.strictEqual(T.priceFor('amitraz_tutsu').v, 130); assert.ok(T.priceFor('amitraz_tutsu').ref.single);
     assert.strictEqual(T.priceFor('serit_koumafos').v, null);
     assert.strictEqual(T.priceFor('okzalik').ref.note, 'ruhsatlı ürün yok · dökme asit fiyatı');
     assert.ok(!T.priceFor('seker').ref.single);

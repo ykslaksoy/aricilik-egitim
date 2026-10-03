@@ -6,6 +6,7 @@
  * Dozlar, ilgili ürünün Bakanlık veri tabanındaki «Ürün Özellikleri Özeti» (ÜÖÖ/KÜB) PDF'inden aynen alınmıştır.
  * ÜÖÖ bulunamayan ruhsatlı ürünlerde ve Bakanlık listesinde arı için ruhsatlı ürünü bulunamayan etken maddelerde
  * doz HESAPLANMAZ («doz doğrulanmadı»). Arayüz her zaman «Etiket dozunu kontrol edin» der.
+ * İstisna: Rulamit-VA (tütsü plakası) — ÜÖÖ yok; etiket bilgisi üretici Teknovet sayfasından aynen «label» alanında, yalnız gösterim (şerit hesabı yok).
  */
 (function (global) {
   'use strict';
@@ -92,10 +93,19 @@
       season: 'Bal hasadı başlamadan en az 42 gün önce veya hasattan sonra.',
       source: PDF + '2adb422f-a88d-4a2b-bc67-11a543cec0fb&dosyaAdi=%20Checkmite.pdf', verified: true
     },
+    /* Ruhsatlı tütsü ürünü: Bakanlık ÜÖÖ yok; etiket bilgisi üretici sayfasından AYNEN (Teknovet). Şerit değildir →
+       dose: null (şerit hesabına, öneriye ve alım tahminine girmez); label yalnız gösterim içindir. rulamit'ten ÖNCE durur (detect «Rulamit-VA» metnini buna eşler). */
+    { id: 'rulamitva', name: 'Rulamit-VA', holder: 'Teknovet', active: 'Amitraz 265 mg / karton plaka', group: 'amitraz', form: 'Tütsü (körükte yakılan karton plaka, 20×10 cm)',
+      dose: null, verified: false, source: 'https://teknovet.com.tr/tr/urunler/antiparazitler/rulamit-va', labelSource: 'Teknovet ürün sayfası (üretici etiketi)',
+      label: { kind: 'tutsu', puffsPerHive: 7, puffsLog: '3–4', hivesPerMinute: 10, repeats: 3, repeatsHigh: 4, intervalDays: 3,
+        text: 'Boş körük içinde bir karton plaka bir ucundan yakılır; her kovanın uçuş deliğinden 7 doz duman darbe halinde basılır, hızla diğer kovana geçilir (yaklaşık bir dakikada 10 kovan). Uçuş deliğini kapatmaya gerek yoktur. Kütük veya sepet kovanda 3–4 duman darbesi yeterlidir. İlaçlama 3 gün ara ile 3 kez; Varroa yoğunluğu çok yüksekse 3 gün ara ile 4 kez.',
+        pack: 'Karton kutuda 3 alüminyum folyo poşet; her poşette 1 rulo karton plaka (20×10 cm, 265 mg amitraz).' },
+      durationDays: [6, 9], /* etiketten: 3 gün ara ile 3 uygulama = 6 gün, 4 uygulama = 9 gün */
+      withdrawal: null, withdrawalDays: 30, withdrawalText: 'Son ilaç uygulamasından 30 gün sonrasına kadar elde edilen ballar kullanılmaz.',
+      season: 'Kışın sıcaklığın 14 °C’den yüksek olduğu iyi havalarda (yavru yokken akarlar ergin arıdadır) etkilidir. Yazın bal hasadından önce Haziran–Eylül aylarında uygulanmaz.',
+      reason: 'Tütsü ürünü (körükte yakılan karton plaka): şerit dozu hesaplanmaz; etiket: kovan başına 7 duman darbesi, 3 gün ara ile 3 kez.' },
     /* Ruhsatlı görünen fakat Bakanlık veri tabanında ÜÖÖ belgesi bulunmayan ürünler */
     { id: 'rulamit', name: 'Rulamit', holder: 'Teknovet', active: 'Amitraz', group: 'amitraz', form: 'Kovan içi şerit', dose: null, verified: false, source: DB,
-      reason: 'Bakanlık listesinde ruhsatlı; ürün özellikleri belgesi bulunamadı.' },
-    { id: 'rulamitva', name: 'Rulamit-Va', holder: 'Teknovet', active: 'Amitraz', group: 'amitraz', form: 'Kovan içi şerit', dose: null, verified: false, source: DB,
       reason: 'Bakanlık listesinde ruhsatlı; ürün özellikleri belgesi bulunamadı.' },
     { id: 'vamitratva', name: 'Vamitrat-Va', holder: 'Teknovet', active: 'Amitraz', group: 'amitraz', form: 'Kovan içi şerit', dose: null, verified: false, source: DB,
       reason: 'Bakanlık listesinde ruhsatlı; ürün özellikleri belgesi bulunamadı.' },
@@ -117,7 +127,7 @@
   function doseFor(id, beeFrames) {
     var p = BY_ID[id];
     if (!p) return { ok: false, reason: 'Ürün bulunamadı' };
-    if (!p.dose) return { ok: false, reason: 'Doz doğrulanmadı — ' + (p.reason || 'etiket bilgisi yok') };
+    if (!p.dose) return { ok: false, reason: (p.label ? 'Şerit dozu yok — ' : 'Doz doğrulanmadı — ') + (p.reason || 'etiket bilgisi yok') };
     if (p.dose.type === 'fixed') return { ok: true, qty: p.dose.qty, text: String(p.dose.qty), unit: p.dose.unit };
     var n = Math.round(Number(beeFrames));
     if (!isFinite(n) || n <= 0) return { ok: false, reason: 'Arılı çerçeve sayısı girilmemiş; önce muayene kaydı girin.' };
@@ -129,7 +139,7 @@
   function detect(text) {
     var t = String(text || '').toLocaleLowerCase('tr');
     if (!t) return null;
-    var hit = null;
+    var hit = /rulamit[\s-]*va/.test(t) ? BY_ID.rulamitva : null;
     LIST.forEach(function (p) { if (!hit && t.indexOf(p.name.toLocaleLowerCase('tr').split(' ')[0]) >= 0) hit = p; });
     if (hit) return { id: hit.id, group: hit.group };
     if (/amitraz/.test(t)) return { id: null, group: 'amitraz' };

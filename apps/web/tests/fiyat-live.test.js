@@ -26,7 +26,7 @@ let r3 = rc([10, 11, 100]);
 assert.deepStrictEqual([r3.ref, r3.n], [10.5, 2]); assert.ok(r3.sources[2].outlier, '3 kaynakta aykırı ayıklanır');
 assert.deepStrictEqual([rc([]).ref, rc([]).n], [null, 0]);
 assert.deepStrictEqual([rc([0]).ref, rc([0]).sources[0].outlier], [null, true], 'geçersiz fiyat sayılmaz');
-// dosya: flumetrin (Bayvarol 450/20, stokta yok) ve amitraz (Rulamit) tek kaynak; tau-fluvalinat ve timol ruhsatlı ürün olmadığı için kaynaksız (ruhsatsız Mavrilk / Bee Strips / BeeShields alınmaz); kumafos kaynaksız
+// dosya: flumetrin (Bayvarol 450/20, stokta yok) tek kaynak; amitraz şerit kaynaksız (Rulamit-VA tütsü ayrı kalem); tau-fluvalinat ve timol ruhsatlı ürün olmadığı için kaynaksız (ruhsatsız Mavrilk / Bee Strips / BeeShields alınmaz); kumafos kaynaksız
 const BY = Object.fromEntries(BASE.items.map((i) => [i.key, i]));
 assert.deepStrictEqual([BY.serit_flumetrin.ref, BY.serit_flumetrin.n], [22.5, 1]);
 assert.ok(/^Tek kaynak/.test(BY.serit_flumetrin.note) && /stokta yok/.test(BY.serit_flumetrin.sources[0].name));
@@ -37,10 +37,12 @@ for (const k of ['serit_taufluvalinat', 'timol']) {
 // varroa ilacı anahtarlarında ruhsatsız ürün adı geçmez
 const RUHSATSIZ = /mavrilk|bee ?strips|esmolin|timolin|beeshields|thymo\b|combinox|arwen|tnt ?82|bolvit|sniper/i;
 ['serit_amitraz', 'serit_flumetrin', 'serit_taufluvalinat', 'serit_koumafos', 'timol'].forEach((k) => BY[k].sources.forEach((s) => assert.ok(!RUHSATSIZ.test(s.name), k + ': ' + s.name)));
-// amitraz: ruhsatlı Rulamit (Aslan Petek 130 TL, Teknovet poşeti 10 şerit varsayımı) → 13 ₺/şerit, tek kaynak
-assert.deepStrictEqual([BY.serit_amitraz.ref, BY.serit_amitraz.n], [13, 1]);
-assert.ok(/^Tek kaynak/.test(BY.serit_amitraz.note) && /varsay/.test(BY.serit_amitraz.note) && /Teknovet/.test(BY.serit_amitraz.note));
-assert.ok(/aslanpetek\.com\/rulamit/.test(BY.serit_amitraz.sources[0].url) && /10 şerit/.test(BY.serit_amitraz.sources[0].pack));
+// amitraz şerit: Aslan Petek 130 TL ürünü Rulamit-VA (tütsü) → şeritten çıkarıldı; ruhsatlı / ruhsatsız TL şerit fiyatı yok → kaynaksız
+assert.deepStrictEqual([BY.serit_amitraz.ref, BY.serit_amitraz.n, BY.serit_amitraz.sources.length], [null, 0, 0]);
+assert.ok(/ruhsatsız/.test(BY.serit_amitraz.note) && /Rulamit-VA/.test(BY.serit_amitraz.note));
+// Rulamit-VA tütsü plakası: kutu fiyatı, tek kaynak
+assert.deepStrictEqual([BY.amitraz_tutsu.ref, BY.amitraz_tutsu.n, BY.amitraz_tutsu.unit], [130, 1, 'kutu']);
+assert.ok(/^Tek kaynak/.test(BY.amitraz_tutsu.note) && /teyit/.test(BY.amitraz_tutsu.note) && /aslanpetek\.com\/rulamit/.test(BY.amitraz_tutsu.sources[0].url) && /3 poşet/.test(BY.amitraz_tutsu.sources[0].pack));
 // okzalik / formik: ruhsatlı ürün yok, dökme asit fiyatı (not kaynak sayısı artsa da kalır)
 for (const k of ['okzalik', 'formik']) { assert.strictEqual(BY[k].note, 'ruhsatlı ürün yok · dökme asit fiyatı'); assert.ok(BY[k].n > 1 && BY[k].ref > 0); }
 { const it = JSON.parse(JSON.stringify(BY.okzalik)); api.recompute(it); assert.strictEqual(it.note, 'ruhsatlı ürün yok · dökme asit fiyatı'); }

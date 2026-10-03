@@ -101,10 +101,10 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="demo-data.js?v=koloni-71"></script>
-  <script src="ilac-katalog.js?v=koloni-71"></script>
-  <script src="bakim-plan.js?v=koloni-71"></script>
-  <script src="kovan-ara.js?v=koloni-71"></script>
+  <script src="demo-data.js?v=koloni-72"></script>
+  <script src="ilac-katalog.js?v=koloni-72"></script>
+  <script src="bakim-plan.js?v=koloni-72"></script>
+  <script src="kovan-ara.js?v=koloni-72"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -147,10 +147,12 @@
         var body = p.dose
           ? '<p><b>Doz:</b> ' + esc(p.dose.note) + '</p><p><b>Süre:</b> ' + (p.durationDays[0] === p.durationDays[1] ? p.durationDays[0] + ' gün' : p.durationDays[0] + '–' + p.durationDays[1] + ' gün') + '</p>' +
             '<p><b>Bekleme / bal:</b> ' + esc(p.withdrawalText) + '</p><p><b>Dönem:</b> ' + esc(p.season) + '</p>'
-          : '<p><b>Doz doğrulanmadı.</b> ' + esc(p.reason) + '</p>';
-        return '<details><summary>' + esc(p.name) + (p.dose ? '' : ' · <span style="color:#c92a2a;">doz doğrulanmadı</span>') + '</summary>' +
+          : (p.label ? '<p><b>Etiket (tütsü):</b> ' + esc(p.label.text) + '</p><p><b>Ambalaj:</b> ' + esc(p.label.pack) + '</p>' +
+              '<p><b>Bekleme / bal:</b> ' + esc(p.withdrawalText) + '</p><p><b>Dönem:</b> ' + esc(p.season) + '</p><p>Şerit değildir: uygulama şerit dozu hesabına ve önerisine girmez.</p>'
+            : '<p><b>Doz doğrulanmadı.</b> ' + esc(p.reason) + '</p>');
+        return '<details><summary>' + esc(p.name) + (p.dose ? '' : (p.label ? ' · <span style="color:#8a6030;">tütsü · etiket</span>' : ' · <span style="color:#c92a2a;">doz doğrulanmadı</span>')) + '</summary>' +
           '<p>' + esc(p.active) + ' · ' + esc(p.form) + (p.holder ? ' · ' + esc(p.holder) : '') + '</p><p><b>Rotasyon grubu:</b> ' + esc(g) + '</p>' + body +
-          '<p><a href="' + esc(p.source) + '" target="_blank" rel="noopener">Kaynak: ' + (p.dose ? 'Bakanlık ürün özellikleri belgesi (PDF)' : 'Bakanlık ruhsatlı ilaç sorgusu') + '</a> · ' + fmt(I.CHECKED) + ' ' + I.CHECKED.slice(0, 4) + '</p></details>';
+          '<p><a href="' + esc(p.source) + '" target="_blank" rel="noopener">Kaynak: ' + (p.dose ? 'Bakanlık ürün özellikleri belgesi (PDF)' : (p.labelSource || 'Bakanlık ruhsatlı ilaç sorgusu')) + '</a> · ' + fmt(I.CHECKED) + ' ' + I.CHECKED.slice(0, 4) + '</p></details>';
       }).join('');
     }
     function renderHives() {
@@ -212,7 +214,7 @@
     renderMed(); render();
   })();
   </script>
-  <script src="nav.js?v=koloni-71"></script>
-  <script src="pwa.js?v=koloni-71"></script>
+  <script src="nav.js?v=koloni-72"></script>
+  <script src="pwa.js?v=koloni-72"></script>
 </body>
 </html>

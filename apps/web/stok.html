@@ -1151,14 +1151,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-71"></script>
-<script src="koloni.js?v=koloni-71"></script>
-<script src="ilac-katalog.js?v=koloni-71"></script>
-<script src="bakim-plan.js?v=koloni-71"></script>
-<script src="kapsam.js?v=koloni-71"></script>
-<script src="rapor-store.js?v=koloni-71"></script>
-<script src="fiyat-live.js?v=koloni-71"></script>
-<script src="stok-talep.js?v=koloni-71"></script>
+<script src="demo-data.js?v=koloni-72"></script>
+<script src="koloni.js?v=koloni-72"></script>
+<script src="ilac-katalog.js?v=koloni-72"></script>
+<script src="bakim-plan.js?v=koloni-72"></script>
+<script src="kapsam.js?v=koloni-72"></script>
+<script src="rapor-store.js?v=koloni-72"></script>
+<script src="fiyat-live.js?v=koloni-72"></script>
+<script src="stok-talep.js?v=koloni-72"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1223,7 +1223,7 @@
   /* ---- Yeni kalem şablonları (yalnız öneri; stok eklemez, doz yazılmaz) ---- */
   var TPL = {
     ilac: [{ n: 'Varroa şeridi (amitraz)', u: 'şerit' }, { n: 'Varroa şeridi (flumetrin)', u: 'şerit' }, { n: 'Varroa şeridi (tau-fluvalinat)', u: 'şerit' },
-      { n: 'Okzalik asit', u: 'paket' }, { n: 'Formik asit', u: 'paket' }, { n: 'Timol', u: 'paket' }],
+      { n: 'Amitraz tütsü plakası (Rulamit-VA)', u: 'kutu' }, { n: 'Okzalik asit', u: 'paket' }, { n: 'Formik asit', u: 'paket' }, { n: 'Timol', u: 'paket' }],
     ekipman: [{ n: 'Okzalik buharlaştırıcı', u: 'adet' }, { n: 'Damlatma şırıngası', u: 'adet' }, { n: 'Eldiven', u: 'adet' }, { n: 'Koruyucu gözlük', u: 'adet' },
       { n: 'Maske', u: 'adet' }, { n: 'Yapışkanlı alt tabla (akar sayımı)', u: 'adet' }, { n: 'Alkol yıkama kabı', u: 'adet' }]
   };
@@ -1277,7 +1277,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-71'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-72'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1966,7 +1966,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-71"></script>
-<script src="pwa.js?v=koloni-71"></script>
+<script src="nav.js?v=koloni-72"></script>
+<script src="pwa.js?v=koloni-72"></script>
 </body>
 </html>

@@ -462,7 +462,7 @@
   function saveTreatment(hiveId, productId) {
     var I = global.SuperAriIlac, h = D.hiveById(hiveId), p = I.byId(productId);
     if (!h || !p) return { ok: false, msg: 'Kovan veya ürün bulunamadı' };
-    if (!p.dose) return { ok: false, msg: 'Doz doğrulanmadı; bu ürün için kayıt hesaplanmaz.' };
+    if (!p.dose) return { ok: false, msg: p.label ? 'Tütsü ürünü: şerit kaydı hesaplanmaz; uygulamayı Koloni › tedavi kaydından girin (etiket: ' + p.label.puffsPerHive + ' duman darbesi/kovan, ' + p.label.intervalDays + ' gün ara ile ' + p.label.repeats + ' kez).' : 'Doz doğrulanmadı; bu ürün için kayıt hesaplanmaz.' };
     var mp = medPlan(h), po = mp.products.filter(function (x) { return x.id === p.id; })[0];
     if (mp.blocks.length) return { ok: false, msg: mp.blocks[0] };
     if (po.blocks.length) return { ok: false, msg: po.blocks[0] };

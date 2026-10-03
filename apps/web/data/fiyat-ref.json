@@ -1,7 +1,7 @@
 {
  "updated": "2026-10-03",
  "currency": "TRY",
- "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir. Varroa ilacı anahtarlarına Bakanlık ruhsatlı veteriner ürünleri (hbs.tarbil.gov.tr) fiyatlanır; ruhsatsız «kovan içi» ürünler alınmaz. Yalnız amitraz / kumafos şeridinde ruhsatlı fiyat yoksa aynı etken maddeli ruhsatsız ürün fiyatı notla («ruhsatlı ürün fiyatı yok · ruhsatsız ürün fiyatı (yalnız fiyat referansı)») kullanılabilir; doz her zaman etiketten. Okzalik / formik: ruhsatlı ürün yok, dökme asit fiyatı.",
+ "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir. Varroa ilacı anahtarlarına Bakanlık ruhsatlı veteriner ürünleri (hbs.tarbil.gov.tr) fiyatlanır; ruhsatsız «kovan içi» ürünler alınmaz. Yalnız amitraz / kumafos şeridinde ruhsatlı fiyat yoksa aynı etken maddeli ruhsatsız ürün fiyatı notla («ruhsatlı ürün fiyatı yok · ruhsatsız ürün fiyatı (yalnız fiyat referansı)») kullanılabilir; doz her zaman etiketten. Okzalik / formik: ruhsatlı ürün yok, dökme asit fiyatı. Amitraz tütsü plakası (Rulamit-VA) kutu fiyatıdır, şerit değildir.",
  "items": [
   {
    "key": "seker",
@@ -369,23 +369,34 @@
    ]
   },
   {
-   "key": "serit_amitraz",
-   "name": "Varroa şeridi — amitraz",
-   "unit": "şerit",
-   "ref": 13,
-   "min": 13,
-   "max": 13,
+   "key": "amitraz_tutsu",
+   "name": "Amitraz tütsü plakası (Rulamit-VA)",
+   "unit": "kutu",
+   "ref": 130,
+   "min": 130,
+   "max": 130,
    "n": 1,
    "sources": [
     {
-     "name": "Aslan Petek Rulamit (ruhsatlı; paket içeriği sayfada yok → üretici Teknovet’e göre 1 poşet = 10 şerit varsayıldı)",
+     "name": "Aslan Petek Rulamit-VA (sayfa başlığı «Rulamit», görsel Rulamit-VA kutusu)",
      "url": "https://aslanpetek.com/rulamit",
      "price": 130,
-     "pack": "10 şerit (varsayım: 1 poşet; Teknovet Rulamit kutusu 1 ya da 5 poşet × 10 şerit)",
-     "unitPrice": 13.0
+     "pack": "1 kutu (Teknovet: 3 poşet × 1 rulo karton plaka)",
+     "unitPrice": 130.0
     }
    ],
-   "note": "Tek kaynak: Aslan Petek Rulamit 130 TL, 10 şerit varsayıldı → 13 ₺/şerit — ortalama değil, tek satıcının fiyatı. Sayfada paket içeriği yazmıyor; üretici Teknovet Rulamit’i poşette 10 şerit, kutuda 1 ya da 5 poşet olarak satıyor (5 poşetlik kutuysa şerit 2,6 ₺ olur). Ürün görselinde Rulamit-VA (körükte yakılan karton plaka) kutusu var; satın alırken ürünü ve şerit sayısını teyit edin."
+   "note": "Tek kaynak: Aslan Petek 130 TL / kutu — ortalama değil, tek satıcının fiyatı. Sayfa başlığı «Rulamit», ürün görseli Rulamit-VA kutusu; fiyat bir kutu (3 poşet × 1 karton plaka) için alındı. Satın alırken ürünün Rulamit-VA olduğunu teyit edin."
+  },
+  {
+   "key": "serit_amitraz",
+   "name": "Varroa şeridi — amitraz",
+   "unit": "şerit",
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Kaynak yok: ruhsatlı amitraz şeritlerinin (Beeraz, Rulamit) çevrimiçi TL fiyatı yok; kural gereği aranan aynı etken maddeli ruhsatsız şerit de Türkiye’de TL fiyatla satılmıyor (Apivar, Apitraz, Varoxpert yalnız yurt dışında € / $ fiyatlı). Aslan Petek «Rulamit» 130 TL ürünü Rulamit-VA tütsü plakası olduğu için «Amitraz tütsü plakası (Rulamit-VA)» kalemine taşındı. Fiyatı kendiniz girin."
   },
   {
    "key": "serit_flumetrin",

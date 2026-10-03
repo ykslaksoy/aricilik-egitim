@@ -1885,7 +1885,8 @@
           f.elements.dose.value = res0 ? String(res0.qty) : '';
         }
         var html = '<b>Etiket dozu</b> · ' + esc(p ? p.name : '') + '<br>';
-        if (!p || !p.dose) html += '<span style="color:#9b2c2c;">Doz doğrulanmadı — ' + esc((p && p.reason) || 'etikette doz bilgisi yok') + ' Dozu prospektüse göre elle girin.</span>';
+        if (p && !p.dose && p.label) html += '<span style="color:#8a6030;">Tütsü ürünü — şerit dozu hesaplanmaz. Etiket: ' + esc(p.label.text) + ' Bal: ' + esc(p.withdrawalText) + '</span>';
+        else if (!p || !p.dose) html += '<span style="color:#9b2c2c;">Doz doğrulanmadı — ' + esc((p && p.reason) || 'etikette doz bilgisi yok') + ' Dozu prospektüse göre elle girin.</span>';
         else {
           if (lines.length) html += esc(lines.slice(0, 6).join(' · ')) + (lines.length > 6 ? ' · +' + (lines.length - 6) + ' kovan' : '') + '<br>';
           if (missing.length) html += '<span style="color:#9b2c2c;">' + esc(missing.length === 1 && ids.length === 1 ? missing[0].why : missing.length + ' kovanda doz yazılamadı (' + namesShort(missing.map(function (x) { return hiveName(x.id); }), 3) + '): ' + missing[0].why) + ' Bu kovanlara doz yazılmaz; dozu elle girerseniz tüm kovanlara o yazılır.</span><br>';
