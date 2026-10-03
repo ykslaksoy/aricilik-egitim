@@ -388,6 +388,17 @@
    "note": "Tek kaynak: Aslan Petek 130 TL / kutu — ortalama değil, tek satıcının fiyatı. Sayfa başlığı «Rulamit», ürün görseli Rulamit-VA kutusu; fiyat bir kutu (3 poşet × 1 karton plaka) için alındı. Satın alırken ürünün Rulamit-VA olduğunu teyit edin."
   },
   {
+   "key": "amitraz_yakma",
+   "name": "Amitraz yakma şeridi (Vamitrat-VA)",
+   "unit": "şerit",
+   "ref": null,
+   "min": null,
+   "max": null,
+   "n": 0,
+   "sources": [],
+   "note": "Kaynak yok: Vamitrat-VA (ruhsatlı, Teknovet; kovan içinde yakılan 20 mg amitraz karton şerit) için çevrimiçi satıcı TL fiyatı bulunamadı. Temas şeridi olmadığı için «Varroa şeridi — amitraz» kaleminden ayrıldı. Fiyatı kendiniz girin."
+  },
+  {
    "key": "serit_amitraz",
    "name": "Varroa şeridi — amitraz",
    "unit": "şerit",

@@ -6,7 +6,8 @@
  * Dozlar, ilgili ürünün Bakanlık veri tabanındaki «Ürün Özellikleri Özeti» (ÜÖÖ/KÜB) PDF'inden aynen alınmıştır.
  * ÜÖÖ bulunamayan ruhsatlı ürünlerde ve Bakanlık listesinde arı için ruhsatlı ürünü bulunamayan etken maddelerde
  * doz HESAPLANMAZ («doz doğrulanmadı»). Arayüz her zaman «Etiket dozunu kontrol edin» der.
- * İstisna: Rulamit-VA (tütsü plakası) — ÜÖÖ yok; etiket bilgisi üretici Teknovet sayfasından aynen «label» alanında, yalnız gösterim (şerit hesabı yok).
+ * İstisnalar (Bakanlık ÜÖÖ yok, etiket üretici Teknovet sayfasından aynen): Rulamit şerit dozu (dose); Rulamit-VA ve Vamitrat-VA
+ * tütsü ürünleri «label» alanında, yalnız gösterim (şerit hesabı yok).
  */
 (function (global) {
   'use strict';
@@ -104,11 +105,28 @@
       withdrawal: null, withdrawalDays: 30, withdrawalText: 'Son ilaç uygulamasından 30 gün sonrasına kadar elde edilen ballar kullanılmaz.',
       season: 'Kışın sıcaklığın 14 °C’den yüksek olduğu iyi havalarda (yavru yokken akarlar ergin arıdadır) etkilidir. Yazın bal hasadından önce Haziran–Eylül aylarında uygulanmaz.',
       reason: 'Tütsü ürünü (körükte yakılan karton plaka): şerit dozu hesaplanmaz; etiket: kovan başına 7 duman darbesi, 3 gün ara ile 3 kez.' },
+    /* Vamitrat-VA: kovan içinde YAKILAN karton şerit (tütsü) — temas şeridi değildir. Etiket Teknovet sayfasından AYNEN; dose: null → şerit hesabına girmez. */
+    { id: 'vamitratva', name: 'Vamitrat-VA', holder: 'Teknovet', active: 'Amitraz 20 mg / şerit', group: 'amitraz', form: 'Tütsü (kovan içinde yakılan karton şerit)',
+      dose: null, verified: false, source: 'https://teknovet.com.tr/tr/urunler/antiparazitler/vamitrat-va', labelSource: 'Teknovet ürün sayfası (üretici etiketi)',
+      label: { kind: 'tutsu', perHive: 1, repeats: 3, repeatsHigh: 4, intervalDays: 3,
+        text: 'Bir kovanda yalnız bir şerit yakılır: karton şerit boş bir petek çerçevesine tel ile asılır, yakılır ve duman çıkarken hemen kovan içine yerleştirilir; bu sırada uçuş deliği açık tutulur. İlaçlama 3 gün ara ile 3 kez; Varroa oranı yüksekse 3 gün ara ile 4 kez.',
+        pack: 'Karton kutuda 3 alüminyum folyo poşet; her poşette 10 kovan içi şerit (20 mg amitraz).' },
+      durationDays: [6, 9], /* etiketten: 3 gün ara ile 3 uygulama = 6 gün, 4 uygulama = 9 gün */
+      withdrawal: null, withdrawalDays: 30, withdrawalText: 'Son ilaç uygulamasından 30 gün sonrasına kadar elde edilen ballar kullanılmaz.',
+      season: 'Etikette uygulama dönemi belirtilmemiş.',
+      reason: 'Tütsü ürünü (kovan içinde yakılan karton şerit): şerit dozu hesaplanmaz; etiket: kovan başına 1 şerit yakılır, 3 gün ara ile 3 kez.' },
+    /* Rulamit: Bakanlık ÜÖÖ yok; doz üretici Teknovet sayfasındaki etiketten AYNEN (kovan başına 2 şerit, 10 çerçeve arılı kovan). */
+    {
+      id: 'rulamit', name: 'Rulamit', holder: 'Teknovet', active: 'Amitraz 500 mg / şerit', group: 'amitraz', form: 'Kovan içi şerit (3×20 cm plastik)',
+      dose: { type: 'fixed', unit: 'serit', qty: 2,
+        note: 'Etiket: kovan başına 2 şerit (10 çerçeve arılı her kovan için 2 × 500 mg = 1000 mg amitraz); şeritler iki çerçevenin arasına, ortada ve arıların her iki tarafa da serbestçe erişebileceği şekilde asılır (Langstroth: 3.–4. ve 6.–7. çerçeve arası; Dadant: 3.–4. ve 7.–8.; Layens: 5.–6. ve 9.–10.). Yavru yoksa 6 hafta, yavru varsa 10 hafta sonra çıkarılır.' },
+      durationDays: [42, 70], preFlowDays: 42, withdrawal: 'tedaviBoyunca',
+      withdrawalText: 'Bal için 0 gün; bal (nektar) akımında kullanılmaz. Tedavi süresince elde edilen bal insan tüketimine sunulmaz; bal tutumuna 6 hafta kala ve bal tutumu süresince uygulanmaz. Kuluçkalıktaki bal kullanılmaz; tedavi sırasında bal hasat edilmez.',
+      season: 'Ballık (kat) yokken: son bal hasadından sonra (yaz sonu / sonbahar) ve ilkbaharda bal akımı başlamadan önce; kuluçka pik seviyenin altındayken ve arılar kış salkımı kurmadan önce.',
+      pack: 'Karton kutuda 1 ya da 5 alüminyum folyo poşet; her poşette 3×20 cm 10 kovan içi şerit.',
+      source: 'https://www.teknovet.com.tr/tr/urunler/antiparazitler/rulamit', labelSource: 'Teknovet ürün sayfası (üretici etiketi)', verified: true
+    },
     /* Ruhsatlı görünen fakat Bakanlık veri tabanında ÜÖÖ belgesi bulunmayan ürünler */
-    { id: 'rulamit', name: 'Rulamit', holder: 'Teknovet', active: 'Amitraz', group: 'amitraz', form: 'Kovan içi şerit', dose: null, verified: false, source: DB,
-      reason: 'Bakanlık listesinde ruhsatlı; ürün özellikleri belgesi bulunamadı.' },
-    { id: 'vamitratva', name: 'Vamitrat-Va', holder: 'Teknovet', active: 'Amitraz', group: 'amitraz', form: 'Kovan içi şerit', dose: null, verified: false, source: DB,
-      reason: 'Bakanlık listesinde ruhsatlı; ürün özellikleri belgesi bulunamadı.' },
     { id: 'varroset', name: 'Varroset', holder: 'Albafarma', active: 'Amitraz', group: 'amitraz', form: 'Tütsü kâğıdı', dose: null, verified: false, source: DB,
       reason: 'Bakanlık listesinde ruhsatlı; ürün özellikleri belgesi bulunamadı.' },
     /* Bakanlık «Ruhsatlı Veteriner İlaçları» listesinde hedef türü Arı olan ürünü BULUNAMAYAN etken maddeler */
@@ -139,7 +157,7 @@
   function detect(text) {
     var t = String(text || '').toLocaleLowerCase('tr');
     if (!t) return null;
-    var hit = /rulamit[\s-]*va/.test(t) ? BY_ID.rulamitva : null;
+    var hit = /rulamit[\s-]*va/.test(t) ? BY_ID.rulamitva : (/vamitrat/.test(t) ? BY_ID.vamitratva : null);
     LIST.forEach(function (p) { if (!hit && t.indexOf(p.name.toLocaleLowerCase('tr').split(' ')[0]) >= 0) hit = p; });
     if (hit) return { id: hit.id, group: hit.group };
     if (/amitraz/.test(t)) return { id: null, group: 'amitraz' };

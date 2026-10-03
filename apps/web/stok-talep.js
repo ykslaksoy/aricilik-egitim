@@ -42,7 +42,10 @@
        Şerit anahtarından önce durur: «Rulamit-VA» / «Amitraz tütsü plakası» şeride sayılmaz. */
     { key: 'amitraz_tutsu', g: 'ilac', name: 'Amitraz tütsü plakası (Rulamit-VA)', unit: 'kutu', step: 1, scope: 'apiary', manual: true, re: /rulamit va\b|tutsu plaka|amitraz tutsu/,
       note: 'kutuda 3 poşet × 1 plaka; şeritle birlikte kendiliğinden eklenmez — etiket: kovan başına 7 duman darbesi, 3 gün ara ile 3 kez' },
-    { key: 'serit_amitraz', notol: true, g: 'ilac', name: 'Varroa şeridi — amitraz', unit: 'şerit', step: 1, re: /amitraz|beeraz|rulamit|vamitrat/ },
+    /* Vamitrat-VA: kovan içinde YAKILAN karton şerit (tütsü, Teknovet etiketi) — temas şeridi değildir; tahmine kendiliğinden girmez, yalnız stok eşiği. */
+    { key: 'amitraz_yakma', g: 'ilac', name: 'Amitraz yakma şeridi (Vamitrat-VA)', unit: 'şerit', step: 1, scope: 'apiary', manual: true, re: /vamitrat|yakma serid|amitraz yakma/,
+      note: 'kutuda 3 poşet × 10 şerit; şeritle birlikte kendiliğinden eklenmez — etiket: kovan başına 1 şerit yakılır, 3 gün ara ile 3 kez (yüksek Varroa: 4 kez)' },
+    { key: 'serit_amitraz', notol: true, g: 'ilac', name: 'Varroa şeridi — amitraz', unit: 'şerit', step: 1, re: /amitraz|beeraz|rulamit/ },
     { key: 'serit_flumetrin', notol: true, g: 'ilac', name: 'Varroa şeridi — flumetrin', unit: 'şerit', step: 1, re: /flumetrin|bayvarol|beevarflu|varodur|fumbee|polyvar/ },
     { key: 'serit_taufluvalinat', notol: true, g: 'ilac', name: 'Varroa şeridi — tau-fluvalinat', unit: 'şerit', step: 1, re: /fluvalinat|apistan/ },
     { key: 'serit_koumafos', notol: true, g: 'ilac', name: 'Varroa şeridi — koumafos', unit: 'şerit', step: 1, re: /koumafos|kumafos|checkmite/ },
@@ -279,6 +282,8 @@
   }
   function stripKey(p) {
     var a = norm((p && (p.active || '')) + ' ' + (p && p.name || ''));
+    if (/vamitrat/.test(a)) return 'amitraz_yakma';
+    if (/rulamit va\b/.test(a)) return 'amitraz_tutsu';
     if (/amitraz/.test(a)) return 'serit_amitraz';
     if (/fluvalinat/.test(a)) return 'serit_taufluvalinat';
     if (/flumetrin/.test(a)) return 'serit_flumetrin';

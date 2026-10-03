@@ -462,7 +462,7 @@
   function saveTreatment(hiveId, productId) {
     var I = global.SuperAriIlac, h = D.hiveById(hiveId), p = I.byId(productId);
     if (!h || !p) return { ok: false, msg: 'Kovan veya ürün bulunamadı' };
-    if (!p.dose) return { ok: false, msg: p.label ? 'Tütsü ürünü: şerit kaydı hesaplanmaz; uygulamayı Koloni › tedavi kaydından girin (etiket: ' + p.label.puffsPerHive + ' duman darbesi/kovan, ' + p.label.intervalDays + ' gün ara ile ' + p.label.repeats + ' kez).' : 'Doz doğrulanmadı; bu ürün için kayıt hesaplanmaz.' };
+    if (!p.dose) return { ok: false, msg: p.label ? 'Tütsü ürünü: şerit kaydı hesaplanmaz; uygulamayı Koloni › tedavi kaydından girin (etiket: ' + (p.label.puffsPerHive ? p.label.puffsPerHive + ' duman darbesi/kovan' : p.label.perHive + ' şerit yakılır/kovan') + ', ' + p.label.intervalDays + ' gün ara ile ' + p.label.repeats + ' kez).' : 'Doz doğrulanmadı; bu ürün için kayıt hesaplanmaz.' };
     var mp = medPlan(h), po = mp.products.filter(function (x) { return x.id === p.id; })[0];
     if (mp.blocks.length) return { ok: false, msg: mp.blocks[0] };
     if (po.blocks.length) return { ok: false, msg: po.blocks[0] };
@@ -644,7 +644,7 @@
       if (!sel || !box) return;
       var po = mp.products.filter(function (x) { return x.id === sel.value; })[0], p = I.byId(sel.value);
       if (!po || !p) { box.innerHTML = ''; return; }
-      box.innerHTML = '<p class="bo-mut">' + esc(p.dose.note) + ' Süre ' + p.durationDays[0] + (p.durationDays[1] !== p.durationDays[0] ? '–' + p.durationDays[1] : '') + ' gün. ' + esc(p.withdrawalText) + ' <a href="' + esc(p.source) + '" target="_blank" rel="noopener" style="color:#2b6cb0;text-decoration:underline;">Etiket (PDF)</a></p>' +
+      box.innerHTML = '<p class="bo-mut">' + esc(p.dose.note) + ' Süre ' + p.durationDays[0] + (p.durationDays[1] !== p.durationDays[0] ? '–' + p.durationDays[1] : '') + ' gün. ' + esc(p.withdrawalText) + ' <a href="' + esc(p.source) + '" target="_blank" rel="noopener" style="color:#2b6cb0;text-decoration:underline;">' + (p.labelSource ? 'Etiket (üretici)' : 'Etiket (PDF)') + '</a></p>' +
         po.warns.map(function (w) { return '<p class="bo-warn">' + esc(w) + '</p>'; }).join('');
     }
     info();
