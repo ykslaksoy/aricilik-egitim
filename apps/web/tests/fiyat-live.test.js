@@ -25,6 +25,9 @@ assert.strictEqual(api.extractPrice('<meta itemprop=\'price\' content="87.00" />
 // şüpheli (aynı sayfada başka paket) → fiyat uydurulmaz
 assert.ok(api.extractPrice('<meta itemprop=\'price\' content="4300.00" />', 'https://www.aricimarketi.com/urun/x', 415).error);
 assert.ok(api.extractPrice('<html>fiyat yok</html>', 'https://example.com/', 10).error);
+/* Şok (Next.js RSC): "discounted" → $id → fiyat nesnesi; benzer ürün fiyatları (önce gelse de) alınmaz */
+const sok = 'self.__next_f.push([1,"9:{\\"value\\":9.99,\\"text\\":\\"9,99\\",\\"currency\\":\\"TRY\\"}\\n1a:{\\"discounted\\":\\"$1b\\",\\"original\\":\\"$1c\\"}\\n1b:{\\"value\\":219,\\"text\\":\\"219,00\\",\\"currency\\":\\"TRY\\"}\\n1c:{\\"value\\":249,\\"text\\":\\"249,00\\",\\"currency\\":\\"TRY\\"}"])';
+assert.deepStrictEqual(api.extractPrice(sok, 'https://www.sokmarket.com.tr/altinkup-toz-seker-5-kg-p-7179', 219), { price: 219, via: 'site' });
 
 // ---- istemci ----
 function env(fetchImpl, store) {

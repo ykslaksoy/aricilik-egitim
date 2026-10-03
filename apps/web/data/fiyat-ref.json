@@ -7,10 +7,10 @@
    "key": "seker",
    "name": "Şeker (toz)",
    "unit": "kg",
-   "ref": 79.67,
-   "min": 52.5,
+   "ref": 60.67,
+   "min": 43.8,
    "max": 96.04,
-   "n": 5,
+   "n": 10,
    "sources": [
     {
      "name": "A101 (Onedio aktüel 3–9 Eki 2026) Irmak Bal Küpü Toz Şeker 1 kg",
@@ -46,6 +46,41 @@
      "price": 480.18,
      "pack": "5 kg",
      "unitPrice": 96.04
+    },
+    {
+     "name": "Şok Altınküp Toz Şeker 5 kg",
+     "url": "https://www.sokmarket.com.tr/altinkup-toz-seker-5-kg-p-7179",
+     "price": 219,
+     "pack": "5 kg",
+     "unitPrice": 43.8
+    },
+    {
+     "name": "Şok Altınküp Toz Şeker 2 kg",
+     "url": "https://www.sokmarket.com.tr/altinkup-toz-seker-2000-g-p-5298",
+     "price": 99.5,
+     "pack": "2 kg",
+     "unitPrice": 49.75
+    },
+    {
+     "name": "Bizim Toptan Besler Toz Şeker 5 kg",
+     "url": "https://www.bizimtoptan.com.tr/besler-toz-seker-5-kg",
+     "price": 229,
+     "pack": "5 kg",
+     "unitPrice": 45.8
+    },
+    {
+     "name": "Bizim Toptan Besler Toz Şeker 1 kg",
+     "url": "https://www.bizimtoptan.com.tr/besler-toz-seker-1-kg",
+     "price": 52.5,
+     "pack": "1 kg",
+     "unitPrice": 52.5
+    },
+    {
+     "name": "Bizim Toptan Türk Şeker Kristal Toz Şeker 5 kg",
+     "url": "https://www.bizimtoptan.com.tr/turk-seker-kristal-toz-seker-5-kg",
+     "price": 229,
+     "pack": "5 kg",
+     "unitPrice": 45.8
     }
    ]
   },
@@ -53,10 +88,10 @@
    "key": "kek",
    "name": "Kek / fondan",
    "unit": "kg",
-   "ref": 105.66,
-   "min": 87.0,
+   "ref": 91.81,
+   "min": 65,
    "max": 142.81,
-   "n": 5,
+   "n": 10,
    "sources": [
     {
      "name": "n11 Apieko %1.4 Proteinli Arı Keki 20 kg",
@@ -92,6 +127,41 @@
      "price": 87,
      "pack": "1 kg",
      "unitPrice": 87.0
+    },
+    {
+     "name": "Avrasya Muğla Petek Arı Keki 1 kg",
+     "url": "https://www.avrasyaaricilik.com.tr/mugla-petek-ari-keki-1-kg/",
+     "price": 79,
+     "pack": "1 kg",
+     "unitPrice": 79.0
+    },
+    {
+     "name": "Erdoğan Arıcılık Muğla Petek Tam Arı Keki 20 kg (koli)",
+     "url": "https://erdoganaricilik.com/urunler/ari-yemleri/mugla-petek-tam-ari-keki-1-koli-20-kg/",
+     "price": 1900,
+     "pack": "20 kg",
+     "unitPrice": 95.0
+    },
+    {
+     "name": "Ermiş Arıcılık SuperBee Fondan Arı Yemi 20 kg",
+     "url": "https://ermisaricilik.com/urun/superbee-fondan-ari-yemi-20-kg",
+     "price": 1650,
+     "pack": "20 kg",
+     "unitPrice": 82.5
+    },
+    {
+     "name": "Aslan Petek Kompoze Arı Keki 20 kg",
+     "url": "https://www.aslanpetek.com/kompoze-ari-keki-20-kg",
+     "price": 1300,
+     "pack": "20 kg",
+     "unitPrice": 65.0
+    },
+    {
+     "name": "İhsaniye Arıcılık Fondan Arı Yemi 1000 g",
+     "url": "https://www.ihsaniyearicilik.com/fondan-ari-yemi-1000-gr",
+     "price": 74,
+     "pack": "1 kg",
+     "unitPrice": 74.0
     }
    ]
   },
@@ -99,10 +169,10 @@
    "key": "polen",
    "name": "Polen / polen ikamesi",
    "unit": "kg",
-   "ref": 920.0,
-   "min": 600.0,
-   "max": 1288.0,
-   "n": 3,
+   "ref": 970,
+   "min": 600,
+   "max": 1432.67,
+   "n": 6,
    "sources": [
     {
      "name": "Polenza Bal Neobee Neo Ari-Pro (polen alternatifi) 10 kg",
@@ -124,6 +194,27 @@
      "price": 644,
      "pack": "0,5 kg",
      "unitPrice": 1288.0
+    },
+    {
+     "name": "Avrasya Arı Poleni 1 kg",
+     "url": "https://www.avrasyaaricilik.com.tr/ari-poleni-1-kg/",
+     "price": 952,
+     "pack": "1 kg",
+     "unitPrice": 952.0
+    },
+    {
+     "name": "Aslan Petek Polen 1 kg",
+     "url": "https://www.aslanpetek.com/polen-1-kg",
+     "price": 720,
+     "pack": "1 kg",
+     "unitPrice": 720.0
+    },
+    {
+     "name": "Arıcı Obası Ak Arıcılık Yaş Polen 1 kg",
+     "url": "https://www.aricobani.net/urun/ak-aricilik-yas-polen",
+     "price": 1432.67,
+     "pack": "1 kg",
+     "unitPrice": 1432.67
     }
    ]
   },
@@ -131,10 +222,10 @@
    "key": "vitamin",
    "name": "Vitamin / besin takviyesi",
    "unit": "paket",
-   "ref": 740.0,
-   "min": 700.0,
-   "max": 780.0,
-   "n": 2,
+   "ref": 661.25,
+   "min": 499,
+   "max": 780,
+   "n": 6,
    "sources": [
     {
      "name": "n11 Ecotec Pharma Ecotonic Plus Arı Vitamini 1 L",
@@ -165,6 +256,34 @@
      "pack": "1 L şişe",
      "unitPrice": 2520.0,
      "outlier": true
+    },
+    {
+     "name": "Ermiş Arıcılık Ecotonic Plus Arı Vitamini 1 L",
+     "url": "https://ermisaricilik.com/urun/ecotec-pharma-ecotonic-plus-ari-vitamini-1-lt",
+     "price": 720,
+     "pack": "1 L şişe",
+     "unitPrice": 720.0
+    },
+    {
+     "name": "Arıcı Marketi Ecotonic Plus Arı Vitamini 1 L",
+     "url": "https://www.aricimarketi.com/urun/ecotech-pharma-ecotonic-plus-ari-vitamini-1-lt",
+     "price": 499,
+     "pack": "1 L şişe",
+     "unitPrice": 499.0
+    },
+    {
+     "name": "Avrasya Ecotonic Plus Pharma 1 L",
+     "url": "https://www.avrasyaaricilik.com.tr/ecotonic-plus-pharma-1-litre/",
+     "price": 675,
+     "pack": "1 L şişe",
+     "unitPrice": 675.0
+    },
+    {
+     "name": "Ermiş Arıcılık Vetorax Arı Vitamini (amino asit/mineral) 250 g",
+     "url": "https://ermisaricilik.com/urun/vetorax-ari-vitaminiamino-asitmineral-250-gr",
+     "price": 550,
+     "pack": "250 g paket",
+     "unitPrice": 550.0
     }
    ]
   },
@@ -172,10 +291,10 @@
    "key": "tuz",
    "name": "Tuz (suluk / tuzlu su)",
    "unit": "kg",
-   "ref": 34.06,
-   "min": 27.82,
+   "ref": 32.41,
+   "min": 14.97,
    "max": 59.8,
-   "n": 5,
+   "n": 10,
    "sources": [
     {
      "name": "n11 Salti İyotsuz Kaya Tuzu 10 kg",
@@ -211,6 +330,41 @@
      "price": 299,
      "pack": "5 kg",
      "unitPrice": 59.8
+    },
+    {
+     "name": "Şok Anadolu Mutfağı İri Salamura Tuzu 3 kg",
+     "url": "https://www.sokmarket.com.tr/anadolu-mutfagi-iri-salamura-tuzu-3-kg-p-7146",
+     "price": 44.9,
+     "pack": "3 kg",
+     "unitPrice": 14.97
+    },
+    {
+     "name": "Şok Anadolu Mutfağı Tuz 750 g",
+     "url": "https://www.sokmarket.com.tr/anadolu-mutfagi-tuz-750-g-p-5665",
+     "price": 12,
+     "pack": "0,75 kg",
+     "unitPrice": 16.0
+    },
+    {
+     "name": "Şok Billur Tuz İyotlu 750 g",
+     "url": "https://www.sokmarket.com.tr/billur-tuz-iyotlu-750-g-p-4725",
+     "price": 37.5,
+     "pack": "0,75 kg",
+     "unitPrice": 50.0
+    },
+    {
+     "name": "Bizim Toptan Saray İyotlu Tuz 1,5 kg",
+     "url": "https://www.bizimtoptan.com.tr/saray-iyotlu-tuz-1-5-kg",
+     "price": 24.9,
+     "pack": "1,5 kg",
+     "unitPrice": 16.6
+    },
+    {
+     "name": "Bizim Toptan Billur İyotlu Tuz 3 kg",
+     "url": "https://www.bizimtoptan.com.tr/billur-iyotlu-tuz-3-kg",
+     "price": 140,
+     "pack": "3 kg",
+     "unitPrice": 46.67
     }
    ]
   },
@@ -270,10 +424,10 @@
    "key": "okzalik",
    "name": "Okzalik asit",
    "unit": "paket",
-   "ref": 307.1,
-   "min": 202.0,
+   "ref": 291.3,
+   "min": 202,
    "max": 430.31,
-   "n": 5,
+   "n": 8,
    "sources": [
     {
      "name": "Avrasya Arıcılık Oksalik Asit 1 kg",
@@ -309,6 +463,27 @@
      "price": 299.9,
      "pack": "1 kg",
      "unitPrice": 299.9
+    },
+    {
+     "name": "Nurel Arıcılık Oksalik Asit 1 kg",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/oksalik-asit/",
+     "price": 240,
+     "pack": "1 kg",
+     "unitPrice": 240.0
+    },
+    {
+     "name": "Ege Tarım Oksalik Asit Dihidrat 1 kg",
+     "url": "https://www.egetarim.com.tr/oksalik-asit-dihidrat-1-kg-oksalik-asit-dihidrat-1-kg",
+     "price": 299,
+     "pack": "1 kg",
+     "unitPrice": 299.0
+    },
+    {
+     "name": "Ermiş Arıcılık Schutz Oksalik Asit 800 g",
+     "url": "https://ermisaricilik.com/urun/schutz-oksalik-asit-800-g",
+     "price": 230,
+     "pack": "800 g → 1 kg",
+     "unitPrice": 287.5
     }
    ]
   },
@@ -316,10 +491,10 @@
    "key": "formik",
    "name": "Formik asit",
    "unit": "paket",
-   "ref": 411.97,
-   "min": 360.0,
+   "ref": 302.19,
+   "min": 202,
    "max": 456.67,
-   "n": 3,
+   "n": 7,
    "sources": [
     {
      "name": "n11 Avrasya Arıcılık Formik Asit 1 L",
@@ -341,6 +516,34 @@
      "price": 360,
      "pack": "1 L",
      "unitPrice": 360.0
+    },
+    {
+     "name": "Avrasya Formik Asit 1 L",
+     "url": "https://www.avrasyaaricilik.com.tr/formik-asit-1-lt/",
+     "price": 202,
+     "pack": "1 L",
+     "unitPrice": 202.0
+    },
+    {
+     "name": "Nurel Arıcılık Formik Asit 1 L",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/formik-asit/",
+     "price": 240,
+     "pack": "1 L",
+     "unitPrice": 240.0
+    },
+    {
+     "name": "Ege Tarım Formik Asit 1 L %85",
+     "url": "https://www.egetarim.com.tr/formik-asit-1-lt-yuzde85--formik-asit-1-lt-yuzde85-",
+     "price": 249,
+     "pack": "1 L",
+     "unitPrice": 249.0
+    },
+    {
+     "name": "Ermiş Arıcılık Schutz Formik Asit 1 L",
+     "url": "https://ermisaricilik.com/urun/schutz-formik-asit-1-lt",
+     "price": 250,
+     "pack": "1 L",
+     "unitPrice": 250.0
     }
    ]
   },
@@ -348,10 +551,10 @@
    "key": "timol",
    "name": "Timol",
    "unit": "paket",
-   "ref": 284.5,
-   "min": 169.0,
-   "max": 400.0,
-   "n": 2,
+   "ref": 175.25,
+   "min": 150,
+   "max": 400,
+   "n": 6,
    "sources": [
     {
      "name": "n11 Varro Stop Thymol Damla",
@@ -374,6 +577,34 @@
      "price": 169,
      "pack": "20 şerit paket",
      "unitPrice": 169.0
+    },
+    {
+     "name": "Ermiş Arıcılık Bee Strips Timolin Varro Şerit",
+     "url": "https://ermisaricilik.com/urun/bee-strips-timolin-varro-serit",
+     "price": 175,
+     "pack": "1 paket",
+     "unitPrice": 175.0
+    },
+    {
+     "name": "Ermiş Arıcılık BeeShields Thymo Timol Şeridi",
+     "url": "https://ermisaricilik.com/urun/beeshields-thymo-timol-seridi",
+     "price": 200,
+     "pack": "1 paket",
+     "unitPrice": 200.0
+    },
+    {
+     "name": "Avrasya BeeShields Thymo Timol Şeridi",
+     "url": "https://www.avrasyaaricilik.com.tr/beeshields-thymo-timol-seriti/",
+     "price": 157,
+     "pack": "1 paket",
+     "unitPrice": 157.0
+    },
+    {
+     "name": "Aslan Petek BeeShields Thymo",
+     "url": "https://www.aslanpetek.com/beeshields-thymo",
+     "price": 150,
+     "pack": "1 paket",
+     "unitPrice": 150.0
     }
    ]
   },
@@ -381,10 +612,10 @@
    "key": "nitril",
    "name": "Nitril eldiven (100’lük kutu)",
    "unit": "paket",
-   "ref": 358.67,
-   "min": 284.71,
+   "ref": 306.89,
+   "min": 220,
    "max": 436.1,
-   "n": 5,
+   "n": 9,
    "sources": [
     {
      "name": "n11 Drema Nitril Muayene Eldiveni 100 adet",
@@ -420,6 +651,34 @@
      "price": 346.21,
      "pack": "100’lük kutu",
      "unitPrice": 346.21
+    },
+    {
+     "name": "Bizim Toptan Haspet Pudrasız Nitril Eldiven M 100’lü",
+     "url": "https://www.bizimtoptan.com.tr/haspet-pudrasiz-nitril-eldiven-m-100lu",
+     "price": 309,
+     "pack": "100’lük kutu",
+     "unitPrice": 309.0
+    },
+    {
+     "name": "Beybi Pudrasız Mavi Nitril Muayene Eldiveni 100’lük Kutu (L)",
+     "url": "https://shop.beybi.com.tr/urun/pudrasiz-mavi-nitril-muayene-eldiveni-100luk-kutu-l-kutu",
+     "price": 220,
+     "pack": "100’lük kutu",
+     "unitPrice": 220.0
+    },
+    {
+     "name": "Beybi Pudrasız Siyah Nitril Muayene Eldiveni 100’lük Kutu",
+     "url": "https://shop.beybi.com.tr/urun/pudrasiz-siyah-nitril",
+     "price": 239,
+     "pack": "100’lük kutu",
+     "unitPrice": 239.0
+    },
+    {
+     "name": "Beybi Pudrasız Beyaz Nitril Muayene Eldiveni 100’lük Kutu",
+     "url": "https://shop.beybi.com.tr/urun/pudrasiz-beyaz-nitril-muayene-eldiveni-100-luk-kutu",
+     "price": 239.5,
+     "pack": "100’lük kutu",
+     "unitPrice": 239.5
     }
    ]
   },
@@ -427,10 +686,10 @@
    "key": "gozluk",
    "name": "Koruyucu gözlük",
    "unit": "adet",
-   "ref": 65.34,
+   "ref": 52.23,
    "min": 34.08,
    "max": 102.25,
-   "n": 4,
+   "n": 7,
    "sources": [
     {
      "name": "n11 S1551 Ventilli Koruyucu Gözlük",
@@ -467,6 +726,35 @@
      "pack": "1 adet",
      "unitPrice": 569.0,
      "outlier": true
+    },
+    {
+     "name": "Blab Market Koruyucu Gözlük Şeffaf (sap açısı ayarlı)",
+     "url": "https://www.blabmarket.com/urun/koruyucu-gozluk-seffaf-genel-kullanim-laboratuvar-sap-acisi-ayarli",
+     "price": 38.5,
+     "pack": "1 adet",
+     "unitPrice": 38.5
+    },
+    {
+     "name": "Nalburtek Koruyucu Gözlük Şeffaf",
+     "url": "https://www.nalburtek.com/yapi-market/is-guvenligi/yuz-koruyucular/prd-koruyucu-gozluk-seffaf",
+     "price": 42,
+     "pack": "1 adet",
+     "unitPrice": 42.0
+    },
+    {
+     "name": "İsmont Koruyucu Laboratuvar Gözlüğü Şeffaf",
+     "url": "https://www.ismont.com.tr/koruyucu-laboratuvar-gozlugu-seffaf-standart?c=353",
+     "price": 50,
+     "pack": "1 adet",
+     "unitPrice": 50.0
+    },
+    {
+     "name": "İsmont Cerva Crystallux Gözlük Şeffaf",
+     "url": "https://www.ismont.com.tr/cerva-crystallux-gozluk-seffaf-seffaf-standart?c=352",
+     "price": 251,
+     "pack": "1 adet",
+     "unitPrice": 251.0,
+     "outlier": true
     }
    ]
   },
@@ -474,10 +762,10 @@
    "key": "maske",
    "name": "Maske / respiratör (asit)",
    "unit": "adet",
-   "ref": 1162.64,
+   "ref": 1482.31,
    "min": 1048.07,
-   "max": 1420.0,
-   "n": 4,
+   "max": 2615.62,
+   "n": 7,
    "sources": [
     {
      "name": "n11 3M 6200 Yarım Yüz Maske + 6059 ABEK1 filtre",
@@ -506,6 +794,27 @@
      "price": 1243.64,
      "pack": "maske + filtre",
      "unitPrice": 1243.64
+    },
+    {
+     "name": "Civilcivilal 3M 6200 Yarım Yüz Maskesi + 3M 6059 ABEK Filtre",
+     "url": "https://www.civilcivilal.com/3m-yarim-yuz-maskesi-6200-modeli-3m-6059-abek-filtre-2782",
+     "price": 1636.97,
+     "pack": "maske + filtre",
+     "unitPrice": 1636.97
+    },
+    {
+     "name": "Endüstri Buraya 3M 6200 Yarım Yüz Gaz Maskesi + 3M 6059 ABEK1 Filtre Seti",
+     "url": "https://www.endustriburaya.com/urun/3m-6200-yarim-yuz-gaz-maske-ve-3m-6059-abek1-filtre-seti",
+     "price": 2615.62,
+     "pack": "maske + filtre",
+     "unitPrice": 2615.62
+    },
+    {
+     "name": "Arıcı Obası Ak Arıcılık Gaz Maskesi (1 maske + 2 filtre)",
+     "url": "https://www.aricobani.net/urun/ak-aricilik-gaz-maskesi",
+     "price": 2029.31,
+     "pack": "maske + filtre",
+     "unitPrice": 2029.31
     }
    ]
   },
@@ -513,10 +822,10 @@
    "key": "arici_eldiven",
    "name": "Arıcı eldiveni (çift)",
    "unit": "adet",
-   "ref": 463.65,
-   "min": 290.0,
-   "max": 826.38,
-   "n": 5,
+   "ref": 336.96,
+   "min": 269,
+   "max": 552.2,
+   "n": 8,
    "sources": [
     {
      "name": "n11 Vinlex Arıcı Eldiveni",
@@ -551,7 +860,36 @@
      "url": "https://www.n11.com/urun/deri-arici-eldiveni-12597051",
      "price": 826.38,
      "pack": "1 çift",
-     "unitPrice": 826.38
+     "unitPrice": 826.38,
+     "outlier": true
+    },
+    {
+     "name": "Avrasya Deri Eldiven",
+     "url": "https://www.avrasyaaricilik.com.tr/deri-eldiven/",
+     "price": 319,
+     "pack": "1 çift",
+     "unitPrice": 319.0
+    },
+    {
+     "name": "Ermiş Arıcılık Arıcı Eldiveni Deri",
+     "url": "https://ermisaricilik.com/urun/arici-eldiveni-deri-eldiven",
+     "price": 269,
+     "pack": "1 çift",
+     "unitPrice": 269.0
+    },
+    {
+     "name": "Nurel Arıcılık Deri Eldiven",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/deri-eldiven/",
+     "price": 275,
+     "pack": "1 çift",
+     "unitPrice": 275.0
+    },
+    {
+     "name": "Arıcı Çarşısı Vinleks Eldiven",
+     "url": "https://aricicarsisi.com/vinleks-eldiven/",
+     "price": 299,
+     "pack": "1 çift",
+     "unitPrice": 299.0
     }
    ]
   },
@@ -559,10 +897,10 @@
    "key": "siringa",
    "name": "Damlatma şırıngası",
    "unit": "adet",
-   "ref": 538.6,
-   "min": 249.0,
+   "ref": 431.8,
+   "min": 235,
    "max": 669.11,
-   "n": 4,
+   "n": 6,
    "sources": [
     {
      "name": "Arıcımarketi Pet Şişeye Uyumlu Ölçekli Oksalik Asit Uygulama Şırıngası",
@@ -591,6 +929,20 @@
      "price": 669.11,
      "pack": "1 adet",
      "unitPrice": 669.11
+    },
+    {
+     "name": "Avrasya Oksalik Asit Aparatı (şırınga)",
+     "url": "https://www.avrasyaaricilik.com.tr/oksalik-asit-aparati/",
+     "price": 401,
+     "pack": "1 adet",
+     "unitPrice": 401.0
+    },
+    {
+     "name": "Arıcı Marketi Ölçekli Sulu Oksalik Asit Uygulama Aparatı",
+     "url": "https://www.aricimarketi.com/urun/varroa-olcekli-sulu-oksalik-asit-uygulama-aparati",
+     "price": 235,
+     "pack": "1 adet",
+     "unitPrice": 235.0
     }
    ]
   },
@@ -599,8 +951,8 @@
    "name": "Okzalik buharlaştırıcı",
    "unit": "adet",
    "ref": 6822.44,
-   "min": 4350.0,
-   "max": 14000.0,
+   "min": 4350,
+   "max": 14000,
    "n": 5,
    "sources": [
     {
@@ -644,10 +996,10 @@
    "key": "olcu_kabi",
    "name": "Ölçü kabı",
    "unit": "adet",
-   "ref": 229.73,
-   "min": 179.9,
+   "ref": 222.7,
+   "min": 175,
    "max": 289.9,
-   "n": 5,
+   "n": 7,
    "sources": [
     {
      "name": "n11 Özel Ölçü Kabı 1 L Şeffaf",
@@ -683,6 +1035,28 @@
      "price": 289.9,
      "pack": "1 adet (1 L)",
      "unitPrice": 289.9
+    },
+    {
+     "name": "Artizan Mutfak Plastik Ölçü Kabı 1 L",
+     "url": "https://www.artizanmutfak.com/plastik-olcu-kabi-1-litrelik",
+     "price": 84,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 84.0,
+     "outlier": true
+    },
+    {
+     "name": "Enka Tarım Plastik Ölçme Kabı 1 L",
+     "url": "https://www.enkatarim.com.tr/urun/plastik-olcme-kabi-1l",
+     "price": 244.38,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 244.38
+    },
+    {
+     "name": "BY Hırdavat 1 L Plastik Ölçü Kabı",
+     "url": "https://www.byhirdavat.com/urun/1-lt-plastik-olcu-kabi",
+     "price": 175,
+     "pack": "1 adet (1 L)",
+     "unitPrice": 175.0
     }
    ]
   },
@@ -690,9 +1064,9 @@
    "key": "alt_tabla",
    "name": "Yapışkanlı alt tabla (akar sayımı)",
    "unit": "adet",
-   "ref": 65.0,
-   "min": 65.0,
-   "max": 65.0,
+   "ref": 65,
+   "min": 65,
+   "max": 65,
    "n": 2,
    "sources": [
     {
@@ -716,8 +1090,8 @@
    "name": "Alkol yıkama kabı",
    "unit": "adet",
    "ref": 632.5,
-   "min": 600.0,
-   "max": 665.0,
+   "min": 600,
+   "max": 665,
    "n": 2,
    "sources": [
     {
@@ -740,10 +1114,10 @@
    "key": "alkol",
    "name": "Alkol (akar sayımı için)",
    "unit": "L",
-   "ref": 317.68,
-   "min": 267.0,
+   "ref": 314.18,
+   "min": 267,
    "max": 415.99,
-   "n": 5,
+   "n": 7,
    "sources": [
     {
      "name": "n11 Stein %96 Etil 1 L",
@@ -779,6 +1153,20 @@
      "price": 415.99,
      "pack": "1 L",
      "unitPrice": 415.99
+    },
+    {
+     "name": "Prosmt Market İzopropil Alkol 1 L (IPA %99,9)",
+     "url": "https://www.prosmt-market.com/urun/izopropil-alkol-1-litre-ipa-izopropanol-temizleyici-99-9-dezenfektan-solvent",
+     "price": 308.92,
+     "pack": "1 L",
+     "unitPrice": 308.92
+    },
+    {
+     "name": "İpek Elektro Market İzopropil Alkol 1 L (IPA %99,9)",
+     "url": "https://www.ipekelektromarket.com/urun/izopropil-alkol-ipa-izopropanol-temizleyici-99-9-1-litre",
+     "price": 308.92,
+     "pack": "1 L",
+     "unitPrice": 308.92
     }
    ]
   },
@@ -786,10 +1174,10 @@
    "key": "koruk",
    "name": "Tütsü körüğü",
    "unit": "adet",
-   "ref": 870.09,
-   "min": 682.5,
+   "ref": 741.97,
+   "min": 330,
    "max": 1032.3,
-   "n": 5,
+   "n": 9,
    "sources": [
     {
      "name": "n11 Arı Körüğü Galvaniz",
@@ -825,6 +1213,34 @@
      "price": 1032.3,
      "pack": "1 adet",
      "unitPrice": 1032.3
+    },
+    {
+     "name": "Avrasya Krom Kovalı Körük",
+     "url": "https://www.avrasyaaricilik.com.tr/krom-kovali-koruk/",
+     "price": 696,
+     "pack": "1 adet",
+     "unitPrice": 696.0
+    },
+    {
+     "name": "Erdoğan Arıcılık Galvanizli Deri Arıcı Körüğü",
+     "url": "https://erdoganaricilik.com/urunler/aricilik-malzemeleri/korukler/galvanizli-deri-arici-korugu/",
+     "price": 650,
+     "pack": "1 adet",
+     "unitPrice": 650.0
+    },
+    {
+     "name": "Nurel Arıcılık Krom Kovalı Telli Körük (normal boy)",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/krom-kovali-telli-koruk-normal-boy/",
+     "price": 330,
+     "pack": "1 adet",
+     "unitPrice": 330.0
+    },
+    {
+     "name": "İhsaniye Arıcılık Körük Galvaniz Vinleks",
+     "url": "https://www.ihsaniyearicilik.com/koruk-galvaniz-vinleks",
+     "price": 555,
+     "pack": "1 adet",
+     "unitPrice": 555.0
     }
    ]
   },
@@ -833,7 +1249,7 @@
    "name": "Körük yakıtı (çuval / talaş / pamuk)",
    "unit": "kg",
    "ref": 104.74,
-   "min": 100.0,
+   "min": 100,
    "max": 149.79,
    "n": 3,
    "sources": [
@@ -880,10 +1296,10 @@
    "key": "cakmak",
    "name": "Çakmak / kibrit",
    "unit": "paket",
-   "ref": 129.03,
-   "min": 83.3,
+   "ref": 171.27,
+   "min": 79.95,
    "max": 296.9,
-   "n": 5,
+   "n": 9,
    "sources": [
     {
      "name": "n11 Kav Kibrit 10 Paket",
@@ -919,6 +1335,34 @@
      "price": 625,
      "pack": "50 çakmak → 10’lu paket",
      "unitPrice": 125.0
+    },
+    {
+     "name": "Şok Kav Kibrit 10’lu Paket",
+     "url": "https://www.sokmarket.com.tr/kav-kibrit-10-lu-paket-p-7533",
+     "price": 79.95,
+     "pack": "10 kutu kibrit",
+     "unitPrice": 79.95
+    },
+    {
+     "name": "Şok BK Jet 1975 Plastik Çakmak",
+     "url": "https://www.sokmarket.com.tr/bk-jet-1975-plastik-cakmak-p-262930",
+     "price": 27.95,
+     "pack": "1 çakmak → 10’lu paket",
+     "unitPrice": 279.5
+    },
+    {
+     "name": "Şok I-Lighter Y-333 Çakmak",
+     "url": "https://www.sokmarket.com.tr/i-lighter-y-333-cakmak-p-3887",
+     "price": 19.95,
+     "pack": "1 çakmak → 10’lu paket",
+     "unitPrice": 199.5
+    },
+    {
+     "name": "Şok Koko 518 Uzun Manyetolu Çakmak",
+     "url": "https://www.sokmarket.com.tr/koko-518-uzun-manyetolu-cakmak-p-263984",
+     "price": 24.95,
+     "pack": "1 çakmak → 10’lu paket",
+     "unitPrice": 249.5
     }
    ]
   },
@@ -926,10 +1370,10 @@
    "key": "cerceve",
    "name": "Çerçeve",
    "unit": "adet",
-   "ref": 58.1,
-   "min": 45.0,
+   "ref": 54.58,
+   "min": 35,
    "max": 90.5,
-   "n": 5,
+   "n": 10,
    "sources": [
     {
      "name": "n11 10'lu Telli Arı Çıtası",
@@ -965,6 +1409,41 @@
      "price": 450,
      "pack": "10 adet",
      "unitPrice": 45.0
+    },
+    {
+     "name": "Ermiş Arıcılık Çakılmamış Ahşap Çerçeve 24’lük 10 adet",
+     "url": "https://ermisaricilik.com/urun/cakilmamis-ahsap-cerceve-24luk-10-adet",
+     "price": 350,
+     "pack": "10 adet",
+     "unitPrice": 35.0
+    },
+    {
+     "name": "Ermiş Arıcılık Telli Çerçeve 10 adet",
+     "url": "https://ermisaricilik.com/urun/telli-cerceve-10-adet",
+     "price": 550,
+     "pack": "10 adet",
+     "unitPrice": 55.0
+    },
+    {
+     "name": "Arıcı Obası Ak Arıcılık Çakılmış Çerçeve",
+     "url": "https://www.aricobani.net/urun/ak-aricilik-cakilmis-cerceve",
+     "price": 76.33,
+     "pack": "1 adet",
+     "unitPrice": 76.33
+    },
+    {
+     "name": "Avrasya Çerçeve Çıtası (çakılı)",
+     "url": "https://www.avrasyaaricilik.com.tr/cerceve-citasi-cakili/",
+     "price": 51,
+     "pack": "1 adet",
+     "unitPrice": 51.0
+    },
+    {
+     "name": "Apimaye Ahşap Çerçeve LN-24",
+     "url": "https://market.apimaye.com.tr/urunler/ahsap-cerceve-ln24-58/",
+     "price": 35,
+     "pack": "1 adet",
+     "unitPrice": 35.0
     }
    ]
   },
@@ -972,10 +1451,10 @@
    "key": "temel_petek",
    "name": "Temel petek",
    "unit": "adet",
-   "ref": 47.44,
-   "min": 30.74,
+   "ref": 40.44,
+   "min": 27.78,
    "max": 56.1,
-   "n": 5,
+   "n": 8,
    "sources": [
     {
      "name": "Arıcımarketi 10 kg Temel Petek Sıcak Döküm",
@@ -986,7 +1465,7 @@
     },
     {
      "name": "Arıcımarketi Gür Petek Sıcak Döküm 1 kg",
-     "url": "https://www.aricimarketi.com/urun/toptan-temel-petek-sicak-dokum",
+     "url": "https://www.aricimarketi.com/urun/gur-petek-sicak-dokum-hazir-temel-petek",
      "price": 415,
      "pack": "1 kg ≈ 13,5 levha",
      "unitPrice": 30.74
@@ -1011,6 +1490,27 @@
      "price": 737.9,
      "pack": "1 kg ≈ 13,5 levha",
      "unitPrice": 54.66
+    },
+    {
+     "name": "Avrasya Temel Petek Sıcak Döküm 1 kg",
+     "url": "https://www.avrasyaaricilik.com.tr/temel-petek-sicak-dokum-1-kg/",
+     "price": 456,
+     "pack": "1 kg ≈ 13,5 levha",
+     "unitPrice": 33.78
+    },
+    {
+     "name": "Avrasya Temel Petek Soğuk Döküm 1 kg",
+     "url": "https://www.avrasyaaricilik.com.tr/temel-petek-soguk-dokum-1-kg/",
+     "price": 483,
+     "pack": "1 kg ≈ 13,5 levha",
+     "unitPrice": 35.78
+    },
+    {
+     "name": "Erdoğan Arıcılık Temel Petek Sıcak Döküm Bal Mumu 10 kg",
+     "url": "https://erdoganaricilik.com/urunler/temel-petek-bal-mumu/temel-petek-balmumu/temel-petek-sicak-dokum-bal-mumu-10-kg/",
+     "price": 3750,
+     "pack": "10 kg ≈ 135 levha",
+     "unitPrice": 27.78
     }
    ]
   },
@@ -1019,8 +1519,8 @@
    "name": "Kat / ballık",
    "unit": "adet",
    "ref": 1062.5,
-   "min": 500.0,
-   "max": 2210.0,
+   "min": 500,
+   "max": 2210,
    "n": 4,
    "sources": [
     {
@@ -1059,7 +1559,7 @@
    "unit": "adet",
    "ref": 29.5,
    "min": 24.9,
-   "max": 35.0,
+   "max": 35,
    "n": 3,
    "sources": [
     {
@@ -1089,10 +1589,10 @@
    "key": "besleyici",
    "name": "Besleyici (feeder)",
    "unit": "adet",
-   "ref": 69.0,
-   "min": 45.0,
-   "max": 99.0,
-   "n": 3,
+   "ref": 79.92,
+   "min": 45,
+   "max": 110,
+   "n": 8,
    "sources": [
     {
      "name": "Ege Tarım Kayık Yemlik Şurupluk 1,5 L (çerçeve tipi)",
@@ -1114,6 +1614,41 @@
      "price": 99,
      "pack": "1 adet",
      "unitPrice": 99.0
+    },
+    {
+     "name": "Avrasya Kutu Yemlik Renkli 1 L",
+     "url": "https://www.avrasyaaricilik.com.tr/kutu-yemlik-renkli-1-litre/",
+     "price": 53,
+     "pack": "1 adet",
+     "unitPrice": 53.0
+    },
+    {
+     "name": "Ermiş Arıcılık Kutu Yemlik 1 L Gri",
+     "url": "https://ermisaricilik.com/urun/kutu-yemlik-1-lt-gri",
+     "price": 90,
+     "pack": "1 adet",
+     "unitPrice": 90.0
+    },
+    {
+     "name": "Nurel Arıcılık Bölme Tipi Plastik Yemlik (1. kalite)",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/bolme-tipi-plastik-yemlik-1-kalite-475x275/",
+     "price": 93.5,
+     "pack": "1 adet",
+     "unitPrice": 93.5
+    },
+    {
+     "name": "Apimaye Kutu Yemlik",
+     "url": "https://market.apimaye.com.tr/urunler/kutu-yemlik-46/",
+     "price": 75,
+     "pack": "1 adet",
+     "unitPrice": 75.0
+    },
+    {
+     "name": "Aslan Petek Çıtaboyu Şurupluk Mat",
+     "url": "https://www.aslanpetek.com/citaboyu-surupluk-mat",
+     "price": 110,
+     "pack": "1 adet",
+     "unitPrice": 110.0
     }
    ]
   },
@@ -1121,10 +1656,10 @@
    "key": "ana_izgarasi",
    "name": "Ana ızgarası",
    "unit": "adet",
-   "ref": 380.58,
+   "ref": 350.19,
    "min": 240.71,
    "max": 599.28,
-   "n": 5,
+   "n": 8,
    "sources": [
     {
      "name": "n11 Avrasya Arıcılık Ana Arı Izgarası Plastik",
@@ -1160,6 +1695,51 @@
      "price": 599.28,
      "pack": "1 adet",
      "unitPrice": 599.28
+    },
+    {
+     "name": "Avrasya Ana Arı Izgarası Plastik",
+     "url": "https://www.avrasyaaricilik.com.tr/ana-ari-izgarasi-plastik/",
+     "price": 44,
+     "pack": "1 adet",
+     "unitPrice": 44.0,
+     "outlier": true
+    },
+    {
+     "name": "Ermiş Arıcılık Metal Ana Arı Izgarası",
+     "url": "https://ermisaricilik.com/urun/metal-ana-ari-izgarasi",
+     "price": 275,
+     "pack": "1 adet",
+     "unitPrice": 275.0
+    },
+    {
+     "name": "Ermiş Arıcılık Plastik Ana Arı Izgarası",
+     "url": "https://ermisaricilik.com/urun/plastik-ana-ari-izgarasi",
+     "price": 55,
+     "pack": "1 adet",
+     "unitPrice": 55.0,
+     "outlier": true
+    },
+    {
+     "name": "Nurel Arıcılık Ana Arı Izgarası Metal",
+     "url": "https://nurelaricilikmalzemeleri.com/urun/ana-ari-izgarasi-metal/",
+     "price": 248,
+     "pack": "1 adet",
+     "unitPrice": 248.0
+    },
+    {
+     "name": "Akabe Bal AKB Metal Ana Arı Izgarası",
+     "url": "https://akabebal.com/urun/akb-metal-ana-ari-izgarasi/",
+     "price": 100,
+     "pack": "1 adet",
+     "unitPrice": 100.0,
+     "outlier": true
+    },
+    {
+     "name": "Arıcı Obası Metal Ana Arı Izgarası",
+     "url": "https://www.aricobani.net/urun/metal-ana-ari-izgarasi",
+     "price": 436.41,
+     "pack": "1 adet",
+     "unitPrice": 436.41
     }
    ]
   },
@@ -1167,10 +1747,10 @@
    "key": "dezenfektan",
    "name": "Dezenfektan",
    "unit": "L",
-   "ref": 133.5,
-   "min": 81.14,
-   "max": 179.0,
-   "n": 4,
+   "ref": 91.08,
+   "min": 38.25,
+   "max": 179,
+   "n": 9,
    "sources": [
     {
      "name": "n11 Çamaşır Suyu 4 L",
@@ -1199,6 +1779,49 @@
      "price": 895,
      "pack": "5 L",
      "unitPrice": 179.0
+    },
+    {
+     "name": "Şok Mintax Yoğun Çamaşır Suyu 4 L",
+     "url": "https://www.sokmarket.com.tr/mintax-yogun-camasir-suyu-4000-ml-p-3536",
+     "price": 153,
+     "pack": "4 L",
+     "unitPrice": 38.25
+    },
+    {
+     "name": "Şok Ace Klasik Çamaşır Suyu 2 L",
+     "url": "https://www.sokmarket.com.tr/ace-klasik-camasir-suyu-2-l-p-5525",
+     "price": 137,
+     "pack": "2 L",
+     "unitPrice": 68.5
+    },
+    {
+     "name": "Şok Domestos Yoğun Kıvamlı Çamaşır Suyu 3,24 L",
+     "url": "https://www.sokmarket.com.tr/domestos-yogun-kivamli-camasir-suyu-cam-ferahligi-3240-ml-p-3989",
+     "price": 295,
+     "pack": "3,24 L",
+     "unitPrice": 91.05
+    },
+    {
+     "name": "Ermiş Arıcılık Cerena Plus Likit Dezenfektan 1 L",
+     "url": "https://ermisaricilik.com/urun/cerena-plus-likit-dezenfektan-1-lt",
+     "price": 325,
+     "pack": "1 L",
+     "unitPrice": 325.0,
+     "outlier": true
+    },
+    {
+     "name": "Bizim Toptan Domestos Çam Ferahlığı Çamaşır Suyu 5 L",
+     "url": "https://www.bizimtoptan.com.tr/domestos-cam-ferahligi-camasir-suyu-5-l",
+     "price": 229,
+     "pack": "5 L",
+     "unitPrice": 45.8
+    },
+    {
+     "name": "Bizim Toptan Domestos Dağ Esintisi Ultra Çamaşır Suyu 3,2 L",
+     "url": "https://www.bizimtoptan.com.tr/domestos-dag-esintisi-ultra-camasir-suyu-3-2-l",
+     "price": 269,
+     "pack": "3,2 L",
+     "unitPrice": 84.06
     }
    ]
   },
@@ -1206,10 +1829,10 @@
    "key": "kaziyici",
    "name": "Kazıyıcı / el aleti",
    "unit": "adet",
-   "ref": 224.5,
-   "min": 172.9,
-   "max": 299.0,
-   "n": 4,
+   "ref": 197.41,
+   "min": 129,
+   "max": 299,
+   "n": 9,
    "sources": [
     {
      "name": "n11 Arıcı El Demiri Plastik Saplı Kazımalı",
@@ -1238,6 +1861,41 @@
      "price": 299,
      "pack": "1 adet",
      "unitPrice": 299.0
+    },
+    {
+     "name": "Avrasya Kazımalı El Demiri",
+     "url": "https://www.avrasyaaricilik.com.tr/kazimali-el-demiri/",
+     "price": 174,
+     "pack": "1 adet",
+     "unitPrice": 174.0
+    },
+    {
+     "name": "Avrasya Plastik Saplı Kazımalı El Demiri",
+     "url": "https://www.avrasyaaricilik.com.tr/plastik-sapli-kazimali-el-demiri/",
+     "price": 166,
+     "pack": "1 adet",
+     "unitPrice": 166.0
+    },
+    {
+     "name": "Ermiş Arıcılık El Demiri Plastik Saplı 28 cm",
+     "url": "https://ermisaricilik.com/urun/el-demiri-plastik-sapli-28-cm",
+     "price": 129,
+     "pack": "1 adet",
+     "unitPrice": 129.0
+    },
+    {
+     "name": "Apimaye J Tipi El Demiri Plastik Saplı Boyalı 8 cm",
+     "url": "https://market.apimaye.com.tr/urunler/jtipi-el-demiriplassapboyali8cm-lybt010p-128/",
+     "price": 245,
+     "pack": "1 adet",
+     "unitPrice": 245.0
+    },
+    {
+     "name": "Aslan Petek El Demiri Plastik Saplı Kazımalı",
+     "url": "https://www.aslanpetek.com/el-demiri-plastik-sapli-kazimali",
+     "price": 175,
+     "pack": "1 adet",
+     "unitPrice": 175.0
     }
    ]
   }

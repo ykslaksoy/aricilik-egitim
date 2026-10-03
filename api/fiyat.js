@@ -98,7 +98,14 @@ const SITE = {
   'aslanpetek.com': (h) => [
     ...grab(h, /id="pbProductPriceCurrent"[^>]*>\s*([\d.,]+)/g),
     ...grab(h, /"base_price"\s*:\s*([\d.]+)/g)
-  ]
+  ],
+  /* Şok (Next.js RSC): ürünün "discounted" alanı $id ile fiyat nesnesine bağlanır: 1b:{\"value\":219,\"text\":\"219,00\"…} */
+  'sokmarket.com.tr': (h) => {
+    const m = /\\"discounted\\":\\"\$([0-9a-z]+)\\"/.exec(h);
+    if (!m) return [];
+    const v = new RegExp('(?:\\\\n|")' + m[1] + ':\\{\\\\"value\\\\":([\\d.]+),').exec(h);
+    return v ? [num(v[1])].filter(Boolean) : [];
+  }
 };
 /* IdeaSoft (aricimarketi, aricobani, civan…): itemprop meta yoksa sayfa betiğindeki salePrice */
 function fromPlatform(html) {
@@ -133,7 +140,7 @@ function extractPrice(html, url, oldPrice) {
 }
 
 async function fetchHtml(url, deadline) {
-  const left = Math.min(PER_REQ_MS, deadline - Date.now());
+  const left = Math.min(HOST_TIMEOUT[hostKey(url)] || PER_REQ_MS, deadline - Date.now());
   if (left < 300) throw new Error('süre doldu');
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), left);
@@ -153,7 +160,9 @@ async function fetchHtml(url, deadline) {
 }
 
 /* Ana makine başına eşzamanlılık: küçük mağazalar 429 döndürmesin; n11 paralel kaldırabiliyor. */
-const HOST_LIMIT = { 'n11.com': 64, 'aricimarketi.com': 2 };
+const HOST_LIMIT = { 'n11.com': 64, 'aricimarketi.com': 2, 'avrasyaaricilik.com.tr': 8, 'ermisaricilik.com': 20, 'sokmarket.com.tr': 6 };
+/* ermisaricilik, akabebal: önbellekte olmayan sayfa ~5–6 sn'de üretiliyor (paralel istekler de aynı sürede döner) → daha uzun istek süresi */
+const HOST_TIMEOUT = { 'ermisaricilik.com': 7500, 'akabebal.com': 7500 };
 const DEFAULT_LIMIT = 3;
 const lanes = new Map();
 function limited(host, fn) {
