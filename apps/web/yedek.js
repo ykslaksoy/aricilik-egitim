@@ -1,7 +1,8 @@
 /**
  * SüperArı — cihaz yedeği (JSON): Canlı moddaki tüm yerel veriler; geri yüklemede önizleme + birleştirme.
  * Demo verileri, bulut oturum/durum bilgisi ve yeniden indirilebilen önbellekler (hava, harita) yedeğe girmez.
- * Fotoğraflar (cihazdaki resim dosyaları) yedeğe girmez; bulutta ayrıca saklanır.
+ * Fotoğraflar (IndexedDB «superari-foto», yalnız Canlı mod) yedeğe base64 (data:image/…) olarak girer; geri yüklemede
+ * cihazda olmayanlar eklenir («Yedekle değiştir»de aynı kimlikli fotoğraf yedekteki hâliyle yazılır; yalnız cihazdakiler silinmez).
  */
 (function (global) {
   var LS = global.localStorage;
@@ -45,6 +46,7 @@
     if (!o || o.format !== FORMAT || !o.keys || typeof o.keys !== 'object') return { ok: false, error: 'Bu dosya SüperArı cihaz yedeği değil. (Buluttan indirilen dosya geri yüklenmez; giriş yapınca bulut zaten eşitlenir.)' };
     var keys = {}; Object.keys(o.keys).forEach(function (k) { if (keep(k)) keys[k] = o.keys[k]; });
     o.keys = keys;
+    o.photos = Array.isArray(o.photos) ? o.photos.filter(validPhoto) : [];
     return { ok: true, backup: o };
   }
   function isObj(v) { return v && typeof v === 'object' && !Array.isArray(v); }
@@ -106,13 +108,76 @@
     try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
     return { changed: changed };
   }
-  function download() {
+  /* ---------------- Fotoğraflar (koloni-77) ---------------- */
+  function F() { return global.SuperAriFoto && global.SuperAriFoto.allRows ? global.SuperAriFoto : null; }
+  function isBlob(v) { return v && typeof v === 'object' && typeof v.arrayBuffer === 'function' && typeof v.size === 'number'; }
+  function b64(buf) {
+    var u = new Uint8Array(buf), out = '', CH = 0x8000;
+    for (var i = 0; i < u.length; i += CH) out += String.fromCharCode.apply(null, u.subarray(i, i + CH));
+    return global.btoa(out);
+  }
+  function toDataUrl(bl) { return bl.arrayBuffer().then(function (buf) { return 'data:' + (bl.type || 'image/jpeg') + ';base64,' + b64(buf); }); }
+  function fromDataUrl(u) {
+    var m = /^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec(String(u || '')); if (!m) return null;
+    var bin = global.atob(m[2].replace(/\s+/g, '')), a = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return new Blob([a], { type: m[1] });
+  }
+  function liveRows() { var f = F(); return f ? f.allRows().then(function (l) { return (l || []).filter(function (r) { return r && r.id && r.mode !== 'demo' && isBlob(r.blob); }); }) : Promise.resolve([]); }
+  /** İndirmeden önce boyut notu: { n, bytes } (ham resim boyutu; base64 ile dosyada ≈ %35 daha büyük) */
+  function photoInfo() { return liveRows().then(function (l) { var b = 0; l.forEach(function (r) { b += r.blob.size + (isBlob(r.thumb) && r.thumb !== r.blob ? r.thumb.size : 0); }); return { n: l.length, bytes: b, fileBytes: Math.round(b * 4 / 3) }; }); }
+  function photoRowOut(r) {
+    var o = {}; Object.keys(r).forEach(function (k) { if (k !== 'blob' && k !== 'thumb') o[k] = r[k]; });
+    return toDataUrl(r.blob).then(function (u) { o.blob = u; return isBlob(r.thumb) && r.thumb !== r.blob ? toDataUrl(r.thumb) : null; }).then(function (t) { if (t) o.thumb = t; return o; });
+  }
+  function collectPhotos() { return liveRows().then(function (l) { return l.reduce(function (p, r) { return p.then(function (acc) { return photoRowOut(r).then(function (o) { acc.push(o); return acc; }); }); }, Promise.resolve([])); }); }
+  /** Fotoğraflı yedek nesnesi (Promise). opts.photos === false → fotoğrafsız. */
+  function collectFull(opts) {
     var b = collect();
+    if (opts && opts.photos === false) return Promise.resolve(b);
+    return collectPhotos().then(function (ph) { if (ph.length) { b.formatVersion = 2; b.photos = ph; } return b; });
+  }
+  function validPhoto(x) { return x && typeof x === 'object' && typeof x.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(x.id) && /^data:image\//i.test(String(x.blob || '')) && x.mode !== 'demo'; }
+  /** Yedekteki fotoğraflar için plan (Promise): { backup, add, same } */
+  function photoPlan(backup) {
+    var ph = (backup && backup.photos) || [], f = F();
+    if (!ph.length) return Promise.resolve({ backup: 0, add: 0, same: 0 });
+    return (f ? f.allRows() : Promise.resolve([])).then(function (l) {
+      var have = {}; (l || []).forEach(function (r) { if (r && r.id) have[r.id] = 1; });
+      var add = ph.filter(function (x) { return !have[x.id]; }).length;
+      return { backup: ph.length, add: add, same: ph.length - add };
+    });
+  }
+  /** Fotoğrafları geri yazar (Promise): { added, replaced, failed } */
+  function applyPhotos(backup, mode) {
+    var ph = (backup && backup.photos) || [], f = F(), res = { added: 0, replaced: 0, failed: 0 };
+    if (!ph.length) return Promise.resolve(res);
+    if (!f || !f.putRow) { res.failed = ph.length; return Promise.resolve(res); }
+    return f.allRows().then(function (l) {
+      var have = {}; (l || []).forEach(function (r) { if (r && r.id) have[r.id] = 1; });
+      return ph.reduce(function (p, x) {
+        return p.then(function () {
+          if (have[x.id] && mode !== 'degistir') return;
+          var bl = fromDataUrl(x.blob); if (!bl) { res.failed++; return; }
+          var row = {}; Object.keys(x).forEach(function (k) { if (k !== 'blob' && k !== 'thumb') row[k] = x[k]; });
+          row.blob = bl; row.thumb = (x.thumb && fromDataUrl(x.thumb)) || bl; row.mode = 'live';
+          row.recordIds = Array.isArray(x.recordIds) ? x.recordIds.map(String) : [];
+          return f.putRow(row).then(function () { if (have[x.id]) res.replaced++; else res.added++; }, function () { res.failed++; });
+        });
+      }, Promise.resolve());
+    }).then(function () { try { global.dispatchEvent(new CustomEvent('superari-photos-changed')); } catch (e) { /* ignore */ } return res; });
+  }
+  function saveBlob(b) {
     var blob = new Blob([JSON.stringify(b, null, 1)], { type: 'application/json' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = 'superari-cihaz-yedegi-' + new Date().toISOString().slice(0, 10) + '.json';
     document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-    return { keys: Object.keys(b.keys).length, bytes: blob.size };
+    return { keys: Object.keys(b.keys).length, bytes: blob.size, photos: (b.photos || []).length };
   }
-  global.SuperAriYedek = { FORMAT: FORMAT, collect: collect, read: read, plan: plan, apply: apply, download: download, label: label, keep: keep };
+  /** Eşzamanlı, fotoğrafsız (eski davranış) */
+  function download() { return saveBlob(collect()); }
+  /** Fotoğraflı indirme (Promise) */
+  function downloadFull(opts) { return collectFull(opts).then(saveBlob); }
+  global.SuperAriYedek = { FORMAT: FORMAT, collect: collect, collectFull: collectFull, read: read, plan: plan, apply: apply, download: download, downloadFull: downloadFull,
+    photoInfo: photoInfo, photoPlan: photoPlan, applyPhotos: applyPhotos, toDataUrl: toDataUrl, fromDataUrl: fromDataUrl, label: label, keep: keep };
 })(window);

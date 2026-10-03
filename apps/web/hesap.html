@@ -171,7 +171,8 @@
       <p class="hb-msg" id="termsMsg" style="margin:0;font-size:.84rem;"></p>
       <p class="muted" style="margin:0;font-size:.8rem;">Bulutta saklanan verileriniz, ad, e-posta ve tam konum çıkarılıp yalnız bölge düzeyinde anonimleştirilerek sağlık skoru, oğul riski, hastalık / ırk tahmini, bal tahmini ve bakım takvimini iyileştirmek için kullanılır. <a href="sartlar.html?geri=hesap.html" style="color:#2b6cb0;">Metnin tamamı</a></p>
       <h3 style="margin:.3rem 0 0;font-size:.95rem;">💾 Cihaz yedeği</h3>
-      <p class="muted" style="margin:0;font-size:.8rem;">Bu cihazdaki Canlı mod verilerinin tamamını (arılık, kovan, kayıt, görev, stok, gider, satış, ayarlar) tek dosyaya indirir. Yeni telefona geçerken ya da buluta giriş yapmadan yedek için kullanın. Demo veriler ve fotoğraf dosyaları yedeğe girmez.</p>
+      <p class="muted" style="margin:0;font-size:.8rem;">Bu cihazdaki Canlı mod verilerinin tamamını (arılık, kovan, kayıt, görev, stok, gider, satış, ayarlar) ve fotoğrafları tek dosyaya indirir. Yeni telefona geçerken ya da buluta giriş yapmadan yedek için kullanın. Fotoğraflar dosyayı büyütür; boyut aşağıda yazar. Demo veriler yedeğe girmez.</p>
+      <label style="display:flex;gap:.5rem;align-items:flex-start;font-size:.84rem;"><input type="checkbox" id="ydPhotos" checked style="width:20px;height:20px;margin:0;flex:0 0 auto;"> <span>Fotoğrafları da ekle <span class="muted" id="ydPhotoInfo"></span></span></label>
       <div class="hb-row">
         <button class="btn secondary" type="button" id="btnBackup">📦 Cihaz yedeği indir</button>
         <button class="btn secondary" type="button" id="btnRestore">📂 Yedekten geri yükle</button>
@@ -192,11 +193,12 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-76"></script>
-  <script src="bulut.js?v=koloni-76"></script>
-  <script src="push.js?v=koloni-76"></script>
-  <script src="sartlar.js?v=koloni-76"></script>
-  <script src="yedek.js?v=koloni-76"></script>
+  <script src="demo-data.js?v=koloni-77"></script>
+  <script src="bulut.js?v=koloni-77"></script>
+  <script src="push.js?v=koloni-77"></script>
+  <script src="sartlar.js?v=koloni-77"></script>
+  <script src="foto.js?v=koloni-77"></script>
+  <script src="yedek.js?v=koloni-77"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -608,15 +610,22 @@
     if (/[?&]silindi=1/.test(location.search)) msg($('loginMsg'), 'Hesabınız ve buluttaki verileriniz silindi.', 'ok');
 
     /* ---- Cihaz yedeği ---- */
+    function sizeTxt(b) { return b >= 1048576 ? (Math.round(b / 104857.6) / 10).toLocaleString('tr-TR') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+    function photoInfo() {
+      YD.photoInfo().then(function (i) { $('ydPhotoInfo').textContent = i.n ? '(' + i.n + ' fotoğraf · dosyaya ≈ ' + sizeTxt(i.fileBytes) + ' ekler)' : '(bu cihazda fotoğraf yok)'; }, function () { $('ydPhotoInfo').textContent = ''; });
+    }
+    photoInfo();
     $('btnBackup').addEventListener('click', function () {
-      try { var r = YD.download(); msg($('ydMsg'), 'Yedek indirildi · ' + r.keys + ' veri grubu (' + Math.max(1, Math.round(r.bytes / 1024)) + ' KB). Dosyayı güvenli bir yerde saklayın.', 'ok'); }
-      catch (e) { msg($('ydMsg'), 'Yedek alınamadı: ' + errText(e), 'err'); }
+      var b = this, withPh = $('ydPhotos').checked; b.disabled = true; msg($('ydMsg'), withPh ? 'Yedek hazırlanıyor (fotoğraflar ekleniyor)…' : 'Yedek hazırlanıyor…');
+      YD.downloadFull({ photos: withPh }).then(function (r) {
+        msg($('ydMsg'), 'Yedek indirildi · ' + r.keys + ' veri grubu' + (r.photos ? ' + ' + r.photos + ' fotoğraf' : (withPh ? ' (fotoğraf yok)' : ' (fotoğrafsız)')) + ' · ' + sizeTxt(r.bytes) + '. Dosyayı güvenli bir yerde saklayın.', 'ok');
+      }).catch(function (e) { msg($('ydMsg'), 'Yedek alınamadı: ' + errText(e), 'err'); }).then(function () { b.disabled = false; });
     });
     var pending = null;
     $('btnRestore').addEventListener('click', function () { $('restoreFile').value = ''; $('restoreFile').click(); });
     $('restoreFile').addEventListener('change', function () {
       var file = this.files && this.files[0]; if (!file) return;
-      if (file.size > 25 * 1024 * 1024) { msg($('ydMsg'), 'Dosya çok büyük.', 'err'); return; }
+      if (file.size > 400 * 1024 * 1024) { msg($('ydMsg'), 'Dosya çok büyük (en çok 400 MB).', 'err'); return; }
       var fr = new FileReader();
       fr.onload = function () { showPlan(String(fr.result || '')); };
       fr.onerror = function () { msg($('ydMsg'), 'Dosya okunamadı.', 'err'); };
@@ -633,20 +642,28 @@
       var main = rows.filter(function (x) { return x.action !== 'ayni' || x.local || x.backup; });
       box.innerHTML = '<div class="kr-info" style="font-size:.82rem;background:#fff8e1;border:1px solid #f1d98b;border-radius:12px;padding:.55rem .65rem;">Yedek: <b>' + esc(SA ? SA.fmtDate(r.backup.createdAt) : r.backup.createdAt) + '</b>' + (r.backup.appVersion ? ' · ' + esc(r.backup.appVersion) : '') +
         '<br><b>Birleştir</b>: cihazdakiler korunur, yedekte olup cihazda olmayan <b>' + adds + '</b> kayıt eklenir' + (diffs ? '; iki yerde farklı olan ' + diffs + ' kayıtta cihazdaki kalır' : '') + '.' +
-        '<br><b>Yedekle değiştir</b>: aşağıdaki gruplar yedekteki hâliyle yazılır (cihazdaki farklı kayıtlar kaybolur).</div>' +
+        '<br><b>Yedekle değiştir</b>: aşağıdaki gruplar yedekteki hâliyle yazılır (cihazdaki farklı kayıtlar kaybolur).' +
+        (r.backup.photos && r.backup.photos.length ? '<br><b>Fotoğraflar</b>: <span id="ydPhPlan">yedekte ' + r.backup.photos.length + '</span>' : '<br>Bu yedekte fotoğraf yok.') + '</div>' +
         '<table class="yd-t"><tr><th>Veri</th><th class="n">Cihaz</th><th class="n">Yedek</th><th>Birleştirince</th></tr>' +
         main.map(function (x) { return '<tr><td>' + esc(x.label) + '</td><td class="n">' + x.local + '</td><td class="n">' + x.backup + '</td><td>' + esc(ACT[x.action]) + (x.add && x.action !== 'yeni' ? ' (+' + x.add + ')' : '') + '</td></tr>'; }).join('') + '</table>' +
         '<div class="hb-row"><button class="btn" type="button" id="ydMerge">Birleştir (önerilen)</button><button class="btn secondary" type="button" id="ydReplace">Yedekle değiştir</button><button class="btn secondary" type="button" id="ydCancel">Vazgeç</button></div>';
       box.hidden = false; msg($('ydMsg'), '');
+      if (r.backup.photos && r.backup.photos.length) YD.photoPlan(r.backup).then(function (pp) { var el = $('ydPhPlan'); if (el) el.textContent = 'yedekte ' + pp.backup + ' · cihazda olmayan ' + pp.add + ' eklenecek' + (pp.same ? ' · ' + pp.same + ' zaten var' : ''); });
       $('ydMerge').onclick = function () { doApply('birlestir'); };
       $('ydReplace').onclick = function () { if (confirm('Cihazdaki veriler yedekteki hâliyle değiştirilecek. Devam edilsin mi?')) doApply('degistir'); };
       $('ydCancel').onclick = function () { pending = null; box.hidden = true; box.innerHTML = ''; };
     }
     function doApply(mode) {
       if (!pending) return;
-      var r = YD.apply(pending, mode);
+      var bk = pending, r = YD.apply(bk, mode);
       pending = null; $('ydPreview').hidden = true; $('ydPreview').innerHTML = '';
-      msg($('ydMsg'), r.changed ? 'Yedek yüklendi · ' + r.changed + ' veri grubu güncellendi. Girişliyseniz yeni kayıtlar bir sonraki eşitlemede buluta gönderilir.' : 'Değişiklik yok: cihazda zaten aynı veriler var.', 'ok');
+      msg($('ydMsg'), 'Yükleniyor…');
+      YD.applyPhotos(bk, mode).then(function (ph) {
+        var pt = ph.added || ph.replaced ? ' · ' + (ph.added + ph.replaced) + ' fotoğraf geri yüklendi' : '';
+        if (ph.failed) pt += ' · ' + ph.failed + ' fotoğraf yüklenemedi';
+        msg($('ydMsg'), r.changed || ph.added || ph.replaced ? 'Yedek yüklendi · ' + r.changed + ' veri grubu güncellendi' + pt + '. Girişliyseniz yeni kayıtlar bir sonraki eşitlemede buluta gönderilir.' : 'Değişiklik yok: cihazda zaten aynı veriler var.' + pt, ph.failed ? 'err' : 'ok');
+        photoInfo();
+      });
     }
 
     B.loadConfig(true).then(function (cfg) {
@@ -671,7 +688,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-76"></script>
-<script src="pwa.js?v=koloni-76"></script>
+  <script src="nav.js?v=koloni-77"></script>
+<script src="pwa.js?v=koloni-77"></script>
 </body>
 </html>
