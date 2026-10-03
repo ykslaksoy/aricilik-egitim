@@ -131,6 +131,15 @@
     });
     return out;
   }
+  /** Fiyat değişikliği metni (tüm listelerde aynı): eski yok → «fiyat eklendi: 130 ₺ / kutu»; yeni yok → «fiyat kaldırıldı (önceki 13 ₺ / kutu)»; ikisi de var → «13 ₺ → 15 ₺ / kutu». */
+  function tl2(v) { return (Number(v) || 0).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ₺'; }
+  function priceChangeText(c) {
+    var o = c && c.old != null ? Number(c.old) : null, n = c && c.nw != null ? Number(c.nw) : null, u = c && c.unit ? ' / ' + c.unit : '';
+    if (o == null && n == null) return 'fiyat yok';
+    if (o == null) return 'fiyat eklendi: ' + tl2(n) + u;
+    if (n == null) return 'fiyat kaldırıldı (önceki ' + tl2(o) + u + ')';
+    return tl2(o) + ' → ' + tl2(n) + u;
+  }
   (function initCache() {
     var c = readJ(CACHE_KEY, null);
     if (c && c.data && Array.isArray(c.data.items)) { setActive(c.data, true); REF.cachedAt = c.at || ''; REF.fetchedAt = c.at || ''; REF.src = 'cache'; }
@@ -667,13 +676,13 @@
   }
   /** Açık talepte tahmini fiyatlar güncel fiyatlardan farklı mı (sizin fiyatınız → kaynak ortalaması) */
   function talepPriceDiff(t) {
-    var n = 0, nt = 0;
+    var n = 0, nt = 0, items = [];
     (t.lines || []).forEach(function (l) {
       var p = priceFor(l.key), nv = p.v != null ? Number(p.v) : null, ov = l.price != null ? Number(l.price) : null;
-      if ((nv == null) !== (ov == null) || (nv != null && Math.abs(nv - ov) > 0.004)) n++;
+      if ((nv == null) !== (ov == null) || (nv != null && Math.abs(nv - ov) > 0.004)) { n++; items.push({ key: l.key, name: l.name, unit: l.unit || '', old: ov, nw: nv }); }
       if (nv != null) nt += l.buy * nv;
     });
-    return { n: n, total: r2(nt) };
+    return { n: n, total: r2(nt), items: items };
   }
   /** Güncel fiyatlarla yeniden hesapla: yalnız tahmini birim / tutar değişir; ödenen gerçek fiyatlar (got) korunur */
   function repriceTalep(id) {
@@ -838,7 +847,7 @@
     CAT: CAT, GROUPS: GROUPS, BY: BY, build: build, loadRef: loadRef, refInfo: refInfo, priceFor: priceFor, tol: tol, setTol: setTol,
     userPrice: userPrice, setPrice: setPrice, talepler: talepler, saveTalep: saveTalep, clearTalepLinePrice: clearTalepLinePrice, mevcut: mevcut, setMevcut: setMevcut, clearMevcut: clearMevcut, applyMevcut: applyMevcut, norm: norm, REF: REF,
     RULES: { INSPECT_DAYS: INSPECT_DAYS, BEE_DEFAULT: BEE_DEFAULT, VISITS: VISITS, UNKNOWN_STORE_FRAC: UNKNOWN_STORE_FRAC },
-    setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,
+    setTalepLinePrice: setTalepLinePrice, offerRef: offerRef, applyPending: applyPending, dismissPending: dismissPending, withRef: withRef, diffRef: diffRef, priceChangeText: priceChangeText, talepPriceDiff: talepPriceDiff, repriceTalep: repriceTalep,
     refItem: function (k) { return REF.byKey[k] || null; }, noteMissing: noteMissing, missLog: missLog, missPending: missPending, flushMissing: flushMissing, MISS_KEY: MISS_KEY, parseNum: parseNum, talepForLog: talepForLog, dShortT: dShortT, STATUS: STATUS, statusOf: statusOf, talepSums: talepSums, talepById: talepById, cancelTalep: cancelTalep, deleteTalep: deleteTalep, recordPurchase: recordPurchase, stockTarget: stockTarget,
     tolOn: tolOn, glovePairs: glovePairs, gloveWhy: gloveWhy, GLOVE: { PER_VISIT: GLOVE_PAIRS_PER_VISIT, ACID: GLOVE_PAIRS_ACID, DISEASE_HIVE: GLOVE_PAIRS_DISEASE_HIVE, PER_BOX: GLOVE_PAIRS_PER_BOX },
     FEED: FEED, HIVE_CAP: HIVE_CAP, feedFromDeficit: feedFromDeficit, syrupSugar: syrupSugar, capHive: capHive

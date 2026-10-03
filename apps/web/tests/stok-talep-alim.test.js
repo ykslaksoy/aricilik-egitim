@@ -82,6 +82,8 @@ const a = T.talepler(); a.push(mk('tl03', [{ key: 'kat', group: 'kovan', name: '
 localStorage.setItem(key, JSON.stringify(a));
 T.recordPurchase('tl03', [{ i: 0, q: 1, p: 1200 }], { stock: false, savePrice: false });
 assert.strictEqual(T.talepPriceDiff(T.talepById('tl03')).n, 1);
+assert.deepStrictEqual(T.talepPriceDiff(T.talepById('tl03')).items.map((c) => [c.key, c.old, c.nw]), [['kat', 1000, 950]]);
+assert.strictEqual(T.priceChangeText(T.talepPriceDiff(T.talepById('tl03')).items[0]), '1.000 ₺ → 950 ₺ / adet');
 let t3 = T.repriceTalep('tl03');
 assert.strictEqual(t3.lines[0].price, 950); assert.strictEqual(t3.lines[0].got.p, 1200); assert.strictEqual(t3.total, 2850);
 t3 = T.setTalepLinePrice('tl03', 1, '35,5');

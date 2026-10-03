@@ -1151,14 +1151,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-73"></script>
-<script src="koloni.js?v=koloni-73"></script>
-<script src="ilac-katalog.js?v=koloni-73"></script>
-<script src="bakim-plan.js?v=koloni-73"></script>
-<script src="kapsam.js?v=koloni-73"></script>
-<script src="rapor-store.js?v=koloni-73"></script>
-<script src="fiyat-live.js?v=koloni-73"></script>
-<script src="stok-talep.js?v=koloni-73"></script>
+<script src="demo-data.js?v=koloni-74"></script>
+<script src="koloni.js?v=koloni-74"></script>
+<script src="ilac-katalog.js?v=koloni-74"></script>
+<script src="bakim-plan.js?v=koloni-74"></script>
+<script src="kapsam.js?v=koloni-74"></script>
+<script src="rapor-store.js?v=koloni-74"></script>
+<script src="fiyat-live.js?v=koloni-74"></script>
+<script src="stok-talep.js?v=koloni-74"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1277,7 +1277,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-73'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-74'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1337,8 +1337,8 @@
     var mine = all.filter(function (c) { return !!TQ.userPrice(c.key); }), ch = all.filter(function (c) { return !TQ.userPrice(c.key); });
     var upd = String(pd.data.updated || '').slice(0, 10);
     return '<section class="st-notice" role="status"><b>Fiyatlar güncellendi' + (upd ? ' (' + esc(TQ.dShortT(upd)) + ')' : '') + ': ' + ch.length + ' kalem değişti' + (mine.length ? ' (' + mine.length + ' kalemde kendi fiyatınız korundu)' : '') + ', tahmini toplam ' + money(tt.a) + ' → ' + money(tt.b) + '. ' + (saveAsk ? 'Güncel fiyatlarla bu şekilde, kaydedelim mi?' : 'Güncel fiyatlarla güncelleyelim mi?') + '</b>' +
-      (ch.length ? '<ul>' + ch.slice(0, 12).map(function (c) { return '<li>' + esc(c.name) + ': ' + (c.old != null ? money2(c.old) : 'fiyat yok') + ' → ' + (c.nw != null ? money2(c.nw) : 'fiyat yok') + (c.unit ? ' / ' + esc(c.unit) : '') + '</li>'; }).join('') + (ch.length > 12 ? '<li>… ve ' + (ch.length - 12) + ' kalem daha</li>' : '') + '</ul>' : (mine.length ? '' : '<small>Yalnız dosya tarihi değişti.</small>')) +
-      (mine.length ? '<small><b>Kendi fiyatınız korundu</b> (' + mine.length + ' kalem; kaynak değişse de sizin fiyatınız kullanılır):</small><ul class="mine">' + mine.map(function (c) { var u = TQ.userPrice(c.key); return '<li>' + esc(c.name) + ': sizin ' + money2(u.v) + ' · kaynak ' + (c.old != null ? money2(c.old) : '—') + ' → ' + (c.nw != null ? money2(c.nw) : '—') + '</li>'; }).join('') + '</ul>' : '') +
+      (ch.length ? '<ul>' + ch.slice(0, 12).map(function (c) { return '<li>' + esc(c.name) + ': ' + esc(TQ.priceChangeText(c)) + '</li>'; }).join('') + (ch.length > 12 ? '<li>… ve ' + (ch.length - 12) + ' kalem daha</li>' : '') + '</ul>' : (mine.length ? '' : '<small>Yalnız dosya tarihi değişti.</small>')) +
+      (mine.length ? '<small><b>Kendi fiyatınız korundu</b> (' + mine.length + ' kalem; kaynak değişse de sizin fiyatınız kullanılır):</small><ul class="mine">' + mine.map(function (c) { var u = TQ.userPrice(c.key); return '<li>' + esc(c.name) + ': sizin ' + money2(u.v) + ' · kaynak: ' + esc(TQ.priceChangeText(c)) + '</li>'; }).join('') + '</ul>' : '') +
       (saveAsk ? '<div class="st-btns two"><button type="button" class="st-btn in" data-ref-apply-save>Evet, güncel fiyatlarla kaydet</button><button type="button" class="st-btn" data-ref-keep-save>Eski fiyatlarla kaydet</button></div><button type="button" class="st-btn st-wide" data-save-cancel>Vazgeç (kaydetme)</button>'
         : '<div class="st-btns two"><button type="button" class="st-btn in" data-ref-apply>Güncelle</button><button type="button" class="st-btn" data-ref-keep>Şimdilik eski kalsın</button></div>') + '</section>';
   }
@@ -1562,6 +1562,7 @@
     if ((st === 'acik' || st === 'kismen') && !buyEdit) {
       var pdf = TQ.talepPriceDiff(t);
       if (pdf.n) h += '<div class="st-notice sm"><b>Güncel fiyatlar farklı: ' + pdf.n + ' kalem · tahmini ' + money(t.total) + ' → ' + money(pdf.total) + '</b><small>Talep kendi fiyatlarını (' + esc(t.priceRefDate ? TQ.dShortT(t.priceRefDate) : 'sizin fiyatlarınız') + ') saklar. Yeniden hesaplama yalnız tahmini fiyatları değiştirir; ödenen fiyatlar korunur.</small>' +
+        (pdf.items && pdf.items.length ? '<ul>' + pdf.items.slice(0, 12).map(function (c) { return '<li>' + esc(c.name) + ': ' + esc(TQ.priceChangeText(c)) + '</li>'; }).join('') + (pdf.items.length > 12 ? '<li>… ve ' + (pdf.items.length - 12) + ' kalem daha</li>' : '') + '</ul>' : '') +
         '<button type="button" class="st-btn st-wide" data-reprice>Güncel fiyatlarla yeniden hesapla</button></div>';
     }
     if (!off && !buyEdit) h += '<button type="button" class="st-new" data-buy-edit><span aria-hidden="true">🧾</span> ' + (sm.bought ? 'Alımı düzenle' : 'Alımı kaydet') + '</button>';
@@ -1966,7 +1967,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-73"></script>
-<script src="pwa.js?v=koloni-73"></script>
+<script src="nav.js?v=koloni-74"></script>
+<script src="pwa.js?v=koloni-74"></script>
 </body>
 </html>
