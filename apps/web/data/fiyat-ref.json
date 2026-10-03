@@ -1,7 +1,7 @@
 {
  "updated": "2026-10-03",
  "currency": "TRY",
- "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir. Varroa ilacı anahtarlarına yalnız Bakanlık ruhsatlı veteriner ürünleri (hbs.tarbil.gov.tr) fiyatlanır; ruhsatsız «kovan içi» ürünler alınmaz.",
+ "method": "Fiyatlar 3 Eki 2026'da sayfalarda görülen KDV dahil satış fiyatları; birim fiyata çevrildi, 3+ kaynakta medyanın 2,5 katı dışındakiler aykırı sayılıp atıldı; 4+ fiyatta kırpılmış ortalama (en düşük ve en yüksek atılır), 2–3 fiyatta medyan, tek kaynakta o kaynağın fiyatı («Tek kaynak» notuyla). Bazı kaynaklar (Akakçe, Eylül Arıcılık) otomatik okumaya kapalı: dosyadaki fiyatla kalır, sayfadan elle güncellenir. Varroa ilacı anahtarlarına Bakanlık ruhsatlı veteriner ürünleri (hbs.tarbil.gov.tr) fiyatlanır; ruhsatsız «kovan içi» ürünler alınmaz. Yalnız amitraz / kumafos şeridinde ruhsatlı fiyat yoksa aynı etken maddeli ruhsatsız ürün fiyatı notla («ruhsatlı ürün fiyatı yok · ruhsatsız ürün fiyatı (yalnız fiyat referansı)») kullanılabilir; doz her zaman etiketten. Okzalik / formik: ruhsatlı ürün yok, dökme asit fiyatı.",
  "items": [
   {
    "key": "seker",
@@ -372,12 +372,20 @@
    "key": "serit_amitraz",
    "name": "Varroa şeridi — amitraz",
    "unit": "şerit",
-   "ref": null,
-   "min": null,
-   "max": null,
-   "n": 0,
-   "sources": [],
-   "note": "Kaynak yok: amitrazlı şeritler (Beeraz, Rulamit, Rulamit-VA, Vamitrat) reçeteli veteriner ilacı; Avrasya, Arıcı Marketi, Ermiş, Apimaye, Civan, Eylül sitelerinde satılmıyor, Tarım Kredi / arı yetiştiricileri birlikleri internette fiyat yayımlamıyor. Aslan Petek «Rulamit» 130 TL gösteriyor ama paket içeriği yazmıyor; üretici Teknovet Rulamit’i kutuda 1 veya 5 poşet × 10 şerit (10 ya da 50 şerit) olarak satıyor — hangisi olduğu bilinmediği için şerit fiyatına çevrilmedi. Fiyatı kendiniz girin."
+   "ref": 13,
+   "min": 13,
+   "max": 13,
+   "n": 1,
+   "sources": [
+    {
+     "name": "Aslan Petek Rulamit (ruhsatlı; paket içeriği sayfada yok → üretici Teknovet’e göre 1 poşet = 10 şerit varsayıldı)",
+     "url": "https://aslanpetek.com/rulamit",
+     "price": 130,
+     "pack": "10 şerit (varsayım: 1 poşet; Teknovet Rulamit kutusu 1 ya da 5 poşet × 10 şerit)",
+     "unitPrice": 13.0
+    }
+   ],
+   "note": "Tek kaynak: Aslan Petek Rulamit 130 TL, 10 şerit varsayıldı → 13 ₺/şerit — ortalama değil, tek satıcının fiyatı. Sayfada paket içeriği yazmıyor; üretici Teknovet Rulamit’i poşette 10 şerit, kutuda 1 ya da 5 poşet olarak satıyor (5 poşetlik kutuysa şerit 2,6 ₺ olur). Ürün görselinde Rulamit-VA (körükte yakılan karton plaka) kutusu var; satın alırken ürünü ve şerit sayısını teyit edin."
   },
   {
    "key": "serit_flumetrin",
@@ -418,7 +426,7 @@
    "max": null,
    "n": 0,
    "sources": [],
-   "note": "Kaynak yok: kumafos (Checkmite) şeridi Türkiye’deki çevrimiçi arıcılık mağazalarında, Tarım Kredi’de ve birliklerin sitelerinde satılmıyor / fiyatlı değil. Fiyatı kendiniz girin."
+   "note": "Kaynak yok: ruhsatlı kumafos şeridi (Checkmite) çevrimiçi mağazalarda, veteriner ilaç sayfalarında, Tarım Kredi’de ve birliklerde fiyatlı değil; aynı etken maddeli ruhsatsız kumafos şeridi de Türkiye’de TL fiyatla satılmıyor. Fiyatı kendiniz girin."
   },
   {
    "key": "okzalik",
@@ -492,7 +500,8 @@
      "pack": "1 kg",
      "unitPrice": 225.0
     }
-   ]
+   ],
+   "note": "ruhsatlı ürün yok · dökme asit fiyatı"
   },
   {
    "key": "formik",
@@ -552,7 +561,8 @@
      "pack": "1 L",
      "unitPrice": 250.0
     }
-   ]
+   ],
+   "note": "ruhsatlı ürün yok · dökme asit fiyatı"
   },
   {
    "key": "timol",

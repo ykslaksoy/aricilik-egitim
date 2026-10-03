@@ -69,14 +69,19 @@ function load(iso) {
   assert.strictEqual(T.missLog().cloud, 'ok');
   assert.strictEqual(await T.flushMissing(), false, 'bekleyen yokken gönderilmez');
 
-  /* ertesi gün görülürse bir kez daha sayılır ve yeniden gönderilir; fonksiyon yoksa (migration çalışmamış) cihazda kalır */
+  /* ertesi gün görülürse bir kez daha sayılır ve yeniden gönderilir; RPC hata verirse cihazda kalır ve aynı gün yeniden denenir (gün boyu atlama yok) */
   m = T.missLog(); m.items[k0].day = '2026-10-02'; localStorage.setItem(KEY, JSON.stringify(m));
   globalThis.SuperAriBulut = { session: () => Promise.resolve({ user: { id: 'u1' } }), client: () => Promise.resolve({ rpc: () => Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'Could not find the function public.sa_report_fiyat_eksik' } }) }) };
   T.withRef(REFD, () => { assert.strictEqual(T.noteMissing(T.build('all').combined.lines, 'Tüm arılıklar'), 1); });
   await new Promise((r) => setTimeout(r, 20))
   m = T.missLog();
   assert.strictEqual(m.items[k0].count, 2);
-  assert.strictEqual(m.cloud, 'migration');
+  assert.strictEqual(m.cloud, 'error'); assert.ok(!('cloudDay' in m));
+  let tries = 0;
+  globalThis.SuperAriBulut = { session: () => Promise.resolve({ user: { id: 'u1' } }), client: () => Promise.resolve({ rpc: () => { tries++; return Promise.resolve({ data: 1, error: null }); } }) };
+  assert.strictEqual(await T.flushMissing(), true, 'aynı gün yeniden denenir'); assert.strictEqual(tries, 1);
+  m = T.missLog(); assert.strictEqual(m.cloud, 'ok'); assert.ok(!('cloudErr' in m));
+  m.items[k0].sentN = 1; localStorage.setItem(KEY, JSON.stringify(m)); m = T.missLog();
   assert.strictEqual(T.missPending().length, 1, 'gönderilemeyen kayıt cihazda bekler');
 
   /* oturum yok → gönderilmez, kayıt kalır */
@@ -109,7 +114,9 @@ function load(iso) {
     const pf = T.priceFor('serit_flumetrin');
     assert.strictEqual(pf.v, 22.5); assert.strictEqual(pf.src, 'ref'); assert.ok(pf.ref.single && /^Tek kaynak/.test(pf.ref.note));
     assert.strictEqual(T.priceFor('serit_taufluvalinat').v, null); assert.strictEqual(T.priceFor('timol').v, null);
-    assert.strictEqual(T.priceFor('serit_amitraz').v, null);
+    assert.strictEqual(T.priceFor('serit_amitraz').v, 13); assert.ok(T.priceFor('serit_amitraz').ref.single);
+    assert.strictEqual(T.priceFor('serit_koumafos').v, null);
+    assert.strictEqual(T.priceFor('okzalik').ref.note, 'ruhsatlı ürün yok · dökme asit fiyatı');
     assert.ok(!T.priceFor('seker').ref.single);
   });
   assert.ok(/≈ tek kaynak/.test(html), 'satırda «tek kaynak» yazar');

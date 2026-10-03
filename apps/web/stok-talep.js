@@ -806,7 +806,6 @@
     var B = global.SuperAriBulut, items = missPending();
     if (!items.length || flushing || global.navigator.onLine === false) return Promise.resolve(false);
     if (!B || !B.client) { /* bulut.js pwa.js ile sonradan yüklenebilir */ if (flushTry++ < 3) setTimeout(flushMissing, 6000); return Promise.resolve(false); }
-    var m0 = missLog(); if (m0.cloud === 'migration' && m0.cloudDay === todayIso()) return Promise.resolve(false);
     flushing = true;
     var payload = items.slice(0, 60).map(function (e) { return { n: Number(e.count) || 0, key: e.key, name: e.name, unit: e.unit, scope: e.scope, first: e.first, last: e.last }; });
     var v = (global.document && global.document.querySelector && (global.document.querySelector('script[src*="stok-talep.js"]') || {}).src || '').replace(/^.*[?&]v=/, '').slice(0, 40);
@@ -815,11 +814,12 @@
       return B.client().then(function (c) { return c.rpc('sa_report_fiyat_eksik', { p_items: payload, p_version: v || null }); }).then(function (r) {
         var m = missLog();
         if (r && r.error) {
-          if (/Could not find the function|schema cache|does not exist|PGRST202|42883/i.test(String(r.error.message || r.error.code || ''))) { m.cloud = 'migration'; m.cloudDay = todayIso(); writeJ(MISS_KEY, m); }
+          /* fiyat_eksik migration uygulandı: gün boyu atlama yok; hata olursa kayıt cihazda bekler, sonraki talepte yeniden denenir */
+          m.cloud = 'error'; m.cloudErr = String(r.error.code || r.error.message || 'hata').slice(0, 80); delete m.cloudDay; writeJ(MISS_KEY, m);
           return false;
         }
         payload.forEach(function (p) { var e = m.items[p.key]; if (e) e.sentN = Math.max(Number(e.sentN) || 0, p.n); });
-        m.cloud = 'ok'; m.cloudAt = new Date().toISOString(); writeJ(MISS_KEY, m);
+        m.cloud = 'ok'; m.cloudAt = new Date().toISOString(); delete m.cloudErr; delete m.cloudDay; writeJ(MISS_KEY, m);
         return true;
       });
     }).catch(function () { return false; }).then(function (ok) { flushing = false; return ok; });
