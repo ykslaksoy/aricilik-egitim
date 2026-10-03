@@ -1063,6 +1063,7 @@
   .st-tl1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
   .st-tl1 b { flex: 1 1 auto; min-width: 0; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .st-tl1 .st-qty { font-size: 15px; }
+  .st-tl1 .st-qty.none { font-size: 13px; font-weight: 750; color: var(--muted); }
   .st-tl2 { font-size: 12px; font-weight: 700; color: var(--muted); }
   .st-stat { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1.5; background: #fff3bf; color: #8a6100; margin-left: 2px; }
   .st-stat.kismen { background: #e7f5ff; color: #1864ab; }
@@ -1141,14 +1142,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-66"></script>
-<script src="koloni.js?v=koloni-66"></script>
-<script src="ilac-katalog.js?v=koloni-66"></script>
-<script src="bakim-plan.js?v=koloni-66"></script>
-<script src="kapsam.js?v=koloni-66"></script>
-<script src="rapor-store.js?v=koloni-66"></script>
-<script src="fiyat-live.js?v=koloni-66"></script>
-<script src="stok-talep.js?v=koloni-66"></script>
+<script src="demo-data.js?v=koloni-67"></script>
+<script src="koloni.js?v=koloni-67"></script>
+<script src="ilac-katalog.js?v=koloni-67"></script>
+<script src="bakim-plan.js?v=koloni-67"></script>
+<script src="kapsam.js?v=koloni-67"></script>
+<script src="rapor-store.js?v=koloni-67"></script>
+<script src="fiyat-live.js?v=koloni-67"></script>
+<script src="stok-talep.js?v=koloni-67"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1259,7 +1260,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-66'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-67'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1510,12 +1511,17 @@
     var h = '<div class="st-sec"><b>Kayıtlı talepler</b><span>' + all.length + (live() ? ' · bulutla eşitlenir' : ' · Demo') + '</span></div>';
     if (!all.length) return h + '<p class="st-hint">' + (scope === 'all' ? 'Henüz kayıtlı talep yok.' : 'Bu arılık için kayıtlı talep yok (Tümü’nden açılan talepler Tümü’nde listelenir).') + '</p>';
     return h + all.map(function (t) {
-      var st = TQ.statusOf(t), sm = TQ.talepSums(t);
+      var st = TQ.statusOf(t), sm = TQ.talepSums(t), ls = t.lines || [];
+      var miss = missN(t), tot = Number(t.total) || 0;
+      /* «≈ 0 ₺» gösterilmez: fiyatsız talep «fiyatsız»; kısmen fiyatsızsa kalem sayısının yanında «(N fiyatsız)» */
+      var amt = tot > 0 ? '≈ ' + money(tot) : (ls.length ? 'fiyatsız' : '—');
       return '<button type="button" class="st-card st-tl' + (st === 'iptal' ? ' is-off' : '') + '" data-tl="' + esc(t.id) + '" aria-label="' + esc(dShort(t.date) + ' ' + t.apiaryName + ' talebi, ' + TQ.STATUS[st]) + '">' +
-        '<span class="st-tl1"><b>' + esc(dShort(t.date)) + ' · ' + esc(t.apiaryName) + '</b><span class="st-qty">≈ ' + money(t.total) + '</span></span>' +
-        '<span class="st-tl2">' + (t.lines || []).length + ' kalem · ' + statBadge(st) + (sm.bought ? ' · gerçek ' + money(sm.act) : '') + '</span></button>';
+        '<span class="st-tl1"><b>' + esc(dShort(t.date)) + ' · ' + esc(t.apiaryName) + '</b><span class="st-qty' + (tot > 0 ? '' : ' none') + '">' + amt + '</span></span>' +
+        '<span class="st-tl2">' + ls.length + ' kalem' + (tot > 0 && miss ? ' (' + miss + ' fiyatsız)' : '') + ' · ' + statBadge(st) + (sm.bought ? ' · gerçek ' + money(sm.act) : '') + '</span></button>';
     }).join('');
   }
+  function missN(t) { return (t.lines || []).filter(function (l) { return l.price == null || !(Number(l.price) > 0); }).length; }
+  function mevList(a) { return (a || []).map(function (x) { return x.name + ' ' + numTr(x.q) + ' ' + x.unit; }).join(', '); }
   function grpLabel(k) { return (TQ.GROUPS.filter(function (g) { return g.key === k; })[0] || {}).label || k || 'Diğer'; }
   function renderTalep(id) {
     var t = TQ.talepById(id);
@@ -1523,10 +1529,10 @@
     var st = TQ.statusOf(t), sm = TQ.talepSums(t), off = st === 'iptal';
     var h = head('Talep · ' + dShort(t.date), t.apiaryName + ' · ' + t.lines.length + ' kalem', true);
     h += '<section class="st-card st-sum' + (off ? ' is-off' : '') + '" aria-label="Talep durumu"><div class="st-tl2">' + statBadge(st) + ' · ' + sm.bought + '/' + sm.n + ' kalem alındı' + (t.cancelledAt ? ' · iptal ' + esc(dShort(t.cancelledAt)) : '') + '</div>' +
-      '<div class="st-sum3"><div><i>Tahmini toplam</i><b>' + money(sm.est) + '</b></div><div><i>Gerçek toplam</i><b>' + (sm.bought ? money(sm.act) : '—') + '</b></div>' +
+      '<div class="st-sum3"><div><i>Tahmini toplam</i><b>' + (sm.est > 0 ? money(sm.est) : 'fiyatsız') + '</b></div><div><i>Gerçek toplam</i><b>' + (sm.bought ? money(sm.act) : '—') + '</b></div>' +
       '<div><i>Fark</i><b class="' + (sm.diff > 0 ? 'up' : (sm.diff < 0 ? 'down' : '')) + '">' + (sm.bought ? (sm.diff > 0 ? '+' : '') + money(sm.diff) : '—') + '</b></div></div>' +
-      '<small class="st-pinfo">Fark = ödenen − alınan miktarların tahmini (' + money(sm.estBought) + ')' + (sm.actMissing ? ' · ' + sm.actMissing + ' alımda ödenen fiyat yok' : '') + (t.missing ? ' · talepte ' + t.missing + ' kalem fiyatsızdı' : '') +
-      ' · fiyat tarihi ' + esc(t.priceRefDate || 'yalnız sizin fiyatlarınız') + (t.priceRefStale ? ' (eski)' : '') + (t.mevcutAdded && t.mevcutAdded.length ? ' · Mevcut stoğa eklendi: ' + esc(t.mevcutAdded.map(function (x) { return x.name + ' ' + numTr(x.q) + ' ' + x.unit; }).join(', ')) : '') + '</small>' +
+      '<small class="st-pinfo">Fark = ödenen − alınan miktarların tahmini (' + money(sm.estBought) + ')' + (sm.actMissing ? ' · ' + sm.actMissing + ' alımda ödenen fiyat yok' : '') + (missN(t) ? ' · talepte ' + missN(t) + ' kalem fiyatsız' : '') +
+      ' · fiyat tarihi ' + esc(t.priceRefDate || 'yalnız sizin fiyatlarınız') + (t.priceRefStale ? ' (eski)' : '') + (t.mevcutAdded && t.mevcutAdded.length ? (t.mevcutReverted ? ' · İptalle Mevcut alanlarına geri döndü: ' : ' · Mevcut stoğa eklendi: ') + esc(mevList(t.mevcutAdded)) : '') + '</small>' +
       '<div class="st-btns"><button type="button" class="st-btn" data-share>Paylaş</button><button type="button" class="st-btn" data-csv>CSV</button><button type="button" class="st-btn" data-print>PDF</button></div>';
     if ((st === 'acik' || st === 'kismen') && !buyEdit) {
       var pdf = TQ.talepPriceDiff(t);
@@ -1534,7 +1540,7 @@
         '<button type="button" class="st-btn st-wide" data-reprice>Güncel fiyatlarla yeniden hesapla</button></div>';
     }
     if (!off && !buyEdit) h += '<button type="button" class="st-new" data-buy-edit><span aria-hidden="true">🧾</span> ' + (sm.bought ? 'Alımı düzenle' : 'Alımı kaydet') + '</button>';
-    if (confirmAct === 'iptal') h += '<div class="st-confirm"><b>Talep iptal edilsin mi?</b><small>Kayıt silinmez, gri görünür. Stoğa eklenen alımlar değişmez.</small><div class="st-btns two"><button type="button" class="st-btn del" data-do-cancel>Evet, iptal et</button><button type="button" class="st-btn" data-confirm-no>Vazgeç</button></div></div>';
+    if (confirmAct === 'iptal') h += '<div class="st-confirm"><b>Talep iptal edilsin mi?</b><small>Kayıt silinmez, gri görünür. Stoğa eklenen alımlar değişmez.' + (t.mevcutAdded && t.mevcutAdded.length && !t.mevcutReverted ? ' Talep sırasında stoğa eklenen Mevcut miktarlar (' + esc(mevList(t.mevcutAdded)) + ') stoktan çıkarılır ve Alım talebi ekranındaki Mevcut alanlarına geri döner.' : '') + '</small><div class="st-btns two"><button type="button" class="st-btn del" data-do-cancel>Evet, iptal et</button><button type="button" class="st-btn" data-confirm-no>Vazgeç</button></div></div>';
     else if (confirmAct === 'sil') h += '<div class="st-confirm"><b>Talep kalıcı olarak silinsin mi?</b><small>Bu işlem geri alınamaz' + (live() ? '; buluttan da silinir' : '') + '.</small><div class="st-btns two"><button type="button" class="st-btn del" data-do-delete>Evet, sil</button><button type="button" class="st-btn" data-confirm-no>Vazgeç</button></div></div>';
     else if (!off && !buyEdit) h += '<button type="button" class="st-btn del st-wide" data-ask-cancel>İptal et</button>';
     else if (off) h += '<button type="button" class="st-btn del st-wide" data-ask-delete>Sil</button>';
@@ -1591,7 +1597,7 @@
       lines.push(l.name + ': ' + n1(l.buy) + ' ' + l.unit + (l.cost ? ' (≈ ' + money(l.cost) + ')' : (l.price == null ? ' (fiyat yok)' : '')) +
         (q ? ' → alındı ' + n1(q) + ' ' + l.unit + (l.got.p > 0 ? ' × ' + money2(l.got.p) : '') : ''));
     });
-    lines.push('Tahmini toplam: ' + money(t.total) + (t.missing ? ' · ' + t.missing + ' kalem fiyatsız' : '') + ' · tahmin payı %' + t.tol + ' · fiyat tarihi ' + (t.priceRefDate || '—'));
+    lines.push('Tahmini toplam: ' + (Number(t.total) > 0 ? money(t.total) : 'fiyatsız') + (missN(t) && Number(t.total) > 0 ? ' · ' + missN(t) + ' kalem fiyatsız' : '') + ' · tahmin payı %' + t.tol + ' · fiyat tarihi ' + (t.priceRefDate || '—'));
     if (sm.bought) lines.push('Gerçek toplam: ' + money(sm.act) + ' · fark ' + (sm.diff > 0 ? '+' : '') + money(sm.diff) + ' (' + sm.bought + '/' + sm.n + ' kalem alındı)');
     lines.push('Tahmini fiyatlar piyasa fiyatı değildir.');
     return lines.join('\n');
@@ -1783,7 +1789,7 @@
     if ((b = t.closest('[data-ask-cancel]'))) { confirmAct = 'iptal'; rerender(); return; }
     if ((b = t.closest('[data-ask-delete]'))) { confirmAct = 'sil'; rerender(); return; }
     if ((b = t.closest('[data-confirm-no]'))) { confirmAct = null; rerender(); return; }
-    if ((b = t.closest('[data-do-cancel]')) && cur) { confirmAct = null; TQ.cancelTalep(cur.id); toast('Talep iptal edildi'); return; }
+    if ((b = t.closest('[data-do-cancel]')) && cur) { confirmAct = null; var ct = TQ.cancelTalep(cur.id), mr = ct && ct.mevcutReverted ? ct.mevcutReverted.items || [] : []; toast('Talep iptal edildi' + (mr.length ? ' · Mevcut geri döndü: ' + mevList(mr) : '')); return; }
     if ((b = t.closest('[data-do-delete]')) && cur) { confirmAct = null; if (TQ.deleteTalep(cur.id)) { toast('Talep silindi'); backToNeed(); } return; }
     if ((b = t.closest('[data-del]'))) {
       var it = S.list().filter(function (x) { return x.id === b.getAttribute('data-del'); })[0];
@@ -1933,7 +1939,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-66"></script>
-<script src="pwa.js?v=koloni-66"></script>
+<script src="nav.js?v=koloni-67"></script>
+<script src="pwa.js?v=koloni-67"></script>
 </body>
 </html>

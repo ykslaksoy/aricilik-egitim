@@ -4452,6 +4452,22 @@
     if (out) writeStock(a);
     return out;
   }
+  /** Belirli bir stok hareketini geri al: pred'e uyan son kayıt silinir, miktar o kadar düzeltilir (ör. iptal edilen talebin girişi). */
+  function unlogStock(id, pred) {
+    var a = readStock(), out = null;
+    a = a.map(function (x) {
+      if (out || !x || x.id !== id || !Array.isArray(x.log)) return x;
+      for (var i = x.log.length - 1; i >= 0; i--) {
+        if (!x.log[i] || !pred(x.log[i])) continue;
+        var m = cloneObj(x), e = m.log.splice(i, 1)[0];
+        m.qty = Math.max(0, Math.round(((Number(m.qty) || 0) - (Number(e.delta) || 0)) * 10) / 10);
+        var n = normalizeStock(m); out = { item: n, entry: e }; return n;
+      }
+      return x;
+    });
+    if (out) writeStock(a);
+    return out;
+  }
   function removeStock(id) {
     var a = readStock(); var n = a.filter(function (x) { return x && x.id !== id; });
     writeStock(n); return n.length !== a.length;
@@ -4463,7 +4479,7 @@
   }
   var stockStore = {
     CATS: STOCK_CATS, CAT_LABEL: STOCK_CAT_LABEL, UNITS: STOCK_UNITS,
-    list: listStock, save: saveStockItem, adjust: adjustStock, remove: removeStock, alerts: stockAlerts
+    list: listStock, save: saveStockItem, adjust: adjustStock, unlog: unlogStock, remove: removeStock, alerts: stockAlerts
   };
 
   /* ================= Görevler: tamamlama + elle eklenen görevler =================

@@ -528,6 +528,43 @@
   }
   function clearMevcut() { try { global.localStorage.removeItem(mevKey()); } catch (e) { /* ignore */ } }
   /** Kayıt sırasında: girilen mevcutları stoğa ekler. lines: kalem adı/birimi için (combined). */
+  var MEV_REASON = 'Giriş (mevcut, talep sırasında)';
+  /**
+   * İptal: talep kaydında stoğa giren Mevcut miktarlar geri alınır — o stok hareketi silinir (Hareketler'de iz kalmaz),
+   * hareket bulunamazsa (ör. eski kayıt kırpılmış) açıkça etiketli ters hareket yazılır; miktarlar Mevcut alanlarına geri döner.
+   * «Stoğa ekle» ile işlenen alımlar (got / stk) dokunulmaz.
+   */
+  function revertMevcut(t) {
+    var out = [];
+    (t.mevcutAdded || []).forEach(function (x) {
+      var q = Number(x && x.q); if (!(q > 0)) return;
+      var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+      var tg = x.id && list.some(function (s) { return s.id === x.id; }) ? { id: x.id, f: null } : stockTarget({ key: x.key, name: x.name, unit: x.unit }, false);
+      var how = 'yok';
+      if (tg) {
+        var it0 = list.filter(function (s) { return s.id === tg.id; })[0];
+        var f = tg.f != null ? tg.f : (it0 ? (conv(1, x.unit, it0.unit) || 1) : 1);
+        var dq = x.dq != null ? Number(x.dq) : Math.round(q * f * 100) / 100;
+        var r = null;
+        if (D.stock.unlog) {
+          try {
+            r = D.stock.unlog(tg.id, function (l) {
+              return l.reason === MEV_REASON && Math.abs(Number(l.delta) - dq) < 0.051 && (x.at ? l.at === x.at : l.date === t.date);
+            });
+          } catch (e) { r = null; }
+        }
+        if (r) {
+          how = 'silindi';
+          if (x.created && r.item && !(r.item.qty > 0) && !(r.item.log || []).length) { try { D.stock.remove(tg.id); } catch (e) { /* ignore */ } }
+        } else {
+          try { if (D.stock.adjust(tg.id, -dq, 'İptal: mevcut talebe geri döndü (alım talebi · ' + dShortT(t.date) + ')', today())) how = 'ters'; } catch (e) { /* ignore */ }
+        }
+      }
+      setMevcut(x.key, (Number(mevcut()[x.key]) || 0) + q);
+      out.push({ key: x.key, name: x.name, q: q, unit: x.unit, how: how });
+    });
+    return out;
+  }
   function applyMevcut(lines, d) {
     var mv = mevcut(), out = [], byKey = {};
     (lines || []).forEach(function (l) { byKey[l.key] = l; });
@@ -536,8 +573,9 @@
       var l = byKey[k] || { key: k, name: BY[k] ? BY[k].name : k, unit: BY[k] ? BY[k].unit : 'adet', g: BY[k] ? BY[k].g : 'diger' };
       var tg = stockTarget(l, true); if (!tg) return;
       var dq = Math.round(q * tg.f * 100) / 100, it = null;
-      try { it = D.stock.adjust(tg.id, dq, 'Giriş (mevcut, talep sırasında)', d || today()); } catch (e) { it = null; }
-      if (it) out.push({ key: k, id: tg.id, name: tg.name, q: q, unit: l.unit, created: !!tg.created });
+      try { it = D.stock.adjust(tg.id, dq, MEV_REASON, d || today()); } catch (e) { it = null; }
+      var le = it && Array.isArray(it.log) && it.log.length ? it.log[it.log.length - 1] : null;
+      if (it) out.push({ key: k, id: tg.id, name: tg.name, q: q, unit: l.unit, dq: dq, at: le && le.at ? le.at : '', created: !!tg.created });
     });
     clearMevcut();
     return out;
@@ -569,7 +607,7 @@
     var mvLines = (rq.combined && rq.combined.lines || []).slice();
     rq.sections.concat([rq.ortak]).forEach(function (s) { (s.lines || []).forEach(function (l) { mvLines.push(l); }); });
     var mvAdded = applyMevcut(mvLines, t.date);
-    if (mvAdded.length) t.mevcutAdded = mvAdded.map(function (x) { return { key: x.key, name: x.name, q: x.q, unit: x.unit }; });
+    if (mvAdded.length) t.mevcutAdded = mvAdded.map(function (x) { return { key: x.key, name: x.name, q: x.q, unit: x.unit, id: x.id, dq: x.dq, at: x.at, created: x.created || undefined }; }); /* iptalde geri almak için hareket kimliği */
     var a = talepler(); a.push(t); if (a.length > 50) a = a.slice(-50);
     writeJ(talepKey(), a);
     try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
@@ -673,7 +711,16 @@
     if (done && edited) { var u = userPrice(edited.key); if (u && Math.abs(u.v - edited.v) < 0.005) setPrice(edited.key, ''); }
     return done ? t : null;
   }
-  function cancelTalep(id) { return updateTalep(id, function (t) { t.status = 'iptal'; t.cancelledAt = today(); }); }
+  /** İptal (tekrar çağrılırsa değişmez): durum İptal; talep kaydında stoğa giren Mevcut miktarlar geri alınıp Mevcut alanlarına döner. */
+  function cancelTalep(id) {
+    var t0 = talepById(id); if (!t0) return null;
+    if (t0.status === 'iptal') return t0;
+    var rev = t0.mevcutAdded && t0.mevcutAdded.length && !t0.mevcutReverted ? revertMevcut(t0) : null;
+    return updateTalep(id, function (t) {
+      t.status = 'iptal'; t.cancelledAt = today();
+      if (rev) t.mevcutReverted = { date: today(), items: rev };
+    });
+  }
   function deleteTalep(id) {
     var a = talepler(), t = a.filter(function (x) { return x && x.id === id; })[0];
     if (!t || statusOf(t) !== 'iptal') return false;   /* yalnız iptal edilen silinir */
