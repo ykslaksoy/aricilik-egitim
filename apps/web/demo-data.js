@@ -2983,7 +2983,8 @@
     { key: 'cok-yuksek', label: 'Çok yüksek', tone: 'bad', color: '#b3001b' }
   ];
   /* Bölge profili: bakim-plan.js ile aynı anahtarlar (sicak / iliman / yayla / yuksek). */
-  var SEASON_SEED_PROFILE = { a1: 'sicak', a2: 'yayla', a3: 'yuksek', a4: 'yuksek', a5: 'yuksek' };
+  /* örnek arılıklar: yaklaşık rakım (m) — bakim-plan.js SEED_ALT ile aynı; Yanıkdağ Baluğundüzü ≈215 m kıyı → ılıman */
+  var SEASON_SEED_ALT = { a1: 200, a2: 1500, a3: 2100, a4: 215, a5: 2100 };
   var SEASON_WARM_IL = ['Muğla', 'Antalya', 'Aydın', 'İzmir', 'Mersin', 'Adana', 'Hatay', 'Balıkesir', 'Çanakkale'];
   var SEASON_HIGH_IL = ['Erzurum', 'Kars', 'Ardahan', 'Ağrı', 'Bayburt', 'Gümüşhane', 'Muş', 'Bitlis', 'Van', 'Hakkari', 'Sivas'];
   var PROFILE_SHORT = { sicak: 'Sıcak / alçak bölge', iliman: 'Ilıman bölge', yayla: 'Yayla', yuksek: 'Yüksek yayla' };
@@ -2996,9 +2997,9 @@
   };
   function autoSeasonProfile(a) {
     if (!a) return 'iliman';
-    if (SEASON_SEED_PROFILE[a.id] && isSeedApiaryId(a.id)) return SEASON_SEED_PROFILE[a.id];
     var nm = String((a.name || '') + ' ' + (a.place || '') + ' ' + (a.koy || '')).toLocaleLowerCase('tr');
     var alt = Number(a.altitude || a.elevation || a.rakim);
+    if (!(isFinite(alt) && alt > 0) && SEASON_SEED_ALT[a.id] && isSeedApiaryId(a.id)) alt = SEASON_SEED_ALT[a.id];
     if (isFinite(alt) && alt > 0) return alt >= 1800 ? 'yuksek' : (alt >= 1100 ? 'yayla' : (alt < 400 && SEASON_WARM_IL.indexOf(a.il) >= 0 ? 'sicak' : 'iliman'));
     if (/yayla/.test(nm)) return 'yayla';
     if (SEASON_HIGH_IL.indexOf(a.il) >= 0) return 'yayla';

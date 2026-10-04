@@ -65,7 +65,7 @@
       ]
     },
     yuksek: {
-      label: 'Yüksek yayla (≈2000 m+, Palandöken, Cimil, Baluğundüzü)', winterKg: 25, springMinKg: 8,
+      label: 'Yüksek yayla (≈2000 m+, Palandöken, Cimil)', winterKg: 25, springMinKg: 8,
       desc: 'Çok kısa sezon; sonbahar işleri erken biter. Konaklamalı arıcılıkta kışlatma yerine göre profil değiştirin.',
       phases: [
         { key: 'ilkbahar', label: 'İlkbahar gelişimi', from: '05-01', to: '06-10' },
@@ -87,16 +87,18 @@
     sonbahar: ['Varroa sayımı ve etiketli ilaçlama', 'Kışlık stok kontrolü ve 2:1 besleme'],
     kis: ['Kışlatma: daraltma, giriş küçültme, yalıtım']
   };
-  var SEED_PROFILE = { a1: 'sicak', a2: 'yayla', a3: 'yuksek', a4: 'yuksek', a5: 'yuksek' };
+  /* Örnek arılıklar: bant sabit etiketle değil RAKIMLA belirlenir (yaklaşık rakım, m). Yanıkdağ Baluğundüzü (41,08 K / 40,75 D)
+     Karadeniz kıyısına yakın ≈215 m → ılıman (yayla değil); Tortum ≈1500 m → yayla; Palandöken / Cimil ≈2100 m → yüksek yayla; Kayaköy ≈200 m Muğla → sıcak. */
+  var SEED_ALT = { a1: 200, a2: 1500, a3: 2100, a4: 215, a5: 2100 };
   var WARM_IL = ['Muğla', 'Antalya', 'Aydın', 'İzmir', 'Mersin', 'Adana', 'Hatay', 'Balıkesir', 'Çanakkale'];
   var HIGH_IL = ['Erzurum', 'Kars', 'Ardahan', 'Ağrı', 'Bayburt', 'Gümüşhane', 'Muş', 'Bitlis', 'Van', 'Hakkari', 'Sivas'];
 
   try { var ENVB = D.records.COLONY_ENV.BANDS; Object.keys(PROFILES).forEach(function (k) { if (ENVB[k]) PROFILES[k].winterKg = ENVB[k].winterKg; }); } catch (e) { /* tablo yoksa profil değerleri */ }
   function autoProfile(a) {
     if (!a) return 'iliman';
-    if (SEED_PROFILE[a.id] && D.isSeedApiaryId && D.isSeedApiaryId(a.id)) return SEED_PROFILE[a.id];
     var nm = String((a.name || '') + ' ' + (a.place || '') + ' ' + (a.koy || '')).toLocaleLowerCase('tr');
     var alt = Number(a.altitude || a.elevation || a.rakim);
+    if (!(isFinite(alt) && alt > 0) && SEED_ALT[a.id] && D.isSeedApiaryId && D.isSeedApiaryId(a.id)) alt = SEED_ALT[a.id];
     if (isFinite(alt) && alt > 0) return alt >= 1800 ? 'yuksek' : (alt >= 1100 ? 'yayla' : (alt < 400 && WARM_IL.indexOf(a.il) >= 0 ? 'sicak' : 'iliman'));
     if (/yayla/.test(nm)) return 'yayla';
     if (HIGH_IL.indexOf(a.il) >= 0) return 'yayla';
