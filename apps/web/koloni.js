@@ -895,7 +895,7 @@
     var r = R(); if (!r) return '';
     var st = r.status(h.id, all);
     var out = [];
-    if (st.strengthClass) out.push(chip('Güç: ' + st.strengthClass, st.strengthClass === 'Zayıf' ? 'red' : (st.strengthClass === 'Güçlü' ? 'green' : 'orange')));
+    if (st.strengthClass) out.push(chip('Güç: ' + st.strengthClass, toneOfClass(st.strengthClass)));
     if (st.chilled) out.push(chip('Zayıf koloni', 'red'));
     if (h.colonyState === 'birlestirildi') out.push(chip('Birleştirildi' + (h.mergedInto ? ' → Kovan ' + h.mergedInto : ''), ''));
     if (st.queenless) out.push(chip('Anasız', 'red'));
@@ -914,6 +914,7 @@
     return fmtDate(s.date) + ' · ' + strengthClassOf(s) + ' · arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve';
   }
   function strengthClassOf(s) { var r = R(); return r ? r.strengthClass(s) : ''; }
+  function toneOfClass(c) { var r = R(), l = r && r.strengthLevel ? r.strengthLevel(c) : null; return l ? l.tone : 'orange'; }
   function broodText(b) {
     var r = R(); if (!b || !r) return 'Kayıt yok';
     var parts = [fmtDate(b.date), 'yumurta ' + (b.eggs ? 'görüldü' : 'görülmedi'), 'düzen ' + r.PATTERN_LABEL[b.pattern].toLocaleLowerCase('tr'),
@@ -977,7 +978,7 @@
       if (topic === 'guc') {
         line = st.strength ? strengthText(st.strength) : 'Kayıt yok';
         if (st.strength) withRec++;
-        if (st.strengthClass) chips.push(chip(st.strengthClass, st.strengthClass === 'Zayıf' ? 'red' : (st.strengthClass === 'Güçlü' ? 'green' : 'orange')));
+        if (st.strengthClass) chips.push(chip(st.strengthClass, toneOfClass(st.strengthClass)));
         if (st.chilled) chips.push(chip('Zayıf koloni', 'red'));
       } else if (topic === 'yavru') {
         line = st.brood ? broodText(st.brood) : 'Kayıt yok';
@@ -1114,7 +1115,9 @@
         '<label>Yavrulu çerçeve<input type="number" name="broodFrames" min="0" max="30" inputmode="numeric"></label>' +
         '<label>Ballı çerçeve<input type="number" name="honeyFrames" min="0" max="30" inputmode="numeric"></label>' +
         '<label>Polenli çerçeve<input type="number" name="pollenFrames" min="0" max="20" inputmode="numeric"></label>' +
-        '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Sınıf: —</div>' +
+        '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Seviye: —</div>' +
+        '<div class="kr-lvlg" style="grid-column:1 / -1;"><style>.kr-lvls{display:grid;grid-template-columns:1fr;gap:10px;margin-top:6px}.kr-lvls button{min-height:64px;border-radius:14px;border:2px solid #e0cfb3;background:#fff;font:inherit;font-size:18px;font-weight:800;color:#3d2616;text-align:left;padding:8px 14px;cursor:pointer}.kr-lvls button.on{border-color:#e56f1c;background:#fff1de;box-shadow:inset 0 0 0 1px #e56f1c}.kr-lvls small{font-weight:600;color:#6b5a48}</style>' +
+        '<b>Koloni gücü</b> <span class="kr-mut">(çerçeve sayısından otomatik; isterseniz elle seçin)</span><input type="hidden" name="level" value=""><div class="kr-lvls" id="krLvls" role="group" aria-label="Koloni gücü"></div></div>' +
         '<label class="full">Not<input name="note" maxlength="300"></label>';
     } else if (topic === 'besleme') {
       form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
@@ -1246,10 +1249,21 @@
     }
     if (topic === 'guc') {
       var upd = function () {
-        var cls = r.strengthClass({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value });
-        var el = root.querySelector('#krClass'); if (el) el.textContent = 'Sınıf: ' + (f.elements.beeFrames.value === '' ? '—' : cls);
+        var rec0 = { beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value, date: f.elements.date ? f.elements.date.value : '' };
+        var inf = r.strengthInfo ? r.strengthInfo(rec0) : null, au = f.elements.beeFrames.value === '' ? null : (inf ? inf.key : null);
+        var man = f.elements.level ? f.elements.level.value : '', cur = man || au;
+        var lvObj = (r.STRENGTH_LEVELS || []).filter(function (x) { return x.key === cur; })[0];
+        var el = root.querySelector('#krClass'); if (el) el.textContent = 'Seviye: ' + (lvObj ? lvObj.label + (man ? ' (elle)' : '') : '—');
+        var box = root.querySelector('#krLvls');
+        if (box) box.innerHTML = (r.STRENGTH_LEVELS || []).map(function (x) { return '<button type="button" data-kr-lvl="' + x.key + '" class="' + (x.key === cur ? 'on' : '') + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + esc(x.label) + (x.key === au ? ' <small>(çerçeveye göre)</small>' : '') + '</button>'; }).join('');
       };
       f.addEventListener('input', upd);
+      f.addEventListener('click', function (ev) {
+        var lb = ev.target.closest ? ev.target.closest('[data-kr-lvl]') : null; if (!lb) return;
+        ev.preventDefault();
+        var k = lb.getAttribute('data-kr-lvl'), inf2 = r.strengthInfo ? r.strengthInfo({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value, date: f.elements.date ? f.elements.date.value : '' }) : null;
+        f.elements.level.value = inf2 && f.elements.beeFrames.value !== '' && inf2.key === k ? '' : k; upd();
+      });
       upd();
     }
     if (topic === 'besleme') {
@@ -1274,7 +1288,7 @@
     function v(n) { return f.elements[n] ? f.elements[n].value : ''; }
     if (topic === 'guc') {
       if (v('beeFrames') === '') { f.elements.beeFrames.focus(); toast('Arılı çerçeve sayısını girin'); return null; }
-      return { kind: 'strength', rec: { date: v('date'), beeFrames: v('beeFrames'), broodFrames: v('broodFrames'), honeyFrames: v('honeyFrames'), pollenFrames: v('pollenFrames'), note: v('note') } };
+      return { kind: 'strength', rec: { date: v('date'), beeFrames: v('beeFrames'), broodFrames: v('broodFrames'), honeyFrames: v('honeyFrames'), pollenFrames: v('pollenFrames'), level: v('level'), note: v('note') } };
     }
     if (topic === 'besleme') {
       if (v('amount') === '') { f.elements.amount.focus(); toast('Miktarı girin'); return null; }

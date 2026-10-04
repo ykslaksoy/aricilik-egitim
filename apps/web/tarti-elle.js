@@ -28,9 +28,22 @@
    * Birim ağırlıklar: şurup yoğunluğu sakaroz çözeltisi tablolarından (1:1 ≈ %50 şeker → 1,23 kg/L; 2:1 ≈ %67 → 1,33 kg/L).
    * VARSAYIM (üretici ağırlığı yayımlanmamış): şerit 10 g/adet, yapışkan altlık 150 g; tüketim süresi şurup 1:1 3 gün, 2:1 4 gün, kek 14 gün, polen 14 gün. */
   var MATERIAL = {
-    seritKg: 0.01, altlikKg: 0.15,
+    seritKg: 0.01, altlikKg: 0.15, feederKg: 0.6, /* besleyici: kovana göre girilir; 0,6 kg yalnız başlangıç önerisi (VARSAYIM: plastik çerçeve besleyici) */
     feedKg: { surup11: 1.23, surup21: 1.33, kek: 1, polen: 1 }, /* kg / birim (L ya da kg) */
     consumeDays: { surup11: 3, surup21: 4, kek: 14, polen: 14 }
+  };
+  /* Besleyici (kovan ayarı): { kg, periods:[{ from, to|null }] } — takılı olduğu günlerde dara. Canlı / Demo ayrı depo. */
+  var FEED_KEY_LIVE = 'superari.besleyici.v1', FEED_KEY_DEMO = 'superari.besleyici.demo.v1';
+  function fkey() { return isLive() ? FEED_KEY_LIVE : FEED_KEY_DEMO; }
+  function fread() { try { var v = JSON.parse(localStorage.getItem(fkey()) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+  function fwrite(v) { try { localStorage.setItem(fkey(), JSON.stringify(v)); } catch (e) { /* ignore */ } try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e2) { /* ignore */ } }
+  var feeder = {
+    get: function (hiveId) { var f = fread()[String(hiveId)] || {}; var ps = Array.isArray(f.periods) ? f.periods : []; var last = ps[ps.length - 1];
+      return { kg: Number(f.kg) > 0 ? Number(f.kg) : null, on: !!(last && !last.to), since: last && !last.to ? last.from : null, periods: ps }; },
+    setKg: function (hiveId, kg) { var all = fread(), k = String(hiveId), n = Math.round(Number(String(kg).replace(',', '.')) * 100) / 100; if (!(n > 0 && n < 20)) return false;
+      all[k] = all[k] || { periods: [] }; all[k].kg = n; fwrite(all); return true; },
+    setOn: function (hiveId, on, date) { var all = fread(), k = String(hiveId), d = dOf(date) || dOf(nowLocal()); all[k] = all[k] || { periods: [] }; var ps = all[k].periods = all[k].periods || [];
+      var last = ps[ps.length - 1]; if (on && !(last && !last.to)) ps.push({ from: d, to: null }); if (!on && last && !last.to) last.to = d; fwrite(all); return true; }
   };
   function dOf(v) { return String(v || '').slice(0, 10); }
   function dayDiff(a, b) { var pa = a.split('-'), pb = b.split('-'); return Math.round((new Date(+pb[0], pb[1] - 1, +pb[2]) - new Date(+pa[0], pa[1] - 1, +pa[2])) / 86400000); }
@@ -59,6 +72,8 @@
         if (kg > 0) items.push({ label: (r.type === 'kek' ? 'Kek' : r.type === 'polen' ? 'Polen pastası' : r.type === 'surup11' ? 'Şurup 1:1' : 'Şurup 2:1') + ' · kalan (tahmin)', kg: kg });
       });
     }
+    var fd = feeder.get(hiveId);
+    if (fd.kg && fd.periods.some(function (p) { return p.from <= day && (!p.to || p.to > day); })) items.push({ label: 'Besleyici', kg: fd.kg });
     var put = tasks.filter(function (t) { return t.done && t.doneAt && /\[varroa-altlik:koy\]/.test(String(t.note || '')) && dOf(t.doneAt) <= day; }).map(function (t) { return dOf(t.doneAt); }).sort().pop();
     if (put) {
       var took = doneAfter(/\[varroa-altlik:say\]|^Altlığı çıkar/i, put);
@@ -188,5 +203,5 @@
     });
     setTimeout(function () { try { f.elements.kg.focus(); } catch (e) { /* ignore */ } }, 50);
   }
-  global.SuperAriTarti = { MATERIAL: MATERIAL, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, ensureCss: ensureCss, open: open, close: close };
+  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, ensureCss: ensureCss, open: open, close: close };
 })(window);

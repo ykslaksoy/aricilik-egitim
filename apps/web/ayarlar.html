@@ -177,6 +177,13 @@
           </div>
           <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Önemli: Sunucu olmadığı için bildirimler yalnız uygulama açıldığında ve açıkken (yaklaşık 30 dakikada bir) denetlenir; uygulama kapalıyken bildirim gelmez. iPhone / iPad'de bildirim için uygulamayı önce ana ekrana ekleyin (iOS 16.4+) ve oradan açın.</p>
         </div>
+        <div id="ses-box" style="display:grid;gap:.5rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
+          <strong style="font-size:.95rem;">🔊 Ses seçimi (sesli mod)</strong>
+          <p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Sesli muayenede ve öneri kartlarında okunacak Türkçe ses. ▶ ile dinleyin, beğendiğinizi seçin. Ses bu cihazda saklanır (her telefonun sesleri farklıdır).</p>
+          <div id="ses-list" style="display:grid;gap:.4rem;min-width:0;"></div>
+          <div style="display:grid;gap:.3rem;"><span style="font-size:.85rem;font-weight:700;">Konuşma hızı</span>
+            <div id="ses-hiz" role="group" aria-label="Konuşma hızı" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;"></div></div>
+        </div>
       </div>
     </section>
 
@@ -236,7 +243,7 @@
       </details>
     </section>
   </div>
-  <script src="demo-data.js?v=koloni-85"></script>
+  <script src="demo-data.js?v=koloni-86"></script>
   <script src="device-runtime.js"></script>
   <script>
   (function () {
@@ -634,10 +641,50 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="harita-offline.js?v=koloni-85"></script>
+<script src="harita-offline.js?v=koloni-86"></script>
 <script>try { SuperAriOfflineMap.renderSettings(document.getElementById('harita-list')); } catch (e) {}</script>
-<script src="pwa.js?v=koloni-85"></script>
-<script src="bulut.js?v=koloni-85"></script>
+<script src="sesle-muayene.js?v=koloni-86"></script>
+<script>
+  /* Ayarlar › Ses seçimi: cihazdaki tr sesler, ▶ dinle, seçim + hız (sesle-muayene.js ile aynı anahtarlar) */
+  (function () {
+    var S = window.SuperAriSesle, box = document.getElementById('ses-box');
+    if (!box) return;
+    if (!S || !window.speechSynthesis) { document.getElementById('ses-list').innerHTML = '<p class="muted" style="margin:0;font-size:.85rem;">Bu tarayıcı sesli okumayı desteklemiyor.</p>'; return; }
+    function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    var BTN = 'min-height:48px;border-radius:12px;border:1.5px solid #d8c4a4;background:#fff;font:inherit;font-size:.92rem;font-weight:700;color:#2a1a0e;cursor:pointer;';
+    function draw() {
+      /* kaynak bağımsız seçenekler (şimdilik cihaz sesleri; aile başına tek: Geliştirilmiş varsa o) */
+      var opts = S.voiceOptions(), saved = S.savedVoiceId(), best = opts[0], cur = saved ? S.currentOption(opts) : null;
+      var found = !!(cur && opts.indexOf(cur) >= 0);
+      var rows = '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:stretch;"><button type="button" data-ses-sel="" aria-pressed="' + !found + '" style="' + BTN + 'text-align:left;padding:.45rem .7rem;' + (!found ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (!found ? '✓ ' : '') + 'Otomatik' + (best ? '<small style="display:block;font-weight:600;color:#7a6048;">önerilen: ' + esc(best.nick) + '</small>' : '') + '</button>' +
+        '<button type="button" data-ses-play="auto" style="' + BTN + 'padding:0 .8rem;color:#1c5fa8;">▶ Dinle</button></div>';
+      rows += opts.map(function (o, i) {
+        var on = found && o === cur, tags = S.optionTags(o, best);
+        return '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:stretch;"><button type="button" data-ses-sel="' + i + '" aria-pressed="' + on + '" style="' + BTN + 'text-align:left;padding:.45rem .7rem;min-width:0;overflow-wrap:anywhere;' + (on ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (on ? '✓ ' : '') + esc(o.nick) +
+          (tags ? '<small style="display:block;font-weight:600;color:#7a6048;">' + esc(tags) + '</small>' : '') + '</button><button type="button" data-ses-play="' + i + '" style="' + BTN + 'padding:0 .8rem;color:#1c5fa8;">▶ Dinle</button></div>';
+      }).join('');
+      if (!opts.length) rows += '<p class="muted" style="margin:0;font-size:.82rem;">Cihazda Türkçe ses bulunamadı; tarayıcının varsayılan sesi kullanılır. iPhone: Ayarlar › Erişilebilirlik › Oku ve Seslendir › Sesler › Türkçe’den Cem/Yelda (Geliştirilmiş) indirin.</p>';
+      else if (S.needEnhNote()) rows += '<p style="margin:0;font-size:.82rem;line-height:1.4;color:#1c4f80;background:#e7f5ff;border-radius:10px;padding:.45rem .6rem;">ℹ️ ' + esc(S.ENH_NOTE) + '</p>';
+      document.getElementById('ses-list').innerHTML = rows;
+      var rk = S.rateKey();
+      document.getElementById('ses-hiz').innerHTML = [['yavas', 'Yavaş'], ['normal', 'Normal'], ['hizli', 'Hızlı']].map(function (x) {
+        return '<button type="button" data-ses-hiz="' + x[0] + '" aria-pressed="' + (rk === x[0]) + '" style="' + BTN + (rk === x[0] ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (rk === x[0] ? '✓ ' : '') + x[1] + '</button>';
+      }).join('');
+      box._opts = opts;
+    }
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null; if (!b) return;
+      var opts = box._opts || [];
+      if (b.hasAttribute('data-ses-sel')) { var i = b.getAttribute('data-ses-sel'), o = i === '' ? null : opts[Number(i)]; S.setVoice(o ? o.id : ''); try { localStorage.setItem('superari.sesleSesSoruldu.v1', new Date().toISOString().slice(0, 10)); } catch (e2) {} draw(); S.speak(S.DEMO, { voice: o || opts[0] || null, noGate: true }); return; }
+      if (b.hasAttribute('data-ses-play')) { var p = b.getAttribute('data-ses-play'); S.speak(S.DEMO, { voice: p === 'auto' ? (opts[0] || null) : opts[Number(p)], noGate: true }); return; }
+      if (b.hasAttribute('data-ses-hiz')) { S.setRate(b.getAttribute('data-ses-hiz')); draw(); S.speak(S.DEMO, { noGate: true }); }
+    });
+    draw();
+    try { speechSynthesis.addEventListener('voiceschanged', draw); } catch (e) {}
+  })();
+</script>
+<script src="pwa.js?v=koloni-86"></script>
+<script src="bulut.js?v=koloni-86"></script>
 <script>
   (function () {
     var B = window.SuperAriBulut, el = document.getElementById('bulut-status');

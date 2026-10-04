@@ -2272,13 +2272,176 @@
   function pick(v, allowed, def) { return allowed.indexOf(v) !== -1 ? v : def; }
   function txt(v, max) { var t = String(v == null ? '' : v).trim(); return t ? t.slice(0, max || 200) : ''; }
 
-  function strengthClass(r) {
-    if (!r) return null;
-    var bees = Number(r.beeFrames) || 0, brood = Number(r.broodFrames) || 0;
-    if (bees >= 8 && brood >= 4) return 'Güçlü';
-    if (bees <= 4 || brood <= 1) return 'Zayıf';
-    return 'Orta';
+  /* ---- Koloni gücü: 5 seviye (arka planda 0–100 skor; formül arayüzde gösterilmez) ----
+   * Ana girdi: arılı çerçeve (FoB: Langstroth derin çerçevenin iki yüzü ≥%75 arıyla kaplı, kısmiler toplanır — UCANR).
+   * Evrensel eşik yok: Türkiye'de bölge ortalamaları çok farklı (Malatya 8,3–9, Bingöl 10–12, Erzurum 13–19 arılı çerçeve; DergiPark makale 4656326).
+   * Bu yüzden: arılıkta son 45 günde güç kaydı olan ≥3 başka kovan varsa seviye ARILIĞIN KENDİ ORTALAMASINA göre (oran: <0,5 Çok zayıf, 0,5–0,8 Zayıf,
+   * 0,8–1,2 Normal, 1,2–1,5 Güçlü, >1,5 Çok güçlü — VARSAYIM); yeterli veri yoksa başlangıç eşikleri ≤2 / 3–4 / 5–7 / 8–11 / ≥12 (VARSAYIM;
+   * dayanak: HBRC Guelph 3 zayıf · 5 orta · 8 güçlü; Almond Board 4 asgari · 8 ortalama).
+   * Arılık verisi yoksa: KONUM × CİNS beklentisine göre aynı oranlar (COLONY_ENV); bant da bilinmiyorsa başlangıç eşikleri.
+   * Mutlak taban: ≤2 çerçeve her zaman Çok zayıf; <5 çerçeve en fazla Zayıf (UK NBU: kışa en az 5 çerçeve arı; NSW DPI «Wintering bees»: <6 çerçeve
+   * kış salkımını sürdüremeyebilir). Mevsim / yavru / tartı katkıları uygulamanın kararıdır (varsayım). */
+  /* ---- KONUM (rakım / iklim bandı) × ARI CİNSİ — TEK TABLO (güç beklentisi + kış bal rezervi) ----
+   * fobMean: üretim mevsiminde (Nis–Eyl) bölgede beklenen ortalama arılı çerçeve. Kaynak: DergiPark makale 4656326 (Malatya 8,3–9 · Bingöl 10–12 · Erzurum 13–19).
+   *   sıcak / alçak için Türk verisi bulunamadı → ılıman ile aynı (VARSAYIM).
+   * winterKg: kışa girerken hedef bal rezervi. Ilıman 20 kg: UK NBU Fact sheet 19 (≈20 kg). Sıcak 15 / yayla 22 / yüksek yayla 25 kg: uygulama değeri —
+   *   kış kısa / uzun olduğu için (VARSAYIM; Yanıkdağ 215 m ılıman-nemli → alçak bant, Erzurum / Tortum / Palandöken → yayla / yüksek).
+   * Cins fob (Anadolu = 1,00): Kafkas 0,90 (Dülger 1997 Erzurum 15,62 / 17,08; Dodoloğlu & Genç 2002 10,88 / 12,38); Kafkas×Anadolu melez 0,95 (Dodoloğlu: 11,36 ve 12,13);
+   *   Erzurum / Doğu yerli 1,08 (Dülger: 18,49 / 17,08); Karniyol 1,15 ve Buckfast 1,11 (Cengiz & Erdoğan 2017 Kafkas Üniv. Vet. Fak. Derg. 23(6): Karniyol 12,17, Buckfast 11,72,
+   *   Kafkas 9,52 → Kafkas oranı × 0,90); Karadeniz (Kafkas ekotipi) 0,90, Muğla / İtalyan / bilinmeyen 1,00: VARSAYIM.
+   * Cins kış rezervi düzeltmesi 0: Türk çalışmalarında kış tüketimi farkı küçük ve tutarsız (Tokat: Karniyol 5,53 · Kafkas 6,00 · İtalyan 5,22 kg, fark istatistiksel önemsiz;
+   *   Erzurum: Kafkas 4,1 · Anadolu 4,26 kg; Dodoloğlu: Kafkas 9,09 · Anadolu 7,29 kg) → kaynaklı bir katsayı yok.
+   * OFF_SEASON: Eki–Mar beklenen arılı çerçeve = fobMean × 0,65 (Dülger 1997: kışlatmada popülasyon azalması %32–47 → ≈%35; VARSAYIM). */
+  var COLONY_ENV = {
+    BANDS: {
+      sicak: { label: 'Sıcak / alçak', fobMean: 8.6, winterKg: 15 },
+      iliman: { label: 'Ilıman / iç bölge', fobMean: 8.6, winterKg: 20 },
+      yayla: { label: 'Yayla', fobMean: 11, winterKg: 22 },
+      yuksek: { label: 'Yüksek yayla', fobMean: 16, winterKg: 25 }
+    },
+    BREEDS: [
+      { key: 'kafkas-anadolu', label: 'Kafkas × Anadolu melezi', test: function (b) { return /kafkas/.test(b) && /anadolu/.test(b); }, fob: 0.95, winterAdjKg: 0 },
+      { key: 'karadeniz', label: 'Karadeniz', test: function (b) { return /karadeniz/.test(b); }, fob: 0.90, winterAdjKg: 0 },
+      { key: 'kafkas', label: 'Kafkas', test: function (b) { return /kafkas/.test(b); }, fob: 0.90, winterAdjKg: 0 },
+      { key: 'karniyol', label: 'Karniyol', test: function (b) { return /karniyol|karniol|carnica|krain/.test(b); }, fob: 1.15, winterAdjKg: 0 },
+      { key: 'buckfast', label: 'Buckfast', test: function (b) { return /buckfast/.test(b); }, fob: 1.11, winterAdjKg: 0 },
+      { key: 'erzurum', label: 'Erzurum / Doğu yerli', test: function (b) { return /erzurum|doğu|dogu/.test(b); }, fob: 1.08, winterAdjKg: 0 },
+      { key: 'anadolu', label: 'Anadolu', test: function (b) { return /anadolu|yerli/.test(b); }, fob: 1.00, winterAdjKg: 0 },
+      { key: 'diger', label: 'Diğer / bilinmiyor', test: function () { return true; }, fob: 1.00, winterAdjKg: 0 }
+    ],
+    OFF_SEASON: 0.65
+  };
+  /* güç / konum hesabı için hafif önbellek: kovan, arılık ve bakım planı kayıtları değişmedikçe kovan listesi ve bant yeniden kurulmaz
+     (colonyStatus her kovan için çağrılır; hiveById/apiaryById her seferinde tüm listeyi yükler) */
+  var envMemo = { sig: null, hives: null, band: {}, building: false };
+  function envSig() {
+    var g = function (k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
+    var live = g('superari.workMode') === 'live';
+    return [live ? 'L' : 'D', g(mk(HIVES_KEY)), g(mk(STORAGE_KEY)), g(live ? 'superari.bakimPlan.v1' : 'superari.bakimPlan.demo.v1')];
   }
+  function sameSig(a, b) { if (!a || !b) return false; for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
+  function envMemoFresh() {
+    if (envMemo.building) return null;
+    var sig = envSig();
+    if (!sameSig(sig, envMemo.sig)) {
+      envMemo.building = true;
+      var map = {};
+      try { loadHives().forEach(function (x) { map[String(Number(x.id))] = x; }); } catch (e) { map = {}; }
+      envMemo.building = false;
+      envMemo = { sig: envSig(), hives: map, band: {}, building: false };
+    }
+    return envMemo;
+  }
+  function liteHive(id) { var m = envMemoFresh(); if (m) return m.hives[String(Number(id))] || null; try { return hiveById(id); } catch (e) { return null; } }
+  function liteHives() { var m = envMemoFresh(); if (m) return Object.keys(m.hives).map(function (k) { return m.hives[k]; }); return loadHives(); }
+  function breedEnv(h) { var b = String((h && (h.breed || h.irk)) || '').toLocaleLowerCase('tr'); return COLONY_ENV.BREEDS.filter(function (x) { return x.test(b); })[0]; }
+  function bandKeyOf(h) {
+    if (!h) return null;
+    var m = envMemoFresh(), ck = String(h.apiaryId);
+    if (m && Object.prototype.hasOwnProperty.call(m.band, ck)) return m.band[ck];
+    var k0 = bandKeyRaw(h);
+    if (m) m.band[ck] = k0;
+    return k0;
+  }
+  function bandKeyRaw(h) {
+    try { var P = global.SuperAriPlan; if (P && P.profileKey) { var k = P.profileKey(h.apiaryId); if (COLONY_ENV.BANDS[k]) return k; } } catch (e) { /* ignore */ }
+    var a = null; try { a = apiaryById(h.apiaryId); } catch (e) { a = null; }
+    var alt = a ? Number(a.altitude || a.elevation || a.rakim) : NaN;
+    if (isFinite(alt) && alt > 0) return alt >= 1800 ? 'yuksek' : (alt >= 1100 ? 'yayla' : 'iliman');
+    return null;
+  }
+  /** Kovanın konum × cins değerleri: { bandKey, band, breed, fobPeak, fobNow(date), winterKg } (bant bilinmiyorsa bandKey null). */
+  function envFor(h, date) {
+    var bk = bandKeyOf(h), band = bk ? COLONY_ENV.BANDS[bk] : null, br = breedEnv(h);
+    var m = Number(String(date || todayLocal()).slice(5, 7)) || 6, peak = band ? band.fobMean * br.fob : null;
+    return { bandKey: bk, band: band, breed: br, fobPeak: peak, fobNow: peak != null ? Math.round(peak * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON) * 100) / 100 : null,
+      winterKg: band ? band.winterKg + (br.winterAdjKg || 0) : null };
+  }
+  var STRENGTH_LEVELS = [
+    { key: 'cok-zayif', label: 'Çok zayıf', min: 0, tone: 'red' }, { key: 'zayif', label: 'Zayıf', min: 20, tone: 'red' },
+    { key: 'normal', label: 'Normal', min: 40, tone: 'orange' }, { key: 'guclu', label: 'Güçlü', min: 60, tone: 'green' },
+    { key: 'cok-guclu', label: 'Çok güçlü', min: 80, tone: 'green' }];
+  var STRENGTH_ALIAS = { 'cok zayif': 'cok-zayif', 'cok-zayif': 'cok-zayif', 'very weak': 'cok-zayif', zayif: 'zayif', weak: 'zayif', orta: 'normal', normal: 'normal', medium: 'normal',
+    guclu: 'guclu', strong: 'guclu', 'cok guclu': 'cok-guclu', 'cok-guclu': 'cok-guclu', 'very strong': 'cok-guclu' };
+  function strengthKeyOf(v) {
+    var t = String(v == null ? '' : v).trim().toLocaleLowerCase('tr').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/\s+/g, ' ');
+    return STRENGTH_ALIAS[t] || null;
+  }
+  /** Eski 3 seviyeli değerler dahil (zayıf→Zayıf, orta→Normal, güçlü→Güçlü) her yazımı 5 seviyeden birine eşler; bilinmiyorsa null. */
+  function strengthLevel(v) { var k = strengthKeyOf(v); return k ? STRENGTH_LEVELS.filter(function (x) { return x.key === k; })[0] : null; }
+  function levelOfScore(sc) { var o = STRENGTH_LEVELS[0]; STRENGTH_LEVELS.forEach(function (x) { if (sc >= x.min) o = x; }); return o; }
+  function isWeakClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'zayif' || l.key === 'cok-zayif'); }
+  function isStrongClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'guclu' || l.key === 'cok-guclu'); }
+  /* arılı çerçeve → skor (parça parça doğrusal; eşikler yukarıdaki çerçeve sayılarına oturur) */
+  var BEE_ANCHORS = [[0, 0], [2.5, 20], [4.5, 40], [7.5, 60], [11.5, 80], [16, 100]];
+  function beeScore(b) {
+    if (b <= 0) return 0; if (b >= 16) return 100;
+    for (var i = 1; i < BEE_ANCHORS.length; i++) { var a = BEE_ANCHORS[i - 1], z = BEE_ANCHORS[i]; if (b <= z[0]) return a[1] + (b - a[0]) / (z[0] - a[0]) * (z[1] - a[1]); }
+    return 100;
+  }
+  var REL_ANCHORS = [[0, 0], [0.5, 20], [0.8, 40], [1.2, 60], [1.5, 80], [2, 100]];
+  function interp(A, x) {
+    if (x <= A[0][0]) return A[0][1]; if (x >= A[A.length - 1][0]) return A[A.length - 1][1];
+    for (var i = 1; i < A.length; i++) { var a = A[i - 1], z = A[i]; if (x <= z[0]) return a[1] + (x - a[0]) / (z[0] - a[0]) * (z[1] - a[1]); }
+    return A[A.length - 1][1];
+  }
+  function seasonFac(d) { var m = Number(String(d || todayLocal()).slice(5, 7)) || 6; return m === 12 || m <= 2 ? 1.15 : (m >= 6 && m <= 8 ? 0.92 : 1); }
+  /* arılık ortalaması (mevsim düzeltmeli arılı çerçeve) — kayıtlar değişmedikçe önbellekten */
+  var peerCache = { raw: null, byDate: {} };
+  function peerAvg(hiveId, date) {
+    var hv = liteHive(hiveId);
+    if (!hv || !hv.apiaryId) return null;
+    var raw = null; try { raw = localStorage.getItem(recKey()); } catch (e) { raw = null; }
+    if (peerCache.raw !== raw) peerCache = { raw: raw, byDate: {} };
+    var map = peerCache.byDate[date];
+    if (!map) {
+      /* tek geçiş: arılık → [{ id, v }] (v = son 45 gündeki son kaydın arılı çerçevesi ÷ cins katsayısı) */
+      map = peerCache.byDate[date] = {};
+      var all = loadRecordsAll(), from = addDays(date, -45);
+      liteHives().forEach(function (x) {
+        if (!x.apiaryId || x.colonyState === 'birlestirildi') return;
+        var l = ((all[String(Number(x.id))] || {}).strength || []).filter(function (q) { return q && q.date && q.date >= from && q.date <= date && Number(q.beeFrames) > 0; })
+          .sort(function (a, b) { return a.date < b.date ? 1 : -1; })[0];
+        if (l) (map[x.apiaryId] = map[x.apiaryId] || []).push({ id: String(x.id), v: Number(l.beeFrames) / (breedEnv(x).fob || 1) });
+      });
+    }
+    var vals = (map[hv.apiaryId] || []).filter(function (o) { return o.id !== String(hiveId); }).map(function (o) { return o.v; });
+    return vals.length >= 3 ? { avg: vals.reduce(function (a, b) { return a + b; }, 0) / vals.length, n: vals.length } : null;
+  }
+  /** { score 0–100, key, label, manual, auto, basis } — r.level (elle seçim) varsa seviye odur; skor yine hesaplanır.
+   *  ctx: { hiveId } → arılık ortalamasına göre göreli seviye + tartı katkısı. */
+  function strengthInfo(r, ctx) {
+    if (!r) return null;
+    var bees = Number(r.beeFrames) || 0, brood = Number(r.broodFrames) || 0, date = String(r.date || todayLocal());
+    var m = Number(date.slice(5, 7)) || 6;
+    var active = m >= 3 && m <= 9;
+    /* mevsim (varsayım): kışın küme küçülür → aynı çerçeve daha değerli; yaz zirvesinde biraz daha az */
+    var eq = bees * seasonFac(date);
+    var hid0 = ctx && ctx.hiveId != null ? ctx.hiveId : (r.hiveId != null ? r.hiveId : null);
+    var hv0 = hid0 != null ? liteHive(hid0) : null;
+    var pa = hid0 != null ? peerAvg(hid0, date) : null, env = hv0 ? envFor(hv0, date) : null, basis, sc;
+    /* 1) arılığın kendi ortalaması (cinse göre normalize) · 2) konum × cins beklentisi · 3) başlangıç eşikleri */
+    if (pa && pa.avg > 0) { basis = 'arilik'; sc = interp(REL_ANCHORS, (bees / (env ? env.breed.fob : 1)) / pa.avg); }
+    else if (env && env.fobNow) { basis = 'bolge'; sc = interp(REL_ANCHORS, bees / env.fobNow); }
+    else { basis = 'baslangic'; sc = beeScore(eq); }
+    /* yavru (aktif mevsim): yavru yok / çok az → düşür; arının yarısı kadar yavru → artır */
+    if (active && bees > 0) { if (brood <= 1) sc -= 10; else if (brood >= bees * 0.5) sc += 2; }
+    /* tartı (aktif mevsim, son 14 gün net değişim ±2 kg) */
+    var hid = hid0, TW = global.SuperAriTarti;
+    if (active && hid != null && TW && TW.series) {
+      try {
+        var d0 = addDays(String(r.date || todayLocal()), -14), pts = TW.series(hid, 400).filter(function (p) { return p.date >= d0 && p.date <= (r.date || todayLocal()); });
+        if (pts.length >= 2) { var dk = pts[pts.length - 1].net - pts[0].net; if (dk >= 2) sc += 4; else if (dk <= -2) sc -= 4; }
+      } catch (e) { /* ignore */ }
+    }
+    /* mutlak taban */
+    if (bees <= 2) sc = Math.min(sc, 19);
+    else if (bees < 5) sc = Math.min(sc, 39); /* UK NBU: kışa en az 5 çerçeve arı */
+    sc = Math.max(0, Math.min(100, Math.floor(sc)));
+    var auto = levelOfScore(sc), man = r.level ? strengthLevel(r.level) : null, lv = man || auto;
+    return { score: sc, key: lv.key, label: lv.label, tone: lv.tone, manual: !!man, auto: auto.label, basis: basis };
+  }
+  function strengthClass(r, ctx) { var i = strengthInfo(r, ctx); return i ? i.label : null; }
 
   function normalizeRecord(kind, r) {
     if (!r || typeof r !== 'object') return null;
@@ -2296,6 +2459,7 @@
       o.broodFrames = intIn(r.broodFrames, 0, 30) || 0;
       o.honeyFrames = intIn(r.honeyFrames, 0, 30) || 0;
       o.pollenFrames = intIn(r.pollenFrames, 0, 20) || 0;
+      var lvk = strengthKeyOf(r.level); if (lvk) o.level = lvk; /* elle seçilen güç seviyesi (5 seviye) */
       if (r.inspection === true) o.inspection = true; /* Kolay muayene ile girildi */
       var sp = pick(r.space, ['bol', 'dolmak', 'dolu', 'kat', ''], ''); if (sp) o.space = sp; /* muayenede gözlenen yer durumu */
       var vs0 = pick(r.varroaSeen, ['az', 'cok', ''], ''); if (vs0) o.varroaSeen = vs0;
@@ -2346,6 +2510,7 @@
         o.count = intIn(r.count, 0, 5000);
         o.method = pick(r.method, ['seker', 'alkol', 'tabla'], 'seker');
         o.infestation = numIn(r.infestation, 0, 100);
+        if (o.method === 'tabla') { var dd0 = intIn(r.days, 1, 60); if (dd0) o.days = dd0; }
         if (o.infestation == null && o.count != null && o.method !== 'tabla') o.infestation = Math.round((o.count / 300) * 1000) / 10;
       } else if (o.disease === 'nosema') {
         o.status = pick(r.status, ['yok', 'suphe', 'dogrulandi'], 'yok');
@@ -2386,6 +2551,8 @@
     REC_KINDS.forEach(function (k) {
       out[k] = (Array.isArray(src[k]) ? src[k] : []).map(function (r) { return normalizeRecord(k, r); }).filter(Boolean).sort(byDateDesc);
     });
+    /* güç seviyesi arılık ortalamasına göre hesaplanabilsin diye (saklanmaz) */
+    out.strength.forEach(function (r) { r.hiveId = Number(hiveId); });
     /* Hasat: tek hasat deposundan (Raporlar › Bal / verim ile ortak). */
     out.harvest = listHarvests({ hiveId: Number(hiveId) }).map(harvestAsRecord);
     return out;
@@ -2695,7 +2862,7 @@
     });
     var storesKg = w && w.storesKg != null ? w.storesKg : (autumn.length ? suggested : null);
     var storesOk = storesKg != null && storesKg >= WINTER_MIN_KG;
-    var weakAuto = st.strengthClass === 'Zayıf';
+    var weakAuto = isWeakClass(st.strengthClass);
     var out = { season: season, rec: w, suggestedKg: suggested, autumnFeeds: autumn.length, storesKg: storesKg, storesOk: storesOk,
       varroaAuto: vr, weakAuto: weakAuto, status: null, statusKey: null, missing: [] };
     if (!w) {
@@ -2772,7 +2939,7 @@
       var until = addDays(r.date, r.withdrawalDays);
       if (until >= today && until > withdrawalUntil) { withdrawalUntil = until; withdrawalRec = r; }
     });
-    var cls = strengthClass(s);
+    var cls = strengthClass(s, { hiveId: hiveId });
     var chilled = !!(b && b.chilled);
     var hf = hiveFlags()[String(Number(hiveId))] || {};
     var emergencyCell = !!(b && b.queenCell === 'acil');
@@ -2782,7 +2949,7 @@
       records: rec,
       strength: s, strengthClass: cls,
       brood: b,
-      weak: cls === 'Zayıf' || chilled,
+      weak: isWeakClass(cls) || chilled,
       chilled: chilled,
       queenless: queenless,
       queenCellSince: hf.queenless === true && hf.queenCellSince ? hf.queenCellSince : '',
@@ -2925,14 +3092,16 @@
     /* --- Kovan durumu (asıl belirleyici) --- */
     var s = 20;
     var cls = st && st.strengthClass ? st.strengthClass : null;
-    var strength = cls ? cls.toLocaleLowerCase('tr') : String(h.strength || '').toLocaleLowerCase('tr');
+    var slv = strengthLevel(cls || h.strength), strength = slv ? slv.key : '';
     var sr = st && st.strength ? st.strength : null;
     var bees = sr && Number(sr.beeFrames) ? Number(sr.beeFrames) : null;
     var broodF = sr && Number(sr.broodFrames) ? Number(sr.broodFrames) : null;
     var beeTxt = bees ? ', ' + bees + ' çerçeve arı' : '';
-    if (strength === 'güçlü') { s += 20; R('guc', 'Koloni güçlü' + beeTxt, 'up'); }
-    else if (strength === 'orta') { s += 6; R('guc', 'Koloni orta güçte' + beeTxt, 'info'); }
-    else if (strength === 'zayıf') { s -= 20; R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
+    if (strength === 'cok-guclu') { s += 24; R('guc', 'Koloni çok güçlü' + beeTxt, 'up'); }
+    else if (strength === 'guclu') { s += 20; R('guc', 'Koloni güçlü' + beeTxt, 'up'); }
+    else if (strength === 'normal') { s += 6; R('guc', 'Koloni normal güçte' + beeTxt, 'info'); }
+    else if (strength === 'zayif') { s -= 20; R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
+    else if (strength === 'cok-zayif') { s -= 26; R('guc', 'Koloni çok zayıf' + beeTxt, 'down'); }
     if (broodF != null && broodF >= 6) { s += 10; R('yavru', 'Çok yavru (' + broodF + ' çerçeve)', 'up'); }
     else if (broodF != null && broodF >= 4) s += 5;
     var bxs = hiveBoxes(h, ctx.plan || (ctx.plan = planState()));
@@ -3089,7 +3258,7 @@
   /** Arka plan sağlık modeli için yalın bayraklar (formül sensor-health.js içinde). */
   function healthFlags(hiveId) {
     var st = colonyStatus(hiveId);
-    var f = { queenless: st.queenless, chilled: st.chilled, weak: st.strengthClass === 'Zayıf', afb: st.afb };
+    var f = { queenless: st.queenless, chilled: st.chilled, weak: isWeakClass(st.strengthClass), afb: st.afb };
     Object.keys(st.latestByDisease).forEach(function (k) { f[k] = diseaseLevel(st.latestByDisease[k]).level; });
     return f;
   }
@@ -3297,6 +3466,13 @@
     PATTERN_LABEL: PATTERN_LABEL,
     workMode: workMode,
     strengthClass: strengthClass,
+    strengthInfo: strengthInfo,
+    strengthLevel: strengthLevel,
+    STRENGTH_LEVELS: STRENGTH_LEVELS,
+    COLONY_ENV: COLONY_ENV,
+    envFor: envFor,
+    isWeakClass: isWeakClass,
+    isStrongClass: isStrongClass,
     recordsFor: function (id) { seedAll(); return recordsFor(id); },
     loadAll: function () { seedAll(); return loadRecordsAll(); },
     add: addRecord,

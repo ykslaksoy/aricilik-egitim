@@ -96,6 +96,7 @@
       out.strength = { date: today(), beeFrames: bee, broodFrames: a.cerceve && a.cerceve.brood != null ? a.cerceve.brood : (last ? last.broodFrames : 0),
         honeyFrames: a.stok != null ? Number(a.stok) : (last ? last.honeyFrames : 0), pollenFrames: last ? last.pollenFrames : 0, inspection: true, note: note };
       if (a.yer) out.strength.space = a.yer;
+      if (a.cerceve && st.level) out.strength.level = st.level;
       if (mode() === 'demo') out.strength.demo = true;
     }
     if (a.ana || a.yavru || a.meme || a.ogul != null) {
@@ -162,6 +163,8 @@
     '.km-sub{font-size:12px;color:#6b5a48;margin-top:2px;}.km-bar{height:8px;background:#efe4d2;border-radius:99px;overflow:hidden;margin-top:8px;}.km-bar i{display:block;height:100%;background:linear-gradient(90deg,#f0a202,#e56f1c);transition:width .2s;}' +
     '.km-body{flex:1;overflow:auto;padding:14px 12px;}.km-q{font-size:20px;font-weight:800;margin:4px 0 4px;line-height:1.25;}.km-help{font-size:13px;color:#6b5a48;margin:0 0 12px;}' +
     '.km-opts{display:grid;gap:8px;}.km-opt{font:inherit;font-size:17px;font-weight:700;text-align:left;min-height:56px;padding:12px 14px;border-radius:14px;border:2px solid #e0cfb3;background:#fff;color:#3d2616;cursor:pointer;}' +
+    '.km-fa{display:grid;gap:4px;border-radius:12px;padding:10px 12px;margin:4px 0 8px;border:2px solid #d8c8a8;background:#fffaf0;color:#2a1a0e;line-height:1.35;font-size:15px;}.km-fa small{font-size:12px;font-weight:800;text-transform:uppercase;opacity:.8;}.km-fa b{font-size:17px;}.km-fa.gerekli{border-color:#e8590c;background:#fff4e6;}.km-fa.faydali{border-color:#1c7ed6;background:#e7f5ff;}.km-fa.gerekmez{border-color:#2f9e44;background:#ebfbee;}' +
+    '.km-lvls{display:grid;gap:10px;}.km-lvl{min-height:64px;font-size:18px;}.km-lvl small{font-weight:600;color:#6b5a48;}' +
     '.km-opt.on{border-color:#e56f1c;background:#fff1de;box-shadow:inset 0 0 0 1px #e56f1c;}.km-opt:active{transform:scale(.99);}' +
     '.km-step{display:flex;align-items:center;justify-content:center;gap:14px;margin:8px 0 4px;}.km-step button{font:inherit;font-size:30px;font-weight:800;width:64px;height:64px;border-radius:16px;border:2px solid #e0cfb3;background:#fff;color:#3d2616;cursor:pointer;}' +
     '.km-step output{font-size:40px;font-weight:900;min-width:64px;text-align:center;}.km-step.sm button{width:48px;height:48px;font-size:24px;}.km-step.sm output{font-size:28px;}' +
@@ -256,6 +259,12 @@
       if (vapi.onRender && k !== vKey) { vKey = k; setTimeout(function () { if (vapi.onRender) vapi.onRender(); }, 0); }
       else vKey = k;
     }
+    /* 5 seviyeli güç: çerçeve sayısından otomatik (skor arka planda), elle değiştirilebilir */
+    function autoLevel() { try { var i = D.records.strengthInfo({ beeFrames: st.bee, broodFrames: st.brood, date: today() }, { hiveId: h.id }); return i ? i.key : null; } catch (e) { return null; } }
+    function lvlHtml() {
+      var L = (D.records.STRENGTH_LEVELS || []), au = autoLevel(), cur = st.level || au;
+      return L.map(function (x) { return '<button type="button" class="km-opt km-lvl' + (x.key === cur ? ' on' : '') + '" data-km-lvl="' + x.key + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + esc(x.label) + (x.key === au ? ' <small>(çerçeveye göre)</small>' : '') + '</button>'; }).join('');
+    }
     function renderCore() {
       head();
       var n = st.steps.length;
@@ -264,7 +273,8 @@
       if (s.stepper) {
         H += '<div class="km-lbl">Arılı çerçeve</div><div class="km-step"><button type="button" data-km-inc="bee" data-d="-1" aria-label="Azalt">−</button><output data-km-out="bee">' + st.bee + '</output><button type="button" data-km-inc="bee" data-d="1" aria-label="Artır">+</button></div>' +
           '<div class="km-lbl">Yavrulu çerçeve</div><div class="km-step sm"><button type="button" data-km-inc="brood" data-d="-1" aria-label="Azalt">−</button><output data-km-out="brood">' + st.brood + '</output><button type="button" data-km-inc="brood" data-d="1" aria-label="Artır">+</button></div>' +
-          (last ? '<p class="km-help" style="text-align:center;">Son kayıt: ' + last.beeFrames + ' arılı, ' + last.broodFrames + ' yavrulu</p>' : '');
+          (last ? '<p class="km-help" style="text-align:center;">Son kayıt: ' + last.beeFrames + ' arılı, ' + last.broodFrames + ' yavrulu</p>' : '') +
+          '<div class="km-lbl">Koloni gücü</div><div class="km-lvls" role="group" aria-label="Koloni gücü" data-km-lvls>' + lvlHtml() + '</div>';
       } else if (s.count) {
         var cv = cntVal(id);
         H += '<div class="km-lbl">' + esc(s.count.label) + '</div><div class="km-step km-count" role="group" aria-label="' + esc(s.count.label) + '"><button type="button" data-km-cnt="' + id + '" data-d="-1" aria-label="Azalt">−</button><output data-km-out="cnt" aria-live="polite">' + cv + '</output><button type="button" data-km-cnt="' + id + '" data-d="1" aria-label="Artır">+</button></div>' +
@@ -296,8 +306,9 @@
       try {
         var hs = P.hiveState(h);
         var b = build(h, st);
-        if (b.strength) { hs.honeyFrames = b.strength.honeyFrames; hs.beeFrames = b.strength.beeFrames; }
+        if (b.strength) { hs.honeyFrames = b.strength.honeyFrames; hs.beeFrames = b.strength.beeFrames; hs.strength = b.strength; hs.cls = D.records.strengthClass(b.strength, { hiveId: h.id }); }
         out.feed = P.feedPlan(h, hs);
+        try { out.feedAdv = P.feedAdvice ? P.feedAdvice(h, hs) : null; } catch (eA) { out.feedAdv = null; }
       } catch (e) { out.feed = null; }
       return out;
     }
@@ -309,10 +320,11 @@
       if (st.done) H += '<div class="km-ok">' + st.done + '</div>' + (st.result || '');
       H += '<div class="km-sum"><h3>Özet' + (secs < 600 ? ' · ' + (secs < 60 ? secs + ' sn' : Math.floor(secs / 60) + ' dk ' + (secs % 60) + ' sn') : '') + '</h3>' +
         st.steps.map(function (id, i) {
-          var v = id === 'cerceve' ? (st.ans.cerceve ? st.ans.cerceve.bee + ' arılı · ' + st.ans.cerceve.brood + ' yavrulu' : '') : (S[id].count ? (st.ans[id] != null ? st.ans[id] + ' çerçeve' : '') : optLabel(id, st.ans[id]));
+          var v = id === 'cerceve' ? (st.ans.cerceve ? st.ans.cerceve.bee + ' arılı · ' + st.ans.cerceve.brood + ' yavrulu' + (b.strength ? ' · ' + (D.records.strengthClass(b.strength, { hiveId: h.id }) || '') : '') : '') : (S[id].count ? (st.ans[id] != null ? st.ans[id] + ' çerçeve' : '') : optLabel(id, st.ans[id]));
           return '<div class="km-row"><span>' + S[id].icon + ' ' + esc(S[id].q.replace(/\?$/, '')) + ': <b>' + esc(v || 'atlandı') + '</b>' + (st.notes[id] ? '<br><small>📝 ' + esc(st.notes[id]) + '</small>' : '') + ((st.photos[id] || []).length ? ' <small>📷 ' + st.photos[id].length + '</small>' : '') + '</span>' +
             (st.done ? '' : '<button type="button" data-km-goto="' + i + '">Değiştir</button>') + '</div>';
         }).join('') + '</div>';
+      if (plan && plan.feedAdv && global.SuperAriPlan.feedAdviceHtml) H += '<div class="km-sum"><h3>🍯 Besleme önerisi</h3>' + global.SuperAriPlan.feedAdviceHtml(plan.feedAdv, 'km-fa') + '</div>';
       H += '<div class="km-sum"><h3>' + (st.done ? 'Kaydedilenler' : 'Kaydedilecekler') + '</h3>' +
         (b.strength ? '<div class="km-row"><span>💪 Koloni gücü / muayene: ' + b.strength.beeFrames + ' arılı, ' + b.strength.broodFrames + ' yavrulu, ' + b.strength.honeyFrames + ' bal çerçevesi' + (b.strength.space ? ' · yer: ' + esc(optLabel('yer', b.strength.space).toLocaleLowerCase('tr')) : '') + '</span></div>' : '') +
         (b.brood ? '<div class="km-row"><span>🥚 Yavru durumu: ' + (b.brood.eggs ? 'yumurta var' : 'yumurta yok') + ', ' + (b.brood.pattern === 'duzenli' ? 'düzenli' : 'dağınık') + (b.brood.queenCell !== 'yok' ? ' · ana memesi: ' + esc(optLabel('meme', b.brood.queenCell).toLocaleLowerCase('tr')) : '') + (b.brood.queenless ? ' · anasız' : '') + '</span></div>' : '') +
@@ -416,6 +428,12 @@
         if (k === 'bee' && st.brood > st.bee) st.brood = st.bee;
         if (k === 'brood' && st.brood > st.bee) st.bee = st.brood;
         back.querySelector('[data-km-out="bee"]').textContent = st.bee; back.querySelector('[data-km-out="brood"]').textContent = st.brood;
+        var lv0 = back.querySelector('[data-km-lvls]'); if (lv0) lv0.innerHTML = lvlHtml();
+        return;
+      }
+      if (t.hasAttribute('data-km-lvl')) {
+        var lk = t.getAttribute('data-km-lvl'); st.level = lk === autoLevel() ? null : lk; st.sugg = null; st.selInit = false;
+        var lv1 = back.querySelector('[data-km-lvls]'); if (lv1) lv1.innerHTML = lvlHtml();
         return;
       }
       if (t.hasAttribute('data-km-box')) {

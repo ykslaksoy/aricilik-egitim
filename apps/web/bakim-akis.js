@@ -399,9 +399,12 @@
     /* 1) Besleme (Bakım planı besleme hesabı; mevsime göre kek / şurup 1:1 / 2:1) */
     if (P) {
       var fp = null; try { fp = P.feedPlan(h, st); } catch (e) { fp = null; }
-      if (fp && fp.need) {
+      var fa = null; try { fa = P.feedAdvice ? P.feedAdvice(h, st) : null; } catch (e) { fa = null; }
+      var optFeed = !!(fp && !fp.need && fa && fa.tier === 'faydali');
+      if (fp && (fp.need || optFeed)) {
         var ftype = fp.type, v, feedings = fp.feedings || 1;
-        if (ftype === 'kek') v = fp.perFeedKg;
+        if (optFeed) { ftype = fa.type; v = fa.amount; feedings = 1; }
+        else if (ftype === 'kek') v = fp.perFeedKg;
         else if (fp.cold) { ftype = 'kek'; v = Math.min(2, Math.max(1, r05(fp.deficitKg || 1))); feedings = 1; }
         else v = fp.perFeedL;
         v = Math.max(0.5, r05(v));
@@ -409,9 +412,9 @@
         var fmtF = function (x, t) { t = t || ftype; return t === 'kek' ? 'Kek ' + num(x) + ' kg' : FT[t].label + ' ' + num(x) + ' L'; };
         var subF = function (x, t) { t = t || ftype; if (t === 'kek') return 'Fondan kek, çerçevelerin üstüne'; var S = P.SYRUP[t]; return '= ' + num(x * S.sugarKg) + ' kg şeker + ' + num(x * S.waterL) + ' L su'; };
         var sayF = function (x, t) { t = t || ftype; if (t === 'kek') return sayNum(x) + ' kilo kek'; var S = P.SYRUP[t]; return sayNum(x) + ' litre ' + (t === 'surup21' ? 'ikiye bir' : 'bire bir') + ' şurup, yani ' + sayNum(x * S.sugarKg) + ' kilo şeker ve ' + sayNum(x * S.waterL) + ' litre su'; };
-        steps.push({ key: 'besleme', icon: '🍯', title: 'Besleme', kind: 'amount', type: ftype, unit: FT[ftype].unit, rec: v, inc: 0.5, min: 0.5, max: 20,
+        steps.push({ key: 'besleme', icon: '🍯', title: optFeed ? 'Besleme (isteğe bağlı)' : 'Besleme', kind: 'amount', type: ftype, unit: FT[ftype].unit, rec: v, inc: 0.5, min: 0.5, max: 20,
           presets: amountPresets(v, 0.5, 0.5), fmt: fmtF, sub: subF, sayV: sayF,
-          why: SEASON_TXT[sk] + ' · stok ≈ ' + num(fp.storesKg) + ' kg' + (fp.targetKg ? ', hedef ' + fp.targetKg + ' kg' : '') + (feedings > 1 ? ' · ' + feedings + ' beslemenin 1.si; kalanlar görev olur' : '') + (fp.cold ? ' · kış ortası: şurup yerine kek' : '') + (fp.weak ? ' · zayıf koloni: birleştirmeyi düşünün' : ''),
+          why: optFeed ? 'Normalde gerek yok · ' + fa.why : SEASON_TXT[sk] + ' · stok ≈ ' + num(fp.storesKg) + ' kg' + (fp.targetKg ? ', hedef ' + fp.targetKg + ' kg' : '') + (feedings > 1 ? ' · ' + feedings + ' beslemenin 1.si; kalanlar görev olur' : '') + (fp.cold ? ' · kış ortası: şurup yerine kek' : '') + (fp.weak ? ' · zayıf koloni: birleştirmeyi düşünün' : ''),
           types: ['kek', 'surup11', 'surup21'], typeInfo: FT,
           save: function (res, step) {
             var undo = [], t = res.type || step.type, amt = res.v;
@@ -439,22 +442,32 @@
     var removeAdded = false;
     function countStep(stale) {
       var VA = P.VARROA || { SAMPLE_BEES: 300 };
+      var al = null; try { al = P.altlikState ? P.altlikState(h.id) : null; } catch (e) { al = null; }
+      var alR = !!(al && al.ready);
+      /* Yöntem: alkol / pudra şekeri her zaman; yapışkan altlık YALNIZ altlık takılı ve ≥3 gün olduysa */
+      var methods = [{ id: 'alkol', label: '🧪 Alkol ile yıkama', sub: '½ bardak ≈300 arı' }, { id: 'seker', label: '🧂 Pudra şekeri', sub: '½ bardak ≈300 arı' }];
+      if (alR) methods.unshift({ id: 'tabla', label: '🧻 Yapışkan altlık', sub: fmtD(al.put) + '’den beri ' + al.days + ' gün' });
       return { key: 'sayim', icon: '🕷', title: 'Varroa sayımı', kind: 'choice', okCustom: true,
-        recLabel: (stale ? 'Sayımı yenileyin (son sayım ' + stale + ' gün önce): ' : '') + '½ bardak (≈300 arı) yıkayın, düşen akar sayısını girin',
-        why: 'Yavrulu çerçeveden ≈300 arı · alkol / sabunlu su ile yıkama veya pudra şekeriyle çalkalama · yüzde değil, akar SAYISI yazılır',
+        recLabel: (stale ? 'Sayımı yenileyin (son sayım ' + stale + ' gün önce): ' : '') + (alR ? 'Altlığı çıkarın, üstündeki akarları sayın (' + al.days + ' gün)' : '½ bardak (≈300 arı) yıkayın, düşen akar sayısını girin'),
+        why: (alR ? 'Altlık ' + al.days + ' gündür takılı · ya da ' : '') + 'Yavrulu çerçeveden ≈300 arı · alkol / sabunlu su ile yıkama veya pudra şekeriyle çalkalama · yüzde değil, akar SAYISI yazılır',
         say: 'Varroa sayımı. Yavrulu çerçeveden yarım bardak, yaklaşık üç yüz arı alıp yıkayın veya pudra şekeriyle çalkalayın, düşen akar sayısını söyleyin. Sonra sayacaksanız sonra deyin.',
         opts: [{ id: 'gorev', label: 'Sonra sayacağım (görev ekle)', say: ['sonra', 'gorev'] }],
         custom: { unit: 'adet', min: 0, max: 300, inc: 1, big: 5, init: 3, label: 'Düşen akar sayısı (300 arıda)',
-          advice: function (v) { try { return P.varroaAdvice(h.id, v, 'alkol'); } catch (e) { return null; } } },
+          methods: methods, method0: alR ? 'tabla' : 'alkol', days0: al ? Math.min(60, al.days) : 7,
+          methodDef: function (m, dd) { return m === 'tabla' ? { max: 2000, big: 10, label: 'Altlıktaki akar sayısı (' + dd + ' günde)' } : null; },
+          advice: function (v, m, dd) { try { return P.varroaAdvice(h.id, v, m || 'alkol', dd); } catch (e) { return null; } } },
         save: function (res) {
           var undo = [];
           if (res.opt === 'gorev') { addTask(h, 'Varroa sayımı (½ bardak ≈300 arı)', plusDays(3), 2, undo); return { text: 'Varroa sayımı görevi eklendi', say: 'varroa sayımı görevi', undo: undo }; }
-          var c = Math.round(res.v); closeAuto(h, 'varroa', undo);
-          var rec = addRec(h, 'disease', Object.assign({ date: today(), disease: 'varroa', count: c, method: 'alkol', note: 'Hızlı muayene · ½ bardak ≈300 arı' + (demo() ? ' · Demo' : ''), akis: true, sug: 'kabul', sugText: 'Varroa sayımı yapın' }, demo() ? { demo: true } : {}), undo);
-          /* açık sayım görevleri tamamlanır (geri alınabilir) */
-          try { D.taskStore.open().filter(function (x) { return String(x.hiveId) === String(h.id) && /^Varroa sayım|^Kontrol sayımı/i.test(String(x.title || '')); }).forEach(function (x) { if (D.taskStore.complete(x.id, { note: 'Hızlı muayene · sayım girildi' })) undo.push(function () { try { D.taskStore.undo(x.id); } catch (e) { /* ignore */ } }); }); } catch (e) { /* ignore */ }
+          var c = Math.round(res.v), meth = ['alkol', 'seker', 'tabla'].indexOf(res.meth) >= 0 ? res.meth : 'alkol';
+          if (meth === 'tabla' && !alR) meth = 'alkol';
+          var dd = meth === 'tabla' ? Math.max(1, Math.min(60, Math.round(Number(res.days) || al.days))) : null;
+          closeAuto(h, 'varroa', undo);
+          var rec = addRec(h, 'disease', Object.assign({ date: today(), disease: 'varroa', count: c, method: meth, note: 'Hızlı muayene · ' + (meth === 'tabla' ? 'yapışkan altlık ' + dd + ' gün' : (meth === 'seker' ? 'pudra şekeri' : 'alkol') + ' · ½ bardak ≈300 arı') + (demo() ? ' · Demo' : ''), akis: true, sug: 'kabul', sugText: 'Varroa sayımı yapın' }, dd ? { days: dd } : {}, demo() ? { demo: true } : {}), undo);
+          /* açık sayım görevleri tamamlanır (geri alınabilir); altlık sayıldıysa «Altlığı çıkar, say» da kapanır */
+          try { D.taskStore.open().filter(function (x) { return String(x.hiveId) === String(h.id) && (/^Varroa sayım|^Kontrol sayımı/i.test(String(x.title || '')) || (meth === 'tabla' && /^Altlığı çıkar|\[varroa-altlik:say\]/i.test(String(x.title || '') + ' ' + String(x.note || '')))); }).forEach(function (x) { if (D.taskStore.complete(x.id, { note: 'Hızlı muayene · sayım girildi' })) undo.push(function () { try { D.taskStore.undo(x.id); } catch (e) { /* ignore */ } }); }); } catch (e) { /* ignore */ }
           var mp2 = null; try { mp2 = P.medPlan(D.hiveById(h.id)); } catch (e) { mp2 = null; }
-          var out = { text: c + ' akar · ' + (mp2 && mp2.band ? mp2.band.text : ''), say: c + ' akar', undo: undo };
+          var out = { text: c + ' akar' + (dd ? ' (altlık ' + dd + ' gün)' : meth === 'seker' ? ' (pudra şekeri)' : '') + ' · ' + (mp2 && mp2.band ? mp2.band.text : ''), say: c + ' akar', undo: undo };
           if (mp2) {
             var tk = null; try { tk = P.recountTask(h.id, mp2); } catch (e) { tk = null; }
             if (tk && tk.id) { out.text += ' · tekrar sayım görevi ' + fmtD(tk.due); undo.push(function () { try { D.taskStore.remove(tk.id); } catch (e) { /* ignore */ } }); }
@@ -542,7 +555,8 @@
       var mp = null; try { mp = P.medPlan(h, st); } catch (e) { mp = null; }
       var VA = P.VARROA || { STALE_DAYS: 30 };
       if (mp && mp.removeOld) { steps.push(removeStep(mp)); removeAdded = true; }
-      if (mp && sk !== 'kis' && (mp.level === 'sayim' || mp.countAge > VA.STALE_DAYS)) steps.push(countStep(mp.level === 'sayim' ? 0 : mp.countAge));
+      var alk = null; try { alk = P.altlikState ? P.altlikState(h.id) : null; } catch (e) { alk = null; }
+      if ((mp && sk !== 'kis' && (mp.level === 'sayim' || mp.countAge > VA.STALE_DAYS)) || (alk && alk.ready)) steps.push(countStep(mp && mp.level !== 'sayim' && mp.countAge > VA.STALE_DAYS ? mp.countAge : 0));
       else if (mp && (mp.level === 'tedavi' || mp.level === 'planla')) steps.push(treatStep(mp, st));
     }
 
@@ -788,6 +802,9 @@
     '.ba-own{border-color:#1c5fa8;color:#0d3d73;}.ba-skip{background:#f1ebe2;border-color:#a8977e;color:#2a1a0e;}' +
     '.ba-pnl{border:2px solid #1c5fa8;border-radius:16px;padding:12px;background:#f3f8ff;display:flex;flex-direction:column;gap:12px;}' +
     '.ba-lbl{font-size:16px;font-weight:800;text-align:center;}' +
+    '.ba-fa{display:grid;gap:4px;border-radius:14px;padding:12px 14px;border:2px solid #d8c8a8;background:#fffaf0;color:#2a1a0e;line-height:1.35;font-size:16px;}.ba-fa small{font-size:13px;font-weight:800;text-transform:uppercase;opacity:.8;}.ba-fa b{font-size:18px;}' +
+    '.ba-fa.gerekli{border-color:#e8590c;background:#fff4e6;}.ba-fa.faydali{border-color:#1c7ed6;background:#e7f5ff;}.ba-fa.gerekmez{border-color:#2f9e44;background:#ebfbee;}' +
+    '.ba-meths{display:grid;gap:12px;}.ba-meth{display:block;width:100%;min-height:72px;border-radius:16px;border:2px solid #7f9cc4;background:#fff;font:inherit;font-size:20px;font-weight:900;color:#0d3d73;cursor:pointer;padding:8px 12px;text-align:left;line-height:1.2;}.ba-meth small{display:block;font-size:15px;font-weight:700;opacity:.85;margin-top:2px;}.ba-meth.on{background:#1c5fa8;color:#fff;border-color:#1c5fa8;}' +
     '.ba-step{display:grid;grid-template-columns:76px minmax(0,1fr) 76px;gap:12px;align-items:center;}.ba-step button{height:76px;border-radius:16px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:38px;font-weight:900;color:#0d3d73;cursor:pointer;}' +
     '.ba-step output{font-size:32px;font-weight:900;text-align:center;}.ba-step2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}.ba-step2 button{min-height:64px;border-radius:14px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:20px;font-weight:800;color:#0d3d73;cursor:pointer;}' +
     '.ba-seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;}.ba-seg button,.ba-prods button{min-height:64px;border-radius:14px;border:2px solid #7f9cc4;background:#fff;font:inherit;font-size:16px;font-weight:800;color:#0d3d73;cursor:pointer;padding:4px;}' +
@@ -948,12 +965,23 @@
     }
     function ownDef(s) {
       var c = s.custom || {};
-      return { unit: st.ownUnit || c.unit || s.unit, min: c.min != null ? c.min : (s.min || 0), max: c.max || s.max || 100, inc: c.inc || s.inc || 1, big: c.big, label: c.label || 'Uyguladığınız miktar' };
+      var r = { unit: st.ownUnit || c.unit || s.unit, min: c.min != null ? c.min : (s.min || 0), max: c.max || s.max || 100, inc: c.inc || s.inc || 1, big: c.big, label: c.label || 'Uyguladığınız miktar' };
+      var md = c.methodDef ? c.methodDef(ownMeth(s), ownDays(s)) : null;
+      if (md) Object.keys(md).forEach(function (k) { r[k] = md[k]; });
+      return r;
+    }
+    function ownMeth(s) { var c = (s && s.custom) || {}; return st.ownMeth || c.method0 || 'alkol'; }
+    function ownDays(s) { var c = (s && s.custom) || {}; return st.ownDays != null ? st.ownDays : (c.days0 || 7);
     }
     function ownPanel(s) {
       var d = ownDef(s), c = s.custom || {};
       if (st.ownVal == null) st.ownVal = c.init != null ? c.init : s.rec;
       var H = '<div class="ba-pnl">';
+      if (c.methods) {
+        var m0 = ownMeth(s);
+        H += '<div class="ba-lbl">Sayım yöntemi</div><div class="ba-meths" role="group" aria-label="Sayım yöntemi">' + c.methods.map(function (m) { return '<button type="button" class="ba-meth' + (m.id === m0 ? ' on' : '') + '" data-ba-meth="' + m.id + '" aria-pressed="' + (m.id === m0) + '">' + (m.id === m0 ? '✓ ' : '') + esc(m.label) + '<small>' + esc(m.sub) + '</small></button>'; }).join('') + '</div>';
+        if (m0 === 'tabla') H += '<div class="ba-lbl">Altlık kaç gün kaldı?</div><div class="ba-step"><button type="button" data-ba-dinc="-1" aria-label="Gün azalt">−</button><output data-ba-dout>' + ownDays(s) + ' gün</output><button type="button" data-ba-dinc="1" aria-label="Gün artır">+</button></div>';
+      }
       if (s.types) H += '<div class="ba-seg" role="group" aria-label="Tür">' + s.types.map(function (t) { return '<button type="button" data-ba-type="' + t + '" class="' + ((st.ownType || s.type) === t ? 'on' : '') + '">' + esc(t === 'kek' ? 'Kek' : s.typeInfo[t].label) + '</button>'; }).join('') + '</div>';
       if (c.products) {
         H += '<div class="ba-lbl">Ürün</div><div class="ba-prods">' + c.products.map(function (p) { return '<button type="button" data-ba-prod="' + p.id + '" class="' + ((st.ownProd || c.product) === p.id ? 'on' : '') + '">' + esc(p.label) + '</button>'; }).join('') + '</div>';
@@ -970,7 +998,7 @@
     }
     /* Varroa: girilen sayıya göre öneri (alanın altında) — eşik altı / izle / tedavi + kısa adımlar */
     function advHtml(s) {
-      var c = (s && s.custom) || {}, a = c.advice ? c.advice(st.ownVal) : null;
+      var c = (s && s.custom) || {}, a = c.advice ? c.advice(st.ownVal, ownMeth(s), ownDays(s)) : null;
       if (!a) return '';
       return '<div class="ba-adv ' + a.band + '"><b>' + esc(a.text) + '</b><ol>' + a.steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol></div>';
     }
@@ -1013,7 +1041,7 @@
       if (out.insert) { var ins = [].concat(out.insert); Array.prototype.splice.apply(st.steps, [st.i + 1, 0].concat(ins)); entry.inserted = ins; }
       st.res[s.key] = entry;
       try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
-      st.own = false; st.ownVal = null; st.ownType = null; st.ownUnit = null; st.ownProd = null; st.pendingOwn = false;
+      st.own = false; st.ownVal = null; st.ownType = null; st.ownUnit = null; st.ownProd = null; st.ownMeth = null; st.ownDays = null; st.pendingOwn = false;
       st.i++;
       if (V.on) st.prefix = 'Kaydettim: ' + out.say + '.';
       render();
@@ -1021,14 +1049,14 @@
     function skip(tap) {
       var s = step(); if (!s) return;
       if (!st.res[s.key]) st.res[s.key] = { skipped: true };
-      st.own = false; st.ownVal = null; st.pendingOwn = false;
+      st.own = false; st.ownVal = null; st.ownMeth = null; st.ownDays = null; st.pendingOwn = false;
       st.i++;
       if (V.on) st.prefix = tap ? '' : 'Geçtim.';
       render();
     }
     function goBack() {
       if (st.i === 0) { if (V.on) V.say('İlk öneri bu.'); return; }
-      st.i--; st.own = false; st.ownVal = null; st.pendingOwn = false; render();
+      st.i--; st.own = false; st.ownVal = null; st.ownMeth = null; st.ownDays = null; st.pendingOwn = false; render();
     }
     function choose(kind, x) {
       var s = step(); if (!s) return;
@@ -1045,6 +1073,7 @@
         var d = ownDef(s), t = st.ownType || s.type, c = s.custom || {}, v = Number(st.ownVal);
         var same = s.kind === 'amount' && v === s.rec && t === s.type && (!c.products || ((st.ownProd || c.product) === s.product && d.unit === s.unit));
         var payload = { sug: same ? 'kabul' : 'degisti', v: v, type: t, custom: true, unit: d.unit, product: st.ownProd || c.product };
+        if (c.methods) { payload.meth = ownMeth(s); payload.days = ownDays(s); }
         var ck = dzCheck(s);
         var Ia = global.SuperAriIlac;
         if (ck.level === 'warn' && Ia && Ia.askHighDose) { Ia.askHighDose(ck.text, ck.age).then(function (ok) { if (ok && step() === s) commit(payload); }); return; }
@@ -1167,6 +1196,11 @@
       var ms = missing();
       return st.h.name + ' tamam. ' + (did.length ? 'Yapılanlar: ' + did.join(', ') + '. ' : '') + au + (ms.length ? 'Dikkat, eksik: ' + ms[0].split(' — ')[0] + '. ' : '') + (nx ? 'Sıradaki kovan ' + nx.name + '. ' : 'Sırada bekleyen kovan yok. ') + 'Sonraki, bitir, ya da kovan numarasını söyleyip geç deyin.';
     }
+    /* Besleme önerisi (3 durum) — kayıtlardan sonra güncel stokla */
+    function feedSumHtml() {
+      var P = global.SuperAriPlan; if (!P || !P.feedAdvice) return '';
+      try { var hh = D.hiveById(st.h.id); return '<div class="ba-lbl" style="margin-top:4px;">🍯 Besleme</div>' + P.feedAdviceHtml(P.feedAdvice(hh, P.hiveState(hh)), 'ba-fa'); } catch (e) { return ''; }
+    }
     function renderSum(speak) {
       if (st.auto == null) {
         /* Evet: kartlardan sonra — yapılan / «sonra» görevi eklenen kartların konuları atlanır, atlananlar otomatik görev olur */
@@ -1178,6 +1212,7 @@
       try { cs = D.records.status(st.h.id); } catch (e) { cs = null; }
       var H = vbarHtml() + '<div class="ba-sug">✓ ' + esc(st.h.name) + ' tamam</div>' +
         (cs && (cs.strengthClass || cs.queenless) ? '<div class="ba-why">' + (cs.strengthClass ? 'Koloni: <b>' + esc(cs.strengthClass) + '</b>' : '') + (cs.queenless ? ' · <b>Anasız</b>' : '') + '</div>' : '') +
+        feedSumHtml() +
         (MISS.length ? '<div class="ba-miss" role="alert"><b>⚠ Bitirmeden önce: eksik kontrol</b>' + MISS.map(function (x) { return '<div>' + esc(x) + '</div>'; }).join('') + '</div>' : '') +
         (nx ? '' : '<div class="ba-done">Sırada muayene bekleyen kovan kalmadı.</div>') +
         '<div class="ba-end" role="group" aria-label="Sonra ne yapılsın">' +
@@ -1243,9 +1278,11 @@
       if (t.hasAttribute('data-ba-prod')) { st.ownProd = t.getAttribute('data-ba-prod'); var cc = step() && step().custom; if (cc && cc.labelFor) { var lb = cc.labelFor(st.ownProd); if (lb != null) st.ownVal = lb; } render('keep'); return; }
       if (t.hasAttribute('data-ba-unit')) { st.ownUnit = t.getAttribute('data-ba-unit'); render('keep'); return; }
       if (t.hasAttribute('data-ba-ownsave')) { choose('own'); return; }
+      if (t.hasAttribute('data-ba-meth')) { var sm = step(); st.ownMeth = t.getAttribute('data-ba-meth'); var dm = ownDef(sm); st.ownVal = Math.max(dm.min, Math.min(dm.max, Number(st.ownVal) || 0)); render('keep'); return; }
+      if (t.hasAttribute('data-ba-dinc')) { var sd = step(); st.ownDays = Math.max(1, Math.min(60, ownDays(sd) + Number(t.getAttribute('data-ba-dinc')))); render('keep'); return; }
       if (t.hasAttribute('data-ba-savenote')) { var ta = back.querySelector('[data-ba-note]'); st.noteText = ta ? ta.value.trim() : ''; if (!st.noteText) { skip(true); return; } commit({ text: st.noteText }); return; }
       if (t.hasAttribute('data-ba-skip')) { skip(true); return; }
-      if (t.hasAttribute('data-ba-fwd')) { var s1 = step(); if (s1 && st.res[s1.key]) { st.i++; st.own = false; st.ownVal = null; render(); } else skip(true); return; }
+      if (t.hasAttribute('data-ba-fwd')) { var s1 = step(); if (s1 && st.res[s1.key]) { st.i++; st.own = false; st.ownVal = null; st.ownMeth = null; st.ownDays = null; render(); } else skip(true); return; }
       if (t.hasAttribute('data-ba-back')) { goBack(); return; }
       if (t.hasAttribute('data-ba-nexthive')) { goNextHive(); return; }
       if (t.hasAttribute('data-ba-mode')) { setBakimPref(bakimPref() === false); opts.bakim = bakimPref(); render(false); return; }

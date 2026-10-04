@@ -43,4 +43,30 @@ assert.ok(!/new global\.SpeechSynthesisUtterance/.test(ak) && /VS\.speak\(text/.
 /* voiceschanged dinlenir (iOS sesleri geç yükler); arayüze yeni alan eklenmedi */
 const src = fs.readFileSync(path.join(__dirname, '..', 'sesle-muayene.js'), 'utf8');
 assert.ok(/addEventListener\('voiceschanged', refresh\)/.test(src));
+/* uygulamanın kendi ses adları + aile başına tek ses (Geliştirilmiş varsa o) + kaynak bağımsız seçenek modeli */
+{
+  const SS = require('../sesle-muayene.js');
+  const L = [{ name: 'Yelda', voiceURI: 'com.apple.voice.compact.tr-TR.Yelda', lang: 'tr-TR' }, { name: 'Yelda (Gelişmiş)', voiceURI: 'com.apple.voice.enhanced.tr-TR.Yelda', lang: 'tr-TR' },
+    { name: 'Cem', voiceURI: 'com.apple.voice.compact.tr-TR.Cem', lang: 'tr-TR' }, { name: 'Cem (Enhanced)', voiceURI: 'com.apple.voice.enhanced.tr-TR.Cem', lang: 'tr-TR' },
+    { name: 'Ses 1', voiceURI: 'siri.tr.a', lang: 'tr-TR' }, { name: 'Google Türkçe', voiceURI: 'Google Türkçe', lang: 'tr-TR' },
+    { name: 'Türkçe Türkiye', voiceURI: 'tr-tr-x-ama-local', lang: 'tr-TR' }];
+  const u = SS.uniqueTrVoices(L).map((v) => v.name);
+  assert.deepStrictEqual(u.slice(0, 2).sort(), ['Cem (Enhanced)', 'Yelda (Gelişmiş)'], 'Geliştirilmiş Cem/Yelda başta: ' + u);
+  assert.ok(!u.includes('Cem') && !u.includes('Yelda'), 'tek Cem, tek Yelda (standartlar gizli): ' + u);
+  assert.strictEqual(SS.bestTrVoice(L).name, 'Cem (Enhanced)', 'varsayılan Geliştirilmiş');
+  assert.strictEqual(SS.bestTrVoice(L, 'com.apple.voice.compact.tr-TR.Yelda').name, 'Yelda (Gelişmiş)', 'kayıtlı standart → ailenin Geliştirilmiş sürümü');
+  const std = L.filter((v) => !/enhanced/i.test(v.voiceURI));
+  assert.ok(SS.uniqueTrVoices(std).some((v) => v.name === 'Cem') && SS.uniqueTrVoices(std).some((v) => v.name === 'Yelda'), 'Geliştirilmiş yoksa standart');
+  const nk = (n, list) => SS.voiceNick(L.find((v) => v.name === n), list || L).nick;
+  assert.strictEqual(nk('Cem (Enhanced)'), 'Ali'); assert.strictEqual(nk('Cem'), 'Ali'); assert.strictEqual(nk('Yelda (Gelişmiş)'), 'Petek'); assert.strictEqual(nk('Yelda'), 'Petek');
+  assert.strictEqual(SS.voiceNick(std[0], std).nick, 'Petek');
+  const ops = SS.deviceOptions(L);
+  assert.strictEqual(ops.length, 5, 'seçenek: Ali, Petek, Siri, Google, Android');
+  assert.ok(ops.every((o) => o.source === 'device' && o.id && o.ref), 'kaynak bağımsız seçenek modeli');
+  assert.ok(ops.every((o) => !SS.RESERVED_NICKS.includes(o.nick)), 'Sinan / Çiçek bulut sesleri için ayrıldı');
+  assert.deepStrictEqual(['Ses 1', 'Google Türkçe', 'Türkçe Türkiye'].map((n) => nk(n)), ['Polen', 'Nektar', 'Yonca'], 'tabloda olmayanlar sırayla yedek ad');
+  assert.strictEqual(nk('Türkçe Türkiye', L.slice().reverse()), 'Yonca', 'sıra listeden bağımsız');
+  assert.strictEqual(SS.optionTags(ops[0], ops[0]), 'erkek · Geliştirilmiş · önerilen');
+  L.forEach((v) => assert.ok(!/yelda|cem|ses 1|google|hardal/i.test(SS.voiceNick(v, L).nick), 'sistem adı gösterilmez'));
+}
 console.log('sesle-ses ok');
