@@ -134,7 +134,34 @@
     return v != null ? { value: v } : { none: true };
   }
 
-  var API = { parse: parse, parseNumber: parseNumber, numbers: numbers, parseFrames: parseFrames, matchOption: matchOption, fold: fold };
+  /* ---------------- Ses seçimi (saf; node testi: tests/sesle-ses.test.js) ----------------
+   * tr-TR sesleri arasından en kalitelisi: 1) Enhanced / Gelişmiş / Premium (iOS Yelda / Cem Enhanced),
+   * 2) Google Türkçe (Android / Chrome, ağ / neural), 3) Edge «Online (Natural)», 4) cihaz üstü (localService) varsayılan tr ses. Compact / eSpeak en sona. */
+  function voiceRank(v) {
+    if (!v) return -999;
+    var n = String(v.name || '') + ' ' + String(v.voiceURI || ''), r = 0;
+    if (/enhanced|premium|gelişmiş|gelismis|geliştirilmiş|yüksek kalite|high quality/i.test(n)) r += 100;
+    if (/google/i.test(n)) r += 60 + (v.localService === false ? 5 : 0);
+    if (/natural|neural/i.test(n)) r += 55;
+    if (/yelda|cem\b/i.test(n)) r += 5;
+    if (v['default']) r += 3;
+    if (v.localService) r += 2; /* çevrimdışı da çalışır */
+    if (/^tr[-_]TR$/i.test(v.lang || '')) r += 1;
+    if (/compact|espeak/i.test(n)) r -= 30;
+    return r;
+  }
+  function sortTrVoices(list) {
+    return (list || []).filter(function (v) { return v && /^tr([-_]|$)/i.test(String(v.lang || '')); })
+      .sort(function (a, b) { return voiceRank(b) - voiceRank(a) || String(a.name).localeCompare(String(b.name)); });
+  }
+  /** Kayıtlı seçim (Ses ayarı) cihazda varsa o; yoksa en kaliteli tr ses; hiç yoksa null. */
+  function bestTrVoice(list, savedId) {
+    var l = sortTrVoices(list);
+    if (savedId) { for (var i = 0; i < l.length; i++) if (l[i].voiceURI === savedId || l[i].name === savedId) return l[i]; }
+    return l[0] || null;
+  }
+
+  var API = { parse: parse, parseNumber: parseNumber, numbers: numbers, parseFrames: parseFrames, matchOption: matchOption, fold: fold, voiceRank: voiceRank, sortTrVoices: sortTrVoices, bestTrVoice: bestTrVoice };
   if (typeof module !== 'undefined' && module.exports) { module.exports = API; return; }
 
   /* ---------------- tarayıcı: ses denetleyicisi ---------------- */
@@ -156,28 +183,23 @@
   var active = null;
   /* ---- Ses seçimi: cihazdaki en doğal Türkçe ses (ücretsiz, cihaz üstü) ---- */
   var VOICE_KEY = 'superari.sesleSes.v1';
-  function voiceRank(v) {
-    var n = String(v.name || '') + ' ' + String(v.voiceURI || ''), r = 0;
-    if (/natural|neural/i.test(n)) r += 50;
-    if (/enhanced|premium|gelişmiş|gelismis|yüksek kalite|high quality/i.test(n)) r += 40;
-    if (/yelda/i.test(n)) r += 12;
-    if (/emel|ahmet/i.test(n) && /online/i.test(n)) r += 30;
-    if (/google/i.test(n)) r += 20;
-    if (/^tr[-_]TR$/i.test(v.lang)) r += 3;
-    if (v.localService) r += 1; /* çevrimdışı da çalışır */
-    if (/compact|espeak/i.test(n)) r -= 20;
-    return r;
-  }
   function trVoices() {
     var vs = []; try { vs = global.speechSynthesis.getVoices() || []; } catch (e) { vs = []; }
-    return vs.filter(function (v) { return /^tr/i.test(v.lang); }).sort(function (a, b) { return voiceRank(b) - voiceRank(a) || String(a.name).localeCompare(String(b.name)); });
+    if (vs.length) voiceCache = vs; else vs = voiceCache; /* iOS: sesler geç yüklenir → son bilinen liste */
+    return sortTrVoices(vs);
   }
   function savedVoiceId() { try { return localStorage.getItem(VOICE_KEY) || ''; } catch (e) { return ''; } }
-  function trVoice() {
-    var list = trVoices(), id = savedVoiceId();
-    if (id) { for (var i = 0; i < list.length; i++) if (list[i].voiceURI === id || list[i].name === id) return list[i]; }
-    return list[0] || null;
-  }
+  function trVoice() { return bestTrVoice(trVoices(), savedVoiceId()); }
+  /* sesler geç yüklenebilir (iOS Safari): voiceschanged ile önbelleği yenile, yüklemeyi şimdiden tetikle */
+  var voiceCache = [];
+  try {
+    if (global.speechSynthesis) {
+      var refresh = function () { try { var l = global.speechSynthesis.getVoices() || []; if (l.length) voiceCache = l; } catch (e) { /* ignore */ } };
+      if (global.speechSynthesis.addEventListener) global.speechSynthesis.addEventListener('voiceschanged', refresh);
+      else global.speechSynthesis.onvoiceschanged = refresh;
+      refresh();
+    }
+  } catch (e) { /* ignore */ }
   function utter(text) {
     var u = new global.SpeechSynthesisUtterance(text); u.lang = 'tr-TR'; u.rate = 1.02; u.pitch = 1.0;
     var v = trVoice(); if (v) { u.voice = v; u.lang = v.lang; }
@@ -342,7 +364,7 @@
     function fillVoices() {
       var sel = $('vsel'), list = trVoices(), cur = trVoice();
       sel.innerHTML = list.length ? list.map(function (v, i) {
-        var tag = voiceRank(v) >= 40 ? ' · doğal' : '';
+        var tag = voiceRank(v) >= 55 ? ' · doğal' : '';
         return '<option value="' + esc(v.voiceURI || v.name) + '"' + (cur && (cur.voiceURI || cur.name) === (v.voiceURI || v.name) ? ' selected' : '') + '>' + esc(v.name) + (i === 0 ? ' (önerilen)' : '') + tag + '</option>';
       }).join('') : '<option value="">Cihazda Türkçe ses bulunamadı</option>';
     }
