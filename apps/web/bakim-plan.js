@@ -459,7 +459,15 @@
     return out;
   }
   /** Tedaviyi kaydet: hastalık kaydı + şerit çıkarma görevi + stoktan düş. */
-  function saveTreatment(hiveId, productId) {
+  /** Ürünün stoktaki şerit kalemi (ad → etken madde eşleşmesi) */
+  function treatItem(p) {
+    var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+    var nm = p.name.toLocaleLowerCase('tr').split(' ')[0], act = p.active.toLocaleLowerCase('tr').split(' ')[0];
+    return list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(nm) >= 0; })[0] ||
+      list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(act) >= 0; })[0] || null;
+  }
+  /** qty: uygulanan GERÇEK şerit/kovan (boşsa etiket dozu). Stoktan bu miktar düşülür; uygulama etiket dışı miktar önermez. */
+  function saveTreatment(hiveId, productId, qtyIn) {
     var I = global.SuperAriIlac, h = D.hiveById(hiveId), p = I.byId(productId);
     if (!h || !p) return { ok: false, msg: 'Kovan veya ürün bulunamadı' };
     if (!p.dose) return { ok: false, msg: p.label ? 'Tütsü ürünü: şerit kaydı hesaplanmaz; uygulamayı Koloni › tedavi kaydından girin (etiket: ' + (p.label.puffsPerHive ? p.label.puffsPerHive + ' duman darbesi/kovan' : p.label.perHive + ' şerit yakılır/kovan') + ', ' + p.label.intervalDays + ' gün ara ile ' + p.label.repeats + ' kez).' : 'Doz doğrulanmadı; bu ürün için kayıt hesaplanmaz.' };
@@ -467,17 +475,15 @@
     if (mp.blocks.length) return { ok: false, msg: mp.blocks[0] };
     if (po.blocks.length) return { ok: false, msg: po.blocks[0] };
     if (!po.dose.ok) return { ok: false, msg: po.dose.reason };
-    var t = today(), dur = p.durationDays[1], qty = po.dose.qty;
+    var t = today(), dur = p.durationDays[1], lab = po.dose.qty, qn = Number(String(qtyIn == null ? '' : qtyIn).replace(',', '.'));
+    var qty = qn > 0 && qn <= 50 ? Math.round(qn * 10) / 10 : lab;
     var rec = D.records.add(h.id, 'disease', { date: t, disease: 'varroa', count: mp.varroa ? mp.varroa.count : null, method: mp.varroa ? mp.varroa.method : 'alkol',
-      infestation: mp.infestation, treatment: p.name + ' (' + p.active + ')', dose: qty, doseUnit: 'serit',
+      infestation: mp.infestation, treatment: p.name + ' (' + p.active + ')', dose: qty, doseUnit: 'serit', labelDose: lab,
       withdrawalDays: p.withdrawal === 'tedaviBoyunca' ? dur : 0, checkDate: addDays(t, dur), note: 'Bakım planı · etiket: ' + p.dose.note.slice(0, 200) });
     D.taskStore.add({ title: 'Şeritleri çıkar (' + p.name + ') ve varroa sayımı yap — ' + h.name + (mode() === 'demo' ? ' · Demo' : ''), hiveId: h.id,
       due: addDays(t, dur), priority: 1, note: 'Bakım planı ilaç · ' + p.durationDays[0] + '–' + dur + ' gün' });
-    var msg = p.name + ' ' + po.dose.text + ' şerit kaydedildi; çıkarma görevi ' + fmt(addDays(t, dur)) + ' tarihine eklendi.', low = null;
-    var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
-    var nm = p.name.toLocaleLowerCase('tr').split(' ')[0], act = p.active.toLocaleLowerCase('tr').split(' ')[0];
-    var it = list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(nm) >= 0; })[0] ||
-      list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(act) >= 0; })[0];
+    var msg = p.name + ' ' + num(qty) + ' şerit' + (qty !== lab ? ' (etiket dozu: ' + num(lab) + ')' : '') + ' kaydedildi; çıkarma görevi ' + fmt(addDays(t, dur)) + ' tarihine eklendi.', low = null;
+    var it = treatItem(p);
     if (it) {
       var after = D.stock.adjust(it.id, -qty, 'İlaçlama · ' + h.name, t);
       if (after) { msg += ' Stoktan ' + qty + ' şerit düşüldü (' + after.name + ': ' + num(after.qty) + ').'; if (after.low) { low = after; msg += ' ⚠️ Stok azaldı.'; } }
@@ -572,6 +578,11 @@
     '.bo-block{background:#fff5f5;border:1px solid #ffc9c9;color:#a61e1e;border-radius:10px;padding:.4rem .5rem;font-size:.78rem}.bo-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}' +
     '.bo-row select,.bo-row input{font:inherit;font-size:.85rem;padding:.45rem .5rem;border:1px solid #ead9b3;border-radius:10px;background:#fff;min-width:0;max-width:100%}.bo-row input[type=number]{width:5.5rem}.bo-row select{flex:1 1 12rem}' +
     '.bo-btn{font:inherit;font-size:.82rem;font-weight:800;padding:.5rem .75rem;border-radius:10px;border:1.5px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#fff3bf);color:#5c4813;cursor:pointer}' +
+    '.bo-dz{display:grid;gap:6px;font-size:.8rem;font-weight:800;color:#5c4813}.bo-dzs{display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:10px;align-items:center}' +
+    '.bo-dzs button{min-height:72px;border-radius:16px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:36px;font-weight:900;color:#0d3d73;cursor:pointer;touch-action:manipulation}' +
+    '.bo-dzs output{font-size:30px;font-weight:900;text-align:center}.bo-dzn{margin:0;font-size:.85rem;line-height:1.35}.bo-dzn.note{color:#5c4813;font-weight:700}' +
+    '.bo-dzn.warn{background:#fff0f0;border:3px solid #c92a2a;color:#8a1c1c;border-radius:12px;padding:10px;font-size:1rem;font-weight:900}.bo-dzn.age{background:#f6f1e4;border:1px solid #e3d3a8;color:#5c4813;border-radius:10px;padding:8px;font-weight:700}' +
+    '.bo-btn.bo-big{min-height:64px;font-size:1.05rem;width:100%}' +
     '.bo-btn.ok{border-color:#b2f2bb;background:#ebfbee;color:#2b8a3e}.bo-task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:center;border-top:1px dashed #ead9b3;padding-top:.35rem}' +
     '.bo-task:first-of-type{border-top:0;padding-top:0}.bo-msg{font-size:.8rem;font-weight:700;color:#2b8a3e;margin:0}.bo-msg.err{color:#c92a2a}';
   function ensureCss() { if (document.getElementById('bo-css')) return; var s = document.createElement('style'); s.id = 'bo-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -619,7 +630,10 @@
         var dis = !x.dose.ok || x.blocks.length;
         return '<option value="' + x.id + '"' + (dis ? ' disabled' : '') + (mp.best && mp.best.id === x.id ? ' selected' : '') + '>' + esc(x.name + ' — ' + (x.dose.ok ? x.dose.text + ' şerit' : 'doz yok') + (x.blocks.length ? ' (uygun değil)' : x.warns.length ? ' (rotasyon uyarısı)' : '')) + '</option>';
       }).join('');
-      V += '<div class="bo-row"><select data-bo-prod aria-label="İlaç">' + opt + '</select><button type="button" class="bo-btn" data-bo-treat>İlaçlamayı kaydet</button></div><div data-bo-prodinfo></div>';
+      V += '<div class="bo-row"><select data-bo-prod aria-label="İlaç">' + opt + '</select></div><div data-bo-prodinfo></div>' +
+        '<div class="bo-dz"><span id="boDzL' + esc(h.id) + '">Uyguladığınız şerit / kovan (gerçek sayı)</span><div class="bo-dzs"><button type="button" data-bo-dz="-1" aria-label="Şerit azalt">−</button>' +
+        '<output data-bo-dzv aria-labelledby="boDzL' + esc(h.id) + '" aria-live="polite"></output><button type="button" data-bo-dz="1" aria-label="Şerit artır">+</button></div><div data-bo-dzchk></div></div>' +
+        '<button type="button" class="bo-btn bo-big" data-bo-treat>İlaçlamayı kaydet</button>';
     }
     V += '<p class="bo-warn"><b>Etiket dozunu kontrol edin.</b> Doz yalnız Bakanlık ürün belgesindeki kurala göre hesaplanır.</p></div>';
     H.push(V);
@@ -639,7 +653,24 @@
     H.push(F);
     H.push('<p class="bo-msg" data-bo-msg role="status"></p>');
     el.innerHTML = '<div class="bo">' + H.join('') + '</div>';
+    var dz = { pid: null, v: null };
+    function dzChk() {
+      var sel = el.querySelector('[data-bo-prod]'), out = el.querySelector('[data-bo-dzv]'), box = el.querySelector('[data-bo-dzchk]');
+      var res = { level: 'none', text: '', age: '' };
+      if (!sel || !out) return res;
+      var po = mp.products.filter(function (x) { return x.id === sel.value; })[0], p = I.byId(sel.value);
+      var lab = po && po.dose && po.dose.ok ? po.dose.qty : null;
+      if (dz.pid !== sel.value) { dz.pid = sel.value; dz.v = lab; }
+      out.textContent = dz.v != null ? num(dz.v) + ' şerit' : '—';
+      if (lab != null && I.doseCheck) { var c = I.doseCheck(dz.v, lab, 'serit'); res.level = c.level; res.text = c.text; }
+      var it = p ? treatItem(p) : null;
+      if (it && I.ageNote) res.age = I.ageNote(I.productOfItem(it) || p.id, it, lab, 'serit', today());
+      if (box) box.innerHTML = (res.level === 'warn' || res.level === 'note' ? '<p class="bo-dzn ' + res.level + '" role="' + (res.level === 'warn' ? 'alert' : 'status') + '">' + (res.level === 'warn' ? '⚠ ' : '') + esc(res.text) + '</p>' : '') +
+        (res.age ? '<p class="bo-dzn age">ℹ ' + esc(res.age) + '</p>' : '');
+      return res;
+    }
     function info() {
+      dzChk();
       var sel = el.querySelector('[data-bo-prod]'), box = el.querySelector('[data-bo-prodinfo]');
       if (!sel || !box) return;
       var po = mp.products.filter(function (x) { return x.id === sel.value; })[0], p = I.byId(sel.value);
@@ -672,10 +703,16 @@
       } else if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
       else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cell]').value, el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
       else if (b.hasAttribute('data-bo-savecount')) say(saveCount(h.id, el.querySelector('[data-bo-count]').value, el.querySelector('[data-bo-method]').value));
+      else if (b.hasAttribute('data-bo-dz')) { if (dz.v == null) return; dz.v = Math.max(1, Math.min(50, dz.v + Number(b.getAttribute('data-bo-dz')))); dzChk(); }
       else if (b.hasAttribute('data-bo-treat')) {
-        var r = saveTreatment(h.id, el.querySelector('[data-bo-prod]').value);
-        if (r.ok) { var n = completeMatching(h.id, /ilaçlama|Varroa sayımı ve/i); if (n) r.msg += ' ' + n + ' görev tamamlandı.'; }
-        say(r);
+        var doTreat = function () {
+          var r = saveTreatment(h.id, el.querySelector('[data-bo-prod]').value, dz.v);
+          if (r.ok) { var n = completeMatching(h.id, /ilaçlama|Varroa sayımı ve/i); if (n) r.msg += ' ' + n + ' görev tamamlandı.'; }
+          say(r);
+        };
+        var ck = dzChk();
+        if (ck.level === 'warn' && I.askHighDose) I.askHighDose(ck.text, ck.age).then(function (ok) { if (ok) doTreat(); });
+        else doTreat();
       } else if (b.hasAttribute('data-bo-feed')) {
         var r2 = saveFeeding(h.id, el.querySelector('[data-bo-feedl]').value);
         if (r2.ok) { var n2 = completeMatching(h.id, /besleme|stok kontrol/i); if (n2) r2.msg += ' ' + n2 + ' görev tamamlandı.'; }

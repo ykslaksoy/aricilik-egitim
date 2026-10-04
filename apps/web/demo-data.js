@@ -2360,6 +2360,7 @@
       var tr = txt(r.treatment, 200); if (tr) o.treatment = tr;
       o.dose = numIn(r.dose, 0, 1000);
       if (o.dose != null) o.doseUnit = pick(r.doseUnit, ['serit', 'ml', 'g'], 'serit');
+      var ld = numIn(r.labelDose, 0, 1000); if (o.dose != null && ld != null && ld > 0) o.labelDose = ld; /* etiket dozu (gerçek miktar = dose) */
       var by = txt(r.appliedBy, 80); if (by) o.appliedBy = by;
       o.withdrawalDays = intIn(r.withdrawalDays, 0, 365) || 0;
       var cd = isoDate(r.checkDate); if (cd) o.checkDate = cd;
@@ -4460,7 +4461,7 @@
     var q = numIn(it.qty, -100000, 1000000); o.qty = q == null ? 0 : q;
     var th = numIn(it.threshold, 0, 1000000); o.threshold = th == null ? 0 : th;
     if (it.feedType && FEED_LABEL[it.feedType]) o.feedType = it.feedType;
-    if (o.category === 'ilac') { var skt = isoDate(it.skt); if (skt) o.skt = skt; } /* son kullanma tarihi (isteğe bağlı, yalnız ilaç) */
+    if (o.category === 'ilac') { var skt = isoDate(it.skt); if (skt) o.skt = skt; var opd = isoDate(it.opened); if (opd) o.opened = opd; } /* son kullanma / açılma tarihi (isteğe bağlı, yalnız ilaç) */
     var note = txt(it.note, 200); if (note) o.note = note;
     if (it.demo === true) o.demo = true;
     o.log = (Array.isArray(it.log) ? it.log : []).filter(Boolean).slice(-40).map(function (l) {
@@ -4503,8 +4504,9 @@
     if (!isNew) a.forEach(function (x) { if (x && x.id === it.id) base = x; });
     if (!base) return null;
     var m = cloneObj(base);
-    ['name', 'category', 'unit', 'threshold', 'feedType', 'note', 'skt'].forEach(function (k) { if (Object.prototype.hasOwnProperty.call(it, k)) m[k] = it[k]; });
+    ['name', 'category', 'unit', 'threshold', 'feedType', 'note', 'skt', 'opened'].forEach(function (k) { if (Object.prototype.hasOwnProperty.call(it, k)) m[k] = it[k]; });
     if (!m.skt) delete m.skt;
+    if (!m.opened) delete m.opened;
     if (m.category && !isBuiltinCat(m.category)) m.catLabel = catLabel(m.category); else delete m.catLabel;
     if (!it.feedType) delete m.feedType;
     var newQty = numIn(it.qty, -100000, 1000000);

@@ -458,7 +458,15 @@
       var ver = I.LIST.filter(function (p) { return p.dose; });
       var custom = { unit: 'serit', min: 1, max: 50, inc: 1, init: best ? best.dose.qty : 2, label: 'Uyguladığınız miktar', units: ['serit', 'g', 'ml'],
         products: ver.map(function (p) { return { id: p.id, label: p.name.split(' ')[0] }; }).concat([{ id: 'diger', label: 'Başka ürün' }]),
-        product: best ? best.id : 'diger', warn: 'Etiket dışı miktar önerilmez; yalnız uyguladığınızı kaydedin.' };
+        product: best ? best.id : 'diger', warn: 'Etiket dışı miktar önerilmez; yalnız uyguladığınızı kaydedin.',
+        /* gerçek miktar ↔ etiket dozu notu (ilac-katalog.js): etiket+1 nötr not, ≥ etiket+2 güçlü uyarı + onay; eski ilaç bilgi notu */
+        labelFor: function (pid) { if (!pid || pid === 'diger') return null; var dz = I.doseFor(pid, (st2 || st).beeFrames); return dz.ok ? dz.qty : null; },
+        itemFor: function (pid) {
+          var p = pid && pid !== 'diger' ? I.byId(pid) : null; if (!p) return null;
+          var list = []; try { list = D.stock.list(); } catch (e) { list = []; }
+          var nm = p.name.toLocaleLowerCase('tr').split(' ')[0];
+          return list.filter(function (x) { return x.category === 'ilac' && x.unit === 'şerit' && x.name.toLocaleLowerCase('tr').indexOf(nm) >= 0; })[0] || null;
+        } };
       var saveT = function (res, step) {
         var undo = [], pid = res.product || (best && best.id), p = pid && pid !== 'diger' ? I.byId(pid) : null, unit = res.unit || 'serit', qty = res.v, t = today();
         var dur = p && p.durationDays ? p.durationDays[1] : 0, vr = (st2 || st).varroa || {};
@@ -746,6 +754,8 @@
     '.ba-step output{font-size:32px;font-weight:900;text-align:center;}.ba-step2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}.ba-step2 button{min-height:64px;border-radius:14px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:20px;font-weight:800;color:#0d3d73;cursor:pointer;}' +
     '.ba-seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;}.ba-seg button,.ba-prods button{min-height:64px;border-radius:14px;border:2px solid #7f9cc4;background:#fff;font:inherit;font-size:16px;font-weight:800;color:#0d3d73;cursor:pointer;padding:4px;}' +
     '.ba-seg button.on,.ba-prods button.on{background:#1c5fa8;color:#fff;border-color:#1c5fa8;}.ba-prods{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}' +
+    '.ba-dzn{font-size:16px;font-weight:800;color:#5c4813;}.ba-dzw{background:#fff0f0;border:3px solid #c92a2a;color:#8a1c1c;border-radius:12px;padding:10px;font-size:18px;font-weight:900;line-height:1.35;}' +
+    '.ba-dza{background:#f6f1e4;border:1px solid #e3d3a8;color:#5c4813;border-radius:12px;padding:10px;font-size:15px;font-weight:700;line-height:1.35;margin-top:6px;}' +
     '.ba-warn{background:#fff4e6;border:2px solid #ffc078;color:#7a3e00;border-radius:12px;padding:10px;font-size:15px;font-weight:700;}' +
     '.ba-note{width:100%;min-height:120px;font:inherit;font-size:18px;border-radius:14px;border:2px solid #b8a386;padding:10px;}' +
     '.ba-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #eadfcd;background:#fffdf8;}' +
@@ -917,15 +927,31 @@
       H += '<div class="ba-lbl">' + esc(d.label) + '</div><div class="ba-step"><button type="button" data-ba-inc="-1" aria-label="Azalt">−</button><output data-ba-out>' + esc(num(st.ownVal) + ' ' + (UNIT_TXT[d.unit] || '')) + '</output><button type="button" data-ba-inc="1" aria-label="Artır">+</button></div>';
       if (d.big) H += '<div class="ba-step2"><button type="button" data-ba-inc="-' + d.big + '">−' + d.big + '</button><button type="button" data-ba-inc="' + d.big + '">+' + d.big + '</button></div>';
       if (s.types && s.sub) H += '<div class="ba-why" data-ba-ownsub>' + esc(s.sub(st.ownVal, st.ownType || s.type)) + '</div>';
+      if (c.labelFor) H += '<div data-ba-dzchk aria-live="polite">' + dzHtml(s) + '</div>';
       if (c.warn) H += '<div class="ba-warn">' + esc(c.warn) + '</div>';
       H += '<button type="button" class="ba-btn ba-ok" data-ba-ownsave style="min-height:64px;font-size:20px;">✓ Bunu kaydet</button></div>';
       return H;
+    }
+    function dzCheck(s) {
+      var I = global.SuperAriIlac, c = (s && s.custom) || {}, res = { level: 'none', text: '', age: '' };
+      if (!c.labelFor || !I || !I.doseCheck) return res;
+      var d = ownDef(s), pid = st.ownProd || c.product, lab = c.labelFor(pid);
+      if (lab != null && d.unit === 'serit') { var k = I.doseCheck(st.ownVal, lab, 'serit'); res.level = k.level; res.text = k.text; res.label = lab; }
+      var it = c.itemFor ? c.itemFor(pid) : null;
+      if (it && I.ageNote) res.age = I.ageNote(I.productOfItem(it) || pid, it, lab, 'serit', today());
+      return res;
+    }
+    function dzHtml(s) {
+      var r = dzCheck(s);
+      return (r.level === 'warn' ? '<div class="ba-dzw" role="alert">⚠ ' + esc(r.text) + '</div>' : (r.level === 'note' ? '<div class="ba-dzn">' + esc(r.text) + '</div>' : '')) +
+        (r.age ? '<div class="ba-dza">ℹ ' + esc(r.age) + '</div>' : '');
     }
     function incOwn(d) {
       var s = step(), o = ownDef(s), inc = Math.abs(d) === 1 ? o.inc : 1;
       st.ownVal = Math.max(o.min, Math.min(o.max, Math.round((Number(st.ownVal) + d * inc) * 100) / 100));
       var out = back.querySelector('[data-ba-out]'); if (out) out.textContent = num(st.ownVal) + ' ' + (UNIT_TXT[o.unit] || '');
       var sb = back.querySelector('[data-ba-ownsub]'); if (sb && s.sub) sb.textContent = s.sub(st.ownVal, st.ownType || s.type);
+      var dzb = back.querySelector('[data-ba-dzchk]'); if (dzb) dzb.innerHTML = dzHtml(s);
     }
     /* Kaydet: önceki kayıt varsa geri al, yenisini yaz, sesle onayla, ilerle */
     function commit(res) {
@@ -975,7 +1001,11 @@
       if (kind === 'own') {
         var d = ownDef(s), t = st.ownType || s.type, c = s.custom || {}, v = Number(st.ownVal);
         var same = s.kind === 'amount' && v === s.rec && t === s.type && (!c.products || ((st.ownProd || c.product) === s.product && d.unit === s.unit));
-        commit({ sug: same ? 'kabul' : 'degisti', v: v, type: t, custom: true, unit: d.unit, product: st.ownProd || c.product });
+        var payload = { sug: same ? 'kabul' : 'degisti', v: v, type: t, custom: true, unit: d.unit, product: st.ownProd || c.product };
+        var ck = dzCheck(s);
+        var Ia = global.SuperAriIlac;
+        if (ck.level === 'warn' && Ia && Ia.askHighDose) { Ia.askHighDose(ck.text, ck.age).then(function (ok) { if (ok && step() === s) commit(payload); }); return; }
+        commit(payload);
       }
     }
     /* ---- Ses ---- */
@@ -1034,7 +1064,7 @@
       if (r.n != null && (s.kind === 'amount' || s.custom) && !(r.cmd === 'tamam' && !r.unit && r.n === 1 && fold(raw).split(' ').length === 1)) {
         var d = ownDef(s), to = s.kind === 'amount' ? s.unit : d.unit, cv = convert(r.n, r.unit, to);
         if (cv == null) { V.say('Bu adımın birimi ' + UNIT_SAY[to] + '. Tekrar söyler misiniz?'); return; }
-        if (s.noPresets && cv !== s.rec) { st.own = true; st.ownVal = cv; render(false); st.pendingOwn = true; V.say(sayNum(cv) + ' şerit, etiket dozundan farklı. Yine de kaydetmek için tamam deyin, yapmadıysanız atla deyin.'); return; }
+        if (s.noPresets && cv !== s.rec) { st.own = true; st.ownVal = cv; render(false); st.pendingOwn = true; var vck = dzCheck(s); V.say(vck.level === 'warn' ? sayNum(cv) + ' şerit. ' + vck.text.replace(/\. Etiket: .*$/, '') + '. Etiket ' + sayNum(vck.label != null ? vck.label : s.rec) + ' şerit. Yine de kaydetmek için tamam deyin, ekranda onaylayın; düzeltmek için miktarı söyleyin.' : sayNum(cv) + ' şerit, etiket dozundan farklı. Yine de kaydetmek için tamam deyin, yapmadıysanız atla deyin.'); return; }
         if (s.kind === 'amount') { cv = Math.max(s.min || 0, Math.min(s.max || 100, cv)); commit({ sug: cv === s.rec ? 'kabul' : 'degisti', v: cv, type: s.type, unit: s.unit, product: s.product, custom: true }); return; }
         st.ownVal = Math.max(d.min, Math.min(d.max, cv)); choose('own'); return;
       }
@@ -1139,7 +1169,7 @@
       if (t.hasAttribute('data-ba-own')) { st.own = true; render('keep'); var pn = back.querySelector('.ba-pnl'); if (pn && pn.scrollIntoView) pn.scrollIntoView({ block: 'center' }); return; }
       if (t.hasAttribute('data-ba-inc')) { incOwn(Number(t.getAttribute('data-ba-inc'))); return; }
       if (t.hasAttribute('data-ba-type')) { var s0 = step(); st.ownType = t.getAttribute('data-ba-type'); st.ownUnit = s0.typeInfo ? s0.typeInfo[st.ownType].unit : null; render('keep'); return; }
-      if (t.hasAttribute('data-ba-prod')) { st.ownProd = t.getAttribute('data-ba-prod'); render('keep'); return; }
+      if (t.hasAttribute('data-ba-prod')) { st.ownProd = t.getAttribute('data-ba-prod'); var cc = step() && step().custom; if (cc && cc.labelFor) { var lb = cc.labelFor(st.ownProd); if (lb != null) st.ownVal = lb; } render('keep'); return; }
       if (t.hasAttribute('data-ba-unit')) { st.ownUnit = t.getAttribute('data-ba-unit'); render('keep'); return; }
       if (t.hasAttribute('data-ba-ownsave')) { choose('own'); return; }
       if (t.hasAttribute('data-ba-savenote')) { var ta = back.querySelector('[data-ba-note]'); st.noteText = ta ? ta.value.trim() : ''; if (!st.noteText) { skip(true); return; } commit({ text: st.noteText }); return; }

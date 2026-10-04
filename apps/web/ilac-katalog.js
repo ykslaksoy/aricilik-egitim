@@ -168,6 +168,76 @@
     return null;
   }
 
+  /* ---------------- Raf ömrü / açıldıktan sonra (koloni-79) ----------------
+   * shelfYears: kapalı ambalaj raf ömrü (yıl); openedDays: açıldıktan sonra kullanım süresi (gün; 0 = hemen kullanılmalı; null = bilinmiyor).
+   * Rulamit şerit: bilgi yok (null). Bu veriler yalnız bilgi notu içindir; doz HİÇBİR ZAMAN değiştirilmez / önerilmez. */
+  var STORAGE = {
+    beeraz: { shelfYears: 2, openedDays: 42 }, beevarflu: { shelfYears: 2, openedDays: 42 }, fumbee: { shelfYears: 2, openedDays: 42 }, varodur: { shelfYears: 2, openedDays: 42 },
+    bayvarol: { shelfYears: 5, openedDays: 42 }, polyvar: { shelfYears: 3, openedDays: 0 }, checkmite: { shelfYears: 3, openedDays: 0 },
+    rulamitva: { shelfYears: 2, openedDays: null, note: 'serin ve kuru yerde saklayın' }, vamitratva: { shelfYears: 2, openedDays: null, note: 'serin ve kuru yerde saklayın' },
+    rulamit: null
+  };
+  function storage(id) { return Object.prototype.hasOwnProperty.call(STORAGE, id) ? STORAGE[id] : null; }
+  function isoOk(v) { return /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')); }
+  function dayDiff(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000); }
+  function todayIso() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function durTxt(d) { return d < 14 ? d + ' gün' : (d < 60 ? Math.floor(d / 7) + ' hafta' : Math.floor(d / 30) + ' ay'); }
+  function unitTxt(u) { return u === 'serit' || !u ? 'şerit' : u; }
+  function labelTxt(qty, unit) { return 'etiket dozu: ' + String(qty).replace('.', ',') + ' ' + unitTxt(unit) + '/kovan'; }
+  function isAmitrazStrip(p) { return !!p && p.group === 'amitraz' && /şerit/i.test(p.form || '') && !/tütsü/i.test(p.form || ''); }
+  /** Girilen kovan başı miktar ↔ etiket dozu (yalnız etiket; SKT/açılma eşiği DEĞİŞTİRMEZ).
+   * level: 'none' (etiket yok / miktar yok) | 'ok' | 'note' (etiketten farklı, etiket+1 dahil) | 'warn' (≥ etiket+2 ya da >1,5× ve > etiket+1) */
+  function doseCheck(entered, labelQty, unit) {
+    var e = Number(String(entered == null ? '' : entered).replace(',', '.')), l = Number(labelQty);
+    var out = { level: 'none', entered: e, label: l, text: '' };
+    if (!(l > 0) || !(e > 0)) return out;
+    if (Math.abs(e - l) < 1e-9) { out.level = 'ok'; return out; }
+    if (e >= l + 2 - 1e-9 || (e > 1.5 * l && e > l + 1)) { out.level = 'warn'; out.text = 'Etiket dozunun çok üstünde: kalıntı ve arıya zarar riski. Etiket: ' + String(l).replace('.', ',') + ' ' + unitTxt(unit) + '/kovan'; return out; }
+    out.level = 'note'; out.text = labelTxt(l, unit); return out;
+  }
+  /** Stok kalemi eski mi? SKT geçmiş ya da açıldıktan sonraki süre aşılmış → bilgi notu (doz önermez). item: { skt, opened } */
+  function ageNote(pid, item, labelQty, unit, today) {
+    if (!item) return '';
+    var t = isoOk(today) ? today : todayIso(), p = pid ? BY_ID[pid] : null, sg = pid ? storage(pid) : null, parts = [];
+    var sktOver = isoOk(item.skt) && item.skt < t ? dayDiff(item.skt, t) : 0;
+    var opened = isoOk(item.opened) && item.opened <= t ? dayDiff(item.opened, t) : null;
+    var openOver = sg && sg.openedDays != null && opened != null && opened > sg.openedDays;
+    if (!sktOver && !openOver) return '';
+    if (openOver) parts.push((sg.openedDays === 0 ? 'Açıldıktan sonra hemen kullanılmalı' : 'Açıldıktan sonra ' + durTxt(sg.openedDays) + ' önerilir') + ', ' + durTxt(opened) + ' geçmiş');
+    if (sktOver) parts.push('SKT ' + durTxt(sktOver) + ' geçmiş');
+    var dg = !p && item.name ? detect(item.name) : null;
+    if (isAmitrazStrip(p) || (dg && dg.group === 'amitraz' && /şerit/i.test(item.name) && !/tütsü|yak/i.test(item.name))) parts.push('Araştırmaya göre (USDA 2024) eski şeritte etkinlik kaybı gözlenmedi', 'etiket dozu yeterli, fazla şerit gerekmez');
+    else parts.push('bu konuda araştırma verisi yok, etkinlik garanti değil', 'yeni paket önerilir');
+    if (Number(labelQty) > 0) parts.push(labelTxt(labelQty, unit));
+    return parts.join(' · ');
+  }
+  /** Stok kalemi adından ürün (ör. «Beeraz şerit» → beeraz) */
+  function productOfItem(item) { var d = item ? detect(item.name) : null; return d && d.id ? d.id : null; }
+  /** Doz uyarısı onayı (eldivenle: iki büyük düğme). Promise<boolean> — true = «Yine de kaydet», false = «Düzelt». */
+  function askHighDose(text, extra) {
+    var doc = global.document;
+    return new Promise(function (res) {
+      if (!doc || !doc.body) { res(global.confirm ? global.confirm(text + '\n\nYine de kaydedilsin mi?') : false); return; }
+      var ov = doc.createElement('div');
+      ov.setAttribute('role', 'alertdialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', 'Etiket dozu uyarısı'); ov.className = 'ilac-hd';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(20,12,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:12px;';
+      ov.innerHTML = '<div style="background:#fff;border-radius:20px;max-width:520px;width:100%;padding:16px;display:grid;gap:12px;font-family:inherit;box-shadow:0 10px 40px rgba(0,0,0,.3);">' +
+        '<div style="background:#fff0f0;border:3px solid #c92a2a;border-radius:14px;padding:12px;color:#8a1c1c;font-size:18px;font-weight:900;line-height:1.35;">⚠ <span data-t></span></div>' +
+        (extra ? '<div data-x style="font-size:14px;font-weight:700;color:#5c4813;line-height:1.35;"></div>' : '') +
+        '<button type="button" data-fix style="min-height:72px;border-radius:16px;border:0;background:#1c5fa8;color:#fff;font:inherit;font-size:22px;font-weight:900;cursor:pointer;">Düzelt</button>' +
+        '<button type="button" data-yes style="min-height:64px;border-radius:16px;border:3px solid #c92a2a;background:#fff;color:#8a1c1c;font:inherit;font-size:20px;font-weight:900;cursor:pointer;">Yine de kaydet</button></div>';
+      ov.querySelector('[data-t]').textContent = text;
+      if (extra) ov.querySelector('[data-x]').textContent = extra;
+      function done(v) { if (ov.parentNode) ov.parentNode.removeChild(ov); doc.removeEventListener('keydown', key, true); res(v); }
+      function key(e) { if (e.key === 'Escape') { e.stopPropagation(); done(false); } }
+      ov.addEventListener('click', function (e) { if (e.target.closest('[data-yes]')) done(true); else if (e.target.closest('[data-fix]') || e.target === ov) done(false); });
+      doc.addEventListener('keydown', key, true);
+      doc.body.appendChild(ov);
+      var fb = ov.querySelector('[data-fix]'); if (fb) fb.focus();
+    });
+  }
+
   global.SuperAriIlac = { LIST: LIST, byId: function (id) { return BY_ID[id] || null; }, GROUPS: GROUPS, doseFor: doseFor, detect: detect,
+    STORAGE: STORAGE, storage: storage, doseCheck: doseCheck, ageNote: ageNote, labelTxt: labelTxt, productOfItem: productOfItem, askHighDose: askHighDose, isAmitrazStrip: isAmitrazStrip,
     SOURCE_DB: DB, CHECKED: CHECKED, WARNING: 'Etiket dozunu kontrol edin. Uygulama yalnız hesap yardımcısıdır; kararı prospektüs ve veteriner hekiminiz belirler.' };
 })(window);

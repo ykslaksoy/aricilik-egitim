@@ -157,6 +157,14 @@
     '.kol-form label{display:grid;gap:.2rem;font-size:.75rem;font-weight:700;color:#5c4813;min-width:0;}' +
     '.kol-form .full{grid-column:1 / -1;}' +
     '.kol-form [hidden]{display:none!important;}' +
+    '.kol-dz{grid-column:1 / -1;display:grid;gap:.2rem;font-size:.75rem;font-weight:700;color:#5c4813;min-width:0;}' +
+    '.kol-dz .kol-dzs{display:grid;grid-template-columns:64px minmax(0,1fr) 64px;gap:8px;align-items:center;}' +
+    '.kol-dz button{min-height:64px;border-radius:14px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:30px;font-weight:900;color:#0d3d73;cursor:pointer;touch-action:manipulation;}' +
+    '.kol-dz input{min-height:64px;font-size:26px;font-weight:900;text-align:center;box-sizing:border-box;width:100%;}' +
+    '.kol-dzn{grid-column:1 / -1;margin:0;font-size:.8rem;line-height:1.35;}' +
+    '.kol-dzn.note{color:#5c4813;font-weight:700;}' +
+    '.kol-dzn.warn{background:#fff0f0;border:3px solid #c92a2a;color:#8a1c1c;border-radius:12px;padding:10px;font-size:1rem;font-weight:900;}' +
+    '.kol-dzn.age{background:#f6f1e4;border:1px solid #e3d3a8;color:#5c4813;border-radius:10px;padding:8px;font-weight:700;}' +
     '.kol-seg{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin:.2rem 0 .35rem;}' +
     '.kol-seg button{font:inherit;font-size:.85rem;font-weight:800;padding:.55rem .4rem;border-radius:10px;border:1.5px solid var(--border,#ead9b3);background:#fff;color:#5c4813;cursor:pointer;}' +
     '.kol-seg button.on{background:linear-gradient(180deg,#fff6df 0%,#fff3bf 100%);border-color:#e0c56a;}' +
@@ -1135,7 +1143,8 @@
         '<label class="full">Hastalık<select name="disease">' + r.DISEASES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
         '<div id="krDzFields" style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:.55rem .6rem;">' + diseaseFieldsHtml('varroa') + '</div>' +
         '<label class="full">Tedavi / önlem (ilaç)<input name="treatment" maxlength="200" placeholder="ör. Oksalik asit damlatma"></label>' +
-        '<label>Doz (kovan başına)<input type="number" name="dose" min="0" max="1000" step="0.1" inputmode="decimal"></label>' +
+        '<div class="kol-dz"><span id="krDzLbl">Doz (kovan başına) · uyguladığınız gerçek miktar</span><div class="kol-dzs"><button type="button" data-dz="-1" aria-label="Dozu azalt">−</button>' +
+        '<input type="number" name="dose" min="0" max="1000" step="0.1" inputmode="decimal" aria-labelledby="krDzLbl"><button type="button" data-dz="1" aria-label="Dozu artır">+</button></div></div>' +
         '<label>Birim<select name="doseUnit"><option value="serit">şerit</option><option value="ml">ml</option><option value="g">g</option></select></label>' +
         '<label class="full">Uygulayan kişi<input name="appliedBy" maxlength="80" placeholder="ör. Yüksel"></label>' +
         '<label>İlaç bekleme (gün)<input type="number" name="withdrawalDays" min="0" max="365" inputmode="numeric" placeholder="0"></label>' +
@@ -1223,6 +1232,18 @@
   function wireTopicForm(topic, f, root) {
     var r = R();
     addMicButtons(f);
+    if (!f.__dzWired) {
+      f.__dzWired = true;
+      /* Doz stepper (eldiven boyu): ±1, alt sınır 0; input olayı otomatik hesap / stok toplamını günceller */
+      f.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('[data-dz]'); if (!b || !f.elements.dose) return;
+        e.preventDefault();
+        var v = Number(String(f.elements.dose.value || '0').replace(',', '.')) || 0;
+        v = Math.max(0, Math.min(1000, Math.round((v + Number(b.getAttribute('data-dz'))) * 10) / 10));
+        f.elements.dose.value = String(v);
+        f.elements.dose.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
     if (topic === 'guc') {
       var upd = function () {
         var cls = r.strengthClass({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value });
@@ -1844,6 +1865,8 @@
         ? (tot !== per * n ? n + ' kovanın kendi miktarları toplamı = ' + num(tot) : num(per) + ' ' + perUnit + ' × ' + n + ' kovan = ' + num(per * n)) + ' ' + it.unit + ' · stokta ' + num(it.qty) + ' ' + it.unit
         : (per > 0 && perUnit ? 'Birim farklı (' + perUnit + ' / ' + it.unit + '): düşülecek toplamı elle girin.' : 'Miktar / doz girilince toplam hesaplanır; elle de yazabilirsiniz.') + ' Stokta ' + num(it.qty) + ' ' + it.unit + '.';
     }
+    var calcStock0 = calcStock;
+    calcStock = function () { calcStock0(); try { doseChk(); } catch (e) { /* ignore */ } };
     sf2.addEventListener('change', function (e) { if (e.target.name === 'sitem') { stockTouched = false; calcStock(); } });
     sf2.addEventListener('input', function (e) { if (e.target.name === 'sqty') stockTouched = true; });
     f.addEventListener('input', function (e) {
@@ -1865,6 +1888,29 @@
       return t;
     }
     function setVal(name, v) { if (f.elements[name] && v != null) f.elements[name].value = String(v); }
+    /* Girilen gerçek şerit/kovan ↔ etiket dozu (ilac-katalog.js; öneri yok). Etiket+1 → nötr not; ≥ etiket+2 → güçlü uyarı + onay.
+     * Seçilen stok kalemi SKT geçmiş / açıldıktan sonraki süre aşılmışsa bilgi notu (eşikleri DEĞİŞTİRMEZ). */
+    function doseChk() {
+      var I = global.SuperAriIlac, box = f.querySelector('#qkDoseChk');
+      var out = { level: 'none', text: '', age: '' };
+      if (type !== 'ilac' || !I || !I.doseCheck || !f.elements.dose) { if (box) box.innerHTML = ''; return out; }
+      var pid = f.elements.product ? f.elements.product.value : '', p = pid ? I.byId(pid) : null, unit = f.elements.doseUnit ? f.elements.doseUnit.value : 'serit';
+      var ent = f.elements.dose.value, ids = currentTargets(), rank = { none: 0, ok: 1, note: 2, warn: 3 }, lab0 = null;
+      if (p && p.dose && p.dose.unit === unit) {
+        ids.forEach(function (id) {
+          var m = auto.map[id]; if (!m) return;
+          if (lab0 == null) lab0 = m.v;
+          var c = I.doseCheck(auto.touched ? ent : m.v, m.v, unit);
+          if (rank[c.level] > rank[out.level]) { out.level = c.level; out.text = c.text; out.label = m.v; }
+        });
+      }
+      var it = null;
+      if (!sf2.hidden && sf2.elements.sitem && sf2.elements.sitem.value) it = stockItems().filter(function (x) { return x.id === sf2.elements.sitem.value; })[0] || null;
+      if (it && it.category === 'ilac' && I.ageNote) out.age = I.ageNote(I.productOfItem(it) || pid || null, it, out.label != null ? out.label : lab0, unit, f.elements.date && f.elements.date.value ? f.elements.date.value : null);
+      if (box) box.innerHTML = (out.level === 'warn' || out.level === 'note' ? '<p class="kol-dzn ' + out.level + '" role="' + (out.level === 'warn' ? 'alert' : 'status') + '">' + (out.level === 'warn' ? '⚠ ' : '') + esc(out.text) + '</p>' : '') +
+        (out.age ? '<p class="kol-dzn age">ℹ ' + esc(out.age) + '</p>' : '');
+      return out;
+    }
     function autoCalc(keepVals) {
       auto.map = {};
       var box = f.querySelector('#qkAuto'); if (!box) return;
@@ -1950,7 +1996,7 @@
       if (type === 'ilac' && f.elements.treatment) f.elements.treatment.placeholder = 'ör. Oksalik asit damlatma, Amitraz şerit';
       auto = { touched: false, typeTouched: false, map: {} };
       if (type === 'ilac' || type === 'besleme') {
-        var autoHtml = '<div class="kr-info" id="qkAuto" style="grid-column:1 / -1;font-size:.8rem;line-height:1.35;"></div>';
+        var autoHtml = '<div class="kr-info" id="qkAuto" style="grid-column:1 / -1;font-size:.8rem;line-height:1.35;"></div>' + (type === 'ilac' ? '<div id="qkDoseChk" style="grid-column:1 / -1;display:grid;gap:6px;" aria-live="polite"></div>' : '');
         var anc = f.elements[type === 'ilac' ? 'doseUnit' : 'amount'];
         anc = anc && anc.closest('label');
         if (anc) anc.insertAdjacentHTML('afterend', autoHtml); else f.insertAdjacentHTML('beforeend', autoHtml);
@@ -2018,7 +2064,18 @@
     function onKey(e) { if (e.key === 'Escape') close(); }
     document.addEventListener('keydown', onKey);
     back.querySelector('#krClose').addEventListener('click', close);
+    var hdOk = false;
     back.querySelector('#krSave').addEventListener('click', function () {
+      if (type === 'ilac' && !hdOk) {
+        var ck = doseChk(), Il = global.SuperAriIlac;
+        if (ck.level === 'warn' && Il && Il.askHighDose) {
+          Il.askHighDose(ck.text, ck.age).then(function (ok) {
+            if (ok) { hdOk = true; try { back.querySelector('#krSave').click(); } finally { hdOk = false; } }
+            else if (f.elements.dose) { try { f.elements.dose.focus(); f.elements.dose.select(); } catch (e2) { /* ignore */ } }
+          });
+          return;
+        }
+      }
       var targets;
       if (scope === 'one') targets = [sf.querySelector('select[name=one]') ? sf.querySelector('select[name=one]').value : null].filter(Boolean);
       else if (scope === 'sel') targets = Array.prototype.map.call(back.querySelectorAll('#qkTargets input[data-hid]:checked'), function (c) { return c.getAttribute('data-hid'); });
@@ -2046,6 +2103,9 @@
             if (am) { copy.dose = String(am.v); copy.doseUnit = am.unit; } else copy.dose = '';
           }
           if (type === 'besleme' && am) copy.amount = String(am.v);
+        }
+        if (type === 'ilac' && f.elements.product && f.elements.product.value && auto.map[id] && auto.map[id].unit === copy.doseUnit) {
+          copy.labelDose = auto.map[id].v; /* kayıtta etiket dozu da saklanır (gerçek miktar = dose) */
         }
         var sv = r.add(id, got.kind, copy);
         if (sv) { var h = d.hiveById(id); names.push(h ? h.name : String(id)); savedList.push({ id: sv.id, hiveId: id, kind: got.kind }); }
