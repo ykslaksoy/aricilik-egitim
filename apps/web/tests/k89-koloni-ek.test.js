@@ -27,6 +27,10 @@ assert.deepStrictEqual(J(E.KEYS), ['larva', 'kapan', 'kayip', 'hircin', 'hat', '
 const all = fs.readFileSync(W + 'koloni-ek.js', 'utf8') + fs.readFileSync(W + 'koloni.js', 'utf8') + fs.readFileSync(W + 'koloni-ek.html', 'utf8') + fs.readFileSync(W + 'kovanlar.html', 'utf8');
 ['Larva Transfer ve Ana Arı Takvimi', 'Oğul Kapanı ve Kaçak Takibi', 'Sönük Kovan / Koloni Kaybı Kaydı', 'Hırçınlık / Sakinlik Skoru', 'Damızlık / Hat Performans Analizi', 'Görsel Çerçeve ve Kuluçka Analizi', 'Sağlık Kontrolü ve Reçete Kaydı'].forEach((n) => assert.ok(!all.includes(n), 'uzun ad kullanılmaz: ' + n));
 
+/* k90: Koloni düğme sırası (3 sütun; 6. satırın 3. hücresi boş) */
+const ord = /var KOLONI_ORDER = (\[[^\]]+\])/.exec(fs.readFileSync(W + 'kovanlar.html', 'utf8'));
+assert.ok(ord, 'sıra listesi');
+assert.deepStrictEqual(JSON.parse(ord[1].replace(/'/g, '"')), ['irk', 'hat', 'larva', 'kayip', 'hastalik', 'vet', 'ana', 'tasima', 'uretim', 'yavru', 'guc', 'hircin', 'foto', 'ogul', 'kapan', 'bolme', 'besleme']);
 /* boş durum: rozetler dürüst («yok»), uydurma sayı yok */
 ['larva', 'kapan', 'hircin', 'foto', 'vet'].forEach((k) => { const i = E.tileInfo(k, 'apA'); assert.strictEqual(i.n, 0, k); assert.strictEqual(i.badge.cls, 'gray', k); });
 assert.strictEqual(E.tileInfo('kayip', 'apA').sub, 'kayıp kaydı yok');

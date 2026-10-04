@@ -448,26 +448,31 @@
           /* k89: mevcut 10 düğmeden sonra 7 yeni ekran (koloni-ek.html?ek=…); rozetler yalnız kayıtlardan (koloni-ek.js) */
           var KE = window.SuperAriKoloniEk;
           function extraTiles() {
-            if (!KE) return '';
+            var o = {}; if (!KE) return o;
             var apE = apiaryFilter ? String(apiaryFilter) : 'all';
-            return KE.KEYS.map(function (k) {
+            KE.KEYS.forEach(function (k) {
               var inf = KE.tileInfo(k, apE), lbl = K.TOPIC_LABEL[k] || k;
-              return '<a class="ks-tile ke-tile" data-topic="' + k + '" href="koloni-ek.html?ek=' + k + (apE !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(apE) : '&mode=all') + '" aria-label="' + esc(lbl + ', ' + inf.badge.t) + '">' +
+              o[k] = '<a class="ks-tile ke-tile" data-topic="' + k + '" href="koloni-ek.html?ek=' + k + (apE !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(apE) : '&mode=all') + '" aria-label="' + esc(lbl + ', ' + inf.badge.t) + '">' +
                 KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(lbl) + '</span><span class="ks-badge ' + inf.badge.cls + '">' + esc(inf.badge.t) + '</span><span class="ks-sub">' + esc(inf.sub) + '</span></a>';
-            }).join('');
+            });
+            return o;
           }
+          /* k90: düğme sırası (3 sütun, satır satır); 6. satırın 3. hücresi boş (yeri ayrılmış) */
+          var KOLONI_ORDER = ['irk', 'hat', 'larva', 'kayip', 'hastalik', 'vet', 'ana', 'tasima', 'uretim', 'yavru', 'guc', 'hircin', 'foto', 'ogul', 'kapan', 'bolme', 'besleme'];
           ksKoloni = function (list) {
             var cnt = K.topicCounts ? K.topicCounts(list) : {};
             var unk = list.filter(function (h) { return !h.breed || h.breedEstimated; }).length;
             tilesV.hidden = false;
             tilesV.setAttribute('aria-label', 'Koloni konuları');
-            tilesV.innerHTML = KT.map(function (t) {
+            var tileHtml = extraTiles();
+            KT.forEach(function (t) {
               var k = t[0], n = k === 'irk' ? unk : (cnt[k] || 0);
               var badge = n ? '<span class="ks-badge ' + (k === 'irk' ? 'yellow' : 'orange') + '">' + n + (k === 'irk' ? ' bilinmiyor' : ' kovan') + '</span>' : '<span class="ks-badge green">✓</span>';
               var sub = k === 'irk' ? 'melez · hat · anne ana' : (n ? WHY[k] : 'sorun yok');
-              return '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(t[1] + (n ? ', ' + n + ' ' + (k === 'irk' ? 'kovanın ırkı bilinmiyor' : 'kovan') : '')) + '">' +
+              tileHtml[k] = '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(t[1] + (n ? ', ' + n + ' ' + (k === 'irk' ? 'kovanın ırkı bilinmiyor' : 'kovan') : '')) + '">' +
                 KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
-            }).join('') + extraTiles();
+            });
+            tilesV.innerHTML = KOLONI_ORDER.map(function (k) { return tileHtml[k] || ''; }).join('');
             /* tam ad en fazla 2 satır: sığmayan adda yazı 0,5 px adımlarla küçülür (en az 11,5 px; kutu boyu aynı, «…» yok) */
             tilesV.querySelectorAll('.ks-tl').forEach(function (l) {
               var fs = parseFloat(getComputedStyle(l).fontSize) || 13, lh = 1.15;
