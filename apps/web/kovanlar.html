@@ -461,18 +461,22 @@
           var KOLONI_ORDER = ['irk', 'hat', 'larva', 'kayip', 'hastalik', 'vet', 'ana', 'tasima', 'uretim', 'yavru', 'guc', 'hircin', 'foto', 'ogul', 'kapan', 'bolme', 'besleme'];
           ksKoloni = function (list) {
             var cnt = K.topicCounts ? K.topicCounts(list) : {};
-            var unk = list.filter(function (h) { return !h.breed || h.breedEstimated; }).length;
-            var nol = list.filter(function (h) { var q = h.currentQueenId && D.colony ? D.colony.queenById(h.currentQueenId) : null; return !(q && q.line); }).length;
+            /* k90: Hat ve Genetik — Hatsız / Saf Hat / 2'li Melez / 3'lü Melez (K.lineCat tek kaynak) */
+            var lsp = K.lineSubParts ? K.lineSubParts(list) : [], unk = K.lineCounts ? K.lineCounts(list).hatsiz : 0;
             tilesV.hidden = false;
             tilesV.setAttribute('aria-label', 'Koloni konuları');
             var tileHtml = extraTiles();
             KT.forEach(function (t) {
               var k = t[0], n = k === 'irk' ? unk : (cnt[k] || 0);
-              var badge = n ? '<span class="ks-badge ' + (k === 'irk' ? 'yellow' : 'orange') + '">' + n + (k === 'irk' ? ' bilinmiyor' : ' kovan') + '</span>' : '<span class="ks-badge green">✓</span>';
-              /* k90: Hat ve Genetik alt yazısı tek satır durum — hattı (damızlık hat) girilmemiş kovan sayısı */
-              var sub = k === 'irk' ? (!list.length ? 'kovan yok' : (nol ? nol + ' kovan hatsız' : 'hat kayıtlı')) : (n ? WHY[k] : 'sorun yok');
-              tileHtml[k] = '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(t[1] + (n ? ', ' + n + ' ' + (k === 'irk' ? 'kovanın ırkı bilinmiyor' : 'kovan') : '')) + '">' +
-                KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
+              /* Hat ve Genetik rozeti: hatsız yoksa ✓, varsa nötr «eksik» (sayı alt yazıda; tekrar yok) */
+              var badge = k === 'irk' ? (!list.length ? '<span class="ks-badge gray">—</span>' : (n ? '<span class="ks-badge gray">eksik</span>' : '<span class="ks-badge green">✓</span>'))
+                : (n ? '<span class="ks-badge orange">' + n + ' kovan</span>' : '<span class="ks-badge green">✓</span>');
+              var sub = k === 'irk' ? (!list.length ? 'kovan yok' : lsp.map(function (c) { return c.short + ' ' + c.n; }).join(' · ')) : (n ? WHY[k] : 'sorun yok');
+              /* Hat ve Genetik: öğeler bölünmez; satır yalnız «·» ayracından sonra kırılır */
+              var subHtml = k === 'irk' && list.length ? lsp.map(function (c) { return '<span style="white-space:nowrap">' + esc(c.short + ' ' + c.n) + '</span>'; }).join('&nbsp;· ') : esc(sub);
+              var aria = k === 'irk' ? t[1] + (list.length ? ', ' + lsp.map(function (c) { return c.label + ' ' + c.n; }).join(', ') : '') : t[1] + (n ? ', ' + n + ' kovan' : '');
+              tileHtml[k] = '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(aria) + '">' +
+                KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + subHtml + '</span></a>';
             });
             tilesV.innerHTML = KOLONI_ORDER.map(function (k) { return tileHtml[k] || ''; }).join('');
             /* tam ad en fazla 2 satır: sığmayan adda yazı 0,5 px adımlarla küçülür (en az 11,5 px; kutu boyu aynı, «…» yok) */
@@ -480,6 +484,21 @@
               var fs = parseFloat(getComputedStyle(l).fontSize) || 13, lh = 1.15;
               while (fs > 11.5 && l.getBoundingClientRect().height > fs * lh * 2 + 1) { fs -= 0.5; l.style.fontSize = fs + 'px'; l.style.letterSpacing = '-0.1px'; }
             });
+            /* Hat ve Genetik alt yazısı: önce tek satır denenir (kutunun tam genişliği, yazı 0,5 px adımlarla en az 9 px);
+               sığmazsa YALNIZ bu döşemede 2 satıra izin verilir (normal boy, kırılma yalnız «·» sonrasında) */
+            var irkSub = tilesV.querySelector('[data-topic="irk"] .ks-sub');
+            if (irkSub) {
+              var base = 'display:block;overflow:hidden;margin:0 -3px;width:calc(100% + 6px);';
+              irkSub.style.cssText = base + 'white-space:nowrap;';
+              var fs0 = parseFloat(getComputedStyle(irkSub).fontSize) || 10.5, fsI = fs0;
+              while (fsI > 9 && irkSub.scrollWidth > irkSub.clientWidth) { fsI -= 0.5; irkSub.style.fontSize = fsI + 'px'; }
+              if (irkSub.scrollWidth > irkSub.clientWidth) {
+                irkSub.style.cssText = base + '-webkit-line-clamp:unset;line-height:1.2;';
+                irkSub.setAttribute('data-lines', '2');
+                fsI = fs0;
+                while (fsI > 9 && irkSub.getBoundingClientRect().height > fsI * 1.2 * 2 + 1) { fsI -= 0.5; irkSub.style.fontSize = fsI + 'px'; }
+              }
+            }
             secV.hidden = false;
             secV.querySelector('h3').textContent = topic ? (K.TOPIC_LABEL[topic] || (topic === 'irk' ? 'Hat ve Genetik' : 'Kovanlar')) : 'Kovanlar · koloni bilgisi';
             document.getElementById('ksCount').textContent = list.length + ' kovan' + (KV.live() ? '' : ' · Demo');
@@ -645,6 +664,8 @@
           if (sb) q.set('sub', sb); else q.delete('sub');
           return 'kovanlar.html?' + q.toString();
         };
+        /* k90: Hat ve Genetik sayfası — üstteki 4 sayı kutusu süzgeçtir (?hat=hatsiz|saf|iki|uc) */
+        var linFilter = (function (v) { return ['hatsiz', 'saf', 'iki', 'uc'].indexOf(v) >= 0 ? v : ''; })(new URLSearchParams(location.search).get('hat'));
         var renderKoloni = function () {
           var fresh = D.loadHives();
           var ids = {};
@@ -656,7 +677,7 @@
             /* Irk ve soy: saf ırk / ikili / üçlü melez, damızlık hat, anne ana — kovana dokun → düzenle */
             var csI = D.colony ? D.colony.summary(scopeHives) : null;
             koloniTopEl.innerHTML = '<p class="kol-sub" style="margin:0 0 8px;font-weight:700;">' + esc(scopeName) + ' · ırklar: ' + esc(csI && csI.breeds.length ? csI.breeds.map(function (b) { return b.breed + ' (' + b.count + ')'; }).join(', ') : '—') + '</p>';
-            listEl.innerHTML = K.lineageListHtml(scopeHives);
+            listEl.innerHTML = K.lineageListHtml(scopeHives, linFilter);
             return;
           }
           if (recTopic) {
@@ -692,7 +713,7 @@
         renderKoloni();
         if (!recTopic) bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
         noteEl.textContent = topic === 'irk'
-          ? 'Saf ırk, ikili (A × B) veya üçlü melez (A × B × C) seçin; damızlık hat / kaynak adı ve anne ana (kayıtlı bir ana veya dış kaynak) yazılabilir. Kayıt kovandaki mevcut ana arıya yazılır; arılık ırkı kovanların çoğunluk ırkıdır.'
+          ? 'Üstteki kutular süzgeçtir (Hatsız = ırk girilmemiş ya da yalnız tahmini). Kovana dokunup Saf Hat, 2\'li Melez (A × B) veya 3\'lü Melez (A × B × C) seçin; damızlık hat / kaynak adı ve anne ana (kayıtlı bir ana veya dış kaynak) yazılabilir. Kayıt kovandaki mevcut ana arıya yazılır; arılık ırkı kovanların çoğunluk ırkıdır.'
           : recTopic
           ? (sub === 'stok'
             ? 'Kışlık stok tahminidir: kışlık kayıtta ölçtüğünüz stok varsa o, yoksa son muayenedeki ballı çerçeveler esas alınır; sonraki sonbahar beslemeleri eklenir. Hedef arılığın bölgesine (sıcak kıyı ≈ 13–15 kg, ılıman ≈ 18–20 kg, yayla 20 kg ve üstü) ve ırka göre seçilir. Durum: Yeterli / Az / Kritik. Sağlık puanını değiştirmez.'
@@ -708,6 +729,12 @@
           : 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi.';
         listEl.addEventListener('click', function (e) {
           if (e.target.closest && e.target.closest('a')) return;
+          var lc = e.target.closest ? e.target.closest('[data-lin-cat]') : null;
+          if (lc) {
+            var v = lc.getAttribute('data-lin-cat'); linFilter = v && v !== linFilter ? v : '';
+            try { var uq = new URL(location.href); if (linFilter) uq.searchParams.set('hat', linFilter); else uq.searchParams.delete('hat'); history.replaceState(null, '', uq.toString()); } catch (e2) { /* ignore */ }
+            renderKoloni(); return;
+          }
           var lin = e.target.closest ? e.target.closest('[data-lin]') : null;
           if (lin) { K.openLineage(lin.getAttribute('data-lin'), renderKoloni); return; }
           var row = e.target.closest ? e.target.closest('.kr-row') : null;

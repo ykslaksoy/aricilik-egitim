@@ -31,9 +31,19 @@ const all = fs.readFileSync(W + 'koloni-ek.js', 'utf8') + fs.readFileSync(W + 'k
 const ord = /var KOLONI_ORDER = (\[[^\]]+\])/.exec(fs.readFileSync(W + 'kovanlar.html', 'utf8'));
 assert.ok(ord, 'sıra listesi');
 assert.deepStrictEqual(JSON.parse(ord[1].replace(/'/g, '"')), ['irk', 'hat', 'larva', 'kayip', 'hastalik', 'vet', 'ana', 'tasima', 'uretim', 'yavru', 'guc', 'hircin', 'foto', 'ogul', 'kapan', 'bolme', 'besleme']);
-/* k90: Hat ve Genetik alt yazısı tek satır durum (eski «melez · hat · anne ana» yok) */
+/* k90: Hat ve Genetik — 4 kategori (Hatsız · Saf Hat · 2'li Melez · 3'lü Melez); alt yazı ilk üçü, Hatsız 0 ise 2-3-4 */
 const kvh = fs.readFileSync(W + 'kovanlar.html', 'utf8');
-assert.ok(!kvh.includes('melez · hat · anne ana') && kvh.includes("nol + ' kovan hatsız'") && kvh.includes("'hat kayıtlı'"));
+assert.ok(!kvh.includes('melez · hat · anne ana') && !kvh.includes("kovan hatsız'"));
+assert.deepStrictEqual(J(K.LINE_CATS.map((c) => c.label)), ['Hatsız', 'Saf Hat', "2'li Melez", "3'lü Melez"]);
+const LH = [{ breed: '' }, { breed: 'Kafkas', breedEstimated: true }, { breed: 'Kafkas' }, { breed: 'Karniyol' }, { breed: 'Kafkas × Karniyol' }, { breed: 'Kafkas × Karniyol × Anadolu' }];
+assert.deepStrictEqual(J(LH.map(K.lineCat)), ['hatsiz', 'hatsiz', 'saf', 'saf', 'iki', 'uc']);
+assert.deepStrictEqual(J(K.lineCounts(LH)), { hatsiz: 2, saf: 2, iki: 1, uc: 1 });
+const subOf = (l) => K.lineSubParts(l).map((c) => c.short + ' ' + c.n).join(' · ');
+assert.strictEqual(subOf(LH), "Hatsız 2 · Saf Hat 2 · 2'li Melez 1");
+assert.strictEqual(subOf(LH.slice(2)), "Saf Hat 2 · 2'li Melez 1 · 3'lü Melez 1");
+const kj = fs.readFileSync(W + 'koloni.js', 'utf8');
+assert.ok(kj.includes("Saf Hat<small>") && kj.includes("2\\'li Melez<small>") && kj.includes("3\\'lü Melez<small>") && !/Melez Hat/.test(kj + kvh), 'düzenleme etiketleri');
+assert.ok(kj.includes('data-lin-cat=') && kvh.includes("get('hat')"), 'sayı kutuları süzgeç');
 /* boş durum: rozetler dürüst («yok»), uydurma sayı yok */
 ['larva', 'kapan', 'hircin', 'foto', 'vet'].forEach((k) => { const i = E.tileInfo(k, 'apA'); assert.strictEqual(i.n, 0, k); assert.strictEqual(i.badge.cls, 'gray', k); });
 assert.strictEqual(E.tileInfo('kayip', 'apA').sub, 'kayıp kaydı yok');

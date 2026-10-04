@@ -545,21 +545,49 @@
       '.lin-prev{padding:12px;border-radius:12px;background:#f3f8ee;border:1px solid #cfe3bf;font-size:16px;font-weight:700;color:#2d4a1e;}.lin-ci{display:block;margin-top:6px;font-size:13px;font-weight:650;color:#4a5a3a;}' +
       '.lin-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:12px;}.lin-actions .btn{min-height:64px;font-size:17px;}' +
       '.lin-card{display:block;width:100%;text-align:left;min-height:64px;padding:12px 14px;margin:0 0 10px;border-radius:16px;border:1px solid #e3d3ad;background:#fff;font:inherit;color:#3c2a1a;cursor:pointer;}' +
+      '.lin-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 10px;}' +
+      '.lin-cat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:72px;padding:6px 3px;border-radius:14px;border:1px solid #e3d3ad;background:#fff;font:inherit;color:#4a2f1a;cursor:pointer;text-align:center;}' +
+      '.lin-cat b{font-size:22px;line-height:1;font-weight:850;}.lin-cat span{font-size:11.5px;font-weight:750;line-height:1.15;color:#6b5a48;}' +
+      '.lin-cat.warn b{color:#b35c00;}.lin-cat.on{background:#fff3bf;border:2px solid #c99a1a;}' +
+      '.lin-fnote{margin:-2px 0 10px;font-size:14px;color:#5a3d12;}.lin-fnote button{font:inherit;font-weight:750;color:#2b6cb0;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;}' +
       '.lin-card b{font-size:17px;}.lin-card .l2{display:block;margin-top:4px;font-size:15px;font-weight:700;color:#5a3d12;}.lin-card .l3{display:block;margin-top:2px;font-size:13.5px;color:#6b5a48;}';
     document.head.appendChild(st);
   }
+  /* k90: Hat ve Genetik kategorileri (sıra sabit): Hatsız (ırk girilmemiş ya da yalnız tahmini) · Saf Hat · 2'li Melez · 3'lü Melez */
+  var LINE_CATS = [
+    { key: 'hatsiz', label: 'Hatsız', short: 'Hatsız' }, { key: 'saf', label: 'Saf Hat', short: 'Saf Hat' },
+    { key: 'iki', label: "2'li Melez", short: "2'li Melez" }, { key: 'uc', label: "3'lü Melez", short: "3'lü Melez" }
+  ];
+  function lineCat(h) {
+    var c = C(); if (!h || !String(h.breed || '').trim() || h.breedEstimated) return 'hatsiz';
+    return (c && c.breedKind ? c.breedKind(h.breed) : 'saf') || 'hatsiz';
+  }
+  function lineCounts(hives) { var o = { hatsiz: 0, saf: 0, iki: 0, uc: 0 }; (hives || []).forEach(function (h) { o[lineCat(h)]++; }); return o; }
+  /** Döşeme alt yazısı: ilk üç kategori; Hatsız 0 ise Saf · 2'li · 3'lü. */
+  function lineSubParts(hives) {
+    var n = lineCounts(hives), cats = n.hatsiz ? LINE_CATS.slice(0, 3) : LINE_CATS.slice(1);
+    return cats.map(function (c) { return { key: c.key, short: c.short, label: c.label, n: n[c.key] }; });
+  }
   /** Kapsamdaki kovanlar: ırk / melez, hat ve anne ana (dokun → düzenle). */
-  function lineageListHtml(hives) {
+  function lineageListHtml(hives, filter) {
     lineageCss();
     var c = C(); var ap = {}; try { D().loadApiaries().forEach(function (a) { ap[a.id] = a.name; }); } catch (e) { ap = {}; }
-    var kindL = { saf: 'Saf ırk', iki: 'İkili melez', uc: 'Üçlü melez' };
-    return (hives || []).map(function (h) {
+    var kindL = { saf: 'Saf Hat', iki: "2'li Melez", uc: "3'lü Melez" };
+    var all = hives || [], list = filter ? all.filter(function (h) { return lineCat(h) === filter; }) : all;
+    var cnt = lineCounts(all);
+    var boxes = '<div class="lin-cats" role="group" aria-label="Hat kategorisi süzgeci">' + LINE_CATS.map(function (ct) {
+      var on = filter === ct.key;
+      return '<button type="button" class="lin-cat' + (on ? ' on' : '') + (ct.key === 'hatsiz' && cnt.hatsiz ? ' warn' : '') + '" data-lin-cat="' + ct.key + '" aria-pressed="' + on + '">' +
+        '<b>' + cnt[ct.key] + '</b><span>' + esc(ct.label) + '</span></button>';
+    }).join('') + '</div>';
+    var fnote = filter ? '<p class="lin-fnote">Süzgeç: <b>' + esc(LINE_CATS.filter(function (c) { return c.key === filter; })[0].label) + '</b> · ' + list.length + ' kovan · <button type="button" data-lin-cat="">Tümünü göster</button></p>' : '';
+    return boxes + fnote + (list.map(function (h) {
       var k = c && c.breedKind ? c.breedKind(h.breed) : '', lin = c && c.lineageText ? c.lineageText(h) : '';
       return '<button type="button" class="lin-card" data-lin="' + esc(h.id) + '" aria-label="' + esc(h.name) + ' ırk ve soy düzenle">' +
         '<b>' + esc(h.name) + '</b> <small style="color:#6b5a48;">' + esc(ap[h.apiaryId] || '') + '</small>' +
         '<span class="l2">' + esc(h.breed ? h.breed + (h.breedEstimated ? ' (tahmini)' : '') : 'Irk bilinmiyor') + (k ? ' · ' + kindL[k] : '') + '</span>' +
         '<span class="l3">' + esc(lin || 'Hat / anne ana girilmedi') + '</span></button>';
-    }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
+    }).join('') || '<p class="muted">' + (filter ? 'Bu kategoride kovan yok.' : 'Kovan bulunamadı.') + '</p>');
   }
   function openLineage(hiveId, onSaved) {
     lineageCss(); ensureCss();
@@ -590,10 +618,10 @@
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="linTitle">' +
       '<h3 id="linTitle">🧬 ' + esc(h.name) + ' · Hat ve Genetik</h3>' +
       '<p class="kol-sub">Mevcut ana arıya yazılır' + (majority ? ' · arılıkta çoğunluk: <b>' + esc(majority) + '</b>' : '') + '.</p>' +
-      '<div class="lin-seg" role="group" aria-label="Irk türü">' +
-        '<button type="button" data-kind="saf">Saf ırk<small>tek ırk</small></button>' +
-        '<button type="button" data-kind="iki">İkili melez<small>A × B</small></button>' +
-        '<button type="button" data-kind="uc">Üçlü melez<small>A × B × C</small></button></div>' +
+      '<div class="lin-seg" role="group" aria-label="Hat türü">' +
+        '<button type="button" data-kind="saf">Saf Hat<small>tek ırk</small></button>' +
+        '<button type="button" data-kind="iki">2\'li Melez<small>A × B</small></button>' +
+        '<button type="button" data-kind="uc">3\'lü Melez<small>A × B × C</small></button></div>' +
       '<form class="lin-f" autocomplete="off">' + raceSel(0) + raceSel(1) + raceSel(2) +
         '<div class="lin-prev" id="linPrev"></div>' +
         '<label>Damızlık hat / kaynak adı<input name="line" maxlength="80" value="' + esc(h.breedLine || '') + '" placeholder="ör. Ardahan İstasyonu hattı, yetiştirici adı"></label>' +
@@ -2492,6 +2520,7 @@
     openTasksDone: openTasksDone,
     openLineage: openLineage,
     lineageListHtml: lineageListHtml,
+    LINE_CATS: LINE_CATS, lineCat: lineCat, lineCounts: lineCounts, lineSubParts: lineSubParts,
     TOPIC_ICONS: TOPIC_ICONS,
     topicCounts: topicCounts,
     TOPICS: TOPICS,
