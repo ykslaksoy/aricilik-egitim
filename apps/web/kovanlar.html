@@ -462,13 +462,15 @@
           ksKoloni = function (list) {
             var cnt = K.topicCounts ? K.topicCounts(list) : {};
             var unk = list.filter(function (h) { return !h.breed || h.breedEstimated; }).length;
+            var nol = list.filter(function (h) { var q = h.currentQueenId && D.colony ? D.colony.queenById(h.currentQueenId) : null; return !(q && q.line); }).length;
             tilesV.hidden = false;
             tilesV.setAttribute('aria-label', 'Koloni konuları');
             var tileHtml = extraTiles();
             KT.forEach(function (t) {
               var k = t[0], n = k === 'irk' ? unk : (cnt[k] || 0);
               var badge = n ? '<span class="ks-badge ' + (k === 'irk' ? 'yellow' : 'orange') + '">' + n + (k === 'irk' ? ' bilinmiyor' : ' kovan') + '</span>' : '<span class="ks-badge green">✓</span>';
-              var sub = k === 'irk' ? 'melez · hat · anne ana' : (n ? WHY[k] : 'sorun yok');
+              /* k90: Hat ve Genetik alt yazısı tek satır durum — hattı (damızlık hat) girilmemiş kovan sayısı */
+              var sub = k === 'irk' ? (!list.length ? 'kovan yok' : (nol ? nol + ' kovan hatsız' : 'hat kayıtlı')) : (n ? WHY[k] : 'sorun yok');
               tileHtml[k] = '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(t[1] + (n ? ', ' + n + ' ' + (k === 'irk' ? 'kovanın ırkı bilinmiyor' : 'kovan') : '')) + '">' +
                 KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
             });

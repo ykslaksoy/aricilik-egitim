@@ -31,6 +31,9 @@ const all = fs.readFileSync(W + 'koloni-ek.js', 'utf8') + fs.readFileSync(W + 'k
 const ord = /var KOLONI_ORDER = (\[[^\]]+\])/.exec(fs.readFileSync(W + 'kovanlar.html', 'utf8'));
 assert.ok(ord, 'sıra listesi');
 assert.deepStrictEqual(JSON.parse(ord[1].replace(/'/g, '"')), ['irk', 'hat', 'larva', 'kayip', 'hastalik', 'vet', 'ana', 'tasima', 'uretim', 'yavru', 'guc', 'hircin', 'foto', 'ogul', 'kapan', 'bolme', 'besleme']);
+/* k90: Hat ve Genetik alt yazısı tek satır durum (eski «melez · hat · anne ana» yok) */
+const kvh = fs.readFileSync(W + 'kovanlar.html', 'utf8');
+assert.ok(!kvh.includes('melez · hat · anne ana') && kvh.includes("nol + ' kovan hatsız'") && kvh.includes("'hat kayıtlı'"));
 /* boş durum: rozetler dürüst («yok»), uydurma sayı yok */
 ['larva', 'kapan', 'hircin', 'foto', 'vet'].forEach((k) => { const i = E.tileInfo(k, 'apA'); assert.strictEqual(i.n, 0, k); assert.strictEqual(i.badge.cls, 'gray', k); });
 assert.strictEqual(E.tileInfo('kayip', 'apA').sub, 'kayıp kaydı yok');
