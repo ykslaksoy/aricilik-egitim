@@ -135,19 +135,20 @@
   }
 
   /* ---------------- Ses seçimi (saf; node testi: tests/sesle-ses.test.js) ----------------
-   * tr-TR sesleri arasından en kalitelisi: 1) Enhanced / Gelişmiş / Premium (iOS Yelda / Cem Enhanced),
-   * 2) Google Türkçe (Android / Chrome, ağ / neural), 3) Edge «Online (Natural)», 4) cihaz üstü (localService) varsayılan tr ses. Compact / eSpeak en sona. */
+   * tr-TR sesleri arasından en kalitelisi: 1) Enhanced / Gelişmiş / Premium (iOS Yelda / Cem Enhanced), 2) iOS sistem sesi Yelda / Cem,
+   * 3) Google Türkçe (Android / Chrome, ağ / neural), 4) Edge «Online (Natural)», 5) herhangi bir tr ses (varsayılan / cihaz üstü önce). eSpeak en sona. */
   function voiceRank(v) {
     if (!v) return -999;
     var n = String(v.name || '') + ' ' + String(v.voiceURI || ''), r = 0;
     if (/enhanced|premium|gelişmiş|gelismis|geliştirilmiş|yüksek kalite|high quality/i.test(n)) r += 100;
     if (/google/i.test(n)) r += 60 + (v.localService === false ? 5 : 0);
     if (/natural|neural/i.test(n)) r += 55;
-    if (/yelda|cem\b/i.test(n)) r += 5;
+    if (/yelda|\bcem\b/i.test(n)) r += 70;
     if (v['default']) r += 3;
     if (v.localService) r += 2; /* çevrimdışı da çalışır */
     if (/^tr[-_]TR$/i.test(v.lang || '')) r += 1;
-    if (/compact|espeak/i.test(n)) r -= 30;
+    if (/espeak/i.test(n)) r -= 40;
+    if (/compact/i.test(n)) r -= 5; /* iOS «compact» Yelda/Cem yine Google'dan önce gelir */
     return r;
   }
   function sortTrVoices(list) {
@@ -161,7 +162,24 @@
     return l[0] || null;
   }
 
-  var API = { parse: parse, parseNumber: parseNumber, numbers: numbers, parseFrames: parseFrames, matchOption: matchOption, fold: fold, voiceRank: voiceRank, sortTrVoices: sortTrVoices, bestTrVoice: bestTrVoice };
+  /* ---------------- Seslendirme metni (saf): emoji / sembol atılır, birimler okunur ---------------- */
+  var EMOJI = /[\u{1F000}-\u{1FAFF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2460}-\u{24FF}\u{25A0}-\u{27BF}\u{2900}-\u{297F}\u{2B00}-\u{2BFF}\u{3030}\u{303D}\u{FE0F}\u{200D}\u{20E3}]/gu;
+  function speechText(t) {
+    var s = String(t == null ? '' : t);
+    s = s.replace(EMOJI, ' ').replace(/[✓✔✗✘•▪◦●○■□►▶◀▲▼★☆]/g, ' ');
+    s = s.replace(/₺\s*(\d[\d.,]*)/g, '$1 lira').replace(/(\d)\s*₺/g, '$1 lira').replace(/₺/g, ' lira ').replace(/(^|[^A-Za-zÇĞİÖŞÜçğıöşü])TL(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/g, '$1lira');
+    s = s.replace(/%\s*(\d+(?:[.,]\d+)?)/g, 'yüzde $1').replace(/(\d+(?:[.,]\d+)?)\s*%/g, 'yüzde $1').replace(/%/g, ' yüzde ');
+    s = s.replace(/(\d)\s*kg(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/gi, '$1 kilogram').replace(/(^|[^A-Za-zÇĞİÖŞÜçğıöşü])kg(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/gi, '$1kilogram');
+    s = s.replace(/(\d)\s*L(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/g, '$1 litre').replace(/(\d)\s*ml(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/gi, '$1 mililitre').replace(/(\d)\s*g(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/g, '$1 gram');
+    s = s.replace(/(\d)\s*°\s*C(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/g, '$1 derece').replace(/°/g, ' derece ').replace(/(\d)\s*cm(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/g, '$1 santimetre').replace(/(\d)\s*mm(?![A-Za-zÇĞİÖŞÜçğıöşü0-9])/g, '$1 milimetre');
+    s = s.replace(/(^|[^\d])2\s*:\s*1(?![\d])/g, '$1ikiye bir').replace(/(^|[^\d])1\s*:\s*1(?![\d])/g, '$1bire bir');
+    s = s.replace(/½/g, 'yarım').replace(/≈|~/g, ' yaklaşık ').replace(/×/g, ' çarpı ').replace(/≥/g, ' en az ').replace(/≤/g, ' en çok ').replace(/(\s)\+(\s)/g, '$1ve$2');
+    s = s.replace(/\s*[·›»«|]\s*/g, ', ').replace(/\s+[—–-]\s+/g, ', ').replace(/\s\/\s/g, ' ya da ').replace(/[“”"*_#<>\[\]{}]/g, ' ');
+    s = s.replace(/\s+/g, ' ').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/\(\s*\)/g, ' ').replace(/\s+([,.!?;:])/g, '$1').replace(/([,;:])(?:\s*[,;:])+/g, '$1').replace(/^[\s,.;:]+|[\s,;:]+$/g, '');
+    return s;
+  }
+
+  var API = { speechText: speechText, parse: parse, parseNumber: parseNumber, numbers: numbers, parseFrames: parseFrames, matchOption: matchOption, fold: fold, voiceRank: voiceRank, sortTrVoices: sortTrVoices, bestTrVoice: bestTrVoice };
   if (typeof module !== 'undefined' && module.exports) { module.exports = API; return; }
 
   /* ---------------- tarayıcı: ses denetleyicisi ---------------- */
@@ -201,10 +219,40 @@
     }
   } catch (e) { /* ignore */ }
   function utter(text) {
-    var u = new global.SpeechSynthesisUtterance(text); u.lang = 'tr-TR'; u.rate = 1.02; u.pitch = 1.0;
-    var v = trVoice(); if (v) { u.voice = v; u.lang = v.lang; }
+    var u = new global.SpeechSynthesisUtterance(speechText(text)); u.lang = 'tr-TR'; u.rate = 1.0; u.pitch = 1.0;
+    var v = trVoice(); if (v) { u.voice = v; u.lang = /^tr/i.test(v.lang) ? v.lang.replace('_', '-') : 'tr-TR'; }
     return u;
   }
+  /** TEK seslendirme yardımcısı (Sesle muayene + öneri kartları): metin temizlenir, lang tr-TR, en iyi tr ses.
+   *  iOS'ta sesler geç yüklenir: liste boşsa sessiz bir «kilit açma» konuşması yapılır ve voiceschanged en çok 1,2 sn beklenir.
+   *  o.onend bir kez çağrılır (bitiş / hata / güvenlik süresi). */
+  var voicesWaited = false;
+  function speakTr(text, o) {
+    o = o || {};
+    var syn = global.speechSynthesis, ended = false, timer = null;
+    function end() { if (ended) return; ended = true; if (timer) clearTimeout(timer); if (o.onend) o.onend(); }
+    var clean = speechText(text);
+    if (!syn || !global.SpeechSynthesisUtterance || !clean) { setTimeout(end, 0); return; }
+    function go(extra) {
+      try { syn.cancel(); } catch (e) { /* ignore */ }
+      var u; try { u = utter(clean); } catch (e) { end(); return; }
+      u.onend = end; u.onerror = end;
+      try { syn.speak(u); } catch (e) { end(); return; }
+      timer = setTimeout(end, Math.min(25000, 2000 + clean.length * 90 + (extra || 0))); /* onend gelmezse */
+    }
+    if (trVoices().length || voicesWaited) { go(0); return; }
+    /* iOS: dokunuşla gelen ilk konuşmada sentezi aç (sessiz), sonra Türkçe sesi bekle */
+    try { syn.cancel(); var w = new global.SpeechSynthesisUtterance(' '); w.volume = 0; w.lang = 'tr-TR'; syn.speak(w); } catch (e) { /* ignore */ }
+    var fired = false, t0 = Date.now();
+    function fire() {
+      if (fired) return; fired = true; voicesWaited = true;
+      try { if (syn.removeEventListener) syn.removeEventListener('voiceschanged', fire); } catch (e) { /* ignore */ }
+      go(Date.now() - t0);
+    }
+    try { if (syn.addEventListener) syn.addEventListener('voiceschanged', fire); } catch (e) { /* ignore */ }
+    setTimeout(fire, 1200);
+  }
+  function stopSpeech() { try { global.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
   /* ---- Doğal konuşma metinleri ---- */
   function lastVowel(w) { var m = String(w).toLocaleLowerCase('tr').match(/[aeıioöuü](?=[^aeıioöuü]*$)/); return m ? m[0] : 'e'; }
   function qParticle(w) { return { a: 'mı', 'ı': 'mı', e: 'mi', i: 'mi', o: 'mu', u: 'mu', 'ö': 'mü', 'ü': 'mü' }[lastVowel(w)]; }
@@ -278,14 +326,7 @@
     function stopRec() { try { rec.abort(); } catch (e) { /* ignore */ } st.listening = false; }
     function speak(text, then) {
       stopRec(); st.speaking = true; state('Konuşuyor…', 'say');
-      var done = false, fin = function () { if (done) return; done = true; st.speaking = false; if (!st.on) return; if (then) then(); else listen(); };
-      try {
-        global.speechSynthesis.cancel();
-        var u = utter(text);
-        u.onend = fin; u.onerror = fin;
-        global.speechSynthesis.speak(u);
-      } catch (e) { fin(); return; }
-      setTimeout(fin, Math.min(15000, 1500 + text.length * 75)); /* onend gelmezse */
+      speakTr(text, { onend: function () { st.speaking = false; if (!st.on) return; if (then) then(); else listen(); } });
     }
     function optsText(c) {
       if (!c.def || !c.def.opts) return '';
@@ -371,7 +412,7 @@
     $('vbtn').onclick = function () { var p = $('voices'); p.hidden = !p.hidden; if (!p.hidden) fillVoices(); };
     $('vsel').onchange = function () { try { localStorage.setItem(VOICE_KEY, this.value); } catch (e) { /* ignore */ } };
     $('vtest').onclick = function () {
-      try { global.speechSynthesis.cancel(); global.speechSynthesis.speak(utter('Merhaba. Kovan yüz bir. Yavru düzeni nasıl? Düzenli mi, biraz boşluklu mu?')); } catch (e) { /* ignore */ }
+      speakTr('Merhaba. Kovan yüz bir. Yavru düzeni nasıl? Düzenli mi, biraz boşluklu mu?');
     };
     try { global.speechSynthesis.addEventListener('voiceschanged', function () { if (!$('voices').hidden) fillVoices(); }); } catch (e) { /* ignore */ }
     $('stop').onclick = function () { stop(); };
@@ -386,5 +427,5 @@
     else prompt();
     return ctl;
   }
-  root.SuperAriSesle = { parse: parse, parseNumber: parseNumber, numbers: numbers, supported: supported, start: start, trVoices: trVoices, pickVoice: trVoice, voiceRank: voiceRank, stop: function () { if (active) active.stop(); } };
+  root.SuperAriSesle = { parse: parse, parseNumber: parseNumber, numbers: numbers, supported: supported, start: start, trVoices: trVoices, pickVoice: trVoice, voiceRank: voiceRank, speak: speakTr, stopSpeech: stopSpeech, speechText: speechText, stop: function () { if (active) active.stop(); } };
 })(typeof window !== 'undefined' ? window : this);

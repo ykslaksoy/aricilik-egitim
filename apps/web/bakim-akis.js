@@ -828,14 +828,10 @@
       if (!self.canSpeak) { onState('say', text); if (then) then(); else self.listen(); return; }
       self.speaking = true; onState('say', text);
       var done = false, fin = function () { if (done) return; done = true; self.speaking = false; if (!self.on) return; if (then) then(); else self.listen(); };
-      try {
-        global.speechSynthesis.cancel();
-        var u = new global.SpeechSynthesisUtterance(text); u.lang = 'tr-TR'; u.rate = 1.0;
-        var VS = global.SuperAriSesle, v = VS && VS.pickVoice ? VS.pickVoice() : null; if (v) { u.voice = v; u.lang = v.lang; }
-        u.onend = fin; u.onerror = fin;
-        global.speechSynthesis.speak(u);
-        setTimeout(fin, Math.min(25000, 2000 + text.length * 90));
-      } catch (e) { fin(); }
+      /* tek seslendirme yardımcısı (sesle-muayene.js): metin temizliği, tr-TR, en iyi Türkçe ses, iOS geç ses yüklemesi */
+      var VS = global.SuperAriSesle;
+      if (VS && VS.speak) { VS.speak(text, { onend: fin }); return; }
+      need('sesle-muayene.js', 'SuperAriSesle').then(function (S) { if (!self.on) { fin(); return; } if (S && S.speak) S.speak(text, { onend: fin }); else fin(); }).catch(function () { fin(); });
     };
     this.listen = function () {
       if (!self.on || self.speaking) return;
