@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-91" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-92" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -63,19 +63,19 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-91"></script>
-  <script src="rapor-store.js?v=koloni-91"></script>
-  <script src="sensor-health.js?v=koloni-91"></script>
-<script src="saglik-canli.js?v=koloni-91"></script>
-  <script src="koloni.js?v=koloni-91"></script>
-  <script src="koloni-ek.js?v=koloni-91"></script>
-  <script src="ilac-katalog.js?v=koloni-91"></script>
-  <script src="bakim-plan.js?v=koloni-91"></script>
-  <script src="irk-tahmin.js?v=koloni-91"></script>
-  <script src="kovan-ara.js?v=koloni-91"></script>
+  <script src="demo-data.js?v=koloni-92"></script>
+  <script src="rapor-store.js?v=koloni-92"></script>
+  <script src="sensor-health.js?v=koloni-92"></script>
+<script src="saglik-canli.js?v=koloni-92"></script>
+  <script src="koloni.js?v=koloni-92"></script>
+  <script src="koloni-ek.js?v=koloni-92"></script>
+  <script src="ilac-katalog.js?v=koloni-92"></script>
+  <script src="bakim-plan.js?v=koloni-92"></script>
+  <script src="irk-tahmin.js?v=koloni-92"></script>
+  <script src="kovan-ara.js?v=koloni-92"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-elle.js?v=koloni-91"></script>
-  <script src="kapsam.js?v=koloni-91"></script>
+  <script src="tarti-elle.js?v=koloni-92"></script>
+  <script src="kapsam.js?v=koloni-92"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -722,7 +722,7 @@
             : topic === 'besleme'
             ? 'Her beslemeyi tarih, tür ve miktarla girin; kovan geçmişi ve arılık toplamı burada görünür. Sonbahar beslemeleri kışlık stok önerisine eklenir.'
             : topic === 'guc'
-            ? 'Her muayenede arılı, yavrulu, ballı ve polenli çerçeveleri girin; koloni gücü 5 seviyede skorla (0–100) gösterilir: Çok zayıf 0–19, Zayıf 20–39, Normal 40–59, Güçlü 60–79, Çok güçlü 80–100; seviye elle de seçilebilir ve geçmiş kovan bazında saklanır. Kayıtlar kovan detayı, görevler, uyarılar ve sağlık puanında kullanılır.'
+            ? 'Her muayenede arılı, yavrulu, ballı ve polenli çerçeveleri girin; koloni gücü skorla gösterilir: 0 = Yaşama sınırı altı, Çok zayıf 1–19, Zayıf 20–39, Normal 40–59, Güçlü 60–79, Çok güçlü 80–100; seviye elle de seçilebilir ve geçmiş kovan bazında saklanır. Kayıtlar kovan detayı, görevler, uyarılar ve sağlık puanında kullanılır.'
             : topic === 'yavru'
               ? 'Anasız işaretlenirse görev ve uyarı otomatik açılır; üşümüş yavru kovanı «zayıf koloni» yapar ve «Birleştir veya çerçeve azalt» görevi önerilir.'
               : 'Her hastalık ayrı kayıttır. İlaç bekleme süresi dolmadan hasat yapmayın; Amerikan yavru çürüğü ihbarı zorunludur. Kayıtlar sağlık puanını ve uyarıları etkiler. Kovanı açınca «🔍 Hastalık tahmini (kesin değil)» ile rehberli fotoğraf ve belirti listesi kullanılabilir.')
@@ -771,6 +771,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-91"></script>
+<script src="pwa.js?v=koloni-92"></script>
 </body>
 </html>

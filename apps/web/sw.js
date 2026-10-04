@@ -112,6 +112,7 @@ const SHELL = [
   "/device-runtime.js",
   "/ekipman-store.js",
   "/ekipman.html",
+  "/favicon.ico",
   "/fiyat-live.js",
   "/forage-analysis.js",
   "/forage-yield-estimate.js",

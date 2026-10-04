@@ -130,7 +130,7 @@
         var lbl = a[1] + (a[2] == null ? '' : a[2] >= 3 ? ' · ≤' + (cy - 3) : ' · ' + (cy - a[2]));
         return chip('age', a[0], lbl, cnt('age', function (f) { return f.ageKey === a[0]; }), !!state.age[a[0]], dot);
       }).join('') + chip('renew', '1', 'Yenile', cnt('renew', function (f) { return f.renew; }), state.renew) + '</div></div>';
-      html += '<div class="ka-g"><span>Koloni gücü</span><div class="ka-chips">' + ['Çok zayıf', 'Zayıf', 'Normal', 'Güçlü', 'Çok güçlü'].map(function (s) {
+      html += '<div class="ka-g"><span>Koloni gücü</span><div class="ka-chips">' + ['Yaşama sınırı altı', 'Çok zayıf', 'Zayıf', 'Normal', 'Güçlü', 'Çok güçlü'].map(function (s) {
         return chip('strength', s, s, cnt('strength', function (f) { return f.strength === s; }), !!state.strength[s]);
       }).join('') + '</div></div>';
       html += '<div class="ka-g"><span>Durum</span><div class="ka-chips">' +
