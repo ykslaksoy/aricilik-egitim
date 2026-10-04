@@ -680,16 +680,16 @@
     var tr = tour(apId), open = tr.rows.filter(function (r) { return !r.done && String(r.hive.id) !== String(curId); });
     return open.length ? open[0].hive : null;
   }
-  function completeMatching(hId, re) {
+  function completeMatching(hId, re, horizon) {
     var n = 0;
-    hiveTasks(hId, 0).forEach(function (x) { if (re.test(x.title)) { D.taskStore.complete(x.id, { note: 'Bakım planından kaydedildi' }); n++; } });
+    hiveTasks(hId, horizon || 0).forEach(function (x) { if (re.test(x.title)) { D.taskStore.complete(x.id, { note: 'Bakım planından kaydedildi' }); n++; } });
     return n;
   }
   function saveCount(hiveId, count, method) {
     var h = D.hiveById(hiveId); if (!h) return { ok: false, msg: 'Kovan bulunamadı' };
     var c = Math.round(Number(count)); if (String(count == null ? '' : count).trim() === '' || !isFinite(c) || c < 0 || c > 5000) return { ok: false, msg: 'Akar sayısını yazın.' };
     var rec = D.records.add(h.id, 'disease', { date: today(), disease: 'varroa', count: c, method: method === 'seker' ? 'seker' : 'alkol', note: 'Bakım planı · ½ bardak ≈300 arı örneği' });
-    var n = completeMatching(h.id, /^Varroa sayım|^Kontrol sayımı/i);
+    var n = completeMatching(h.id, /^Varroa sayım/i, 3650);
     var mp = medPlan(D.hiveById(h.id)), tk = recountTask(h.id, mp);
     try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
     return { ok: !!rec, msg: 'Sayım kaydedildi (' + c + ' akar · ' + mp.band.text + ').' + (n ? ' ' + n + ' görev tamamlandı.' : '') + (tk ? ' Tekrar sayım görevi: ' + fmt(tk.due) + '.' : '') };
@@ -707,6 +707,10 @@
     '.bo-dzs output{font-size:30px;font-weight:900;text-align:center}.bo-dzn{margin:0;font-size:.85rem;line-height:1.35}.bo-dzn.note{color:#5c4813;font-weight:700}' +
     '.bo-dzn.warn{background:#fff0f0;border:3px solid #c92a2a;color:#8a1c1c;border-radius:12px;padding:10px;font-size:1rem;font-weight:900}.bo-dzn.age{background:#f6f1e4;border:1px solid #e3d3a8;color:#5c4813;border-radius:10px;padding:8px;font-weight:700}' +
     '.bo-btn.bo-big{min-height:64px;font-size:1.05rem;width:100%}' +
+    '.bo .bo-btn{min-height:64px;font-size:1.05rem;padding:.5rem 1rem;border-radius:16px;touch-action:manipulation}.bo .bo-row{gap:12px}.bo .bo-row select,.bo .bo-row input{flex:1 1 100%;width:100%;min-height:64px;font-size:18px;font-weight:700;border:2px solid #d8b75a;border-radius:16px;padding:0 14px}' +
+    '.bo .bo-sec{gap:.75rem}.bo-task{grid-template-columns:minmax(0,1fr) 112px;gap:12px;padding-top:.6rem}.bo-task .bo-btn{width:100%}' +
+    '.bo-chk{display:flex;align-items:center;gap:14px;min-height:64px;padding:0 14px;border:2px solid #ead9b3;border-radius:16px;background:#fff;font-size:1rem;font-weight:700;color:#3d2616;cursor:pointer}.bo-chk input{width:32px;height:32px;flex:none;margin:0}' +
+    '.bo-vlbl{font-size:.9rem;font-weight:800;color:#5c4813}.bo-link{display:flex;align-items:center;justify-content:center;min-height:64px;margin-top:10px;border:2px solid #2b6cb0;border-radius:16px;color:#2b6cb0;font-weight:800;text-decoration:none;font-size:1rem}' +
     '.bo-vc{display:grid;gap:14px;margin:4px 0}.bo-vsel{font:inherit;font-size:18px;font-weight:700;min-height:64px;width:100%;padding:0 14px;border:2px solid #d8b75a;border-radius:16px;background:#fff;color:#3d2616}' +
     '.bo-vstep{display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:12px;align-items:stretch}.bo-vstep button{min-height:72px;border-radius:16px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:36px;font-weight:900;color:#0d3d73;cursor:pointer;touch-action:manipulation}' +
     '.bo-vstep input{min-height:72px;width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:30px;font-weight:900;text-align:center;border:2px solid #d8b75a;border-radius:16px;background:#fff;color:#3d2616;padding:0 6px}' +
@@ -731,8 +735,8 @@
       (st.honeyFrames != null ? '<span class="bo-chip">' + st.honeyFrames + ' bal çerçevesi</span>' : '') +
       (mp.metric ? '<span class="bo-chip">Varroa ' + esc(mp.metric.replace(' bulaşma', '')) + '</span>' : '') + '</div>');
     var firstInsp = false; try { var rr0 = D.records.status(h.id).records; firstInsp = !rr0.strength.length && !rr0.brood.length && !rr0.disease.length && !rr0.feed.length; } catch (eF) { firstInsp = false; }
-    H.push('<div style="display:flex;gap:.4rem;margin:.1rem 0 .5rem;"><button type="button" class="bo-btn" data-bo-km style="flex:1;min-width:0;min-height:50px;font-size:1rem;">🐝 ' + (firstInsp ? 'İlk muayene (adım adım)' : 'Kolay muayene (≈1 dk)') + '</button><button type="button" class="bo-btn" data-bo-km data-voice="1" style="flex:none;min-height:50px;font-size:.95rem;">🎙 Sesle başlat</button></div>');
-    H.push('<label class="bo-row" style="font-size:.8rem;"><input type="checkbox" data-bo-super' + (hasSuper(h.id) ? ' checked' : '') + '> Bal katı takılı (ilaç engellenir)</label>');
+    H.push('<div style="display:flex;gap:12px;margin:.1rem 0 .5rem;"><button type="button" class="bo-btn" data-bo-km style="flex:1;min-width:0;min-height:64px;font-size:1.05rem;">🐝 ' + (firstInsp ? 'İlk muayene (adım adım)' : 'Kolay muayene (≈1 dk)') + '</button><button type="button" class="bo-btn" data-bo-km data-voice="1" style="flex:none;min-height:64px;font-size:1rem;">🎙 Sesle başlat</button></div>');
+    H.push('<label class="bo-chk"><input type="checkbox" data-bo-super' + (hasSuper(h.id) ? ' checked' : '') + '> Bal katı takılı (ilaç engellenir)</label>');
     if (tasks.length) {
       H.push('<div class="bo-sec"><h3>📌 Yapılacaklar (bu kovan, tam liste)</h3>' + tasks.map(function (x) {
         return '<div class="bo-task"><span>' + esc(x.title) + (x.due ? ' <span class="bo-mut">· ' + (x.due < today() ? 'gecikti ' : '') + fmt(x.due) + '</span>' : '') + '</span><button type="button" class="bo-btn ok" data-bo-done="' + esc(x.id) + '">✓ Bitti</button></div>';
@@ -743,13 +747,13 @@
     H.push('<div class="bo-sec"><h3>👑 Ana memesi</h3>' +
       (lastB && lastB.queenCell && lastB.queenCell !== 'yok' ? '<p class="bo-mut">Son kayıt ' + esc(fmt(lastB.date)) + ': ' + esc((lastB.cellCount ? lastB.cellCount + ' ' : '') + (lastB.cellCapped ? D.records.CELL_CAP_LABEL[lastB.cellCapped] + ' · ' : '') + D.records.QUEEN_CELL_LABEL[lastB.queenCell].toLocaleLowerCase('tr')) + '</p>' : '') +
       '<div class="bo-row"><select data-bo-cell aria-label="Ana memesi yeri"><option value="yok">Meme yok</option><option value="ogul">Alt kenar — oğul memesi</option><option value="yenileme">Petek ortası — sessiz ana değiştirme</option><option value="acil">Acil — genç larvadan (anasız)</option></select></div>' +
-      '<div class="bo-row"><input type="number" inputmode="numeric" min="1" max="60" placeholder="Sayı" data-bo-celln aria-label="Meme sayısı" style="max-width:5.5rem">' +
+      '<div class="bo-vstep"><button type="button" data-bo-vinc="-1" aria-label="Meme sayısı azalt">−</button><input type="number" inputmode="numeric" min="1" max="60" step="1" placeholder="Sayı" data-bo-celln aria-label="Meme sayısı"><button type="button" data-bo-vinc="1" aria-label="Meme sayısı artır">+</button></div><div class="bo-row">' +
       '<select data-bo-cellcap aria-label="Kapalı mı açık mı"><option value="">Kapalı/açık —</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select>' +
       '<select data-bo-eggs aria-label="Yumurta"><option value="1">Yumurta var</option><option value="0">Yumurta yok</option></select></div>' +
-      '<div class="bo-row"><button type="button" class="bo-btn" data-bo-savecell>Muayeneyi kaydet</button></div></div>');
+      '<button type="button" class="bo-btn bo-big" data-bo-savecell>Muayeneyi kaydet</button></div>');
     /* hastalık tahmini (kesin değil) */
     H.push('<div class="bo-sec"><h3>🔍 Hastalık tahmini <span class="bo-mut">(kesin değil)</span></h3><p class="bo-mut">Rehberli fotoğraf + belirti listesi → muhtemel hastalıklar, yapılacaklar ve tek dokunuşla şüpheli kayıt.</p>' +
-      '<div class="bo-row"><button type="button" class="bo-btn" data-bo-hz>Hastalık tahmini başlat</button></div></div>');
+      '<button type="button" class="bo-btn bo-big" data-bo-hz>Hastalık tahmini başlat</button></div>');
     /* varroa */
     var V = '<div class="bo-sec"><h3>💊 Varroa</h3><p>' + esc(mp.band ? mp.band.text + ' · ' + fmt(mp.countDate) : mp.summary.split(' · ⛔')[0].split(' · Öneri')[0]) + '</p>';
     mp.warns.forEach(function (w) { V += '<p class="bo-warn">' + esc(w) + '</p>'; });
@@ -784,8 +788,9 @@
       var s = fp.stock || {};
       if (s.item && s.short) F += '<p class="bo-warn">Stok yetersiz: ' + esc(s.item.name) + ' ' + num(s.item.qty) + ' ' + esc(s.item.unit) + ', toplam gereken ' + num(s.total) + ' ' + esc(s.unit) + '.</p>';
       if (!s.item) F += '<p class="bo-mut">Stokta şurup/şeker kalemi yok; kayıt stoktan düşmez.</p>';
-      F += '<div class="bo-row"><input type="number" inputmode="decimal" step="0.5" min="0.5" max="20" value="' + fp.perFeedL + '" data-bo-feedl aria-label="Miktar"> ' + (SYRUP[fp.type].unit || 'L') + ' ' + esc(SYRUP[fp.type].label) +
-        '<button type="button" class="bo-btn" data-bo-feed>Beslemeyi kaydet</button></div>';
+      F += '<div class="bo-vc"><span class="bo-vlbl">' + esc(SYRUP[fp.type].label) + ' · miktar (' + (SYRUP[fp.type].unit || 'L') + ')</span>' +
+        '<div class="bo-vstep"><button type="button" data-bo-vinc="-1" aria-label="Miktar azalt">−</button><input type="number" inputmode="decimal" step="0.5" min="0.5" max="20" value="' + fp.perFeedL + '" data-bo-feedl aria-label="Miktar (' + (SYRUP[fp.type].unit || 'L') + ')"><button type="button" data-bo-vinc="1" aria-label="Miktar artır">+</button></div>' +
+        '<button type="button" class="bo-btn bo-big" data-bo-feed>Beslemeyi kaydet</button></div>';
     }
     F += '</div>';
     H.push(F);
@@ -813,7 +818,7 @@
       if (!sel || !box) return;
       var po = mp.products.filter(function (x) { return x.id === sel.value; })[0], p = I.byId(sel.value);
       if (!po || !p) { box.innerHTML = ''; return; }
-      box.innerHTML = '<p class="bo-mut">' + esc(p.dose.note) + ' Süre ' + p.durationDays[0] + (p.durationDays[1] !== p.durationDays[0] ? '–' + p.durationDays[1] : '') + ' gün. ' + esc(p.withdrawalText) + ' <a href="' + esc(p.source) + '" target="_blank" rel="noopener" style="color:#2b6cb0;text-decoration:underline;">' + (p.labelSource ? 'Etiket (üretici)' : 'Etiket (PDF)') + '</a></p>' +
+      box.innerHTML = '<p class="bo-mut">' + esc(p.dose.note) + ' Süre ' + p.durationDays[0] + (p.durationDays[1] !== p.durationDays[0] ? '–' + p.durationDays[1] : '') + ' gün. ' + esc(p.withdrawalText) + ' <a href="' + esc(p.source) + '" target="_blank" rel="noopener" class="bo-link">' + (p.labelSource ? 'Etiket (üretici)' : 'Etiket (PDF)') + '</a></p>' +
         po.warns.map(function (w) { return '<p class="bo-warn">' + esc(w) + '</p>'; }).join('');
     }
     info();
@@ -850,7 +855,14 @@
         }
       } else if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
       else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cell]').value, el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
-      else if (b.hasAttribute('data-bo-vinc')) { var ci = el.querySelector('[data-bo-count]'); var cv = Math.round(Number(ci.value) || 0) + Number(b.getAttribute('data-bo-vinc')); ci.value = String(Math.max(0, Math.min(5000, cv))); vadv(); }
+      else if (b.hasAttribute('data-bo-vinc')) {
+        var ci = b.parentNode.querySelector('input'); if (!ci) return;
+        var stp = Number(ci.step) || 1, mn = ci.min !== '' ? Number(ci.min) : 0, mx = ci.max !== '' ? Number(ci.max) : 5000;
+        var cv = ci.value === '' ? (Number(b.getAttribute('data-bo-vinc')) > 0 ? mn - stp : mn) : Number(ci.value);
+        cv = Math.round((cv + Number(b.getAttribute('data-bo-vinc')) * stp) * 100) / 100;
+        ci.value = String(Math.max(mn, Math.min(mx, cv)));
+        if (ci.hasAttribute('data-bo-count')) vadv();
+      }
       else if (b.hasAttribute('data-bo-savecount')) say(saveCount(h.id, el.querySelector('[data-bo-count]').value, el.querySelector('[data-bo-method]').value));
       else if (b.hasAttribute('data-bo-dz')) { if (dz.v == null) return; dz.v = Math.max(1, Math.min(50, dz.v + Number(b.getAttribute('data-bo-dz')))); dzChk(); }
       else if (b.hasAttribute('data-bo-treat')) {

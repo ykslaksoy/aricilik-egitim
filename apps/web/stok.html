@@ -950,7 +950,7 @@
   .st-ap:active { background: rgba(224, 208, 180, 0.45); }
   .st-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; }
   .st-panel[hidden], .grid[hidden] { display: none !important; }
-  /* Kaydırılan sütunda öğeler küçülmez: kart içeriğe göre uzar, alttaki öğenin üstüne binmez (koloni-82) */
+  /* Kaydırılan sütunda öğeler küçülmez: kart içeriğe göre uzar, alttaki öğenin üstüne binmez (koloni-83) */
   .st-panel > * { flex-shrink: 0; }
   .st-nw { white-space: nowrap; }
   .st-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; background: var(--bg); padding-bottom: 2px; box-shadow: 0 6px 0 0 var(--bg), 0 7px 0 0 rgba(0,0,0,.06); }
@@ -1014,7 +1014,7 @@
   .st-src.mt { background: #e7f5ff; color: #1864ab; }
   .st-src.e { background: #f1f3f5; color: #495057; }
   .st-src.el { background: #f3e8ff; color: #6b21a8; }
-  /* koloni-82: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
+  /* koloni-83: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
   .st-form [hidden] { display: none !important; }
   .st-tag.skt { background: #fff4e6; color: #a14a00; }
   .st-age { display: block; margin-top: 3px; color: #6b4a1f !important; font-weight: 700; line-height: 1.35; }
@@ -1177,14 +1177,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-82"></script>
-<script src="koloni.js?v=koloni-82"></script>
-<script src="ilac-katalog.js?v=koloni-82"></script>
-<script src="bakim-plan.js?v=koloni-82"></script>
-<script src="kapsam.js?v=koloni-82"></script>
-<script src="rapor-store.js?v=koloni-82"></script>
-<script src="fiyat-live.js?v=koloni-82"></script>
-<script src="stok-talep.js?v=koloni-82"></script>
+<script src="demo-data.js?v=koloni-83"></script>
+<script src="koloni.js?v=koloni-83"></script>
+<script src="ilac-katalog.js?v=koloni-83"></script>
+<script src="bakim-plan.js?v=koloni-83"></script>
+<script src="kapsam.js?v=koloni-83"></script>
+<script src="rapor-store.js?v=koloni-83"></script>
+<script src="fiyat-live.js?v=koloni-83"></script>
+<script src="stok-talep.js?v=koloni-83"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1338,7 +1338,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-82'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-83'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -2165,7 +2165,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-82"></script>
-<script src="pwa.js?v=koloni-82"></script>
+<script src="nav.js?v=koloni-83"></script>
+<script src="pwa.js?v=koloni-83"></script>
 </body>
 </html>
