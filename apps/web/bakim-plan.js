@@ -707,6 +707,9 @@
     '.bo-dzs output{font-size:30px;font-weight:900;text-align:center}.bo-dzn{margin:0;font-size:.85rem;line-height:1.35}.bo-dzn.note{color:#5c4813;font-weight:700}' +
     '.bo-dzn.warn{background:#fff0f0;border:3px solid #c92a2a;color:#8a1c1c;border-radius:12px;padding:10px;font-size:1rem;font-weight:900}.bo-dzn.age{background:#f6f1e4;border:1px solid #e3d3a8;color:#5c4813;border-radius:10px;padding:8px;font-weight:700}' +
     '.bo-btn.bo-big{min-height:64px;font-size:1.05rem;width:100%}' +
+    '.bo-vc{display:grid;gap:14px;margin:4px 0}.bo-vsel{font:inherit;font-size:18px;font-weight:700;min-height:64px;width:100%;padding:0 14px;border:2px solid #d8b75a;border-radius:16px;background:#fff;color:#3d2616}' +
+    '.bo-vstep{display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:12px;align-items:stretch}.bo-vstep button{min-height:72px;border-radius:16px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:36px;font-weight:900;color:#0d3d73;cursor:pointer;touch-action:manipulation}' +
+    '.bo-vstep input{min-height:72px;width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:30px;font-weight:900;text-align:center;border:2px solid #d8b75a;border-radius:16px;background:#fff;color:#3d2616;padding:0 6px}' +
     '.bo-steps{margin:0;padding-left:1.2rem;display:grid;gap:.25rem;font-size:.84rem;line-height:1.35;overflow-wrap:anywhere}.bo-hint{margin:0;font-size:.8rem;line-height:1.35;color:#5c4813;background:#fffaf0;border:1px dashed #e3d3a8;border-radius:10px;padding:.4rem .5rem}' +
     '.bo-adv:empty{display:none}.bo-adv{border-radius:12px;padding:.5rem .6rem;font-size:.86rem;line-height:1.35;border:2px solid #b2f2bb;background:#ebfbee;color:#1b5e20}.bo-adv.izle{border-color:#ffd8a8;background:#fff4e6;color:#8a4b00}.bo-adv.tedavi{border-color:#ffa8a8;background:#fff5f5;color:#8a1c1c}' +
     '.bo-adv b{display:block;font-size:.95rem;margin-bottom:.2rem}.bo-adv ol{margin:.2rem 0 0;padding-left:1.15rem;display:grid;gap:.2rem}' +
@@ -754,9 +757,12 @@
     var vsteps = varroaSteps(h, mp).filter(function (x) { return x.indexOf('⛔') !== 0; });
     if (vsteps.length) V += '<ol class="bo-steps">' + vsteps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>';
     V += '<p class="bo-hint"><b>Akar sayısı ne?</b> Yavrulu çerçeveden ½ bardak (≈300 arı) alın; alkol / sabunlu su ile yıkayın veya pudra şekeriyle çalkalayın. Düşen akarların <b>sayısını</b> yazın (yüzde değil) — uygulama 300 arıya göre bulaşma yüzdesini çıkarır.</p>';
-    V += '<div class="bo-row"><input type="number" inputmode="numeric" min="0" max="5000" placeholder="Akar" data-bo-count aria-label="Akar sayısı (300 arıda)">' +
-      '<select data-bo-method aria-label="Sayım yöntemi"><option value="alkol">Alkol yıkama (≈300 arı)</option><option value="seker">Pudra şekeri (≈300 arı)</option></select>' +
-      '<button type="button" class="bo-btn" data-bo-savecount>Sayımı kaydet</button></div><div class="bo-adv" data-bo-vadv aria-live="polite"></div>';
+    /* saha: eldiven boyu (≥64px, tam genişlik, geniş aralık) — yöntem, büyük −/+ sayı, kaydet */
+    V += '<div class="bo-vc"><select class="bo-vsel" data-bo-method aria-label="Sayım yöntemi"><option value="alkol">Alkol yıkama (≈300 arı)</option><option value="seker">Pudra şekeri (≈300 arı)</option></select>' +
+      '<div class="bo-vstep"><button type="button" data-bo-vinc="-1" aria-label="Akar azalt">−</button>' +
+      '<input type="number" inputmode="numeric" min="0" max="5000" placeholder="Akar" data-bo-count aria-label="Akar sayısı (300 arıda)">' +
+      '<button type="button" data-bo-vinc="1" aria-label="Akar artır">+</button></div>' +
+      '<button type="button" class="bo-btn bo-big" data-bo-savecount>Sayımı kaydet</button></div><div class="bo-adv" data-bo-vadv aria-live="polite"></div>';
     if (mp.canTreat && (mp.level === 'tedavi' || mp.level === 'planla')) {
       var opt = mp.products.filter(function (x) { return x.verified; }).map(function (x) {
         var dis = !x.dose.ok || x.blocks.length;
@@ -844,6 +850,7 @@
         }
       } else if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
       else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cell]').value, el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
+      else if (b.hasAttribute('data-bo-vinc')) { var ci = el.querySelector('[data-bo-count]'); var cv = Math.round(Number(ci.value) || 0) + Number(b.getAttribute('data-bo-vinc')); ci.value = String(Math.max(0, Math.min(5000, cv))); vadv(); }
       else if (b.hasAttribute('data-bo-savecount')) say(saveCount(h.id, el.querySelector('[data-bo-count]').value, el.querySelector('[data-bo-method]').value));
       else if (b.hasAttribute('data-bo-dz')) { if (dz.v == null) return; dz.v = Math.max(1, Math.min(50, dz.v + Number(b.getAttribute('data-bo-dz')))); dzChk(); }
       else if (b.hasAttribute('data-bo-treat')) {
