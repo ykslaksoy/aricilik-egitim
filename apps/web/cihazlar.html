@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-89" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -57,6 +58,12 @@
   }
   .empty-live strong { font-size: 14px; font-weight: 800; color: var(--brown); }
   .empty-live p { margin: 0; font-size: 12px; font-weight: 650; line-height: 1.4; }
+  /* Bakım düzeni (k88): Kapsam kartı + cihaz türü döşemeleri + liste; satırlar eldiven boyu */
+  .ks-page .device-link { min-height: 64px; align-items: center; }
+  .ks-page .device-link .right { flex: none; }
+  #devList .card-block, #devList { scroll-margin-top: 12px; }
+  .dev-empty { padding: 12px 14px; border-radius: 14px; border: 1.5px dashed #cfd8e3; background: #f7f8fa; color: #4a5562; font-size: 14px; font-weight: 650; line-height: 1.4; margin: 0; }
+  .dev-clear { margin-top: 10px; }
   .section-label {
     margin: 14px 0 8px; font-size: 11px; font-weight: 800;
     color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
@@ -97,8 +104,11 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-88"></script>
+<script src="demo-data.js?v=koloni-89"></script>
 <script src="device-runtime.js"></script>
+<script src="kapsam.js?v=koloni-89"></script>
+<script src="ks-sayfa.js?v=koloni-89"></script>
+<script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
   var Dev = window.SuperAriDevices;
@@ -111,6 +121,8 @@
   var workMode = Dev.getMode();
   var devices = Dev.listDevices();
   var counts = Dev.summarize();
+  var P = window.SuperAriKsSayfa, KS = window.SuperAriKapsam;
+  if (P && KS) { ksLayout(); return; }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -185,6 +197,80 @@
       '</div>' +
       '<div class="right"><span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
     '</a>';
+  }
+
+
+  /* ---- Bakım düzeni (k88): Kapsam kartı (arılık + Bağlı / Bağlı değil / Düşük pil / Son veri) → cihaz türü döşemeleri → seçili türün listesi.
+     Uydurma veri yok: cihaz yoksa «Yok · bağlı değil»; canlıda yalnız kayıtlı / keşfedilen cihazlar. ---- */
+  function ksLayout() {
+    var TYPES = [
+      { k: 'tarti', l: 'Tartı', tips: ['tarti'], svg: '<path d="M12 6.2v11.4M8.6 17.8h6.8M6.4 8.8h11.2"/><path d="M6.4 8.8 4.6 12.6a1.9 1.9 0 0 0 3.6 0zM17.6 8.8l-1.8 3.8a1.9 1.9 0 0 0 3.6 0z"/>' },
+      { k: 'isi_nem', l: 'Sıcaklık / Nem', tips: ['isi_nem'], svg: '<path d="M10 14.6V7.4a1.8 1.8 0 0 1 3.6 0v7.2a3 3 0 1 1-3.6 0z"/><path d="M11.8 10.5v5.2"/><path d="M16.8 9.2c.9 1.2 1.4 2 1.4 2.7a1.4 1.4 0 0 1-2.8 0c0-.7.5-1.5 1.4-2.7z"/>' },
+      { k: 'ir', l: 'IR (giriş sayacı)', tips: ['ir'], svg: '<path d="M6.5 12h3M14.5 12h3"/><circle cx="12" cy="12" r="1.6"/><path d="M8.2 8.2l1.8 1.8M15.8 8.2 14 10M8.2 15.8l1.8-1.8M15.8 15.8 14 14"/>' },
+      { k: 'ses_titresim', l: 'Ses / Titreşim', tips: ['ses_titresim'], svg: '<path d="M6.5 10h2.4l3.3-2.8v9.6L8.9 14H6.5z"/><path d="M14.3 9.6a3.2 3.2 0 0 1 0 4.8M15.9 8a5.4 5.4 0 0 1 0 8"/>' },
+      { k: 'gateway', l: 'Gateway', tips: ['gateway'], svg: '<path d="M12 11v7M9 18h6"/><path d="M9.2 8.6a4 4 0 0 1 5.6 0M7.2 6.6a6.8 6.8 0 0 1 9.6 0"/><circle cx="12" cy="11" r="1.2"/>' },
+      { k: 'kamera_merkez', l: 'Merkezi kamera', tips: ['kamera_merkez', 'kamera_arilik', 'merkezi_kamera'], svg: '<rect x="5.6" y="8.4" width="9.4" height="7.4" rx="1.4"/><path d="M15 11l3.6-2v6L15 13z"/>' },
+      { k: 'kamera_kovan', l: 'Kovan kamerası', tips: ['kamera_kovan', 'kovan_kamerasi'], svg: '<rect x="6.4" y="11.4" width="11.2" height="6.2" rx=".8"/><path d="M6 11.4h12M8.6 8.2h4.6v2.4H8.6z"/><circle cx="10.9" cy="9.4" r=".7"/>' },
+      { k: 'role_hub', l: 'Kablosuz röle / hub', tips: ['role_hub'], svg: '<circle cx="12" cy="12" r="1.8"/><circle cx="7" cy="8" r="1.3"/><circle cx="17" cy="8" r="1.3"/><circle cx="12" cy="17.4" r="1.3"/><path d="M10.6 10.9 8 8.9M13.4 10.9 16 8.9M12 13.8v2.3"/>' }
+    ];
+    var scopeAp = params.get('apiary') || '';
+    var all = devices.filter(function (d) { return !scopeAp || String(d.apiaryId) === String(scopeAp); });
+    var tipSel = params.get('tip') || '';
+    var typeOf = function (d) { var t = String(d.tip || ''); return TYPES.filter(function (x) { return x.tips.indexOf(t) >= 0; })[0] || (Dev.isCamera && d.kind === 'kamera' ? TYPES[5] : null); };
+    var low = function (d) { return d.battery != null && Number(d.battery) <= 20; };
+    var sum = function (list) {
+      var o = { n: list.length, on: 0, off: 0, low: 0, last: null };
+      list.forEach(function (d) { if (d.status === 'bagli') o.on++; else o.off++; if (low(d)) o.low++; if (d.lastMins != null && (o.last == null || d.lastMins < o.last)) o.last = d.lastMins; });
+      return o;
+    };
+    var href = function (tip) { var q = new URLSearchParams(location.search); if (tip) q.set('tip', tip); else q.delete('tip'); return 'cihazlar.html?' + q.toString() + '#devList'; };
+    var ICON = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="9" width="18" height="15" rx="3" fill="#cfd8e3" stroke="#6b7a8c" stroke-width="1.2"/><circle cx="16" cy="16.5" r="3.4" fill="#fff" stroke="#2f9e44" stroke-width="1.8"/><path d="M11 9V6.5M21 9V6.5" stroke="#6b7a8c" stroke-width="1.6" stroke-linecap="round"/></svg>';
+    P.init({
+      title: 'Cihazlar', icon: ICON,
+      stats: function () {
+        var s0 = sum(all);
+        return [
+          { k: 'kovan', v: s0.on, l: 'Bağlı', href: href('') },
+          { k: 'uyari', v: s0.off, l: 'Bağlı değil', href: href(''), tone: s0.off ? 'hot' : '' },
+          { k: 'sorun', v: s0.low, l: 'Düşük pil', href: href(''), tone: s0.low ? 'hot' : '' },
+          { k: 'saat', v: s0.last == null ? '—' : relAgo(s0.last).replace(' önce', ''), l: 'Son veri', href: href('') }
+        ];
+      },
+      note: function () {
+        var s0 = sum(all), bad = all.filter(function (d) { return d.status === 'arizali'; }), off = all.filter(function (d) { return d.status === 'kopuk'; });
+        if (!all.length) return { t: workMode === 'live' ? 'Bu kapsamda bağlı cihaz yok · takılınca otomatik görünür' : 'Bu arılıkta örnek cihaz yok', b: 'Liste', href: '#devList', k: 'bos' };
+        if (bad.length) return { t: '⚠ ' + bad.length + ' cihaz arızalı · ' + bad.slice(0, 2).map(function (d) { return (d.hiveName || d.typeLabel) + ' ' + d.typeLabel.toLocaleLowerCase('tr'); }).join(', '), b: 'Göster', href: href(typeOf(bad[0]) ? typeOf(bad[0]).k : ''), k: 'ariza' };
+        if (off.length) return { t: '📡 ' + off.length + ' cihaz bağlı değil (kopuk)', b: 'Göster', href: href(typeOf(off[0]) ? typeOf(off[0]).k : ''), k: 'kopuk' };
+        return { t: '✓ ' + s0.on + ' cihaz bağlı' + (s0.low ? ' · ' + s0.low + ' düşük pil' : ''), b: 'Liste', href: '#devList', k: 'ok' };
+      }
+    });
+    /* eski başlık / görünüm seçimi gizli (kapsam kartı yerini aldı) */
+    ['modeSwitch', 'workModeBanner'].forEach(function (id) { var e = document.getElementById(id); if (e) { e.hidden = true; e.style.display = 'none'; } });
+    var host = document.getElementById('ksScope');
+    var grid = document.createElement('div'); grid.className = 'ks-grid'; grid.id = 'ksTiles'; grid.setAttribute('aria-label', 'Cihaz türleri');
+    grid.innerHTML = TYPES.map(function (t) {
+      var l = all.filter(function (d) { var x = typeOf(d); return x && x.k === t.k; }), s0 = sum(l);
+      var badge = !s0.n ? '<span class="ks-badge gray">Yok</span>' : (s0.off ? '<span class="ks-badge ' + (l.some(function (d) { return d.status === 'arizali'; }) ? 'red' : 'orange') + '">' + s0.on + ' / ' + s0.n + ' bağlı</span>' : '<span class="ks-badge green">' + s0.n + ' bağlı</span>');
+      var sub = !s0.n ? 'bağlı değil' : [s0.off ? s0.off + ' bağlı değil' : '', s0.low ? s0.low + ' düşük pil' : ''].filter(Boolean).join(' · ') || ('son veri ' + relAgo(s0.last));
+      return '<a class="ks-tile' + (tipSel === t.k ? ' on' : '') + '" href="' + href(tipSel === t.k ? '' : t.k) + '" aria-label="' + esc(t.l + ', ' + (s0.n ? s0.on + ' / ' + s0.n + ' bağlı' : 'cihaz yok')) + '">' +
+        KS.hiveHtml({ svg: t.svg }) + '<span class="ks-tl">' + esc(t.l) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
+    }).join('');
+    host.parentNode.insertBefore(grid, host.nextSibling);
+    /* liste: seçili tür (yoksa tümü) */
+    var tSel = TYPES.filter(function (x) { return x.k === tipSel; })[0] || null;
+    var list = all.filter(function (d) { if (!tSel) return true; var x = typeOf(d); return x && x.k === tSel.k; });
+    var order = { arizali: 0, kopuk: 1, yok: 2, bagli: 3 };
+    list.sort(function (a, b) { return (order[a.status] - order[b.status]) || ((a.lastMins || 0) - (b.lastMins || 0)); });
+    var sec = document.querySelector('section.card-block'); sec.id = 'devList';
+    document.getElementById('listHeading').textContent = (tSel ? tSel.l : 'Tüm cihazlar') + ' · ' + list.length + (list.length > 1 ? ' (önce arızalı / bağlı değil)' : '');
+    document.getElementById('summary').textContent = '';
+    var body = document.getElementById('deviceBody');
+    body.innerHTML = list.length ? list.map(renderDevice).join('')
+      : '<p class="dev-empty">' + (tSel ? tSel.l + ' cihazı bu kapsamda bağlı değil. ' : 'Bu kapsamda cihaz bağlı değil. ') + 'Tak–çalıştır: donanım bağlanınca otomatik listelenir; elle ekleme gerekmez.</p>';
+    if (tSel) body.insertAdjacentHTML('beforeend', '<a class="ks-btn dev-clear" href="' + href('') + '">Tüm cihaz türleri</a>');
+    var sp = document.getElementById('summary'); if (sp) sp.parentNode.insertBefore(sec.querySelector('h2'), sp);
+    grid.parentNode.insertBefore(sec, grid.nextSibling);
+    document.getElementById('pageNote').textContent = workMode === 'demo' ? 'Demo: sabit örnek cihaz paketi · kullanıcı kayıtları karışmaz' : 'Canlı: yalnızca gerçek / keşfedilen cihazlar';
   }
 
   /* Page mode banner (Demo vs Canlı) */
@@ -294,7 +380,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-88"></script>
-<script src="pwa.js?v=koloni-88"></script>
+<script src="nav.js?v=koloni-89"></script>
+<script src="pwa.js?v=koloni-89"></script>
 </body>
 </html>

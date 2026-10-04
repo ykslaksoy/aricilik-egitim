@@ -412,7 +412,7 @@
   function feedAdvice(h, st) {
     st = st || hiveState(h);
     var fp = feedPlan(h, st), sk = fp.season, lv = st.cls && D.records.strengthLevel ? D.records.strengthLevel(st.cls) : null, lk = lv ? lv.key : null;
-    var weak = lk === 'zayif' || lk === 'cok-zayif', strong = lk === 'guclu' || lk === 'cok-guclu';
+    var weak = lk === 'zayif' || lk === 'cok-zayif' || lk === 'sinir-alti', strong = lk === 'guclu' || lk === 'cok-guclu';
     var lvTxt = lv ? 'koloni ' + lv.label.toLocaleLowerCase('tr') : '';
     var stTxt = fp.storesKg != null ? 'stok ≈ ' + num(fp.storesKg) + ' kg' + (fp.targetKg ? ' / hedef ' + fp.targetKg + ' kg' : '') : '';
     var o = { tier: 'gerekmez', fp: fp, level: lv ? lv.label : null, season: sk };
@@ -439,7 +439,7 @@
       }
     } else if (sk === 'ilkbahar') {
       var brood = st.strength ? Number(st.strength.broodFrames) || 0 : 0;
-      if (brood > 0 && lk !== 'cok-zayif') {
+      if (brood > 0 && lk !== 'cok-zayif' && lk !== 'sinir-alti') {
         o.tier = 'faydali'; o.type = 'surup11'; o.amount = SYRUP.surup11.perFeedL; o.unit = 'L';
         o.title = 'Normalde gerek yok; ' + amt('surup11', SYRUP.surup11.perFeedL) + ' (' + SYRUP.surup11.everyDays + ' günde bir) verirsen ana arı daha çok yumurtlar';
         o.why = stTxt + ' yeterli · teşvik beslemesi: akıma kalabalık nüfusla girilir' + (weak ? ' · ' + lvTxt + ': yağmaya karşı uçuş deliğini daraltın' : '') + '.';

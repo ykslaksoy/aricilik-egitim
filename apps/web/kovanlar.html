@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-89" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -63,17 +63,18 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-88"></script>
-  <script src="rapor-store.js?v=koloni-88"></script>
-  <script src="sensor-health.js?v=koloni-88"></script>
-<script src="saglik-canli.js?v=koloni-88"></script>
-  <script src="koloni.js?v=koloni-88"></script>
-  <script src="ilac-katalog.js?v=koloni-88"></script>
-  <script src="bakim-plan.js?v=koloni-88"></script>
-  <script src="irk-tahmin.js?v=koloni-88"></script>
-  <script src="kovan-ara.js?v=koloni-88"></script>
-  <script src="tarti-elle.js?v=koloni-88"></script>
-  <script src="kapsam.js?v=koloni-88"></script>
+  <script src="demo-data.js?v=koloni-89"></script>
+  <script src="rapor-store.js?v=koloni-89"></script>
+  <script src="sensor-health.js?v=koloni-89"></script>
+<script src="saglik-canli.js?v=koloni-89"></script>
+  <script src="koloni.js?v=koloni-89"></script>
+  <script src="ilac-katalog.js?v=koloni-89"></script>
+  <script src="bakim-plan.js?v=koloni-89"></script>
+  <script src="irk-tahmin.js?v=koloni-89"></script>
+  <script src="kovan-ara.js?v=koloni-89"></script>
+  <script src="device-runtime.js"></script>
+  <script src="tarti-elle.js?v=koloni-89"></script>
+  <script src="kapsam.js?v=koloni-89"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -159,7 +160,7 @@
         var rec = TE.all().filter(function (x) { if (!ap) return true; var hh = D.hiveById(x.hiveId); return hh && String(hh.apiaryId) === String(ap); }).slice(0, 5);
         el.hidden = false;
         el.innerHTML = '<button type="button" class="btn" data-te-open style="width:100%;min-height:50px;font-size:1.02rem;">⚖ Elle tartım gir</button>' +
-          (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son elle tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '');
+          (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '');
         if (!el.__b) { el.__b = true; el.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-te-open]')) TE.open(params.get('hiveId') || '', { apiaryId: ap, onSaved: renderTartiTop }); }); }
       }
       renderTartiTop();
@@ -472,23 +473,31 @@
           var tEl = document.getElementById('tartiTop');
           var recT = TE ? TE.all().filter(function (x) { var hh = D.hiveById(x.hiveId); return hh && (!apiaryFilter || String(hh.apiaryId) === String(apiaryFilter)); }).slice(0, 5) : [];
           tEl.hidden = !recT.length;
-          tEl.innerHTML = recT.length ? '<div class="ks-sec" style="margin-top:4px;"><h3>Son elle tartımlar</h3><small>' + recT.length + '</small></div>' + recT.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') : '';
+          tEl.innerHTML = recT.length ? '<div class="ks-sec" style="margin-top:4px;"><h3>Son tartımlar</h3><small>' + recT.length + '</small></div>' + recT.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') : '';
           secV.hidden = false; secV.querySelector('h3').textContent = 'Kovanlar · ağırlık';
           document.getElementById('ksCount').textContent = hsT.length + ' kovan · önce tartısız' + (KV.live() ? '' : ' · Demo');
           var d14T = D.records.addDays(D.records.todayLocal(), -14);
           var infT = hsT.map(function (h) {
             var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
             var kg = l ? String(l.kg).replace('.', ',') + ' kg' : (liveT ? 'Tartı yok' : h.weightKg.toFixed(1).replace('.', ',') + ' kg');
-            var sub = l ? 'Elle · ' + KV.fmtAgo(at, D.records.todayLocal()) : (liveT ? 'elle tartım girilmedi' : 'örnek · ' + (h.deltaKg > 0 ? '+' : '') + h.deltaKg.toFixed(1).replace('.', ',') + ' kg');
+            var sub = l ? (l.source === 'otomatik' ? 'Cihaz · ' : 'Elle · ') + KV.fmtAgo(at, D.records.todayLocal()) : (liveT ? 'elle tartım girilmedi' : 'örnek · ' + (h.deltaKg > 0 ? '+' : '') + h.deltaKg.toFixed(1).replace('.', ',') + ' kg');
+            var dv = TE && TE.scaleDevice ? TE.scaleDevice(h.id) : null;
+            if (dv) sub = '📡 ' + sub;
             return { h: h, kg: kg, sub: sub, old: !at || at < d14T };
           }).sort(function (a, b) { return (b.old - a.old) || (Number(KV.hiveNum(a.h)) - Number(KV.hiveNum(b.h))); });
           tilesV.hidden = false;
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
           tilesV.innerHTML = infT.map(function (x) {
-            return '<a class="ks-tile' + (x.old && liveT ? ' sev-check' : '') + '" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '" aria-label="' + esc(x.h.name + ', ' + x.kg + ', ' + x.sub) + '">' +
+            return '<a class="ks-tile' + (x.old && liveT ? ' sev-check' : '') + '" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '" data-te-hive="' + esc(x.h.id) + '" aria-label="' + esc(x.h.name + ' tart, ' + x.kg + ', ' + x.sub) + '">' +
               KV.hiveHtml({ num: KV.hiveNum(x.h) }) + '<span class="ks-tl">' + esc(x.h.name) + '</span>' +
               '<span class="ks-badge ' + (x.old ? 'orange' : 'green') + '">' + esc(x.kg) + '</span><span class="ks-sub">' + esc(x.sub) + '</span></a>';
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
+          /* kovan kutucuğu → o kovanın tartım ekranı (otomatik okuma + elle tartım); kapatınca liste yenilenir */
+          tilesV.addEventListener('click', function (e) {
+            var tl = e.target.closest ? e.target.closest('[data-te-hive]') : null; if (!tl || !TE) return;
+            e.preventDefault(); var dirty = false;
+            TE.open(tl.getAttribute('data-te-hive'), { onSaved: function () { dirty = true; }, onClose: function () { if (dirty) location.reload(); } });
+          });
           /* liste altta: Bakım düzeninde Kapsam → düğme → son tartımlar → kovanlar */
           var mainV = oc.parentNode;
           mainV.insertBefore(tEl, secV);
@@ -709,6 +718,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-88"></script>
+<script src="pwa.js?v=koloni-89"></script>
 </body>
 </html>

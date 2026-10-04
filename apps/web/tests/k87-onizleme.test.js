@@ -18,7 +18,7 @@ globalThis.navigator = { onLine: true };
 const D = globalThis.SuperAriDemo, R = D.records, C = D.colony;
 /* seviye aralıkları (20'şer) */
 assert.deepStrictEqual(R.STRENGTH_LEVELS.map((l) => l.label + ' ' + R.strengthRange(l).text),
-  ['Çok zayıf 0–19', 'Zayıf 20–39', 'Normal 40–59', 'Güçlü 60–79', 'Çok güçlü 80–100']);
+  ['Çok zayıf 1–19', 'Zayıf 20–39', 'Normal 40–59', 'Güçlü 60–79', 'Çok güçlü 80–100']);
 assert.strictEqual(R.strengthRange('orta').text, '40–59', 'eski «orta» → Normal');
 /* skor ↔ seviye tutarlı (her skor kendi aralığında) */
 /* her bölge bandı (a1 sıcak, a2 yayla, a3/a5 yüksek, a4 ılıman) ve mevsimde: skor kendi seviye aralığında; çerçeve arttıkça skor düşmez */
@@ -44,12 +44,12 @@ assert.ok(/^Güçlü \(elle\) · 60–79 · skor \d+ \((Çok zayıf|Zayıf)\)$/.
 const env = (b) => R.breedEnv({ breed: b });
 assert.strictEqual(env('Kafkas').fob, 0.90);
 assert.strictEqual(env('Karniyol').fob, 1.15);
-assert.strictEqual(env('Kafkas × Karadeniz').key, 'karadeniz', 'ikili melez değişmedi');
-assert.strictEqual(env('Kafkas × Karniyol').key, 'kafkas', 'ikili melez değişmedi');
+assert.strictEqual(env('Kafkas × Karadeniz').fob, 0.90, 'aynı alt tür: melez gücü yok (k88)');
+assert.strictEqual(env('Kafkas × Karniyol').fob, 1.189, 'k88: ebeveyn ort. × (1 + 0,16)');
 assert.strictEqual(env('Kafkas × Anadolu').fob, 0.95);
 const e3 = env('Kafkas × Karadeniz × Muğla');
-assert.strictEqual(e3.key, 'melez3'); assert.strictEqual(e3.fob, 0.933); assert.deepStrictEqual(e3.parts, ['kafkas', 'karadeniz', 'diger']);
-assert.strictEqual(env('Kafkas x Karniyol x Buckfast').fob, Math.round((0.90 + 1.15 + 1.11) / 3 * 1000) / 1000, '«x» ayırıcı da çalışır');
+assert.strictEqual(e3.key, 'melez3'); assert.strictEqual(e3.fob, 1.026); assert.deepStrictEqual(e3.parts, ['kafkas', 'karadeniz', 'mugla']);
+assert.strictEqual(env('Kafkas x Karniyol x Buckfast').fob, Math.round(((0.90 + 1.11) / 2 + (1.15 + 1.11) / 2) / 2 * 1000) / 1000, '«x» ayırıcı da çalışır (k88: ½ (A×C + B×C))');
 assert.deepStrictEqual([C.breedKind('Muğla'), C.breedKind('Kafkas × Karadeniz'), C.breedKind('Kafkas × Karadeniz × Muğla'), C.breedKind('')], ['saf', 'iki', 'uc', '']);
 /* ırk ve soy kaydı: üçlü melez + hat + anne ana (kayıtlı ana) / dış kaynak */
 const hs = D.loadHives().filter((h) => h.apiaryId === 'a2');

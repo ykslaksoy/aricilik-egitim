@@ -29,8 +29,9 @@ assert.deepStrictEqual(['zayıf', 'orta', 'güçlü', 'Orta', 'Zayıf', 'GÜÇL�
 assert.strictEqual(R.strengthLevel('xyz'), null);
 /* başlangıç eşikleri (arılık verisi yok; Mayıs, yavru arının yarısı) */
 const cls = (b, br, d) => R.strengthClass({ beeFrames: b, broodFrames: br == null ? Math.ceil(b / 2) : br, date: d || '2026-05-10' });
-assert.deepStrictEqual([1, 2, 3, 4, 5, 7, 8, 11, 12, 16].map((b) => cls(b)), ['Çok zayıf', 'Çok zayıf', 'Zayıf', 'Zayıf', 'Normal', 'Normal', 'Güçlü', 'Güçlü', 'Çok güçlü', 'Çok güçlü']);
-assert.strictEqual(cls(5, 0), 'Zayıf', 'aktif mevsimde yavrusuz koloni bir alt seviyeye iner');
+assert.deepStrictEqual([1, 2, 3, 4, 5, 7, 8, 11, 12, 16].map((b) => cls(b)), ['Yaşama sınırı altı', 'Çok zayıf', 'Çok zayıf', 'Çok zayıf', 'Zayıf', 'Normal', 'Normal', 'Güçlü', 'Güçlü', 'Çok güçlü'], 'k88: yaşama sınırı (Mayıs 2 çerçeve) altı = 0');
+assert.strictEqual(cls(5, 0), 'Çok zayıf', 'aktif mevsimde yavrusuz koloni bir alt seviyeye iner');
+assert.strictEqual(cls(1.5, 0), 'Yaşama sınırı altı', 'yaşama sınırı altında yavru / tartı katkısı skoru 0 üstüne çıkarmaz');
 /* konum × cins tablosu (tek yer) */
 assert.deepStrictEqual(Object.keys(R.COLONY_ENV.BANDS).map((k) => [k, R.COLONY_ENV.BANDS[k].fobMean, R.COLONY_ENV.BANDS[k].winterKg]), [['sicak', 8.6, 15], ['iliman', 8.6, 20], ['yayla', 11, 22], ['yuksek', 16, 25]]);
 {
@@ -39,7 +40,7 @@ assert.deepStrictEqual(Object.keys(R.COLONY_ENV.BANDS).map((k) => [k, R.COLONY_E
   const e1 = R.envFor(Object.assign({}, hx, { breed: 'Kafkas' }), '2026-08-15');
   assert.deepStrictEqual([e1.bandKey, e1.breed.key, e1.fobPeak, e1.fobNow], ['yuksek', 'kafkas', 14.4, 14.4]);
   assert.strictEqual(R.envFor(Object.assign({}, hx, { breed: 'Karniyol' }), '2026-12-01').fobNow, Math.round(16 * 1.15 * 0.65 * 100) / 100, 'kış dışı mevsim ×0,65');
-  assert.strictEqual(R.envFor(Object.assign({}, hx, { breed: 'Kafkas x Anadolu' })).breed.key, 'kafkas-anadolu');
+  assert.strictEqual(R.envFor(Object.assign({}, hx, { breed: 'Kafkas x Anadolu' })).breed.fob, 0.95, 'Kafkas × Anadolu melezi (k88: F1 modeli, aynı katsayı)');
   assert.strictEqual(P.winterTarget(hx).kg, 25, 'yüksek yayla kış rezervi');
   /* arılık verisi yoksa konum × cins beklentisi: Erzurum'da 9 çerçeve Ağustosta Zayıf, ılımanda Normal */
   const ctxDate = '2025-08-15'; /* arılıkta bu tarihte kayıt yok */
@@ -49,7 +50,7 @@ assert.deepStrictEqual(Object.keys(R.COLONY_ENV.BANDS).map((k) => [k, R.COLONY_E
   assert.ok(R.STRENGTH_LEVELS.findIndex((x) => x.label === yk.label) < R.STRENGTH_LEVELS.findIndex((x) => x.label === il.label), yk.label + ' < ' + il.label);
   P.setProfile(ap0, '');
 }
-assert.strictEqual(cls(4, 2, '2026-05-10'), 'Zayıf');
+assert.strictEqual(cls(4, 2, '2026-05-10'), 'Çok zayıf');
 assert.strictEqual(R.strengthClass({ beeFrames: 3, broodFrames: 1, level: 'cok-guclu', date: t }), 'Çok güçlü', 'elle seçim önceliklidir');
 assert.ok(R.isWeakClass('Çok zayıf') && R.isWeakClass('Zayıf') && !R.isWeakClass('Normal') && R.isStrongClass('Çok güçlü'));
 /* arılık ortalamasına göre (≥3 başka kovan): Erzurum gibi ortalaması yüksek arılıkta 9 çerçeve «Zayıf» olabilir */

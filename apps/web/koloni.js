@@ -542,7 +542,7 @@
       '.lin-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px;}.lin-seg button{min-height:64px;border-radius:14px;border:1px solid #d9c9a3;background:#fff;font:inherit;font-weight:800;font-size:15px;line-height:1.15;color:#4a2f1a;cursor:pointer;}' +
       '.lin-seg button.on{background:#f4c84a;border-color:#c99a1a;}.lin-seg small{display:block;font-weight:650;font-size:12px;color:#6b5a48;}' +
       '.lin-f{display:grid;gap:10px;}.lin-f label{display:grid;gap:4px;font-weight:750;font-size:15px;color:#4a2f1a;}.lin-f select,.lin-f input{min-height:64px;font:inherit;font-size:17px;border-radius:12px;border:1px solid #d9c9a3;padding:0 12px;background:#fff;}' +
-      '.lin-prev{padding:12px;border-radius:12px;background:#f3f8ee;border:1px solid #cfe3bf;font-size:16px;font-weight:700;color:#2d4a1e;}' +
+      '.lin-prev{padding:12px;border-radius:12px;background:#f3f8ee;border:1px solid #cfe3bf;font-size:16px;font-weight:700;color:#2d4a1e;}.lin-ci{display:block;margin-top:6px;font-size:13px;font-weight:650;color:#4a5a3a;}' +
       '.lin-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:12px;}.lin-actions .btn{min-height:64px;font-size:17px;}' +
       '.lin-card{display:block;width:100%;text-align:left;min-height:64px;padding:12px 14px;margin:0 0 10px;border-radius:16px;border:1px solid #e3d3ad;background:#fff;font:inherit;color:#3c2a1a;cursor:pointer;}' +
       '.lin-card b{font-size:17px;}.lin-card .l2{display:block;margin-top:4px;font-size:15px;font-weight:700;color:#5a3d12;}.lin-card .l3{display:block;margin-top:2px;font-size:13.5px;color:#6b5a48;}';
@@ -575,7 +575,7 @@
     var majority = ''; try { majority = c.apiaryMajorityBreed ? c.apiaryMajorityBreed(h.apiaryId, h.id) : ''; } catch (e) { majority = ''; }
     function raceSel(i) {
       var v = parts[i] || '', other = v && c.PURE_BREEDS.indexOf(v) < 0;
-      return '<label data-slot="' + i + '">' + (i + 1) + '. ırk<select name="r' + i + '"><option value="">Seçin</option>' +
+      return '<label data-slot="' + i + '"><span class="lin-lb">' + (i + 1) + '. ırk</span><select name="r' + i + '"><option value="">Seçin</option>' +
         c.PURE_BREEDS.map(function (p) { return '<option' + (p === v ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') +
         '<option value="__diger"' + (other ? ' selected' : '') + '>Diğer (yaz)</option></select>' +
         '<input name="o' + i + '" maxlength="30" placeholder="Irk adı" value="' + esc(other ? v : '') + '"' + (other ? '' : ' hidden') + '></label>';
@@ -612,8 +612,13 @@
         var wrap = f.querySelector('[data-slot="' + i + '"]'); wrap.hidden = i >= n();
         f.elements['o' + i].hidden = f.elements['r' + i].value !== '__diger';
       }
-      var b = breedStr(), miss = missing();
-      back.querySelector('#linPrev').textContent = miss.length ? 'Eksik: ' + miss.join(', ') + ' ırkı seçin' : 'Kayıt: ' + (b || 'Irk bilinmiyor');
+      /* üçlü melez: A × B melez ana arı (annesi × babası), C çiftleştiği erkek arı */
+      var LB = { saf: ['Irk'], iki: ['1. ırk (ana arı tarafı)', '2. ırk (erkek arı tarafı)'], uc: ['1. ırk (ana arının annesi)', '2. ırk (ana arının babası)', '3. ırk (çiftleştiği erkek arı)'] }[kind] || [];
+      for (var j = 0; j < 3; j++) { var lb = f.querySelector('[data-slot="' + j + '"] .lin-lb'); if (lb && LB[j]) lb.textContent = LB[j]; }
+      var b = breedStr(), miss = missing(), ci = !miss.length && n() > 1 && d.records && d.records.crossInfo ? d.records.crossInfo(b) : null;
+      var pv = back.querySelector('#linPrev');
+      pv.textContent = miss.length ? 'Eksik: ' + miss.join(', ') + ' ırkı seçin' : 'Kayıt: ' + (b || 'Irk bilinmiyor');
+      if (ci) { var sm = document.createElement('small'); sm.className = 'lin-ci'; sm.textContent = 'Melez özelliği: ' + ci.ozet + ' · kanıt: ' + ci.kanit + (ci.src ? ' (' + ci.src + ')' : ''); pv.appendChild(sm); }
     }
     function missing() { var m = []; if (n() === 1) return m; for (var i = 0; i < n(); i++) if (!val(i)) m.push((i + 1) + '.'); return m; }
     back.addEventListener('click', function (e) {

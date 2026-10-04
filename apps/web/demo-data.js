@@ -2341,14 +2341,39 @@
       yuksek: { label: 'Yüksek yayla', fobMean: 16, winterKg: 25 }
     },
     BREEDS: [
-      { key: 'kafkas-anadolu', label: 'Kafkas × Anadolu melezi', test: function (b) { return /kafkas/.test(b) && /anadolu/.test(b); }, fob: 0.95, winterAdjKg: 0 },
-      { key: 'karadeniz', label: 'Karadeniz', test: function (b) { return /karadeniz/.test(b); }, fob: 0.90, winterAdjKg: 0 },
-      { key: 'kafkas', label: 'Kafkas', test: function (b) { return /kafkas/.test(b); }, fob: 0.90, winterAdjKg: 0 },
-      { key: 'karniyol', label: 'Karniyol', test: function (b) { return /karniyol|karniol|carnica|krain/.test(b); }, fob: 1.15, winterAdjKg: 0 },
-      { key: 'buckfast', label: 'Buckfast', test: function (b) { return /buckfast/.test(b); }, fob: 1.11, winterAdjKg: 0 },
-      { key: 'erzurum', label: 'Erzurum / Doğu yerli', test: function (b) { return /erzurum|doğu|dogu/.test(b); }, fob: 1.08, winterAdjKg: 0 },
-      { key: 'anadolu', label: 'Anadolu', test: function (b) { return /anadolu|yerli/.test(b); }, fob: 1.00, winterAdjKg: 0 },
-      { key: 'diger', label: 'Diğer / bilinmiyor', test: function () { return true; }, fob: 1.00, winterAdjKg: 0 }
+      { key: 'karadeniz', label: 'Karadeniz', test: function (b) { return /karadeniz/.test(b); }, fob: 0.90, winterAdjKg: 0, grp: 'kafkas' },
+      { key: 'kafkas', label: 'Kafkas', test: function (b) { return /kafkas/.test(b); }, fob: 0.90, winterAdjKg: 0, grp: 'kafkas' },
+      { key: 'karniyol', label: 'Karniyol', test: function (b) { return /karniyol|karniol|carnica|krain/.test(b); }, fob: 1.15, winterAdjKg: 0, grp: 'karniyol' },
+      { key: 'buckfast', label: 'Buckfast', test: function (b) { return /buckfast/.test(b); }, fob: 1.11, winterAdjKg: 0, grp: 'buckfast' },
+      { key: 'erzurum', label: 'Erzurum / Doğu yerli', test: function (b) { return /erzurum|doğu|dogu/.test(b); }, fob: 1.08, winterAdjKg: 0, grp: 'yerli' },
+      { key: 'mugla', label: 'Muğla', test: function (b) { return /muğla|mugla/.test(b); }, fob: 1.00, winterAdjKg: 0, grp: 'mugla' },
+      { key: 'italyan', label: 'İtalyan', test: function (b) { return /italyan|ligustica|i̇talyan/.test(b); }, fob: 1.00, winterAdjKg: 0, grp: 'italyan' },
+      { key: 'anadolu', label: 'Anadolu', test: function (b) { return /anadolu|yerli/.test(b); }, fob: 1.00, winterAdjKg: 0, grp: 'yerli' },
+      { key: 'diger', label: 'Diğer / bilinmiyor', test: function () { return true; }, fob: 1.00, winterAdjKg: 0, grp: 'diger' }
+    ],
+    /* MELEZ (F1) ÖZELLİKLERİ — gruplar arası. F1 beklentisi = ebeveyn ortalaması × (1 + H); H = denemede ölçülen melez gücü (heterosis)
+     * (Falconer & Mackay: F1 = ebeveyn ortalaması + heterosis). Düz ortalama DEĞİL: H yalnız kaynaklı denemeden; kaynak yoksa H = 0 ve kanıt «yok».
+     * kis: kışlama (sonbahar → ilkbahar arı korunumu) ebeveyn ortalamasına göre fark; kış beklentisine en fazla ±%10 yansıtılır (deneme küçük).
+     * Mizaç ve bal yalnız bilgi (güç skoruna girmez).
+     * Kafkas × Karniyol: Erkan, Günbey, Günbey & Cengiz 2024, Bioscience Journal 40:e40008 (Van, karşılıklı F1, 6 ölçüm):
+     *   ortalama arılı çerçeve Kafkas 5,06 · Karniyol 5,77 · K♀×Kr♂ 6,16 · Kr♀×K♂ 6,42 → melez 6,29 / ebeveyn ort. 5,415 = +%16;
+     *   Mayıs/Eylül arı oranı Kafkas 0,37 · Karniyol 0,25 · melez 0,43 (ebeveyn ort. 0,31) → kışlama ebeveynlerden iyi (n = 4–6 koloni / grup);
+     *   iğne sayısı Kafkas 3,8 · Karniyol 3,3 · melez 4,0 → sakin (fark önemsiz).
+     * Kafkas × yerli (Anadolu / Doğu yerli): aynı deneme K×Y 6,00 · Y×K 6,39 / ebeveyn ort. 6,43 → −%4 (önemsiz) → H 0;
+     *   Dodoloğlu & Genç 2002 (Erzurum): Kafkas × Anadolu ≈ ebeveyn ortalaması (eski 0,95 katsayısı ile aynı sonuç); Gencer & Karacaoğlu 2003 (Ege):
+     *   melez Kafkas'tan çok yavru → ebeveyn ortalamasıyla uyumlu. Mizaç: yerliden sakin (iğne 5,1–8,8 / yerli 16,6).
+     * Karniyol × yerli: aynı deneme Kr×Y 7,19 · Y×Kr 5,94 / ebeveyn ort. 6,79 → −%3 → H 0; bal en yüksek Kr♀×Y♂ (14,8 kg); yerliden sakin.
+     * Kafkas × Muğla: Akyol & Kaftanoğlu 2001 (karşılıklı melezler, gezginci): yavru üretimi M×M ve M♀×K♂ en yüksek, bal M♀×K♂ en yüksek,
+     *   M♀×K♂ en hırçın; kışlama farkı önemsiz (tez: M×K %91,7 · M×M %86,0 · K×K %82,0 · K×M %72,1). Arılı çerçeve verisi yok → H 0,08 (ZAYIF kanıt:
+     *   yavru üstünlüğü bir yönde; ters melez K♀×M♂ bal bakımından Kafkas düzeyinde).
+     * Kafkas × Karadeniz: Karadeniz Kafkas arısının ekotipi (aynı alt tür) → melez gücü beklenmez, deneme yok → H 0.
+     * Diğer tüm çiftler (Buckfast, İtalyan, Karniyol × Muğla …): Türkiye koşullarında karşılaştırmalı F1 denemesi bulunamadı → H 0, kanıt «yok». */
+    CROSS: [
+      { g: ['kafkas', 'karniyol'], H: 0.16, kis: 0.10, kanit: 'orta', ozet: 'gelişme ebeveynlerden iyi · kışlama iyi · sakin', src: 'Erkan ve ark. 2024 (Van, karşılıklı F1)' },
+      { g: ['kafkas', 'yerli'], H: 0, kis: 0, kanit: 'orta', ozet: 'ebeveyn ortalaması · yerliden sakin', src: 'Erkan ve ark. 2024; Dodoloğlu & Genç 2002; Gencer & Karacaoğlu 2003' },
+      { g: ['karniyol', 'yerli'], H: 0, kis: 0, kanit: 'zayıf', ozet: 'ebeveyn ortalaması · bal iyi · yerliden sakin', src: 'Erkan ve ark. 2024 (Van)' },
+      { g: ['kafkas', 'mugla'], H: 0.08, kis: 0, kanit: 'zayıf', ozet: 'yavru iyi (Muğla ana ile) · hırçınlaşabilir', src: 'Akyol & Kaftanoğlu 2001' },
+      { g: ['kafkas', 'kafkas'], H: 0, kis: 0, kanit: 'gerekçe', ozet: 'aynı alt tür · melez gücü beklenmez', src: 'Karadeniz = Kafkas ekotipi' }
     ],
     OFF_SEASON: 0.65
   };
@@ -2378,15 +2403,36 @@
   function breedEnv1(b) { return COLONY_ENV.BREEDS.filter(function (x) { return x.test(b); })[0]; }
   /** Melez yazımını bileşenlere ayırır: «Kafkas × Karadeniz × Muğla» → ['kafkas','karadeniz','muğla'] (×, x, *, + ayırıcı). */
   function breedParts(b) { return String(b || '').toLocaleLowerCase('tr').split(/\s*(?:×|✕|\*|\+|\sx\s)\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
-  /* Saf ırk ve ikili melez: tablodaki ilk eşleşme (eski davranış aynen; ör. Kafkas × Karadeniz → Karadeniz 0,90).
-     Üçlü (ve üstü) melez: bileşenlerin katsayılarının ortalaması (varsayım; ör. Kafkas × Karadeniz × Muğla → (0,90 + 0,90 + 1,00) / 3 ≈ 0,93). */
+  function crossOf(ga, gb) {
+    return COLONY_ENV.CROSS.filter(function (c) { return (c.g[0] === ga && c.g[1] === gb) || (c.g[0] === gb && c.g[1] === ga); })[0] || null;
+  }
+  /** İkili melez (F1): ebeveyn ortalaması × (1 + H); aynı grup (ör. Kafkas × Kafkas) → H 0. */
+  function cross2(a, b) {
+    var c = a.grp === b.grp && a.grp !== 'kafkas' ? null : crossOf(a.grp, b.grp), H = c ? c.H : 0;
+    return { fob: (a.fob + b.fob) / 2 * (1 + H), kis: c ? c.kis : 0, c: c };
+  }
+  /* Saf ırk: tablodaki eşleşme. İkili melez: F1 = ebeveyn ortalaması × (1 + H) (CROSS tablosu, kaynaklı; yoksa H 0).
+     Üçlü melez «A × B × C» = A × B melez ana arı, C erkek arı (üçlü melez): beklenti = ½ (A×C + B×C) (Falconer üçlü melez tahmini);
+     melez ananın kendi (anaç) melez gücü için sayısal kaynak bulunamadı → eklenmedi. */
+  function r3(x) { return Math.round(x * 1000) / 1000; }
   function breedEnv(h) {
     var b = String((h && (h.breed || h.irk)) || '').toLocaleLowerCase('tr'), parts = breedParts(b);
-    if (parts.length < 3) return breedEnv1(b);
-    var bs = parts.map(breedEnv1), n = bs.length;
-    return { key: 'melez3', label: 'Üçlü melez', parts: bs.map(function (x) { return x.key; }),
-      fob: Math.round(bs.reduce(function (a, x) { return a + x.fob; }, 0) / n * 1000) / 1000,
-      winterAdjKg: Math.round(bs.reduce(function (a, x) { return a + (x.winterAdjKg || 0); }, 0) / n * 10) / 10, test: function () { return false; } };
+    if (parts.length < 2) return breedEnv1(b);
+    var bs = parts.slice(0, 3).map(breedEnv1), o;
+    if (bs.length === 2) {
+      o = cross2(bs[0], bs[1]);
+      return { key: 'melez2', label: 'İkili melez', parts: bs.map(function (x) { return x.key; }), fob: r3(o.fob), kis: o.kis, cross: o.c, kanit: o.c ? o.c.kanit : 'yok',
+        winterAdjKg: 0, test: function () { return false; } };
+    }
+    var ac = cross2(bs[0], bs[2]), bc = cross2(bs[1], bs[2]);
+    var cs = [ac.c, bc.c].filter(Boolean);
+    return { key: 'melez3', label: 'Üçlü melez', parts: bs.map(function (x) { return x.key; }), fob: r3((ac.fob + bc.fob) / 2), kis: (ac.kis + bc.kis) / 2,
+      cross: cs[0] || null, kanit: cs.length ? (cs.some(function (c) { return c.kanit === 'orta'; }) ? 'orta' : 'zayıf') : 'yok', winterAdjKg: 0, test: function () { return false; } };
+  }
+  /** Melez özelliği (arayüz için kısa metin; formül yok): { ozet, kanit, src } veya null. */
+  function crossInfo(breed) {
+    var e = breedEnv({ breed: breed }); if (!e || (e.key !== 'melez2' && e.key !== 'melez3')) return null;
+    return e.cross ? { ozet: e.cross.ozet, kanit: e.kanit, src: e.cross.src } : { ozet: 'karşılaştırmalı deneme bulunamadı', kanit: 'yok', src: '' };
   }
   function bandKeyOf(h) {
     if (!h) return null;
@@ -2407,29 +2453,58 @@
   function envFor(h, date) {
     var bk = bandKeyOf(h), band = bk ? COLONY_ENV.BANDS[bk] : null, br = breedEnv(h);
     var m = Number(String(date || todayLocal()).slice(5, 7)) || 6, peak = band ? band.fobMean * br.fob : null;
-    return { bandKey: bk, band: band, breed: br, fobPeak: peak, fobNow: peak != null ? Math.round(peak * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON) * 100) / 100 : null,
+    return { bandKey: bk, band: band, breed: br, fobPeak: peak, fobNow: peak != null ? Math.round(peak * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON * (1 + Math.max(-0.1, Math.min(0.1, br.kis || 0)))) * 100) / 100 : null,
       winterKg: band ? band.winterKg + (br.winterAdjKg || 0) : null };
   }
+  /* Skor ölçeği (k88): 0 = YAŞAMA SINIRI ALTI (ölü ya da kendi başına yaşayamaz → birleştir / takviye). Canlı 5 seviye yaşama sınırından başlar:
+   * Çok zayıf 1–19 · Zayıf 20–39 · Normal 40–59 · Güçlü 60–79 · Çok güçlü 80–100. */
   var STRENGTH_LEVELS = [
-    { key: 'cok-zayif', label: 'Çok zayıf', min: 0, tone: 'red' }, { key: 'zayif', label: 'Zayıf', min: 20, tone: 'red' },
+    { key: 'cok-zayif', label: 'Çok zayıf', min: 1, tone: 'red' }, { key: 'zayif', label: 'Zayıf', min: 20, tone: 'red' },
     { key: 'normal', label: 'Normal', min: 40, tone: 'orange' }, { key: 'guclu', label: 'Güçlü', min: 60, tone: 'green' },
     { key: 'cok-guclu', label: 'Çok güçlü', min: 80, tone: 'green' }];
+  var BELOW_VIABLE = { key: 'sinir-alti', label: 'Yaşama sınırı altı', min: 0, tone: 'red' };
   var STRENGTH_ALIAS = { 'cok zayif': 'cok-zayif', 'cok-zayif': 'cok-zayif', 'very weak': 'cok-zayif', zayif: 'zayif', weak: 'zayif', orta: 'normal', normal: 'normal', medium: 'normal',
-    guclu: 'guclu', strong: 'guclu', 'cok guclu': 'cok-guclu', 'cok-guclu': 'cok-guclu', 'very strong': 'cok-guclu' };
+    guclu: 'guclu', strong: 'guclu', 'cok guclu': 'cok-guclu', 'cok-guclu': 'cok-guclu', 'very strong': 'cok-guclu',
+    'sinir-alti': 'sinir-alti', 'yasama siniri alti': 'sinir-alti', yasayamaz: 'sinir-alti', olu: 'sinir-alti', dead: 'sinir-alti' };
   function strengthKeyOf(v) {
     var t = String(v == null ? '' : v).trim().toLocaleLowerCase('tr').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/\s+/g, ' ');
     return STRENGTH_ALIAS[t] || null;
   }
-  /** Eski 3 seviyeli değerler dahil (zayıf→Zayıf, orta→Normal, güçlü→Güçlü) her yazımı 5 seviyeden birine eşler; bilinmiyorsa null. */
-  function strengthLevel(v) { var k = strengthKeyOf(v); return k ? STRENGTH_LEVELS.filter(function (x) { return x.key === k; })[0] : null; }
-  function levelOfScore(sc) { var o = STRENGTH_LEVELS[0]; STRENGTH_LEVELS.forEach(function (x) { if (sc >= x.min) o = x; }); return o; }
-  /** Seviyenin skor aralığı: { min, max, text: '60–79' } (arayüzde yalnız aralık gösterilir; hesap gösterilmez). */
+  /** Eski 3 seviyeli değerler dahil (zayıf→Zayıf, orta→Normal, güçlü→Güçlü) her yazımı seviyeye eşler; «sinir-alti» = yaşama sınırı altı; bilinmiyorsa null. */
+  function strengthLevel(v) { var k = strengthKeyOf(v); if (k === 'sinir-alti') return BELOW_VIABLE; return k ? STRENGTH_LEVELS.filter(function (x) { return x.key === k; })[0] : null; }
+  function levelOfScore(sc) { if (!(sc >= 1)) return BELOW_VIABLE; var o = STRENGTH_LEVELS[0]; STRENGTH_LEVELS.forEach(function (x) { if (sc >= x.min) o = x; }); return o; }
+  /** Seviyenin skor aralığı: { min, max, text: '60–79' }; yaşama sınırı altı → '0' (arayüzde yalnız aralık gösterilir; hesap gösterilmez). */
   function strengthRange(v) {
     var l = typeof v === 'object' && v ? v : strengthLevel(v); if (!l) return null;
+    if (l.key === 'sinir-alti') return { min: 0, max: 0, text: '0' };
     var i = STRENGTH_LEVELS.indexOf(l), nx = STRENGTH_LEVELS[i + 1], mx = nx ? nx.min - 1 : 100;
     return { min: l.min, max: mx, text: l.min + '–' + mx };
   }
-  function isWeakClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'zayif' || l.key === 'cok-zayif'); }
+  /* YAŞAMA SINIRI (en az arılı çerçeve; altı = skor 0). Kaynaklar:
+   *  · Arıcılık Yönetmeliği (Resmî Gazete 23.05.2024) md. 4/s: koloni = aktif dönemde 5–6+ arılı (3–4 yavrulu), PASİF DÖNEMDE EN AZ 3 ARILI ÇERÇEVE.
+   *  · BEEHAVE (Becher ve ark. 2014, J. Appl. Ecol.) ve Martin 2001: 31 Aralık'ta < 4000 ergin arı = ölü koloni; Delaplane ve ark. 2013 (J. Apic. Res. 52(1)):
+   *    tam kaplı Langstroth çerçeve ≈ 2 × 1215 = 2430 arı → 4000 arı ≈ 1,6 çerçeve.
+   *  · Kuan ve ark. 2018 (Environ. Toxicol. Chem., BEEHAVE II, 156 koloni): Ekim'de < 4000 arılı kolonilerin %90'ı kışta öldü; > 19 000 arılıların %89'u yaşadı.
+   *  · UK NBU: kışa en az 5 çerçeve arı önerilir (öneri, ölüm sınırı değil); NSW DPI: < 6 çerçeve soğuk bölgede kışı geçiremeyebilir.
+   *  Uygulama değerleri: Nisan–Mayıs (kıştan yeni çıkmış, yavrulu) 2 çerçeve (≈ 4900 arı, BEEHAVE sınırının hemen üstü); Haziran–Ağustos 3 (yönetmelik
+   *  asgari koloni); Eylül–Mart kışlama: sıcak / ılıman 3 (yönetmelik), yayla 4, yüksek yayla 5 (VARSAYIM: uzun / sert kışta kayıp büyük — Dülger 1997
+   *  Erzurum kış nüfus kaybı %32–47; NBU 5). Irka göre ayrı sınır için kaynak yok (Kafkas kışlama oranı daha düşük: Cengiz & Erdoğan 2017 %56 —
+   *  beklenti / kış katsayısına yansır, sınıra değil). */
+  var VIABLE_WINTER = { sicak: 3, iliman: 3, yayla: 4, yuksek: 5 };
+  function viableFrames(bandKey, date) {
+    var m = Number(String(date || todayLocal()).slice(5, 7)) || 6;
+    if (m === 4 || m === 5) return 2;
+    if (m >= 6 && m <= 8) return 3;
+    return VIABLE_WINTER[bandKey] || 3;
+  }
+  /* arılı çerçeve → skor: yaşama sınırı V → 1; beklenen E → 50 (Normal ortası); 0,8 E → 40; 1,2 E → 60; 1,5 E → 80; 2 E → 100; V altı → 0 */
+  function viaScore(b, E, V) {
+    if (!(b >= V) || b <= 0) return 0;
+    E = Math.max(E, V + 1);
+    var n0 = 0.8 * E; if (n0 <= V + 0.3) n0 = V + 0.6 * (E - V);
+    return interp([[V, 1], [(V + n0) / 2, 20], [n0, 40], [E, 50], [1.2 * E, 60], [1.5 * E, 80], [2 * E, 100]], b);
+  }
+  function isWeakClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'zayif' || l.key === 'cok-zayif' || l.key === 'sinir-alti'); }
   function isStrongClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'guclu' || l.key === 'cok-guclu'); }
   /* arılı çerçeve → skor (parça parça doğrusal; eşikler yukarıdaki çerçeve sayılarına oturur) */
   var BEE_ANCHORS = [[0, 0], [2.5, 20], [4.5, 40], [7.5, 60], [11.5, 80], [16, 100]];
@@ -2479,32 +2554,34 @@
     var hid0 = ctx && ctx.hiveId != null ? ctx.hiveId : (r.hiveId != null ? r.hiveId : null);
     var hv0 = hid0 != null ? liteHive(hid0) : null;
     var pa = hid0 != null ? peerAvg(hid0, date) : null, env = hv0 ? envFor(hv0, date) : null, basis, sc;
-    /* 1) arılığın kendi ortalaması (cinse göre normalize) · 2) konum × cins beklentisi · 3) başlangıç eşikleri */
-    if (pa && pa.avg > 0) { basis = 'arilik'; sc = interp(REL_ANCHORS, (bees / (env ? env.breed.fob : 1)) / pa.avg); }
-    else if (env && env.fobNow) { basis = 'bolge'; sc = interp(REL_ANCHORS, bees / env.fobNow); }
-    else { basis = 'baslangic'; sc = beeScore(eq); }
+    /* 1) arılığın kendi ortalaması (cinse göre normalize) · 2) konum × cins beklentisi · 3) başlangıç beklentisi (8,6 çerçeve, ılıman) — hepsi yaşama sınırından başlar */
+    var V = viableFrames(env ? env.bandKey : null, date);
+    if (pa && pa.avg > 0) { basis = 'arilik'; sc = viaScore(bees, pa.avg * (env ? env.breed.fob : 1), V); }
+    else if (env && env.fobNow) { basis = 'bolge'; sc = viaScore(bees, env.fobNow, V); }
+    else { basis = 'baslangic'; sc = viaScore(bees, 8.6 * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON), V); }
+    var alive = sc >= 1;
     /* yavru (aktif mevsim): yavru yok / çok az → düşür; arının yarısı kadar yavru → artır */
-    if (active && bees > 0) { if (brood <= 1) sc -= 10; else if (brood >= bees * 0.5) sc += 2; }
+    if (alive && active && bees > 0) { if (brood <= 1) sc -= 10; else if (brood >= bees * 0.5) sc += 2; }
     /* tartı (aktif mevsim, son 14 gün net değişim ±2 kg) */
     var hid = hid0, TW = global.SuperAriTarti;
-    if (active && hid != null && TW && TW.series) {
+    if (alive && active && hid != null && TW && TW.series) {
       try {
         var d0 = addDays(String(r.date || todayLocal()), -14), pts = TW.series(hid, 400).filter(function (p) { return p.date >= d0 && p.date <= (r.date || todayLocal()); });
         if (pts.length >= 2) { var dk = pts[pts.length - 1].net - pts[0].net; if (dk >= 2) sc += 4; else if (dk <= -2) sc -= 4; }
       } catch (e) { /* ignore */ }
     }
-    /* mutlak taban */
-    if (bees <= 2) sc = Math.min(sc, 19);
-    else if (bees < 5) sc = Math.min(sc, 39); /* UK NBU: kışa en az 5 çerçeve arı */
-    sc = Math.max(0, Math.min(100, Math.floor(sc)));
+    /* kışlama dönemi (Eyl–Mar): < 5 çerçeve en fazla Zayıf (UK NBU: kışa en az 5 çerçeve arı) */
+    if (alive && !(m >= 4 && m <= 8) && bees < 5) sc = Math.min(sc, 39);
+    sc = alive ? Math.max(1, Math.min(100, Math.floor(sc))) : 0;
     var auto = levelOfScore(sc), man = r.level ? strengthLevel(r.level) : null, lv = man || auto;
-    return { score: sc, key: lv.key, label: lv.label, tone: lv.tone, manual: !!man, auto: auto.label, basis: basis };
+    return { score: sc, key: lv.key, label: lv.label, tone: lv.tone, manual: !!man, auto: auto.label, basis: basis, viable: V };
   }
   function strengthClass(r, ctx) { var i = strengthInfo(r, ctx); return i ? i.label : null; }
   /** Arayüz metni: «Güçlü · 60–79 · skor 64»; elle seçimde «Güçlü (elle) · 60–79 · skor 47 (Normal)». Formül / katsayı / çerçeve hesabı gösterilmez. */
   function strengthTag(i, short) {
     if (!i) return '';
     var rg = strengthRange(i.key), au = i.manual && i.auto !== i.label ? ' (' + i.auto + ')' : '';
+    if (i.key === 'sinir-alti' && !i.manual) return short ? i.label + ' · 0' : i.label + ' · skor 0';
     if (short) return i.label + (i.manual ? ' (elle)' : '') + ' · ' + i.score;
     return i.label + (i.manual ? ' (elle)' : '') + ' · ' + (rg ? rg.text : '') + ' · skor ' + i.score + au;
   }
@@ -3536,6 +3613,10 @@
     strengthInfo: strengthInfo,
     strengthLevel: strengthLevel,
     strengthRange: strengthRange,
+    viableFrames: viableFrames,
+    viaScore: viaScore,
+    BELOW_VIABLE: BELOW_VIABLE,
+    crossInfo: crossInfo,
     strengthTag: strengthTag,
     STRENGTH_LEVELS: STRENGTH_LEVELS,
     COLONY_ENV: COLONY_ENV,

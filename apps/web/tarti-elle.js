@@ -95,7 +95,8 @@
     var kg = parseKg(o.kg);
     if (!(kg > 0 && kg < 400)) throw new Error('Geçerli bir ağırlık girin (kg)');
     var at = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(o.at || '')) ? String(o.at).slice(0, 16) : nowLocal();
-    var r = { id: 'tw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hiveId: Number(o.hiveId), at: at, date: at.slice(0, 10), kg: kg, source: 'elle' };
+    var r = { id: 'tw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hiveId: Number(o.hiveId), at: at, date: at.slice(0, 10), kg: kg, source: o.source === 'otomatik' ? 'otomatik' : 'elle' };
+    if (r.source === 'otomatik') { if (o.deviceId) r.deviceId = String(o.deviceId).slice(0, 60); if (read().some(function (x) { return x.source === 'otomatik' && Number(x.hiveId) === r.hiveId && x.at === at; })) throw new Error('Bu okuma zaten kaydedildi'); }
     if (!isFinite(r.hiveId)) throw new Error('Kovan seçin');
     if (o.kat) r.kat = true;
     if (o.besleme) r.besleme = true;
@@ -125,22 +126,85 @@
   }
   function rowHtml(x, opts) {
     var D = global.SuperAriDemo, h = opts && opts.showHive && D ? D.hiveById(x.hiveId) : null;
-    return '<div class="te-row"><span class="te-tag">Elle</span><span class="te-main"><b>' + num(x.kg) + ' kg</b>' + (h ? ' · ' + esc(h.name) : '') + ' <small>' + esc(fmtAt(x.at)) + (x.demo ? ' · Demo' : '') + '</small>' +
+    return '<div class="te-row"><span class="te-tag' + (x.source === 'otomatik' ? ' oto' : '') + '">' + (x.source === 'otomatik' ? 'Cihaz' : 'Elle') + '</span><span class="te-main"><b>' + num(x.kg) + ' kg</b>' + (h ? ' · ' + esc(h.name) : '') + ' <small>' + esc(fmtAt(x.at)) + (x.demo ? ' · Demo' : '') + '</small>' +
       (flagText(x) || x.note ? '<small class="te-sub">' + esc([flagText(x), x.note || ''].filter(Boolean).join(' · ')) + '</small>' : '') + '</span>' +
       (opts && opts.del ? '<button type="button" class="te-del" data-te-del="' + esc(x.id) + '" aria-label="Sil">🗑</button>' : '') + '</div>';
   }
+  /* ---- Otomatik tartı (sensör) ----
+   * Kovana bağlı «tarti» cihazı: SuperAriDevices (device-runtime.js). Canlı okumalar 'superari.sensor.tarti.v1' = [{ hiveId, at, kg }] (cihaz entegrasyonu yazar);
+   * canlıda okuma yoksa uydurma değer GÖSTERİLMEZ («henüz veri gelmedi»). Demo: örnek cihazda kovanın örnek ağırlığından 8 günlük örnek seri (Örnek etiketi). */
+  var SENSOR_KEY = 'superari.sensor.tarti.v1';
+  function scaleDevice(hiveId) {
+    var Dv = global.SuperAriDevices; if (!Dv || !Dv.listDevices) return null;
+    var l = []; try { l = Dv.listDevices(); } catch (e) { l = []; }
+    return l.filter(function (d) { return d && d.tip === 'tarti' && d.hiveId != null && Number(d.hiveId) === Number(hiveId); })[0] || null;
+  }
+  function minsAgoAt(mins) { var d = new Date(Date.now() - (Number(mins) || 0) * 60000); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  /** { device, status, at, kg, pts: [{ date, kg }] (eski→yeni, ≤ 8 gün), d7 (7 günlük değişim, kg), demo } · cihaz yoksa null · cihaz var veri yoksa kg null. */
+  function autoReading(hiveId) {
+    var dv = scaleDevice(hiveId); if (!dv) return null;
+    var o = { device: dv, status: dv.status || 'yok', at: null, kg: null, pts: [], d7: null, demo: dv.source === 'demo' };
+    if (o.demo) {
+      var D = global.SuperAriDemo, h = D && D.hiveById ? D.hiveById(hiveId) : null; if (!h || !(Number(h.weightKg) > 0)) return o;
+      var w = Number(h.weightKg), dl = Number(h.deltaKg) || 0;
+      for (var i = 7; i >= 0; i--) { var t = (7 - i) / 7, wob = Math.sin((Number(hiveId) || 1) * 1.7 + i) * 0.25; o.pts.push({ date: minsAgoAt(i * 1440 + (dv.lastMins || 0)).slice(0, 10), kg: Math.round((w - dl * (1 - t) + (i ? wob : 0)) * 10) / 10 }); }
+      o.at = minsAgoAt(dv.lastMins || 0); o.kg = Math.round(w * 10) / 10;
+    } else {
+      var all = []; try { all = JSON.parse(localStorage.getItem(SENSOR_KEY) || '[]'); } catch (e) { all = []; }
+      var mine = (Array.isArray(all) ? all : []).filter(function (x) { return x && Number(x.hiveId) === Number(hiveId) && Number(x.kg) > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(x.at || '')); })
+        .sort(function (a, b) { return a.at < b.at ? -1 : 1; });
+      if (!mine.length) return o;
+      var last = mine[mine.length - 1], from = dOf(minsAgoAt(8 * 1440)), byDay = {};
+      mine.forEach(function (x) { if (dOf(x.at) >= from) byDay[dOf(x.at)] = Number(x.kg); });
+      o.pts = Object.keys(byDay).sort().map(function (d) { return { date: d, kg: byDay[d] }; });
+      o.at = String(last.at).slice(0, 16); o.kg = Math.round(Number(last.kg) * 10) / 10;
+    }
+    if (o.pts.length >= 2) o.d7 = Math.round((o.pts[o.pts.length - 1].kg - o.pts[0].kg) * 10) / 10;
+    return o;
+  }
+  function agoTxt(at) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(at || ''); if (!m) return '';
+    var mins = Math.max(0, Math.round((Date.now() - new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).getTime()) / 60000));
+    return mins < 60 ? mins + ' dk önce' : (mins < 1440 ? Math.floor(mins / 60) + ' sa önce' : Math.floor(mins / 1440) + ' gün önce');
+  }
+  function sparkSvg(pts) {
+    if (!pts || pts.length < 2) return '';
+    var ks = pts.map(function (p) { return p.kg; }), mn = Math.min.apply(null, ks), mx = Math.max.apply(null, ks), rg = mx - mn || 1, W = 200, H = 44;
+    var d = pts.map(function (p, i) { return (i ? 'L' : 'M') + Math.round(i / (pts.length - 1) * W) + ' ' + Math.round(H - 4 - (p.kg - mn) / rg * (H - 8)); }).join(' ');
+    return '<svg class="te-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '" fill="none" stroke="#2f9e44" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  }
+  var ST_TXT = { bagli: 'Bağlı', kopuk: 'Bağlı değil (kopuk)', arizali: 'Arızalı', yok: 'Bağlı değil' };
+  function autoHtml(a) {
+    var D = global.SuperAriDemo, ok = a.status === 'bagli', has = a.kg != null;
+    var head = '<div class="te-auto-h"><span class="te-tag oto">Otomatik tartı</span><b>' + esc(ST_TXT[a.status] || 'Bağlı değil') + '</b>' + (a.demo ? ' <small>· Örnek veri</small>' : '') + '</div>';
+    if (!has) return '<section class="te-auto" data-te-auto>' + head + '<p class="te-auto-n">Cihaz kayıtlı ama henüz ağırlık verisi gelmedi. Elle tartım girin.</p></section>';
+    var tr = a.d7 == null ? '7 gün: veri az' : '7 gün: ' + (a.d7 > 0 ? '+' : (a.d7 < 0 ? '−' : '')) + num(Math.abs(a.d7)) + ' kg';
+    return '<section class="te-auto' + (ok ? '' : ' warn') + '" data-te-auto>' + head +
+      '<div class="te-auto-v"><span class="te-auto-kg">' + num(a.kg) + ' kg</span><span class="te-auto-at">' + esc(fmtAt(a.at)) + ' · ' + esc(agoTxt(a.at)) + '</span></div>' +
+      '<div class="te-auto-tr"><span>' + esc(tr) + '</span>' + sparkSvg(a.pts) + '</div>' +
+      (a.status === 'arizali' ? '<p class="te-auto-n">Cihaz arızalı: bu değer güvenilir değil. Elle tartım girin.</p>'
+        : '<button type="button" class="te-btn ok" data-te-auto-save>✓ Bu değeri kaydet' + (ok ? '' : ' (son okuma)') + '</button>' + (ok ? '' : '<p class="te-auto-n">Cihaz şu an bağlı değil; gösterilen son okumadır.</p>')) +
+      '</section>';
+  }
   var css = '.te-back{position:fixed;inset:0;background:rgba(30,20,10,.45);z-index:9100;display:flex;align-items:flex-end;justify-content:center;}' +
     '.te{background:#fffaf2;width:100%;max-width:560px;max-height:90vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box;color:#3d2616;overflow-wrap:anywhere;}' +
-    '.te h2{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px;}.te .te-x{margin-left:auto;flex:none;border:0;background:#efe4d2;border-radius:999px;width:34px;height:34px;font-size:19px;cursor:pointer;}' +
+    '.te h2{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px;}.te .te-x{margin-left:auto;flex:none;border:0;background:#efe4d2;border-radius:999px;width:64px;height:64px;font-size:26px;cursor:pointer;}' +
     '.te form{display:grid;gap:10px;}.te label.f{display:grid;gap:4px;font-size:13px;font-weight:700;color:#5c4813;min-width:0;}' +
-    '.te input[type=datetime-local],.te input[type=text],.te input[type=number],.te select{font:inherit;font-size:16px;padding:9px 10px;border-radius:10px;border:1px solid #d8c7aa;background:#fff;width:100%;box-sizing:border-box;min-width:0;}' +
-    '.te .te-kg{font-size:26px;font-weight:800;text-align:center;}.te .te-chk{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700;}.te .te-chk input{width:20px;height:20px;}' +
-    '.te-btn{font:inherit;font-size:16px;font-weight:800;min-height:50px;border-radius:14px;border:1px solid #3d2616;background:#3d2616;color:#fff;cursor:pointer;width:100%;}' +
+    '.te input[type=datetime-local],.te input[type=text],.te input[type=number],.te select{font:inherit;font-size:18px;min-height:64px;padding:9px 12px;border-radius:12px;border:1px solid #d8c7aa;background:#fff;width:100%;box-sizing:border-box;min-width:0;}' +
+    '.te .te-kg{font-size:26px;font-weight:800;text-align:center;}.te .te-chk{display:flex;gap:12px;align-items:center;font-size:16px;font-weight:700;min-height:64px;padding:0 12px;border:1px solid #e8dcc6;border-radius:12px;background:#fff;box-sizing:border-box;}.te .te-chk input{width:30px;height:30px;}' +
+    '.te-btn{font:inherit;font-size:18px;font-weight:800;min-height:64px;border-radius:14px;border:1px solid #3d2616;background:#3d2616;color:#fff;cursor:pointer;width:100%;}' +
+    '.te-btn.ok{background:#1b5e20;border-color:#1b5e20;}.te-btn:disabled{opacity:.5;}' +
+    '.te-auto{border:2px solid #b2dfb5;background:#f1faf2;border-radius:14px;padding:12px;margin:0 0 12px;display:grid;gap:8px;}.te-auto.warn{border-color:#ffd8a8;background:#fff8ef;}.te-auto.warn .te-auto-kg{color:#8a5a00;}.te-auto.warn .te-spark path{stroke:#c08a2b;}' +
+    '.te-auto-h{display:flex;gap:8px;align-items:center;font-size:15px;flex-wrap:wrap;}.te-auto-v{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}.te-auto-kg{font-size:34px;font-weight:900;color:#1b5e20;}.te-auto-at{font-size:14px;color:#5c4813;font-weight:700;}' +
+    '.te-auto-tr{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;color:#2d4a1e;}.te-spark{flex:1;height:44px;min-width:0;}.te-auto-n{margin:0;font-size:14px;color:#6b4a12;font-weight:650;}' +
+    '.te-sec{margin:12px 0 6px;font-size:16px;font-weight:800;}.te-tag.oto{background:#d3f9d8;color:#1b5e20;border-color:#8ce99a;}' +
+    '.te-noscale{display:flex;gap:10px;align-items:center;margin:12px 0 0;padding:10px 12px;border-radius:12px;background:#f4f6f8;border:1px solid #cfd8e3;font-size:14px;color:#3d4a5a;font-weight:650;}' +
+    '.te-link{display:flex;align-items:center;justify-content:center;min-height:64px;padding:0 14px;border-radius:12px;border:1px solid #d8c7aa;background:#fff;color:#3d2616;font-weight:800;text-decoration:none;box-sizing:border-box;}.te-noscale .te-link{flex:none;}' +
     '.te-msg{margin:0;font-size:14px;}.te-msg.ok{color:#1b7a3d;font-weight:700;}.te-msg.err{color:#c92a2a;font-weight:700;}' +
     '.te-row{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #f1e8da;font-size:14px;}.te-row:first-child{border-top:0;}' +
     '.te-tag{flex:none;background:#fff3bf;color:#7a5b00;border:1px solid #ffe066;border-radius:999px;font-size:11px;font-weight:800;padding:1px 7px;margin-top:1px;}' +
     '.te [hidden]{display:none!important;}.te-tare{margin:-4px 0 0;font-size:13px;font-weight:700;color:#5c4813;background:#fff3bf;border:1px solid #ffe066;border-radius:10px;padding:6px 8px;}' +
-    '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:none;font-size:16px;cursor:pointer;padding:0 4px;}';
+    '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:#f8f1e6;border-radius:12px;font-size:20px;cursor:pointer;width:64px;height:64px;}';
   function ensureCss() { if (document.getElementById('teCss')) return; var s = document.createElement('style'); s.id = 'teCss'; s.textContent = css; document.head.appendChild(s); }
   function close() { var b = document.getElementById('teSheet'); if (b) b.remove(); }
   /** Elle tartım formu. opts: { apiaryId, onSaved } — hiveId boşsa kovan seçilir. */
@@ -152,26 +216,32 @@
     var aps = D.loadApiaries(), apSel = String((h && h.apiaryId) || opts.apiaryId || (aps[0] && aps[0].id) || '');
     function hiveOpts(ap) { return D.loadHives().filter(function (x) { return String(x.apiaryId) === String(ap) && x.colonyState !== 'birlestirildi'; }).map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join(''); }
     var back = document.createElement('div'); back.className = 'te-back'; back.id = 'teSheet';
-    back.innerHTML = '<div class="te" role="dialog" aria-modal="true" aria-label="Elle tartım"><h2>⚖ Elle tartım' + (h ? ' · ' + esc(h.name) : '') + '<button type="button" class="te-x" data-te-close aria-label="Kapat">×</button></h2>' +
-      '<p style="margin:0 0 10px;font-size:13px;color:#6b5a48;">Kovanı el kantarı / baskülle tartıp yazın. Tartı cihazı bağlı olsa da elle kayıt her zaman eklenebilir.' + (isLive() ? '' : ' · Demo') + '</p>' +
-      '<form data-te-form autocomplete="off" onsubmit="return false">' +
+    var auto = h ? autoReading(h.id) : null;
+    var formHtml = '<form data-te-form autocomplete="off" onsubmit="return false">' +
       (h ? '' : '<label class="f">Arılık<select name="ap">' + aps.map(function (a) { return '<option value="' + esc(a.id) + '"' + (String(a.id) === apSel ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join('') + '</select></label>' +
         '<label class="f">Kovan<select name="hive">' + hiveOpts(apSel) + '</select></label>') +
-      '<label class="f">Tarih / saat<input type="datetime-local" name="at" value="' + nowLocal() + '"></label>' +
       '<label class="f">Ağırlık (kg)<input class="te-kg" type="number" name="kg" inputmode="decimal" step="0.1" min="1" max="400" placeholder="ör. 42,5" required></label>' +
+      '<label class="f">Tarih / saat<input type="datetime-local" name="at" value="' + nowLocal() + '"></label>' +
       '<p class="te-tare" data-te-tare hidden></p>' +
       '<label class="te-chk"><input type="checkbox" name="kat"> Kat eklendi</label>' +
       '<label class="te-chk"><input type="checkbox" name="besleme"> Besleme yapıldı</label>' +
       '<label class="f" data-te-add hidden>Eklenen ağırlık (kg, isteğe bağlı — sonraki okumalardan düşülür)<input type="number" name="addKg" inputmode="decimal" step="0.1" min="0" max="100" placeholder="ör. kat ≈ 8, 5 L şurup ≈ 6,5"></label>' +
       '<label class="f">Not (isteğe bağlı)<input type="text" name="note" maxlength="200"></label>' +
-      '<button type="button" class="te-btn" data-te-save>Kaydet</button><p class="te-msg" data-te-msg role="status"></p></form>' +
-      '<div data-te-list style="margin-top:10px;"></div></div>';
+      '<button type="button" class="te-btn" data-te-save>Elle tartımı kaydet</button><p class="te-msg" data-te-msg role="status"></p></form>';
+    /* Kovan seçiliyse: cihaz varsa önce otomatik okuma (tek dokunuşla kaydet), altında elle tartım her zaman; cihaz yoksa elle tartım önce + Cihazlar notu */
+    var devQ = h ? 'cihazlar.html?apiary=' + encodeURIComponent(h.apiaryId) + '&tip=tarti#devList' : 'cihazlar.html';
+    back.innerHTML = '<div class="te" role="dialog" aria-modal="true" aria-label="Tartım"><h2>⚖ ' + (h ? esc(h.name) + ' · Tartım' : 'Elle tartım') + '<button type="button" class="te-x" data-te-close aria-label="Kapat">×</button></h2>' +
+      '<p style="margin:0 0 10px;font-size:13px;color:#6b5a48;">' + (auto ? 'Otomatik tartı okuması aşağıda; elle tartım her zaman eklenebilir.' : 'Kovanı el kantarı / baskülle tartıp yazın. Tartı cihazı bağlı olsa da elle kayıt her zaman eklenebilir.') + (isLive() ? '' : ' · Demo') + '</p>' +
+      (auto ? autoHtml(auto) + '<h3 class="te-sec">Elle tartım</h3>' : '') + formHtml +
+      (h && !auto ? '<div class="te-noscale"><span>📡 Bu kovanda tartı cihazı yok. Otomatik tartı Cihazlar sayfasından eklenebilir.</span><a class="te-link" href="' + devQ + '">Cihazlar ›</a></div>' : '') +
+      '<div data-te-list style="margin-top:10px;"></div>' +
+      (h ? '<a class="te-link" style="margin-top:10px;" href="kovan.html?id=' + encodeURIComponent(h.id) + '">🏠 Kovan detayı ›</a>' : '') + '</div>';
     document.body.appendChild(back);
     var f = back.querySelector('[data-te-form]');
     function curHive() { return h ? h.id : (f.elements.hive && f.elements.hive.value); }
     function renderList() {
       var hid = curHive(), l = hid != null && hid !== '' ? list(hid).slice(0, 6) : [];
-      back.querySelector('[data-te-list]').innerHTML = l.length ? '<b style="font-size:14px;">Son elle tartımlar</b>' + l.map(function (x) { return rowHtml(x, { del: true }); }).join('') : '';
+      back.querySelector('[data-te-list]').innerHTML = l.length ? '<b style="font-size:14px;">Son tartımlar</b>' + l.map(function (x) { return rowHtml(x, { del: true }); }).join('') : '';
     }
     function toggleAdd() { back.querySelector('[data-te-add]').hidden = !(f.elements.kat.checked || f.elements.besleme.checked); showTare(); }
     function showTare() {
@@ -188,7 +258,13 @@
       else if (e.target.name === 'kat' || e.target.name === 'besleme') toggleAdd();
     });
     back.addEventListener('click', function (e) {
-      if (e.target === back || (e.target.hasAttribute && e.target.hasAttribute('data-te-close'))) { close(); return; }
+      if (e.target === back || (e.target.hasAttribute && e.target.hasAttribute('data-te-close'))) { close(); if (typeof opts.onClose === 'function') opts.onClose(); return; }
+      if (e.target.closest && e.target.closest('[data-te-auto-save]') && auto) {
+        var ma = back.querySelector('[data-te-msg]'), bt = e.target.closest('[data-te-auto-save]');
+        try { var ra = add({ hiveId: h.id, at: auto.at, kg: auto.kg, source: 'otomatik', deviceId: auto.device && auto.device.id }); bt.disabled = true; bt.textContent = '✓ Kaydedildi: ' + num(ra.kg) + ' kg (' + fmtAt(ra.at) + ')'; renderList(); if (typeof opts.onSaved === 'function') opts.onSaved(ra); }
+        catch (err0) { bt.textContent = err0.message || 'Kaydedilemedi'; }
+        void ma; return;
+      }
       var del = e.target.closest ? e.target.closest('[data-te-del]') : null;
       if (del) { if (global.confirm && !global.confirm('Bu tartım silinsin mi?')) return; remove(del.getAttribute('data-te-del')); renderList(); if (opts.onSaved) opts.onSaved(); return; }
       if (!e.target.closest || !e.target.closest('[data-te-save]')) return;
@@ -201,7 +277,7 @@
         if (typeof opts.onSaved === 'function') opts.onSaved(r);
       } catch (err) { m.className = 'te-msg err'; m.textContent = err.message || 'Kaydedilemedi'; }
     });
-    setTimeout(function () { try { f.elements.kg.focus(); } catch (e) { /* ignore */ } }, 50);
+    if (!auto) setTimeout(function () { try { f.elements.kg.focus(); } catch (e) { /* ignore */ } }, 50);
   }
-  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, ensureCss: ensureCss, open: open, close: close };
+  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, ensureCss: ensureCss, open: open, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
 })(window);
