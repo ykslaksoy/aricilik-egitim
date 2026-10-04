@@ -950,7 +950,10 @@
   .st-ap:active { background: rgba(224, 208, 180, 0.45); }
   .st-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 10px; }
   .st-panel[hidden], .grid[hidden] { display: none !important; }
-  .st-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; background: var(--bg); padding-bottom: 2px; }
+  /* Kaydırılan sütunda öğeler küçülmez: kart içeriğe göre uzar, alttaki öğenin üstüne binmez (koloni-80) */
+  .st-panel > * { flex-shrink: 0; }
+  .st-nw { white-space: nowrap; }
+  .st-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 8px; background: var(--bg); padding-bottom: 2px; box-shadow: 0 6px 0 0 var(--bg), 0 7px 0 0 rgba(0,0,0,.06); }
   .st-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card); font: inherit; font-size: 15px; font-weight: 800; color: var(--brown-mid); cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .st-back:active { transform: scale(.985); }
   .st-htitle { flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1011,7 +1014,7 @@
   .st-src.mt { background: #e7f5ff; color: #1864ab; }
   .st-src.e { background: #f1f3f5; color: #495057; }
   .st-src.el { background: #f3e8ff; color: #6b21a8; }
-  /* koloni-79: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
+  /* koloni-80: 12 döşemenin altına ek döşemeler (Arı / koloni + kullanıcı kategorileri), aynı boy, 3'lü satır; sayfa aşağı kayar */
   .st-form [hidden] { display: none !important; }
   .st-tag.skt { background: #fff4e6; color: #a14a00; }
   .st-age { display: block; margin-top: 3px; color: #6b4a1f !important; font-weight: 700; line-height: 1.35; }
@@ -1054,7 +1057,7 @@
   .st-tol > b { min-width: 44px; text-align: center; font-size: 17px; font-weight: 800; }
   .st-tol .st-btn { font-size: 22px; padding: 0; }
   .st-warn { margin: 0; padding: 8px 10px; border-radius: 10px; background: #fff4e6; border: 1px solid #ffd8a8; color: #a14a00; font-size: 12.5px; font-weight: 800; line-height: 1.35; }
-  .st-apsec { font: inherit; text-align: left; cursor: pointer; min-height: 52px; width: 100%; color: inherit; }
+  .st-apsec { font: inherit; text-align: left; cursor: pointer; min-height: 52px; height: auto; width: 100%; color: inherit; flex-shrink: 0; }
   .st-apsec[data-ap]::after { content: "Aç ›"; align-self: flex-end; font-size: 12px; font-weight: 800; color: var(--brown-mid); }
   .st-mini { font-size: 11.5px; font-weight: 650; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
   /* Birim fiyat alanı (canlı talep) ve alım kaydı */
@@ -1174,14 +1177,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-79"></script>
-<script src="koloni.js?v=koloni-79"></script>
-<script src="ilac-katalog.js?v=koloni-79"></script>
-<script src="bakim-plan.js?v=koloni-79"></script>
-<script src="kapsam.js?v=koloni-79"></script>
-<script src="rapor-store.js?v=koloni-79"></script>
-<script src="fiyat-live.js?v=koloni-79"></script>
-<script src="stok-talep.js?v=koloni-79"></script>
+<script src="demo-data.js?v=koloni-80"></script>
+<script src="koloni.js?v=koloni-80"></script>
+<script src="ilac-katalog.js?v=koloni-80"></script>
+<script src="bakim-plan.js?v=koloni-80"></script>
+<script src="kapsam.js?v=koloni-80"></script>
+<script src="rapor-store.js?v=koloni-80"></script>
+<script src="fiyat-live.js?v=koloni-80"></script>
+<script src="stok-talep.js?v=koloni-80"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1335,7 +1338,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-79'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-80'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -1613,7 +1616,7 @@
         if (missOnly && !s.missing) return;
         var buys = s.lines.filter(function (l) { return l.buy > 0; });
         h += '<button type="button" class="st-card st-apsec"' + (s.ortak ? '' : ' data-ap="' + esc(s.id) + '"') + '><span class="st-top"><span class="st-name"><b>' + esc(s.name) + '</b><small>' +
-          (s.ortak ? 'dayanıklı aletler bir kez + stok eşikleri' : s.hives + ' kovan · ' + s.insp + ' muayeneli · ' + s.fc + ' tahmin') + (s.missing ? ' · ' + s.missing + ' fiyatsız' : '') + '</small></span><span class="st-qty">' + money(s.subtotal) + '</span></span>' +
+          (s.ortak ? 'dayanıklı aletler bir kez + stok eşikleri' : s.hives + ' kovan · ' + s.insp + ' muayeneli · ' + s.fc + ' tahmin') + (s.missing ? ' · <span class="st-nw">' + s.missing + ' fiyatsız</span>' : '') + '</small></span><span class="st-qty">' + money(s.subtotal) + '</span></span>' +
           '<span class="st-mini">' + (buys.length ? buys.map(function (l) { return esc(l.name.replace(/ \(.*\)$/, '') + ' ' + n1(l.buy) + ' ' + l.unit); }).join(' · ') : 'alınacak yok') + '</span></button>';
       });
     } else if (bySeller()) {
@@ -2162,7 +2165,7 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="nav.js?v=koloni-79"></script>
-<script src="pwa.js?v=koloni-79"></script>
+<script src="nav.js?v=koloni-80"></script>
+<script src="pwa.js?v=koloni-80"></script>
 </body>
 </html>
