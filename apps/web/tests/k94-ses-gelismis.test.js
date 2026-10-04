@@ -62,6 +62,7 @@ assert.deepStrictEqual(S.uniqueTrVoices([yC, yE, yP, cC]).map((v) => v.name).sor
   (listeners.voiceschanged || []).forEach((f) => f());
   const av = SS.activeVoice();
   assert.strictEqual(av.name, 'Yelda (Gelişmiş)'); assert.strictEqual(av.nick, 'Petek'); assert.ok(av.enhanced);
+  { const opts = SS.voiceOptions(); const cur = SS.currentOption(opts); assert.ok(opts.indexOf(cur) >= 0 && cur.nick === 'Petek', 'Ayarlar: seçili satır Petek (yeni getVoices nesnelerinde de)'); }
   SS.speak('Kovan 12', { noGate: true });
   assert.strictEqual(spoken.length, 1);
   assert.strictEqual(spoken[0].voice.voiceURI, yE.voiceURI, 'konuşma Gelişmiş Yelda ile');

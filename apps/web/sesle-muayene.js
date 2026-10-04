@@ -321,7 +321,7 @@
       for (var i = 0; i < l.length; i++) if (l[i].id === id && l[i].source !== 'device') return l[i];
       var all = trVoices(), f = familyOfId(id, all), v = f ? bestOfFamily(all, f) : null;
       if (v) {
-        for (var j = 0; j < l.length; j++) if (l[j].source === 'device' && l[j].ref && voiceFamily(l[j].ref) === f) return l[j].ref === v ? l[j] : Object.assign({}, l[j], { id: voiceKey(v), ref: v, enh: isEnhanced(v) });
+        for (var j = 0; j < l.length; j++) if (l[j].source === 'device' && l[j].ref && voiceFamily(l[j].ref) === f) return l[j]; /* liste zaten aile başına en iyi sürümü taşır; konuşmada resolveDevice yeniden çözer */
       }
     }
     return l[0];
