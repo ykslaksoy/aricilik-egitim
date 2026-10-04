@@ -47,19 +47,11 @@
     .bp-need .u1{color:#c92a2a;font-weight:700;}
     .bp-more{font:inherit;font-size:.8rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
   </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
 </head>
-<body data-tabbar="fixed">
+<body>
   <main class="wrap">
-    <div class="nav">
-      <a class="chip" href="bakim.html">← Bakım</a>
-      <a class="chip" href="bugun.html">Bugün</a>
-      <a class="chip" href="stok.html">📦 Stok</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p>Bakım planı</p></div>
-    </div>
 
     <section class="card stack">
       <div class="bp-row">
@@ -68,7 +60,6 @@
       </div>
       <label id="bpCamWrap" style="font-size:.82rem;display:none;"><input type="checkbox" id="bpCam" /> Çam balı akımına gidiliyor (sonbahar ilaçlaması akımdan sonra)</label>
       <p class="muted" id="bpDesc" style="margin:0;font-size:.8rem;"></p>
-      <p class="muted" id="bpMode" style="margin:0;font-size:.8rem;"></p>
     </section>
 
     <section class="card stack" style="margin-top:1rem;" id="liste">
@@ -102,12 +93,13 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="demo-data.js?v=koloni-93"></script>
-  <script src="ilac-katalog.js?v=koloni-93"></script>
-  <script src="bakim-plan.js?v=koloni-93"></script>
-  <script src="kovan-ara.js?v=koloni-93"></script>
-  <script src="kapsam.js?v=koloni-93"></script>
-  <script src="ks-sayfa.js?v=koloni-93"></script>
+  <script src="bk-kabuk.js?v=koloni-94"></script>
+  <script src="demo-data.js?v=koloni-94"></script>
+  <script src="ilac-katalog.js?v=koloni-94"></script>
+  <script src="bakim-plan.js?v=koloni-94"></script>
+  <script src="kovan-ara.js?v=koloni-94"></script>
+  <script src="kapsam.js?v=koloni-94"></script>
+  <script src="ks-sayfa.js?v=koloni-94"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -131,7 +123,7 @@
       document.getElementById('bpCam').checked = P.camBali(ap);
       var auto = P.autoProfile(D.apiaryById(ap));
       document.getElementById('bpDesc').textContent = pr.desc + ' Kışlık hedef (tahmin): ' + pr.winterKg + ' kg/kovan.' + (auto === pk ? ' Profil arılık konumundan seçildi.' : '');
-      document.getElementById('bpMode').textContent = P.mode() === 'live' ? 'Canlı mod: görevler ve kayıtlar sizin verinize eklenir.' : 'Demo mod: eklenen görev ve kayıtlar «Demo» verisidir, gerçek kayıt sayılmaz.';
+      (document.getElementById('bpMode') || document.createElement('p')).textContent = P.mode() === 'live' ? 'Canlı mod: görevler ve kayıtlar sizin verinize eklenir.' : 'Demo mod: eklenen görev ve kayıtlar «Demo» verisidir, gerçek kayıt sayılmaz.';
     }
     function renderTl() {
       var t = P.today();
@@ -243,7 +235,19 @@
   });
 })();
 </script>
-<script src="nav.js?v=koloni-93"></script>
-  <script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+window.SuperAriQuickTitle = 'Kayıt · Bakım planı';
+window.SuperAriQuickActions = function () {
+  var N = window.SuperAriNav;
+  return [
+    { ic: '💊', t: 'İlaçlama kaydı', d: 'Plandaki varroa uygulaması', run: N.quickType('ilac') },
+    { ic: '🍬', t: 'Besleme kaydı', d: 'Kışlık / teşvik besleme', run: N.quickType('besleme') },
+    { ic: '📝', t: 'Görev ekle', d: 'Görevler sayfasında', run: N.go('gorevler.html#ekle') }
+  ];
+};
+</script>
+<script src="nav.js?v=koloni-94"></script>
+  <script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>

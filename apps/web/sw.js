@@ -101,6 +101,8 @@ const SHELL = [
   "/bakim-plan.js",
   "/bakim-yap.html",
   "/bakim.html",
+  "/bk-kabuk.css",
+  "/bk-kabuk.js",
   "/bugun.html",
   "/bulut-config.json",
   "/bulut.js",

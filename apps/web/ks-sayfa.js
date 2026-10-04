@@ -29,7 +29,9 @@
     var KS = global.SuperAriKapsam; if (!KS || !global.document.body) return null;
     var doc = global.document;
     doc.body.classList.add('ks-body', 'ks-page', 'ks-glove');
-    var phone = doc.querySelector('.phone .screen');
+    /* k94: bk-kabuk.js main.wrap'i telefon çerçevesine alır — o sayfalarda kart yine main'in başına girer */
+    var mainEl = doc.querySelector('main.wrap');
+    var phone = mainEl ? null : doc.querySelector('.phone .screen');
     if (phone) doc.body.classList.add('ks-phone');
     (o.hide || []).concat(['.brand', '.brand-strip', '.page-head h1', '.page-head #pageSub', '.page-head > div:first-child > p']).forEach(function (sel) {
       doc.querySelectorAll(sel).forEach(function (e) { e.hidden = true; e.style.display = 'none'; });
@@ -37,7 +39,7 @@
     var host = doc.createElement('section'); host.id = 'ksScope';
     var after = o.after ? doc.querySelector(o.after) : (phone ? phone.querySelector('.page-head') : doc.querySelector('main .nav'));
     if (after && after.parentNode) after.parentNode.insertBefore(host, after.nextSibling);
-    else (phone || doc.querySelector('main') || doc.body).insertBefore(host, (phone || doc.querySelector('main') || doc.body).firstChild);
+    else { var box = phone || mainEl || doc.querySelector('main') || doc.body; box.insertBefore(host, box.firstChild); }
     var tools = null;
     if (o.tools && o.tools.length) {
       tools = doc.createElement('div'); tools.className = 'ks-tools'; tools.id = 'ksTools';

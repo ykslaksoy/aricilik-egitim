@@ -138,12 +138,24 @@
    * tr-TR sesleri arasından en kalitelisi: 1) Enhanced / Gelişmiş / Premium (iOS Yelda / Cem Enhanced), 2) iOS sistem sesi Yelda / Cem,
    * 3) Google Türkçe (Android / Chrome, ağ / neural), 4) Edge «Online (Natural)», 5) herhangi bir tr ses (varsayılan / cihaz üstü önce). eSpeak en sona. */
   /* Siri sesleri (getVoices() içinde görünürse; iOS Safari'nin bunları verip vermediği varsayılmaz — ne gelirse listelenir) */
+  /* Geliştirilmiş ses işaretleri: iOS adı yerelleştirir («Yelda (Gelişmiş)», «Yelda (Geliştirilmiş)», «Yelda (Enhanced)»);
+     voiceURI'de «enhanced» / «premium» (com.apple.voice.enhanced.tr-TR.Yelda · eski iOS com.apple.ttsbundle.Yelda-premium) */
+  var ENH_RE = /enhanced|premium|gelişmiş|gelismis|geliştirilmiş|gelistirilmis|iyileştirilmiş|yüksek kalite|high quality/i;
+  /** Kalite katmanı: 3 Premium · 2 Geliştirilmiş · 1 standart · 0 compact */
+  function voiceTier(v) {
+    var n = String((v && v.name) || '') + ' ' + String((v && v.voiceURI) || '');
+    if (/premium/i.test(n)) return 3;
+    if (ENH_RE.test(n)) return 2;
+    if (/compact/i.test(n)) return 0;
+    return 1;
+  }
   function isSiri(v) { var n = String((v && v.name) || ''), u = String((v && v.voiceURI) || ''); return /siri/i.test(n + ' ' + u) || /^(ses|voice)\s*\d+$/i.test(n.trim()); }
   function voiceRank(v) {
     if (!v) return -999;
     var n = String(v.name || '') + ' ' + String(v.voiceURI || ''), r = 0;
     if (isSiri(v)) r += 120; /* Siri görünürse: Geliştirilmiş Cem/Yelda'dan sonra, standart seslerden önce */
-    if (/enhanced|premium|gelişmiş|gelismis|geliştirilmiş|yüksek kalite|high quality/i.test(n)) r += 100;
+    if (ENH_RE.test(n)) r += 100;
+    if (/premium/i.test(n)) r += 10; /* Premium > Geliştirilmiş > standart > compact */
     if (/google/i.test(n)) r += 60 + (v.localService === false ? 5 : 0);
     if (/natural|neural/i.test(n)) r += 55;
     if (/yelda|\bcem\b/i.test(n)) r += 70;
@@ -162,22 +174,37 @@
   function voiceFamily(v) {
     var u = String((v && v.voiceURI) || ''), m = /com\.apple\.[a-z.]*?\.(?:compact|enhanced|premium|super-compact|eloquence)?\.?[a-z]{2}[-_][a-z]{2}\.([^.\s]+)$/i.exec(u);
     if (m) return m[1].toLocaleLowerCase('tr');
-    return String((v && v.name) || u).replace(/\s*\((enhanced|premium|compact|gelişmiş|geliştirilmiş|yüksek kalite|high quality)\)\s*/ig, ' ').replace(/\b(enhanced|premium|compact)\b/ig, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
+    var tb = /com\.apple\.ttsbundle\.(?:siri_)?([^-_.\s]+)[-_](?:compact|premium|enhanced)/i.exec(u);
+    if (tb) return tb[1].toLocaleLowerCase('tr');
+    return String((v && v.name) || u).replace(/\s*\([^)]*\)\s*$/, ' ').replace(/\s*\((enhanced|premium|compact|gelişmiş|geliştirilmiş|yüksek kalite|high quality)\)\s*/ig, ' ').replace(/\b(enhanced|premium|compact)\b/ig, ' ').replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
   }
   /** Her aileden yalnız en iyi sürüm (Geliştirilmiş varsa o, yoksa standart) — listede tek Cem, tek Yelda. */
   function uniqueTrVoices(list) {
     var seen = {};
-    return sortTrVoices(list).filter(function (v) { var f = voiceFamily(v); if (seen[f]) return false; seen[f] = true; return true; });
+    var l = sortTrVoices(list), best = {};
+    l.forEach(function (v) { var f = voiceFamily(v), c = best[f]; if (!c || voiceTier(v) > voiceTier(c)) best[f] = v; });
+    return l.filter(function (v) { var f = voiceFamily(v); if (seen[f] || best[f] !== v) return false; seen[f] = true; return true; });
   }
-  /** Kayıtlı seçim cihazda varsa onun ailesinin en iyi sürümü (sonradan Geliştirilmiş indirildiyse o); yoksa en kaliteli tr ses; hiç yoksa null. */
+  /** Kayıtlı kimlikten ses ailesi: listede varsa o sesin ailesi; yoksa kimliğin kendisinden (voiceURI / ad / Ali · Petek). */
+  function familyOfId(id, list) {
+    id = String(id || ''); if (!id) return '';
+    var l = list || [];
+    for (var i = 0; i < l.length; i++) if (l[i] && (l[i].voiceURI === id || l[i].name === id)) return voiceFamily(l[i]);
+    if (/^ali$/i.test(id)) return 'cem';
+    if (/^petek$/i.test(id)) return 'yelda';
+    return voiceFamily({ name: id, voiceURI: id });
+  }
+  /** Bir ailenin en iyi sürümü: Premium > Geliştirilmiş > standart > compact; eşitse tr-TR ve sıralama. */
+  function bestOfFamily(list, fam) {
+    var same = sortTrVoices(list).filter(function (v) { return voiceFamily(v) === fam; });
+    same.sort(function (a, b) { return (voiceTier(b) - voiceTier(a)) || ((/^tr[-_]TR$/i.test(b.lang || '') ? 1 : 0) - (/^tr[-_]TR$/i.test(a.lang || '') ? 1 : 0)) || (voiceRank(b) - voiceRank(a)); });
+    return same[0] || null;
+  }
+  /** Her konuşmada yeniden çözülür: kayıtlı seçimin AİLESİ (Ali = Cem, Petek = Yelda) cihazda varsa o ailenin en iyi sürümü
+   *  (sonradan Geliştirilmiş indirildiyse o; kayıtlı compact voiceURI sabitlenmez). Aile yoksa en kaliteli tr ses; hiç yoksa null. */
   function bestTrVoice(list, savedId) {
-    var l = sortTrVoices(list), u = uniqueTrVoices(list);
-    if (savedId) {
-      for (var i = 0; i < l.length; i++) if (l[i].voiceURI === savedId || l[i].name === savedId) {
-        var f = voiceFamily(l[i]); for (var j = 0; j < u.length; j++) if (voiceFamily(u[j]) === f) return u[j];
-        return l[i];
-      }
-    }
+    var u = uniqueTrVoices(list);
+    if (savedId) { var f = familyOfId(savedId, list), b = f ? bestOfFamily(list, f) : null; if (b) return b; }
     return u[0] || null;
   }
 
@@ -227,7 +254,7 @@
     });
     return out || { nick: 'Türkçe ses', g: '', siri: isSiri(v) };
   }
-  function isEnhanced(v) { return /enhanced|premium|gelişmiş|gelismis|geliştirilmiş/i.test(String((v && v.name) || '') + ' ' + String((v && v.voiceURI) || '')); }
+  function isEnhanced(v) { return voiceTier(v) >= 2; }
   /* ---- Ses KAYNAĞI bağımsız seçenek modeli: { id, source, nick, g, rank, enh, siri, natural, ref } ----
      source 'device' = cihaz sesi (speechSynthesis). İleride 'mp3' (hazır kayıt) / bulut kaynakları aynı modelle eklenir. */
   function deviceOptions(list) {
@@ -239,7 +266,7 @@
   }
   function optionTags(o, best) { return [o.siri ? 'Siri' : '', o.g, o.enh ? 'Geliştirilmiş' : '', o.natural ? 'doğal' : '', o.source !== 'device' && o.sourceLabel ? o.sourceLabel : '', best && o.id === best.id ? 'önerilen' : ''].filter(Boolean).join(' · '); }
 
-  var API = { voiceNick: voiceNick, isSiri: isSiri, VOICE_NICKS: VOICE_NICKS, RESERVED_NICKS: RESERVED_NICKS, voiceFamily: voiceFamily, uniqueTrVoices: uniqueTrVoices, deviceOptions: deviceOptions, optionTags: optionTags, speechText: speechText, parse: parse, parseNumber: parseNumber, numbers: numbers, parseFrames: parseFrames, matchOption: matchOption, fold: fold, voiceRank: voiceRank, sortTrVoices: sortTrVoices, bestTrVoice: bestTrVoice };
+  var API = { voiceTier: voiceTier, familyOfId: familyOfId, bestOfFamily: bestOfFamily, voiceNick: voiceNick, isSiri: isSiri, VOICE_NICKS: VOICE_NICKS, RESERVED_NICKS: RESERVED_NICKS, voiceFamily: voiceFamily, uniqueTrVoices: uniqueTrVoices, deviceOptions: deviceOptions, optionTags: optionTags, speechText: speechText, parse: parse, parseNumber: parseNumber, numbers: numbers, parseFrames: parseFrames, matchOption: matchOption, fold: fold, voiceRank: voiceRank, sortTrVoices: sortTrVoices, bestTrVoice: bestTrVoice };
   if (typeof module !== 'undefined' && module.exports) { module.exports = API; return; }
 
   /* ---------------- tarayıcı: ses denetleyicisi ---------------- */
@@ -286,18 +313,31 @@
     });
     return out.sort(function (a, b) { return (b.rank || 0) - (a.rank || 0); });
   }
-  /** Seçili seçenek: kayıtlı kimlik (cihaz sesinde aynı ailenin en iyi sürümü) yoksa en iyi seçenek. */
+  /** Seçili seçenek: cihaz dışı kaynakta tam kimlik; cihaz sesinde kayıtlı seçimin AİLESİNİN en iyi sürümü (her çağrıda yeniden
+   *  çözülür — eski compact voiceURI sabitlenmez); kayıt yoksa / aile cihazda yoksa en iyi seçenek. */
   function currentOption(opts) {
     var l = opts || voiceOptions(), id = savedVoiceId(); if (!l.length) return null;
     if (id) {
-      for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
-      var all = trVoices();
-      if (all.some(function (x) { return x.voiceURI === id || x.name === id; })) {
-        var v = bestTrVoice(all, id); /* aynı ailenin en iyi sürümü */
-        for (var j = 0; j < l.length; j++) if (l[j].source === 'device' && l[j].ref === v) return l[j];
+      for (var i = 0; i < l.length; i++) if (l[i].id === id && l[i].source !== 'device') return l[i];
+      var all = trVoices(), f = familyOfId(id, all), v = f ? bestOfFamily(all, f) : null;
+      if (v) {
+        for (var j = 0; j < l.length; j++) if (l[j].source === 'device' && l[j].ref && voiceFamily(l[j].ref) === f) return l[j]; /* liste zaten aile başına en iyi sürümü taşır; konuşmada resolveDevice yeniden çözer */
       }
     }
     return l[0];
+  }
+  /** Konuşma anında kullanılacak gerçek cihaz sesi (Ayarlar › Ses seçimi «Kullanılan:» satırı için). */
+  function activeVoice() {
+    var o = currentOption(); if (!o || o.source !== 'device' || !o.ref) return null;
+    var v = resolveDevice(o), t = voiceTier(v), nm = String(v.name || '').trim();
+    var label = nm + (t >= 2 && !/\(/.test(nm) ? (t === 3 ? ' (Premium)' : ' (Gelişmiş)') : '');
+    var fam = voiceFamily(v), apple = /com\.apple|yelda|\bcem\b/i.test(String(v.voiceURI || '') + ' ' + nm);
+    return { voice: v, nick: o.nick, name: label, tier: t, enhanced: t >= 2, apple: apple, family: fam };
+  }
+  /** Seçenek → konuşma anındaki güncel ses nesnesi (iOS: getVoices() her çağrıda yeni nesne verebilir; eski nesne yok sayılabilir). */
+  function resolveDevice(opt) {
+    var all = trVoices(), f = opt && opt.ref ? voiceFamily(opt.ref) : '';
+    return (f && bestOfFamily(all, f)) || (opt && opt.ref) || null;
   }
   /** Hazır kayıt (MP3) kaynağı iskeleti — örnek: addVoiceSource('mp3', mp3Source({ label: 'Hazır kayıt', voices: [{ id: 'sinan', nick: 'Sinan', g: 'erkek', rank: 300,
    *  base: 'ses/sinan/', clips: { 'kovan 12. varroa sayısını söyleyin.': 'demo.mp3' } }] })). Kaydı olmayan cümle cihaz sesiyle okunur. */
@@ -330,7 +370,7 @@
   /** TEK seslendirme yardımcısı (Sesle muayene + öneri kartları): metin temizlenir, lang tr-TR, en iyi tr ses.
    *  iOS'ta sesler geç yüklenir: liste boşsa sessiz bir «kilit açma» konuşması yapılır ve voiceschanged en çok 1,2 sn beklenir.
    *  o.onend bir kez çağrılır (bitiş / hata / güvenlik süresi). */
-  var voicesWaited = false;
+  var voicesWaited = false, enhWaited = false;
   /* ---- İlk kullanımda ses seçimi: «Hangi sesi kullanalım?» (eldiven boyu; bir kez sorulur) ---- */
   var ASKED_KEY = 'superari.sesleSesSoruldu.v1', DEMO = 'Kovan 12. Varroa sayısını söyleyin. Etiket dozu: kovan başına iki şerit.';
   function asked() { try { return !!localStorage.getItem(ASKED_KEY); } catch (e) { return true; } }
@@ -352,7 +392,8 @@
   }
   function voiceTags(L) { return [L.siri ? 'Siri' : '', L.g, L.enh ? 'Geliştirilmiş' : '', L.natural ? 'doğal' : '', L.best ? 'önerilen' : ''].filter(Boolean).join(' · '); }
   /** Geliştirilmiş Türkçe ses yüklü değilse (Apple cihaz) kısa indirme notu gösterilir. */
-  var ENH_NOTE = 'Daha doğal ses için iPhone Ayarlar › Erişilebilirlik › Oku ve Seslendir › Sesler › Türkçe’den Cem/Yelda (Geliştirilmiş) indirin.';
+  var ENH_PATH = 'Ayarlar › Erişilebilirlik › Sözlü İçerik › Sesler › Türkçe';
+  var ENH_NOTE = 'Daha doğal ses için iPhone ' + ENH_PATH + '’den Cem / Yelda (Gelişmiş) sürümünü indirin.';
   function needEnhNote(list) {
     var L = list || trVoices(), apple = L.some(function (v) { return /com\.apple|yelda|\bcem\b/i.test(String(v.voiceURI || '') + ' ' + String(v.name || '')); }) || /iPhone|iPad|Macintosh/.test(String((global.navigator || {}).userAgent || ''));
     return apple && !L.some(isEnhanced);
@@ -416,7 +457,7 @@
       if (played) { timer = setTimeout(end, 30000); return; }
       opt = null; /* bu cümlenin kaydı yok → cihaz sesi */
     }
-    if (opt && opt.source === 'device') o = Object.assign({}, o, { voice: opt.ref });
+    if (opt && opt.source === 'device') o = Object.assign({}, o, { voice: resolveDevice(opt) });
     else if (o.voice && o.voice.source) o = Object.assign({}, o, { voice: null });
     if (!syn || !global.SpeechSynthesisUtterance || !clean) { setTimeout(end, 0); return; }
     function go(extra) {
@@ -426,6 +467,15 @@
       try { syn.speak(u); } catch (e) { end(); return; }
       timer = setTimeout(end, Math.min(25000, 2000 + clean.length * 90 + (extra || 0))); /* onend gelmezse */
     }
+    /* iOS: Geliştirilmiş sesler listeye geç düşebilir — seçili ailenin Geliştirilmiş sürümü henüz yoksa oturumda bir kez kısa bekle, sonra yeniden çöz */
+    if (trVoices().length && !enhWaited && o.voice && !isEnhanced(o.voice) && /com\.apple|yelda|\bcem\b/i.test(String(o.voice.voiceURI || '') + ' ' + String(o.voice.name || ''))) {
+      enhWaited = true;
+      var fam0 = voiceFamily(o.voice), doneE = false;
+      var goE = function () { if (doneE) return; doneE = true; try { syn.removeEventListener('voiceschanged', goE); } catch (e) { /* ignore */ } var b = bestOfFamily(trVoices(), fam0); if (b) o = Object.assign({}, o, { voice: b }); go(0); };
+      try { syn.addEventListener('voiceschanged', goE); } catch (e) { /* ignore */ }
+      setTimeout(goE, 700);
+      return;
+    }
     if (trVoices().length || voicesWaited) { go(0); return; }
     /* iOS: dokunuşla gelen ilk konuşmada sentezi aç (sessiz), sonra Türkçe sesi bekle */
     try { syn.cancel(); var w = new global.SpeechSynthesisUtterance(' '); w.volume = 0; w.lang = 'tr-TR'; syn.speak(w); } catch (e) { /* ignore */ }
@@ -433,6 +483,8 @@
     function fire() {
       if (fired) return; fired = true; voicesWaited = true;
       try { if (syn.removeEventListener) syn.removeEventListener('voiceschanged', fire); } catch (e) { /* ignore */ }
+      /* liste geldi → seçimi yeniden çöz (ilk çağrıda liste boşken ses atanamamıştı) */
+      if (!o.voice || !o.voice.source) { var c = currentOption(); if (c && c.source === 'device') o = Object.assign({}, o, { voice: resolveDevice(c) }); }
       go(Date.now() - t0);
     }
     try { if (syn.addEventListener) syn.addEventListener('voiceschanged', fire); } catch (e) { /* ignore */ }
@@ -496,7 +548,7 @@
       '<div class="kv-btns"><button type="button" data-kv-go class="pri" hidden>🎙 Sesle devam et</button><button type="button" data-kv-repeat>🔁 Tekrar</button><button type="button" data-kv-stop>⏹ Dur</button><button type="button" data-kv-vbtn>🔈 Ses seç</button></div>' +
       '<div class="kv-voices" data-kv-voices hidden><label>Türkçe ses<select data-kv-vsel></select></label>' +
       '<button type="button" data-kv-vtest>▶ Dene</button>' +
-      '<p class="kv-help">Daha akıcı ses için — iPhone: Ayarlar › Erişilebilirlik › Seslendirme › Sesler › Türkçe › «Yelda (Gelişmiş)» indirin. Android: Ayarlar › Metin okuma › Google TTS › Türkçe yüksek kalite sesi indirin. Sonra buradan seçin.</p></div>' +
+      '<p class="kv-help">Daha akıcı ses için — iPhone: ' + ENH_PATH + ' › «Yelda (Gelişmiş)» indirin. Android: Ayarlar › Metin okuma › Google TTS › Türkçe yüksek kalite sesi indirin. Sonra buradan seçin.</p></div>' +
       '<div class="kv-help">Komutlar: «geç», «geri», «tekrar», «kaydet», «kaydet ve sıradaki», «dur», «not …»</div>';
     var $ = function (a) { return bar.querySelector('[data-kv-' + a + ']'); };
     /* Sayfanın tek mikrofon oturumu (mic-session.js): kovan / kart değişince yeni izin istenmez */
@@ -613,5 +665,5 @@
     else prompt();
     return ctl;
   }
-  root.SuperAriSesle = { parse: parse, parseNumber: parseNumber, numbers: numbers, supported: supported, start: start, trVoices: trVoices, pickVoice: trVoice, voiceRank: voiceRank, speak: speakTr, ensureVoice: ensureVoice, DEMO: DEMO, voiceLabel: voiceLabel, voiceTags: voiceTags, needEnhNote: needEnhNote, ENH_NOTE: ENH_NOTE, voiceNick: voiceNick, voiceOptions: voiceOptions, currentOption: currentOption, optionTags: optionTags, addVoiceSource: addVoiceSource, mp3Source: mp3Source, RESERVED_NICKS: RESERVED_NICKS, stopSpeech: stopSpeech, speechText: speechText, savedVoiceId: savedVoiceId, setVoice: setVoice, rateKey: rateKey, setRate: setRate, RATES: RATES, stop: function () { if (active) active.stop(); } };
+  root.SuperAriSesle = { parse: parse, parseNumber: parseNumber, numbers: numbers, supported: supported, start: start, trVoices: trVoices, pickVoice: trVoice, voiceRank: voiceRank, speak: speakTr, ensureVoice: ensureVoice, DEMO: DEMO, voiceLabel: voiceLabel, voiceTags: voiceTags, needEnhNote: needEnhNote, ENH_NOTE: ENH_NOTE, voiceNick: voiceNick, voiceOptions: voiceOptions, currentOption: currentOption, activeVoice: activeVoice, ENH_PATH: ENH_PATH, optionTags: optionTags, addVoiceSource: addVoiceSource, mp3Source: mp3Source, RESERVED_NICKS: RESERVED_NICKS, stopSpeech: stopSpeech, speechText: speechText, savedVoiceId: savedVoiceId, setVoice: setVoice, rateKey: rateKey, setRate: setRate, RATES: RATES, stop: function () { if (active) active.stop(); } };
 })(typeof window !== 'undefined' ? window : this);

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Koloni işlemleri · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
   <style>
     .ki-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;}
     .ki-tabs a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:.35rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:#5c4813;font-weight:800;font-size:.8rem;text-decoration:none;line-height:1.15;}
@@ -54,27 +56,15 @@
     .ki-col .e{margin:0;font-size:.76rem;color:var(--muted);line-height:1.3;}
   </style>
 </head>
-<body data-tabbar="fixed">
+<body>
   <main class="wrap">
-    <div class="nav">
-      <a class="chip" id="backKoloni" href="kovanlar.html?view=koloni">← Koloni</a>
-      <a class="chip" href="bakim.html">Bakım</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p id="pageSub">Koloni işlemleri</p></div>
-    </div>
-    <section class="card stack">
-      <div class="ki-tabs" id="tabs"></div>
-      <label style="font-size:.78rem;display:grid;gap:.2rem;">Arılık
-        <select id="apSel" style="font:inherit;font-size:.95rem;padding:.55rem .6rem;border-radius:12px;border:1px solid var(--border);background:#fff;"></select>
-      </label>
-      <p class="muted" id="modeNote" style="margin:0;font-size:.8rem;"></p>
-    </section>
     <div id="view"></div>
   </main>
-  <script src="demo-data.js?v=koloni-93"></script>
-  <script src="koloni.js?v=koloni-93"></script>
+  <script src="bk-kabuk.js?v=koloni-94"></script>
+  <script src="demo-data.js?v=koloni-94"></script>
+  <script src="koloni.js?v=koloni-94"></script>
+  <script src="kapsam.js?v=koloni-94"></script>
+  <script src="ks-sayfa.js?v=koloni-94"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -87,11 +77,12 @@
     var aps = D.loadApiaries();
     var apiaryId = params.get('apiary') || K.lastApiary();
     if (!aps.some(function (a) { return String(a.id) === String(apiaryId); })) apiaryId = aps[0] ? String(aps[0].id) : '';
-    var apSel = document.getElementById('apSel');
+    /* k94: arılık seçimi Kapsam kartında — eski seçim kutusu (ve üstteki sekmeler / açıklama) kaldırıldı; iç durum için ayrık öğe */
+    var apSel = document.createElement('select');
     apSel.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
     apSel.value = apiaryId;
     var TITLES = { bolme: 'Koloni Bölme / Birleştirme', tasima: 'Ana Arı Değişimi', uretim: 'Ana Arı Üretimi' };
-    document.getElementById('modeNote').textContent = 'Kovan ve ana arı kayıtlarını değiştirir; her iki kovanın geçmişine yazılır. ' +
+    (document.getElementById('modeNote') || document.createElement('p')).textContent = 'Kovan ve ana arı kayıtlarını değiştirir; her iki kovanın geçmişine yazılır. ' +
       (R.workMode() === 'live' ? 'Canlı mod.' : 'Demo mod: işlem kayıtları demo deposunda tutulur; örnek işlem verisi yoktur.');
     function today() { return R.todayLocal(); }
     function url(o) {
@@ -119,12 +110,12 @@
       }).join('') || '<p class="muted" style="margin:0;">Bu arılıkta henüz kayıtlı işlem yok.</p>';
     }
     function renderTabs() {
-      document.getElementById('tabs').innerHTML = ['bolme', 'tasima', 'uretim'].map(function (k) {
+      (document.getElementById('tabs') || document.createElement('div')).innerHTML = ['bolme', 'tasima', 'uretim'].map(function (k) {
         return '<a href="' + url({ islem: k, alt: 'bolme' }) + '" class="' + (k === islem ? 'on' : '') + '">' + esc(TITLES[k]) + '</a>';
       }).join('');
-      document.getElementById('pageSub').textContent = TITLES[islem];
+      (document.getElementById('pageSub') || document.createElement('p')).textContent = TITLES[islem];
       document.title = TITLES[islem] + ' · SüperArı';
-      document.getElementById('backKoloni').href = 'kovanlar.html?view=koloni&mode=apiary&apiary=' + encodeURIComponent(apiaryId);
+      (document.getElementById('backKoloni') || document.createElement('a')).href = 'kovanlar.html?view=koloni&mode=apiary&apiary=' + encodeURIComponent(apiaryId);
     }
 
     /* ---------- Bölme / Birleştirme ---------- */
@@ -401,9 +392,85 @@
       render();
     });
     render();
+    /* k94: Bakım düzeni — üstte Kapsam kartı (arılık seçici + özet + not), bakim.html ile aynı */
+    var PS = window.SuperAriKsSayfa;
+    function lvKey(h) { var st = statusOf(h); return st && st.strengthInfo ? st.strengthInfo.key : ''; }
+    function lastOp(types) {
+      var ids = {}; hivesAll().forEach(function (h) { ids[String(h.id)] = 1; });
+      var d = O.events().filter(function (e) { return types.indexOf(e.type) >= 0 && (ids[String(e.fromHiveId)] || ids[String(e.toHiveId)]); }).map(function (e) { return e.date; }).sort().pop() || '';
+      return d;
+    }
+    if (PS && window.SuperAriKapsam) {
+      var KSx = window.SuperAriKapsam;
+      PS.init({
+        title: TITLES[islem], noAll: true, initial: apiaryId, reload: false,
+        icon: '<svg class="ks-ico" viewBox="0 0 24 24" fill="none" stroke="#7a4f1d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ((K.TOPIC_ICONS || {})[islem] || '') + '</svg>',
+        stats: function () {
+          var hs = active(), ql = hs.filter(function (h) { return statusOf(h).queenless; }).length;
+          var ago = function (d) { return d ? KSx.fmtAgo(d, today()) : '—'; };
+          if (islem === 'bolme') {
+            var m = hs.filter(function (h) { return lvKey(h) === 'birlestir'; }).length, sp = hs.filter(function (h) { return lvKey(h) === 'bolunmeli'; }).length;
+            return [
+              { k: 'kovan', v: hs.length, l: 'Kovan', href: '#view' },
+              { k: 'uyari', v: m, l: 'Birleştirilmeli', href: '#view', tone: m ? 'hot' : '' },
+              { k: 'muayene', v: sp, l: 'Bölünmeli', href: '#view' },
+              { k: 'sorun', v: ql, l: 'Anasız', href: '#view', tone: ql ? 'hot' : '' },
+              { k: 'saat', v: ago(lastOp(['bolme', 'birlestirme'])), l: 'Son işlem', href: '#view' }
+            ];
+          }
+          var cs = D.colony && D.colony.summary ? D.colony.summary(hs) : { requeen: 0 };
+          var ids = {}; hivesAll().forEach(function (h) { ids[String(h.id)] = true; });
+          var act = O.batches().filter(function (b) { return (b.sourceHiveId == null || ids[String(b.sourceHiveId)]) && b.status !== 'tamamlandi'; }).length;
+          return [
+            { k: 'kovan', v: hs.length, l: 'Kovan', href: '#view' },
+            { k: 'sorun', v: ql, l: 'Anasız', href: '#view', tone: ql ? 'hot' : '' },
+            { k: 'uyari', v: cs.requeen || 0, l: 'Yenilenecek ana', href: '#view', tone: cs.requeen ? 'hot' : '' },
+            { k: 'muayene', v: act, l: 'Etkin parti', href: '#view' },
+            { k: 'saat', v: ago(lastOp(['tasima'])), l: 'Son taşıma', href: '#view' }
+          ];
+        },
+        note: function () {
+          var hs = active();
+          if (!hs.length) return { t: 'Bu arılıkta etkin kovan yok', b: 'Arılıklar', href: 'ariliklar.html', k: 'bos' };
+          if (islem === 'bolme') {
+            var mL = hs.filter(function (h) { return lvKey(h) === 'birlestir'; }), sL = hs.filter(function (h) { return lvKey(h) === 'bolunmeli'; });
+            if (mL.length) return { t: '🔗 ' + mL.length + ' kovan birleştirilmeli · ' + mL.slice(0, 3).map(function (h) { return h.name; }).join(', '), b: 'Birleştir', href: url({ islem: 'bolme', alt: 'birlestirme' }), k: 'birlestir' };
+            if (sL.length) return { t: '✂️ ' + sL.length + ' kovan bölünebilir · ' + sL.slice(0, 3).map(function (h) { return h.name; }).join(', '), b: 'Böl', href: url({ islem: 'bolme', alt: 'bolme' }), k: 'bol' };
+            return { t: '✓ Birleştirme / bölme adayı yok', b: 'Kayıt', href: '#view', k: 'ok' };
+          }
+          var ql = hs.filter(function (h) { return statusOf(h).queenless; });
+          if (ql.length) return { t: '👑 ' + ql.length + ' kovan anasız · ' + ql.slice(0, 3).map(function (h) { return h.name; }).join(', '), b: 'Ana ver', href: url({ islem: 'tasima' }), k: 'anasiz' };
+          return { t: islem === 'uretim' ? '🧪 Larva transferi ve üretim partileri' : '✓ Anasız kovan yok', b: 'Kayıt', href: '#view', k: 'ok' };
+        },
+        onChange: function (scope) {
+          if (String(scope) === String(apiaryId)) return;
+          apiaryId = String(scope); apSel.value = apiaryId; K.setLastApiary(apiaryId);
+          history.replaceState(null, '', url({}));
+          render();
+        }
+      });
+    }
+    /* k94: ＋ Kayıt — bu ekranın kendi formları */
+    function toForm(sel, subKey) {
+      return function () {
+        if (subKey && sub !== subKey) { var sb = document.querySelector('[data-sub="' + subKey + '"]'); if (sb) sb.click(); }
+        var el = document.querySelector(sel); if (!el) return;
+        try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { el.scrollIntoView(); }
+        var fi = el.querySelector('select,input:not([type=hidden])'); if (fi) setTimeout(function () { try { fi.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 350);
+      };
+    }
+    window.SuperAriQuickTitle = 'Kayıt · ' + TITLES[islem];
+    window.SuperAriQuickActions = function () {
+      if (islem === 'bolme') return [
+        { ic: '✂️', t: 'Bölme kaydı', d: 'Kaynak kovandan yeni koloni', run: toForm('#fSplit', 'bolme') },
+        { ic: '🔗', t: 'Birleştirme kaydı', d: 'Zayıfı güçlüye kat', run: toForm('#fMerge', 'birlestirme') }
+      ];
+      if (islem === 'tasima') return [{ ic: '👑', t: 'Ana arı değişimi', d: 'Anayı kovana ver / taşı', run: toForm('#fMove') }];
+      return [{ ic: '🧪', t: 'Yeni larva transferi', d: 'Aşılama tarihi · yüksük sayısı', run: toForm('#fBatch') }];
+    };
   })();
   </script>
-  <script src="nav.js?v=koloni-93"></script>
-<script src="pwa.js?v=koloni-93"></script>
+  <script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>

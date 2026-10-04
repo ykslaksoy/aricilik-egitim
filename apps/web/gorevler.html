@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Görevler · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
   <style>
     .gv-form{display:grid;grid-template-columns:1fr 1fr;gap:.5rem .6rem;}
     .gv-form label{display:grid;gap:.2rem;font-size:.9rem;font-weight:700;color:#5c4813;min-width:0;}
@@ -20,24 +21,17 @@
     .gv-tag{display:inline-block;font-size:.7rem;font-weight:800;padding:.1rem .4rem;border-radius:999px;background:#e9ecef;color:#495057;margin-left:.3rem;vertical-align:middle;}
     .gv-tag.late{background:#ffe3e3;color:#c92a2a;}
     .gv-tag.auto{background:#e7f5ff;color:#1971c2;}
+    /* k94: «Tamamlandı» yumuşak — «Görev ekle» ile aynı krem degrade, ince altın çerçeve, koyu kahve yazı; küçük yeşil tik */
+    .ks-btn.gk-done{background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border:1px solid #e0c56a;color:#4a2f1a;border-radius:14px;min-height:56px;font-size:16px;font-weight:800;}
+    .ks-btn.gk-done .ck{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#2f9e44;color:#fff;font-size:13px;font-weight:900;flex:0 0 auto;}
     .gv-more{font:inherit;font-size:.82rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;}
   </style>
 </head>
-<body data-tabbar="fixed">
+<body>
   <main class="wrap">
-    <div class="nav">
-      <a class="chip" href="ana.html">← Ana</a>
-      <a class="chip" href="bugun.html">Bugün</a>
-      <a class="chip" href="bakim.html">Bakım</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p>Görevler</p></div>
-    </div>
 
     <!-- Bakım düzeni: Kapsam kartı (arılık seçici + özet + not) → büyük düğme → görev türü kartları -->
     <section id="ksScope" hidden></section>
-    <div class="ks-tools" id="ksTools"><button type="button" class="ks-btn gold" id="btnAdd" aria-expanded="false">＋ Görev ekle</button></div>
 
     <section class="ks-card" id="addCard" hidden style="margin-top:12px;">
       <form class="gv-form" id="addForm" autocomplete="off">
@@ -46,7 +40,8 @@
         <label>Tarih<input type="date" name="due"></label>
         <label>Öncelik<select name="priority"><option value="1">1 · Acil</option><option value="2" selected>2 · Normal</option><option value="3">3 · Düşük</option></select></label>
         <label class="full">Not<input name="note" maxlength="300"></label>
-        <button type="submit" class="ks-btn pri full">Görevi ekle</button>
+        <button type="submit" class="ks-btn gold full">＋ Görevi ekle</button>
+        <button type="button" class="ks-btn full" id="btnAddCancel">Vazgeç</button>
       </form>
     </section>
 
@@ -61,9 +56,10 @@
     <div class="list" id="done-list" style="margin-top:10px;"></div>
     <div class="note" id="modeNote" style="margin-top:1rem;"></div>
   </main>
-  <script src="demo-data.js?v=koloni-93"></script>
-  <script src="koloni.js?v=koloni-93"></script>
-  <script src="kapsam.js?v=koloni-93"></script>
+  <script src="bk-kabuk.js?v=koloni-94"></script>
+  <script src="demo-data.js?v=koloni-94"></script>
+  <script src="koloni.js?v=koloni-94"></script>
+  <script src="kapsam.js?v=koloni-94"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -85,10 +81,18 @@
         if (!hs.length) return '';
         return '<optgroup label="' + esc(a.name) + '">' + hs.map(function (h) { return '<option value="' + esc(h.id) + '">' + esc(h.name) + '</option>'; }).join('') + '</optgroup>';
       }).join('');
-      document.getElementById('btnAdd').addEventListener('click', function () {
-        var c = document.getElementById('addCard'), on = c.hidden; c.hidden = !on; this.setAttribute('aria-expanded', on);
-        if (on) form.elements.title.focus();
-      });
+      /* k94: üstteki «＋ Görev ekle» düğmesi kaldırıldı — form alt menüdeki ＋ Kayıt › Görev ekle ile açılır */
+      function openAdd() {
+        var c = document.getElementById('addCard'); c.hidden = false;
+        try { c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { c.scrollIntoView(); }
+        setTimeout(function () { try { form.elements.title.focus({ preventScroll: true }); } catch (e) { form.elements.title.focus(); } }, 350);
+      }
+      document.getElementById('btnAddCancel').addEventListener('click', function () { document.getElementById('addCard').hidden = true; });
+      window.SuperAriQuickTitle = 'Kayıt · Görevler';
+      window.SuperAriQuickActions = [
+        { ic: '📝', t: 'Görev ekle', d: 'Başlık · kovan · tarih · öncelik', run: openAdd }
+      ];
+      if (location.hash === '#ekle') setTimeout(openAdd, 0);
       function hiveLabel(t) {
         var h = t.hiveId != null ? D.hiveById(t.hiveId) : null;
         var ap = D.apiaryById ? D.apiaryById(h ? h.apiaryId : t.apiaryId) : null;
@@ -164,8 +168,8 @@
         }).join('') + (g.tasks.length > LIM && !all ? '<button type="button" class="gk-hv" data-all="' + id + '">+' + (g.tasks.length - LIM) + ' kovan daha</button>' : '') + '</div>' : '';
         var acts = g.tasks.length > 1
           ? '<div class="gk-acts"><button type="button" class="ks-btn" data-done-sel="' + id + '"' + (nSel ? '' : ' disabled style="opacity:.5"') + '>✓ Seçilenler (' + nSel + ')</button>' +
-            '<button type="button" class="ks-btn pri" data-done-all="' + id + '">✓ Hepsi (' + g.tasks.length + ')</button></div>'
-          : '<div class="gk-acts" style="grid-template-columns:1fr;"><button type="button" class="ks-btn pri" data-done="' + esc(g.tasks[0].id) + '">✓ Tamamlandı</button></div>';
+            '<button type="button" class="ks-btn gk-done" data-done-all="' + id + '"><span class="ck" aria-hidden="true">✓</span>Hepsi (' + g.tasks.length + ')</button></div>'
+          : '<div class="gk-acts" style="grid-template-columns:1fr;"><button type="button" class="ks-btn gk-done" data-done="' + esc(g.tasks[0].id) + '"><span class="ck" aria-hidden="true">✓</span>Tamamlandı</button></div>';
         return '<article class="gk-card' + (g.late || g.pr === 1 ? ' p1' : (g.pr === 2 && g.due && g.due <= today ? ' p2' : '')) + '" id="' + id + '" data-key="' + esc(g.key) + '">' +
           '<div class="gk-head"><span class="gk-ico" aria-hidden="true">' + iconOf(g.label) + '</span><div class="gk-t"><b>' + esc(g.label) +
           (withHive.length ? ' — ' + esc(withHive.slice(0, 4).map(function (t) { var h = D.hiveById(t.hiveId); return h ? 'K' + (KS ? KS.hiveNum(h) : h.name) : ''; }).join(', ') + (withHive.length > 4 ? ' …' : '')) : '') + '</b>' +
@@ -260,7 +264,7 @@
       window.addEventListener('superari-records-changed', function () { if (ctl) ctl.render(); else render(); });
     })();
   </script>
-  <script src="nav.js?v=koloni-93"></script>
-<script src="pwa.js?v=koloni-93"></script>
+  <script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>

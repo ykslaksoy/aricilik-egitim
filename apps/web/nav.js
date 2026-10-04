@@ -29,11 +29,24 @@
     'nav.tabbar .tab-bugun{position:relative;overflow:visible!important;}' +
     'nav.tabbar .nav-badge{position:absolute;top:0;left:calc(50% + 4px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e03131;color:#fff;' +
       'font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #fffdf8;box-sizing:border-box;}' +
-    'nav.tabbar .nav-badge[hidden]{display:none;}';
+    'nav.tabbar .nav-badge[hidden]{display:none;}' +
+    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}';
 
   function page() {
     var p = (location.pathname.split('/').pop() || 'ana.html').toLowerCase();
     return p || 'ana.html';
+  }
+  /* k94: Bakım'a bağlı sayfalarda Bakım sekmesi, Bugün sayfasında Bugün sekmesi etkin; diğer saha sayfalarında hiçbiri.
+   * Sayfa <body data-tab="bakim|bugun|ana|ayarlar|"> ile açıkça belirtebilir. */
+  var BAKIM_PAGES = { 'bakim.html': 1, 'bakim-akis.html': 1, 'stok.html': 1, 'gorevler.html': 1, 'bakim-plan.html': 1, 'goc.html': 1, 'ekipman.html': 1 };
+  function activeTab(p) {
+    var b = document.body;
+    if (b && b.hasAttribute('data-tab')) return b.getAttribute('data-tab') || '';
+    if (p === 'ana.html') return 'ana';
+    if (BAKIM_PAGES[p]) return 'bakim';
+    if (p === 'bugun.html') return 'bugun';
+    if (p === 'ayarlar.html') return 'ayarlar';
+    return '';
   }
   function navHtml(active) {
     function a(key, href, label) {
@@ -63,15 +76,154 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-93'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-93'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-94'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-94'); });
     chain.then(go, go);
   }
-  /* Sayfa kendi ＋ davranışını kaydedebilir (yalnız stok.html: window.SuperAriQuickHandler / SuperAriNav.setQuickHandler).
-   * İşleyici yoksa veya false dönerse varsayılan Hızlı kayıt açılır — diğer sayfalar değişmez. */
+  /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
+   * tanımlarsa ＋ önce O SAYFANIN kayıt işlemlerini (mevcut form / sayfaları) gösteren alt sayfayı açar; en altta küçük
+   * «Tüm kayıtlar» = eski Hızlı kayıt. Tanım yoksa (Ana, Bakım …) davranış değişmez: doğrudan Hızlı kayıt.
+   * stok.html'in kendi işleyicisi (SuperAriQuickHandler / setQuickHandler) önceliklidir. */
+  var QA_CSS = '.sa-qa-back{position:fixed;inset:0;z-index:9500;background:rgba(30,20,10,.45);display:flex;align-items:flex-end;justify-content:center;}' +
+    '.sa-qa{width:100%;max-width:430px;max-height:86vh;overflow:auto;background:#fffdf8;border-radius:20px 20px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.18);' +
+      'font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#2c241c;box-sizing:border-box;}' +
+    '.sa-qa *{box-sizing:border-box;}' +
+    '.sa-qa-h{display:flex;align-items:center;gap:8px;margin:0 0 10px;}.sa-qa-h b{flex:1;font-size:16px;font-weight:800;}' +
+    '.sa-qa-x{width:44px;height:44px;border:0;border-radius:12px;background:#f4f5f7;font-size:18px;color:#5c3a1f;cursor:pointer;}' +
+    '.sa-qa-list{display:grid;gap:8px;}' +
+    '.sa-qa-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:8px 12px;border-radius:14px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);' +
+      'color:#4a2f1a;font:inherit;text-align:left;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent;}' +
+    '.sa-qa-btn:active{transform:scale(.99);}' +
+    '.sa-qa-btn .i{font-size:24px;flex:0 0 32px;text-align:center;line-height:1;}.sa-qa-btn .t{display:flex;flex-direction:column;min-width:0;}' +
+    '.sa-qa-btn .t b{font-size:15px;font-weight:800;}.sa-qa-btn .t small{font-size:12px;font-weight:600;color:#6b635a;margin-top:2px;}' +
+    '.sa-qa-all{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;margin-top:10px;border:1px solid #e4e6ea;border-radius:12px;background:#f4f5f7;color:#5c3a1f;font:inherit;font-size:13px;font-weight:700;cursor:pointer;}' +
+    '.sa-qa-sub{margin:-4px 0 10px;font-size:12.5px;color:#6b635a;font-weight:600;}' +
+    '.sa-qa-hives{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}' +
+    '.sa-qa-hv{min-height:52px;border-radius:12px;border:1px solid #e4e6ea;background:#f4f5f7;font:inherit;font-size:14px;font-weight:800;color:#5c3a1f;cursor:pointer;padding:4px;}' +
+    '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
+  function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-94').catch(function () {}); }
+  function ensureKoloni() {
+    return ensureData().then(function () {
+      if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
+      return loadScript('koloni.js?v=koloni-94').catch(function () {});
+    });
+  }
+  function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
+  function sheet(title, sub, html, onClick) {
+    closeSheet();
+    if (!document.getElementById('saQaCss')) { var st = document.createElement('style'); st.id = 'saQaCss'; st.textContent = QA_CSS; document.head.appendChild(st); }
+    var back = document.createElement('div');
+    back.className = 'sa-qa-back'; back.id = 'saQuickSheet';
+    back.innerHTML = '<div class="sa-qa" role="dialog" aria-modal="true" aria-label="' + qesc(title) + '"><div class="sa-qa-h"><b>' + qesc(title) + '</b>' +
+      '<button type="button" class="sa-qa-x" data-qa-x aria-label="Kapat">✕</button></div>' + (sub ? '<p class="sa-qa-sub">' + qesc(sub) + '</p>' : '') + html + '</div>';
+    back.addEventListener('click', function (e) {
+      if (e.target === back || (e.target.closest && e.target.closest('[data-qa-x]'))) { closeSheet(); return; }
+      if (onClick) onClick(e);
+    });
+    document.body.appendChild(back);
+    var f = back.querySelector('.sa-qa-btn, .sa-qa-hv'); if (f && f.focus) { try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
+    return back;
+  }
+  function pageActions() {
+    var a = global.SuperAriQuickActions;
+    if (typeof a === 'function') { try { a = a(); } catch (e) { a = null; } }
+    return Array.isArray(a) ? a.filter(function (x) { return x && x.t && typeof x.run === 'function'; }) : [];
+  }
+  function openActions(list) {
+    var title = global.SuperAriQuickTitle || ('Kayıt · ' + String(document.title || '').split('·')[0].trim());
+    var html = '<div class="sa-qa-list">' + list.map(function (x, i) {
+      return '<button type="button" class="sa-qa-btn" data-qa="' + i + '"><span class="i" aria-hidden="true">' + qesc(x.ic || '＋') + '</span><span class="t"><b>' + qesc(x.t) + '</b>' + (x.d ? '<small>' + qesc(x.d) + '</small>' : '') + '</span></button>';
+    }).join('') + '</div><button type="button" class="sa-qa-all" data-qa-all>☰ Tüm kayıtlar</button>';
+    sheet(title, '', html, function (e) {
+      var b = e.target.closest && e.target.closest('[data-qa]');
+      if (b) { var x = list[Number(b.getAttribute('data-qa'))]; closeSheet(); try { x.run(); } catch (er) { openQuick(); } return; }
+      if (e.target.closest && e.target.closest('[data-qa-all]')) { closeSheet(); openQuick(); }
+    });
+  }
+  function scopeApiary() {
+    var D = global.SuperAriDemo, ap = '';
+    try { ap = new URLSearchParams(location.search).get('apiary') || ''; } catch (e) { ap = ''; }
+    if (!ap && page() === 'arilik.html') { try { ap = new URLSearchParams(location.search).get('id') || ''; } catch (e) { ap = ''; } }
+    if (!ap) { try { ap = localStorage.getItem('superari.bakim.scope') || ''; } catch (e) { ap = ''; } }
+    if (ap === 'all') ap = '';
+    if (ap && D && D.apiaryById && !D.apiaryById(ap)) ap = '';
+    return ap;
+  }
+  /** Kovan seçici (kapsamdaki etkin kovanlar) → cb(hiveId). Tek kovan varsa doğrudan geçer. */
+  function pickHive(title, cb) {
+    ensureData().then(function () {
+      var D = global.SuperAriDemo; if (!D) return;
+      var ap = scopeApiary(), a = ap && D.apiaryById ? D.apiaryById(ap) : null;
+      var hs = (D.loadHives() || []).filter(function (h) { return h && h.colonyState !== 'sonuk' && h.colonyState !== 'birlestirildi' && (!ap || String(h.apiaryId) === String(ap)); });
+      var num = function (h) { var m = /(\d+)\s*$/.exec(String(h.name || '')); return m ? Number(m[1]) : 1e9; };
+      hs.sort(function (x, y) { return (num(x) - num(y)) || String(x.name).localeCompare(String(y.name), 'tr'); });
+      if (hs.length === 1) { cb(String(hs[0].id)); return; }
+      var html = hs.length ? '<div class="sa-qa-hives">' + hs.map(function (h) { return '<button type="button" class="sa-qa-hv" data-hv="' + qesc(h.id) + '">' + qesc(h.name) + '</button>'; }).join('') + '</div>'
+        : '<p class="sa-qa-empty">Bu kapsamda kovan yok.</p>';
+      sheet(title, 'Kovan seçin · ' + (a ? a.name : 'tüm arılıklar') + ' (' + hs.length + ')', html, function (e) {
+        var b = e.target.closest && e.target.closest('[data-hv]');
+        if (b) { closeSheet(); cb(b.getAttribute('data-hv')); }
+      });
+    });
+  }
+  /** Mevcut konu kayıt formu (koloni.js openRecordSheet) — önce kovan seçilir. then(back) form açıldıktan sonra. */
+  function rec(topic, label, then) {
+    return function () {
+      ensureKoloni().then(function () {
+        var K = global.SuperAriKoloni; if (!K || !K.openRecordSheet) { openQuick(); return; }
+        pickHive(label || (K.TOPIC_LABEL && K.TOPIC_LABEL[topic]) || 'Kayıt', function (hid) {
+          K.openRecordSheet(topic, hid, emitSaved);
+          if (then) { try { then(document.getElementById('koloniRecord')); } catch (e) { /* ignore */ } }
+        });
+      });
+    };
+  }
+  /** Kovan / ana arı düzenleyicisi (koloni.js openEditor: ırk, hat, ana arı yılı / kaynağı) — önce kovan seçilir. */
+  function hiveEditor(label, onSaved) {
+    return function () {
+      ensureKoloni().then(function () {
+        var K = global.SuperAriKoloni; if (!K || !K.openEditor) { openQuick(); return; }
+        pickHive(label || 'Ana arı bilgisi', function (hid) { K.openEditor(hid, function () { emitSaved(); if (onSaved) onSaved(); }); });
+      });
+    };
+  }
+  /** Hızlı kayıt formu belirli türle (çoklu kovan seçilebilir). */
+  function quickType(type) {
+    return function () {
+      ensureKoloni().then(function () {
+        var K = global.SuperAriKoloni; if (!K || !K.openQuickRecord) { openQuick(); return; }
+        K.openQuickRecord({ type: type, apiaryId: scopeApiary() || undefined, onSaved: emitSaved });
+      });
+    };
+  }
+  /** Sayfadaki bir forma / bölüme kaydır ve ilk alana odaklan. */
+  function focusEl(sel) {
+    return function () {
+      var el = typeof sel === 'string' ? document.querySelector(sel) : sel;
+      if (!el) return;
+      if (el.hidden) el.hidden = false;
+      try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { el.scrollIntoView(); }
+      var f = el.matches && el.matches('input,select,textarea') ? el : el.querySelector('input:not([type=hidden]):not([type=checkbox]),select,textarea');
+      if (f) setTimeout(function () { try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 350);
+    };
+  }
+  /** Bilgi alt sayfası (metin + isteğe bağlı bağlantı düğmeleri [{ ic, t, d, href }]). */
+  function info(title, text, links) {
+    return function () {
+      sheet(title, '', '<p style="margin:0 0 10px;font-size:14px;line-height:1.4;font-weight:600;color:#4a2f1a;">' + qesc(text) + '</p>' +
+        ((links || []).length ? '<div class="sa-qa-list">' + links.map(function (x) {
+          return '<a class="sa-qa-btn" href="' + qesc(x.href) + '"><span class="i" aria-hidden="true">' + qesc(x.ic || '›') + '</span><span class="t"><b>' + qesc(x.t) + '</b>' + (x.d ? '<small>' + qesc(x.d) + '</small>' : '') + '</span></a>';
+        }).join('') + '</div>' : ''));
+    };
+  }
+  function go(href) { return function () { location.href = href; }; }
   function onPlus() {
     var h = global.SuperAriQuickHandler;
     if (typeof h === 'function') { try { if (h() !== false) return; } catch (err) { /* varsayılana düş */ } }
+    var list = pageActions();
+    if (list.length) { openActions(list); return; }
     openQuick();
   }
   function init() {
@@ -80,7 +232,7 @@
       document.head.appendChild(st);
     }
     var p = page();
-    var active = p === 'ana.html' ? 'ana' : (p === 'bakim.html' ? 'bakim' : (p === 'bugun.html' ? 'bugun' : (p === 'ayarlar.html' ? 'ayarlar' : '')));
+    var active = activeTab(p);
     var navs = document.querySelectorAll('nav.tabbar');
     if (!navs.length && document.body && document.body.getAttribute('data-tabbar') === 'fixed') {
       var n = document.createElement('nav');
@@ -97,7 +249,7 @@
       });
     });
     if (global.SuperAriDemo) updateBadge();
-    else loadScript('demo-data.js?v=koloni-93').then(updateBadge, updateBadge);
+    else loadScript('demo-data.js?v=koloni-94').then(updateBadge, updateBadge);
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
   function updateBadge() {
@@ -120,6 +272,6 @@
     });
   }
   global.addEventListener('superari-records-changed', function () { setTimeout(updateBadge, 0); });
-  global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
+  global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, activeTab: activeTab, openActions: openActions, pickHive: pickHive, rec: rec, hiveEditor: hiveEditor, quickType: quickType, focusEl: focusEl, go: go, info: info, scopeApiary: scopeApiary, ensureKoloni: ensureKoloni, closeSheet: closeSheet, emitSaved: emitSaved, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);

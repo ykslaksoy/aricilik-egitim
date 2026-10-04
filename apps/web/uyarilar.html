@@ -53,23 +53,12 @@
       border-color: #e0c56a; color: var(--brown, #5c4813);
     }
   </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
   <style>/* k89: uzun başlık («Oğul Eğilimi ve Takibi») → arılık seçici alt satıra iner, adı kısalmaz */.ks-card .ks-top{flex-wrap:wrap;row-gap:2px;}.ks-card .ks-sel{max-width:100%;}</style>
 </head>
 <body>
   <main class="wrap">
-    <div class="nav">
-      <a class="chip" href="ana.html">← Ana</a>
-      <a class="chip" href="arici.html">Arıcı</a>
-      <a class="chip" href="ayarlar.html">Ayarlar</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div>
-        <h1>SüperArı</h1>
-        <p id="pageSub">Uyarılar</p>
-      </div>
-    </div>
 
     <section class="card stack">
       <h2 style="margin:0;" id="pageTitle">Uyarılar</h2>
@@ -81,10 +70,11 @@
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-93"></script>
-  <script src="ogul.js?v=koloni-93"></script>
-  <script src="kapsam.js?v=koloni-93"></script>
-  <script src="ks-sayfa.js?v=koloni-93"></script>
+  <script src="bk-kabuk.js?v=koloni-94"></script>
+  <script src="demo-data.js?v=koloni-94"></script>
+  <script src="ogul.js?v=koloni-94"></script>
+  <script src="kapsam.js?v=koloni-94"></script>
+  <script src="ks-sayfa.js?v=koloni-94"></script>
   <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
     (function () {
@@ -103,7 +93,7 @@
       var apiaryFilter = params.get('apiary') || '';
       var listEl = document.getElementById('alert-list');
       var titleEl = document.getElementById('pageTitle');
-      var subEl = document.getElementById('pageSub');
+      var subEl = (document.getElementById('pageSub') || document.createElement('p'));
       var summaryEl = document.getElementById('summary');
       var noteEl = document.getElementById('pageNote');
       var modeSwitchEl = document.getElementById('modeSwitch');
@@ -351,7 +341,7 @@
   function inS(a, scope) { var ap = apOf(a); return scope === 'all' || !ap || ap === String(scope); }
   /* Bakım düzeni: Kapsam kartı; eski «Tüm uyarılar / Arılıklar» seçimi kapsam seçicisine taşındı */
   P.init({
-    title: view === 'ogul' ? 'Oğul Eğilimi ve Takibi' : 'Uyarılar', hide: ['#modeSwitch', '#pageTitle'],
+    title: view === 'ogul' ? 'Oğul Eğilimi ve Takibi' : 'Uyarılar', hide: ['#modeSwitch', '#pageTitle', '#summary'],
     icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 29 27H3z" fill="#ffe066" stroke="#e8590c" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 12v7" stroke="#2c241c" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="23" r="1.6" fill="#2c241c"/></svg>',
     stats: function (hs, scope, sm) {
       var al = (D.alerts || []).filter(function (a) { return inS(a, scope); });
@@ -374,6 +364,21 @@
   });
 })();
 </script>
-<script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+(function () {
+  var view = new URLSearchParams(location.search).get('view') || '';
+  window.SuperAriQuickTitle = 'Kayıt · ' + (view === 'ogul' ? 'Oğul' : 'Uyarılar');
+  window.SuperAriQuickActions = function () {
+    var N = window.SuperAriNav, ap = N.scopeApiary();
+    var ogul = { ic: '🐝', t: 'Oğul durumu kaydı', d: 'Oğul memesi · eğilim', run: function () { N.pickHive('Oğul durumu kaydı', function (hid) { if (window.SuperAriOgul) window.SuperAriOgul.open(hid, { onSaved: N.emitSaved }); }); } };
+    var kapan = { ic: '🪤', t: 'Oğul kapanı / yakalama', d: 'Kapan kur · yakalanan oğul', run: N.go('koloni-ek.html?ek=kapan' + (ap ? '&mode=apiary&apiary=' + encodeURIComponent(ap) : '&mode=all')) };
+    var hast = { ic: '🦠', t: 'Hastalık / tedavi kaydı', d: 'Varroa sayımı · ilaç', run: N.rec('hastalik', 'Hastalık / tedavi kaydı') };
+    return view === 'ogul' ? [ogul, kapan] : [hast, ogul];
+  };
+})();
+</script>
+<script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>

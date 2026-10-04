@@ -635,7 +635,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-93"></script>
+<script src="demo-data.js?v=koloni-94"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
 (function () {
@@ -1502,8 +1502,15 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-93"></script>
-<script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+window.SuperAriQuickTitle = 'Kayıt · Giderler';
+window.SuperAriQuickActions = function () {
+  return [{ ic: '🧾', t: 'Gider ekle', d: 'Tutar · kategori · arılık', run: function () { var b = document.getElementById('fabAdd'); if (b) b.click(); } }];
+};
+</script>
+<script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 <script>
   (function () {
     var el = document.getElementById('gModeSub'); if (!el) return;

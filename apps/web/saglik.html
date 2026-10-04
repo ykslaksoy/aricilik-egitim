@@ -60,48 +60,36 @@
     color: #c92a2a;
   }
 </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
 </head>
 <body>
 <div class="phone" id="phone">
   <div class="phone-notch"></div>
   <div class="status-bar">
-    <span id="clock">9:41</span>
-    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+    <div data-bk-clock aria-live="polite">9:41</div>
+    <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
   </div>
   <div class="screen screen-fill">
-    <div class="brand-strip">Hardal Arıcılık</div>
-    <div class="page-head">
-      <div>
-        <h1>Sağlık</h1>
-        <p id="pageSub">Kovan durumu</p>
-      </div>
-      <div class="nav-chips">
-        <a class="back-chip" href="ana.html">← Ana</a>
-        <a class="back-chip" href="rapor-saglik.html">Rapor</a>
-      </div>
-    </div>
-
     <section class="card-block card-fill">
-      <h2>Durum</h2>
-      <p class="meta" id="avgLine" style="margin-bottom:10px"></p>
-      <div id="winterNote"></div>
       <div class="band-grid" id="bandGrid"></div>
       <div id="liveList" style="margin-top:12px;"></div>
     </section>
+    <nav class="bk-links" aria-label="Bağlantılar"><a href="rapor-saglik.html">📄 Sağlık raporu</a></nav>
   </div>
   <nav class="tabbar" aria-label="Alt menü">
     <a class="tab" href="ana.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>Ana</a><a class="tab" href="bakim.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>Bakım</a><button type="button" class="tab tab-plus" data-quick-record aria-label="Hızlı kayıt"><span class="plus-c" aria-hidden="true">＋</span><span class="plus-l">Kayıt</span></button><a class="tab" href="bugun.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="13.5" rx="2"/><path d="M4.5 10h15M9 4v3.5M15 4v3.5"/><circle cx="12" cy="14.6" r="1.8"/></svg>Bugün</a><a class="tab" href="ayarlar.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 4.5v2.2M12 17.3V19.5M4.5 12h2.2M17.3 12H19.5M7 7l1.6 1.6M15.4 15.4 17 17M17 7l-1.6 1.6M8.6 15.4 7 17"/></svg>Ayarlar</a>
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-93"></script>
-<script src="sensor-health.js?v=koloni-93"></script>
-<script src="saglik-canli.js?v=koloni-93"></script>
-<script src="ilac-katalog.js?v=koloni-93"></script>
-<script src="bakim-plan.js?v=koloni-93"></script>
-<script src="kapsam.js?v=koloni-93"></script>
-  <script src="ks-sayfa.js?v=koloni-93"></script>
+<script src="bk-kabuk.js?v=koloni-94"></script>
+<script src="demo-data.js?v=koloni-94"></script>
+<script src="sensor-health.js?v=koloni-94"></script>
+<script src="saglik-canli.js?v=koloni-94"></script>
+<script src="ilac-katalog.js?v=koloni-94"></script>
+<script src="bakim-plan.js?v=koloni-94"></script>
+<script src="kapsam.js?v=koloni-94"></script>
+  <script src="ks-sayfa.js?v=koloni-94"></script>
   <script>SuperAriKsSayfa.ensureScope({});</script>
 <script>
 (function () {
@@ -132,8 +120,8 @@
   }
 
   var un = (all.unscored || []).length;
-  document.getElementById('avgLine').textContent = (all.avg == null ? 'Skor için veri az' : 'Ort. skor ' + all.avg) + ' · ' + all.hives.length + ' kovan' + (un ? ' · ' + un + ' kovanda veri az' : '') + (all.live ? ' · Canlı' : '');
-  document.getElementById('pageSub').textContent = all.avg == null ? 'Veri az' : 'Ort. ' + all.avg;
+  (document.getElementById('avgLine') || document.createElement('p')).textContent = (all.avg == null ? 'Skor için veri az' : 'Ort. skor ' + all.avg) + ' · ' + all.hives.length + ' kovan' + (un ? ' · ' + un + ' kovanda veri az' : '') + (all.live ? ' · Canlı' : '');
+  (document.getElementById('pageSub') || document.createElement('p')).textContent = all.avg == null ? 'Veri az' : 'Ort. ' + all.avg;
   /* Canlı: skoru en düşük kovanlar, eğilim (↑/↓) ve sade gerekçe */
   if (all.live) {
     var rows = all.hives.slice(0, 8).map(function (x) {
@@ -147,7 +135,7 @@
       (un ? '<p class="meta" style="margin-top:8px;">Veri az: ' + unl + (un > 3 ? ' +' + (un - 3) : '') + ' — skor için bir muayene yapın.</p>' : '');
   }
   /* Kışlık stok bilgi notu (Eylül–Şubat, stok az/kritikse) — sağlık puanını etkilemez */
-  try { if (window.SuperAriPlan && window.SuperAriPlan.winterNoteHtml) document.getElementById('winterNote').innerHTML = window.SuperAriPlan.winterNoteHtml(hs0, { apiary: ap0 }); } catch (eW) { /* ignore */ }
+  try { if (window.SuperAriPlan && window.SuperAriPlan.winterNoteHtml) (document.getElementById('winterNote') || document.createElement('div')).innerHTML = window.SuperAriPlan.winterNoteHtml(hs0, { apiary: ap0 }); } catch (eW) { /* ignore */ }
   document.getElementById('bandGrid').innerHTML = bands.map(function (b) {
     return '<a class="band-card tone-' + b.tone + '" href="saglik-detay.html?band=' + encodeURIComponent(b.key) + (ap0 ? '&apiary=' + encodeURIComponent(ap0) : '') + '">' +
       '<div class="count">' + b.count + '</div>' +
@@ -198,7 +186,19 @@
   });
 })();
 </script>
-<script src="nav.js?v=koloni-93"></script>
-<script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+window.SuperAriQuickTitle = 'Kayıt · Sağlık';
+window.SuperAriQuickActions = function () {
+  var N = window.SuperAriNav;
+  return [
+    { ic: '🦠', t: 'Hastalık / tedavi kaydı', d: 'Hastalık · ilaç · doz', run: N.rec('hastalik', 'Hastalık / tedavi kaydı') },
+    { ic: '🔬', t: 'Varroa sayımı', d: 'Akar sayısı · yöntem', run: N.rec('hastalik', 'Varroa sayımı', function (b) { var c = b && b.querySelector('[name=count]'); if (c) setTimeout(function () { try { c.focus(); } catch (e) { /* ignore */ } }, 300); }) },
+    { ic: '💊', t: 'İlaçlama (çok kovan)', d: 'Seçili kovanlar / tüm arılık', run: N.quickType('ilac') }
+  ];
+};
+</script>
+<script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>
