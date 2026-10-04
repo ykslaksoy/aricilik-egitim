@@ -14,6 +14,7 @@
   .flt button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:999px;padding:4px 10px;color:#5c4813;}
   .flt button.on{background:#f4e3b0;border-color:#d4a017;}
 </style>
+  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -70,9 +71,12 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-87"></script>
-<script src="ekipman-store.js?v=koloni-87"></script>
-<script>
+<script src="demo-data.js?v=koloni-88"></script>
+<script src="ekipman-store.js?v=koloni-88"></script>
+<script src="kapsam.js?v=koloni-88"></script>
+  <script src="ks-sayfa.js?v=koloni-88"></script>
+  <script>SuperAriKsSayfa.ensureScope({});</script>
+  <script>
 (function () {
   var D = window.SuperAriDemo, E = window.SuperAriEkipman;
   function $(id) { return document.getElementById(id); }
@@ -137,7 +141,28 @@
   window.addEventListener('superari-cloud-pulled', function () { fillAp(); renderHist(); });
 })();
 </script>
-<script src="nav.js?v=koloni-87"></script>
-<script src="pwa.js?v=koloni-87"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, E = window.SuperAriEkipman; if (!D || !P || !E) return;
+  /* arılık süzgeci (Tümü / arılıklar) Kapsam kartına taşındı */
+  var fl = document.getElementById('eFlt'); if (fl) fl.style.display = 'none';
+  P.init({
+    title: 'Ekipman-Temizlik', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M20.5 4.5a6 6 0 0 0-6.8 8L5 21.2a2.6 2.6 0 0 0 3.7 3.7l8.7-8.7a6 6 0 0 0 8-6.8l-3.6 3.6-3.4-.6-.6-3.4z" fill="#cfd8e3" stroke="#6b7a8c" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+    stats: function (hs, scope, sm) {
+      var list = E.list({ apiaryId: scope !== 'all' ? scope : '' }), today = D.records.todayLocal(), d30 = D.records.addDays(today, -30);
+      var m30 = list.filter(function (x) { return String(x.date || '') >= d30; }).length, last = list.map(function (x) { return x.date; }).sort().pop() || '';
+      return [
+        { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'kovanlar.html' },
+        { k: 'muayene', v: list.length, l: 'Kayıt', href: '#histList' },
+        { k: 'saat', v: m30, l: 'Son 30 gün', href: '#histList' },
+        { k: 'sorun', v: window.SuperAriKapsam.fmtAgo(last, today), l: 'Son temizlik', href: '#histList' }
+      ];
+    },
+    note: function () { return { t: '🧽 Yapılan temizliği / bakımı işaretleyin', b: 'Forma git', href: '#ekForm', k: 'form' }; }
+  });
+})();
+</script>
+<script src="nav.js?v=koloni-88"></script>
+<script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>

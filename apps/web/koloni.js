@@ -339,12 +339,14 @@
       (apiaryId ? ' · <a href="' + href + '" onclick="event.stopPropagation();">Koloni</a>' : '') + '</div>';
   }
 
+  /* rozet: koloni gücü «Güçlü · 64» (güç kaydı yoksa eski örnek skor) */
+  function cardScore(h) { var r = R(), st = null; try { st = r ? r.status(h.id) : null; } catch (e) { st = null; } return st && st.strengthTagShort ? st.strengthTagShort : (h.colonyScore != null ? h.colonyScore : '—'); }
   function hiveCardHtml(h, apiaryName, extraHtml) {
     ensureCss();
     var sw = h.swarmTendency || '—';
     var swTone = sw === 'Yüksek' ? ' style="color:#c92a2a;font-weight:800"' : (sw === 'Orta' ? ' style="color:#e67700;font-weight:800"' : '');
     return '<button type="button" class="item-card kol-card" data-hive="' + esc(h.id) + '" aria-label="' + esc(h.name) + ' koloni bilgisini düzenle">' +
-      '<div class="row"><h3>' + esc(h.name) + '</h3><span class="badge priority-3" title="Koloni skoru">' + esc(h.colonyScore) + '</span></div>' +
+      '<div class="row"><h3>' + esc(h.name) + '</h3><span class="badge priority-3" title="Koloni gücü (0–100)">' + esc(cardScore(h)) + '</span></div>' +
       '<div class="kol-grid">' +
         '<div><span class="k">Irk</span>' + esc(h.breed || '—') + '</div>' +
         '<div><span class="k">Ana arı yaşı</span>' + queenHtml(h) + '</div>' +
@@ -415,6 +417,7 @@
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
           '<p class="full kol-sub" id="kolIrkHint" style="margin:-.2rem 0 0;"' + (!curBreed || h.breedEstimated ? '' : ' hidden') + '>' + (h.breedEstimated ? 'Irk tahminidir. ' : 'Irk bilinmiyor. ') +
             '<a href="#" id="kolIrkTahmin" style="color:#2b6cb0;text-decoration:underline;font-weight:700;">Irk tahmini (kesin değil)</a></p>' +
+          '<button type="button" class="full kol-lin-btn" id="kolLineage">🧬 Irk ve soy — melez, damızlık hat, anne ana</button>' +
           '<label class="full" id="kolOtherWrap"' + (isOther ? '' : ' hidden') + '>Irk adı<input name="breedOther" maxlength="60" value="' + esc(isOther ? curBreed : '') + '" placeholder="ör. Yerel melez"></label>' +
           '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
           '<label class="full">Kaynak / üretici<input name="queenSource" maxlength="120" value="' + esc(h.queenSource || '') + '" placeholder="ör. Kendi üretimim, ana arı yetiştiricisi"></label>' +
@@ -493,6 +496,8 @@
     document.addEventListener('keydown', onKey);
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
     back.querySelector('#kolCancel').addEventListener('click', close);
+    var linBtn = back.querySelector('#kolLineage');
+    if (linBtn) linBtn.addEventListener('click', function () { close(); openLineage(h.id, onSaved); });
     saveBtn.addEventListener('click', function () {
       var breed = form.breed.value;
       if (breed === 'Diğer') breed = String(form.breedOther.value || '').trim() || 'Diğer';
@@ -528,6 +533,110 @@
     });
   }
 
+
+  /* ---------- Irk ve soy (saf ırk, ikili / üçlü melez, damızlık hat, anne ana) ---------- */
+  function lineageCss() {
+    if (document.getElementById('kolLinCss')) return;
+    var st = document.createElement('style'); st.id = 'kolLinCss';
+    st.textContent = '.kol-lin-btn{min-height:64px;border-radius:14px;border:1px solid #e0c56a;background:#fff8e6;font:inherit;font-weight:800;font-size:16px;color:#4a2f1a;cursor:pointer;padding:8px 12px;text-align:left;}' +
+      '.lin-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px;}.lin-seg button{min-height:64px;border-radius:14px;border:1px solid #d9c9a3;background:#fff;font:inherit;font-weight:800;font-size:15px;line-height:1.15;color:#4a2f1a;cursor:pointer;}' +
+      '.lin-seg button.on{background:#f4c84a;border-color:#c99a1a;}.lin-seg small{display:block;font-weight:650;font-size:12px;color:#6b5a48;}' +
+      '.lin-f{display:grid;gap:10px;}.lin-f label{display:grid;gap:4px;font-weight:750;font-size:15px;color:#4a2f1a;}.lin-f select,.lin-f input{min-height:64px;font:inherit;font-size:17px;border-radius:12px;border:1px solid #d9c9a3;padding:0 12px;background:#fff;}' +
+      '.lin-prev{padding:12px;border-radius:12px;background:#f3f8ee;border:1px solid #cfe3bf;font-size:16px;font-weight:700;color:#2d4a1e;}' +
+      '.lin-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:12px;}.lin-actions .btn{min-height:64px;font-size:17px;}' +
+      '.lin-card{display:block;width:100%;text-align:left;min-height:64px;padding:12px 14px;margin:0 0 10px;border-radius:16px;border:1px solid #e3d3ad;background:#fff;font:inherit;color:#3c2a1a;cursor:pointer;}' +
+      '.lin-card b{font-size:17px;}.lin-card .l2{display:block;margin-top:4px;font-size:15px;font-weight:700;color:#5a3d12;}.lin-card .l3{display:block;margin-top:2px;font-size:13.5px;color:#6b5a48;}';
+    document.head.appendChild(st);
+  }
+  /** Kapsamdaki kovanlar: ırk / melez, hat ve anne ana (dokun → düzenle). */
+  function lineageListHtml(hives) {
+    lineageCss();
+    var c = C(); var ap = {}; try { D().loadApiaries().forEach(function (a) { ap[a.id] = a.name; }); } catch (e) { ap = {}; }
+    var kindL = { saf: 'Saf ırk', iki: 'İkili melez', uc: 'Üçlü melez' };
+    return (hives || []).map(function (h) {
+      var k = c && c.breedKind ? c.breedKind(h.breed) : '', lin = c && c.lineageText ? c.lineageText(h) : '';
+      return '<button type="button" class="lin-card" data-lin="' + esc(h.id) + '" aria-label="' + esc(h.name) + ' ırk ve soy düzenle">' +
+        '<b>' + esc(h.name) + '</b> <small style="color:#6b5a48;">' + esc(ap[h.apiaryId] || '') + '</small>' +
+        '<span class="l2">' + esc(h.breed ? h.breed + (h.breedEstimated ? ' (tahmini)' : '') : 'Irk bilinmiyor') + (k ? ' · ' + kindL[k] : '') + '</span>' +
+        '<span class="l3">' + esc(lin || 'Hat / anne ana girilmedi') + '</span></button>';
+    }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
+  }
+  function openLineage(hiveId, onSaved) {
+    lineageCss(); ensureCss();
+    var d = D(), c = C(); if (!d || !c) return;
+    var h = d.hiveById(hiveId); if (!h) return;
+    var parts = (d.records && d.records.breedParts ? d.records.breedParts(h.breed || '') : []).map(function (x) {
+      var hit = c.PURE_BREEDS.filter(function (p) { return p.toLocaleLowerCase('tr') === x || p.toLocaleLowerCase('tr').split(' (')[0] === x; })[0];
+      return hit || (x ? x.charAt(0).toLocaleUpperCase('tr') + x.slice(1) : '');
+    });
+    var kind = parts.length >= 3 ? 'uc' : (parts.length === 2 ? 'iki' : 'saf');
+    var queens = []; try { queens = c.loadQueens ? c.loadQueens() : []; } catch (e) { queens = []; }
+    var hives = d.loadHives(), byId = {}; hives.forEach(function (x) { byId[x.id] = x; });
+    var majority = ''; try { majority = c.apiaryMajorityBreed ? c.apiaryMajorityBreed(h.apiaryId, h.id) : ''; } catch (e) { majority = ''; }
+    function raceSel(i) {
+      var v = parts[i] || '', other = v && c.PURE_BREEDS.indexOf(v) < 0;
+      return '<label data-slot="' + i + '">' + (i + 1) + '. ırk<select name="r' + i + '"><option value="">Seçin</option>' +
+        c.PURE_BREEDS.map(function (p) { return '<option' + (p === v ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join('') +
+        '<option value="__diger"' + (other ? ' selected' : '') + '>Diğer (yaz)</option></select>' +
+        '<input name="o' + i + '" maxlength="30" placeholder="Irk adı" value="' + esc(other ? v : '') + '"' + (other ? '' : ' hidden') + '></label>';
+    }
+    var curQ = h.currentQueenId || '';
+    var mOpts = queens.filter(function (q) { return q.id !== curQ; }).map(function (q) {
+      var pl = (q.placements || [])[(q.placements || []).length - 1], hv = pl ? byId[pl.hiveId] : null;
+      return '<option value="' + esc(q.id) + '"' + (h.queenMotherId === q.id ? ' selected' : '') + '>' + esc((hv ? hv.name : 'Ana') + ' · ' + (q.breed || 'ırk ?') + (q.year ? ' · ' + q.year : '') + ' (' + q.id + ')') + '</option>';
+    }).join('');
+    var back = document.createElement('div');
+    back.className = 'kol-back'; back.id = 'koloniLineage';
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="linTitle">' +
+      '<h3 id="linTitle">🧬 ' + esc(h.name) + ' · Irk ve soy</h3>' +
+      '<p class="kol-sub">Mevcut ana arıya yazılır' + (majority ? ' · arılıkta çoğunluk: <b>' + esc(majority) + '</b>' : '') + '.</p>' +
+      '<div class="lin-seg" role="group" aria-label="Irk türü">' +
+        '<button type="button" data-kind="saf">Saf ırk<small>tek ırk</small></button>' +
+        '<button type="button" data-kind="iki">İkili melez<small>A × B</small></button>' +
+        '<button type="button" data-kind="uc">Üçlü melez<small>A × B × C</small></button></div>' +
+      '<form class="lin-f" autocomplete="off">' + raceSel(0) + raceSel(1) + raceSel(2) +
+        '<div class="lin-prev" id="linPrev"></div>' +
+        '<label>Damızlık hat / kaynak adı<input name="line" maxlength="80" value="' + esc(h.breedLine || '') + '" placeholder="ör. Ardahan İstasyonu hattı, yetiştirici adı"></label>' +
+        '<label>Anne ana (bu ana kimin kızı)<select name="mother"><option value="">Bilinmiyor / dış kaynak</option>' + mOpts + '</select></label>' +
+        '<label id="linRefWrap">Dış kaynak anne ana<input name="motherRef" maxlength="120" value="' + esc(h.queenMotherRef || '') + '" placeholder="ör. Yetiştirici X, 2024 damızlık ana no 12"></label>' +
+      '</form>' +
+      '<div class="lin-actions"><button type="button" class="btn secondary" data-lin-x>Vazgeç</button><button type="button" class="btn" data-lin-save>Kaydet</button></div></div>';
+    document.body.appendChild(back);
+    var f = back.querySelector('form');
+    function n() { return kind === 'uc' ? 3 : (kind === 'iki' ? 2 : 1); }
+    function val(i) { var s0 = f.elements['r' + i].value; return s0 === '__diger' ? String(f.elements['o' + i].value || '').trim() : s0; }
+    function breedStr() { var a = []; for (var i = 0; i < n(); i++) a.push(val(i)); return c.joinBreed(a); }
+    function sync() {
+      back.querySelectorAll('[data-kind]').forEach(function (b) { var on = b.getAttribute('data-kind') === kind; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+      for (var i = 0; i < 3; i++) {
+        var wrap = f.querySelector('[data-slot="' + i + '"]'); wrap.hidden = i >= n();
+        f.elements['o' + i].hidden = f.elements['r' + i].value !== '__diger';
+      }
+      var b = breedStr(), miss = missing();
+      back.querySelector('#linPrev').textContent = miss.length ? 'Eksik: ' + miss.join(', ') + ' ırkı seçin' : 'Kayıt: ' + (b || 'Irk bilinmiyor');
+    }
+    function missing() { var m = []; if (n() === 1) return m; for (var i = 0; i < n(); i++) if (!val(i)) m.push((i + 1) + '.'); return m; }
+    back.addEventListener('click', function (e) {
+      var kb = e.target.closest ? e.target.closest('[data-kind]') : null;
+      if (kb) { kind = kb.getAttribute('data-kind'); sync(); return; }
+      if (e.target === back || (e.target.closest && e.target.closest('[data-lin-x]'))) { close(); return; }
+      if (e.target.closest && e.target.closest('[data-lin-save]')) save();
+    });
+    f.addEventListener('change', sync); f.addEventListener('input', sync);
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); }
+    function save() {
+      if (missing().length) { toast('Melez için tüm ırkları seçin'); return; }
+      var b = breedStr();
+      var patch = { breedLine: f.elements.line.value, motherQueenId: f.elements.mother.value, motherRef: f.elements.motherRef.value };
+      if (b) { patch.breed = b; patch.breedEstimated = false; } else patch.breedUnknown = true;
+      var saved = c.updateHive(h.id, patch, 'correct');
+      close();
+      if (!saved) { toast('Kaydedilemedi'); return; }
+      toast('Irk ve soy kaydedildi');
+      if (typeof onSaved === 'function') onSaved(saved);
+    }
+    sync();
+  }
 
   function fmtDate(dt) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dt || ''));
@@ -762,6 +871,7 @@
     tasima: '<rect x="5.8" y="9" width="8.2" height="6.4" rx="0.8"/><path d="M8.4 9v6.4M11.2 9v6.4"/><path d="M15.4 12.2h3.2M17.2 10.7l1.5 1.5-1.5 1.5"/>',
     uretim: '<path d="M12 5.4c1.9 0 3 1.7 3 4.2 0 3.6-1.4 7.8-3 8.8-1.6-1-3-5.2-3-8.8 0-2.5 1.1-4.2 3-4.2z"/><path d="M10.2 9.6h3.6M10.1 12.2h3.8"/>'
   };
+  TOPIC_ICONS.irk = '<path d="M8.6 5.6c0 4.4 6.8 4.4 6.8 8.8 0 2-1.4 3.2-3.4 4"/><path d="M15.4 5.6c0 4.4-6.8 4.4-6.8 8.8 0 2 1.4 3.2 3.4 4"/><path d="M9.7 8.2h4.6M9.7 15.8h4.6"/>';
   var TOPICS = [
     { key: 'ana', label: 'Ana arı', ready: true },
     { key: 'guc', label: 'Koloni gücü', ready: true },
@@ -776,6 +886,7 @@
   var TOPIC_LABEL = {};
   TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
   TOPIC_LABEL.kis = 'Kışlık hazırlık';
+  TOPIC_LABEL.irk = 'Irk ve soy';
   TOPIC_LABEL.hasat = 'Hasat notu';
   TOPIC_LABEL.ilac = 'İlaçlama';
 
@@ -895,7 +1006,7 @@
     var r = R(); if (!r) return '';
     var st = r.status(h.id, all);
     var out = [];
-    if (st.strengthClass) out.push(chip('Güç: ' + st.strengthClass, toneOfClass(st.strengthClass)));
+    if (st.strengthClass) out.push(chip('Güç: ' + (st.strengthTagShort || st.strengthClass), toneOfClass(st.strengthClass)));
     if (st.chilled) out.push(chip('Zayıf koloni', 'red'));
     if (h.colonyState === 'birlestirildi') out.push(chip('Birleştirildi' + (h.mergedInto ? ' → Kovan ' + h.mergedInto : ''), ''));
     if (st.queenless) out.push(chip('Anasız', 'red'));
@@ -909,11 +1020,12 @@
     return out.length ? '<div class="kr-chips">' + out.join('') + '</div>' : '';
   }
 
-  function strengthText(s) {
+  function strengthText(s, hid) {
     if (!s) return 'Kayıt yok';
-    return fmtDate(s.date) + ' · ' + strengthClassOf(s) + ' · arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve';
+    return fmtDate(s.date) + ' · ' + strengthClassOf(s, hid) + ' · arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve';
   }
-  function strengthClassOf(s) { var r = R(); return r ? r.strengthClass(s) : ''; }
+  /* «Güçlü · 60–79 · skor 64» (yalnız seviye, aralık ve skor; hesap gösterilmez) */
+  function strengthClassOf(s, hid) { var r = R(); if (!r) return ''; var i = r.strengthInfo(s, hid != null ? { hiveId: hid } : null); return r.strengthTag ? r.strengthTag(i) : (i ? i.label : ''); }
   function toneOfClass(c) { var r = R(), l = r && r.strengthLevel ? r.strengthLevel(c) : null; return l ? l.tone : 'orange'; }
   function broodText(b) {
     var r = R(); if (!b || !r) return 'Kayıt yok';
@@ -976,9 +1088,9 @@
       var st = r.status(h.id, all);
       var line, chips = [];
       if (topic === 'guc') {
-        line = st.strength ? strengthText(st.strength) : 'Kayıt yok';
+        line = st.strength ? strengthText(st.strength, h.id) : 'Kayıt yok';
         if (st.strength) withRec++;
-        if (st.strengthClass) chips.push(chip(st.strengthClass, toneOfClass(st.strengthClass)));
+        if (st.strengthClass) chips.push(chip(st.strengthTagShort || st.strengthClass, toneOfClass(st.strengthClass)));
         if (st.chilled) chips.push(chip('Zayıf koloni', 'red'));
       } else if (topic === 'yavru') {
         line = st.brood ? broodText(st.brood) : 'Kayıt yok';
@@ -1117,7 +1229,7 @@
         '<label>Polenli çerçeve<input type="number" name="pollenFrames" min="0" max="20" inputmode="numeric"></label>' +
         '<div class="kr-info" id="krClass" style="grid-column:1 / -1;">Seviye: —</div>' +
         '<div class="kr-lvlg" style="grid-column:1 / -1;"><style>.kr-lvls{display:grid;grid-template-columns:1fr;gap:10px;margin-top:6px}.kr-lvls button{min-height:64px;border-radius:14px;border:2px solid #e0cfb3;background:#fff;font:inherit;font-size:18px;font-weight:800;color:#3d2616;text-align:left;padding:8px 14px;cursor:pointer}.kr-lvls button.on{border-color:#e56f1c;background:#fff1de;box-shadow:inset 0 0 0 1px #e56f1c}.kr-lvls small{font-weight:600;color:#6b5a48}</style>' +
-        '<b>Koloni gücü</b> <span class="kr-mut">(çerçeve sayısından otomatik; isterseniz elle seçin)</span><input type="hidden" name="level" value=""><div class="kr-lvls" id="krLvls" role="group" aria-label="Koloni gücü"></div></div>' +
+        '<b>Koloni gücü</b> <span class="kr-mut">(otomatik hesaplanır; isterseniz elle seçin)</span><input type="hidden" name="level" value=""><div class="kr-lvls" id="krLvls" role="group" aria-label="Koloni gücü"></div></div>' +
         '<label class="full">Not<input name="note" maxlength="300"></label>';
     } else if (topic === 'besleme') {
       form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
@@ -1232,7 +1344,7 @@
     });
   }
 
-  function wireTopicForm(topic, f, root) {
+  function wireTopicForm(topic, f, root, hid) {
     var r = R();
     addMicButtons(f);
     if (!f.__dzWired) {
@@ -1250,18 +1362,20 @@
     if (topic === 'guc') {
       var upd = function () {
         var rec0 = { beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value, date: f.elements.date ? f.elements.date.value : '' };
-        var inf = r.strengthInfo ? r.strengthInfo(rec0) : null, au = f.elements.beeFrames.value === '' ? null : (inf ? inf.key : null);
-        var man = f.elements.level ? f.elements.level.value : '', cur = man || au;
-        var lvObj = (r.STRENGTH_LEVELS || []).filter(function (x) { return x.key === cur; })[0];
-        var el = root.querySelector('#krClass'); if (el) el.textContent = 'Seviye: ' + (lvObj ? lvObj.label + (man ? ' (elle)' : '') : '—');
+        var man = f.elements.level ? f.elements.level.value : '';
+        var inf = r.strengthInfo ? r.strengthInfo(Object.assign({ level: man }, rec0), hid != null ? { hiveId: hid } : null) : null, au = f.elements.beeFrames.value === '' ? null : (inf ? (r.strengthLevel(inf.auto) || {}).key : null);
+        var cur = man || au;
+        var el = root.querySelector('#krClass');
+        /* yalnız seviye · aralık · skor (0–100); hesap / katsayı gösterilmez */
+        if (el) el.innerHTML = f.elements.beeFrames.value === '' || !inf ? 'Koloni gücü: —' : 'Koloni gücü: <b>' + esc(r.strengthTag ? r.strengthTag(inf) : inf.label) + '</b> / 100';
         var box = root.querySelector('#krLvls');
-        if (box) box.innerHTML = (r.STRENGTH_LEVELS || []).map(function (x) { return '<button type="button" data-kr-lvl="' + x.key + '" class="' + (x.key === cur ? 'on' : '') + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + esc(x.label) + (x.key === au ? ' <small>(çerçeveye göre)</small>' : '') + '</button>'; }).join('');
+        if (box) box.innerHTML = (r.STRENGTH_LEVELS || []).map(function (x) { var rg = r.strengthRange ? r.strengthRange(x) : null; return '<button type="button" data-kr-lvl="' + x.key + '" class="' + (x.key === cur ? 'on' : '') + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + esc(x.label) + (rg ? ' <small class="kr-rg">' + rg.text + '</small>' : '') + (x.key === au ? ' <small>(hesaplanan)</small>' : '') + '</button>'; }).join('');
       };
       f.addEventListener('input', upd);
       f.addEventListener('click', function (ev) {
         var lb = ev.target.closest ? ev.target.closest('[data-kr-lvl]') : null; if (!lb) return;
         ev.preventDefault();
-        var k = lb.getAttribute('data-kr-lvl'), inf2 = r.strengthInfo ? r.strengthInfo({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value, date: f.elements.date ? f.elements.date.value : '' }) : null;
+        var k = lb.getAttribute('data-kr-lvl'), inf2 = r.strengthInfo ? r.strengthInfo({ beeFrames: f.elements.beeFrames.value, broodFrames: f.elements.broodFrames.value, date: f.elements.date ? f.elements.date.value : '' }, hid != null ? { hiveId: hid } : null) : null;
         f.elements.level.value = inf2 && f.elements.beeFrames.value !== '' && inf2.key === k ? '' : k; upd();
       });
       upd();
@@ -1327,7 +1441,7 @@
       var items = '';
       if (topic === 'guc') {
         items = rec.strength.map(function (s) {
-          return histRow(fmtDate(s.date) + ' · ' + r.strengthClass(s), 'Arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve' + (s.note ? ' · ' + s.note : ''), s, 'strength', h.id);
+          return histRow(fmtDate(s.date) + ' · ' + strengthClassOf(s, h.id), 'Arı ' + s.beeFrames + ' · yavru ' + s.broodFrames + ' · bal ' + s.honeyFrames + ' · polen ' + s.pollenFrames + ' çerçeve' + (s.note ? ' · ' + s.note : ''), s, 'strength', h.id);
         }).join('');
       } else if (topic === 'besleme') {
         items = rec.feed.map(function (x) {
@@ -1405,7 +1519,7 @@
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
     back.querySelector('#krClose').addEventListener('click', close);
     fillForm(editRec);
-    wireTopicForm(topic, f, back);
+    wireTopicForm(topic, f, back, hiveId);
     back.querySelector('#krHist').addEventListener('click', function (e) {
       var hz = e.target.closest ? e.target.closest('[data-hz-open]') : null;
       if (!hz) return;
@@ -1552,7 +1666,7 @@
     var vrInfo = ws.varroaAuto
       ? 'Hastalık kaydından: ' + fmtDate(ws.varroaAuto.date) + ' · ' + (ws.varroaAuto.treatment || 'ilaç uygulandı')
       : 'Hastalık bölümünde son 150 günde varroa ilaç kaydı yok.';
-    var strongHint = st.strength ? 'Son güç kaydı: ' + fmtDate(st.strength.date) + ' · ' + st.strengthClass + ' (arılı çerçeve ' + st.strength.beeFrames + ')' : 'Güç kaydı yok.';
+    var strongHint = st.strength ? 'Son güç kaydı: ' + fmtDate(st.strength.date) + ' · ' + (st.strengthTag || st.strengthClass) + ' (arılı çerçeve ' + st.strength.beeFrames + ')' : 'Güç kaydı yok.';
     var back = document.createElement('div');
     back.className = 'kol-back';
     back.id = 'koloniRecord';
@@ -1649,7 +1763,7 @@
     var r = R(); if (!r || !h) return [];
     var rec = r.recordsFor(h.id);
     var out = [];
-    rec.strength.forEach(function (x) { out.push({ kind: 'strength', rec: x, date: x.date, sum: r.strengthClass(x) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' · bal ' + x.honeyFrames + ' · polen ' + x.pollenFrames + ' çerçeve' + (x.note ? ' · ' + x.note : '') }); });
+    rec.strength.forEach(function (x) { out.push({ kind: 'strength', rec: x, date: x.date, sum: strengthClassOf(x, h.id) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' · bal ' + x.honeyFrames + ' · polen ' + x.pollenFrames + ' çerçeve' + (x.note ? ' · ' + x.note : '') }); });
     rec.brood.forEach(function (x) { out.push({ kind: 'brood', rec: x, date: x.date, sum: broodText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
     rec.disease.forEach(function (x) { out.push({ kind: 'disease', rec: x, date: x.date, sum: diseaseText(x).split(' · ').slice(1).join(' · ') + (x.note ? ' · ' + x.note : '') }); });
     rec.harvest.forEach(function (x) { out.push({ kind: 'harvest', rec: x, date: x.date, sum: harvestText(x) }); });
@@ -2176,6 +2290,35 @@
       if (typeof onDone === 'function') onDone(res);
     });
   }
+  /** Birden çok görevi tek seferde tamamla (Görevler: görev türü kartı → «Hepsini / Seçilenleri tamamla»). */
+  function openTasksDone(ids, label, onDone) {
+    ensureGridCss();
+    var d = D(); if (!d || !d.taskStore || !ids || !ids.length) return;
+    if (ids.length === 1) { openTaskDone(ids[0], onDone); return; }
+    var r = R(), today = r ? r.todayLocal() : '';
+    var all = d.taskStore.all(), ts = all.filter(function (x) { return ids.indexOf(x.id) >= 0; });
+    var names = ts.map(function (t) { var h = t.hiveId != null ? d.hiveById(t.hiveId) : null; return h ? h.name : t.title; });
+    var back = document.createElement('div');
+    back.className = 'kol-back';
+    back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="tdTitle"><h3 id="tdTitle">✅ ' + ts.length + ' görevi tamamla</h3>' +
+      '<p class="kol-sub" style="overflow-wrap:anywhere;"><b>' + esc(label || '') + '</b><br>' + esc(names.join(', ')) + '</p>' +
+      '<form class="kol-form" id="tdForm" autocomplete="off">' +
+        '<label class="full">Tamamlanma tarihi<input type="date" name="date" value="' + esc(today) + '" max="' + esc(today) + '"></label>' +
+        '<label class="full">Not (isteğe bağlı, hepsine yazılır)<input name="note" maxlength="300"></label>' +
+      '</form>' +
+      '<div class="kol-actions"><button type="button" class="btn secondary" data-close="1">Vazgeç</button><button type="button" class="btn" id="tdSave">Hepsi tamamlandı</button></div></div>';
+    document.body.appendChild(back);
+    function close() { if (back.parentNode) back.parentNode.removeChild(back); }
+    back.addEventListener('click', function (e) { if (e.target === back || (e.target.closest && e.target.closest('[data-close]'))) close(); });
+    back.querySelector('#tdSave').addEventListener('click', function () {
+      var f = back.querySelector('#tdForm'), n = 0;
+      ts.forEach(function (t) { if (d.taskStore.complete(t.id, { date: f.elements.date.value, note: f.elements.note.value })) n++; });
+      close();
+      toast(n + ' görev tamamlandı · «Tamamlanan» bölümüne taşındı');
+      try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ }
+      if (typeof onDone === 'function') onDone();
+    });
+  }
   function undoTask(taskId, onDone) {
     var d = D(); if (!d || !d.taskStore) return;
     if (d.taskStore.undo(taskId)) {
@@ -2261,7 +2404,7 @@
         (rec[k[0]] || []).forEach(function (x) {
           if (x.date < since) return;
           var sum = k[0] === 'disease' ? diseaseText(x).split(' · ').slice(1).join(' · ') : k[0] === 'feed' ? feedText(x).split(' · ').slice(1).join(' · ') :
-            k[0] === 'strength' ? r.strengthClass(x) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' çerçeve' : k[0] === 'brood' ? broodText(x).split(' · ').slice(1).join(' · ') : harvestText(x);
+            k[0] === 'strength' ? strengthClassOf(x, h.id) + ' · arı ' + x.beeFrames + ' · yavru ' + x.broodFrames + ' çerçeve' : k[0] === 'brood' ? broodText(x).split(' · ').slice(1).join(' · ') : harvestText(x);
           out.recent.push({ hive: h, kind: k[0], icon: k[1], label: k[2], date: x.date, sum: sum, demo: !!x.demo, id: x.id });
         });
       });
@@ -2305,7 +2448,10 @@
     var st = r.status(h.id);
     return {
       strengthClass: st.strengthClass || '',
-      strength: st.strength ? strengthText(st.strength) : 'Kayıt yok',
+      strengthTag: st.strengthTag || '',
+      strengthRange: st.strengthInfo && r.strengthRange ? (st.strengthInfo.label + (st.strengthInfo.manual ? ' (elle)' : '') + ' · ' + r.strengthRange(st.strengthInfo.key).text) : '',
+      strengthScore: st.strengthScore,
+      strength: st.strength ? strengthText(st.strength, h.id) : 'Kayıt yok',
       brood: st.brood ? broodText(st.brood) : 'Kayıt yok',
       disease: st.diseases.length ? st.diseases.map(function (x) { return x.label + ' (' + x.text + ')'; }).join(' · ') :
         (st.records.disease[0] ? 'Etkin hastalık yok · son: ' + diseaseText(st.records.disease[0]) : 'Kayıt yok'),
@@ -2321,6 +2467,11 @@
   }
 
   global.SuperAriKoloni = {
+    openTasksDone: openTasksDone,
+    openLineage: openLineage,
+    lineageListHtml: lineageListHtml,
+    TOPIC_ICONS: TOPIC_ICONS,
+    topicCounts: topicCounts,
     TOPICS: TOPICS,
     TOPIC_LABEL: TOPIC_LABEL,
     gridHtml: gridHtml,

@@ -53,6 +53,7 @@
       border-color: #e0c56a; color: var(--brown, #5c4813);
     }
   </style>
+  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
 </head>
 <body>
   <main class="wrap">
@@ -79,8 +80,11 @@
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-87"></script>
-  <script src="ogul.js?v=koloni-87"></script>
+  <script src="demo-data.js?v=koloni-88"></script>
+  <script src="ogul.js?v=koloni-88"></script>
+  <script src="kapsam.js?v=koloni-88"></script>
+  <script src="ks-sayfa.js?v=koloni-88"></script>
+  <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -338,6 +342,37 @@
       listEl.innerHTML = alerts.map(renderAlertCard).join('') || '<p class="muted">Açık uyarı yok.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-87"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, P = window.SuperAriKsSayfa; if (!D || !P) return;
+  var view = (new URLSearchParams(location.search).get('view') || '').toLowerCase();
+  function apOf(a) { var h = a.hiveId != null ? D.hiveById(a.hiveId) : null; return h ? String(h.apiaryId) : (a.apiaryId ? String(a.apiaryId) : ''); }
+  function inS(a, scope) { var ap = apOf(a); return scope === 'all' || !ap || ap === String(scope); }
+  /* Bakım düzeni: Kapsam kartı; eski «Tüm uyarılar / Arılıklar» seçimi kapsam seçicisine taşındı */
+  P.init({
+    title: view === 'ogul' ? 'Oğul' : 'Uyarılar', hide: ['#modeSwitch', '#pageTitle'],
+    icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 29 27H3z" fill="#ffe066" stroke="#e8590c" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 12v7" stroke="#2c241c" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="23" r="1.6" fill="#2c241c"/></svg>',
+    stats: function (hs, scope, sm) {
+      var al = (D.alerts || []).filter(function (a) { return inS(a, scope); });
+      var hi = al.filter(function (a) { return a.severity === 'high'; }).length, og = al.filter(function (a) { return a.type === 'ogul'; }).length;
+      var apQ = scope !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(scope) : '&mode=all';
+      return [
+        { k: 'uyari', v: al.length, l: 'Uyarı', href: 'uyarilar.html?' + apQ.slice(1) },
+        { k: 'sorun', v: hi, l: 'Kritik', href: 'uyarilar.html?' + apQ.slice(1), tone: hi ? 'hot' : '' },
+        { k: 'muayene', v: og, l: 'Oğul uyarısı', href: 'uyarilar.html?view=ogul' + apQ, tone: og ? 'hot' : '' },
+        { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'kovanlar.html' },
+        { k: 'saat', v: sm.lastTxt, l: 'Son muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '') }
+      ];
+    },
+    note: function (hs, scope) {
+      var al = (D.alerts || []).filter(function (a) { return inS(a, scope); }).sort(function (a, b) { return (a.severity === 'high' ? 0 : 1) - (b.severity === 'high' ? 0 : 1); });
+      var a = al[0];
+      if (!a) return { t: '✓ Bu kapsamda uyarı yok', b: 'Muayene', href: 'bakim-akis.html', k: 'ok' };
+      return { t: (a.severity === 'high' ? '⚠️ ' : '') + String(a.title || ''), b: 'Aç', href: a.hiveId != null ? 'kovan.html?id=' + encodeURIComponent(a.hiveId) : '#alert-list', k: 'uyari' };
+    }
+  });
+})();
+</script>
+<script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>

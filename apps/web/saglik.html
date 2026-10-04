@@ -60,6 +60,7 @@
     color: #c92a2a;
   }
 </style>
+  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -94,17 +95,23 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-87"></script>
-<script src="sensor-health.js?v=koloni-87"></script>
-<script src="saglik-canli.js?v=koloni-87"></script>
-<script src="ilac-katalog.js?v=koloni-87"></script>
-<script src="bakim-plan.js?v=koloni-87"></script>
+<script src="demo-data.js?v=koloni-88"></script>
+<script src="sensor-health.js?v=koloni-88"></script>
+<script src="saglik-canli.js?v=koloni-88"></script>
+<script src="ilac-katalog.js?v=koloni-88"></script>
+<script src="bakim-plan.js?v=koloni-88"></script>
+<script src="kapsam.js?v=koloni-88"></script>
+  <script src="ks-sayfa.js?v=koloni-88"></script>
+  <script>SuperAriKsSayfa.ensureScope({});</script>
 <script>
 (function () {
   var H = window.SuperAriSensorHealth;
   var D = window.SuperAriDemo;
   if (!H || !D) return;
-  var all = H.evaluateAll(D.loadHives ? D.loadHives() : []);
+  /* kapsam (Bakım ile ortak arılık seçimi): ?apiary= */
+  var ap0 = new URLSearchParams(location.search).get('apiary') || '';
+  var hs0 = (D.loadHives ? D.loadHives() : []).filter(function (h) { return !ap0 || String(h.apiaryId) === String(ap0); });
+  var all = H.evaluateAll(hs0);
 
   var NOTES = {
     ok: 'Rutin dışında müdahale gerekmez. Takvimli varroa ve sezon işleri ayrı sürer.',
@@ -140,9 +147,9 @@
       (un ? '<p class="meta" style="margin-top:8px;">Veri az: ' + unl + (un > 3 ? ' +' + (un - 3) : '') + ' — skor için bir muayene yapın.</p>' : '');
   }
   /* Kışlık stok bilgi notu (Eylül–Şubat, stok az/kritikse) — sağlık puanını etkilemez */
-  try { if (window.SuperAriPlan && window.SuperAriPlan.winterNoteHtml) document.getElementById('winterNote').innerHTML = window.SuperAriPlan.winterNoteHtml(D.loadHives()); } catch (eW) { /* ignore */ }
+  try { if (window.SuperAriPlan && window.SuperAriPlan.winterNoteHtml) document.getElementById('winterNote').innerHTML = window.SuperAriPlan.winterNoteHtml(hs0, { apiary: ap0 }); } catch (eW) { /* ignore */ }
   document.getElementById('bandGrid').innerHTML = bands.map(function (b) {
-    return '<a class="band-card tone-' + b.tone + '" href="saglik-detay.html?band=' + encodeURIComponent(b.key) + '">' +
+    return '<a class="band-card tone-' + b.tone + '" href="saglik-detay.html?band=' + encodeURIComponent(b.key) + (ap0 ? '&apiary=' + encodeURIComponent(ap0) : '') + '">' +
       '<div class="count">' + b.count + '</div>' +
       '<div style="width:100%">' +
         '<div class="title">' + esc(b.label) + '</div>' +
@@ -164,7 +171,34 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-87"></script>
-<script src="pwa.js?v=koloni-87"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, KS = window.SuperAriKapsam; if (!D || !P || !KS) return;
+  P.init({
+    title: 'Sağlık',
+    icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27s-10-6.2-10-13.4A5.6 5.6 0 0 1 16 10a5.6 5.6 0 0 1 10 3.6C26 20.8 16 27 16 27z" fill="#ffc9c9" stroke="#e03131" stroke-width="1.4"/><path d="M9 17h4l2-3 3 6 2-3h3" fill="none" stroke="#c92a2a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    stats: function (hs, scope, sm) {
+      /* sayfadaki bantlarla aynı değerlendirme (SensorHealth) */
+      var ev = window.SuperAriSensorHealth.evaluateAll(hs), n = ev.counts;
+      var q = scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '';
+      return [
+        { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'kovanlar.html' },
+        { k: 'saat', v: ev.avg == null ? '—' : ev.avg, l: 'Ort. skor', href: '#bandGrid' },
+        { k: 'sorun', v: n.check + n.act, l: 'Kontrol / Müdahale', href: 'saglik-detay.html?band=check' + (q ? '&' + q.slice(1) : ''), tone: n.act ? 'hot' : '' },
+        { k: 'muayene', v: sm.overdue, l: 'Geciken muayene', href: 'bakim-akis.html' + q, tone: sm.overdue ? 'hot' : '' },
+        { k: 'uyari', v: sm.critical, l: 'Kritik uyarı', href: 'uyarilar.html' + q, tone: sm.critical ? 'hot' : '' }
+      ];
+    },
+    note: function (hs) {
+      var ev = window.SuperAriSensorHealth.evaluateAll(hs);
+      var w = (ev.hives || []).filter(function (x) { return x.score != null; }).sort(function (a, b) { return a.score - b.score; })[0];
+      if (!w) return { t: 'Skor için veri az — muayene yapın', b: 'Muayene', href: 'bakim-akis.html', k: 'veri' };
+      return { t: (w.band && (w.band.key === 'act' || w.band.key === 'check') ? '⚠️ ' : '') + 'En düşük: ' + w.name + ' · ' + (w.band ? w.band.label : '') + ' ' + w.score, b: 'Aç', href: 'kovan.html?id=' + encodeURIComponent(w.hiveId), k: 'kovan' };
+    }
+  });
+})();
+</script>
+<script src="nav.js?v=koloni-88"></script>
+<script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>

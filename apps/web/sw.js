@@ -145,6 +145,7 @@ const SHELL = [
   "/kovan-ara.js",
   "/kovan.html",
   "/kovanlar.html",
+  "/ks-sayfa.js",
   "/kullanicilar.html",
   "/kullanicilar.js",
   "/kurulum.html",

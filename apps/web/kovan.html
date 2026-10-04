@@ -363,16 +363,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-87"></script>
-<script src="rapor-store.js?v=koloni-87"></script>
-<script src="sensor-health.js?v=koloni-87"></script>
-<script src="saglik-canli.js?v=koloni-87"></script>
-<script src="koloni.js?v=koloni-87"></script>
-<script src="ilac-katalog.js?v=koloni-87"></script>
-<script src="bakim-plan.js?v=koloni-87"></script>
-<script src="ogul.js?v=koloni-87"></script>
-<script src="ogul-verdi.js?v=koloni-87"></script>
-<script src="tarti-elle.js?v=koloni-87"></script>
+<script src="demo-data.js?v=koloni-88"></script>
+<script src="rapor-store.js?v=koloni-88"></script>
+<script src="sensor-health.js?v=koloni-88"></script>
+<script src="saglik-canli.js?v=koloni-88"></script>
+<script src="koloni.js?v=koloni-88"></script>
+<script src="ilac-katalog.js?v=koloni-88"></script>
+<script src="bakim-plan.js?v=koloni-88"></script>
+<script src="ogul.js?v=koloni-88"></script>
+<script src="ogul-verdi.js?v=koloni-88"></script>
+<script src="tarti-elle.js?v=koloni-88"></script>
 <script>(function () {
   if (window.SuperAriTarti) SuperAriTarti.ensureCss();
   document.addEventListener('click', function (e) {
@@ -389,7 +389,7 @@
   else if (window.SuperAriKutu) SuperAriKutu.open(t.getAttribute('data-kutu-open'), rl);
 });
 new MutationObserver(function () { if (window.__ovReload && !document.getElementById('ovSheet')) { window.__ovReload = false; location.reload(); } }).observe(document.body, { childList: true });</script>
-<script src="irk-tahmin.js?v=koloni-87"></script>
+<script src="irk-tahmin.js?v=koloni-88"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>(function () {
   function kmOpen(id) { if (window.SuperAriKoloni && SuperAriKoloni.openKolayMuayene) SuperAriKoloni.openKolayMuayene(id, { onSaved: function () { window.__kmReload = true; } }); }
@@ -968,12 +968,13 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico">💪</span><span class="sum-lbl">Koloni gücü</span></div>' +
-          '<div class="sum-val">' + escapeHtml(krRows && krRows.strengthClass ? krRows.strengthClass : (liveKd ? '—' : strengthLabel(hive.strength))) + '</div>' +
+          '<div class="sum-val">' + escapeHtml(krRows && krRows.strengthClass ? (krRows.strengthRange || krRows.strengthClass) : (liveKd ? '—' : strengthLabel(hive.strength))) + '</div>' +
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico">◎</span><span class="sum-lbl">Koloni skoru</span></div>' +
           '<div class="sum-val">' +
-            escapeHtml(!liveKd && hive.colonyScore != null ? String(Math.round(Number(hive.colonyScore))) : '—') +
+            /* koloni gücü skoru (0–100; seviye aralığıyla aynı ölçek) — güç kaydı yoksa eski örnek skor */
+            escapeHtml(krRows && krRows.strengthScore != null ? krRows.strengthScore + ' / 100' : (!liveKd && hive.colonyScore != null ? String(Math.round(Number(hive.colonyScore))) : '—')) +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -1106,7 +1107,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-87"></script>
-<script src="pwa.js?v=koloni-87"></script>
+<script src="nav.js?v=koloni-88"></script>
+<script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>

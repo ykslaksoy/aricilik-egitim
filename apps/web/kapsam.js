@@ -16,6 +16,10 @@
     sorun: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.6c3 1.2 5.2 1.4 5.2 1.4 0 5.4-2 8.6-5.2 10.4C6.8 13.6 4.8 10.4 4.8 5c0 0 2.2-.2 5.2-1.4z" fill="#fff3bf" stroke="#f08c00" stroke-width="1.2"/><path d="M10 7.4v3.4" stroke="#d9480f" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="12.8" r=".9" fill="#d9480f"/></svg>'
   };
   var BURN = {
+    irk: '<path d="M8.6 5.6c0 4.4 6.8 4.4 6.8 8.8 0 2-1.4 3.2-3.4 4"/><path d="M15.4 5.6c0 4.4-6.8 4.4-6.8 8.8 0 2 1.4 3.2 3.4 4"/><path d="M9.7 8.2h4.6M9.7 15.8h4.6"/>',
+    tarti: '<path d="M12 6.2v11.4M8.6 17.8h6.8M6.4 8.8h11.2"/><path d="M6.4 8.8 4.6 12.6a1.9 1.9 0 0 0 3.6 0zM17.6 8.8l-1.8 3.8a1.9 1.9 0 0 0 3.6 0z"/>',
+    gorev: '<path d="M7.2 8.4l1.3 1.3 2.2-2.4M7.2 13.6l1.3 1.3 2.2-2.4"/><path d="M12.8 8.8h4.2M12.8 14h4.2"/>',
+    liste: '<path d="M7.4 8h9.2M7.4 12h9.2M7.4 16h9.2"/>',
     muayene: '<circle cx="10.6" cy="10.6" r="3.9"/><path d="M13.4 13.4 17.2 17.2"/>',
     ses: '<path d="M6.5 10h2.4l3.3-2.8v9.6L8.9 14H6.5z"/><path d="M14.3 9.6a3.2 3.2 0 0 1 0 4.8M15.9 8a5.4 5.4 0 0 1 0 8"/>',
     guc: '<path d="M7.6 16.4v-3.2M10.5 16.4V11M13.4 16.4V8.6M16.3 16.4V6.8"/>',
@@ -26,8 +30,9 @@
   /** Ana'daki kovan çizimi; ortada yakma damga (burn) veya kovan numarası. */
   function hiveHtml(o) {
     o = o || {};
-    var mid = o.burn && BURN[o.burn]
-      ? '<div class="hi" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.2" stroke-width="1.55"/>' + BURN[o.burn] + '</svg></div>'
+    var ico = o.svg || (o.burn && BURN[o.burn]) || '';
+    var mid = ico
+      ? '<div class="hi" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.2" stroke-width="1.55"/>' + ico + '</svg></div>'
       : (o.num != null ? '<span class="hn" aria-hidden="true">' + esc(o.num) + '</span>' : '');
     return '<div class="ks-hive" aria-hidden="true"><div class="hs"><div class="hl"></div><div class="hb"></div><div class="hb b"><div class="he"></div></div>' +
       '<div class="hf"><span></span><span></span></div></div>' + mid + (o.dot ? '<span class="hdot" style="background:' + esc(o.dot) + '"></span>' : '') + '</div>';
@@ -126,8 +131,9 @@
   function mount(host, opts) {
     var aps = [], scope = 'all';
     function loadAps() { try { aps = D.loadApiaries() || []; } catch (e) { aps = []; } }
-    function valid(s) { return s === 'all' || aps.some(function (a) { return String(a.id) === String(s); }) ? String(s) : 'all'; }
-    function list() { return ['all'].concat(aps.map(function (a) { return String(a.id); })); }
+    /* opts.noAll: yalnız arılık başına çalışan sayfalar (Bakım planı) — «Tümü» seçeneği yok */
+    function valid(s) { return (s === 'all' && !opts.noAll) || aps.some(function (a) { return String(a.id) === String(s); }) ? String(s) : (opts.noAll && aps[0] ? String(aps[0].id) : 'all'); }
+    function list() { return (opts.noAll ? [] : ['all']).concat(aps.map(function (a) { return String(a.id); })); }
     function apOf(id) { return aps.filter(function (a) { return String(a.id) === String(id); })[0] || null; }
     function hives() { var hs = []; try { hs = D.loadHives() || []; } catch (e) { hs = []; } return scope === 'all' ? hs : hs.filter(function (h) { return String(h.apiaryId) === scope; }); }
     loadAps();
@@ -208,5 +214,5 @@
   var ICON_MUAYENE = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="18" height="22" rx="3" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/><rect x="11.5" y="3.5" width="9" height="5" rx="1.6" fill="#f7b731"/><circle cx="15" cy="17" r="4.2" fill="#fff" stroke="#5c3a1f" stroke-width="1.8"/><path d="M18 20l3.2 3.2" stroke="#5c3a1f" stroke-width="2" stroke-linecap="round"/></svg>';
   var ICON_KOVAN = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="5" rx="1.4" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><rect x="7" y="11" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="7" y="18.6" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="14" y="24" width="4" height="1.4" fill="#2a1a0c"/></svg>';
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, hiveNum: hiveNum, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN };
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN };
 })(typeof window !== 'undefined' ? window : this);

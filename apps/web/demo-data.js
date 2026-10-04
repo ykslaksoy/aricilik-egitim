@@ -844,6 +844,9 @@
     if (qy != null) out.queenYear = qy;
     if (h.queenSource != null && String(h.queenSource).trim()) out.queenSource = String(h.queenSource).trim().slice(0, 120);
     if (h.queenMarked === true || h.queenMarked === false) out.queenMarked = h.queenMarked;
+    if (h.breedLine != null && String(h.breedLine).trim()) out.breedLine = String(h.breedLine).trim().slice(0, 80);
+    if (h.queenMotherId != null && String(h.queenMotherId).trim()) out.queenMotherId = String(h.queenMotherId).trim().slice(0, 32);
+    if (h.queenMotherRef != null && String(h.queenMotherRef).trim()) out.queenMotherRef = String(h.queenMotherRef).trim().slice(0, 120);
     if (out.breed && h.breedEstimated === true) out.breedEstimated = true;
     if (!out.breed && h.breedUnknown === true) out.breedUnknown = true;
     if (h.queenClipped === true || h.queenClipped === false) out.queenClipped = h.queenClipped;
@@ -1112,6 +1115,9 @@
     if (q.motherQueenId) o.motherQueenId = String(q.motherQueenId).slice(0, 32);
     if (q.motherBreed != null && String(q.motherBreed).trim()) o.motherBreed = String(q.motherBreed).trim().slice(0, 60);
     if (QUEEN_ORIGINS.indexOf(q.origin) >= 0) o.origin = q.origin;
+    /* Damızlık hat / kaynak adı (serbest metin) ve dış kaynaklı anne ana notu */
+    if (q.line != null && String(q.line).trim()) o.line = String(q.line).trim().slice(0, 80);
+    if (q.motherRef != null && String(q.motherRef).trim()) o.motherRef = String(q.motherRef).trim().slice(0, 120);
     if (q.clipped === true && /^\d{4}-\d{2}-\d{2}$/.test(String(q.clippedAt || ''))) o.clippedAt = String(q.clippedAt);
     o.createdAt = String(q.createdAt || new Date().toISOString());
     if (q.migrated === true) o.migrated = true;
@@ -1164,7 +1170,11 @@
   function mirrorQueenToHive(hive, q) {
     delete hive.queenYear; delete hive.queenSource; delete hive.queenMarked; delete hive.queenClipped; delete hive.queenClippedAt;
     delete hive.breedEstimated; delete hive.breedUnknown;
+    delete hive.breedLine; delete hive.queenMotherId; delete hive.queenMotherRef;
     if (!q) { delete hive.currentQueenId; return hive; }
+    if (q.line) hive.breedLine = q.line;
+    if (q.motherQueenId) hive.queenMotherId = q.motherQueenId;
+    if (q.motherRef) hive.queenMotherRef = q.motherRef;
     hive.currentQueenId = q.id;
     if (q.year != null) hive.queenYear = q.year;
     if (q.breed) hive.breed = q.breed;
@@ -1185,7 +1195,8 @@
       (h.queenSource || '') === (q.source || '') &&
       (h.queenMarked == null ? null : h.queenMarked) === (q.marked == null ? null : q.marked) &&
       (h.queenClipped == null ? null : h.queenClipped) === (q.clipped == null ? null : q.clipped) &&
-      (h.queenClippedAt || '') === (q.clipped === true && q.clippedAt ? q.clippedAt : '');
+      (h.queenClippedAt || '') === (q.clipped === true && q.clippedAt ? q.clippedAt : '') &&
+      (h.breedLine || '') === (q.line || '') && (h.queenMotherId || '') === (q.motherQueenId || '') && (h.queenMotherRef || '') === (q.motherRef || '');
   }
   function cloneObj(h) {
     var c = {};
@@ -1334,6 +1345,20 @@
             var qn = String(patch.queenNote == null ? '' : patch.queenNote).trim();
             if (qn) q.note = qn.slice(0, 300); else delete q.note;
           }
+          /* Irk ve soy: damızlık hat, anne ana (kayıtlı ana id) veya dış kaynak notu */
+          if (Object.prototype.hasOwnProperty.call(patch, 'breedLine')) {
+            var ln = String(patch.breedLine == null ? '' : patch.breedLine).trim();
+            if (ln) q.line = ln.slice(0, 80); else delete q.line;
+          }
+          if (Object.prototype.hasOwnProperty.call(patch, 'motherQueenId')) {
+            var mq = String(patch.motherQueenId == null ? '' : patch.motherQueenId).trim(), mo = mq && mq !== q.id ? queenById(mq, queens) : null;
+            if (mo) { q.motherQueenId = mo.id; if (mo.breed) q.motherBreed = mo.breed; else delete q.motherBreed; }
+            else { delete q.motherQueenId; delete q.motherBreed; }
+          }
+          if (Object.prototype.hasOwnProperty.call(patch, 'motherRef')) {
+            var mr = String(patch.motherRef == null ? '' : patch.motherRef).trim();
+            if (mr) q.motherRef = mr.slice(0, 120); else delete q.motherRef;
+          }
           mirrorQueenToHive(copy, q);
         }
       }
@@ -1456,6 +1481,22 @@
   function breedLabel(h) {
     if (!h || !h.breed) return 'Bilinmiyor';
     return h.breed + (h.breedEstimated ? ' (tahmini)' : '');
+  }
+  /* Irk ve soy kaydı: saf ırklar (seçim listesi) ve melez yazımı «A × B», «A × B × C» */
+  var PURE_BREEDS = ['Kafkas', 'Karniyol', 'Anadolu', 'Karadeniz', 'Muğla', 'İtalyan', 'Buckfast', 'Erzurum (Doğu yerli)'];
+  function breedKind(b) { var n = breedParts(b).length; return !String(b || '').trim() ? '' : (n >= 3 ? 'uc' : (n === 2 ? 'iki' : 'saf')); }
+  function joinBreed(parts) { return (parts || []).map(function (x) { return String(x || '').trim(); }).filter(Boolean).join(' × ').slice(0, 60); }
+  /** «Hat: Doğu Karadeniz İst. · Anne: Kovan 204 anası (Q-…)» — boşsa ''. */
+  function lineageText(h, queens) {
+    if (!h) return '';
+    var out = [];
+    if (h.breedLine) out.push('Hat: ' + h.breedLine);
+    if (h.queenMotherId) {
+      var mq = queenById(h.queenMotherId, queens), pl = mq && Array.isArray(mq.placements) ? mq.placements[mq.placements.length - 1] : null, mh = pl ? hiveById(pl.hiveId) : null;
+      out.push('Anne ana: ' + (mh ? mh.name + ' anası' : h.queenMotherId) + (mq && mq.breed ? ' (' + mq.breed + ')' : ''));
+    }
+    if (h.queenMotherRef) out.push('Anne ana: ' + h.queenMotherRef);
+    return out.join(' · ');
   }
 
   /** Ana arı kanadı kırpıldı: mevcut ana kaydına yazar + tamamlanan görev olarak kayıt düşer. */
@@ -2334,7 +2375,19 @@
   }
   function liteHive(id) { var m = envMemoFresh(); if (m) return m.hives[String(Number(id))] || null; try { return hiveById(id); } catch (e) { return null; } }
   function liteHives() { var m = envMemoFresh(); if (m) return Object.keys(m.hives).map(function (k) { return m.hives[k]; }); return loadHives(); }
-  function breedEnv(h) { var b = String((h && (h.breed || h.irk)) || '').toLocaleLowerCase('tr'); return COLONY_ENV.BREEDS.filter(function (x) { return x.test(b); })[0]; }
+  function breedEnv1(b) { return COLONY_ENV.BREEDS.filter(function (x) { return x.test(b); })[0]; }
+  /** Melez yazımını bileşenlere ayırır: «Kafkas × Karadeniz × Muğla» → ['kafkas','karadeniz','muğla'] (×, x, *, + ayırıcı). */
+  function breedParts(b) { return String(b || '').toLocaleLowerCase('tr').split(/\s*(?:×|✕|\*|\+|\sx\s)\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  /* Saf ırk ve ikili melez: tablodaki ilk eşleşme (eski davranış aynen; ör. Kafkas × Karadeniz → Karadeniz 0,90).
+     Üçlü (ve üstü) melez: bileşenlerin katsayılarının ortalaması (varsayım; ör. Kafkas × Karadeniz × Muğla → (0,90 + 0,90 + 1,00) / 3 ≈ 0,93). */
+  function breedEnv(h) {
+    var b = String((h && (h.breed || h.irk)) || '').toLocaleLowerCase('tr'), parts = breedParts(b);
+    if (parts.length < 3) return breedEnv1(b);
+    var bs = parts.map(breedEnv1), n = bs.length;
+    return { key: 'melez3', label: 'Üçlü melez', parts: bs.map(function (x) { return x.key; }),
+      fob: Math.round(bs.reduce(function (a, x) { return a + x.fob; }, 0) / n * 1000) / 1000,
+      winterAdjKg: Math.round(bs.reduce(function (a, x) { return a + (x.winterAdjKg || 0); }, 0) / n * 10) / 10, test: function () { return false; } };
+  }
   function bandKeyOf(h) {
     if (!h) return null;
     var m = envMemoFresh(), ck = String(h.apiaryId);
@@ -2370,6 +2423,12 @@
   /** Eski 3 seviyeli değerler dahil (zayıf→Zayıf, orta→Normal, güçlü→Güçlü) her yazımı 5 seviyeden birine eşler; bilinmiyorsa null. */
   function strengthLevel(v) { var k = strengthKeyOf(v); return k ? STRENGTH_LEVELS.filter(function (x) { return x.key === k; })[0] : null; }
   function levelOfScore(sc) { var o = STRENGTH_LEVELS[0]; STRENGTH_LEVELS.forEach(function (x) { if (sc >= x.min) o = x; }); return o; }
+  /** Seviyenin skor aralığı: { min, max, text: '60–79' } (arayüzde yalnız aralık gösterilir; hesap gösterilmez). */
+  function strengthRange(v) {
+    var l = typeof v === 'object' && v ? v : strengthLevel(v); if (!l) return null;
+    var i = STRENGTH_LEVELS.indexOf(l), nx = STRENGTH_LEVELS[i + 1], mx = nx ? nx.min - 1 : 100;
+    return { min: l.min, max: mx, text: l.min + '–' + mx };
+  }
   function isWeakClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'zayif' || l.key === 'cok-zayif'); }
   function isStrongClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'guclu' || l.key === 'cok-guclu'); }
   /* arılı çerçeve → skor (parça parça doğrusal; eşikler yukarıdaki çerçeve sayılarına oturur) */
@@ -2442,6 +2501,13 @@
     return { score: sc, key: lv.key, label: lv.label, tone: lv.tone, manual: !!man, auto: auto.label, basis: basis };
   }
   function strengthClass(r, ctx) { var i = strengthInfo(r, ctx); return i ? i.label : null; }
+  /** Arayüz metni: «Güçlü · 60–79 · skor 64»; elle seçimde «Güçlü (elle) · 60–79 · skor 47 (Normal)». Formül / katsayı / çerçeve hesabı gösterilmez. */
+  function strengthTag(i, short) {
+    if (!i) return '';
+    var rg = strengthRange(i.key), au = i.manual && i.auto !== i.label ? ' (' + i.auto + ')' : '';
+    if (short) return i.label + (i.manual ? ' (elle)' : '') + ' · ' + i.score;
+    return i.label + (i.manual ? ' (elle)' : '') + ' · ' + (rg ? rg.text : '') + ' · skor ' + i.score + au;
+  }
 
   function normalizeRecord(kind, r) {
     if (!r || typeof r !== 'object') return null;
@@ -2939,7 +3005,7 @@
       var until = addDays(r.date, r.withdrawalDays);
       if (until >= today && until > withdrawalUntil) { withdrawalUntil = until; withdrawalRec = r; }
     });
-    var cls = strengthClass(s, { hiveId: hiveId });
+    var sInfo = s ? strengthInfo(s, { hiveId: hiveId }) : null, cls = sInfo ? sInfo.label : null;
     var chilled = !!(b && b.chilled);
     var hf = hiveFlags()[String(Number(hiveId))] || {};
     var emergencyCell = !!(b && b.queenCell === 'acil');
@@ -2947,7 +3013,7 @@
     var afb = latestByDisease.ayc ? latestByDisease.ayc.status : 'temiz';
     return {
       records: rec,
-      strength: s, strengthClass: cls,
+      strength: s, strengthClass: cls, strengthScore: sInfo ? sInfo.score : null, strengthInfo: sInfo, strengthTag: strengthTag(sInfo), strengthTagShort: strengthTag(sInfo, true),
       brood: b,
       weak: isWeakClass(cls) || chilled,
       chilled: chilled,
@@ -3469,9 +3535,13 @@
     strengthClass: strengthClass,
     strengthInfo: strengthInfo,
     strengthLevel: strengthLevel,
+    strengthRange: strengthRange,
+    strengthTag: strengthTag,
     STRENGTH_LEVELS: STRENGTH_LEVELS,
     COLONY_ENV: COLONY_ENV,
     envFor: envFor,
+    breedEnv: breedEnv,
+    breedParts: breedParts,
     isWeakClass: isWeakClass,
     isStrongClass: isStrongClass,
     recordsFor: function (id) { seedAll(); return recordsFor(id); },
@@ -4935,6 +5005,10 @@
       BREEDS: BREEDS,
       colony: {
         BREED_OPTIONS: COLONY_BREED_OPTIONS,
+        PURE_BREEDS: PURE_BREEDS,
+        breedKind: breedKind,
+        joinBreed: joinBreed,
+        lineageText: lineageText,
         SWARM_TENDENCIES: SWARM_TENDENCIES,
         CALM_LABELS: CALM_LABELS,
         queenAge: queenAge,

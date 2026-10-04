@@ -33,6 +33,7 @@
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
   </style>
+  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
 </head>
 <body data-tabbar="fixed">
   <main class="wrap">
@@ -71,10 +72,13 @@
       <div class="ql" id="bgLinks"></div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-87"></script>
-  <script src="rapor-store.js?v=koloni-87"></script>
+  <script src="demo-data.js?v=koloni-88"></script>
+  <script src="rapor-store.js?v=koloni-88"></script>
   <script src="hava-kayit.js"></script>
-  <script src="koloni.js?v=koloni-87"></script>
+  <script src="koloni.js?v=koloni-88"></script>
+  <script src="kapsam.js?v=koloni-88"></script>
+  <script src="ks-sayfa.js?v=koloni-88"></script>
+  <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni, H = window.SuperAriHava;
@@ -83,8 +87,10 @@
     var aps = D.loadApiaries();
     var sel = document.getElementById('bgApiary');
     var params = new URLSearchParams(location.search);
-    var apiaryId = params.get('apiary') || K.lastApiary();
-    if (!aps.some(function (a) { return String(a.id) === String(apiaryId); })) apiaryId = aps[0] ? String(aps[0].id) : '';
+    /* Kapsam «Tümü» (Bakım ile ortak) → tüm arılıklar; hava durumu için arılık gerekir */
+    var allMode = params.get('mode') === 'all' && !params.get('apiary');
+    var apiaryId = allMode ? '' : (params.get('apiary') || K.lastApiary());
+    if (!allMode && !aps.some(function (a) { return String(a.id) === String(apiaryId); })) apiaryId = aps[0] ? String(aps[0].id) : '';
     sel.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
     sel.value = apiaryId;
     var now = new Date();
@@ -106,6 +112,7 @@
         (best ? '<div class="wx-tip">🔎 Muayene için uygun gün: ' + esc(best.dayLabel) + ' · ' + esc(best.reason) + '</div>' : (daily ? '<div class="wx-tip">Önümüzdeki günlerde muayene için ideal hava görünmüyor.</div>' : ''));
     }
     function loadWx() {
+      if (allMode) { paintWx(null, null, 'Tüm arılıklar seçili — hava durumu için Kapsam kartından bir arılık seçin.'); return; }
       var a = D.apiaryById(apiaryId);
       if (!a || !isFinite(Number(a.lat)) || !isFinite(Number(a.lon)) || (!a.lat && !a.lon)) { paintWx(null, null, 'Bu arılığın konumu yok; hava durumu gösterilemiyor.'); return; }
       var today = H && H.localDateKey ? H.localDateKey() : R.todayLocal();
@@ -149,7 +156,7 @@
         '<button type="button" class="bk-done-btn" data-done="' + esc(x.id) + '" aria-label="Tamamlandı olarak işaretle">✓ Bitti</button></div>';
     }
     function render() {
-      var hs = D.hivesForApiary(apiaryId);
+      var hs = allMode ? D.loadHives() : D.hivesForApiary(apiaryId);
       var today = R.todayLocal();
       var m = K.maintenance(hs);
       var ids = {}; hs.forEach(function (h) { ids[String(h.id)] = true; });
@@ -211,7 +218,36 @@
     loadWx();
   })();
   </script>
-  <script src="nav.js?v=koloni-87"></script>
-<script src="pwa.js?v=koloni-87"></script>
+  <script>
+(function () {
+  var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, K = window.SuperAriKoloni; if (!D || !P) return;
+  /* Bakım düzeni: arılık seçimi Kapsam kartına taşındı (eski seçim kutusu gizli) */
+  var lb = document.getElementById('bgApiary'); if (lb && lb.parentNode) lb.parentNode.style.display = 'none';
+  P.init({
+    title: 'Bugün', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="20" rx="3" fill="#fff" stroke="#9aa8b8"/><rect x="5" y="7" width="22" height="6" rx="3" fill="#f7b731"/><path d="M11 4.5v5M21 4.5v5" stroke="#8a6030" stroke-width="2" stroke-linecap="round"/><path d="M11 19l3 3 6-6" fill="none" stroke="#2f9e44" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    stats: function (hs, scope, sm) {
+      var m = K ? K.maintenance(hs) : { overdue: [], week: [] }, today = D.records.todayLocal();
+      var tod = m.week.filter(function (x) { return x.date === today || (!x.date && x.priority === 1); }).length;
+      var att = K && K.attentionHives ? K.attentionHives(hs).length : 0;
+      var apQ = scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '';
+      return [
+        { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'kovanlar.html' },
+        { k: 'uyari', v: m.overdue.length, l: 'Geciken iş', href: '#bgTasks', tone: m.overdue.length ? 'hot' : '' },
+        { k: 'muayene', v: tod, l: 'Bugünkü iş', href: '#bgTasks' },
+        { k: 'sorun', v: att, l: 'Dikkat', href: '#bgAtt', tone: att ? 'hot' : '' },
+        { k: 'saat', v: sm.lastTxt, l: 'Son muayene', href: 'bakim-akis.html' + apQ }
+      ];
+    },
+    note: function (hs, scope, sm) {
+      var q = scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '';
+      if (sm.critical) return { t: '⚠️ ' + sm.critical + ' kritik uyarı', b: 'Uyarılar', href: 'uyarilar.html' + q, k: 'uyari' };
+      if (sm.overdue) return { t: '🔍 ' + sm.overdue + ' kovanın muayenesi 21 günü geçti', b: 'Muayene', href: 'bakim-akis.html' + q, k: 'muayene' };
+      return { t: '✓ Bugün acil iş yok', b: 'Muayene', href: 'bakim-akis.html' + q, k: 'ok' };
+    }
+  });
+})();
+</script>
+<script src="nav.js?v=koloni-88"></script>
+<script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>

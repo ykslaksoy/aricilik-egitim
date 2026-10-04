@@ -47,6 +47,7 @@
     .bp-need .u1{color:#c92a2a;font-weight:700;}
     .bp-more{font:inherit;font-size:.8rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
   </style>
+  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
 </head>
 <body data-tabbar="fixed">
   <main class="wrap">
@@ -101,10 +102,12 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="demo-data.js?v=koloni-87"></script>
-  <script src="ilac-katalog.js?v=koloni-87"></script>
-  <script src="bakim-plan.js?v=koloni-87"></script>
-  <script src="kovan-ara.js?v=koloni-87"></script>
+  <script src="demo-data.js?v=koloni-88"></script>
+  <script src="ilac-katalog.js?v=koloni-88"></script>
+  <script src="bakim-plan.js?v=koloni-88"></script>
+  <script src="kovan-ara.js?v=koloni-88"></script>
+  <script src="kapsam.js?v=koloni-88"></script>
+  <script src="ks-sayfa.js?v=koloni-88"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -214,7 +217,33 @@
     renderMed(); render();
   })();
   </script>
-  <script src="nav.js?v=koloni-87"></script>
-  <script src="pwa.js?v=koloni-87"></script>
+  <script>
+(function () {
+  var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, PL = window.SuperAriPlan; if (!D || !P) return;
+  var apEl = document.getElementById('bpAp');
+  /* Bakım düzeni: arılık seçimi Kapsam kartında (yalnız arılıklar; plan arılık başına) — eski seçim kutusu gizli */
+  if (apEl && apEl.parentNode) apEl.parentNode.style.display = 'none';
+  P.init({
+    title: 'Bakım planı', noAll: true, initial: apEl ? apEl.value : '',
+    icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="20" rx="3" fill="#fff" stroke="#9aa8b8"/><rect x="5" y="7" width="22" height="6" rx="3" fill="#f7b731"/><path d="M11 4.5v5M21 4.5v5" stroke="#8a6030" stroke-width="2" stroke-linecap="round"/><path d="M10 18h12M10 22h8" stroke="#8a7358" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    stats: function (hs, scope, sm) {
+      var pk = PL ? PL.profileKey(scope) : '', pr = PL && PL.PROFILES[pk];
+      var q = '?apiary=' + encodeURIComponent(scope);
+      return [
+        { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'kovanlar.html?mode=apiary&apiary=' + encodeURIComponent(scope) },
+        { k: 'muayene', v: sm.overdue, l: 'Geciken muayene', href: 'bakim-akis.html' + q, tone: sm.overdue ? 'hot' : '' },
+        { k: 'uyari', v: sm.critical, l: 'Kritik uyarı', href: 'uyarilar.html' + q, tone: sm.critical ? 'hot' : '' },
+        { k: 'saat', v: sm.lastTxt, l: 'Son muayene', href: 'bakim-akis.html' + q }
+      ];
+    },
+    note: function (hs, scope) {
+      var pk = PL ? PL.profileKey(scope) : '', pr = PL && PL.PROFILES[pk];
+      return { t: '🗺 Bölge: ' + (pr ? pr.label : '—'), b: 'Liste', href: '#liste', k: 'bolge' };
+    }
+  });
+})();
+</script>
+<script src="nav.js?v=koloni-88"></script>
+  <script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@
   .chk input{width:18px !important;height:18px;flex:0 0 auto;margin-top:1px;}
   .demo-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:4px;}
 </style>
+  <link rel="stylesheet" href="kapsam.css?v=koloni-88" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -80,8 +81,11 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-87"></script>
-<script>
+<script src="demo-data.js?v=koloni-88"></script>
+<script src="kapsam.js?v=koloni-88"></script>
+  <script src="ks-sayfa.js?v=koloni-88"></script>
+  <script>SuperAriKsSayfa.ensureScope({});</script>
+  <script>
 (function () {
   var D = window.SuperAriDemo, G = D.goc;
   function $(id) { return document.getElementById(id); }
@@ -89,7 +93,7 @@
   var AY = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
   function fmt(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY[Number(m[2]) - 1] + ' ' + m[1] : (d || ''); }
   function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
-  var q = new URLSearchParams(location.search), apFilter = q.get('ap') || q.get('from') || '';
+  var q = new URLSearchParams(location.search), apFilter = q.get('ap') || q.get('from') || q.get('apiary') || ''; /* apiary = Bakım ile ortak kapsam */
   function aps() { try { return D.loadApiaries() || []; } catch (e) { return []; } }
   function msg(t, err) { var m = $('gMsg'); m.textContent = t || ''; m.className = 'form-msg' + (err ? ' err' : ''); }
   function fillSelects() {
@@ -160,7 +164,30 @@
   window.addEventListener('superari-cloud-pulled', function () { fillSelects(); fillHives(); renderHist(); });
 })();
 </script>
-<script src="nav.js?v=koloni-87"></script>
-<script src="pwa.js?v=koloni-87"></script>
+<script>
+(function () {
+  var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, G = D && D.goc; if (!D || !P || !G) return;
+  P.init({
+    title: 'Göç', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="10" width="17" height="12" rx="2" fill="#e8c48e" stroke="#8a6030"/><path d="M20 14h5l4 4v4h-9z" fill="#f7b731" stroke="#b8860b"/><circle cx="9" cy="24" r="2.6" fill="#495057"/><circle cx="24" cy="24" r="2.6" fill="#495057"/></svg>',
+    stats: function (hs, scope, sm) {
+      var list = scope !== 'all' ? G.forApiary(scope) : G.list(), y = String(D.records.todayLocal()).slice(0, 4);
+      var yr = list.filter(function (g) { return String(g.date || '').slice(0, 4) === y; });
+      var km = yr.reduce(function (a, g) { return a + (Number(g.km) || 0); }, 0), last = list.map(function (g) { return g.date; }).sort().pop() || '';
+      return [
+        { k: 'kovan', v: sm.hives, l: 'Kovan', href: 'kovanlar.html' },
+        { k: 'muayene', v: list.length, l: 'Göç kaydı', href: '#histList' },
+        { k: 'saat', v: yr.length, l: 'Bu yıl göç', href: '#histList' },
+        { k: 'uyari', v: km ? Math.round(km) + ' km' : '—', l: 'Bu yıl yol', href: '#histList' },
+        { k: 'sorun', v: window.SuperAriKapsam.fmtAgo(last, D.records.todayLocal()), l: 'Son göç', href: '#histList' }
+      ];
+    },
+    note: function (hs, scope) {
+      return { t: '🚚 Yeni göç: nereden, nereye, kovanları seçin', b: 'Forma git', href: '#gocForm', k: 'form' };
+    }
+  });
+})();
+</script>
+<script src="nav.js?v=koloni-88"></script>
+<script src="pwa.js?v=koloni-88"></script>
 </body>
 </html>
