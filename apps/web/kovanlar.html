@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-89" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-90" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -63,18 +63,19 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-89"></script>
-  <script src="rapor-store.js?v=koloni-89"></script>
-  <script src="sensor-health.js?v=koloni-89"></script>
-<script src="saglik-canli.js?v=koloni-89"></script>
-  <script src="koloni.js?v=koloni-89"></script>
-  <script src="ilac-katalog.js?v=koloni-89"></script>
-  <script src="bakim-plan.js?v=koloni-89"></script>
-  <script src="irk-tahmin.js?v=koloni-89"></script>
-  <script src="kovan-ara.js?v=koloni-89"></script>
+  <script src="demo-data.js?v=koloni-90"></script>
+  <script src="rapor-store.js?v=koloni-90"></script>
+  <script src="sensor-health.js?v=koloni-90"></script>
+<script src="saglik-canli.js?v=koloni-90"></script>
+  <script src="koloni.js?v=koloni-90"></script>
+  <script src="koloni-ek.js?v=koloni-90"></script>
+  <script src="ilac-katalog.js?v=koloni-90"></script>
+  <script src="bakim-plan.js?v=koloni-90"></script>
+  <script src="irk-tahmin.js?v=koloni-90"></script>
+  <script src="kovan-ara.js?v=koloni-90"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-elle.js?v=koloni-89"></script>
-  <script src="kapsam.js?v=koloni-89"></script>
+  <script src="tarti-elle.js?v=koloni-90"></script>
+  <script src="kapsam.js?v=koloni-90"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -444,6 +445,17 @@
           /* düğme adları = açılan sayfa başlığı (K.TOPIC_LABEL tek kaynak) */
           var KT = ['ana', 'guc', 'yavru', 'hastalik', 'besleme', 'irk', 'bolme', 'ogul', 'tasima', 'uretim'].map(function (k) { return [k, K.TOPIC_LABEL[k]]; });
           var WHY = { ana: 'ana ilgi bekliyor', guc: 'zayıf / kayıtsız', yavru: 'yavru sorunu', hastalik: 'etkin hastalık', besleme: 'besleme gerek', bolme: 'aday', ogul: 'oğul riski', tasima: 'ana bekliyor', uretim: 'etkin parti' };
+          /* k89: mevcut 10 düğmeden sonra 7 yeni ekran (koloni-ek.html?ek=…); rozetler yalnız kayıtlardan (koloni-ek.js) */
+          var KE = window.SuperAriKoloniEk;
+          function extraTiles() {
+            if (!KE) return '';
+            var apE = apiaryFilter ? String(apiaryFilter) : 'all';
+            return KE.KEYS.map(function (k) {
+              var inf = KE.tileInfo(k, apE), lbl = K.TOPIC_LABEL[k] || k;
+              return '<a class="ks-tile ke-tile" data-topic="' + k + '" href="koloni-ek.html?ek=' + k + (apE !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(apE) : '&mode=all') + '" aria-label="' + esc(lbl + ', ' + inf.badge.t) + '">' +
+                KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(lbl) + '</span><span class="ks-badge ' + inf.badge.cls + '">' + esc(inf.badge.t) + '</span><span class="ks-sub">' + esc(inf.sub) + '</span></a>';
+            }).join('');
+          }
           ksKoloni = function (list) {
             var cnt = K.topicCounts ? K.topicCounts(list) : {};
             var unk = list.filter(function (h) { return !h.breed || h.breedEstimated; }).length;
@@ -455,7 +467,12 @@
               var sub = k === 'irk' ? 'melez · hat · anne ana' : (n ? WHY[k] : 'sorun yok');
               return '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(t[1] + (n ? ', ' + n + ' ' + (k === 'irk' ? 'kovanın ırkı bilinmiyor' : 'kovan') : '')) + '">' +
                 KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
-            }).join('');
+            }).join('') + extraTiles();
+            /* tam ad en fazla 2 satır: sığmayan adda yazı 0,5 px adımlarla küçülür (en az 11,5 px; kutu boyu aynı, «…» yok) */
+            tilesV.querySelectorAll('.ks-tl').forEach(function (l) {
+              var fs = parseFloat(getComputedStyle(l).fontSize) || 13, lh = 1.15;
+              while (fs > 11.5 && l.getBoundingClientRect().height > fs * lh * 2 + 1) { fs -= 0.5; l.style.fontSize = fs + 'px'; l.style.letterSpacing = '-0.1px'; }
+            });
             secV.hidden = false;
             secV.querySelector('h3').textContent = topic ? (K.TOPIC_LABEL[topic] || (topic === 'irk' ? 'Hat ve Genetik' : 'Kovanlar')) : 'Kovanlar · koloni bilgisi';
             document.getElementById('ksCount').textContent = list.length + ' kovan' + (KV.live() ? '' : ' · Demo');
@@ -507,6 +524,8 @@
       }
 
       var hives = D.loadHives ? D.loadHives().slice() : D.hives.slice();
+      /* k89: sönük kovan (koloni kaybı) koloni / tartı görünümlerinde etkin sayılmaz */
+      if (view === 'koloni' || view === 'tarti') hives = hives.filter(function (h) { return h.colonyState !== 'sonuk'; });
       var groups = groupByApiary(hives);
 
       /* Legacy apiary= without mode → already chose that apiary (list, not chooser) */
@@ -718,6 +737,6 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-89"></script>
+<script src="pwa.js?v=koloni-90"></script>
 </body>
 </html>

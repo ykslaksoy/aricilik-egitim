@@ -385,7 +385,7 @@
   }
   function apiaryNeeds(ap, hs, ctx) {
     var P = global.SuperAriPlan, I = global.SuperAriIlac, t = today(), mon = Number(t.slice(5, 7));
-    var acc = {}, act = hs.filter(function (h) { return h && h.colonyState !== 'birlestirildi'; });
+    var acc = {}, act = hs.filter(function (h) { return h && h.colonyState !== 'birlestirildi' && h.colonyState !== 'sonuk'; });
     var cur = null, T = tol() / 100, capN = {};
     function add(key, q, src, why) {
       if (!(q > 0) || !BY[key]) return;

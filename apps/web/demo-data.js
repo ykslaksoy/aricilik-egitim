@@ -866,6 +866,7 @@
     if (h.queenless === true) out.queenless = true;
     if (h.queenCellSince && /^\d{4}-\d{2}-\d{2}$/.test(String(h.queenCellSince))) out.queenCellSince = String(h.queenCellSince);
     if (h.colonyState === 'birlestirildi') out.colonyState = 'birlestirildi';
+    if (h.colonyState === 'sonuk') { out.colonyState = 'sonuk'; if (/^\d{4}-\d{2}-\d{2}$/.test(String(h.sonukAt || ''))) out.sonukAt = String(h.sonukAt); }
     if (h.mergedInto != null && isFinite(Number(h.mergedInto))) out.mergedInto = Number(h.mergedInto);
     if (h.splitFrom != null && isFinite(Number(h.splitFrom))) out.splitFrom = Number(h.splitFrom);
     if (h.createdBy === 'bolme' || h.createdBy === 'ogul') out.createdBy = h.createdBy;
@@ -1023,7 +1024,7 @@
     var aps = {};
     try { loadApiaries().forEach(function (a) { aps[a.id] = a; }); } catch (e) { /* ignore */ }
     loadHives().forEach(function (h) {
-      if (!h || h.colonyState === 'birlestirildi' || h.queenless) return;
+      if (!h || h.colonyState === 'birlestirildi' || h.colonyState === 'sonuk' || h.queenless) return;
       var p = queenPlan(h, date);
       if (p.key === 'iyi') return;
       if (p.tone === 'red') {
@@ -1383,7 +1384,7 @@
   function apiaryMajorityBreed(apiaryId, exceptId) {
     var cnt = {}, tot = 0;
     loadHives().forEach(function (x) {
-      if (String(x.apiaryId) !== String(apiaryId) || x.id === Number(exceptId) || !x.breed || x.colonyState === 'birlestirildi' || x.breed === 'Diğer') return;
+      if (String(x.apiaryId) !== String(apiaryId) || x.id === Number(exceptId) || !x.breed || x.colonyState === 'birlestirildi' || x.colonyState === 'sonuk' || x.breed === 'Diğer') return;
       cnt[x.breed] = (cnt[x.breed] || 0) + 1; tot++;
     });
     var best = '', bn = 0;
@@ -2533,7 +2534,7 @@
       map = peerCache.byDate[date] = {};
       var all = loadRecordsAll(), from = addDays(date, -45);
       liteHives().forEach(function (x) {
-        if (!x.apiaryId || x.colonyState === 'birlestirildi') return;
+        if (!x.apiaryId || x.colonyState === 'birlestirildi' || x.colonyState === 'sonuk') return;
         var l = ((all[String(Number(x.id))] || {}).strength || []).filter(function (q) { return q && q.date && q.date >= from && q.date <= date && Number(q.beeFrames) > 0; })
           .sort(function (a, b) { return a.date < b.date ? 1 : -1; })[0];
         if (l) (map[x.apiaryId] = map[x.apiaryId] || []).push({ id: String(x.id), v: Number(l.beeFrames) / (breedEnv(x).fob || 1) });
@@ -2556,6 +2557,8 @@
     var pa = hid0 != null ? peerAvg(hid0, date) : null, env = hv0 ? envFor(hv0, date) : null, basis, sc;
     /* 1) arılığın kendi ortalaması (cinse göre normalize) · 2) konum × cins beklentisi · 3) başlangıç beklentisi (8,6 çerçeve, ılıman) — hepsi yaşama sınırından başlar */
     var V = viableFrames(env ? env.bandKey : null, date);
+    /* k89: sönük kovan (koloni kaybı kaydı) → skor 0, güç ortalamalarına girmez */
+    if (hv0 && hv0.colonyState === 'sonuk' && (!hv0.sonukAt || date >= hv0.sonukAt)) return { score: 0, key: BELOW_VIABLE.key, label: 'Sönük kovan', tone: BELOW_VIABLE.tone, manual: false, auto: 'Sönük kovan', basis: 'sonuk', viable: V, sonuk: true };
     if (pa && pa.avg > 0) { basis = 'arilik'; sc = viaScore(bees, pa.avg * (env ? env.breed.fob : 1), V); }
     else if (env && env.fobNow) { basis = 'bolge'; sc = viaScore(bees, env.fobNow, V); }
     else { basis = 'baslangic'; sc = viaScore(bees, 8.6 * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON), V); }
@@ -3443,7 +3446,7 @@
     var nowIso = new Date().toISOString();
     ids.forEach(function (key) {
       var h = hives[Number(key)];
-      if (!h || h.colonyState === 'birlestirildi') return;
+      if (!h || h.colonyState === 'birlestirildi' || h.colonyState === 'sonuk') return;
       var st = colonyStatus(h.id, all);
       if (st.queenCellSince) {
         var qc = addDays(st.queenCellSince, 21);
@@ -4113,12 +4116,16 @@
   var OPS_LIVE = 'superari.koloniIslem.v1', OPS_DEMO = 'superari.koloniIslem.demo.v1';
   /* Standart larva transferi takvimi (1 günlük larva aşılandığı gün = 0. gün). */
   var GRAFT_TIMELINE = [
+    /* k89: 1 günlük larva aşılaması (gün 0) → ana arı yumurtadan ~16 günde (aşılamadan ~11–12 gün sonra) çıkar.
+       crit: kritik gün (Larva Transferi ve Ana Takvimi ekranında uyarı); win: gün aralığı (gösterim) */
+    { key: 'asilama', d: 0, label: 'Larva transferi (aşılama)' },
     { key: 'kabul', d: 1, label: 'Kabul kontrolü (kaç yüksük kabul edildi)' },
-    { key: 'kapanma', d: 5, label: 'Hücreler kapanır (dokunmayın)' },
-    { key: 'dagitim', d: 10, label: 'Olgun hücreleri çiftleşme kutularına dağıt' },
-    { key: 'cikis', d: 12, label: 'Ana arı çıkışı' },
-    { key: 'ucus', d: 17, label: 'Çiftleşme uçuşları (yaklaşık 5–9 gün sonra)' },
-    { key: 'yumurta', d: 24, label: 'Yumurtlama kontrolü (ana çiftleşti mi)' }
+    { key: 'kapanma', d: 5, label: 'Hücreler kapanır — 5–10. gün çerçeveyi sarsmayın, ters çevirmeyin', crit: true },
+    { key: 'dagitim', d: 10, label: 'Olgun hücreleri çiftleşme kutularına taşı (en geç 10. gün)', crit: true },
+    { key: 'cikis', d: 11, win: '11–12', label: 'Ana arı çıkışı — çıkış kontrolü (ilk çıkan diğer hücreleri öldürür)', crit: true },
+    { key: 'ucus', d: 17, win: '16–20', label: 'Çiftleşme uçuşu kontrolü (öğle, sıcak ve rüzgârsız günler)' },
+    { key: 'yumurta', d: 21, win: '21–28', label: 'Yumurtlama kontrolü (ana çiftleşti mi)', crit: true },
+    { key: 'yumurta2', d: 28, label: 'Son yumurtlama kontrolü: yumurta yoksa ana kayıp say, yeni ana ver' }
   ];
   function opsKey() { return workMode() === 'live' ? OPS_LIVE : OPS_DEMO; }
   function readOps() {
@@ -4427,7 +4434,7 @@
       var src = b.sourceHiveId != null ? hiveById(b.sourceHiveId) : null;
       var tag = 'larva transferi ' + fmtTr(b.date) + (src ? ', ' + src.name : '');
       GRAFT_TIMELINE.forEach(function (t) {
-        if (t.key === 'kapanma' || t.key === 'ucus') return;
+        if (t.key === 'asilama' || t.key === 'kapanma') return;
         if (t.key === 'kabul' && b.accepted != null) return;
         var due = b.dates[t.key];
         if (due < addDays(today0, -30)) return;
@@ -4437,6 +4444,169 @@
     });
     return out;
   }
+  /* ================= Koloni ek kayıtları (k89) =================
+   * Tek depo: superari.koloniEk.v1 (canlı) / superari.koloniEk.demo.v1 (demo; örnek kayıt YOK — boş başlar).
+   * Satır: { id, type, apiaryId, hiveId?, date, ...alanlar, createdAt, demo? }
+   *  type 'kapan'     oğul kapanı: name, place, lat?, lng?, every (kontrol aralığı, gün), lastCheck?, checks:[tarih], status 'aktif'|'kaldirildi'
+   *  type 'yakalama'  yakalanan oğul: trapId?, size 'kucuk'|'orta'|'buyuk', note, hiveId? (kovana alındıysa)
+   *  type 'kayip'     sönük kovan: hiveId, cause, note (fotoğraf: SuperAriFoto, kayıt kimliği 'ke:<id>')
+   *  type 'hircin'    hırçınlık skoru 1 (çok sakin) … 5 (çok hırçın), hiveId
+   *  type 'foto'      çerçeve fotoğrafı: hiveId, frame, pattern (elle değerlendirme), note (fotoğraflar 'ke:<id>')
+   *  type 'vet'       veteriner kontrolü: hiveId? (boş = arılığın tamamı), inspector, findings, medicine, withdrawalDays, withdrawalEnd
+   * Bulut: records tablosu, kind 'colony_event', local_id 'ke:<id>' (yeni tablo gerekmez; bkz. bulut.js). */
+  var KE_LIVE = 'superari.koloniEk.v1', KE_DEMO = 'superari.koloniEk.demo.v1';
+  var KE_TYPES = ['kapan', 'yakalama', 'kayip', 'hircin', 'foto', 'vet'];
+  var LOSS_CAUSES = [
+    { key: 'varroa', label: 'Varroa' }, { key: 'aclik', label: 'Açlık' }, { key: 'anasizlik', label: 'Anasızlık' },
+    { key: 'soguk', label: 'Soğuk / nem' }, { key: 'yagma', label: 'Yağma' }, { key: 'zehir', label: 'Zehirlenme' }, { key: 'bilinmiyor', label: 'Bilinmiyor' }
+  ];
+  var TEMPER_LABELS = { 1: 'Çok sakin', 2: 'Sakin', 3: 'Orta', 4: 'Hırçın', 5: 'Çok hırçın' };
+  var BROOD_PATTERNS = [
+    { key: 'duzenli', label: 'Düzenli (kompakt)' }, { key: 'hafif', label: 'Hafif boşluklu' }, { key: 'daginik', label: 'Dağınık' },
+    { key: 'cok-daginik', label: 'Çok dağınık / delikli' }, { key: 'yok', label: 'Kuluçka yok' }
+  ];
+  var SWARM_SIZES = { kucuk: 'Küçük', orta: 'Orta', buyuk: 'Büyük' };
+  function keKey() { return workMode() === 'live' ? KE_LIVE : KE_DEMO; }
+  function keRead() { try { var a = JSON.parse(localStorage.getItem(keKey()) || '[]'); return Array.isArray(a) ? a.filter(function (x) { return x && x.id && x.type; }) : []; } catch (e) { return []; } }
+  function keWrite(a) { try { localStorage.setItem(keKey(), JSON.stringify(a || [])); } catch (e) { /* ignore */ } try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e2) { /* ignore */ } }
+  function keList(f) {
+    f = f || {};
+    return keRead().filter(function (x) {
+      if (f.type && x.type !== f.type) return false;
+      if (f.hiveId != null && Number(x.hiveId) !== Number(f.hiveId)) return false;
+      if (f.apiaryId != null && f.apiaryId !== '' && f.apiaryId !== 'all' && String(x.apiaryId) !== String(f.apiaryId)) return false;
+      return true;
+    }).sort(function (a, b) { return a.date === b.date ? (String(a.createdAt) < String(b.createdAt) ? 1 : -1) : (a.date < b.date ? 1 : -1); });
+  }
+  function keGet(id) { return keRead().filter(function (x) { return String(x.id) === String(id); })[0] || null; }
+  function keClean(type, o, base) {
+    var r = base ? JSON.parse(JSON.stringify(base)) : { id: 'ke' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type: type, createdAt: new Date().toISOString() };
+    if (o.date != null) r.date = isoDate(o.date) || todayLocal(); if (!r.date) r.date = todayLocal();
+    if (o.hiveId != null && o.hiveId !== '') { var hv = hiveById(o.hiveId); if (!hv) throw new Error('Kovan bulunamadı'); r.hiveId = hv.id; r.apiaryId = String(hv.apiaryId); }
+    else if (o.hiveId === '') delete r.hiveId;
+    if (o.apiaryId != null && o.apiaryId !== '' && r.hiveId == null) r.apiaryId = String(o.apiaryId);
+    if (!r.apiaryId && type !== 'yakalama') throw new Error('Arılık seçin');
+    var t = function (k, n) { if (o[k] != null) { var v = txt(o[k], n); if (v) r[k] = v; else delete r[k]; } };
+    t('note', 400);
+    if (type === 'kapan') {
+      t('name', 60); t('place', 160);
+      if (!r.name) throw new Error('Kapan adı / yeri girin');
+      ['lat', 'lng'].forEach(function (k) { if (o[k] != null && o[k] !== '') { var v = numIn(o[k], -180, 180); if (v != null) r[k] = Math.round(v * 1e5) / 1e5; } });
+      if (o.every != null) r.every = intIn(o.every, 1, 60) || 7; if (!r.every) r.every = 7;
+      if (o.status != null) r.status = o.status === 'kaldirildi' ? 'kaldirildi' : 'aktif'; if (!r.status) r.status = 'aktif';
+      if (!Array.isArray(r.checks)) r.checks = [];
+    } else if (type === 'yakalama') {
+      if (o.trapId != null) { if (o.trapId) r.trapId = String(o.trapId); else delete r.trapId; }
+      if (r.trapId) { var tr = keGet(r.trapId); if (tr && !r.apiaryId) r.apiaryId = tr.apiaryId; }
+      if (!r.apiaryId) throw new Error('Arılık seçin');
+      if (o.size != null) r.size = SWARM_SIZES[o.size] ? o.size : 'orta';
+    } else if (type === 'kayip') {
+      if (r.hiveId == null) throw new Error('Kovan seçin');
+      if (o.cause != null) r.cause = LOSS_CAUSES.some(function (c) { return c.key === o.cause; }) ? o.cause : 'bilinmiyor'; if (!r.cause) r.cause = 'bilinmiyor';
+    } else if (type === 'hircin') {
+      if (r.hiveId == null) throw new Error('Kovan seçin');
+      if (o.score != null) { var sv = Math.round(Number(o.score)); r.score = sv >= 1 && sv <= 5 ? sv : null; } if (!r.score) throw new Error('1–5 arası puan seçin');
+    } else if (type === 'foto') {
+      if (r.hiveId == null) throw new Error('Kovan seçin');
+      t('frame', 20);
+      if (o.pattern != null) { if (BROOD_PATTERNS.some(function (p) { return p.key === o.pattern; })) r.pattern = o.pattern; else delete r.pattern; }
+    } else if (type === 'vet') {
+      t('inspector', 80); t('findings', 600); t('medicine', 200); t('docNo', 60);
+      if (o.withdrawalDays != null) { var wd = intIn(o.withdrawalDays, 0, 365); if (wd) r.withdrawalDays = wd; else delete r.withdrawalDays; }
+      if (r.withdrawalDays) r.withdrawalEnd = addDays(r.date, r.withdrawalDays); else delete r.withdrawalEnd;
+      if (!r.inspector && !r.findings && !r.medicine) throw new Error('Kontrol eden, bulgu veya reçeteden en az birini girin');
+    }
+    if (workMode() !== 'live') r.demo = true;
+    return r;
+  }
+  function keAdd(type, o) {
+    if (KE_TYPES.indexOf(type) < 0) throw new Error('Bilinmeyen kayıt türü');
+    var r = keClean(type, o || {}); var l = keRead(); l.push(r); keWrite(l); return r;
+  }
+  function keUpdate(id, patch) {
+    var l = keRead(), out = null;
+    l = l.map(function (x) { if (String(x.id) !== String(id)) return x; out = keClean(x.type, patch || {}, x); out.updatedAt = new Date().toISOString(); return out; });
+    if (!out) throw new Error('Kayıt bulunamadı');
+    keWrite(l); return out;
+  }
+  function keRemove(id) { keWrite(keRead().filter(function (x) { return String(x.id) !== String(id); })); }
+  /* Oğul kapanı: kontrol edildi → son kontrol bugün; sıradaki kontrol = son kontrol (yoksa kurulum) + aralık */
+  function trapNext(t) { return addDays(t.lastCheck || t.date, t.every || 7); }
+  function keUpdateRaw(id, fields) {
+    var l = keRead(), out = null;
+    l = l.map(function (x) { if (String(x.id) !== String(id)) return x; out = JSON.parse(JSON.stringify(x)); Object.keys(fields).forEach(function (k) { if (fields[k] == null) delete out[k]; else out[k] = fields[k]; }); out.updatedAt = new Date().toISOString(); return out; });
+    if (out) keWrite(l); return out;
+  }
+  /** Yakalanan oğulu yeni kovan yapar (arılığa eklenir, kovan sayısı güncellenir). */
+  function captureToHive(capId, o) {
+    o = o || {};
+    var c = keGet(capId); if (!c || c.type !== 'yakalama') throw new Error('Yakalama kaydı bulunamadı');
+    if (c.hiveId != null && hiveById(c.hiveId)) throw new Error('Bu oğul zaten kovana alındı');
+    var apiaryId = String(o.apiaryId || c.apiaryId || ''), aps = loadApiaries(), ap = null;
+    aps.forEach(function (a) { if (String(a.id) === apiaryId) ap = a; });
+    if (!ap) throw new Error('Arılık seçin');
+    var list = loadHives(), used = {}, maxId = 0, maxAp = 0;
+    list.forEach(function (h) { used[h.id] = true; maxId = Math.max(maxId, h.id); if (String(h.apiaryId) === apiaryId) maxAp = Math.max(maxAp, h.id); });
+    var nid = maxAp + 1; while (used[nid]) nid = ++maxId + 1;
+    var nh = normalizeHive({ id: nid, name: txt(o.name, 60) || ('Kovan ' + nid), apiaryId: apiaryId, strength: 'orta', swarmRisk: 'Düşük', breedUnknown: true });
+    nh.createdBy = 'ogul';
+    list.push(nh); saveHives(list);
+    ap.hiveCount = list.filter(function (h) { return String(h.apiaryId) === apiaryId; }).length; saveApiaries(aps);
+    var bees = intIn(o.beeFrames, 0, 20);
+    if (bees) addRecord(nh.id, 'strength', { date: c.date, beeFrames: bees, broodFrames: 0, honeyFrames: 0, pollenFrames: 0, note: 'Yakalanan oğul kovanlandı' + (workMode() === 'demo' ? ' · Demo' : '') });
+    keUpdateRaw(capId, { hiveId: nh.id, apiaryId: apiaryId });
+    return nh;
+  }
+  /** Sönük kovan kaydı: kovan «sönük» olur, etkin sayımlardan ve güç ortalamalarından çıkar; geçmiş korunur. */
+  function markDead(o) {
+    o = o || {};
+    var hv = hiveById(o.hiveId); if (!hv) throw new Error('Kovan seçin');
+    if (hv.colonyState === 'sonuk') throw new Error('Bu kovan zaten sönük olarak kayıtlı');
+    if (hv.colonyState === 'birlestirildi') throw new Error('Birleştirilmiş kovan sönük kaydedilemez');
+    var r = keAdd('kayip', o);
+    var list = loadHives().map(function (h) { if (h.id !== hv.id) return h; var c = cloneObj(h); c.colonyState = 'sonuk'; c.sonukAt = r.date; c.colonyUpdatedAt = new Date().toISOString(); return c; });
+    saveHives(list);
+    return r;
+  }
+  function undoDead(recId) {
+    var r = keGet(recId); if (!r || r.type !== 'kayip') throw new Error('Kayıt bulunamadı');
+    keRemove(recId);
+    var others = keList({ type: 'kayip', hiveId: r.hiveId });
+    if (!others.length) {
+      saveHives(loadHives().map(function (h) { if (h.id !== Number(r.hiveId) || h.colonyState !== 'sonuk') return h; var c = cloneObj(h); delete c.colonyState; delete c.sonukAt; c.colonyUpdatedAt = new Date().toISOString(); return c; }));
+    }
+    return r;
+  }
+  /** Hırçınlık skoru (1 çok sakin … 5 çok hırçın); kovan kaydındaki «sakinlik» (5 çok sakin) da güncellenir: sakinlik = 6 − skor. */
+  function setTemper(o) {
+    var r = keAdd('hircin', o || {});
+    try { updateHiveColony(r.hiveId, { calmness: 6 - r.score }); } catch (e) { /* ignore */ }
+    return r;
+  }
+  function lastTemper(hiveId) { return keList({ type: 'hircin', hiveId: hiveId })[0] || null; }
+  function isActiveHive(h) { return !!h && h.colonyState !== 'sonuk' && h.colonyState !== 'birlestirildi'; }
+  /* Görevler: kapan kontrol günü · veteriner bekleme süresi bitişi (otomatik, «sig» ile) */
+  function extraTasks() {
+    var out = [], today0 = todayLocal();
+    keRead().forEach(function (x) {
+      if (x.type === 'kapan' && x.status !== 'kaldirildi') {
+        var due = trapNext(x);
+        out.push({ id: 'kr-kapan-' + x.id, title: 'Oğul kapanını kontrol et — ' + x.name, apiaryId: x.apiaryId, priority: due <= today0 ? 2 : 3, auto: true, kind: 'ogul', due: due, sig: 'k' + (x.lastCheck || x.date) });
+      } else if (x.type === 'vet' && x.withdrawalEnd && x.withdrawalEnd >= addDays(today0, -7)) {
+        var hv = x.hiveId != null ? hiveById(x.hiveId) : null;
+        out.push({ id: 'kr-vet-' + x.id, title: 'Bekleme süresi bitiyor (' + (x.medicine || 'ilaç') + ') — ' + (hv ? hv.name : 'arılık') + ': bal hasadı bu tarihten sonra', hiveId: hv ? hv.id : undefined, apiaryId: x.apiaryId, priority: 3, auto: true, kind: 'hastalik', due: x.withdrawalEnd, sig: 'v' + x.withdrawalEnd });
+      }
+    });
+    return out;
+  }
+  var colonyExtra = {
+    KEY_LIVE: KE_LIVE, KEY_DEMO: KE_DEMO, TYPES: KE_TYPES, LOSS_CAUSES: LOSS_CAUSES, TEMPER_LABELS: TEMPER_LABELS, BROOD_PATTERNS: BROOD_PATTERNS, SWARM_SIZES: SWARM_SIZES,
+    list: keList, get: keGet, add: keAdd, update: keUpdate, remove: keRemove, trapNext: trapNext, trapCheck: function (id, date) {
+      var t = keGet(id); if (!t || t.type !== 'kapan') throw new Error('Kapan bulunamadı');
+      var d = isoDate(date) || todayLocal(); return keUpdateRaw(id, { lastCheck: d, checks: (t.checks || []).concat([d]).slice(-30) });
+    },
+    captureToHive: captureToHive, markDead: markDead, undoDead: undoDead, setTemper: setTemper, lastTemper: lastTemper, isActiveHive: isActiveHive, tasks: extraTasks
+  };
   /* ================= Kovan kutusu (gövde / kat / ballık) ================= */
   function boxLabel(b) {
     if (!b) return '';
@@ -4954,6 +5124,7 @@
     try { list = list.concat(queenRenewTasks()); } catch (e) { /* ignore */ }
     try { list = list.concat(swarmTasks()); } catch (e) { /* ignore */ }
     try { list = list.concat(batchTasks()); } catch (e) { /* ignore */ }
+    try { list = list.concat(extraTasks()); } catch (e) { /* ignore */ }
     var done = readTaskDone();
     var seen = {};
     list.forEach(function (t) {
@@ -5068,6 +5239,7 @@
       },
       taskStore: taskStore,
       colonyOps: colonyOps,
+      colonyExtra: colonyExtra,
       goc: gocStore,
       stock: stockStore,
       records: colonyRecords,

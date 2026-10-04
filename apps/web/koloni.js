@@ -876,6 +876,14 @@
     tasima: '<rect x="5.8" y="9" width="8.2" height="6.4" rx="0.8"/><path d="M8.4 9v6.4M11.2 9v6.4"/><path d="M15.4 12.2h3.2M17.2 10.7l1.5 1.5-1.5 1.5"/>',
     uretim: '<path d="M12 5.4c1.9 0 3 1.7 3 4.2 0 3.6-1.4 7.8-3 8.8-1.6-1-3-5.2-3-8.8 0-2.5 1.1-4.2 3-4.2z"/><path d="M10.2 9.6h3.6M10.1 12.2h3.8"/>'
   };
+  /* k89: 7 yeni konu (Koloni ızgarasında mevcut 10 düğmeden sonra; ekranlar koloni-ek.html?ek=<anahtar>) */
+  TOPIC_ICONS.larva = '<rect x="6" y="6.4" width="12" height="11.4" rx="1.4"/><path d="M6 9.6h12M9.2 5v2.8M14.8 5v2.8"/><path d="M11.9 11.6c1.1 0 1.7.9 1.7 2.1 0 1.5-.8 2.5-1.7 2.9-.9-.4-1.7-1.4-1.7-2.9 0-1.2.6-2.1 1.7-2.1z"/>';
+  TOPIC_ICONS.kapan = '<path d="M7 9.6h10l-1.2 7.6H8.2z"/><path d="M6.2 9.6h11.6M12 9.6V6.6M9.6 6.6h4.8"/><circle cx="12" cy="13.6" r="1.1"/>';
+  TOPIC_ICONS.kayip = '<rect x="6.4" y="8.4" width="11.2" height="9" rx="0.8"/><path d="M5.6 8.4h12.8M9.6 12.2l4.8 3.6M14.4 12.2l-4.8 3.6"/><path d="M10.4 5.8h3.2"/>';
+  TOPIC_ICONS.hircin = '<path d="M5.8 15.6a6.2 6.2 0 0 1 12.4 0"/><path d="M12 15.6l3.2-4.2"/><circle cx="12" cy="15.6" r="1"/><path d="M7.2 17.8h9.6"/>';
+  TOPIC_ICONS.hat = '<path d="M6.4 17.4h11.2"/><path d="M7.6 17.4v-4M10.4 17.4v-6.4M13.2 17.4v-3M16 17.4V8.2"/><path d="M7.2 9.6l3.4-2.6 2.8 2 3.4-3"/>';
+  TOPIC_ICONS.foto = '<rect x="5.6" y="7.6" width="12.8" height="9.6" rx="1.2"/><path d="M9.4 7.6l1-1.6h3.2l1 1.6"/><circle cx="12" cy="12.4" r="2.6"/>';
+  TOPIC_ICONS.vet = '<rect x="7" y="5.8" width="10" height="12.4" rx="1.2"/><path d="M9.8 5.8V5h4.4v.8"/><path d="M12 9.4v4.4M9.8 11.6h4.4"/><path d="M9.4 16h5.2"/>';
   TOPIC_ICONS.irk = '<path d="M8.6 5.6c0 4.4 6.8 4.4 6.8 8.8 0 2-1.4 3.2-3.4 4"/><path d="M15.4 5.6c0 4.4-6.8 4.4-6.8 8.8 0 2 1.4 3.2 3.4 4"/><path d="M9.7 8.2h4.6M9.7 15.8h4.6"/>';
   var TOPICS = [
     { key: 'ana', label: 'Ana Arı', ready: true },
@@ -892,6 +900,14 @@
   TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
   TOPIC_LABEL.kis = 'Kışlık hazırlık';
   TOPIC_LABEL.irk = 'Hat ve Genetik';
+  /* k89 yeni ekranlar: düğme adı = ekran başlığı (uzun adlar kullanılmaz) */
+  var EXTRA_TOPICS = [
+    { key: 'larva', label: 'Larva Transferi ve Ana Takvimi' }, { key: 'kapan', label: 'Oğul Kapanı ve Yakalama' },
+    { key: 'kayip', label: 'Koloni Kaybı (Sönük Kovan)' }, { key: 'hircin', label: 'Hırçınlık Skoru' },
+    { key: 'hat', label: 'Hat Performans Analizi' }, { key: 'foto', label: 'Çerçeve Fotoğraf Analizi' },
+    { key: 'vet', label: 'Veteriner Kontrol ve Reçete' }
+  ];
+  EXTRA_TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
   TOPIC_LABEL.hasat = 'Hasat notu';
   TOPIC_LABEL.ilac = 'İlaçlama';
 
@@ -952,7 +968,7 @@
     var ogulHives = {};
     ((d0 && d0.alerts) || []).forEach(function (a) { if (a && a.type === 'ogul' && a.hiveId != null) ogulHives[String(a.hiveId)] = true; });
     (hives || []).forEach(function (h) {
-      if (h.colonyState === 'birlestirildi') return;
+      if (h.colonyState === 'birlestirildi' || h.colonyState === 'sonuk') return;
       if (c && c.queenStatus(h) === 'Yenile') out.ana++;
       var isOgul = !!ogulHives[String(h.id)];
       if (!all[String(h.id)] && !h.queenless) { if (isOgul) out.ogul++; return; }
@@ -1014,6 +1030,7 @@
     if (st.strengthClass) out.push(chip('Güç: ' + (st.strengthTagShort || st.strengthClass), toneOfClass(st.strengthClass)));
     if (st.chilled) out.push(chip('Zayıf koloni', 'red'));
     if (h.colonyState === 'birlestirildi') out.push(chip('Birleştirildi' + (h.mergedInto ? ' → Kovan ' + h.mergedInto : ''), ''));
+    if (h.colonyState === 'sonuk') out.push(chip('Sönük kovan' + (h.sonukAt ? ' · ' + fmtDate(h.sonukAt) : ''), 'red'));
     if (st.queenless) out.push(chip('Anasız', 'red'));
     if (st.queenCellSince) out.push(chip('Ana hücresi verildi', 'orange'));
     if (st.swarmCell) out.push(chip('Oğul memesi' + (st.cellCapped === 'kapali' ? ' (kapalı)' : ''), 'orange'));
@@ -2427,7 +2444,7 @@
     var all = r.loadAll();
     var out = [];
     (hives || []).forEach(function (h) {
-      if (h.colonyState === 'birlestirildi') return;
+      if (h.colonyState === 'birlestirildi' || h.colonyState === 'sonuk') return;
       if (!all[String(h.id)] && !h.queenless) return;
       var st = r.status(h.id, all);
       var ws = r.winterStatus(h.id, all);
@@ -2479,6 +2496,7 @@
     topicCounts: topicCounts,
     TOPICS: TOPICS,
     TOPIC_LABEL: TOPIC_LABEL,
+    EXTRA_TOPICS: EXTRA_TOPICS,
     gridHtml: gridHtml,
     openSoon: openSoon,
     topicListHtml: topicListHtml,

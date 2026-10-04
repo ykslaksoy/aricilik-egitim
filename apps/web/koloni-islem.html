@@ -61,8 +61,8 @@
     </section>
     <div id="view"></div>
   </main>
-  <script src="demo-data.js?v=koloni-89"></script>
-  <script src="koloni.js?v=koloni-89"></script>
+  <script src="demo-data.js?v=koloni-90"></script>
+  <script src="koloni.js?v=koloni-90"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -90,7 +90,7 @@
       return 'koloni-islem.html?' + q.toString();
     }
     function hivesAll() { return D.hivesForApiary(apiaryId); }
-    function active() { return hivesAll().filter(function (h) { return h.colonyState !== 'birlestirildi'; }); }
+    function active() { return hivesAll().filter(function (h) { return h.colonyState !== 'birlestirildi' && h.colonyState !== 'sonuk'; }); }
     function statusOf(h) { try { return R.status(h.id); } catch (e) { return {}; } }
     function hiveOpt(h, extra) { return '<option value="' + esc(h.id) + '">' + esc(h.name + ' (No ' + K.hiveNo(h) + ')' + (extra ? ' · ' + extra : '')) + '</option>'; }
     function msg(el, ok, text, html) { el.className = ok ? 'ki-ok' : 'ki-err'; el.hidden = false; if (html) el.innerHTML = html; else el.textContent = text; }
@@ -379,7 +379,7 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-89"></script>
-<script src="pwa.js?v=koloni-89"></script>
+  <script src="nav.js?v=koloni-90"></script>
+<script src="pwa.js?v=koloni-90"></script>
 </body>
 </html>

@@ -241,7 +241,7 @@
     D = global.SuperAriDemo; var R = D.records, P = global.SuperAriPlan, SH = global.SuperAriSensorHealth, t = today();
     var all = null; try { all = R.loadAll(); } catch (e) { all = null; }
     var alerts = {}; try { (D.alerts || []).forEach(function (a) { if (a && a.severity === 'high' && a.hiveId != null && !(mode() === 'live' && a.demo) && !/^kra-anasiz-/.test(String(a.id))) alerts[String(a.hiveId)] = a; }); } catch (e) { /* ignore */ }
-    var rows = (hives || []).filter(function (h) { return h && h.colonyState !== 'birlestirildi'; }).map(function (h) {
+    var rows = (hives || []).filter(function (h) { return h && h.colonyState !== 'birlestirildi' && h.colonyState !== 'sonuk'; }).map(function (h) {
       var why = [], pri = 4, st = null;
       try { st = R.status(h.id, all || undefined); } catch (e) { st = null; }
       var band = null; try { var ev = SH && SH.evaluateHive ? SH.evaluateHive(h) : null; band = ev && ev.band ? ev.band.key : null; } catch (e) { band = null; }

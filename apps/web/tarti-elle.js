@@ -214,7 +214,7 @@
     ensureCss(); close();
     var h = hiveId != null && hiveId !== '' ? D.hiveById(hiveId) : null;
     var aps = D.loadApiaries(), apSel = String((h && h.apiaryId) || opts.apiaryId || (aps[0] && aps[0].id) || '');
-    function hiveOpts(ap) { return D.loadHives().filter(function (x) { return String(x.apiaryId) === String(ap) && x.colonyState !== 'birlestirildi'; }).map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join(''); }
+    function hiveOpts(ap) { return D.loadHives().filter(function (x) { return String(x.apiaryId) === String(ap) && x.colonyState !== 'birlestirildi' && x.colonyState !== 'sonuk'; }).map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join(''); }
     var back = document.createElement('div'); back.className = 'te-back'; back.id = 'teSheet';
     var auto = h ? autoReading(h.id) : null;
     var formHtml = '<form data-te-form autocomplete="off" onsubmit="return false">' +

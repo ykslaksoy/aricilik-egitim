@@ -140,6 +140,8 @@ const SHELL = [
   "/kapsam.js",
   "/kayit.html",
   "/kolay-muayene.js",
+  "/koloni-ek.html",
+  "/koloni-ek.js",
   "/koloni-islem.html",
   "/koloni.js",
   "/kovan-ara.js",

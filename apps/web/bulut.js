@@ -34,6 +34,7 @@
     talep: 'superari.stok.talep.v1', /* Stok alım talepleri (canlı): local_id 'tl:<id>' */
     stokKat: 'superari.stok.kategoriler.v1', /* Stok kullanıcı kategorileri (canlı): local_id 'sk:<id>', arılıksız */
     ekipman: 'superari.ekipman.v1', /* Ekipman / temizlik kayıtları: local_id 'ek:<id>', arılık seçildiyse arılığa bağlı */
+    koloniEk: 'superari.koloniEk.v1', /* k89 Koloni ek kayıtları (oğul kapanı / yakalama / sönük kovan / hırçınlık / çerçeve fotoğrafı / veteriner): records (kind colony_event, local_id 'ke:<id>'); fotoğraflar record_ids 'ke:<id>' */
     plan: 'superari.bakimPlan.v1' /* Bakım planı: arılık profili / çam balı (apiaries.data._plan), bal katı (hives.data._superSince) */
   };
   var SENSOR_FIELDS = ['weightKg', 'deltaKg', 'health', 'healthScore', 'colonyScore', 'swarmRisk'];
@@ -430,6 +431,17 @@
     ownRows('ekipman', 'ek', 'ekipman');
     ownRows('talep', 'tl', 'stok_talep');
     ownRows('stokKat', 'sk', 'stok_kategori');
+    /* k89 Koloni ek kayıtları: «records» ad alanında (fotoğraf record_ids eşlemesi st.keys['records:ke:<id>'] ile çalışsın) */
+    (function () {
+      var arr = raw('koloniEk', []); if (!Array.isArray(arr)) return;
+      arr.forEach(function (x) {
+        if (!x || !x.id || x.demo) return;
+        var hk = x.hiveId != null ? X.hiveKey(x.hiveId) : null;
+        var u = X.apUuid(x.apiaryId) || (hk ? hk.split(':')[0] : null); if (!u) return;
+        var lid = 'ke:' + x.id, k = keyFor(st, 'records', lid, u), dd = mapRefs(x, toCloud); dd.store = 'koloni_ek'; /* dd.type = kayıt türü (kapan, kayip, …) olduğu gibi kalır */
+        add(entry('records', k, { key: k, apiary_id: u, local_id: lid, hive_key: hk || null, kind: 'colony_event', record_date: isoDate(x.date), data: dd }));
+      });
+    })();
     function scopeOf(o) {
       if (o.apiaryId != null && o.apiaryId !== '') return { u: X.apUuid(o.apiaryId), ref: true };
       if (o.hiveId != null && o.hiveId !== '') { var hk = X.hiveKey(o.hiveId); return { u: hk ? hk.split(':')[0] : null, ref: !!X.hiveAp[String(Number(o.hiveId))] }; }
@@ -535,9 +547,9 @@
       apiaries: raw('apiaries', []), hives: raw('hives', []), queens: raw('queens', []), records: raw('records', {}),
       harvest: raw('harvest', []), ops: raw('ops', { events: [], batches: [] }), tasks: raw('tasks', []), done: raw('done', {}), stock: raw('stock', []),
       plan: raw('plan', {}), tarti: raw('tarti', []), saglik: raw('saglik', {}),
-      gider: raw('gider', []), tasima: raw('tasima', []), gelir: raw('gelir', []), goc: raw('goc', []), musteri: raw('musteri', []), satis: raw('satis', []), ekipman: raw('ekipman', []), talep: raw('talep', []), stokKat: raw('stokKat', [])
+      gider: raw('gider', []), tasima: raw('tasima', []), gelir: raw('gelir', []), goc: raw('goc', []), musteri: raw('musteri', []), satis: raw('satis', []), ekipman: raw('ekipman', []), talep: raw('talep', []), stokKat: raw('stokKat', []), koloniEk: raw('koloniEk', [])
     };
-    ['gider', 'tasima', 'gelir', 'goc', 'musteri', 'satis', 'ekipman', 'talep', 'stokKat'].forEach(function (k) { if (!Array.isArray(L[k])) L[k] = []; });
+    ['gider', 'tasima', 'gelir', 'goc', 'musteri', 'satis', 'ekipman', 'talep', 'stokKat', 'koloniEk'].forEach(function (k) { if (!Array.isArray(L[k])) L[k] = []; });
     if (!L.saglik || typeof L.saglik !== 'object' || Array.isArray(L.saglik)) L.saglik = {};
     if (!Array.isArray(L.tarti)) L.tarti = [];
     if (!L.plan || typeof L.plan !== 'object' || Array.isArray(L.plan)) L.plan = {};
@@ -636,6 +648,11 @@
       if (r.kind === 'harvest') {
         if (d) { var al = X.apLocal(r.apiary_id); if (al) d.apiaryId = al; delete d.demo; }
         upsertBy(L.harvest, lid, d); dirty.harvest = 1; done(r, 'harvest', lid); return;
+      }
+      var km = r.kind === 'colony_event' && /^ke:(.+)$/.exec(lid);
+      if (km) {
+        if (d) { delete d.store; delete d.demo; d.id = km[1]; var kal = X.apLocal(r.apiary_id); if (kal != null) d.apiaryId = kal; if (r.hive_key) { var kh = X.hiveOfKey(r.hive_key); if (kh != null) d.hiveId = kh; } }
+        upsertBy(L.koloniEk, km[1], d); dirty.koloniEk = 1; done(r, 'records', lid); return;
       }
       var mm = r.kind === 'colony_event' && /^(gd|ts|gl|gc|mu|sa|ek|tl|sk):(.+)$/.exec(lid);
       if (mm) {

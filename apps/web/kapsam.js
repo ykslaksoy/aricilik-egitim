@@ -135,7 +135,7 @@
     function valid(s) { return (s === 'all' && !opts.noAll) || aps.some(function (a) { return String(a.id) === String(s); }) ? String(s) : (opts.noAll && aps[0] ? String(aps[0].id) : 'all'); }
     function list() { return (opts.noAll ? [] : ['all']).concat(aps.map(function (a) { return String(a.id); })); }
     function apOf(id) { return aps.filter(function (a) { return String(a.id) === String(id); })[0] || null; }
-    function hives() { var hs = []; try { hs = D.loadHives() || []; } catch (e) { hs = []; } return scope === 'all' ? hs : hs.filter(function (h) { return String(h.apiaryId) === scope; }); }
+    function hives() { var hs = []; try { hs = (D.loadHives() || []).filter(function (h) { return h && h.colonyState !== 'sonuk'; }); } catch (e) { hs = []; } /* k89: sönük kovan etkin sayımlara girmez */ return scope === 'all' ? hs : hs.filter(function (h) { return String(h.apiaryId) === scope; }); }
     loadAps();
     var saved = null; try { saved = global.localStorage.getItem(SCOPE_KEY); } catch (e) { saved = null; }
     scope = valid(opts.initial || saved || 'all');

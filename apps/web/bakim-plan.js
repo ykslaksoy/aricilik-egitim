@@ -331,7 +331,7 @@
     return out;
   }
   function winterStockAll(hives) {
-    var rows = (hives || []).filter(function (h) { return h && h.colonyState !== 'birlestirildi'; }).map(winterStock);
+    var rows = (hives || []).filter(function (h) { return h && h.colonyState !== 'birlestirildi' && h.colonyState !== 'sonuk'; }).map(winterStock);
     var c = { yeterli: 0, az: 0, kritik: 0, yok: 0 };
     rows.forEach(function (x) { c[x.key]++; });
     return { rows: rows, counts: c };

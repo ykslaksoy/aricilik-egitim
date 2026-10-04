@@ -43,7 +43,7 @@
     var d = D(), h = d && d.hiveById(hiveId); if (!h) return;
     var q = null; try { q = h.currentQueenId ? d.colony.queenById(h.currentQueenId) : null; } catch (e) { q = null; }
     var aps = d.loadApiaries();
-    var others = d.loadHives().filter(function (x) { return String(x.apiaryId) === String(h.apiaryId) && x.id !== h.id && x.colonyState !== 'birlestirildi'; });
+    var others = d.loadHives().filter(function (x) { return String(x.apiaryId) === String(h.apiaryId) && x.id !== h.id && x.colonyState !== 'birlestirildi' && x.colonyState !== 'sonuk'; });
     var hist = []; try { hist = d.colonyOps.swarmEvents(h.id); } catch (e) { hist = []; }
     var st = { outcome: 'yakalandi', target: 'yeni' };
     var breed = (q && q.breed) || h.breed || '';
