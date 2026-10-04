@@ -78,7 +78,7 @@
     var apSel = document.getElementById('apSel');
     apSel.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
     apSel.value = apiaryId;
-    var TITLES = { bolme: 'Bölme / Birleştirme', tasima: 'Ana taşıma', uretim: 'Ana üretimi' };
+    var TITLES = { bolme: 'Koloni Bölme / Birleştirme', tasima: 'Ana Arı Değişimi', uretim: 'Ana Arı Üretimi' };
     document.getElementById('modeNote').textContent = 'Kovan ve ana arı kayıtlarını değiştirir; her iki kovanın geçmişine yazılır. ' +
       (R.workMode() === 'live' ? 'Canlı mod.' : 'Demo mod: işlem kayıtları demo deposunda tutulur; örnek işlem verisi yoktur.');
     function today() { return R.todayLocal(); }
@@ -231,7 +231,7 @@
       var free = O.freeQueens();
       var waiting = hs.filter(function (h) { var st = statusOf(h); return h.queenless || st.queenless; });
       var qLabel = function (h) { var q = C.queenById(h.currentQueenId); return (q ? q.id : h.currentQueenId) + ' · ' + h.name + (q && q.year ? ' · ' + q.year : '') + (q && q.breed ? ' ' + q.breed : ''); };
-      var html = '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">👑 Ana taşıma</h2>' +
+      var html = '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">👑 Ana Arı Değişimi</h2>' +
         '<form class="ki-form" id="fMove" autocomplete="off">' +
         '<label class="full">Taşınacak ana<select name="q" required>' +
           (free.length ? '<optgroup label="Boştaki analar (kovana yerleşmemiş)">' + free.map(function (q) { return '<option value="' + esc(q.id) + '">' + esc(q.id + ' · boşta' + (q.year ? ' · ' + q.year : '') + (q.breed ? ' ' + q.breed : '')) + '</option>'; }).join('') + '</optgroup>' : '') +

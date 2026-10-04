@@ -431,7 +431,7 @@
             }
             var cs = D.colony ? D.colony.summary(hs) : null;
             var br = cs && cs.breeds && cs.breeds.length ? cs.breeds.map(function (b) { return b.breed; }).slice(0, 2).join(', ') : 'ırk girilmemiş';
-            return { t: '🧬 Irk: ' + br + (cs && cs.requeen ? ' · ' + cs.requeen + ' ana yenilenmeli' : ''), b: 'Irk ve soy', href: topicHref('irk'), k: 'irk' };
+            return { t: '🧬 Irk: ' + br + (cs && cs.requeen ? ' · ' + cs.requeen + ' ana yenilenmeli' : ''), b: 'Hat ve Genetik', href: topicHref('irk'), k: 'irk' };
           },
           onChange: function (scope) {
             if (scope !== initV) location.reload();
@@ -441,8 +441,8 @@
         if (noteA) noteA.addEventListener('click', function (e) { if (noteA.getAttribute('data-note') === 'elle' && TE) { e.preventDefault(); TE.open('', { apiaryId: apiaryFilter, onSaved: function () { location.reload(); } }); } });
         if (view === 'koloni' && K) {
           /* Büyük konu düğmeleri (3 sütun, 128 px): sayı rozeti + kısa açıklama; seçili konu yeşil çerçeve */
-          var KT = [['ana', 'Ana arı'], ['guc', 'Koloni gücü'], ['yavru', 'Yavru durumu'], ['hastalik', 'Hastalık'], ['besleme', 'Besleme'], ['irk', 'Irk ve soy'],
-            ['bolme', 'Bölme / Birleştirme'], ['ogul', 'Oğul'], ['tasima', 'Ana taşıma'], ['uretim', 'Ana üretimi']];
+          /* düğme adları = açılan sayfa başlığı (K.TOPIC_LABEL tek kaynak) */
+          var KT = ['ana', 'guc', 'yavru', 'hastalik', 'besleme', 'irk', 'bolme', 'ogul', 'tasima', 'uretim'].map(function (k) { return [k, K.TOPIC_LABEL[k]]; });
           var WHY = { ana: 'ana ilgi bekliyor', guc: 'zayıf / kayıtsız', yavru: 'yavru sorunu', hastalik: 'etkin hastalık', besleme: 'besleme gerek', bolme: 'aday', ogul: 'oğul riski', tasima: 'ana bekliyor', uretim: 'etkin parti' };
           ksKoloni = function (list) {
             var cnt = K.topicCounts ? K.topicCounts(list) : {};
@@ -457,7 +457,7 @@
                 KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
             }).join('');
             secV.hidden = false;
-            secV.querySelector('h3').textContent = topic ? (K.TOPIC_LABEL[topic] || (topic === 'irk' ? 'Irk ve soy' : 'Kovanlar')) : 'Kovanlar · koloni bilgisi';
+            secV.querySelector('h3').textContent = topic ? (K.TOPIC_LABEL[topic] || (topic === 'irk' ? 'Hat ve Genetik' : 'Kovanlar')) : 'Kovanlar · koloni bilgisi';
             document.getElementById('ksCount').textContent = list.length + ' kovan' + (KV.live() ? '' : ' · Demo');
             oc.parentNode.insertBefore(secV, oc);
           };

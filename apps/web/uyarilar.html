@@ -54,6 +54,7 @@
     }
   </style>
   <link rel="stylesheet" href="kapsam.css?v=koloni-89" />
+  <style>/* k89: uzun başlık («Oğul Eğilimi ve Takibi») → arılık seçici alt satıra iner, adı kısalmaz */.ks-card .ks-top{flex-wrap:wrap;row-gap:2px;}.ks-card .ks-sel{max-width:100%;}</style>
 </head>
 <body>
   <main class="wrap">
@@ -350,7 +351,7 @@
   function inS(a, scope) { var ap = apOf(a); return scope === 'all' || !ap || ap === String(scope); }
   /* Bakım düzeni: Kapsam kartı; eski «Tüm uyarılar / Arılıklar» seçimi kapsam seçicisine taşındı */
   P.init({
-    title: view === 'ogul' ? 'Oğul' : 'Uyarılar', hide: ['#modeSwitch', '#pageTitle'],
+    title: view === 'ogul' ? 'Oğul Eğilimi ve Takibi' : 'Uyarılar', hide: ['#modeSwitch', '#pageTitle'],
     icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 29 27H3z" fill="#ffe066" stroke="#e8590c" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 12v7" stroke="#2c241c" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="23" r="1.6" fill="#2c241c"/></svg>',
     stats: function (hs, scope, sm) {
       var al = (D.alerts || []).filter(function (a) { return inS(a, scope); });

@@ -417,7 +417,7 @@
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
           '<p class="full kol-sub" id="kolIrkHint" style="margin:-.2rem 0 0;"' + (!curBreed || h.breedEstimated ? '' : ' hidden') + '>' + (h.breedEstimated ? 'Irk tahminidir. ' : 'Irk bilinmiyor. ') +
             '<a href="#" id="kolIrkTahmin" style="color:#2b6cb0;text-decoration:underline;font-weight:700;">Irk tahmini (kesin değil)</a></p>' +
-          '<button type="button" class="full kol-lin-btn" id="kolLineage">🧬 Irk ve soy — melez, damızlık hat, anne ana</button>' +
+          '<button type="button" class="full kol-lin-btn" id="kolLineage">🧬 Hat ve Genetik — melez, damızlık hat, anne ana</button>' +
           '<label class="full" id="kolOtherWrap"' + (isOther ? '' : ' hidden') + '>Irk adı<input name="breedOther" maxlength="60" value="' + esc(isOther ? curBreed : '') + '" placeholder="ör. Yerel melez"></label>' +
           '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
           '<label class="full">Kaynak / üretici<input name="queenSource" maxlength="120" value="' + esc(h.queenSource || '') + '" placeholder="ör. Kendi üretimim, ana arı yetiştiricisi"></label>' +
@@ -588,7 +588,7 @@
     var back = document.createElement('div');
     back.className = 'kol-back'; back.id = 'koloniLineage';
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="linTitle">' +
-      '<h3 id="linTitle">🧬 ' + esc(h.name) + ' · Irk ve soy</h3>' +
+      '<h3 id="linTitle">🧬 ' + esc(h.name) + ' · Hat ve Genetik</h3>' +
       '<p class="kol-sub">Mevcut ana arıya yazılır' + (majority ? ' · arılıkta çoğunluk: <b>' + esc(majority) + '</b>' : '') + '.</p>' +
       '<div class="lin-seg" role="group" aria-label="Irk türü">' +
         '<button type="button" data-kind="saf">Saf ırk<small>tek ırk</small></button>' +
@@ -637,7 +637,7 @@
       var saved = c.updateHive(h.id, patch, 'correct');
       close();
       if (!saved) { toast('Kaydedilemedi'); return; }
-      toast('Irk ve soy kaydedildi');
+      toast('Hat ve Genetik kaydedildi');
       if (typeof onSaved === 'function') onSaved(saved);
     }
     sync();
@@ -878,20 +878,20 @@
   };
   TOPIC_ICONS.irk = '<path d="M8.6 5.6c0 4.4 6.8 4.4 6.8 8.8 0 2-1.4 3.2-3.4 4"/><path d="M15.4 5.6c0 4.4-6.8 4.4-6.8 8.8 0 2 1.4 3.2 3.4 4"/><path d="M9.7 8.2h4.6M9.7 15.8h4.6"/>';
   var TOPICS = [
-    { key: 'ana', label: 'Ana arı', ready: true },
-    { key: 'guc', label: 'Koloni gücü', ready: true },
-    { key: 'yavru', label: 'Yavru durumu', ready: true },
-    { key: 'hastalik', label: 'Hastalık', ready: true },
-    { key: 'besleme', label: 'Besleme', ready: true },
-    { key: 'bolme', label: 'Bölme / Birleştirme', ready: true },
-    { key: 'ogul', label: 'Oğul', ready: true },
-    { key: 'tasima', label: 'Ana taşıma', ready: true },
-    { key: 'uretim', label: 'Ana üretimi', ready: true }
+    { key: 'ana', label: 'Ana Arı', ready: true },
+    { key: 'guc', label: 'Koloni / Çerçeve Gücü', ready: true },
+    { key: 'yavru', label: 'Kuluçka Durumu', ready: true },
+    { key: 'hastalik', label: 'Hastalık ve Tedavi Takibi', ready: true },
+    { key: 'besleme', label: 'Besleme Durumu', ready: true },
+    { key: 'bolme', label: 'Koloni Bölme / Birleştirme', ready: true },
+    { key: 'ogul', label: 'Oğul Eğilimi ve Takibi', ready: true },
+    { key: 'tasima', label: 'Ana Arı Değişimi', ready: true },
+    { key: 'uretim', label: 'Ana Arı Üretimi', ready: true }
   ];
   var TOPIC_LABEL = {};
   TOPICS.forEach(function (t) { TOPIC_LABEL[t.key] = t.label; });
   TOPIC_LABEL.kis = 'Kışlık hazırlık';
-  TOPIC_LABEL.irk = 'Irk ve soy';
+  TOPIC_LABEL.irk = 'Hat ve Genetik';
   TOPIC_LABEL.hasat = 'Hasat notu';
   TOPIC_LABEL.ilac = 'İlaçlama';
 
