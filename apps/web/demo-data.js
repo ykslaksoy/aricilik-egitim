@@ -2457,29 +2457,62 @@
     return { bandKey: bk, band: band, breed: br, fobPeak: peak, fobNow: peak != null ? Math.round(peak * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON * (1 + Math.max(-0.1, Math.min(0.1, br.kis || 0)))) * 100) / 100 : null,
       winterKg: band ? band.winterKg + (br.winterAdjKg || 0) : null };
   }
-  /* Skor ölçeği (k88): 0 = YAŞAMA SINIRI ALTI (ölü ya da kendi başına yaşayamaz → birleştir / takviye). Canlı 5 seviye yaşama sınırından başlar:
-   * Çok zayıf 1–19 · Zayıf 20–39 · Normal 40–59 · Güçlü 60–79 · Çok güçlü 80–100. */
-  var STRENGTH_LEVELS = [
-    { key: 'cok-zayif', label: 'Çok zayıf', min: 1, tone: 'red' }, { key: 'zayif', label: 'Zayıf', min: 20, tone: 'red' },
-    { key: 'normal', label: 'Normal', min: 40, tone: 'orange' }, { key: 'guclu', label: 'Güçlü', min: 60, tone: 'green' },
-    { key: 'cok-guclu', label: 'Çok güçlü', min: 80, tone: 'green' }];
-  var BELOW_VIABLE = { key: 'sinir-alti', label: 'Yaşama sınırı altı', min: 0, tone: 'red' };
+  /* Skor ölçeği (k93, kullanıcı kararı — 7 seviye; skor 0–100, 100'ü geçmez):
+   *   Birleştirilmeli 0–44 (yaşama sınırının altı) · Çok zayıf 45–59 · Zayıf 60–69 · Normal 70–79 · Güçlü 80–89 · Çok güçlü 90–100
+   *   + Bölünmesi Gerekiyor (kısa: Bölünmeli): skordan bağımsız bölme kuralı (splitCheck) sağlanınca; skor yine en fazla 100.
+   * Yaşama sınırı (viableFrames, bölge × mevsim) skor 45'e oturur → sınırın altı = Birleştirilmeli. */
+  var SCORE_LEVELS = [
+    { key: 'birlestir', label: 'Birleştirilmeli', short: 'Birleştirilmeli', min: 0, tone: 'red', color: '#c92a2a', bg: '#ffe3e3' },
+    { key: 'cok-zayif', label: 'Çok zayıf', short: 'Çok zayıf', min: 45, tone: 'deeporange', color: '#d9480f', bg: '#ffe8cc' },
+    { key: 'zayif', label: 'Zayıf', short: 'Zayıf', min: 60, tone: 'orange', color: '#b35c00', bg: '#fff3bf' },
+    { key: 'normal', label: 'Normal', short: 'Normal', min: 70, tone: 'gray', color: '#495057', bg: '#e9ecef' },
+    { key: 'guclu', label: 'Güçlü', short: 'Güçlü', min: 80, tone: 'green', color: '#2b8a3e', bg: '#d3f9d8' },
+    { key: 'cok-guclu', label: 'Çok güçlü', short: 'Çok güçlü', min: 90, tone: 'teal', color: '#087f5b', bg: '#c3fae8' }];
+  var SPLIT_LEVEL = { key: 'bolunmeli', label: 'Bölünmesi Gerekiyor', short: 'Bölünmeli', min: null, tone: 'purple', color: '#6741d9', bg: '#e5dbff' };
+  var STRENGTH_LEVELS = SCORE_LEVELS.concat([SPLIT_LEVEL]);
+  var VIABLE_SCORE = 45;
+  var BELOW_VIABLE = SCORE_LEVELS[0]; /* eski ad korunur (k88 «yaşama sınırı altı» → k93 «Birleştirilmeli») */
   var STRENGTH_ALIAS = { 'cok zayif': 'cok-zayif', 'cok-zayif': 'cok-zayif', 'very weak': 'cok-zayif', zayif: 'zayif', weak: 'zayif', orta: 'normal', normal: 'normal', medium: 'normal',
     guclu: 'guclu', strong: 'guclu', 'cok guclu': 'cok-guclu', 'cok-guclu': 'cok-guclu', 'very strong': 'cok-guclu',
-    'sinir-alti': 'sinir-alti', 'yasama siniri alti': 'sinir-alti', yasayamaz: 'sinir-alti', olu: 'sinir-alti', dead: 'sinir-alti' };
+    birlestir: 'birlestir', birlestirilmeli: 'birlestir', 'sinir-alti': 'birlestir', 'yasama siniri alti': 'birlestir', yasayamaz: 'birlestir', olu: 'birlestir', dead: 'birlestir',
+    bolunmeli: 'bolunmeli', 'bolunmesi gerekiyor': 'bolunmeli', bolunmesi: 'bolunmeli', split: 'bolunmeli' };
   function strengthKeyOf(v) {
     var t = String(v == null ? '' : v).trim().toLocaleLowerCase('tr').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/\s+/g, ' ');
     return STRENGTH_ALIAS[t] || null;
   }
-  /** Eski 3 seviyeli değerler dahil (zayıf→Zayıf, orta→Normal, güçlü→Güçlü) her yazımı seviyeye eşler; «sinir-alti» = yaşama sınırı altı; bilinmiyorsa null. */
-  function strengthLevel(v) { var k = strengthKeyOf(v); if (k === 'sinir-alti') return BELOW_VIABLE; return k ? STRENGTH_LEVELS.filter(function (x) { return x.key === k; })[0] : null; }
-  function levelOfScore(sc) { if (!(sc >= 1)) return BELOW_VIABLE; var o = STRENGTH_LEVELS[0]; STRENGTH_LEVELS.forEach(function (x) { if (sc >= x.min) o = x; }); return o; }
-  /** Seviyenin skor aralığı: { min, max, text: '60–79' }; yaşama sınırı altı → '0' (arayüzde yalnız aralık gösterilir; hesap gösterilmez). */
+  /** Her yazımı (eski 3/5 seviyeli değerler dahil; «sinir-alti» → Birleştirilmeli) seviye nesnesine eşler; bilinmiyorsa null. */
+  function strengthLevel(v) { var k = strengthKeyOf(v); return k ? STRENGTH_LEVELS.filter(function (x) { return x.key === k; })[0] : null; }
+  function levelOfScore(sc) { var o = SCORE_LEVELS[0]; SCORE_LEVELS.forEach(function (x) { if (sc >= x.min) o = x; }); return o; }
+  /** Seviyenin skor aralığı: { min, max, text: '80–89' }; Bölünmesi Gerekiyor skor bandı değil → 'bölme eşiği' (arayüzde hesap gösterilmez). */
   function strengthRange(v) {
     var l = typeof v === 'object' && v ? v : strengthLevel(v); if (!l) return null;
-    if (l.key === 'sinir-alti') return { min: 0, max: 0, text: '0' };
-    var i = STRENGTH_LEVELS.indexOf(l), nx = STRENGTH_LEVELS[i + 1], mx = nx ? nx.min - 1 : 100;
+    if (l.key === 'bolunmeli') return { min: null, max: null, text: 'bölme eşiği' };
+    var i = SCORE_LEVELS.indexOf(l), nx = SCORE_LEVELS[i + 1], mx = nx ? nx.min - 1 : 100;
     return { min: l.min, max: mx, text: l.min + '–' + mx };
+  }
+  /* BÖLME KURALI (Bölünmesi Gerekiyor) — kaynaklar:
+   *  · eXtension Bee Health «Dividing a Colony»: kalabalık, büyük nüfuslu koloni bölünür; her bölme için 3–5 yavrulu çerçeve + 1–2 bal/polen çerçevesi;
+   *    zayıf koloni ve yılın geç döneminde bölme yapılmaz (kışa kadar gelişemez).
+   *  · Utah State Üniv. Extension «Splitting»: ilkbaharın başında, ana nektar akımından ve oğul döneminden önce; kışı geçirmiş kalabalık kovan.
+   *  · Univ. Minnesota (Reuter) «Spring Colony Divides»: ana akımdan 6–8 hafta önce; ABD 3 gövdeli kovanda ≥10 yavrulu çerçeve (Türk kovanları daha küçük:
+   *    bölge ortalaması 8,6–16 arılı çerçeve, DergiPark 4656326 → mutlak eşik yerine bölge beklentisi).
+   *  Uygulama kuralı: (1) muayene tarihi bölme döneminde: arılığın oğul profili penceresinin başlangıcından (pre) oğul zirvesinin sonuna (to) kadar
+   *  (sıcak 20 Şub–10 May · ılıman 1 Nis–31 May · yayla 10 May–30 Haz · yüksek yayla 20 May–5 Tem); (2) arılı çerçeve ≥ en az 10 (dolu bir Langstroth gövde)
+   *  ve bölge × ırk beklentisinin 1,2 katı (Güçlü düzeyinin başlangıcı); (3) yavrulu çerçeve ≥ 6 (bir bölmeye 3, ana kovana ≥ 3 kalır). */
+  var SPLIT_MIN_BEES = 10, SPLIT_MIN_BROOD = 6;
+  function splitWindow(apId, date) {
+    var key = 'iliman'; try { key = seasonProfileKey(apId) || 'iliman'; } catch (e) { key = 'iliman'; }
+    var w = SWARM_WINDOWS[key] || SWARM_WINDOWS.iliman, md = String(date || todayLocal()).slice(5, 10);
+    return { profile: key, inWindow: md >= w.pre && md <= w.to, from: w.pre, to: w.to, label: mdLabel(w.pre) + '–' + mdLabel(w.to) };
+  }
+  /** r: güç kaydı, E: bölge × ırk beklenen arılı çerçeve (o tarihte), apId → { need, inWindow, window, minBees, minBrood } */
+  function splitCheck(r, E, apId) {
+    var date = String((r && r.date) || todayLocal()), bees = Number(r && r.beeFrames) || 0, brood = Number(r && r.broodFrames) || 0;
+    var minBees = Math.max(SPLIT_MIN_BEES, Math.round(1.2 * (E || 8.6)));
+    /* ucuz ön kontrol: çerçeve eşiği tutmuyorsa dönem hesabına (profil / arılık okuması) girilmez */
+    if (bees < minBees || brood < SPLIT_MIN_BROOD) return { need: false, inWindow: null, window: '', minBees: minBees, minBrood: SPLIT_MIN_BROOD };
+    var w = splitWindow(apId, date);
+    return { need: w.inWindow, inWindow: w.inWindow, window: w.label, minBees: minBees, minBrood: SPLIT_MIN_BROOD };
   }
   /* YAŞAMA SINIRI (en az arılı çerçeve; altı = skor 0). Kaynaklar:
    *  · Arıcılık Yönetmeliği (Resmî Gazete 23.05.2024) md. 4/s: koloni = aktif dönemde 5–6+ arılı (3–4 yavrulu), PASİF DÖNEMDE EN AZ 3 ARILI ÇERÇEVE.
@@ -2498,15 +2531,17 @@
     if (m >= 6 && m <= 8) return 3;
     return VIABLE_WINTER[bandKey] || 3;
   }
-  /* arılı çerçeve → skor: yaşama sınırı V → 1; beklenen E → 50 (Normal ortası); 0,8 E → 40; 1,2 E → 60; 1,5 E → 80; 2 E → 100; V altı → 0 */
+  /* arılı çerçeve → skor (k93): yaşama sınırı V → 45; V ile 0,8 E ortası → 60; 0,8 E → 70; beklenen E → 75 (Normal ortası); 1,2 E → 80; 1,5 E → 90; 2 E → 100;
+   * V altı → 0–44 (çerçeveyle orantılı; Birleştirilmeli). Çerçeve sınırları k88 ile aynı, yalnız skor ölçeği kaydırıldı. */
   function viaScore(b, E, V) {
-    if (!(b >= V) || b <= 0) return 0;
+    if (!(b > 0)) return 0;
+    if (!(b >= V)) return Math.min(VIABLE_SCORE - 1, (VIABLE_SCORE - 1) * b / V);
     E = Math.max(E, V + 1);
     var n0 = 0.8 * E; if (n0 <= V + 0.3) n0 = V + 0.6 * (E - V);
-    return interp([[V, 1], [(V + n0) / 2, 20], [n0, 40], [E, 50], [1.2 * E, 60], [1.5 * E, 80], [2 * E, 100]], b);
+    return interp([[V, 45], [(V + n0) / 2, 60], [n0, 70], [E, 75], [1.2 * E, 80], [1.5 * E, 90], [2 * E, 100]], b);
   }
-  function isWeakClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'zayif' || l.key === 'cok-zayif' || l.key === 'sinir-alti'); }
-  function isStrongClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'guclu' || l.key === 'cok-guclu'); }
+  function isWeakClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'zayif' || l.key === 'cok-zayif' || l.key === 'birlestir'); }
+  function isStrongClass(c) { var l = strengthLevel(c); return !!l && (l.key === 'guclu' || l.key === 'cok-guclu' || l.key === 'bolunmeli'); }
   /* arılı çerçeve → skor (parça parça doğrusal; eşikler yukarıdaki çerçeve sayılarına oturur) */
   var BEE_ANCHORS = [[0, 0], [2.5, 20], [4.5, 40], [7.5, 60], [11.5, 80], [16, 100]];
   function beeScore(b) {
@@ -2558,11 +2593,12 @@
     /* 1) arılığın kendi ortalaması (cinse göre normalize) · 2) konum × cins beklentisi · 3) başlangıç beklentisi (8,6 çerçeve, ılıman) — hepsi yaşama sınırından başlar */
     var V = viableFrames(env ? env.bandKey : null, date);
     /* k89: sönük kovan (koloni kaybı kaydı) → skor 0, güç ortalamalarına girmez */
-    if (hv0 && hv0.colonyState === 'sonuk' && (!hv0.sonukAt || date >= hv0.sonukAt)) return { score: 0, key: BELOW_VIABLE.key, label: 'Sönük kovan', tone: BELOW_VIABLE.tone, manual: false, auto: 'Sönük kovan', basis: 'sonuk', viable: V, sonuk: true };
+    if (hv0 && hv0.colonyState === 'sonuk' && (!hv0.sonukAt || date >= hv0.sonukAt)) return { score: 0, key: BELOW_VIABLE.key, label: 'Sönük kovan', short: 'Sönük kovan', tone: BELOW_VIABLE.tone, color: BELOW_VIABLE.color, bg: BELOW_VIABLE.bg, manual: false, auto: 'Sönük kovan', autoKey: BELOW_VIABLE.key, basis: 'sonuk', viable: V, sonuk: true };
+    var E0 = env && env.fobNow ? env.fobNow : 8.6 * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON);
     if (pa && pa.avg > 0) { basis = 'arilik'; sc = viaScore(bees, pa.avg * (env ? env.breed.fob : 1), V); }
     else if (env && env.fobNow) { basis = 'bolge'; sc = viaScore(bees, env.fobNow, V); }
-    else { basis = 'baslangic'; sc = viaScore(bees, 8.6 * (m >= 4 && m <= 9 ? 1 : COLONY_ENV.OFF_SEASON), V); }
-    var alive = sc >= 1;
+    else { basis = 'baslangic'; sc = viaScore(bees, E0, V); }
+    var alive = bees > 0 && bees >= V;
     /* yavru (aktif mevsim): yavru yok / çok az → düşür; arının yarısı kadar yavru → artır */
     if (alive && active && bees > 0) { if (brood <= 1) sc -= 10; else if (brood >= bees * 0.5) sc += 2; }
     /* tartı (aktif mevsim, son 14 gün net değişim ±2 kg) */
@@ -2574,19 +2610,20 @@
       } catch (e) { /* ignore */ }
     }
     /* kışlama dönemi (Eyl–Mar): < 5 çerçeve en fazla Zayıf (UK NBU: kışa en az 5 çerçeve arı) */
-    if (alive && !(m >= 4 && m <= 8) && bees < 5) sc = Math.min(sc, 39);
-    sc = alive ? Math.max(1, Math.min(100, Math.floor(sc))) : 0;
-    var auto = levelOfScore(sc), man = r.level ? strengthLevel(r.level) : null, lv = man || auto;
-    return { score: sc, key: lv.key, label: lv.label, tone: lv.tone, manual: !!man, auto: auto.label, basis: basis, viable: V };
+    if (alive && !(m >= 4 && m <= 8) && bees < 5) sc = Math.min(sc, 69);
+    /* yaşama sınırının üstü en az 45 (Çok zayıf); altı 0–44 (Birleştirilmeli); skor hiçbir zaman 100'ü geçmez */
+    sc = alive ? Math.max(VIABLE_SCORE, Math.min(100, Math.floor(sc))) : Math.max(0, Math.min(VIABLE_SCORE - 1, Math.floor(sc)));
+    var sp = alive ? splitCheck({ date: date, beeFrames: bees, broodFrames: brood }, E0, hv0 ? hv0.apiaryId : null) : null;
+    var auto = sp && sp.need ? SPLIT_LEVEL : levelOfScore(sc), man = r.level ? strengthLevel(r.level) : null, lv = man || auto;
+    return { score: sc, key: lv.key, label: lv.label, short: lv.short, tone: lv.tone, color: lv.color, bg: lv.bg, manual: !!man, auto: auto.label, autoKey: auto.key, basis: basis, viable: V, split: sp };
   }
   function strengthClass(r, ctx) { var i = strengthInfo(r, ctx); return i ? i.label : null; }
   /** Arayüz metni: «Güçlü · 60–79 · skor 64»; elle seçimde «Güçlü (elle) · 60–79 · skor 47 (Normal)». Formül / katsayı / çerçeve hesabı gösterilmez. */
   function strengthTag(i, short) {
     if (!i) return '';
     var rg = strengthRange(i.key), au = i.manual && i.auto !== i.label ? ' (' + i.auto + ')' : '';
-    if (i.key === 'sinir-alti' && !i.manual) return short ? i.label + ' · 0' : i.label + ' · skor 0';
-    if (short) return i.label + (i.manual ? ' (elle)' : '') + ' · ' + i.score;
-    return i.label + (i.manual ? ' (elle)' : '') + ' · ' + (rg ? rg.text : '') + ' · skor ' + i.score + au;
+    if (short) return (i.key === 'bolunmeli' && i.short ? i.short : i.label) + (i.manual ? ' (elle)' : '') + ' · ' + i.score;
+    return i.label + (i.manual ? ' (elle)' : '') + (rg && i.key !== 'bolunmeli' ? ' · ' + rg.text : '') + ' · skor ' + i.score + au;
   }
 
   function normalizeRecord(kind, r) {
@@ -2605,7 +2642,7 @@
       o.broodFrames = intIn(r.broodFrames, 0, 30) || 0;
       o.honeyFrames = intIn(r.honeyFrames, 0, 30) || 0;
       o.pollenFrames = intIn(r.pollenFrames, 0, 20) || 0;
-      var lvk = strengthKeyOf(r.level); if (lvk) o.level = lvk; /* elle seçilen güç seviyesi (5 seviye) */
+      var lvk = strengthKeyOf(r.level); if (lvk) o.level = lvk; /* elle seçilen güç seviyesi (7 seviye) */
       if (r.inspection === true) o.inspection = true; /* Kolay muayene ile girildi */
       var sp = pick(r.space, ['bol', 'dolmak', 'dolu', 'kat', ''], ''); if (sp) o.space = sp; /* muayenede gözlenen yer durumu */
       var vs0 = pick(r.varroaSeen, ['az', 'cok', ''], ''); if (vs0) o.varroaSeen = vs0;
@@ -3244,11 +3281,13 @@
     var bees = sr && Number(sr.beeFrames) ? Number(sr.beeFrames) : null;
     var broodF = sr && Number(sr.broodFrames) ? Number(sr.broodFrames) : null;
     var beeTxt = bees ? ', ' + bees + ' çerçeve arı' : '';
-    if (strength === 'cok-guclu') { s += 24; R('guc', 'Koloni çok güçlü' + beeTxt, 'up'); }
+    if (strength === 'bolunmeli') { s += 24; R('guc', 'Koloni bölünmesi gerekiyor' + beeTxt, 'up'); }
+    else if (strength === 'cok-guclu') { s += 24; R('guc', 'Koloni çok güçlü' + beeTxt, 'up'); }
     else if (strength === 'guclu') { s += 20; R('guc', 'Koloni güçlü' + beeTxt, 'up'); }
     else if (strength === 'normal') { s += 6; R('guc', 'Koloni normal güçte' + beeTxt, 'info'); }
     else if (strength === 'zayif') { s -= 20; R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
     else if (strength === 'cok-zayif') { s -= 26; R('guc', 'Koloni çok zayıf' + beeTxt, 'down'); }
+    else if (strength === 'birlestir') { s -= 30; R('guc', 'Koloni birleştirilmeli' + beeTxt, 'down'); }
     if (broodF != null && broodF >= 6) { s += 10; R('yavru', 'Çok yavru (' + broodF + ' çerçeve)', 'up'); }
     else if (broodF != null && broodF >= 4) s += 5;
     var bxs = hiveBoxes(h, ctx.plan || (ctx.plan = planState()));
@@ -3619,6 +3658,11 @@
     viableFrames: viableFrames,
     viaScore: viaScore,
     BELOW_VIABLE: BELOW_VIABLE,
+    SPLIT_LEVEL: SPLIT_LEVEL,
+    SCORE_LEVELS: SCORE_LEVELS,
+    VIABLE_SCORE: VIABLE_SCORE,
+    splitCheck: splitCheck,
+    splitWindow: splitWindow,
     crossInfo: crossInfo,
     strengthTag: strengthTag,
     STRENGTH_LEVELS: STRENGTH_LEVELS,

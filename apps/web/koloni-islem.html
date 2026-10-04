@@ -40,6 +40,18 @@
     .ki-btns button{font:inherit;font-size:.78rem;font-weight:800;padding:.4rem .6rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;}
     .ki-btns .del{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a;}
     h2.ki-h{margin:0;font-size:1.05rem;}
+    /* k93: Birleştirilmeli ↔ Bölünmesi Gerekiyor yan yana */
+    .ki-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;}
+    .ki-col{border-radius:14px;padding:.55rem;display:grid;gap:.4rem;align-content:start;min-width:0;}
+    .ki-col.mrg{background:#fff5f5;border:2px solid #ffa8a8;}
+    .ki-col.spl{background:#f3f0ff;border:2px solid #b197fc;}
+    .ki-col h3{margin:0;font-size:.9rem;line-height:1.2;display:flex;align-items:center;gap:.35rem;}
+    .ki-col.mrg h3{color:#c92a2a;}.ki-col.spl h3{color:#5f3dc4;}
+    .ki-col h3 .n{margin-left:auto;font-size:.8rem;padding:.05rem .45rem;border-radius:999px;color:#fff;}
+    .ki-col.mrg h3 .n{background:#e03131;}.ki-col.spl h3 .n{background:#7048e8;}
+    .ki-mini{display:grid;gap:.05rem;min-height:64px;align-content:center;padding:.4rem .55rem;border-radius:10px;background:#fff;text-decoration:none;color:inherit;border:1px solid rgba(0,0,0,.08);}
+    .ki-mini b{font-size:.86rem;overflow-wrap:anywhere;}.ki-mini small{font-size:.74rem;color:var(--muted);overflow-wrap:anywhere;}
+    .ki-col .e{margin:0;font-size:.76rem;color:var(--muted);line-height:1.3;}
   </style>
 </head>
 <body data-tabbar="fixed">
@@ -61,8 +73,8 @@
     </section>
     <div id="view"></div>
   </main>
-  <script src="demo-data.js?v=koloni-92"></script>
-  <script src="koloni.js?v=koloni-92"></script>
+  <script src="demo-data.js?v=koloni-93"></script>
+  <script src="koloni.js?v=koloni-93"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -121,7 +133,19 @@
       var cand = hs.map(function (h) { return { h: h, st: statusOf(h) }; });
       var splitC = cand.filter(function (x) { return x.st.swarmCell || (window.SuperAriDemo.records.isStrongClass ? window.SuperAriDemo.records.isStrongClass(x.st.strengthClass) : x.st.strengthClass === 'Güçlü'); });
       var mergeC = cand.filter(function (x) { return x.st.weak || x.st.queenless; });
-      var html = '<section class="card stack" style="margin-top:1rem;"><div class="ki-seg"><button type="button" data-sub="bolme" class="' + (sub === 'bolme' ? 'on' : '') + '">✂️ Bölme</button><button type="button" data-sub="birlestirme" class="' + (sub === 'birlestirme' ? 'on' : '') + '">🔗 Birleştirme</button></div>';
+      /* k93: güç seviyesine göre iki liste yan yana — Birleştirilmeli (kırmızı) · Bölünmesi Gerekiyor (mor) */
+      var lvOf = function (x) { return x.st && x.st.strengthInfo ? x.st.strengthInfo : null; };
+      var mrgL = cand.filter(function (x) { var i = lvOf(x); return i && i.key === 'birlestir'; }).sort(function (a, b) { return lvOf(a).score - lvOf(b).score; });
+      var splL = cand.filter(function (x) { var i = lvOf(x); return i && i.key === 'bolunmeli'; });
+      var swin = R.splitWindow ? R.splitWindow(apiaryId, today()) : null;
+      var mini = function (x) { var i = lvOf(x); return '<a class="ki-mini" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '#btBox"><b>' + esc(x.h.name) + '</b><small>skor ' + i.score + (i.manual ? ' · elle' : '') + '</small></a>'; };
+      var duo = '<section class="card stack" style="margin-top:1rem;"><div class="ki-duo">' +
+        '<div class="ki-col mrg" aria-label="Birleştirilmeli kovanlar"><h3>🔗 Birleştirilmeli<span class="n">' + mrgL.length + '</span></h3>' +
+          (mrgL.map(mini).join('') || '<p class="e">Yaşama sınırının altında kovan yok.</p>') + '</div>' +
+        '<div class="ki-col spl" aria-label="Bölünmesi gereken kovanlar"><h3>✂️ Bölünmesi Gerekiyor<span class="n">' + splL.length + '</span></h3>' +
+          (splL.map(mini).join('') || '<p class="e">' + (swin && !swin.inWindow ? 'Bölme dönemi dışında (' + esc(swin.label) + ').' : 'Bölme eşiğini geçen kovan yok.') + '</p>') + '</div>' +
+        '</div><p class="muted" style="margin:0;font-size:.76rem;">Son koloni gücü kaydına göre. Birleştirilmeli: yaşama sınırının altı. Bölünmesi Gerekiyor: bölme döneminde arılı ve yavrulu çerçeve bölgenin güçlü düzeyinin belirgin üstünde.</p></section>';
+      var html = duo + '<section class="card stack" style="margin-top:1rem;"><div class="ki-seg"><button type="button" data-sub="bolme" class="' + (sub === 'bolme' ? 'on' : '') + '">✂️ Bölme</button><button type="button" data-sub="birlestirme" class="' + (sub === 'birlestirme' ? 'on' : '') + '">🔗 Birleştirme</button></div>';
       if (sub === 'bolme') {
         var hint = function (x) { return x.st.swarmCell ? 'oğul memesi' : (x.st.strengthClass && /güçlü/i.test(x.st.strengthClass) ? x.st.strengthClass.toLocaleLowerCase('tr') : ''); };
         html += '<form class="ki-form" id="fSplit" autocomplete="off">' +
@@ -379,7 +403,7 @@
     render();
   })();
   </script>
-  <script src="nav.js?v=koloni-92"></script>
-<script src="pwa.js?v=koloni-92"></script>
+  <script src="nav.js?v=koloni-93"></script>
+<script src="pwa.js?v=koloni-93"></script>
 </body>
 </html>

@@ -960,6 +960,9 @@
     '.kr-chips{display:flex;flex-wrap:wrap;gap:.25rem;}' +
     '.kr-chip{display:inline-flex;align-items:center;gap:.2rem;padding:.1rem .45rem;border-radius:999px;font-size:.7rem;font-weight:800;white-space:nowrap;background:#e9ecef;color:#495057;}' +
     '.kr-chip.red{background:#ffe3e3;color:#c92a2a;}.kr-chip.orange{background:#fff3bf;color:#e67700;}.kr-chip.green{background:#d3f9d8;color:#2b8a3e;}.kr-chip.blue{background:#e7f5ff;color:#1971c2;}' +
+    /* k93 güç seviyesi renkleri: Çok zayıf koyu turuncu, Normal gri, Çok güçlü camgöbeği, Bölünmesi Gerekiyor mor */
+    '.kr-chip.deeporange{background:#ffe8cc;color:#d9480f;}.kr-chip.gray{background:#e9ecef;color:#495057;}.kr-chip.teal{background:#c3fae8;color:#087f5b;}.kr-chip.purple{background:#e5dbff;color:#6741d9;}' +
+    '.lv-dot{display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.4em;vertical-align:-.05em;border:1px solid rgba(0,0,0,.2);}' +
     '.kr-hist{display:grid;gap:.35rem;margin:.4rem 0 .6rem;}' +
     '.kr-hrow{border:1px solid var(--border,#ead9b3);border-radius:10px;background:#fff;padding:.45rem .55rem;font-size:.82rem;display:grid;gap:.15rem;}' +
     '.kr-hrow .top{display:flex;justify-content:space-between;align-items:center;gap:.4rem;font-weight:800;}' +
@@ -1419,7 +1422,7 @@
         /* yalnız seviye · aralık · skor (0–100); hesap / katsayı gösterilmez */
         if (el) el.innerHTML = f.elements.beeFrames.value === '' || !inf ? 'Koloni gücü: —' : 'Koloni gücü: <b>' + esc(r.strengthTag ? r.strengthTag(inf) : inf.label) + '</b> / 100';
         var box = root.querySelector('#krLvls');
-        if (box) box.innerHTML = (r.STRENGTH_LEVELS || []).map(function (x) { var rg = r.strengthRange ? r.strengthRange(x) : null; return '<button type="button" data-kr-lvl="' + x.key + '" class="' + (x.key === cur ? 'on' : '') + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + esc(x.label) + (rg ? ' <small class="kr-rg">' + rg.text + '</small>' : '') + (x.key === au ? ' <small>(hesaplanan)</small>' : '') + '</button>'; }).join('');
+        if (box) box.innerHTML = (r.STRENGTH_LEVELS || []).map(function (x) { var rg = r.strengthRange ? r.strengthRange(x) : null; return '<button type="button" data-kr-lvl="' + x.key + '" class="' + (x.key === cur ? 'on' : '') + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + '<span class="lv-dot" style="background:' + x.color + '"></span>' + esc(x.label) + (rg ? ' <small class="kr-rg">' + rg.text + '</small>' : '') + (x.key === au ? ' <small>(hesaplanan)</small>' : '') + '</button>'; }).join('');
       };
       f.addEventListener('input', upd);
       f.addEventListener('click', function (ev) {
