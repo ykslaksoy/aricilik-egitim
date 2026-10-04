@@ -403,24 +403,63 @@
     var pa = a.split('-'), pb = b.split('-');
     return Math.round((new Date(+pb[0], pb[1] - 1, +pb[2]) - new Date(+pa[0], pa[1] - 1, +pa[2])) / 86400000);
   }
-  /* Genel eşikler (tahmin; uygulamadaki hastalık seviyesiyle aynı): %2 altı izle, %2–3 planla, %3 üstü tedavi. */
+  /* ---------------- Varroa eşikleri (kaynaklı; formül arayüzde gösterilmez) ----------------
+   * Yıkama / pudra şekeri (akar ÷ ergin arı × 100 = %): Honey Bee Health Coalition, «Tools for Varroa Management», 9. baskı (2026), Tablo 1:
+   *   kış/dinlenme ≥ %1 · ilkbahar/nüfus artışı ≥ %1 · yaz/akım/nüfus zirvesi ≥ %2 · sonbahar/nüfus azalışı ≥ %2 → hemen tedavi (etikete göre).
+   *   Eşik altı → ayda bir tekrar sayım (HBHC). «İzle» bandı (eşiğin yarısı ≤ % < eşik, 2 hafta sonra tekrar sayım) uygulamanın kararıdır.
+   * Yapışkan altlık (doğal düşüş): UK National Bee Unit, «Managing Varroa» + Fact sheet 13: günlük düşüş × (Kas–Şub 400; Mar–Nis, Eyl–Eki 100; May–Ağu 30)
+   *   ≈ kolonideki akar; 1000 akara varmadan tedavi. Altlık en az 7 gün kalır (NBU). İzle bandı 500–999 (uygulama kararı).
+   * Örnek büyüklüğü: ½ bardak ≈ 300 arı (HBHC). */
+  var VARROA = {
+    SAMPLE_BEES: 300, DROP_DAYS: 7, DROP_LIMIT: 1000, RECOUNT_OK: 30, RECOUNT_WATCH: 14, STALE_DAYS: 30,
+    PHASE: { kis: { label: 'kış (dinlenme)', thr: 1 }, ilkbahar: { label: 'ilkbahar (nüfus artışı)', thr: 1 }, akim: { label: 'bal akımı (nüfus zirvesi)', thr: 2 },
+      yaz: { label: 'yaz (nüfus zirvesi)', thr: 2 }, sonbahar: { label: 'sonbahar (nüfus azalışı)', thr: 2 } },
+    SRC: { wash: 'Honey Bee Health Coalition — Tools for Varroa Management, 9. baskı (2026), Tablo 1', drop: 'UK National Bee Unit — Managing Varroa; Fact sheet 13 (doğal akar düşüşü)' }
+  };
+  function dropFactor(d) { var m = Number(String(d).slice(5, 7)); return (m >= 11 || m <= 2) ? 400 : (m >= 5 && m <= 8 ? 30 : 100); }
+  /** Sayım → seviye. rec: { count, method, infestation?, days? }. { band: 'alti'|'izle'|'tedavi', pct, metric, thr, phase, text } */
+  function varroaBand(apId, rec, d) {
+    d = d || today();
+    var sk = 'yaz'; try { sk = seasonKind(apId, d); } catch (e) { sk = 'yaz'; }
+    var ph = VARROA.PHASE[sk] || VARROA.PHASE.yaz, out = { phase: ph.label, season: sk, thr: ph.thr, method: rec.method };
+    if (rec.method === 'tabla') {
+      var days = Number(rec.days) > 0 ? Number(rec.days) : VARROA.DROP_DAYS, daily = Math.round(Number(rec.count) / days * 10) / 10, est = Math.round(daily * dropFactor(d));
+      out.daily = daily; out.est = est; out.pct = null;
+      out.band = est >= VARROA.DROP_LIMIT ? 'tedavi' : (est >= VARROA.DROP_LIMIT / 2 ? 'izle' : 'alti');
+      out.metric = 'günde ' + num(daily) + ' akar düşüş';
+      out.limitTxt = 'günde ' + num(Math.round(VARROA.DROP_LIMIT / dropFactor(d) * 10) / 10) + ' akar';
+    } else {
+      var p = rec.infestation != null ? Number(rec.infestation) : Math.round(Number(rec.count) / VARROA.SAMPLE_BEES * 1000) / 10;
+      out.pct = p; out.metric = '%' + num(p) + ' bulaşma';
+      out.band = p >= ph.thr ? 'tedavi' : (p >= ph.thr / 2 ? 'izle' : 'alti');
+      out.limitTxt = '%' + num(ph.thr);
+    }
+    out.text = out.band === 'tedavi' ? 'Tedavi gerekli: ' + out.metric + ' — ' + ph.label + ' eşiği ' + out.limitTxt
+      : out.band === 'izle' ? 'İzle: ' + out.metric + ' — eşiğe yakın (' + ph.label + ' eşiği ' + out.limitTxt + ')'
+      : 'Eşik altı: ' + out.metric + ' (' + ph.label + ' eşiği ' + out.limitTxt + ')';
+    return out;
+  }
+  /** Kovanda açık «Şeritleri çıkar» görevi */
+  function openRemovalTask(hId) {
+    var o = []; try { o = D.taskStore.open(); } catch (e) { o = []; }
+    return o.filter(function (x) { return String(x.hiveId) === String(hId) && /^Şeritleri çıkar/i.test(String(x.title || '')); })[0] || null;
+  }
   function medPlan(h, st) {
     var I = global.SuperAriIlac; st = st || hiveState(h);
     var t = today(), out = { hive: h, blocks: [], warns: [], products: [] };
     var v = st.varroa;
-    if (!v) { out.level = 'sayim'; out.summary = 'Varroa sayımı yok — önce sayım girin (alkol yıkama / pudra şekeri).'; }
-    else if (v.infestation == null) { out.level = 'sayim'; out.summary = 'Son sayım (' + fmt(v.date) + ') yapışkan tabla: bulaşma yüzdesi için alkol yıkama veya pudra şekeri sayımı girin.'; }
+    if (!v) { out.level = 'sayim'; out.summary = 'Varroa sayımı yok — önce sayım girin (½ bardak ≈ 300 arı: alkol yıkama / pudra şekeri).'; }
     else {
-      var p = v.infestation, age = daysBetween(v.date, t);
-      out.infestation = p; out.countDate = v.date;
-      out.level = p > 3 ? 'tedavi' : (p >= 2 ? 'planla' : 'izle');
-      out.summary = '%' + num(p) + ' bulaşma (' + fmt(v.date) + ') → ' + (out.level === 'tedavi' ? 'tedavi önerilir' : out.level === 'planla' ? 'tedavi planlayın' : 'izleyin, 2–3 hafta sonra tekrar sayın');
-      if (age > 30) out.warns.push('Son sayım ' + age + ' gün önce; tedaviden önce yeniden sayın.');
+      var vb = varroaBand(h.apiaryId, v, t), age = daysBetween(v.date, t);
+      out.band = vb; out.metric = vb.metric; out.infestation = vb.pct; out.countDate = v.date; out.countAge = age;
+      out.level = vb.band === 'tedavi' ? 'tedavi' : 'izle';
+      out.summary = vb.metric + ' (' + fmt(v.date) + ') → ' + (vb.band === 'tedavi' ? 'tedavi gerekli' : vb.band === 'izle' ? 'izle, 2 hafta sonra tekrar sayın' : 'eşik altı, ayda bir sayın');
+      if (age > VARROA.STALE_DAYS) out.warns.push('Son sayım ' + age + ' gün önce; tedaviden önce yeniden sayın.');
     }
     var fl = flowAt(h.apiaryId, t);
     if (fl.flow) out.blocks.push('Bal akımı sürüyor (' + fl.phase.label + ') — ilaç uygulanmaz.');
     if (hasSuper(h.id)) out.blocks.push('Bal katı takılı — önce bal katını alın.');
-    /* süren tedavi / bekleme */
+    /* süren tedavi / bekleme / süresi dolmuş şerit */
     var lt = st.lastTreat, lastGroup = null;
     if (lt) {
       var det = I.detect(lt.treatment), prod = det && det.id ? I.byId(det.id) : null;
@@ -428,8 +467,12 @@
       var dur = prod && prod.durationDays ? prod.durationDays[1] : 0;
       var until = lt.checkDate && lt.checkDate > t ? lt.checkDate : (dur ? addDays(lt.date, dur) : null);
       if (lt.withdrawalDays) { var wu = addDays(lt.date, lt.withdrawalDays); if (wu >= t && (!until || wu > until)) until = wu; }
+      var rem = openRemovalTask(h.id);
       if (until && until >= t) out.blocks.push('Önceki tedavi sürüyor: ' + lt.treatment + ' (' + fmt(lt.date) + ' → ' + fmt(until) + '). Aynı anda başka varroa ilacı kullanmayın.');
-      out.lastTreat = { text: lt.treatment, date: lt.date, group: lastGroup };
+      else if (rem && (lt.doseUnit === 'serit' || (prod && prod.dose && prod.dose.unit === 'serit'))) {
+        out.removeOld = { name: prod ? prod.name : String(lt.treatment).split(' (')[0], date: lt.date, due: dur ? addDays(lt.date, dur) : (lt.checkDate || t), taskId: rem.id, qty: lt.dose };
+      }
+      out.lastTreat = { text: lt.treatment, date: lt.date, group: lastGroup, groupLabel: lastGroup && I.GROUPS[lastGroup] ? I.GROUPS[lastGroup].label : '' };
     }
     var nf = nextFlowStart(h.apiaryId, t);
     var yr = t.slice(0, 4);
@@ -439,24 +482,104 @@
       if (p.dose) {
         if (nf && p.preFlowDays && daysBetween(t, nf) < p.preFlowDays) o.blocks.push('Bal akımına ' + daysBetween(t, nf) + ' gün var; etiket en az ' + p.preFlowDays + ' gün önce bitmiş olmasını ister.');
         else if (nf && p.durationDays && daysBetween(t, nf) < p.durationDays[0]) o.blocks.push('Tedavi (' + p.durationDays[0] + ' gün) bal akımından önce bitmez.');
-        if (lastGroup && lastGroup === p.group) o.warns.push('Son tedavi de aynı gruptan (' + I.GROUPS[p.group].label + '): rotasyon için farklı grup seçin.');
+        if (lastGroup && lastGroup === p.group) { o.sameGroup = true; o.warns.push('Son tedavi de aynı gruptan (' + I.GROUPS[p.group].label + '): rotasyon için farklı grup seçin.'); }
         if (p.maxPerYear) {
           var n = st.disease.filter(function (d) { return d.treatment && d.date.slice(0, 4) === yr && (I.detect(d.treatment) || {}).id === p.id; }).length;
           if (n >= p.maxPerYear) o.blocks.push('Bu yıl ' + n + ' kez kullanıldı; etiket yılda en çok ' + p.maxPerYear + ' kez.');
         }
+        var it = treatItem(p);
+        o.stockItem = it ? { id: it.id, name: it.name, qty: it.qty } : null;
+        o.inStock = !!(it && dz.ok && Number(it.qty) >= dz.qty);
       }
       out.products.push(o);
     });
     out.products.sort(function (a, b) {
-      function sc(x) { return (x.verified ? 0 : 100) + (x.blocks.length ? 10 : 0) + (x.warns.length ? 1 : 0) + (x.dose.ok ? 0 : 5); }
+      function sc(x) { return (x.verified ? 0 : 100) + (x.blocks.length ? 10 : 0) + (x.sameGroup ? 4 : 0) + (x.dose.ok ? 0 : 5) + (x.inStock ? 0 : 2) + (x.warns.length ? 1 : 0); }
       return sc(a) - sc(b);
     });
-    var best = out.products.filter(function (x) { return x.verified && x.dose.ok && !x.blocks.length; })[0] || null;
+    /* Rotasyon: aynı etken madde grubu art arda önerilmez; farklı gruptan stokta olan öne. */
+    var cands = out.products.filter(function (x) { return x.verified && x.dose.ok && !x.blocks.length; });
+    var diff = cands.filter(function (x) { return !x.sameGroup; });
+    var best = diff.filter(function (x) { return x.inStock; })[0] || diff[0] || null;
     out.best = best;
+    if (!best && cands.length) out.buyNote = 'Farklı etken maddeli ilaç alınmalı (son tedavi: ' + (out.lastTreat.groupLabel || 'aynı grup') + ').';
+    else if (best && !best.inStock) out.buyNote = 'Stokta ' + (lastGroup ? 'farklı etken maddeli ' : '') + 'uygun şerit yok — ' + best.name + ' (veya ' + I.GROUPS[best.group].label + ' grubundan ruhsatlı ilaç) alınmalı.';
     out.canTreat = !out.blocks.length && out.level !== 'sayim';
     if (out.blocks.length) out.summary += ' · ⛔ ' + out.blocks[0];
-    else if (best && (out.level === 'tedavi' || out.level === 'planla')) out.summary += ' · Öneri: ' + best.name + ' ' + best.dose.text + ' şerit (etiket)';
+    else if (best && out.level === 'tedavi') out.summary += ' · Öneri: ' + best.name + ' ' + best.dose.text + ' şerit (etiket)';
     return out;
+  }
+  /** Varroa adımları (kısa liste) — kovanın son tedavisi, rotasyon, stok, etiket dozu/yerleşim/süre/bal uyarısı. Formül gösterilmez. */
+  function varroaSteps(h, mp) {
+    var I = global.SuperAriIlac, L = [], t = today(), sk = 'yaz';
+    try { sk = seasonKind(h.apiaryId, t); } catch (e) { sk = 'yaz'; }
+    if (mp.removeOld) L.push('Önce önceki şeritleri çıkarın: ' + mp.removeOld.name + (mp.removeOld.qty ? ' ' + num(mp.removeOld.qty) + ' şerit' : '') + ' (konma ' + fmt(mp.removeOld.date) + ', etiket süresi ' + fmt(mp.removeOld.due) + ' doldu).');
+    if (mp.level === 'sayim' || (mp.countAge != null && mp.countAge > VARROA.STALE_DAYS)) {
+      if (sk === 'kis') L.push('Kış salkımını bozmayın: yapışkan altlık koyun, ' + VARROA.DROP_DAYS + ' gün sonra düşen akarları sayın.');
+      else L.push('Sayım yapın: yavrulu çerçeveden ½ bardak (≈300 arı) alın, alkol / sabunlu su ile yıkayın veya pudra şekeriyle çalkalayın; düşen akar sayısını yazın.');
+      if (mp.level === 'sayim') return L;
+    }
+    var b = mp.band ? mp.band.band : null;
+    if (b === 'alti') { L.push('Tedavi gerekmez. ' + VARROA.RECOUNT_OK + ' gün sonra tekrar sayın (görev).'); return L; }
+    if (b === 'izle') { L.push('Şimdilik tedavi yok. ' + VARROA.RECOUNT_WATCH + ' gün sonra tekrar sayın (görev).'); return L; }
+    if (mp.blocks.length) {
+      mp.blocks.forEach(function (x) { L.push('⛔ Şimdi ilaç yok: ' + x); });
+      L.push('Engel kalkınca yeniden sayın; eşik üstündeyse etiket dozuyla tedavi edin.');
+      return L;
+    }
+    if (mp.lastTreat) L.push('Son tedavi: ' + String(mp.lastTreat.text).split(' (')[0] + (mp.lastTreat.groupLabel ? ' · ' + mp.lastTreat.groupLabel : '') + ' · ' + fmt(mp.lastTreat.date) + ' → direnç için farklı etken madde.');
+    var best = mp.best;
+    if (!best) { L.push(mp.buyNote || 'Bu kovan için ruhsatlı etiket dozu bulunamadı — veteriner hekime danışın.'); return L; }
+    var p = I.byId(best.id), d1 = p.durationDays[0], d2 = p.durationDays[1];
+    L.push('Şerit koy: ' + best.dose.text + ' adet ' + best.name + ' (etiket dozu' + (p.dose.type === 'frames' ? ', arılı çerçeveye göre' : '') + ').');
+    var pl = I.placementFor ? I.placementFor(p.id, best.dose.qty) : ''; if (pl) L.push('Yerleşim: ' + pl);
+    L.push('Süre: ' + d1 + (d2 !== d1 ? '–' + d2 : '') + ' gün kovanda; şerit çıkarma ve kontrol sayımı ' + fmt(addDays(t, d2)) + ' (görev).');
+    if (p.withdrawalText) L.push('Bal: ' + p.withdrawalText);
+    if (best.inStock) L.push('Stokta var: ' + best.stockItem.name + ' (' + num(best.stockItem.qty) + ' şerit).');
+    else if (mp.buyNote) L.push(mp.buyNote);
+    return L;
+  }
+  /** Girilen (henüz kaydedilmemiş) sayım için öneri: { text, band, steps } */
+  function varroaAdvice(hiveId, count, method) {
+    var h = D.hiveById(hiveId), c = Number(count);
+    if (!h || !isFinite(c) || c < 0 || String(count).trim() === '') return null;
+    var st = hiveState(h), v = { date: today(), disease: 'varroa', count: Math.round(c), method: method === 'tabla' ? 'tabla' : (method === 'seker' ? 'seker' : 'alkol') };
+    var mp = medPlan(h, Object.assign({}, st, { varroa: v }));
+    return { text: mp.band.text, band: mp.band.band, steps: varroaSteps(h, Object.assign({}, mp, { countAge: 0 })), mp: mp };
+  }
+  /** Sayım kaydı sonrası tekrar sayım görevi (mükerrer yok). Dönüş: eklenen görev ya da null. */
+  function ensureTask(hId, title, due, pri, re, note) {
+    var h = D.hiveById(hId); if (!h) return null;
+    var o = []; try { o = D.taskStore.open(); } catch (e) { o = []; }
+    if (o.some(function (x) { return String(x.hiveId) === String(hId) && (re ? re.test(String(x.title || '')) || re.test(String(x.note || '')) : String(x.title).indexOf(title) === 0); })) return null;
+    return D.taskStore.add({ title: title + ' — ' + h.name + (mode() === 'demo' ? ' · Demo' : ''), hiveId: h.id, due: due, priority: pri || 2, note: note || '[varroa]' });
+  }
+  var RE_COUNT_TASK = /^Varroa sayım|^Kontrol sayımı|^Yapışkan altlık|^Altlığı çıkar|\[muayene-oto:varroa\]/i;
+  function recountTask(hId, mp) {
+    var b = mp && mp.band ? mp.band.band : null;
+    if (b === 'alti') return ensureTask(hId, 'Varroa sayımı (aylık kontrol)', addDays(today(), VARROA.RECOUNT_OK), 3, RE_COUNT_TASK);
+    if (b === 'izle') return ensureTask(hId, 'Varroa sayımı (2 hafta sonra tekrar)', addDays(today(), VARROA.RECOUNT_WATCH), 2, RE_COUNT_TASK);
+    return null;
+  }
+  /** Sayım yok / eski: «Varroa sayımı» ya da kışın «Yapışkan altlık koy» görevi (mükerrer yok). */
+  function countTask(h, mp) {
+    mp = mp || medPlan(h);
+    if (mp.level !== 'sayim' && !(mp.countAge > VARROA.STALE_DAYS)) return null;
+    var sk = 'yaz'; try { sk = seasonKind(h.apiaryId); } catch (e) { sk = 'yaz'; }
+    if (sk === 'kis') {
+      var a = ensureTask(h.id, 'Yapışkan altlık koy (varroa doğal düşüş)', today(), 2, RE_COUNT_TASK, '[varroa-altlik:koy]');
+      if (a) ensureTask(h.id, 'Altlığı çıkar, akarları say (' + VARROA.DROP_DAYS + ' gün)', addDays(today(), VARROA.DROP_DAYS), 2, /^Altlığı çıkar/i, '[varroa-altlik:say]');
+      return a;
+    }
+    return ensureTask(h.id, mp.level === 'sayim' ? 'Varroa sayımı (½ bardak ≈300 arı)' : 'Varroa sayımını yenile (son sayım ' + mp.countAge + ' gün önce)', addDays(today(), 3), 2, RE_COUNT_TASK);
+  }
+  /** Tedavi sonrası görevler: şerit çıkarma (etiket süresi) + kontrol sayımı (tedavi süresi sonunda). */
+  function treatTasks(h, p, startIso) {
+    var d2 = p.durationDays ? p.durationDays[1] : 21, due = addDays(startIso || today(), d2), out = [];
+    var sfx = ' — ' + h.name + (mode() === 'demo' ? ' · Demo' : '');
+    if (p.dose && p.dose.unit === 'serit') out.push(D.taskStore.add({ title: 'Şeritleri çıkar (' + p.name + ', etiket ' + p.durationDays[0] + (d2 !== p.durationDays[0] ? '–' + d2 : '') + ' gün)' + sfx, hiveId: h.id, due: due, priority: 1, note: '[varroa-serit] Bakım · ilaç ' + p.name }));
+    out.push(D.taskStore.add({ title: 'Kontrol sayımı (tedavi sonrası, ' + p.name + ')' + sfx, hiveId: h.id, due: due, priority: 1, note: '[varroa-kontrol] Tedavi etkisi: ½ bardak ≈300 arı yıkama' }));
+    return out.filter(Boolean);
   }
   /** Tedaviyi kaydet: hastalık kaydı + şerit çıkarma görevi + stoktan düş. */
   /** Ürünün stoktaki şerit kalemi (ad → etken madde eşleşmesi) */
@@ -480,9 +603,8 @@
     var rec = D.records.add(h.id, 'disease', { date: t, disease: 'varroa', count: mp.varroa ? mp.varroa.count : null, method: mp.varroa ? mp.varroa.method : 'alkol',
       infestation: mp.infestation, treatment: p.name + ' (' + p.active + ')', dose: qty, doseUnit: 'serit', labelDose: lab,
       withdrawalDays: p.withdrawal === 'tedaviBoyunca' ? dur : 0, checkDate: addDays(t, dur), note: 'Bakım planı · etiket: ' + p.dose.note.slice(0, 200) });
-    D.taskStore.add({ title: 'Şeritleri çıkar (' + p.name + ') ve varroa sayımı yap — ' + h.name + (mode() === 'demo' ? ' · Demo' : ''), hiveId: h.id,
-      due: addDays(t, dur), priority: 1, note: 'Bakım planı ilaç · ' + p.durationDays[0] + '–' + dur + ' gün' });
-    var msg = p.name + ' ' + num(qty) + ' şerit' + (qty !== lab ? ' (etiket dozu: ' + num(lab) + ')' : '') + ' kaydedildi; çıkarma görevi ' + fmt(addDays(t, dur)) + ' tarihine eklendi.', low = null;
+    treatTasks(h, p, t);
+    var msg = p.name + ' ' + num(qty) + ' şerit' + (qty !== lab ? ' (etiket dozu: ' + num(lab) + ')' : '') + ' kaydedildi; şerit çıkarma ve kontrol sayımı görevi ' + fmt(addDays(t, dur)) + ' tarihine eklendi.', low = null;
     var it = treatItem(p);
     if (it) {
       var after = D.stock.adjust(it.id, -qty, 'İlaçlama · ' + h.name, t);
@@ -520,10 +642,11 @@
       out.push({ kind: 'gorev', id: x.id, text: x.title.replace(/ — [^—]+$/, ''), amount: x.due < t ? 'gecikti' : (x.due === t ? 'bugün' : fmt(x.due)), u: x.due < t ? 1 : 2 });
     });
     var mp = medPlan(h, st), sk = seasonKind(h.apiaryId);
-    if (mp.canTreat && mp.level === 'tedavi' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi (%' + num(mp.infestation) + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 1 });
-    else if (mp.canTreat && mp.level === 'planla' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi planla (%' + num(mp.infestation) + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 2 });
-    else if (mp.level === 'sayim' && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımı', amount: 'alkol yıkama / pudra şekeri', u: 3 });
-    else if (mp.countDate && t > addDays(mp.countDate, 30) && sk !== 'akim' && sk !== 'kis') out.push({ kind: 'sayim', text: 'Varroa sayımını yenile', amount: 'son ' + fmt(mp.countDate), u: 3 });
+    if (mp.removeOld) out.push({ kind: 'ilac', text: 'Önceki şeritleri çıkar (' + mp.removeOld.name + ')', amount: 'etiket süresi ' + fmt(mp.removeOld.due) + ' doldu', u: 1 });
+    if (mp.canTreat && mp.level === 'tedavi' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi (' + mp.metric + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 1 });
+    else if (mp.canTreat && mp.level === 'planla' && mp.best) out.push({ kind: 'ilac', text: 'Varroa tedavisi planla (' + mp.metric + ')', amount: mp.best.name + ' ' + mp.best.dose.text + ' şerit (etiket)', u: 2 });
+    else if (mp.level === 'sayim') out.push({ kind: 'sayim', text: sk === 'kis' ? 'Varroa: yapışkan altlık' : 'Varroa sayımı', amount: sk === 'kis' ? VARROA.DROP_DAYS + ' gün sonra say' : '½ bardak ≈300 arı · yıkama / pudra şekeri', u: 3 });
+    else if (mp.countDate && t > addDays(mp.countDate, VARROA.STALE_DAYS)) out.push({ kind: 'sayim', text: 'Varroa sayımını yenile', amount: 'son ' + fmt(mp.countDate), u: 3 });
     /* Göç sonrası ilk 7 gün: taşıma stresi — uçuş deliği, su, ana/yavru kontrolü */
     var gc = null; try { gc = D.goc && D.goc.recentForHive(h.id, 7); } catch (eG) { gc = null; }
     if (gc) out.push({ kind: 'goc', text: 'Göç sonrası kontrol', amount: 'uçuş deliği · su · ana/yavru (göç ' + fmt(gc.date) + ')', u: 2 });
@@ -564,11 +687,12 @@
   }
   function saveCount(hiveId, count, method) {
     var h = D.hiveById(hiveId); if (!h) return { ok: false, msg: 'Kovan bulunamadı' };
-    var c = Math.round(Number(count)); if (!isFinite(c) || c < 0 || c > 5000) return { ok: false, msg: 'Akar sayısını yazın.' };
-    var rec = D.records.add(h.id, 'disease', { date: today(), disease: 'varroa', count: c, method: method === 'seker' ? 'seker' : 'alkol', note: 'Bakım planı · ≈300 arı örneği' });
-    var n = completeMatching(h.id, /^Varroa sayımı \(/);
+    var c = Math.round(Number(count)); if (String(count == null ? '' : count).trim() === '' || !isFinite(c) || c < 0 || c > 5000) return { ok: false, msg: 'Akar sayısını yazın.' };
+    var rec = D.records.add(h.id, 'disease', { date: today(), disease: 'varroa', count: c, method: method === 'seker' ? 'seker' : 'alkol', note: 'Bakım planı · ½ bardak ≈300 arı örneği' });
+    var n = completeMatching(h.id, /^Varroa sayım|^Kontrol sayımı/i);
+    var mp = medPlan(D.hiveById(h.id)), tk = recountTask(h.id, mp);
     try { global.dispatchEvent(new CustomEvent('superari-records-changed')); } catch (e) { /* ignore */ }
-    return { ok: !!rec, msg: 'Sayım kaydedildi (' + c + ' akar).' + (n ? ' ' + n + ' görev tamamlandı.' : '') };
+    return { ok: !!rec, msg: 'Sayım kaydedildi (' + c + ' akar · ' + mp.band.text + ').' + (n ? ' ' + n + ' görev tamamlandı.' : '') + (tk ? ' Tekrar sayım görevi: ' + fmt(tk.due) + '.' : '') };
   }
 
   /* ---------------- «Bu kovan için öneri» kartı ---------------- */
@@ -583,6 +707,9 @@
     '.bo-dzs output{font-size:30px;font-weight:900;text-align:center}.bo-dzn{margin:0;font-size:.85rem;line-height:1.35}.bo-dzn.note{color:#5c4813;font-weight:700}' +
     '.bo-dzn.warn{background:#fff0f0;border:3px solid #c92a2a;color:#8a1c1c;border-radius:12px;padding:10px;font-size:1rem;font-weight:900}.bo-dzn.age{background:#f6f1e4;border:1px solid #e3d3a8;color:#5c4813;border-radius:10px;padding:8px;font-weight:700}' +
     '.bo-btn.bo-big{min-height:64px;font-size:1.05rem;width:100%}' +
+    '.bo-steps{margin:0;padding-left:1.2rem;display:grid;gap:.25rem;font-size:.84rem;line-height:1.35;overflow-wrap:anywhere}.bo-hint{margin:0;font-size:.8rem;line-height:1.35;color:#5c4813;background:#fffaf0;border:1px dashed #e3d3a8;border-radius:10px;padding:.4rem .5rem}' +
+    '.bo-adv:empty{display:none}.bo-adv{border-radius:12px;padding:.5rem .6rem;font-size:.86rem;line-height:1.35;border:2px solid #b2f2bb;background:#ebfbee;color:#1b5e20}.bo-adv.izle{border-color:#ffd8a8;background:#fff4e6;color:#8a4b00}.bo-adv.tedavi{border-color:#ffa8a8;background:#fff5f5;color:#8a1c1c}' +
+    '.bo-adv b{display:block;font-size:.95rem;margin-bottom:.2rem}.bo-adv ol{margin:.2rem 0 0;padding-left:1.15rem;display:grid;gap:.2rem}' +
     '.bo-btn.ok{border-color:#b2f2bb;background:#ebfbee;color:#2b8a3e}.bo-task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:center;border-top:1px dashed #ead9b3;padding-top:.35rem}' +
     '.bo-task:first-of-type{border-top:0;padding-top:0}.bo-msg{font-size:.8rem;font-weight:700;color:#2b8a3e;margin:0}.bo-msg.err{color:#c92a2a}';
   function ensureCss() { if (document.getElementById('bo-css')) return; var s = document.createElement('style'); s.id = 'bo-css'; s.textContent = CSS; document.head.appendChild(s); }
@@ -591,18 +718,20 @@
     var I = global.SuperAriIlac, h = D.hiveById(hiveId);
     if (!el) return;
     if (!h) { el.innerHTML = '<p class="bo-mut">Kovan bulunamadı.</p>'; return; }
-    var st = hiveState(h), fp = feedPlan(h, st), mp = medPlan(h, st), tasks = hiveTasks(h.id, 7);
+    var st = hiveState(h), fp = feedPlan(h, st), mp = medPlan(h, st);
+    try { countTask(h, mp); } catch (eC) { /* ignore */ }
+    var tasks = hiveTasks(h.id, 3650);
     var H = [];
     H.push('<div class="bo-chips">' + (mode() === 'demo' ? '<span class="bo-chip demo">Demo</span>' : '') +
       '<span class="bo-chip">' + esc(PROFILES[profileKey(h.apiaryId)].label.split(' (')[0]) + '</span>' +
       (st.beeFrames != null ? '<span class="bo-chip">' + st.beeFrames + ' arılı çerçeve</span>' : '') +
       (st.honeyFrames != null ? '<span class="bo-chip">' + st.honeyFrames + ' bal çerçevesi</span>' : '') +
-      (mp.infestation != null ? '<span class="bo-chip">Varroa %' + num(mp.infestation) + '</span>' : '') + '</div>');
+      (mp.metric ? '<span class="bo-chip">Varroa ' + esc(mp.metric.replace(' bulaşma', '')) + '</span>' : '') + '</div>');
     var firstInsp = false; try { var rr0 = D.records.status(h.id).records; firstInsp = !rr0.strength.length && !rr0.brood.length && !rr0.disease.length && !rr0.feed.length; } catch (eF) { firstInsp = false; }
     H.push('<div style="display:flex;gap:.4rem;margin:.1rem 0 .5rem;"><button type="button" class="bo-btn" data-bo-km style="flex:1;min-width:0;min-height:50px;font-size:1rem;">🐝 ' + (firstInsp ? 'İlk muayene (adım adım)' : 'Kolay muayene (≈1 dk)') + '</button><button type="button" class="bo-btn" data-bo-km data-voice="1" style="flex:none;min-height:50px;font-size:.95rem;">🎙 Sesle başlat</button></div>');
     H.push('<label class="bo-row" style="font-size:.8rem;"><input type="checkbox" data-bo-super' + (hasSuper(h.id) ? ' checked' : '') + '> Bal katı takılı (ilaç engellenir)</label>');
     if (tasks.length) {
-      H.push('<div class="bo-sec"><h3>📌 Görevler</h3>' + tasks.map(function (x) {
+      H.push('<div class="bo-sec"><h3>📌 Yapılacaklar (bu kovan, tam liste)</h3>' + tasks.map(function (x) {
         return '<div class="bo-task"><span>' + esc(x.title) + (x.due ? ' <span class="bo-mut">· ' + (x.due < today() ? 'gecikti ' : '') + fmt(x.due) + '</span>' : '') + '</span><button type="button" class="bo-btn ok" data-bo-done="' + esc(x.id) + '">✓ Bitti</button></div>';
       }).join('') + '</div>');
     }
@@ -619,12 +748,15 @@
     H.push('<div class="bo-sec"><h3>🔍 Hastalık tahmini <span class="bo-mut">(kesin değil)</span></h3><p class="bo-mut">Rehberli fotoğraf + belirti listesi → muhtemel hastalıklar, yapılacaklar ve tek dokunuşla şüpheli kayıt.</p>' +
       '<div class="bo-row"><button type="button" class="bo-btn" data-bo-hz>Hastalık tahmini başlat</button></div></div>');
     /* varroa */
-    var V = '<div class="bo-sec"><h3>💊 Varroa</h3><p>' + esc(mp.summary.split(' · ⛔')[0].split(' · Öneri')[0]) + '</p>';
+    var V = '<div class="bo-sec"><h3>💊 Varroa</h3><p>' + esc(mp.band ? mp.band.text + ' · ' + fmt(mp.countDate) : mp.summary.split(' · ⛔')[0].split(' · Öneri')[0]) + '</p>';
     mp.warns.forEach(function (w) { V += '<p class="bo-warn">' + esc(w) + '</p>'; });
     mp.blocks.forEach(function (b) { V += '<p class="bo-block">⛔ ' + esc(b) + '</p>'; });
-    V += '<div class="bo-row"><input type="number" inputmode="numeric" min="0" max="5000" placeholder="Akar" data-bo-count aria-label="Akar sayısı">' +
+    var vsteps = varroaSteps(h, mp).filter(function (x) { return x.indexOf('⛔') !== 0; });
+    if (vsteps.length) V += '<ol class="bo-steps">' + vsteps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>';
+    V += '<p class="bo-hint"><b>Akar sayısı ne?</b> Yavrulu çerçeveden ½ bardak (≈300 arı) alın; alkol / sabunlu su ile yıkayın veya pudra şekeriyle çalkalayın. Düşen akarların <b>sayısını</b> yazın (yüzde değil) — uygulama 300 arıya göre bulaşma yüzdesini çıkarır.</p>';
+    V += '<div class="bo-row"><input type="number" inputmode="numeric" min="0" max="5000" placeholder="Akar" data-bo-count aria-label="Akar sayısı (300 arıda)">' +
       '<select data-bo-method aria-label="Sayım yöntemi"><option value="alkol">Alkol yıkama (≈300 arı)</option><option value="seker">Pudra şekeri (≈300 arı)</option></select>' +
-      '<button type="button" class="bo-btn" data-bo-savecount>Sayımı kaydet</button></div>';
+      '<button type="button" class="bo-btn" data-bo-savecount>Sayımı kaydet</button></div><div class="bo-adv" data-bo-vadv aria-live="polite"></div>';
     if (mp.canTreat && (mp.level === 'tedavi' || mp.level === 'planla')) {
       var opt = mp.products.filter(function (x) { return x.verified; }).map(function (x) {
         var dis = !x.dose.ok || x.blocks.length;
@@ -686,8 +818,18 @@
       var m2 = el.querySelector('[data-bo-msg]'); if (m2) m2.textContent = '✓ ' + r.msg;
       if (opts.onChange) opts.onChange(r);
     }
+    function vadv() {
+      var box = el.querySelector('[data-bo-vadv]'), inp = el.querySelector('[data-bo-count]'), ms = el.querySelector('[data-bo-method]');
+      if (!box || !inp) return;
+      var a = inp.value === '' ? null : varroaAdvice(h.id, inp.value, ms ? ms.value : 'alkol');
+      if (!a) { box.className = 'bo-adv'; box.innerHTML = ''; return; }
+      box.className = 'bo-adv ' + a.band;
+      box.innerHTML = '<b>' + esc(a.text) + '</b><ol>' + a.steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>';
+    }
+    el.oninput = function (e) { if (e.target.hasAttribute && e.target.hasAttribute('data-bo-count')) vadv(); };
     el.onchange = function (e) {
-      if (e.target.hasAttribute('data-bo-super')) { setSuper(h.id, e.target.checked); renderHiveCard(el, hiveId, opts); if (opts.onChange) opts.onChange({}); }
+      if (e.target.hasAttribute('data-bo-method')) vadv();
+      else if (e.target.hasAttribute('data-bo-super')) { setSuper(h.id, e.target.checked); renderHiveCard(el, hiveId, opts); if (opts.onChange) opts.onChange({}); }
       else if (e.target.hasAttribute('data-bo-prod')) info();
     };
     el.onclick = function (e) {
@@ -757,7 +899,7 @@
   }
   global.SuperAriPlan = {
     queenDot: queenDot,
-    needs: needs, tour: tour, tourMarkDone: tourMarkDone, tourNext: tourNext, saveCount: saveCount, renderHiveCard: renderHiveCard, hiveTasks: hiveTasks,
+    needs: needs, VARROA: VARROA, varroaBand: varroaBand, varroaSteps: varroaSteps, varroaAdvice: varroaAdvice, recountTask: recountTask, countTask: countTask, treatTasks: treatTasks, ensureTask: ensureTask, openRemovalTask: openRemovalTask, tour: tour, tourMarkDone: tourMarkDone, tourNext: tourNext, saveCount: saveCount, renderHiveCard: renderHiveCard, hiveTasks: hiveTasks,
     SYRUP: SYRUP, KG_PER_HONEY_FRAME: KG_PER_HONEY_FRAME, hiveState: hiveState, seasonKind: seasonKind, feedPlan: feedPlan, saveFeeding: saveFeeding, feedText: feedText, hiveSummary: hiveSummary, medPlan: medPlan, saveTreatment: saveTreatment,
     PROFILES: PROFILES, JOBS: JOBS, profileKey: profileKey, autoProfile: autoProfile, setProfile: setProfile,
     camBali: camBali, setCamBali: setCamBali, hasSuper: hasSuper, setSuper: setSuper, openKolayMuayene: openKM,

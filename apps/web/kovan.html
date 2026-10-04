@@ -142,6 +142,7 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   .sum-val.warn { color: var(--warn); }
+  .sum-tare { margin-top: 4px; font-size: 11px; font-weight: 700; color: #6b5a48; line-height: 1.3; overflow-wrap: anywhere; }
   .sum-val.bad { color: var(--danger); }
   .sum-badge {
     display: inline-flex; padding: 2px 6px; border-radius: 999px;
@@ -362,16 +363,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-80"></script>
-<script src="rapor-store.js?v=koloni-80"></script>
-<script src="sensor-health.js?v=koloni-80"></script>
-<script src="saglik-canli.js?v=koloni-80"></script>
-<script src="koloni.js?v=koloni-80"></script>
-<script src="ilac-katalog.js?v=koloni-80"></script>
-<script src="bakim-plan.js?v=koloni-80"></script>
-<script src="ogul.js?v=koloni-80"></script>
-<script src="ogul-verdi.js?v=koloni-80"></script>
-<script src="tarti-elle.js?v=koloni-80"></script>
+<script src="demo-data.js?v=koloni-81"></script>
+<script src="rapor-store.js?v=koloni-81"></script>
+<script src="sensor-health.js?v=koloni-81"></script>
+<script src="saglik-canli.js?v=koloni-81"></script>
+<script src="koloni.js?v=koloni-81"></script>
+<script src="ilac-katalog.js?v=koloni-81"></script>
+<script src="bakim-plan.js?v=koloni-81"></script>
+<script src="ogul.js?v=koloni-81"></script>
+<script src="ogul-verdi.js?v=koloni-81"></script>
+<script src="tarti-elle.js?v=koloni-81"></script>
 <script>(function () {
   if (window.SuperAriTarti) SuperAriTarti.ensureCss();
   document.addEventListener('click', function (e) {
@@ -388,7 +389,7 @@
   else if (window.SuperAriKutu) SuperAriKutu.open(t.getAttribute('data-kutu-open'), rl);
 });
 new MutationObserver(function () { if (window.__ovReload && !document.getElementById('ovSheet')) { window.__ovReload = false; location.reload(); } }).observe(document.body, { childList: true });</script>
-<script src="irk-tahmin.js?v=koloni-80"></script>
+<script src="irk-tahmin.js?v=koloni-81"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>(function () {
   function kmOpen(id) { if (window.SuperAriKoloni && SuperAriKoloni.openKolayMuayene) SuperAriKoloni.openKolayMuayene(id, { onSaved: function () { window.__kmReload = true; } }); }
@@ -862,7 +863,10 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     if (swA && swA.key === 'orta') swBadge = 'İzlemede';
     var liveKd = !!(evalH && evalH.live) || (function () { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } })();
     var lastManual = manualList && manualList.length ? manualList[0] : null;
-    var weightTxt = liveKd ? (lastManual ? String(lastManual.kg).replace('.', ',') + ' kg' : '—') : Number(hive.weightKg).toFixed(1) + ' kg';
+    /* Dara: kovandaki kayıtlı malzeme (şerit, altlık, besleyicideki yem) tartıdan düşülür — elle tartımda kayıt anındaki dara, sensör/örnek tartıda şu anki dara. */
+    var tareNow = TEm && TEm.tare ? (liveKd ? (lastManual && lastManual.tareKg ? { kg: lastManual.tareKg } : null) : TEm.tare(hive.id)) : null;
+    var tareTxt = tareNow && tareNow.kg > 0 ? TEm.tareNote(tareNow) : '';
+    var weightTxt = liveKd ? (lastManual ? String(TEm.netOf ? TEm.netOf(lastManual) : lastManual.kg).replace('.', ',') + ' kg' : '—') : (Number(hive.weightKg) - (tareNow ? tareNow.kg : 0)).toFixed(1).replace('.', ',') + ' kg';
     if (liveKd) wt = '';
     var deltaStr = liveKd ? (lastManual ? 'Elle · ' + (TEm && TEm.fmtAt ? TEm.fmtAt(lastManual.at) : '') : 'Tartı yok') : (function () {
       var n = Number(hive.deltaKg);
@@ -939,6 +943,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
           '<div class="sum-top"><span class="sum-ico' + cls(wt) + '">⚖</span><span class="sum-lbl">Tartı</span></div>' +
           '<div class="sum-val' + cls(wt) + '">' + escapeHtml(weightTxt) + '</div>' +
           '<span class="sum-badge' + cls(wt) + '">' + escapeHtml(deltaStr) + '</span>' +
+          (tareTxt ? '<div class="sum-tare">' + escapeHtml(tareTxt) + '</div>' : '') +
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +
@@ -1100,7 +1105,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-80"></script>
-<script src="pwa.js?v=koloni-80"></script>
+<script src="nav.js?v=koloni-81"></script>
+<script src="pwa.js?v=koloni-81"></script>
 </body>
 </html>

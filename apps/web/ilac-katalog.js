@@ -37,6 +37,7 @@
       id: 'beeraz', name: 'Beeraz', holder: 'Albafarma', active: 'Amitraz 500 mg / şerit', group: 'amitraz', form: 'Kovan içi şerit',
       dose: { type: 'frames', unit: 'serit', bands: [{ min: 1, max: 5, qty: 1 }, { min: 6, max: 10, qty: 2 }],
         note: 'Etiket: 1–5 çerçeve 1 şerit, 6–10 çerçeve 2 şerit. Zayıf kolonide şerit ikiye kesilebilir; önce birkaç kovanda deneyin.' },
+      placement: { byQty: { 1: '2. ile 3. çerçeve arasına', 2: '1. şerit 2.–3., 2. şerit 5.–6. çerçeve arasına' }, how: 'Şeritler çerçevelerin orta hizasında, iki çerçevenin arasında, iki yandaki arılara değecek ve birbirinden ayrı duracak şekilde, ortadaki delikten çubuk geçirilerek asılır; kovanın her tarafına eşit, arıların yoğun olduğu kısma (ÜÖÖ 4.9).' },
       durationDays: [28, 42], preFlowDays: 42, withdrawal: 'tedaviBoyunca',
       withdrawalText: 'Tedavi süresince elde edilen bal insan tüketimine sunulmaz. Bal tutumuna 6 hafta kala ve bal tutumu süresince uygulanmaz.',
       season: 'Bal hasadından sonra (geç sonbahar) ve bal akımından 4–6 hafta önce (erken ilkbahar).',
@@ -46,6 +47,7 @@
       id: 'bayvarol', name: 'Bayvarol', holder: 'Elanco', active: 'Flumetrin 3,6 mg / şerit', group: 'piretroid', form: 'Kovan içi şerit',
       dose: { type: 'frames', unit: 'serit', bands: [{ min: 1, max: 8, qty: 2 }, { min: 9, max: 40, qty: 4 }],
         note: 'Etiket: 7–8 dolu çerçeveli genç/küçük koloni 2 şerit; büyük koloni 4 şerit.' },
+      placement: { how: 'Kuluçka yuvasının ortasına, iki yanında arılar yürüyebilecek şekilde petek aralarına asılır; kanatçıklar katlama çizgisinden bükülüp çerçeve üst kenarına tutturulur (ÜÖÖ).' },
       durationDays: [28, 42], preFlowDays: 30, withdrawal: 'sifir',
       withdrawalText: 'Bal için arınma süresi gerekmez (0 gün). Şeritler hasat edilecek bala temas etmemeli; tedaviden sonraki ilkbahara kadar baldan başka arı ürünü insan tüketimine sunulmaz.',
       season: 'En iyi sonuç bal hasadından sonra (geç sonbahar); ayrıca bal akımından 1–1,5 ay önce (erken ilkbahar).',
@@ -55,6 +57,7 @@
       id: 'beevarflu', name: 'Beevarflu', holder: 'Albafarma', active: 'Flumetrin 3,6 mg / şerit', group: 'piretroid', form: 'Kovan içi şerit',
       dose: { type: 'frames', unit: 'serit', bands: [{ min: 1, max: 8, qty: 2 }, { min: 9, max: 40, qty: 4 }],
         note: 'Etiket: 7–8 dolu çerçeveli genç/küçük koloni 2 şerit; büyük koloni 4 şerit.' },
+      placement: { how: 'Şeritler çerçevelerin orta hizasında, iki çerçevenin arasında, iki yandaki arılara değecek ve birbirinden ayrı duracak şekilde, ortadaki delikten çubuk geçirilerek asılır; kovanın her tarafına eşit, arıların yoğun olduğu kısma (ÜÖÖ 4.9).' },
       durationDays: [28, 42], preFlowDays: 28, withdrawal: 'sifir',
       withdrawalText: 'Bal için arınma süresi gerekmez.',
       season: 'Bal hasadından sonra (geç sonbahar) ve bal akımından 4–6 hafta önce (erken ilkbahar).',
@@ -64,6 +67,7 @@
       id: 'varodur', name: 'Varodur', holder: 'Ekofarma', active: 'Flumetrin 3,6 mg / şerit', group: 'piretroid', form: 'Kovan içi şerit',
       dose: { type: 'frames', unit: 'serit', bands: [{ min: 1, max: 8, qty: 2 }, { min: 9, max: 40, qty: 4 }],
         note: 'Etiket: 7–8 dolu çerçeveli genç/küçük koloni 2 şerit; büyük koloni 4 şerit (etiketin başka yerinde genç koloni 1–2, güçlü koloni 2–4 şerit).' },
+      placement: { how: 'Şeritler çerçevelerin orta hizasında, iki çerçevenin arasında, iki yandaki arılara değecek ve birbirinden ayrı duracak şekilde, ortadaki delikten çubuk geçirilerek asılır; kovanın her tarafına eşit, arıların yoğun olduğu kısma (ÜÖÖ 4.9).' },
       durationDays: [28, 42], preFlowDays: 28, withdrawal: 'sifir',
       withdrawalText: 'Bal için arınma süresi gerekmez. Tedaviden sonra ilkbahara kadar bal dışındaki arı ürünleri (balmumu dahil) insan tüketimine sunulmaz.',
       season: 'Bal hasadından sonra (geç sonbahar) ve bal akımından 4–6 hafta önce (erken ilkbahar).',
@@ -73,6 +77,7 @@
       id: 'fumbee', name: 'Fumbee', holder: 'Teknovet', active: 'Flumetrin 3,6 mg / şerit', group: 'piretroid', form: 'Kovan içi şerit',
       dose: { type: 'frames', unit: 'serit', bands: [{ min: 4, max: 5, qty: 2 }, { min: 6, max: 40, qty: 4, text: '3–4' }],
         note: 'Etiket: zayıf/oğul koloni (4–5 çerçeve) 2 şerit; normal ve güçlü koloni (6+ çerçeve) 3–4 şerit. 4 çerçeveden az koloni için etikette doz yok.' },
+      placement: { how: 'Şeritler çerçevelerin orta hizasında, iki çerçevenin arasında, iki yandaki arılara değecek ve birbirinden ayrı duracak şekilde, ortadaki delikten çubuk geçirilerek asılır; kovanın her tarafına eşit, arıların yoğun olduğu kısma (ÜÖÖ 4.9).' },
       durationDays: [42, 42], preFlowDays: 42, withdrawal: 'sifir',
       withdrawalText: 'Bal akımı ve polen toplama süresince kullanılmaz. Tedaviden ilkbahara kadar insan tüketimi için bal ve diğer arı ürünleri üretilmez.',
       season: 'Bal akımı dışında; 6 hafta kovanda kalır, sonra mutlaka çıkarılır.',
@@ -81,6 +86,7 @@
     {
       id: 'polyvar', name: 'PolyVar Yellow 275 mg', holder: 'Elanco', active: 'Flumetrin 275 mg / şerit', group: 'piretroid', form: 'Kovan girişi şeridi',
       dose: { type: 'fixed', unit: 'serit', qty: 2, note: 'Etiket: standart kovan için 2 şerit, kovan girişine geçit olarak takılır.' },
+      placement: { how: 'Kovan girişine takılır: arılar yalnız şerit deliklerinden girip çıkar; şerit kesilmez, delikler kapatılmaz (ÜÖÖ 4.9).' },
       durationDays: [63, 120], preFlowDays: null, withdrawal: 'sifir',
       withdrawalText: 'Bal için 0 gün. Bal akımı ve polen toplama süresince kullanılmaz; tedaviden ilkbahara kadar insan tüketimi için bal ve diğer arı ürünleri üretilmez.',
       season: 'Bal akımı ve bal süzümünden kısa süre sonra başlanır; en az 9 hafta, en çok 4 ay.',
@@ -89,6 +95,7 @@
     {
       id: 'checkmite', name: 'Checkmite', holder: 'Elanco', active: 'Koumafos 1,36 g / şerit', group: 'organofosfat', form: 'Kovan içi şerit',
       dose: { type: 'fixed', unit: 'serit', qty: 2, note: 'Etiket: her kovan için 2 şerit, 42 gün; 42 günü aşmayın. Yılda en çok 2 kez.' },
+      placement: { how: 'Kuluçka (arı üretim) bölgesindeki iki petek arasına asılır; 42 gün kalır, aşılmaz; şerit bir kez kullanılır (ÜÖÖ 4.9).' },
       durationDays: [42, 42], preFlowDays: 42, withdrawal: 'sifir', maxPerYear: 2,
       withdrawalText: 'Bal için 0 gün; bal hasadı döneminde uygulanmaz (hasattan en az 42 gün önce veya hasattan sonra). Koumafos balmumunda birikebilir: tedavi gören kovanın mumu insan tüketimine sunulmaz.',
       season: 'Bal hasadı başlamadan en az 42 gün önce veya hasattan sonra.',
@@ -120,6 +127,7 @@
       id: 'rulamit', name: 'Rulamit', holder: 'Teknovet', active: 'Amitraz 500 mg / şerit', group: 'amitraz', form: 'Kovan içi şerit (3×20 cm plastik)',
       dose: { type: 'fixed', unit: 'serit', qty: 2,
         note: 'Etiket: kovan başına 2 şerit (10 çerçeve arılı her kovan için 2 × 500 mg = 1000 mg amitraz); şeritler iki çerçevenin arasına, ortada ve arıların her iki tarafa da serbestçe erişebileceği şekilde asılır (Langstroth: 3.–4. ve 6.–7. çerçeve arası; Dadant: 3.–4. ve 7.–8.; Layens: 5.–6. ve 9.–10.). Yavru yoksa 6 hafta, yavru varsa 10 hafta sonra çıkarılır.' },
+      placement: { how: 'İki çerçevenin arasına, ortada, arıların iki yandan erişebileceği şekilde asılır — Langstroth: 3.–4. ve 6.–7. çerçeve arası; Dadant: 3.–4. ve 7.–8.; Layens: 5.–6. ve 9.–10. (üretici etiketi).' },
       durationDays: [42, 70], preFlowDays: 42, withdrawal: 'tedaviBoyunca',
       withdrawalText: 'Bal için 0 gün; bal (nektar) akımında kullanılmaz. Tedavi süresince elde edilen bal insan tüketimine sunulmaz; bal tutumuna 6 hafta kala ve bal tutumu süresince uygulanmaz. Kuluçkalıktaki bal kullanılmaz; tedavi sırasında bal hasat edilmez.',
       season: 'Ballık (kat) yokken: son bal hasadından sonra (yaz sonu / sonbahar) ve ilkbaharda bal akımı başlamadan önce; kuluçka pik seviyenin altındayken ve arılar kış salkımı kurmadan önce.',
@@ -152,6 +160,12 @@
     var b = p.dose.bands.filter(function (x) { return n >= x.min && n <= x.max; })[0];
     if (!b) return { ok: false, reason: n + ' arılı çerçeve için etikette doz yok — veteriner hekime danışın.' };
     return { ok: true, qty: b.qty, text: b.text || String(b.qty), unit: p.dose.unit };
+  }
+  /** Etiketteki yerleşim metni (ÜÖÖ 4.9 / üretici etiketi). qty: etiket dozu (çerçeve aralığı bilgisi varsa). */
+  function placementFor(id, qty) {
+    var p = BY_ID[id]; if (!p || !p.placement) return '';
+    var w = p.placement.byQty && qty != null ? p.placement.byQty[qty] : '';
+    return (w ? w.charAt(0).toLocaleUpperCase('tr') + w.slice(1) + '. ' : '') + p.placement.how;
   }
   /** Tedavi kaydında yazan metinden ürün/grup tahmini (rotasyon uyarısı için). */
   function detect(text) {
@@ -237,7 +251,7 @@
     });
   }
 
-  global.SuperAriIlac = { LIST: LIST, byId: function (id) { return BY_ID[id] || null; }, GROUPS: GROUPS, doseFor: doseFor, detect: detect,
+  global.SuperAriIlac = { LIST: LIST, byId: function (id) { return BY_ID[id] || null; }, GROUPS: GROUPS, doseFor: doseFor, placementFor: placementFor, detect: detect,
     STORAGE: STORAGE, storage: storage, doseCheck: doseCheck, ageNote: ageNote, labelTxt: labelTxt, productOfItem: productOfItem, askHighDose: askHighDose, isAmitrazStrip: isAmitrazStrip,
     SOURCE_DB: DB, CHECKED: CHECKED, WARNING: 'Etiket dozunu kontrol edin. Uygulama yalnız hesap yardımcısıdır; kararı prospektüs ve veteriner hekiminiz belirler.' };
 })(window);

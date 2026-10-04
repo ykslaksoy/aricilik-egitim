@@ -37,14 +37,14 @@
   var LVTXT = { izle: 'izlenmeli', orta: 'orta düzeyde', 'yüksek': 'yüksek', kritik: 'kritik' };
   function live(x) { return x && !x.demo; }
 
-  /** Elle tartım serisi (tarti-elle.js ile aynı: eklenen kat/besleme ağırlığı sonraki okumalardan düşülür). Yalnız Canlı depo. */
+  /** Elle tartım serisi (tarti-elle.js ile aynı: eklenen kat/besleme ağırlığı sonraki okumalardan, kayıt anındaki kovan malzemesi darası o okumadan düşülür). Yalnız Canlı depo. */
   function weightSeries(hiveId, days) {
     var rows = []; try { rows = JSON.parse(global.localStorage.getItem('superari.tartiElle.v1') || '[]'); } catch (e) { rows = []; }
     if (!Array.isArray(rows)) return [];
     var from = new Date(Date.now() - (days || 21) * 86400000).toISOString().slice(0, 10), off = 0;
     return rows.filter(function (x) { return x && !x.demo && String(x.hiveId) === String(hiveId) && x.at; })
       .sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); })
-      .map(function (x) { off += Number(x.addKg) || 0; return { date: String(x.date || x.at).slice(0, 10), net: Math.round((Number(x.kg) - off) * 100) / 100 }; })
+      .map(function (x) { off += Number(x.addKg) || 0; return { date: String(x.date || x.at).slice(0, 10), net: Math.round((Number(x.kg) - off - (Number(x.tareKg) || 0)) * 100) / 100 }; })
       .filter(function (p) { return p.date >= from && isFinite(p.net); });
   }
   /** Tek kovan için Canlı değerlendirme. */
