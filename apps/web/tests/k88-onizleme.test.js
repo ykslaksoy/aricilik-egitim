@@ -25,25 +25,25 @@ assert.strictEqual(R.viableFrames('yayla', '2026-10-04'), 4);
 assert.strictEqual(R.viableFrames('yuksek', '2026-01-15'), 5);
 assert.strictEqual(R.viableFrames(null, '2026-10-04'), 3, 'bilinmeyen bant → 3');
 
-/* skor: sınırın altı 0, sınırda ≥1; ölçek 0 + beş canlı seviye */
-assert.strictEqual(R.viaScore(2.5, 9, 3), 0);
-assert.strictEqual(R.viaScore(3, 9, 3), 1);
-assert.ok(R.viaScore(9, 9, 3) >= 40 && R.viaScore(9, 9, 3) <= 59, 'beklenen = Normal');
+/* skor (k93): sınırın altı 0–44 (Birleştirilmeli), sınırda 45 (Çok zayıf başı); beklenen = Normal (75) */
+assert.ok(R.viaScore(2.5, 9, 3) < 45 && R.viaScore(2.5, 9, 3) > 0);
+assert.strictEqual(R.viaScore(0, 9, 3), 0);
+assert.strictEqual(R.viaScore(3, 9, 3), 45);
+assert.strictEqual(R.viaScore(9, 9, 3), 75, 'beklenen = Normal ortası');
 assert.strictEqual(R.viaScore(18, 9, 3), 100);
-assert.strictEqual(R.BELOW_VIABLE.label, 'Yaşama sınırı altı');
-assert.deepStrictEqual(R.STRENGTH_LEVELS.map((l) => l.label + ' ' + R.strengthRange(l).text),
-  ['Çok zayıf 1–19', 'Zayıf 20–39', 'Normal 40–59', 'Güçlü 60–79', 'Çok güçlü 80–100']);
+assert.strictEqual(R.viaScore(40, 9, 3), 100, '100 üst sınır');
+assert.strictEqual(R.BELOW_VIABLE.label, 'Birleştirilmeli');
 const hA1 = D.loadHives().find((h) => h.apiaryId === 'a1').id, hA2 = D.loadHives().find((h) => h.apiaryId === 'a2').id;
 const dead = R.strengthInfo({ beeFrames: 2, broodFrames: 1, date: '2026-10-04' }, { hiveId: hA1 });
-assert.strictEqual(dead.score, 0); assert.strictEqual(dead.key, 'sinir-alti'); assert.strictEqual(dead.viable, 3);
+assert.ok(dead.score < 45); assert.strictEqual(dead.key, 'birlestir'); assert.strictEqual(dead.viable, 3);
 assert.ok(R.isWeakClass(dead.key));
-assert.ok(/^Yaşama sınırı altı · skor 0$/.test(R.strengthTag(dead)), R.strengthTag(dead));
+assert.ok(/^Birleştirilmeli · 0–44 · skor \d+$/.test(R.strengthTag(dead)), R.strengthTag(dead));
 const atV = R.strengthInfo({ beeFrames: 3, broodFrames: 0, date: '2026-10-04' }, { hiveId: hA1 });
-assert.ok(atV.score >= 1 && atV.key !== 'sinir-alti', 'sınırda canlı: ' + atV.score);
+assert.ok(atV.score === 45 && atV.key === 'cok-zayif', 'sınırda = 45 (Çok zayıf başı): ' + atV.score);
 /* yaylada ekimde 3 çerçeve sınırın altında (4) */
-assert.strictEqual(R.strengthInfo({ beeFrames: 3, broodFrames: 2, date: '2026-10-04' }, { hiveId: hA2 }).score, 0);
-/* yavru/tartı ekleri ölü koloniyi canlandırmaz */
-assert.strictEqual(R.strengthInfo({ beeFrames: 1, broodFrames: 6, date: '2026-07-01' }, { hiveId: hA1 }).score, 0);
+assert.strictEqual(R.strengthInfo({ beeFrames: 3, broodFrames: 2, date: '2026-10-04' }, { hiveId: hA2 }).key, 'birlestir');
+/* yavru/tartı ekleri sınır altı koloniyi yükseltmez */
+assert.ok(R.strengthInfo({ beeFrames: 1, broodFrames: 6, date: '2026-07-01' }, { hiveId: hA1 }).score < 45);
 
 /* melez katsayıları: düz ortalama yok; kaynaklı heterozis */
 const f = (b) => Math.round(R.breedEnv({ breed: b }).fob * 1000) / 1000;

@@ -23,15 +23,18 @@ const h = hives.find((x) => !P.flowAt(x.apiaryId, t).flow && !P.hasSuper(x.id));
 assert.ok(h);
 const open = (re) => D.taskStore.open().filter((x) => String(x.hiveId) === String(h.id) && re.test(String(x.title) + ' ' + String(x.note || '')));
 
-/* ---- 5 seviyeli güç ---- */
-assert.deepStrictEqual(R.STRENGTH_LEVELS.map((x) => x.label), ['Çok zayıf', 'Zayıf', 'Normal', 'Güçlü', 'Çok güçlü']);
+/* ---- güç seviyeleri (k93: 7 seviye) ---- */
+assert.deepStrictEqual(R.STRENGTH_LEVELS.map((x) => x.label), ['Birleştirilmeli', 'Çok zayıf', 'Zayıf', 'Normal', 'Güçlü', 'Çok güçlü', 'Bölünmesi Gerekiyor']);
 assert.deepStrictEqual(['zayıf', 'orta', 'güçlü', 'Orta', 'Zayıf', 'GÜÇLÜ', 'çok zayıf'].map((x) => R.strengthLevel(x).label), ['Zayıf', 'Normal', 'Güçlü', 'Normal', 'Zayıf', 'Güçlü', 'Çok zayıf'], 'eski 3 seviye eşlenir');
 assert.strictEqual(R.strengthLevel('xyz'), null);
 /* başlangıç eşikleri (arılık verisi yok; Mayıs, yavru arının yarısı) */
 const cls = (b, br, d) => R.strengthClass({ beeFrames: b, broodFrames: br == null ? Math.ceil(b / 2) : br, date: d || '2026-05-10' });
-assert.deepStrictEqual([1, 2, 3, 4, 5, 7, 8, 11, 12, 16].map((b) => cls(b)), ['Yaşama sınırı altı', 'Çok zayıf', 'Çok zayıf', 'Çok zayıf', 'Zayıf', 'Normal', 'Normal', 'Güçlü', 'Güçlü', 'Çok güçlü'], 'k88: yaşama sınırı (Mayıs 2 çerçeve) altı = 0');
+assert.deepStrictEqual([1, 2, 3, 4, 5, 7, 8].map((b) => cls(b)), ['Birleştirilmeli', 'Çok zayıf', 'Çok zayıf', 'Çok zayıf', 'Zayıf', 'Normal', 'Normal'], 'k93: yaşama sınırı (Mayıs 2 çerçeve) altı = Birleştirilmeli');
+/* yavru 5 (bölme eşiği 6'nın altı): bant seviyeleri; Mayıs (bölme dönemi) + ≥10 arılı + ≥6 yavrulu → Bölünmesi Gerekiyor */
+assert.deepStrictEqual([11, 12, 16].map((b) => cls(b, 5)), ['Güçlü', 'Güçlü', 'Çok güçlü']);
+assert.deepStrictEqual([11, 12, 16].map((b) => cls(b)), ['Bölünmesi Gerekiyor', 'Bölünmesi Gerekiyor', 'Bölünmesi Gerekiyor']);
 assert.strictEqual(cls(5, 0), 'Çok zayıf', 'aktif mevsimde yavrusuz koloni bir alt seviyeye iner');
-assert.strictEqual(cls(1.5, 0), 'Yaşama sınırı altı', 'yaşama sınırı altında yavru / tartı katkısı skoru 0 üstüne çıkarmaz');
+assert.strictEqual(cls(1.5, 0), 'Birleştirilmeli', 'yaşama sınırı altında yavru / tartı katkısı seviyeyi yükseltmez');
 /* konum × cins tablosu (tek yer) */
 assert.deepStrictEqual(Object.keys(R.COLONY_ENV.BANDS).map((k) => [k, R.COLONY_ENV.BANDS[k].fobMean, R.COLONY_ENV.BANDS[k].winterKg]), [['sicak', 8.6, 15], ['iliman', 8.6, 20], ['yayla', 11, 22], ['yuksek', 16, 25]]);
 {

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -34,18 +35,6 @@
 </head>
 <body>
   <main class="wrap">
-    <div class="nav">
-      <a class="chip" href="ana.html">← Ana</a>
-      <a class="chip" href="arici.html">Arıcı</a>
-      <a class="chip" href="ayarlar.html">Ayarlar</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div>
-        <h1>SüperArı</h1>
-        <p id="pageSub">Kovanlar</p>
-      </div>
-    </div>
 
     <section id="ksScope" hidden></section>
     <div class="ks-tools" id="ksTools" hidden></div>
@@ -63,19 +52,20 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-93"></script>
-  <script src="rapor-store.js?v=koloni-93"></script>
-  <script src="sensor-health.js?v=koloni-93"></script>
-<script src="saglik-canli.js?v=koloni-93"></script>
-  <script src="koloni.js?v=koloni-93"></script>
-  <script src="koloni-ek.js?v=koloni-93"></script>
-  <script src="ilac-katalog.js?v=koloni-93"></script>
-  <script src="bakim-plan.js?v=koloni-93"></script>
-  <script src="irk-tahmin.js?v=koloni-93"></script>
-  <script src="kovan-ara.js?v=koloni-93"></script>
+  <script src="bk-kabuk.js?v=koloni-94"></script>
+  <script src="demo-data.js?v=koloni-94"></script>
+  <script src="rapor-store.js?v=koloni-94"></script>
+  <script src="sensor-health.js?v=koloni-94"></script>
+<script src="saglik-canli.js?v=koloni-94"></script>
+  <script src="koloni.js?v=koloni-94"></script>
+  <script src="koloni-ek.js?v=koloni-94"></script>
+  <script src="ilac-katalog.js?v=koloni-94"></script>
+  <script src="bakim-plan.js?v=koloni-94"></script>
+  <script src="irk-tahmin.js?v=koloni-94"></script>
+  <script src="kovan-ara.js?v=koloni-94"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-elle.js?v=koloni-93"></script>
-  <script src="kapsam.js?v=koloni-93"></script>
+  <script src="tarti-elle.js?v=koloni-94"></script>
+  <script src="kapsam.js?v=koloni-94"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -147,7 +137,7 @@
       }
       var listEl = document.getElementById('hive-list');
       var titleEl = document.getElementById('pageTitle');
-      var subEl = document.getElementById('pageSub');
+      var subEl = (document.getElementById('pageSub') || document.createElement('p'));
       var summaryEl = document.getElementById('summary');
       var noteEl = document.getElementById('pageNote');
       var modeSwitchEl = document.getElementById('modeSwitch');
@@ -160,8 +150,9 @@
         var ap = params.get('apiary') || '';
         var rec = TE.all().filter(function (x) { if (!ap) return true; var hh = D.hiveById(x.hiveId); return hh && String(hh.apiaryId) === String(ap); }).slice(0, 5);
         el.hidden = false;
-        el.innerHTML = '<button type="button" class="btn" data-te-open style="width:100%;min-height:50px;font-size:1.02rem;">⚖ Elle tartım gir</button>' +
-          (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '');
+        /* k94: «Elle tartım gir» düğmesi kaldırıldı — Kapsam notundaki «Tart» ve alt menüdeki ＋ Kayıt aynı formu açar */
+        el.hidden = !rec.length;
+        el.innerHTML = (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '');
         if (!el.__b) { el.__b = true; el.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-te-open]')) TE.open(params.get('hiveId') || '', { apiaryId: ap, onSaved: renderTartiTop }); }); }
       }
       renderTartiTop();
@@ -509,10 +500,8 @@
         if (view === 'tarti') {
           var hsT = D.loadHives().filter(function (h) { return !apiaryFilter || String(h.apiaryId) === String(apiaryFilter); });
           var liveT = window.SuperAriLiveHealth && SuperAriLiveHealth.isLive();
-          /* Elle tartım her zaman: büyük birincil düğme (cihaz bağlı olsa da) */
-          toolsV.hidden = false;
-          toolsV.innerHTML = '<button type="button" class="ks-btn pri" data-te-open>⚖ Elle tartım gir</button>';
-          toolsV.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-te-open]')) TE.open('', { apiaryId: apiaryFilter, onSaved: function () { location.reload(); } }); });
+          /* k94: üstteki büyük «⚖ Elle tartım gir» düğmesi kaldırıldı (bakim.html'de yok) — aynı form Kapsam notundaki «Tart» ve ＋ Kayıt › Tartım kaydı ile açılır */
+          toolsV.hidden = true; toolsV.innerHTML = '';
           var tEl = document.getElementById('tartiTop');
           var recT = TE ? TE.all().filter(function (x) { var hh = D.hiveById(x.hiveId); return hh && (!apiaryFilter || String(hh.apiaryId) === String(apiaryFilter)); }).slice(0, 5) : [];
           tEl.hidden = !recT.length;
@@ -688,6 +677,19 @@
                 '<a class="' + (sub === 'kis' ? 'on' : '') + '" href="' + subHref('kis') + '">Kışlık hazırlık</a></div>'
               : '';
             if (sub === 'stok') { listEl.innerHTML = K.winterStockHtml(scopeHives); return; }
+            /* k93: Koloni / Çerçeve Gücü — 7 seviyenin renkli dağılımı (son güç kaydına göre; kaydı olmayan ayrı) */
+            if (topic === 'guc' && !sub && D.records && D.records.STRENGTH_LEVELS) {
+              var lvN = {}, noRec = 0;
+              scopeHives.forEach(function (h) { var st0 = null; try { st0 = D.records.status(h.id); } catch (e) { st0 = null; } var i0 = st0 && st0.strengthInfo; if (i0) lvN[i0.key] = (lvN[i0.key] || 0) + 1; else noRec++; });
+              koloniTopEl.innerHTML += '<div class="lv-dist" role="list" aria-label="Koloni gücü seviyeleri" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 4px;">' +
+                D.records.STRENGTH_LEVELS.map(function (lv) {
+                  var rg = D.records.strengthRange(lv);
+                  return '<div role="listitem" style="border-radius:12px;padding:6px 4px;text-align:center;background:' + lv.bg + ';color:' + lv.color + ';border:1.5px solid ' + lv.color + '33;min-height:64px;display:flex;flex-direction:column;justify-content:center;">' +
+                    '<b style="font-size:20px;line-height:1.1;">' + (lvN[lv.key] || 0) + '</b><span style="font-size:11.5px;font-weight:800;line-height:1.15;">' + esc(lv.short || lv.label) + '</span>' +
+                    '<small style="font-size:10.5px;font-weight:650;opacity:.85;">' + esc(lv.key === 'bolunmeli' ? 'bölme eşiği' : rg.text) + '</small></div>';
+                }).join('') +
+                '<div role="listitem" style="border-radius:12px;padding:6px 4px;text-align:center;background:#fff;color:#6b5a48;border:1.5px dashed #d9c9a3;min-height:64px;display:flex;flex-direction:column;justify-content:center;"><b style="font-size:20px;line-height:1.1;">' + noRec + '</b><span style="font-size:11.5px;font-weight:800;">Kayıt yok</span></div></div>';
+            }
             listEl.innerHTML = (topic === 'guc' && !sub ? '<a class="btn" href="bakim-akis.html' + (effectiveMode === 'apiary' && apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '') + '" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:64px;margin:0 0 12px;font-size:1.1rem;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border:1px solid #e0c56a;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);color:#4a2f1a;font-weight:800;text-decoration:none;">🔍 Hızlı muayene başlat</a>' : '') +
               (topic === 'besleme' && !sub && K.winterStockLineHtml ? K.winterStockLineHtml(scopeHives, subHref('stok')) : '') +
               (topic === 'guc' && window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(scopeHives, { apiary: effectiveMode === 'apiary' ? apiaryFilter : '' }) : '') +
@@ -722,7 +724,7 @@
             : topic === 'besleme'
             ? 'Her beslemeyi tarih, tür ve miktarla girin; kovan geçmişi ve arılık toplamı burada görünür. Sonbahar beslemeleri kışlık stok önerisine eklenir.'
             : topic === 'guc'
-            ? 'Her muayenede arılı, yavrulu, ballı ve polenli çerçeveleri girin; koloni gücü skorla gösterilir: 0 = Yaşama sınırı altı, Çok zayıf 1–19, Zayıf 20–39, Normal 40–59, Güçlü 60–79, Çok güçlü 80–100; seviye elle de seçilebilir ve geçmiş kovan bazında saklanır. Kayıtlar kovan detayı, görevler, uyarılar ve sağlık puanında kullanılır.'
+            ? 'Her muayenede arılı, yavrulu, ballı ve polenli çerçeveleri girin; koloni gücü skorla gösterilir: Birleştirilmeli 0–44 (yaşama sınırının altı), Çok zayıf 45–59, Zayıf 60–69, Normal 70–79, Güçlü 80–89, Çok güçlü 90–100. Bölünmesi Gerekiyor: ilkbahar / yaz başı bölme döneminde arılı ve yavrulu çerçeve bölgenin güçlü düzeyinin belirgin üstündeyse (skor 100\'ü geçmez); seviye elle de seçilebilir ve geçmiş kovan bazında saklanır. Kayıtlar kovan detayı, görevler, uyarılar ve sağlık puanında kullanılır.'
             : topic === 'yavru'
               ? 'Anasız işaretlenirse görev ve uyarı otomatik açılır; üşümüş yavru kovanı «zayıf koloni» yapar ve «Birleştir veya çerçeve azalt» görevi önerilir.'
               : 'Her hastalık ayrı kayıttır. İlaç bekleme süresi dolmadan hasat yapmayın; Amerikan yavru çürüğü ihbarı zorunludur. Kayıtlar sağlık puanını ve uyarıları etkiler. Kovanı açınca «🔍 Hastalık tahmini (kesin değil)» ile rehberli fotoğraf ve belirti listesi kullanılabilir.')
@@ -771,6 +773,40 @@
       listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
     })();
   </script>
-<script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+(function () {
+  var q = new URLSearchParams(location.search), view = q.get('view') || '', topic = q.get('topic') || '';
+  window.SuperAriQuickTitle = 'Kayıt · ' + (view === 'tarti' ? 'Tartı' : (view === 'koloni' ? 'Koloni' : 'Kovanlar'));
+  window.SuperAriQuickActions = function () {
+    var N = window.SuperAriNav, ap = N.scopeApiary(), K = window.SuperAriKoloni;
+    var reload = function () { location.reload(); };
+    if (view === 'tarti') return [
+      { ic: '⚖', t: 'Tartım kaydı', d: 'Elle tartım gir (kovan ağırlığı)', run: function () { var TE = window.SuperAriTarti; if (TE) TE.open(q.get('hiveId') || '', { apiaryId: ap, onSaved: reload }); else N.openQuick(); } },
+      { ic: '🍯', t: 'Hasat notu', d: 'Bal kg · çerçeve', run: N.quickType('hasat') }
+    ];
+    if (view === 'koloni') {
+      var A = {
+        ana: { ic: '👑', t: 'Ana arı kaydı', d: 'Ana yılı · kaynağı · ırk', run: N.hiveEditor('Ana arı kaydı', reload) },
+        irk: { ic: '🧬', t: 'Hat / ırk kaydı', d: 'Kovanın hattı ve ırkı', run: N.hiveEditor('Hat / ırk kaydı', reload) },
+        guc: { ic: '💪', t: 'Koloni gücü kaydı', d: 'Arılı · yavrulu · ballı çerçeve', run: N.rec('guc', 'Koloni gücü kaydı') },
+        yavru: { ic: '🥚', t: 'Kuluçka kaydı', d: 'Yavru deseni · yumurta · larva', run: N.rec('yavru', 'Kuluçka kaydı') },
+        hastalik: { ic: '🦠', t: 'Hastalık / tedavi kaydı', d: 'Varroa sayımı · ilaç', run: N.rec('hastalik', 'Hastalık / tedavi kaydı') },
+        besleme: { ic: '🍬', t: 'Besleme kaydı', d: 'Şurup · kek · polen', run: N.rec('besleme', 'Besleme kaydı') },
+        bolme: { ic: '✂️', t: 'Bölme / birleştirme', d: 'Koloni işlemi', run: N.go('koloni-islem.html?islem=bolme' + (ap ? '&apiary=' + encodeURIComponent(ap) : '')) },
+        tasima: { ic: '🔁', t: 'Ana arı değişimi', d: 'Anayı kovana ver / taşı', run: N.go('koloni-islem.html?islem=tasima' + (ap ? '&apiary=' + encodeURIComponent(ap) : '')) },
+        uretim: { ic: '🧪', t: 'Ana arı üretimi', d: 'Larva transferi · parti', run: N.go('koloni-islem.html?islem=uretim' + (ap ? '&apiary=' + encodeURIComponent(ap) : '')) }
+      };
+      var keys = ['ana', 'guc', 'yavru'];
+      if (A[topic] && keys.indexOf(topic) < 0) keys.unshift(topic); else if (A[topic]) keys = [topic].concat(keys.filter(function (k) { return k !== topic; }));
+      return keys.map(function (k) { return A[k]; });
+    }
+    if (!view) return [{ ic: '🏠', t: 'Kovan ekle', d: ap ? 'Arılıkta kovan sayısını artırın' : 'Arılık seçip kovan ekleyin', run: N.go(ap ? 'arilik.html?id=' + encodeURIComponent(ap) : 'ariliklar.html') }];
+    return [];
+  };
+})();
+</script>
+<script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>

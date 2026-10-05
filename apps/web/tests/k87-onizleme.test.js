@@ -16,10 +16,10 @@ globalThis.navigator = { onLine: true };
 ['demo-data.js', 'ilac-katalog.js', 'bakim-plan.js', 'tarti-elle.js'].forEach((f) => require(W + f));
 ['demo-data.js', 'ilac-katalog.js', 'bakim-plan.js', 'tarti-elle.js'].forEach((f) => require(W + f));
 const D = globalThis.SuperAriDemo, R = D.records, C = D.colony;
-/* seviye aralıkları (20'şer) */
+/* seviye aralıkları (k93) */
 assert.deepStrictEqual(R.STRENGTH_LEVELS.map((l) => l.label + ' ' + R.strengthRange(l).text),
-  ['Çok zayıf 1–19', 'Zayıf 20–39', 'Normal 40–59', 'Güçlü 60–79', 'Çok güçlü 80–100']);
-assert.strictEqual(R.strengthRange('orta').text, '40–59', 'eski «orta» → Normal');
+  ['Birleştirilmeli 0–44', 'Çok zayıf 45–59', 'Zayıf 60–69', 'Normal 70–79', 'Güçlü 80–89', 'Çok güçlü 90–100', 'Bölünmesi Gerekiyor bölme eşiği']);
+assert.strictEqual(R.strengthRange('orta').text, '70–79', 'eski «orta» → Normal');
 /* skor ↔ seviye tutarlı (her skor kendi aralığında) */
 /* her bölge bandı (a1 sıcak, a2 yayla, a3/a5 yüksek, a4 ılıman) ve mevsimde: skor kendi seviye aralığında; çerçeve arttıkça skor düşmez */
 ['a1', 'a2', 'a3', 'a4', 'a5'].forEach((ap) => {
@@ -28,7 +28,8 @@ assert.strictEqual(R.strengthRange('orta').text, '40–59', 'eski «orta» → N
     let prev = -1;
     for (let b = 0; b <= 24; b++) {
       const i = R.strengthInfo({ beeFrames: b, broodFrames: Math.round(b / 2), date }, { hiveId: hid });
-      const rg = R.strengthRange(i.key);
+      const rg = R.strengthRange(i.key === 'bolunmeli' ? i.autoKey === 'bolunmeli' ? R.SCORE_LEVELS.find((x) => i.score >= x.min && (!R.SCORE_LEVELS[R.SCORE_LEVELS.indexOf(x) + 1] || i.score < R.SCORE_LEVELS[R.SCORE_LEVELS.indexOf(x) + 1].min)).key : i.key : i.key);
+      assert.ok(i.score <= 100, 'skor 100\'ü geçmez');
       assert.ok(i.score >= rg.min && i.score <= rg.max, ap + ' ' + date + ' ' + b + ' çerçeve: skor ' + i.score + ' / ' + i.label);
       assert.ok(i.score >= prev, ap + ' ' + date + ' monoton: ' + b); prev = i.score;
     }
@@ -36,10 +37,10 @@ assert.strictEqual(R.strengthRange('orta').text, '40–59', 'eski «orta» → N
 });
 /* arayüz metni: yalnız seviye · aralık · skor; elle seçimde (elle) + hesaplanan seviye */
 const tag = R.strengthTag(R.strengthInfo({ beeFrames: 9, broodFrames: 5, date: '2026-07-01' }));
-assert.ok(/^(Çok zayıf|Zayıf|Normal|Güçlü|Çok güçlü) · \d+–\d+ · skor \d+$/.test(tag), tag);
+assert.ok(/^(Birleştirilmeli|Çok zayıf|Zayıf|Normal|Güçlü|Çok güçlü) · \d+–\d+ · skor \d+$/.test(tag), tag);
 assert.ok(!/çerçeve|katsay|×|\*/.test(tag), 'formül / çerçeve gösterilmez');
 const man = R.strengthTag(R.strengthInfo({ beeFrames: 3, broodFrames: 1, date: '2026-07-01', level: 'guclu' }));
-assert.ok(/^Güçlü \(elle\) · 60–79 · skor \d+ \((Çok zayıf|Zayıf)\)$/.test(man), man);
+assert.ok(/^Güçlü \(elle\) · 80–89 · skor \d+ \((Çok zayıf|Zayıf)\)$/.test(man), man);
 /* cins katsayısı: saf ve ikili melez eski davranış; üçlü melez = bileşen ortalaması */
 const env = (b) => R.breedEnv({ breed: b });
 assert.strictEqual(env('Kafkas').fob, 0.90);

@@ -14,26 +14,17 @@
   .flt button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:999px;padding:4px 10px;color:#5c4813;}
   .flt button.on{background:#f4e3b0;border-color:#d4a017;}
 </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
 </head>
 <body>
 <div class="phone" id="phone">
   <div class="phone-notch"></div>
   <div class="status-bar">
-    <span id="clock">9:41</span>
-    <div class="status-icons"><span>●●●</span><span>LTE</span><span>🔋</span></div>
+    <div data-bk-clock aria-live="polite">9:41</div>
+    <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
   </div>
   <div class="screen">
-    <div class="brand-strip">Hardal Arıcılık</div>
-    <div class="page-head">
-      <div>
-        <h1>Ekipman / temizlik</h1>
-        <p id="pageSub">Çerçeve, kovan temizliği, dezenfeksiyon, onarım</p>
-      </div>
-      <div class="nav-chips">
-        <a class="back-chip" href="bakim.html" id="backBk">← Bakım</a>
-      </div>
-    </div>
     <section class="card-block">
       <h2>Yeni kayıt</h2>
       <form class="form-grid" id="ekForm" novalidate>
@@ -71,10 +62,11 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="demo-data.js?v=koloni-93"></script>
-<script src="ekipman-store.js?v=koloni-93"></script>
-<script src="kapsam.js?v=koloni-93"></script>
-  <script src="ks-sayfa.js?v=koloni-93"></script>
+<script src="bk-kabuk.js?v=koloni-94"></script>
+<script src="demo-data.js?v=koloni-94"></script>
+<script src="ekipman-store.js?v=koloni-94"></script>
+<script src="kapsam.js?v=koloni-94"></script>
+  <script src="ks-sayfa.js?v=koloni-94"></script>
   <script>SuperAriKsSayfa.ensureScope({});</script>
   <script>
 (function () {
@@ -88,7 +80,7 @@
   function aps() { try { return D.loadApiaries() || []; } catch (e) { return []; } }
   function apName(id) { var a = aps().filter(function (x) { return String(x.id) === String(id); })[0]; return a ? a.name : ''; }
   function msg(t, err) { var m = $('eMsg'); m.textContent = t || ''; m.className = 'form-msg' + (err ? ' err' : ''); }
-  if (apFilter) $('backBk').href = 'bakim.html?apiary=' + encodeURIComponent(apFilter);
+  if (apFilter) ($('backBk') || document.createElement('a')).href = 'bakim.html?apiary=' + encodeURIComponent(apFilter);
   function fillAp() {
     var list = aps(), cur = $('eAp').value || apFilter || '';
     $('eAp').innerHTML = '<option value="">Arılık seçin (isteğe bağlı)</option>' + list.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
@@ -162,7 +154,12 @@
   });
 })();
 </script>
-<script src="nav.js?v=koloni-93"></script>
-<script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+window.SuperAriQuickTitle = 'Kayıt · Ekipman-Temizlik';
+window.SuperAriQuickActions = function () { return [{ ic: '🧽', t: 'Temizlik / bakım kaydı', d: 'Çerçeve · kovan · dezenfeksiyon', run: window.SuperAriNav.focusEl('#ekForm') }]; };
+</script>
+<script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>

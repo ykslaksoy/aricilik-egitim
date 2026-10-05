@@ -130,8 +130,10 @@
         var lbl = a[1] + (a[2] == null ? '' : a[2] >= 3 ? ' · ≤' + (cy - 3) : ' · ' + (cy - a[2]));
         return chip('age', a[0], lbl, cnt('age', function (f) { return f.ageKey === a[0]; }), !!state.age[a[0]], dot);
       }).join('') + chip('renew', '1', 'Yenile', cnt('renew', function (f) { return f.renew; }), state.renew) + '</div></div>';
-      html += '<div class="ka-g"><span>Koloni gücü</span><div class="ka-chips">' + ['Yaşama sınırı altı', 'Çok zayıf', 'Zayıf', 'Normal', 'Güçlü', 'Çok güçlü'].map(function (s) {
-        return chip('strength', s, s, cnt('strength', function (f) { return f.strength === s; }), !!state.strength[s]);
+      html += '<div class="ka-g"><span>Koloni gücü</span><div class="ka-chips">' + (D() && D().records && D().records.STRENGTH_LEVELS ? D().records.STRENGTH_LEVELS : []).map(function (lv) {
+        /* k93: 7 seviye (Birleştirilmeli … Çok güçlü + Bölünmesi Gerekiyor); süzgeç değeri = seviye adı, düğmede renk noktası + kısa ad */
+        var s = lv.label, dotL = '<span class="ka-dot" style="background:' + lv.color + '" aria-hidden="true"></span>';
+        return chip('strength', s, lv.short || s, cnt('strength', function (f) { return f.strength === s; }), !!state.strength[s], dotL);
       }).join('') + '</div></div>';
       html += '<div class="ka-g"><span>Durum</span><div class="ka-chips">' +
         chip('disease', '1', 'Hastalık var', cnt('disease', function (f) { return f.disease; }), state.disease) +

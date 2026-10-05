@@ -262,11 +262,11 @@
     /* 5 seviyeli güç: çerçeve sayısından otomatik (skor arka planda), elle değiştirilebilir */
     function sInfo() { try { return D.records.strengthInfo({ beeFrames: st.bee, broodFrames: st.brood, date: today(), level: st.level || '' }, { hiveId: h.id }); } catch (e) { return null; } }
     function autoLevel() { var i = sInfo(); var l = i ? D.records.strengthLevel(i.auto) : null; return l ? l.key : null; }
-    /* 5 seviye + skor (0–100) ve seviye aralığı («Güçlü · 60–79 · skor 64»); hesap / katsayı gösterilmez */
+    /* 7 seviye (k93) + skor (0–100) ve seviye aralığı («Güçlü · 80–89 · skor 84»); hesap / katsayı gösterilmez */
     function lvlHtml() {
       var R = D.records, L = (R.STRENGTH_LEVELS || []), inf = sInfo(), au = autoLevel(), cur = st.level || au;
       return (inf ? '<div class="km-score" aria-live="polite">Koloni gücü: <b>' + esc(R.strengthTag ? R.strengthTag(inf) : inf.label) + '</b> / 100</div>' : '') +
-        L.map(function (x) { var rg = R.strengthRange ? R.strengthRange(x) : null; return '<button type="button" class="km-opt km-lvl' + (x.key === cur ? ' on' : '') + '" data-km-lvl="' + x.key + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + esc(x.label) + (rg ? ' <small class="km-rg">' + rg.text + '</small>' : '') + (x.key === au ? ' <small>(hesaplanan)</small>' : '') + '</button>'; }).join('');
+        L.map(function (x) { var rg = R.strengthRange ? R.strengthRange(x) : null; return '<button type="button" class="km-opt km-lvl' + (x.key === cur ? ' on' : '') + '" data-km-lvl="' + x.key + '" aria-pressed="' + (x.key === cur) + '">' + (x.key === cur ? '✓ ' : '') + '<span style="display:inline-block;width:.8em;height:.8em;border-radius:50%;margin-right:.4em;vertical-align:-.05em;border:1px solid rgba(0,0,0,.2);background:' + x.color + '"></span>' + esc(x.label) + (rg ? ' <small class="km-rg">' + rg.text + '</small>' : '') + (x.key === au ? ' <small>(hesaplanan)</small>' : '') + '</button>'; }).join('');
     }
     function renderCore() {
       head();

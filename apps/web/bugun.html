@@ -33,18 +33,11 @@
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
   </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-93" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-94" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-94" />
 </head>
-<body data-tabbar="fixed">
+<body>
   <main class="wrap">
-    <div class="nav">
-      <a class="chip" href="ana.html">← Ana</a>
-      <a class="chip" href="bakim.html">Bakım</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div><h1>SüperArı</h1><p id="bgDate">Bugün</p></div>
-    </div>
 
     <section class="card stack bg-top">
       <label style="font-size:.78rem;">Arılık
@@ -72,12 +65,13 @@
       <div class="ql" id="bgLinks"></div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-93"></script>
-  <script src="rapor-store.js?v=koloni-93"></script>
+  <script src="bk-kabuk.js?v=koloni-94"></script>
+  <script src="demo-data.js?v=koloni-94"></script>
+  <script src="rapor-store.js?v=koloni-94"></script>
   <script src="hava-kayit.js"></script>
-  <script src="koloni.js?v=koloni-93"></script>
-  <script src="kapsam.js?v=koloni-93"></script>
-  <script src="ks-sayfa.js?v=koloni-93"></script>
+  <script src="koloni.js?v=koloni-94"></script>
+  <script src="kapsam.js?v=koloni-94"></script>
+  <script src="ks-sayfa.js?v=koloni-94"></script>
   <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
   (function () {
@@ -96,7 +90,7 @@
     var now = new Date();
     var DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
     var MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-    document.getElementById('bgDate').textContent = 'Bugün · ' + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear() + ', ' + DAYS[now.getDay()];
+    (document.getElementById('bgDate') || document.createElement('p')).textContent = 'Bugün · ' + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear() + ', ' + DAYS[now.getDay()];
 
     var WX_ICON = { acik: '☀️', bulutlu: '⛅', yagmur: '🌧️', firtina: '⛈️', kar: '❄️' };
     function paintWx(row, daily, note) {
@@ -112,7 +106,9 @@
         (best ? '<div class="wx-tip">🔎 Muayene için uygun gün: ' + esc(best.dayLabel) + ' · ' + esc(best.reason) + '</div>' : (daily ? '<div class="wx-tip">Önümüzdeki günlerde muayene için ideal hava görünmüyor.</div>' : ''));
     }
     function loadWx() {
-      if (allMode) { paintWx(null, null, 'Tüm arılıklar seçili — hava durumu için Kapsam kartından bir arılık seçin.'); return; }
+      /* k94: tüm arılıklarda açıklama şeridi yok — hava kartı yalnız bir arılık seçiliyken görünür */
+      var wxTop = document.querySelector('.bg-top'); if (wxTop) wxTop.hidden = !!allMode;
+      if (allMode) return;
       var a = D.apiaryById(apiaryId);
       if (!a || !isFinite(Number(a.lat)) || !isFinite(Number(a.lon)) || (!a.lat && !a.lon)) { paintWx(null, null, 'Bu arılığın konumu yok; hava durumu gösterilemiyor.'); return; }
       var today = H && H.localDateKey ? H.localDateKey() : R.todayLocal();
@@ -247,7 +243,18 @@
   });
 })();
 </script>
-<script src="nav.js?v=koloni-93"></script>
-<script src="pwa.js?v=koloni-93"></script>
+<script>
+/* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+window.SuperAriQuickTitle = 'Kayıt · Bugün';
+window.SuperAriQuickActions = function () {
+  var N = window.SuperAriNav;
+  return [
+    { ic: '📝', t: 'Görev ekle', d: 'Bugün / belirli tarih', run: N.go('gorevler.html#ekle') },
+    { ic: '🔍', t: 'Muayene / koloni gücü', d: 'Bugünkü muayene kaydı', run: N.quickType('guc') }
+  ];
+};
+</script>
+<script src="nav.js?v=koloni-94"></script>
+<script src="pwa.js?v=koloni-94"></script>
 </body>
 </html>
