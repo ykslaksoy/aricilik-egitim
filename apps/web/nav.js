@@ -2,7 +2,7 @@
  * ＋ Hızlı kayıt sayfasını açar (koloni.js gerekirse yüklenir). */
 (function (global) {
   'use strict';
-  var V = 'qk-1';
+  var V = 'qk-2';
   var ICONS = {
     ana: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20h-6v-5H10v5H4z"/></svg>',
     bakim: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15.5" rx="2"/><path d="M9.5 4.5V3.6h5v.9"/><path d="M9 11l2 2 4-4.2M9 16.5h6"/></svg>',
@@ -19,7 +19,7 @@
       'box-shadow:0 4px 12px rgba(160,100,0,.35),0 0 0 4px #fffdf8;}' +
     '.tabbar .tab-plus:active .plus-c{transform:scale(.96);}' +
     '.tabbar .tab-plus .plus-l{font-size:10px;font-weight:600;margin-top:2px;}' +
-    'nav.tabbar.sa-fixed{position:fixed;left:0;right:0;bottom:0;z-index:800;height:72px;background:#fffdf8;border-top:1px solid #e4d6c2;display:grid;' +
+    'nav.tabbar.sa-fixed{position:fixed;left:0;right:0;bottom:0;z-index:900;height:72px;background:#fffdf8;border-top:1px solid #e4d6c2;display:grid;' +
       'grid-template-columns:repeat(5,1fr);align-items:center;padding:0 2px calc(10px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;box-sizing:content-box;}' +
     'nav.tabbar.sa-fixed .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:48px;padding:4px 2px;border-radius:10px;' +
       'color:#8a7764;font-size:10px;font-weight:600;text-decoration:none;-webkit-tap-highlight-color:transparent;}' +
@@ -30,7 +30,7 @@
     'nav.tabbar .nav-badge{position:absolute;top:0;left:calc(50% + 4px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e03131;color:#fff;' +
       'font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #fffdf8;box-sizing:border-box;}' +
     'nav.tabbar .nav-badge[hidden]{display:none;}' +
-    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}';
+    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k95: iPhone — telefon kabugu 844px; gercek ekranda alt menu kesiliyordu. Dar ekranda tam ekran + tabbar sabit. */@media (max-width:520px){html:has(.phone),body:has(>.phone),body:has(.phone){padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body:has(.phone)>.phone,.phone:has(>nav.tabbar){width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}html.sa-phone-mobile,body.sa-phone-mobile{padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body.sa-phone-mobile>.phone,body.sa-phone-mobile .phone{width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}.phone>.phone-notch,.phone>.home-indicator{display:none!important;}.phone>.status-bar{height:auto!important;min-height:44px;padding:max(10px,env(safe-area-inset-top)) 14px 6px!important;}.phone>.screen{height:auto!important;flex:1 1 auto!important;max-height:none!important;padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}.phone>nav.tabbar:not(.sa-fixed){position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:900!important;height:auto!important;min-height:72px;padding:0 2px calc(10px + env(safe-area-inset-bottom,0px))!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;max-width:520px;margin:0 auto;box-sizing:border-box;}}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;}@media print{.sa-back,.sa-back-row{display:none!important;}}';
 
   function page() {
     var p = (location.pathname.split('/').pop() || 'ana.html').toLowerCase();
@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-94'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-94'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-95'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-95'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-94').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-95').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-94').catch(function () {});
+      return loadScript('koloni.js?v=koloni-95').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -226,6 +226,73 @@
     if (list.length) { openActions(list); return; }
     openQuick();
   }
+
+  /* k95 · Geri — ana.html haric; bakim.html kilitli. history.back, yoksa mantiksal ust sayfa. */
+  var BACK_SKIP = { 'ana.html': 1, 'bakim.html': 1, 'giris.html': 1, 'kayit.html': 1, 'onay.html': 1, 'sartlar.html': 1, 'index.html': 1, 'kurulum.html': 1 };
+  var BACK_PARENT = {
+    'bakim-akis.html': 'bakim.html', 'stok.html': 'bakim.html', 'gorevler.html': 'bakim.html', 'bakim-plan.html': 'bakim.html',
+    'goc.html': 'bakim.html', 'ekipman.html': 'bakim.html', 'bugun.html': 'ana.html', 'ayarlar.html': 'ana.html',
+    'kovan.html': 'kovanlar.html', 'kovanlar.html': 'bakim.html', 'koloni-ek.html': 'kovanlar.html?view=koloni',
+    'koloni-islem.html': 'kovanlar.html?view=koloni', 'arilik.html': 'ariliklar.html', 'ariliklar.html': 'ana.html',
+    'saglik.html': 'bakim.html', 'saglik-detay.html': 'saglik.html', 'uyarilar.html': 'bakim.html',
+    'cihazlar.html': 'ayarlar.html', 'kamera.html': 'cihazlar.html', 'giderler.html': 'ana.html', 'satis.html': 'ana.html',
+    'raporlar.html': 'ana.html', 'arici.html': 'ana.html', 'bakici.html': 'ana.html', 'hesap.html': 'ayarlar.html',
+    'hava-raporu.html': 'bugun.html', 'hava-gecmis.html': 'hava-raporu.html', 'petek-tarama.html': 'ayarlar.html',
+    'qr-etiket.html': 'ayarlar.html', 'logo-sec.html': 'ayarlar.html'
+  };
+  function backParent() {
+    var p = page(), base = BACK_PARENT[p] || 'ana.html';
+    if (p === 'kovanlar.html') {
+      try {
+        var q = new URLSearchParams(location.search), v = q.get('view');
+        if (v === 'koloni' || v === 'tarti') return 'bakim.html';
+      } catch (e) {}
+    }
+    if (p === 'koloni-ek.html' || p === 'koloni-islem.html') {
+      try {
+        var q2 = new URLSearchParams(location.search);
+        var u = 'kovanlar.html?view=koloni';
+        if (q2.get('apiary')) u += '&mode=apiary&apiary=' + encodeURIComponent(q2.get('apiary'));
+        else if (q2.get('mode') === 'all') u += '&mode=all';
+        return u;
+      } catch (e2) {}
+    }
+    if (p === 'kovan.html') {
+      try {
+        var q3 = new URLSearchParams(location.search), a = q3.get('apiary');
+        return a ? 'kovanlar.html?mode=apiary&apiary=' + encodeURIComponent(a) : 'kovanlar.html';
+      } catch (e3) {}
+    }
+    return base;
+  }
+  function goBack(e) {
+    if (e) e.preventDefault();
+    var fallback = backParent();
+    try {
+      if (history.length > 1 && document.referrer) {
+        var ref = document.referrer, here = location.href.split('#')[0];
+        if (ref && ref !== here && ref.indexOf(location.origin) === 0) { history.back(); return; }
+      }
+    } catch (err) {}
+    location.href = fallback;
+  }
+  function ensureBack() {
+    var p = page();
+    if (BACK_SKIP[p] || document.getElementById('saBack')) return;
+    var btn = document.createElement('a');
+    btn.id = 'saBack'; btn.className = 'sa-back'; btn.href = backParent();
+    btn.setAttribute('aria-label', 'Geri'); btn.textContent = '\u2039 Geri';
+    btn.addEventListener('click', goBack);
+    var sb = document.querySelector('.phone > .status-bar') || document.querySelector('body.bk-kabuk .status-bar') || document.querySelector('.status-bar');
+    if (sb) { sb.insertBefore(btn, sb.firstChild); return; }
+    var navTop = document.querySelector('.auth-phone > .nav') || document.querySelector('.brand-strip') || document.querySelector('.page-head');
+    if (navTop) { navTop.insertBefore(btn, navTop.firstChild); return; }
+    var host = document.querySelector('.phone > .screen') || document.querySelector('main.wrap') || document.querySelector('main') || document.querySelector('.auth-phone');
+    if (!host) return;
+    var row = document.createElement('div');
+    row.className = 'sa-back-row'; row.appendChild(btn);
+    host.insertBefore(row, host.firstChild);
+  }
   function init() {
     if (!document.getElementById('saNavCss')) {
       var st = document.createElement('style'); st.id = 'saNavCss'; st.textContent = CSS;
@@ -248,8 +315,17 @@
         if (e.target.closest && e.target.closest('[data-quick-record]')) { e.preventDefault(); onPlus(); }
       });
     });
-    if (global.SuperAriDemo) updateBadge();
-    else loadScript('demo-data.js?v=koloni-94').then(updateBadge, updateBadge);
+    try {
+      if ((window.matchMedia && window.matchMedia('(max-width:520px)').matches) || (global.innerWidth && global.innerWidth <= 520)) {
+        document.documentElement.classList.add('sa-phone-mobile');
+        document.body.classList.add('sa-phone-mobile');
+      }
+    } catch (eM) {}
+    try { ensureBack(); } catch (eBack) { /* ignore */ }
+    try {
+      if (global.SuperAriDemo) updateBadge();
+      else loadScript('demo-data.js?v=koloni-95').then(updateBadge, updateBadge);
+    } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
   function updateBadge() {
@@ -272,6 +348,9 @@
     });
   }
   global.addEventListener('superari-records-changed', function () { setTimeout(updateBadge, 0); });
-  global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, activeTab: activeTab, openActions: openActions, pickHive: pickHive, rec: rec, hiveEditor: hiveEditor, quickType: quickType, focusEl: focusEl, go: go, info: info, scopeApiary: scopeApiary, ensureKoloni: ensureKoloni, closeSheet: closeSheet, emitSaved: emitSaved, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
+  global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, activeTab: activeTab, openActions: openActions, pickHive: pickHive, rec: rec, hiveEditor: hiveEditor, quickType: quickType, focusEl: focusEl, go: go, info: info, scopeApiary: scopeApiary, ensureKoloni: ensureKoloni, closeSheet: closeSheet, emitSaved: emitSaved, goBack: goBack, backParent: backParent, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  /* Geç gelen DOM (kapsam / kabuk) için bir kez daha */
+  setTimeout(function () { try { ensureBack(); } catch (e) {} }, 0);
+  setTimeout(function () { try { ensureBack(); if ((window.matchMedia && window.matchMedia('(max-width:520px)').matches) || (window.innerWidth && window.innerWidth <= 520)) { document.documentElement.classList.add('sa-phone-mobile'); document.body.classList.add('sa-phone-mobile'); } } catch (e2) {} }, 400);
 })(window);

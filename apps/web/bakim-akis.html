@@ -964,7 +964,7 @@
   .ak-sec small { font-size: 10.5px; font-weight: 700; color: var(--muted); }
   /* Sıra: Ana'daki 3 sütun döşeme, aynı satır yüksekliği (Ana 375×812'de 122 px) */
   .ak-grid { flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 122px; gap: 5px; }
-  .ak-grid .tile { cursor: pointer; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
+  .ak-grid .tile { cursor: pointer; font: inherit; color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
   .ak-grid .tile.ak-done { opacity: .62; }
   .ak-grid .tile.ak-done .hive-icon.hive-icon-burn svg { opacity: .55; }
   .ak-empty { grid-column: 1 / -1; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px; font-size: 13px; font-weight: 700; color: var(--brown-mid); text-align: center; }
@@ -994,16 +994,16 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-94"></script>
-<script src="sensor-health.js?v=koloni-94"></script>
-<script src="saglik-canli.js?v=koloni-94"></script>
-<script src="koloni.js?v=koloni-94"></script>
-<script src="ilac-katalog.js?v=koloni-94"></script>
-<script src="bakim-plan.js?v=koloni-94"></script>
-<script src="mic-session.js?v=koloni-94"></script>
-<script src="kolay-muayene.js?v=koloni-94"></script>
-<script src="bakim-akis.js?v=koloni-94"></script>
-<script src="kapsam.js?v=koloni-94"></script>
+<script src="demo-data.js?v=koloni-95"></script>
+<script src="sensor-health.js?v=koloni-95"></script>
+<script src="saglik-canli.js?v=koloni-95"></script>
+<script src="koloni.js?v=koloni-95"></script>
+<script src="ilac-katalog.js?v=koloni-95"></script>
+<script src="bakim-plan.js?v=koloni-95"></script>
+<script src="mic-session.js?v=koloni-95"></script>
+<script src="kolay-muayene.js?v=koloni-95"></script>
+<script src="bakim-akis.js?v=koloni-95"></script>
+<script src="kapsam.js?v=koloni-95"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, A = window.SuperAriBakimAkis, KS = window.SuperAriKapsam;
@@ -1043,10 +1043,10 @@
       var dn = A.isDone(r.hive.id);
       var badge = dn ? { t: '✓ Bugün', c: 'green' } : (r.pri === 0 ? { t: shortWhy(r.why[0]) || 'Kritik', c: 'red' } : (r.pri <= 2 ? { t: shortWhy(r.why[0]) || 'Bakım', c: 'tan' } : { t: 'Rutin', c: 'blue' }));
       var why = dn ? 'bugün muayene edildi' : (r.why.join(', ') || 'rutin bakım');
-      return '<article class="tile' + (dn ? ' ak-done' : '') + '" data-id="' + esc(r.hive.id) + '" role="button" tabindex="0" aria-label="' + esc(r.hive.name + ': ' + why) + '">' +
+      return '<a class="tile' + (dn ? ' ak-done' : '') + '" data-id="' + esc(r.hive.id) + '" href="bakim-akis.html?id=' + encodeURIComponent(r.hive.id) + '" aria-label="' + esc(r.hive.name + ': ' + why) + '">' +
         KS.anaHiveHtml({ num: KS.hiveNum(r.hive) }) +
         '<div class="tile-label">' + esc(r.hive.name) + '</div>' +
-        '<div class="badge ' + badge.c + '">' + esc(badge.t) + '</div></article>';
+        '<div class="badge ' + badge.c + '">' + esc(badge.t) + '</div></a>';
     }).join('') : '<p class="ak-empty">Bu kapsamda kovan yok. Önce Kovanlar’dan kovan ekleyin.</p>';
     $('akNote').textContent = 'Muayene normal muayene kaydı olarak saklanır. Besleme ve varroa/ilaç ihtiyacı muayeneden otomatik çıkarılıp Görevler, Uyarılar ve Beslenme’ye işlenir (ilaç uygulanmış sayılmaz, doz yazılmaz).' + (KS.live() ? '' : ' Demo verisi.');
   }
@@ -1082,7 +1082,7 @@
   });
   $('akScope').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#akStart')) startFirst(); });
   modeBtn();
-  $('akList').addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) start(b.getAttribute('data-id')); });
+  $('akList').addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) { e.preventDefault(); start(b.getAttribute('data-id')); } });
   $('akList').addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; var b = e.target.closest('[data-id]'); if (b) { e.preventDefault(); start(b.getAttribute('data-id')); } });
   window.addEventListener('superari-records-changed', function () { if (!document.getElementById('baSheet') && !document.getElementById('kmSheet')) render(); });
   /* Muayene / öneri penceresi kapanınca sıra yenilensin (bugün yapılanlar en alta, ✓) */
@@ -1092,7 +1092,7 @@
   if (hh0) setTimeout(function () { start(hh0.id); }, 150);
 })();
 </script>
-<script src="nav.js?v=koloni-94"></script>
-<script src="pwa.js?v=koloni-94"></script>
+<script src="nav.js?v=koloni-95"></script>
+<script src="pwa.js?v=koloni-95"></script>
 </body>
 </html>
