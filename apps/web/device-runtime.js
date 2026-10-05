@@ -26,7 +26,10 @@
     tarti: 'Tartı',
     isi_nem: 'Sıcaklık/Nem',
     ir: 'IR',
-    ses_titresim: 'Ses/Titreşim',
+    ses: 'Ses (mikrofon)',
+    titresim: 'Titreşim (ivmeölçer)',
+    /* eski birleşik tip → Ses olarak göster (geriye uyum) */
+    ses_titresim: 'Ses (mikrofon)',
     gateway: 'Gateway (Wi‑Fi / hücresel)',
     kamera_arilik: 'Arılık kamerası',
     kamera_merkez: 'Arılık kamerası',
@@ -149,7 +152,7 @@
     },
     {
       id: 'demo-ses-204',
-      tip: 'ses_titresim',
+      tip: 'ses',
       apiaryId: 'a2',
       apiaryName: 'Tortum Yayla Arılığı',
       hiveId: 204,
@@ -157,7 +160,19 @@
       status: 'bagli',
       battery: 61,
       lastMins: 8,
-      channels: ['Ses/Titreşim']
+      channels: ['Ses']
+    },
+    {
+      id: 'demo-titresim-102',
+      tip: 'titresim',
+      apiaryId: 'a1',
+      apiaryName: 'Kayaköy Ana Arılık',
+      hiveId: 102,
+      hiveName: 'Kovan 102',
+      status: 'bagli',
+      battery: 74,
+      lastMins: 5,
+      channels: ['Titreşim']
     }
   ];
 
@@ -216,6 +231,13 @@
 
   function tipLabel(tip) {
     return TIP_LABELS[tip] || tip || 'Cihaz';
+  }
+  /** Eski ses_titresim kayıtları Ses döşemesinde görünür; yeni kod ses | titresim yazar. */
+  function tipFamily(tip) {
+    var t = String(tip || '');
+    if (t === 'ses_titresim' || t === 'ses') return 'ses';
+    if (t === 'titresim') return 'titresim';
+    return t;
   }
 
   function isCameraTip(tip) {
@@ -449,7 +471,7 @@
     statusLabel: statusLabel,
     statusTone: statusTone,
     statusAnaTone: statusAnaTone,
-    tipLabel: tipLabel,
+    tipLabel: tipLabel, tipFamily: tipFamily,
     isCameraTip: isCameraTip,
     isApiaryTip: isApiaryTip,
     listDevices: listDevices,

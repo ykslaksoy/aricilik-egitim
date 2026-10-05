@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-95" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-95" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-96" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-96" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -94,11 +94,11 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-95"></script>
-<script src="demo-data.js?v=koloni-95"></script>
-<script src="device-runtime.js"></script>
-<script src="kapsam.js?v=koloni-95"></script>
-<script src="ks-sayfa.js?v=koloni-95"></script>
+<script src="bk-kabuk.js?v=koloni-96"></script>
+<script src="demo-data.js?v=koloni-96"></script>
+<script src="device-runtime.js?v=koloni-96"></script>
+<script src="kapsam.js?v=koloni-96"></script>
+<script src="ks-sayfa.js?v=koloni-96"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -198,7 +198,8 @@
       { k: 'tarti', l: 'Tartı', tips: ['tarti'], svg: '<path d="M12 6.2v11.4M8.6 17.8h6.8M6.4 8.8h11.2"/><path d="M6.4 8.8 4.6 12.6a1.9 1.9 0 0 0 3.6 0zM17.6 8.8l-1.8 3.8a1.9 1.9 0 0 0 3.6 0z"/>' },
       { k: 'isi_nem', l: 'Sıcaklık / Nem', tips: ['isi_nem'], svg: '<path d="M10 14.6V7.4a1.8 1.8 0 0 1 3.6 0v7.2a3 3 0 1 1-3.6 0z"/><path d="M11.8 10.5v5.2"/><path d="M16.8 9.2c.9 1.2 1.4 2 1.4 2.7a1.4 1.4 0 0 1-2.8 0c0-.7.5-1.5 1.4-2.7z"/>' },
       { k: 'ir', l: 'IR (giriş sayacı)', tips: ['ir'], svg: '<path d="M6.5 12h3M14.5 12h3"/><circle cx="12" cy="12" r="1.6"/><path d="M8.2 8.2l1.8 1.8M15.8 8.2 14 10M8.2 15.8l1.8-1.8M15.8 15.8 14 14"/>' },
-      { k: 'ses_titresim', l: 'Ses / Titreşim', tips: ['ses_titresim'], svg: '<path d="M6.5 10h2.4l3.3-2.8v9.6L8.9 14H6.5z"/><path d="M14.3 9.6a3.2 3.2 0 0 1 0 4.8M15.9 8a5.4 5.4 0 0 1 0 8"/>' },
+      { k: 'ses', l: 'Ses (mikrofon)', tips: ['ses', 'ses_titresim'], svg: '<path d="M6.5 10h2.4l3.3-2.8v9.6L8.9 14H6.5z"/><path d="M14.3 9.6a3.2 3.2 0 0 1 0 4.8M15.9 8a5.4 5.4 0 0 1 0 8"/>' },
+      { k: 'titresim', l: 'Titreşim (ivmeölçer)', tips: ['titresim'], svg: '<path d="M4.8 12h2.4M16.8 12h2.4M7.6 8.2l1.7 1.7M14.7 14.1l1.7 1.7M7.6 15.8l1.7-1.7M14.7 9.9l1.7-1.7"/><rect x="10" y="7.2" width="4" height="9.6" rx="1.2"/>' },
       { k: 'gateway', l: 'Gateway', tips: ['gateway'], svg: '<path d="M12 11v7M9 18h6"/><path d="M9.2 8.6a4 4 0 0 1 5.6 0M7.2 6.6a6.8 6.8 0 0 1 9.6 0"/><circle cx="12" cy="11" r="1.2"/>' },
       { k: 'kamera_merkez', l: 'Merkezi kamera', tips: ['kamera_merkez', 'kamera_arilik', 'merkezi_kamera'], svg: '<rect x="5.6" y="8.4" width="9.4" height="7.4" rx="1.4"/><path d="M15 11l3.6-2v6L15 13z"/>' },
       { k: 'kamera_kovan', l: 'Kovan kamerası', tips: ['kamera_kovan', 'kovan_kamerasi'], svg: '<rect x="6.4" y="11.4" width="11.2" height="6.2" rx=".8"/><path d="M6 11.4h12M8.6 8.2h4.6v2.4H8.6z"/><circle cx="10.9" cy="9.4" r=".7"/>' },
@@ -207,6 +208,7 @@
     var scopeAp = params.get('apiary') || '';
     var all = devices.filter(function (d) { return !scopeAp || String(d.apiaryId) === String(scopeAp); });
     var tipSel = params.get('tip') || '';
+    if (tipSel === 'ses_titresim') tipSel = 'ses';
     var typeOf = function (d) { var t = String(d.tip || ''); return TYPES.filter(function (x) { return x.tips.indexOf(t) >= 0; })[0] || (Dev.isCamera && d.kind === 'kamera' ? TYPES[5] : null); };
     var low = function (d) { return d.battery != null && Number(d.battery) <= 20; };
     var sum = function (list) {
@@ -218,6 +220,7 @@
     var ICON = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="9" width="18" height="15" rx="3" fill="#cfd8e3" stroke="#6b7a8c" stroke-width="1.2"/><circle cx="16" cy="16.5" r="3.4" fill="#fff" stroke="#2f9e44" stroke-width="1.8"/><path d="M11 9V6.5M21 9V6.5" stroke="#6b7a8c" stroke-width="1.6" stroke-linecap="round"/></svg>';
     P.init({
       title: 'Cihazlar', icon: ICON,
+      topEnd: '<a class="ks-end ks-end-chip" href="#devList" title="Bağlantı durumu" aria-label="Bağlantı durumu — cihaz listesi">Bağlantı</a>',
       stats: function () {
         var s0 = sum(all);
         return [
@@ -377,12 +380,12 @@ window.SuperAriQuickTitle = 'Kayıt · Cihazlar';
 window.SuperAriQuickActions = function () {
   var N = window.SuperAriNav;
   return [
-    { ic: '📡', t: 'Cihaz ekle', d: 'Tartı · sıcaklık · IR · ses · gateway', run: N.info('Cihaz ekle', 'Tak–çalıştır: cihazı gateway\'e / ağa bağlayın; bağlanınca bu listede otomatik görünür. Elle ekleme formu yoktur.', [{ ic: '⚙️', t: 'Çalışma modu (Canlı / Demo)', href: 'ayarlar.html#calisma-modu' }]) },
+    { ic: '📡', t: 'Cihaz ekle', d: 'Tartı · sıcaklık · IR · ses · titreşim · gateway', run: N.info('Cihaz ekle', 'Tak–çalıştır: cihazı gateway\'e / ağa bağlayın; bağlanınca bu listede otomatik görünür. Elle ekleme formu yoktur.', [{ ic: '⚙️', t: 'Çalışma modu (Canlı / Demo)', href: 'ayarlar.html#calisma-modu' }]) },
     { ic: '📷', t: 'Kamera ekle', d: 'Kovan / merkez kamera', run: N.go('kamera.html') }
   ];
 };
 </script>
-<script src="nav.js?v=koloni-95"></script>
-<script src="pwa.js?v=koloni-95"></script>
+<script src="nav.js?v=koloni-96"></script>
+<script src="pwa.js?v=koloni-96"></script>
 </body>
 </html>

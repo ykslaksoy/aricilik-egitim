@@ -30,10 +30,12 @@
   /** Ana'daki kovan çizimi; ortada yakma damga (burn) veya kovan numarası. */
   function hiveHtml(o) {
     o = o || {};
+    /* k96: numaralı kovan = Ana/Muayene ile aynı ahşap kovan + yakma damga (Tartı/Kovanlar döşemeleri) */
+    if (o.num != null && !o.svg && !o.burn) return anaHiveHtml(o);
     var ico = o.svg || (o.burn && BURN[o.burn]) || '';
     var mid = ico
       ? '<div class="hi" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.2" stroke-width="1.55"/>' + ico + '</svg></div>'
-      : (o.num != null ? '<span class="hn" aria-hidden="true">' + esc(o.num) + '</span>' : '');
+      : '';
     return '<div class="ks-hive" aria-hidden="true"><div class="hs"><div class="hl"></div><div class="hb"></div><div class="hb b"><div class="he"></div></div>' +
       '<div class="hf"><span></span><span></span></div></div>' + mid + (o.dot ? '<span class="hdot" style="background:' + esc(o.dot) + '"></span>' : '') + '</div>';
   }
@@ -128,6 +130,33 @@
    * Kapsam kartını host içine kurar. opts: { title, icon(svg), page ('bakim-akis.html'), stats(hs, scope, sum) → [], note(hs, scope, sum) → {t,b,href,k}, onChange(scope, hs, sum), initial }
    * Döner: { scope(), hives(), setScope(s), render() }
    */
+
+  /** Kapsam kartı sağ kestirme (Ana'daki °C ile aynı yer/stil): tıklanınca hava raporu. */
+  function weatherEndHtml() {
+    return '<a class="ks-end weather-temp" data-ks-end href="hava-raporu.html" title="Arılık hava raporu" aria-label="Arılık hava raporunu aç">—°</a>';
+  }
+  function bindWeatherEnd(host) {
+    var el = host && host.querySelector('[data-ks-end].weather-temp');
+    if (!el || el.getAttribute('data-bound')) return;
+    el.setAttribute('data-bound', '1');
+    function go() { try { var ap = null; try { ap = global.localStorage.getItem(SCOPE_KEY); } catch (e) {} var q = ap && ap !== 'all' ? ('?apiary=' + encodeURIComponent(ap)) : ''; global.location.href = 'hava-raporu.html' + q; } catch (e2) { global.location.href = 'hava-raporu.html'; } }
+    el.addEventListener('click', function (e) { e.preventDefault(); go(); });
+    /* Açık Meteo: seçili arılığın sıcaklığı (Ana ile aynı kaynak) */
+    try {
+      var aps = [], id = null;
+      try { aps = D.loadApiaries() || []; id = global.localStorage.getItem(SCOPE_KEY); } catch (e3) {}
+      var ap = (id && id !== 'all') ? aps.filter(function (a) { return String(a.id) === String(id); })[0] : (aps[0] || null);
+      var lat = ap && ap.lat != null ? ap.lat : 36.58, lon = ap && ap.lon != null ? ap.lon : 29.09;
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=auto')
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var t = j && j.current && j.current.temperature_2m;
+          if (t == null) return;
+          var n = Math.round(Number(t));
+          if (isFinite(n)) el.textContent = n + '°';
+        }).catch(function () {});
+    } catch (e4) {}
+  }
   function mount(host, opts) {
     var aps = [], scope = 'all';
     function loadAps() { try { aps = D.loadApiaries() || []; } catch (e) { aps = []; } }
@@ -144,20 +173,24 @@
     if (opts.bk) {
       /* Bakım'daki Kapsam kartının birebir işaretlemesi (bakim.html #bkScope sınıfları; stil bakim-akis.html'e senkronlanır) */
       host.classList.add('weather', 'bk-scope');
+      var end = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
+      if (!end) end = weatherEndHtml();
       host.innerHTML =
         '<div class="bk-top">' + (opts.icon || '') +
           '<span class="bk-title">' + esc(opts.title || '') + '</span>' +
-          '<span class="bk-mode demo" data-ks-mode hidden>Demo</span>' + (opts.topExtra || '') +
+          '<span class="bk-mode demo" data-ks-mode hidden>Demo</span>' +
           '<div class="weather-loc bk-sel"><div class="arilik-loc-controls">' +
             '<button type="button" class="arilik-nav" data-ks-prev aria-label="Önceki kapsam" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
             '<span class="weather-loc-label" data-ks-label aria-live="polite">Tümü</span>' +
             '<button type="button" class="arilik-nav" data-ks-next aria-label="Sonraki kapsam" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button>' +
-          '</div></div>' +
+          '</div></div>' + end +
         '</div>' +
         '<div class="bk-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
         (opts.bottom != null ? opts.bottom : '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>');
     } else {
     host.classList.add('ks-card');
+    var endK = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
+    if (!endK) endK = weatherEndHtml();
     host.innerHTML =
       '<div class="ks-top">' + (opts.icon || '') +
         '<h2 class="ks-title">' + esc(opts.title || '') + '</h2>' +
@@ -166,7 +199,7 @@
           '<button type="button" class="ks-nav" data-ks-prev aria-label="Önceki arılık" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
           '<span class="ks-label" data-ks-label aria-live="polite">Tümü</span>' +
           '<button type="button" class="ks-nav" data-ks-next aria-label="Sonraki arılık" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button>' +
-        '</div>' +
+        '</div>' + endK +
       '</div>' +
       '<div class="ks-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
       '<a class="ks-note" data-ks-note href="#"><span class="ks-note-t" data-ks-nt>—</span><span class="ks-note-b" data-ks-nb>Aç</span></a>';
@@ -208,11 +241,12 @@
     q('[data-ks-prev]').addEventListener('click', function () { step(-1); });
     q('[data-ks-next]').addEventListener('click', function () { step(1); });
     render();
+    bindWeatherEnd(host);
     return { scope: function () { return scope; }, hives: hives, setScope: setScope, render: render, apOf: apOf };
   }
 
   var ICON_MUAYENE = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="18" height="22" rx="3" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/><rect x="11.5" y="3.5" width="9" height="5" rx="1.6" fill="#f7b731"/><circle cx="15" cy="17" r="4.2" fill="#fff" stroke="#5c3a1f" stroke-width="1.8"/><path d="M18 20l3.2 3.2" stroke="#5c3a1f" stroke-width="2" stroke-linecap="round"/></svg>';
   var ICON_KOVAN = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="5" rx="1.4" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><rect x="7" y="11" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="7" y="18.6" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="14" y="24" width="4" height="1.4" fill="#2a1a0c"/></svg>';
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN };
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
 })(typeof window !== 'undefined' ? window : this);

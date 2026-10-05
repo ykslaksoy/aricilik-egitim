@@ -30,7 +30,7 @@
     'nav.tabbar .nav-badge{position:absolute;top:0;left:calc(50% + 4px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e03131;color:#fff;' +
       'font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #fffdf8;box-sizing:border-box;}' +
     'nav.tabbar .nav-badge[hidden]{display:none;}' +
-    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k95: iPhone — telefon kabugu 844px; gercek ekranda alt menu kesiliyordu. Dar ekranda tam ekran + tabbar sabit. */@media (max-width:520px){html:has(.phone),body:has(>.phone),body:has(.phone){padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body:has(.phone)>.phone,.phone:has(>nav.tabbar){width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}html.sa-phone-mobile,body.sa-phone-mobile{padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body.sa-phone-mobile>.phone,body.sa-phone-mobile .phone{width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}.phone>.phone-notch,.phone>.home-indicator{display:none!important;}.phone>.status-bar{height:auto!important;min-height:44px;padding:max(10px,env(safe-area-inset-top)) 14px 6px!important;}.phone>.screen{height:auto!important;flex:1 1 auto!important;max-height:none!important;padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}.phone>nav.tabbar:not(.sa-fixed){position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:900!important;height:auto!important;min-height:72px;padding:0 2px calc(10px + env(safe-area-inset-bottom,0px))!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;max-width:520px;margin:0 auto;box-sizing:border-box;}}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;}@media print{.sa-back,.sa-back-row{display:none!important;}}';
+    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k95: iPhone — telefon kabugu 844px; gercek ekranda alt menu kesiliyordu. Dar ekranda tam ekran + tabbar sabit. */@media (max-width:520px){html:has(.phone),body:has(>.phone),body:has(.phone){padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body:has(.phone)>.phone,.phone:has(>nav.tabbar){width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}html.sa-phone-mobile,body.sa-phone-mobile{padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body.sa-phone-mobile>.phone,body.sa-phone-mobile .phone{width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}.phone>.phone-notch,.phone>.home-indicator{display:none!important;}.phone>.status-bar,.phone>.phone-notch,.phone>.home-indicator{display:none!important;}.phone>.screen{height:auto!important;flex:1 1 auto!important;max-height:none!important;padding-top:max(8px,env(safe-area-inset-top,0px))!important;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}.phone>nav.tabbar:not(.sa-fixed){position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:900!important;height:auto!important;min-height:72px;padding:0 2px calc(10px + env(safe-area-inset-bottom,0px))!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;max-width:520px;margin:0 auto;box-sizing:border-box;}}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;padding-top:2px;}.sa-phone-mobile .sa-back-row{margin:0 0 8px;}.bk-top .weather-temp,.ks-end.weather-temp{margin-left:4px;flex:0 0 auto;font-size:22px;font-weight:700;color:#2c241c;line-height:1;text-decoration:none;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}.bk-sel{max-width:42%!important;}.bk-sel .weather-loc-label{max-width:7em!important;}@media print{.sa-back,.sa-back-row{display:none!important;}}';
 
   function page() {
     var p = (location.pathname.split('/').pop() || 'ana.html').toLowerCase();
@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-95'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-95'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-96'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-96'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-95').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-96').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-95').catch(function () {});
+      return loadScript('koloni.js?v=koloni-96').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -276,6 +276,15 @@
     } catch (err) {}
     location.href = fallback;
   }
+  function isPhoneMobile() {
+    try {
+      if (document.body && document.body.classList.contains('sa-phone-mobile')) return true;
+      if (window.matchMedia && (window.matchMedia('(max-width:520px)').matches || window.matchMedia('(display-mode: standalone)').matches)) return true;
+      if (global.navigator && global.navigator.standalone) return true;
+      if (global.innerWidth && global.innerWidth <= 520) return true;
+    } catch (e) {}
+    return false;
+  }
   function ensureBack() {
     var p = page();
     if (BACK_SKIP[p] || document.getElementById('saBack')) return;
@@ -283,6 +292,15 @@
     btn.id = 'saBack'; btn.className = 'sa-back'; btn.href = backParent();
     btn.setAttribute('aria-label', 'Geri'); btn.textContent = '\u2039 Geri';
     btn.addEventListener('click', goBack);
+    if (isPhoneMobile()) {
+      var hostM = document.querySelector('.phone > .screen') || document.querySelector('main.wrap') || document.querySelector('main');
+      if (hostM) {
+        var rowM = document.createElement('div');
+        rowM.className = 'sa-back-row'; rowM.appendChild(btn);
+        hostM.insertBefore(rowM, hostM.firstChild);
+        return;
+      }
+    }
     var sb = document.querySelector('.phone > .status-bar') || document.querySelector('body.bk-kabuk .status-bar') || document.querySelector('.status-bar');
     if (sb) { sb.insertBefore(btn, sb.firstChild); return; }
     var navTop = document.querySelector('.auth-phone > .nav') || document.querySelector('.brand-strip') || document.querySelector('.page-head');
@@ -292,6 +310,31 @@
     var row = document.createElement('div');
     row.className = 'sa-back-row'; row.appendChild(btn);
     host.insertBefore(row, host.firstChild);
+  }
+  function ensureBakimEnd() {
+    if (page() !== 'bakim.html') return;
+    var top = document.querySelector('#bkScope .bk-top');
+    if (!top || top.querySelector('[data-ks-end], .weather-temp')) return;
+    var a = document.createElement('a');
+    a.className = 'ks-end weather-temp'; a.setAttribute('data-ks-end', '');
+    a.href = 'hava-raporu.html'; a.title = 'Arılık hava raporu'; a.setAttribute('aria-label', 'Arılık hava raporunu aç');
+    a.textContent = '—°';
+    top.appendChild(a);
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var ap = null; try { ap = localStorage.getItem('superari.bakim.scope'); } catch (err) {}
+      location.href = 'hava-raporu.html' + (ap && ap !== 'all' ? ('?apiary=' + encodeURIComponent(ap)) : '');
+    });
+    try {
+      var aps = (global.SuperAriDemo && SuperAriDemo.loadApiaries && SuperAriDemo.loadApiaries()) || [];
+      var id = null; try { id = localStorage.getItem('superari.bakim.scope'); } catch (e2) {}
+      var ap = (id && id !== 'all') ? aps.filter(function (x) { return String(x.id) === String(id); })[0] : aps[0];
+      var lat = ap && ap.lat != null ? ap.lat : 36.58, lon = ap && ap.lon != null ? ap.lon : 29.09;
+      fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m&timezone=auto')
+        .then(function (r) { return r.json(); })
+        .then(function (j) { var t = j && j.current && j.current.temperature_2m; var n = Math.round(Number(t)); if (isFinite(n)) a.textContent = n + '°'; })
+        .catch(function () {});
+    } catch (e3) {}
   }
   function init() {
     if (!document.getElementById('saNavCss')) {
@@ -316,15 +359,16 @@
       });
     });
     try {
-      if ((window.matchMedia && window.matchMedia('(max-width:520px)').matches) || (global.innerWidth && global.innerWidth <= 520)) {
+      if (isPhoneMobile()) {
         document.documentElement.classList.add('sa-phone-mobile');
         document.body.classList.add('sa-phone-mobile');
       }
     } catch (eM) {}
     try { ensureBack(); } catch (eBack) { /* ignore */ }
+    try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-95').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-96').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -351,6 +395,6 @@
   global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, activeTab: activeTab, openActions: openActions, pickHive: pickHive, rec: rec, hiveEditor: hiveEditor, quickType: quickType, focusEl: focusEl, go: go, info: info, scopeApiary: scopeApiary, ensureKoloni: ensureKoloni, closeSheet: closeSheet, emitSaved: emitSaved, goBack: goBack, backParent: backParent, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   /* Geç gelen DOM (kapsam / kabuk) için bir kez daha */
-  setTimeout(function () { try { ensureBack(); } catch (e) {} }, 0);
-  setTimeout(function () { try { ensureBack(); if ((window.matchMedia && window.matchMedia('(max-width:520px)').matches) || (window.innerWidth && window.innerWidth <= 520)) { document.documentElement.classList.add('sa-phone-mobile'); document.body.classList.add('sa-phone-mobile'); } } catch (e2) {} }, 400);
+  setTimeout(function () { try { ensureBack(); ensureBakimEnd(); } catch (e) {} }, 0);
+  setTimeout(function () { try { if (isPhoneMobile()) { document.documentElement.classList.add('sa-phone-mobile'); document.body.classList.add('sa-phone-mobile'); } ensureBack(); ensureBakimEnd(); } catch (e2) {} }, 400);
 })(window);

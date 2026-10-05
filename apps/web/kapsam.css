@@ -115,3 +115,40 @@ body.ks-body{background:#f0f1f3;}
 .ks-glove main .bk-done-btn,.ks-glove main .bk-undo-btn,.ks-glove main .ql a,.ks-glove main .ql button{min-height:64px;}
 .ks-glove main .bk-item{min-height:64px;}
 .ks-glove .bp-row{grid-template-columns:1fr !important;}
+
+/* k96: Ana/Muayene kovan çizimi (anaHiveHtml) — Tartı/Kovanlar döşemelerinde aynı görünüm */
+.ks-tile .hive-area,.ak-grid .hive-area{position:relative;flex:0 0 auto;width:100%;display:flex;align-items:center;justify-content:center;padding-top:0;}
+.ks-tile .hive,.ak-grid .hive{width:58px;height:54px;position:relative;flex:0 0 auto;margin-top:0;}
+.ks-tile .hive-stack,.ak-grid .hive-stack{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:44px;display:flex;flex-direction:column;align-items:stretch;}
+.ks-tile .hive-lid,.ak-grid .hive-lid{width:50px;height:6px;margin-left:-3px;margin-bottom:0;background:linear-gradient(180deg,#f4f5f7 0%,#c8ccd2 48%,#9aa1aa 100%);border-radius:2px 2px 1px 1px;box-shadow:0 1px 0 #7c828a;position:relative;z-index:1;}
+.ks-tile .hive-box,.ak-grid .hive-box{height:18px;width:100%;background-color:#e8c48e;background-image:repeating-linear-gradient(90deg,rgba(90,52,16,.07) 0 1px,transparent 1px 6px),linear-gradient(180deg,rgba(255,248,230,.35),transparent 42%,rgba(90,50,14,.16));border-left:1px solid #8a6030;border-right:1px solid #8a6030;position:relative;box-sizing:border-box;}
+.ks-tile .hive-box.top,.ak-grid .hive-box.top{border-top:1px solid #8a6030;}
+.ks-tile .hive-box.bottom,.ak-grid .hive-box.bottom{border-bottom:1px solid #8a6030;border-top:1px solid #8a6030;}
+.ks-tile .hive-entrance,.ak-grid .hive-entrance{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:10px;height:2px;background:#2a1a0c;border-radius:0 0 1px 1px;z-index:1;}
+.ks-tile .hive-door,.ak-grid .hive-door{position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);width:14px;height:6px;z-index:2;pointer-events:none;}
+.ks-tile .hive-feet,.ak-grid .hive-feet{display:flex;justify-content:space-between;padding:0 2px;margin-top:2px;}
+.ks-tile .hive-feet span,.ak-grid .hive-feet span{width:7px;height:4px;background:#c99755;border-radius:1px;}
+.ks-tile .hive-shadow,.ak-grid .hive-shadow{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:38px;height:3px;background:radial-gradient(ellipse,rgba(0,0,0,.12),transparent 70%);}
+.ks-tile .hive-icon,.ak-grid .hive-icon{position:absolute;left:50%;top:50%;transform:translate(-50%,-42%);width:28px;height:28px;z-index:3;pointer-events:none;}
+.ks-tile .hive-icon svg,.ak-grid .hive-icon svg{width:100%;height:100%;display:block;}
+.ks-tile .hive-icon-burn .burn-ring,.ak-grid .hive-icon-burn .burn-ring{fill:rgba(255,236,179,.55);stroke:#5c3a1f;stroke-width:1.55;mix-blend-mode:multiply;}
+.ks-tile .hive-icon-burn text,.ak-grid .hive-icon-burn text{mix-blend-mode:multiply;}
+/* k96: sağ kestirme (°C) — Ana .weather-temp */
+.ks-end.weather-temp,.bk-top .weather-temp,.ks-top .weather-temp{
+  margin-left:4px;flex:0 0 auto;font-size:22px;font-weight:700;color:#2c241c;line-height:1;
+  text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+}
+.bk-sel,.ks-sel{max-width:42%!important;}
+.bk-sel .weather-loc-label,.ks-sel .ks-label{max-width:7em!important;}
+.bk-top,.ks-top{flex-wrap:nowrap;gap:4px;}
+
+.ks-end-chip{
+  margin-left:4px;flex:0 0 auto;padding:0 10px;min-height:32px;min-width:44px;
+  border-radius:999px;border:1px solid #e0c56a;
+  background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);
+  color:#4a2f1a;font-size:11px;font-weight:800;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;box-sizing:border-box;white-space:nowrap;
+}
+.ks-end-chip:active{transform:scale(.97);}

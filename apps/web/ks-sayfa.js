@@ -52,7 +52,7 @@
     var init0 = o.initial || scopeNow();
     var ctl = KS.mount(host, {
       title: o.title, icon: o.icon || KS.ICON_KOVAN, page: o.page || global.location.pathname.split('/').pop(), initial: init0,
-      stats: o.stats, note: o.note, noAll: !!o.noAll,
+      stats: o.stats, note: o.note, noAll: !!o.noAll, topEnd: o.topEnd, topExtra: o.topExtra,
       onChange: function (scope, hs, sum) {
         /* kapsam değişti → sayfa o arılıkla yeniden açılır (sayfanın kendi süzgeci ?apiary= ile çalışır) */
         if (scope !== init0 && o.reload !== false) { global.location.reload(); return; }

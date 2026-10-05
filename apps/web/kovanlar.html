@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-95" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-95" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-96" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-96" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -52,20 +52,20 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-95"></script>
-  <script src="demo-data.js?v=koloni-95"></script>
-  <script src="rapor-store.js?v=koloni-95"></script>
-  <script src="sensor-health.js?v=koloni-95"></script>
-<script src="saglik-canli.js?v=koloni-95"></script>
-  <script src="koloni.js?v=koloni-95"></script>
-  <script src="koloni-ek.js?v=koloni-95"></script>
-  <script src="ilac-katalog.js?v=koloni-95"></script>
-  <script src="bakim-plan.js?v=koloni-95"></script>
-  <script src="irk-tahmin.js?v=koloni-95"></script>
-  <script src="kovan-ara.js?v=koloni-95"></script>
+  <script src="bk-kabuk.js?v=koloni-96"></script>
+  <script src="demo-data.js?v=koloni-96"></script>
+  <script src="rapor-store.js?v=koloni-96"></script>
+  <script src="sensor-health.js?v=koloni-96"></script>
+<script src="saglik-canli.js?v=koloni-96"></script>
+  <script src="koloni.js?v=koloni-96"></script>
+  <script src="koloni-ek.js?v=koloni-96"></script>
+  <script src="ilac-katalog.js?v=koloni-96"></script>
+  <script src="bakim-plan.js?v=koloni-96"></script>
+  <script src="irk-tahmin.js?v=koloni-96"></script>
+  <script src="kovan-ara.js?v=koloni-96"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-elle.js?v=koloni-95"></script>
-  <script src="kapsam.js?v=koloni-95"></script>
+  <script src="tarti-elle.js?v=koloni-96"></script>
+  <script src="kapsam.js?v=koloni-96"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -311,7 +311,7 @@
           return infos.map(function (x) {
             var h = x.h;
             return '<a class="ks-tile' + (x.hl.key === 'act' ? ' sev-act' : (x.hl.key === 'check' ? ' sev-check' : '')) + '" data-hive="' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" aria-label="' + esc(h.name + ', ' + x.hl.label + ', ' + x.line) + '">' +
-              KS.hiveHtml({ num: KS.hiveNum(h) }) +
+              KS.anaHiveHtml({ num: KS.hiveNum(h) }) +
               '<span class="ks-tl">' + esc(h.name) + '</span>' +
               '<span class="ks-badge ' + x.hl.tone + '" data-health="' + esc(x.hl.key) + '">' + esc(x.hl.label) + '</span>' +
               '<span class="ks-sub">' + esc(x.line) + '</span></a>';
@@ -511,7 +511,7 @@
           var d14T = D.records.addDays(D.records.todayLocal(), -14);
           var infT = hsT.map(function (h) {
             var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
-            var kg = l ? String(l.kg).replace('.', ',') + ' kg' : (liveT ? 'Tartı yok' : h.weightKg.toFixed(1).replace('.', ',') + ' kg');
+            var kg = l ? String(l.kg).replace('.', ',') + ' kg' : (liveT ? 'Tartı yok' : (h.weightKg != null ? h.weightKg.toFixed(1).replace('.', ',') + ' kg' : 'Tartı yok'));
             var sub = l ? (l.source === 'otomatik' ? 'Cihaz · ' : 'Elle · ') + KV.fmtAgo(at, D.records.todayLocal()) : (liveT ? 'elle tartım girilmedi' : 'örnek · ' + (h.deltaKg > 0 ? '+' : '') + h.deltaKg.toFixed(1).replace('.', ',') + ' kg');
             var dv = TE && TE.scaleDevice ? TE.scaleDevice(h.id) : null;
             if (dv) sub = '📡 ' + sub;
@@ -521,8 +521,8 @@
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
           tilesV.innerHTML = infT.map(function (x) {
             return '<a class="ks-tile' + (x.old && liveT ? ' sev-check' : '') + '" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '" data-te-hive="' + esc(x.h.id) + '" aria-label="' + esc(x.h.name + ' tart, ' + x.kg + ', ' + x.sub) + '">' +
-              KV.hiveHtml({ num: KV.hiveNum(x.h) }) + '<span class="ks-tl">' + esc(x.h.name) + '</span>' +
-              '<span class="ks-badge ' + (x.old ? 'orange' : 'green') + '">' + esc(x.kg) + '</span><span class="ks-sub">' + esc(x.sub) + '</span></a>';
+              KV.anaHiveHtml({ num: KV.hiveNum(x.h) }) + '<span class="ks-tl">' + esc(x.h.name) + '</span>' +
+              '<span class="ks-badge ' + (x.old || x.kg === 'Tartı yok' ? 'orange' : 'green') + '">' + esc(x.kg) + '</span><span class="ks-sub">' + esc(x.sub) + '</span></a>';
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
           /* kovan kutucuğu → o kovanın tartım ekranı (otomatik okuma + elle tartım); kapatınca liste yenilenir */
           tilesV.addEventListener('click', function (e) {
@@ -806,7 +806,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-95"></script>
-<script src="pwa.js?v=koloni-95"></script>
+<script src="nav.js?v=koloni-96"></script>
+<script src="pwa.js?v=koloni-96"></script>
 </body>
 </html>
