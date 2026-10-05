@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..');
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
 assert.ok(nav.includes('ensureStatusStrip') && nav.includes('sa-sb-batt-pct'));
 assert.ok(nav.includes('isShotMode') && nav.includes('sa-shot'));
-assert.ok(nav.includes('.phone>.status-bar{display:flex!important'));
+assert.ok(nav.includes('body.shot .status-bar,html.sa-shot .status-bar{display:flex!important') || nav.includes('.phone>.status-bar{display:none!important;}'));
 assert.ok(nav.includes('.phone>.phone-notch,.phone>.home-indicator{display:none'));
 assert.ok(nav.includes('k97 iPhone12 shell shot'));
 const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');

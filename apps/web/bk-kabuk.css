@@ -154,23 +154,11 @@ body.bk-kabuk.shot .phone > nav.tabbar, body.shot .phone > nav.tabbar {
     height: 100dvh !important; min-height: 100dvh !important;
     border-radius: 0 !important; box-shadow: none !important;
   }
-  /* k97: ince durum şeridi geri; çentik/home-indicator yok */
-  body.bk-kabuk .phone-notch, body.bk-kabuk .home-indicator { display: none !important; }
-  body.bk-kabuk .status-bar {
-    display: flex !important; height: auto !important; min-height: 28px !important;
-    padding: max(4px, env(safe-area-inset-top, 0px)) 14px 3px !important;
-    font-size: 13px !important; font-weight: 600 !important; color: #111 !important;
-    background: #f7f8fa !important; align-items: center !important; justify-content: space-between !important;
-    box-sizing: border-box !important; flex: 0 0 auto !important; position: relative !important; z-index: 40 !important;
-    gap: 8px !important;
-  }
-  body.bk-kabuk .status-icons { display: flex !important; gap: 7px !important; align-items: center !important; font-size: 11px !important; color: #111 !important; }
-  body.bk-kabuk .status-icons svg { display: block; }
-  body.bk-kabuk .sa-sb-batt { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; letter-spacing: -.02em; }
-  body.bk-kabuk .sa-sb-batt-pct { font-variant-numeric: tabular-nums; }
+  /* k98: gercek telefonda sahte durum seridi yok; centik/home-indicator yok */
+  body.bk-kabuk .phone-notch, body.bk-kabuk .home-indicator, body.bk-kabuk .status-bar { display: none !important; }
   body.bk-kabuk .phone > .screen {
     height: auto !important; flex: 1 1 auto !important;
-    padding-top: 6px !important;
+    padding-top: max(8px, env(safe-area-inset-top, 0px)) !important;
     padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: auto !important; -webkit-overflow-scrolling: touch;
   }

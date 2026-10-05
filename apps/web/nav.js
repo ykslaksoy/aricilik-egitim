@@ -30,7 +30,7 @@
     'nav.tabbar .nav-badge{position:absolute;top:0;left:calc(50% + 4px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e03131;color:#fff;' +
       'font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #fffdf8;box-sizing:border-box;}' +
     'nav.tabbar .nav-badge[hidden]{display:none;}' +
-    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k95: iPhone — telefon kabugu 844px; gercek ekranda alt menu kesiliyordu. Dar ekranda tam ekran + tabbar sabit. */@media (max-width:520px){html:has(.phone),body:has(>.phone),body:has(.phone){padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body:has(.phone)>.phone,.phone:has(>nav.tabbar){width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}html.sa-phone-mobile,body.sa-phone-mobile{padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body.sa-phone-mobile>.phone,body.sa-phone-mobile .phone{width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}.phone>.phone-notch,.phone>.home-indicator{display:none!important;}.phone>.status-bar{display:flex!important;height:auto!important;min-height:28px!important;padding:max(4px,env(safe-area-inset-top,0px)) 14px 3px!important;font-size:13px!important;font-weight:600!important;color:#111!important;background:#f7f8fa!important;align-items:center!important;justify-content:space-between!important;box-sizing:border-box!important;flex:0 0 auto!important;position:relative!important;z-index:40!important;gap:8px!important;}.phone>.status-bar .status-icons{display:flex!important;gap:7px!important;align-items:center!important;font-size:11px!important;color:#111!important;}.phone>.status-bar .status-icons svg{display:block;}.phone>.status-bar .sa-sb-batt{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;letter-spacing:-.02em;}.phone>.status-bar .sa-sb-batt-pct{font-variant-numeric:tabular-nums;}.phone>.screen{height:auto!important;flex:1 1 auto!important;max-height:none!important;padding-top:6px!important;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}.phone>nav.tabbar:not(.sa-fixed){position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:900!important;height:auto!important;min-height:72px;padding:0 2px calc(10px + env(safe-area-inset-bottom,0px))!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;max-width:520px;margin:0 auto;box-sizing:border-box;}}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;padding-top:2px;}.sa-phone-mobile .sa-back-row{margin:0 0 8px;}.bk-top .weather-temp,.ks-end.weather-temp{margin-left:4px;flex:0 0 auto;font-size:22px;font-weight:700;color:#2c241c;line-height:1;text-decoration:none;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}.bk-sel{max-width:42%!important;}.bk-sel .weather-loc-label{max-width:7em!important;}@media print{.sa-back,.sa-back-row{display:none!important;}}/* k97 iPhone12 shell shot */body.shot,html.sa-shot{background:#f7f8fa!important;width:390px!important;height:844px!important;overflow:hidden!important;margin:0!important;padding:0!important;}body.shot .phone,html.sa-shot .phone{width:390px!important;height:844px!important;max-width:390px!important;min-height:844px!important;border-radius:0!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;}body.shot .phone-notch,html.sa-shot .phone-notch{display:none!important;}body.shot .home-indicator,html.sa-shot .home-indicator,html.sa-shot body.shot .home-indicator,body.shot .phone>.home-indicator{display:block!important;position:relative!important;bottom:auto!important;left:auto!important;transform:none!important;margin:4px auto 8px!important;flex:0 0 auto!important;}body.shot .status-bar,html.sa-shot .status-bar{display:flex!important;flex:0 0 auto!important;height:auto!important;min-height:36px!important;padding:10px 16px 4px!important;}body.shot .phone>.screen,html.sa-shot .phone>.screen{flex:1 1 auto!important;height:auto!important;min-height:0!important;padding-top:4px!important;padding-bottom:8px!important;overflow-y:auto!important;}body.shot .phone>nav.tabbar,html.sa-shot .phone>nav.tabbar{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto!important;height:72px!important;padding:0 2px 10px!important;max-width:none!important;margin:0!important;}@media (max-width:520px){body.shot .phone,html.sa-shot .phone{width:390px!important;height:844px!important;}body.shot .phone>nav.tabbar,html.sa-shot .phone>nav.tabbar{position:relative!important;bottom:auto!important;padding:0 2px 10px!important;}body.shot .phone>.screen,html.sa-shot .phone>.screen{padding-bottom:8px!important;}body.shot .home-indicator,html.sa-shot .home-indicator,html.sa-shot body.shot .home-indicator,body.shot .phone>.home-indicator{display:block!important;}}';
+    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k95: iPhone — telefon kabugu 844px; gercek ekranda alt menu kesiliyordu. Dar ekranda tam ekran + tabbar sabit. */@media (max-width:520px){html:has(.phone),body:has(>.phone),body:has(.phone){padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body:has(.phone)>.phone,.phone:has(>nav.tabbar){width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}html.sa-phone-mobile,body.sa-phone-mobile{padding:0!important;margin:0!important;background:#f0f1f3!important;display:block!important;min-height:100%!important;min-height:100dvh!important;overflow-x:hidden;}body.sa-phone-mobile>.phone,body.sa-phone-mobile .phone{width:100%!important;max-width:100%!important;height:100dvh!important;min-height:100dvh!important;border-radius:0!important;box-shadow:none!important;}.phone>.phone-notch,.phone>.home-indicator{display:none!important;}.phone>.status-bar{display:none!important;}.phone>.screen{height:auto!important;flex:1 1 auto!important;max-height:none!important;padding-top:max(8px,env(safe-area-inset-top,0px))!important;padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}.phone>nav.tabbar:not(.sa-fixed){position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:900!important;height:auto!important;min-height:72px;padding:0 2px calc(10px + env(safe-area-inset-bottom,0px))!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;max-width:520px;margin:0 auto;box-sizing:border-box;}}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;padding-top:2px;}.sa-phone-mobile .sa-back-row{margin:0 0 8px;}.bk-top .weather-temp,.ks-end.weather-temp{margin-left:4px;flex:0 0 auto;font-size:22px;font-weight:700;color:#2c241c;line-height:1;text-decoration:none;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}.bk-sel{max-width:42%!important;}.bk-sel .weather-loc-label{max-width:7em!important;}@media print{.sa-back,.sa-back-row{display:none!important;}}/* k97 iPhone12 shell shot */body.shot,html.sa-shot{background:#f7f8fa!important;width:390px!important;height:844px!important;overflow:hidden!important;margin:0!important;padding:0!important;}body.shot .phone,html.sa-shot .phone{width:390px!important;height:844px!important;max-width:390px!important;min-height:844px!important;border-radius:0!important;box-shadow:none!important;display:flex!important;flex-direction:column!important;}body.shot .phone-notch,html.sa-shot .phone-notch{display:none!important;}body.shot .home-indicator,html.sa-shot .home-indicator,html.sa-shot body.shot .home-indicator,body.shot .phone>.home-indicator{display:block!important;position:relative!important;bottom:auto!important;left:auto!important;transform:none!important;margin:4px auto 8px!important;flex:0 0 auto!important;}body.shot .status-bar,html.sa-shot .status-bar{display:flex!important;flex:0 0 auto!important;height:auto!important;min-height:36px!important;padding:10px 16px 4px!important;}body.shot .phone>.screen,html.sa-shot .phone>.screen{flex:1 1 auto!important;height:auto!important;min-height:0!important;padding-top:4px!important;padding-bottom:8px!important;overflow-y:auto!important;}body.shot .phone>nav.tabbar,html.sa-shot .phone>nav.tabbar{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto!important;height:72px!important;padding:0 2px 10px!important;max-width:none!important;margin:0!important;}@media (max-width:520px){body.shot .phone,html.sa-shot .phone{width:390px!important;height:844px!important;}body.shot .phone>nav.tabbar,html.sa-shot .phone>nav.tabbar{position:relative!important;bottom:auto!important;padding:0 2px 10px!important;}body.shot .phone>.screen,html.sa-shot .phone>.screen{padding-bottom:8px!important;}body.shot .home-indicator,html.sa-shot .home-indicator,html.sa-shot body.shot .home-indicator,body.shot .phone>.home-indicator{display:block!important;}}/* k98 Ana kilit: sahte serit yok; yalniz ?shot=1 / body.shot ile acilir */@media (max-width:520px){html.sa-page-ana:not(.sa-shot) .phone>.status-bar,body.sa-page-ana:not(.shot) .phone>.status-bar{display:none!important;}html.sa-page-ana .phone>.phone-notch,body.sa-page-ana .phone>.home-indicator,html.sa-page-ana .phone>.home-indicator,body.sa-page-ana .phone>.phone-notch{display:none!important;}}html.sa-page-ana.sa-shot .phone>.status-bar,body.sa-page-ana.shot .phone>.status-bar{display:flex!important;flex:0 0 auto!important;min-height:36px!important;padding:10px 16px 4px!important;}';
 
   function page() {
     var p = (location.pathname.split('/').pop() || 'ana.html').toLowerCase();
@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-97'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-97'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-98'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-98'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-97').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-98').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-97').catch(function () {});
+      return loadScript('koloni.js?v=koloni-98').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -284,6 +284,10 @@
     } catch (e) {}
     return false;
   }
+  /** Ana kilitli duzen — sahte durum seridi / her-zaman-kabuk Ana'ya uygulanmaz (yalniz ?shot=1). */
+  function isAnaPage() {
+    try { return page() === 'ana.html'; } catch (e) { return false; }
+  }
   function isPhoneMobile() {
     try {
       if (isShotMode()) return false; /* k97: iPhone12 kabuğu / ekran görüntüsü — çerçeve düzeni */
@@ -310,8 +314,10 @@
       fill.setAttribute('width', String(w.toFixed(1)));
     }
   }
-  /** k97: ince durum seridi — saat · sinyal · Wi-Fi · pil % (centik yok). */
+  /** k98: sahte durum seridi — Ana kilitli (haric ?shot=1); gercek telefonda yok; diger sayfalarda masaustu/kabuk. */
   function ensureStatusStrip() {
+    if (isAnaPage() && !isShotMode()) return;
+    if (isPhoneMobile() && !isShotMode()) return;
     var bars = document.querySelectorAll('.phone > .status-bar, body.bk-kabuk .status-bar');
     if (!bars.length) bars = document.querySelectorAll('.status-bar');
     Array.prototype.forEach.call(bars, function (sb) {
@@ -339,16 +345,6 @@
       icons.setAttribute('aria-hidden', 'true');
       icons.innerHTML = STATUS_ICONS;
       applyBattPct(icons, 87);
-      try {
-        if (navigator.getBattery) {
-          navigator.getBattery().then(function (b) {
-            if (!b) return;
-            function sync() { applyBattPct(icons, (b.level || 0) * 100); }
-            sync();
-            b.addEventListener('levelchange', sync);
-          }).catch(function () {});
-        }
-      } catch (eBatt) {}
     });
     if (!global.__saSbClock) {
       global.__saSbClock = setInterval(function () {
@@ -433,11 +429,19 @@
       });
     });
     try {
-      if (isShotMode()) {
+      if (isAnaPage()) {
+        document.documentElement.classList.add('sa-page-ana');
+        document.body.classList.add('sa-page-ana');
+      }
+      if (isShotMode() && !isAnaPage()) {
         document.documentElement.classList.add('sa-shot');
         document.body.classList.add('shot');
         document.documentElement.classList.remove('sa-phone-mobile');
         document.body.classList.remove('sa-phone-mobile');
+      } else if (isShotMode() && isAnaPage()) {
+        /* Ana: shot yalniz ekran goruntusu — sahte serit istege bagli, kabuk duzeni Ana kilidini bozmasin */
+        document.documentElement.classList.add('sa-shot');
+        document.body.classList.add('shot');
       } else if (isPhoneMobile()) {
         document.documentElement.classList.add('sa-phone-mobile');
         document.body.classList.add('sa-phone-mobile');
@@ -448,7 +452,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-97').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-98').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
