@@ -17,8 +17,8 @@
   .chk input{width:18px !important;height:18px;flex:0 0 auto;margin-top:1px;}
   .demo-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:4px;}
 </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-96" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-96" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-97" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-97" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -72,10 +72,10 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-96"></script>
-<script src="demo-data.js?v=koloni-96"></script>
-<script src="kapsam.js?v=koloni-96"></script>
-  <script src="ks-sayfa.js?v=koloni-96"></script>
+<script src="bk-kabuk.js?v=koloni-97"></script>
+<script src="demo-data.js?v=koloni-97"></script>
+<script src="kapsam.js?v=koloni-97"></script>
+  <script src="ks-sayfa.js?v=koloni-97"></script>
   <script>SuperAriKsSayfa.ensureScope({});</script>
   <script>
 (function () {
@@ -160,7 +160,8 @@
 (function () {
   var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, G = D && D.goc; if (!D || !P || !G) return;
   P.init({
-    title: 'Göç', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="10" width="17" height="12" rx="2" fill="#e8c48e" stroke="#8a6030"/><path d="M20 14h5l4 4v4h-9z" fill="#f7b731" stroke="#b8860b"/><circle cx="9" cy="24" r="2.6" fill="#495057"/><circle cx="24" cy="24" r="2.6" fill="#495057"/></svg>',
+    title: 'Göç',
+    topEnd: '<a class="ks-end ks-end-chip" href="#gocForm" title="Yeni göç formu" aria-label="Yeni göç formu">Yeni</a>', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="10" width="17" height="12" rx="2" fill="#e8c48e" stroke="#8a6030"/><path d="M20 14h5l4 4v4h-9z" fill="#f7b731" stroke="#b8860b"/><circle cx="9" cy="24" r="2.6" fill="#495057"/><circle cx="24" cy="24" r="2.6" fill="#495057"/></svg>',
     stats: function (hs, scope, sm) {
       var list = scope !== 'all' ? G.forApiary(scope) : G.list(), y = String(D.records.todayLocal()).slice(0, 4);
       var yr = list.filter(function (g) { return String(g.date || '').slice(0, 4) === y; });
@@ -184,7 +185,7 @@
 window.SuperAriQuickTitle = 'Kayıt · Göç';
 window.SuperAriQuickActions = function () { return [{ ic: '🚚', t: 'Yeni göç kaydı', d: 'Nereden · nereye · kovanlar', run: window.SuperAriNav.focusEl('#gocForm') }]; };
 </script>
-<script src="nav.js?v=koloni-96"></script>
-<script src="pwa.js?v=koloni-96"></script>
+<script src="nav.js?v=koloni-97"></script>
+<script src="pwa.js?v=koloni-97"></script>
 </body>
 </html>

@@ -47,8 +47,8 @@
     .bp-need .u1{color:#c92a2a;font-weight:700;}
     .bp-more{font:inherit;font-size:.8rem;font-weight:800;border:0;background:none;color:#2b6cb0;text-decoration:underline;cursor:pointer;padding:.2rem 0;justify-self:start;}
   </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-96" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-96" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-97" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-97" />
 </head>
 <body>
   <main class="wrap">
@@ -93,13 +93,13 @@
     </section>
     <div class="note" style="margin-top:1rem;">Bakım planı bir yardımcıdır; ilaç kararını prospektüs ve veteriner hekiminiz belirler. Kışlık hedefler ve takvim bölge ortalamasına göre tahmindir.</div>
   </main>
-  <script src="bk-kabuk.js?v=koloni-96"></script>
-  <script src="demo-data.js?v=koloni-96"></script>
-  <script src="ilac-katalog.js?v=koloni-96"></script>
-  <script src="bakim-plan.js?v=koloni-96"></script>
-  <script src="kovan-ara.js?v=koloni-96"></script>
-  <script src="kapsam.js?v=koloni-96"></script>
-  <script src="ks-sayfa.js?v=koloni-96"></script>
+  <script src="bk-kabuk.js?v=koloni-97"></script>
+  <script src="demo-data.js?v=koloni-97"></script>
+  <script src="ilac-katalog.js?v=koloni-97"></script>
+  <script src="bakim-plan.js?v=koloni-97"></script>
+  <script src="kovan-ara.js?v=koloni-97"></script>
+  <script src="kapsam.js?v=koloni-97"></script>
+  <script src="ks-sayfa.js?v=koloni-97"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
@@ -216,7 +216,8 @@
   /* Bakım düzeni: arılık seçimi Kapsam kartında (yalnız arılıklar; plan arılık başına) — eski seçim kutusu gizli */
   if (apEl && apEl.parentNode) apEl.parentNode.style.display = 'none';
   P.init({
-    title: 'Bakım planı', noAll: true, initial: apEl ? apEl.value : '',
+    title: 'Bakım planı',
+    topEnd: '<a class="ks-end ks-end-chip" href="bakim.html" title="Bakım ana sayfa" aria-label="Bakım ana sayfa">Bakım</a>', noAll: true, initial: apEl ? apEl.value : '',
     icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="20" rx="3" fill="#fff" stroke="#9aa8b8"/><rect x="5" y="7" width="22" height="6" rx="3" fill="#f7b731"/><path d="M11 4.5v5M21 4.5v5" stroke="#8a6030" stroke-width="2" stroke-linecap="round"/><path d="M10 18h12M10 22h8" stroke="#8a7358" stroke-width="1.8" stroke-linecap="round"/></svg>',
     stats: function (hs, scope, sm) {
       var pk = PL ? PL.profileKey(scope) : '', pr = PL && PL.PROFILES[pk];
@@ -247,7 +248,7 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="nav.js?v=koloni-96"></script>
-  <script src="pwa.js?v=koloni-96"></script>
+<script src="nav.js?v=koloni-97"></script>
+  <script src="pwa.js?v=koloni-97"></script>
 </body>
 </html>

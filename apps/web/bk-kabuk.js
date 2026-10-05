@@ -10,7 +10,13 @@
   body.classList.add('bk-kabuk');
   doc.documentElement.classList.add('bk-kabuk-html');
   body.removeAttribute('data-tabbar');
-  var STATUS = '<div data-bk-clock aria-live="polite">9:41</div><div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>';
+  /* k97: ince durum şeridi — saat · sinyal · Wi‑Fi · pil % (çentik/çerçeve yok) */
+  var STATUS = '<div data-bk-clock class="sa-sb-clock" aria-live="polite">9:41</div>'
+    + '<div class="status-icons" aria-hidden="true">'
+    + '<span class="sa-sb-sig" title="Sinyal"><svg viewBox="0 0 18 12" width="16" height="11"><rect x="1" y="8" width="2.2" height="3.5" rx=".4" fill="currentColor"/><rect x="5" y="5.5" width="2.2" height="6" rx=".4" fill="currentColor"/><rect x="9" y="3" width="2.2" height="8.5" rx=".4" fill="currentColor"/><rect x="13" y="0.5" width="2.2" height="11" rx=".4" fill="currentColor"/></svg></span>'
+    + '<span class="sa-sb-wifi" title="Wi‑Fi"><svg viewBox="0 0 16 12" width="15" height="11"><path d="M8 10.4a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3z" fill="currentColor"/><path d="M3.2 7.2a6.8 6.8 0 0 1 9.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.4 9a3.7 3.7 0 0 1 5.2 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>'
+    + '<span class="sa-sb-batt" title="Pil"><span class="sa-sb-batt-pct">87%</span><svg viewBox="0 0 28 13" width="26" height="12"><rect x="0.7" y="1.2" width="23" height="10.5" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="24.2" y="4" width="2.4" height="5" rx=".7" fill="currentColor"/><rect class="sa-sb-batt-fill" x="2.4" y="3" width="18.2" height="7" rx="1.2" fill="currentColor"/></svg></span>'
+    + '</div>';
   var phone = doc.querySelector('.phone');
   if (!phone) {
     var main = doc.querySelector('main.wrap') || doc.querySelector('main');

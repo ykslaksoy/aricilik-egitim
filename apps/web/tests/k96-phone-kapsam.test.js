@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
-assert.ok(nav.includes('status-bar,.phone>.phone-notch'));
+assert.ok(nav.includes('phone-notch') && nav.includes('home-indicator'));
 assert.ok(nav.includes('display:none!important') && nav.includes('isPhoneMobile') && nav.includes('ensureBakimEnd'));
 assert.ok(nav.includes('sa-back-row') && nav.includes('calc(96px + env(safe-area-inset-bottom'));
 const ks = fs.readFileSync(path.join(root, 'kapsam.js'), 'utf8');
@@ -15,7 +15,7 @@ assert.ok(css.includes('.ks-tile .hive-area') && css.includes('.ks-end.weather-t
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
 assert.ok(kv.includes('anaHiveHtml({ num:'));
 const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
-assert.ok(bk.includes('status-bar { display: none'));
+assert.ok(bk.includes('phone-notch') && bk.includes('home-indicator'));
 assert.ok(bk.includes('96px') || nav.includes('96px'));
 const ak = fs.readFileSync(path.join(root, 'bakim-akis.html'), 'utf8');
 assert.ok(ak.includes('topExtra: TOGGLE'), 'Muayene Sesli = topExtra → sağ kestirme');
