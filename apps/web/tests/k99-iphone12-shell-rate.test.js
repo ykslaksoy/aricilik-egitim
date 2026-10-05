@@ -1,0 +1,21 @@
+/* k99: her zaman iPhone12 kabugu + ses normal hizi ~%12 artis */
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
+assert.ok(nav.includes('fitIphone12Shell'), 'fitIphone12Shell');
+assert.ok(nav.includes('sa-iphone12'), 'sa-iphone12 class');
+assert.ok(nav.includes('width:390px!important') && nav.includes('height:844px!important'), '390x844');
+assert.ok(nav.includes('.phone>.status-bar{display:flex!important'), 'status bar visible in shell');
+assert.ok(!/if \(isAnaPage\(\) && !isShotMode\(\)\) return/.test(nav), 'Ana no longer skips strip');
+assert.ok(!/if \(isPhoneMobile\(\) && !isShotMode\(\)\) return/.test(nav), 'phone no longer skips strip');
+assert.ok(nav.includes("phone.style.transform = 'scale('"), 'scale transform');
+const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
+assert.ok(bk.includes('k99: her zaman iPhone12'), 'bk k99');
+assert.ok(bk.includes('width: 390px') && bk.includes('height: 844px'), 'bk 390x844');
+const ses = fs.readFileSync(path.join(root, 'sesle-muayene.js'), 'utf8');
+assert.ok(ses.includes('normal: 1.12'), 'normal rate 1.12');
+assert.ok(ses.includes('hizli: 1.28'), 'hizli rate 1.28');
+assert.ok(ses.includes("RATE_KEY = 'superari.sesleHiz.v1'"), 'rate key kept');
+console.log('k99-iphone12-shell-rate ok');

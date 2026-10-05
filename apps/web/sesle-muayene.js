@@ -289,7 +289,7 @@
   /* ---- Ses seçimi: cihazdaki en doğal Türkçe ses (ücretsiz, cihaz üstü) ---- */
   var VOICE_KEY = 'superari.sesleSes.v1';
   /* Ayarlar › Ses seçimi: hız (cihaza özgü; sesler cihazdan cihaza değiştiği için bulut yerine bu cihazda saklanır) */
-  var RATE_KEY = 'superari.sesleHiz.v1', RATES = { yavas: 0.85, normal: 1.0, hizli: 1.15 };
+  var RATE_KEY = 'superari.sesleHiz.v1', RATES = { yavas: 0.85, normal: 1.12, hizli: 1.28 };
   function rateKey() { try { var k = localStorage.getItem(RATE_KEY) || 'normal'; return RATES[k] ? k : 'normal'; } catch (e) { return 'normal'; } }
   function setRate(k) { try { if (RATES[k] && k !== 'normal') localStorage.setItem(RATE_KEY, k); else localStorage.removeItem(RATE_KEY); } catch (e) { /* ignore */ } }
   function setVoice(id) { try { if (id) localStorage.setItem(VOICE_KEY, id); else localStorage.removeItem(VOICE_KEY); } catch (e) { /* ignore */ } }
