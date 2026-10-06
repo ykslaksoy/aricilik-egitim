@@ -7,7 +7,7 @@ const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
 assert.ok(nav.includes('fitIphone12Shell'), 'fitIphone12Shell');
 assert.ok(nav.includes('sa-iphone12'), 'sa-iphone12 class');
 assert.ok(nav.includes('width:390px!important') && nav.includes('height:844px!important'), 'desktop 390x844 base');
-assert.ok(nav.includes('sa-phone-mobile') && nav.includes("setProperty('width'"), 'phone fill');
+assert.ok(nav.includes('sa-phone-mobile') && nav.includes('position:fixed!important'), 'phone fill');
 assert.ok(nav.includes('.phone>.status-bar{display:flex!important'), 'status bar visible in shell');
 assert.ok(!/if \(isAnaPage\(\) && !isShotMode\(\)\) return/.test(nav), 'Ana no longer skips strip');
 assert.ok(!/if \(isPhoneMobile\(\) && !isShotMode\(\)\) return/.test(nav), 'phone no longer skips strip');
