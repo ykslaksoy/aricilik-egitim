@@ -9,7 +9,9 @@ npm-debug.log*
 data/*.db
 data/*.db-*
 data/*.sqlite
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 dist/
 build/
 coverage/

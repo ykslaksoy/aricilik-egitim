@@ -1,0 +1,10 @@
+---
+description: Kota tasarrufu — agent modeli Composer 2.5
+alwaysApply: true
+---
+
+Agent, Cloud Agent ve delegasyon worker’ları için varsayılan model **Composer 2.5** (`composer-2.5`).
+
+- **Kullanma:** Composer 2.5 Fast, Auto (veya Auto Intelligence), Claude Opus/Sonnet, GPT high/thinking, Max Mode.
+- **Cloud worker:** `model: composer-2.5` ile başlat.
+- Rutin kod/HTML/CSS/fix işleri bu modelde kalsın; zor mimari için kullanıcı açıkça başka model istemedikçe değiştirme.
