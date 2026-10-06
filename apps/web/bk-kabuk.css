@@ -4,6 +4,25 @@
    Değerler bakim.html'den birebir (bakim.html kilitli; buradan kopyalanır, oraya dokunulmaz).
    Kullanım: <link rel="stylesheet" href="bk-kabuk.css"> + </main>'den hemen sonra bk-kabuk.js (telefon sayfalarında .phone zaten var). */
 html.bk-kabuk-html, body.bk-kabuk { width: 100%; min-height: 100%; background: #1a1a1a; }
+/* k102 · auth / ayar / giriş — auth-phone ekran içinde, dışarıda iPhone 12 çerçevesi */
+body.bk-kabuk.bk-auth-shell,
+body.bk-kabuk.auth-body {
+  background: #1a1a1a !important;
+  align-items: flex-start;
+  justify-content: center;
+}
+body.bk-kabuk .screen .auth-phone {
+  width: 100%; max-width: none; min-height: 100%;
+  margin: 0; padding: 0 12px 16px;
+  border-radius: 0; box-shadow: none;
+  background: #f7f8fa;
+  flex: 1 1 auto;
+}
+body.bk-kabuk .screen .auth-phone .hardal-rail { display: none; }
+body.bk-kabuk .screen .auth-phone .nav { margin-top: 8px; }
+body.bk-kabuk .screen .auth-phone .brand { margin-top: 4px; }
+body.bk-kabuk .screen .sa-auto-wrap { width: auto; max-width: none; margin: 0; padding: 0 0 12px; }
+body.bk-kabuk .screen .sa-auto-wrap > header { margin: 0 0 8px; }
 body.bk-kabuk {
   --phone-w: 390px; --phone-h: 844px;
   margin: 0; display: flex; align-items: flex-start; justify-content: center;

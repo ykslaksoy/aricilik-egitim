@@ -17,15 +17,49 @@
     + '<span class="sa-sb-wifi" title="Wi‑Fi"><svg viewBox="0 0 16 12" width="15" height="11"><path d="M8 10.4a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3z" fill="currentColor"/><path d="M3.2 7.2a6.8 6.8 0 0 1 9.6 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5.4 9a3.7 3.7 0 0 1 5.2 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>'
     + '<span class="sa-sb-batt" title="Pil"><span class="sa-sb-batt-pct">87%</span><svg viewBox="0 0 28 13" width="26" height="12"><rect x="0.7" y="1.2" width="23" height="10.5" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="24.2" y="4" width="2.4" height="5" rx=".7" fill="currentColor"/><rect class="sa-sb-batt-fill" x="2.4" y="3" width="18.2" height="7" rx="1.2" fill="currentColor"/></svg></span>'
     + '</div>';
+  function makePhoneShell() {
+    var el = doc.createElement('div');
+    el.className = 'phone';
+    el.id = 'phone';
+    el.innerHTML = '<div class="phone-notch"></div><div class="status-bar">' + STATUS + '</div><div class="screen bk-screen" id="bkScreen"></div>';
+    return el;
+  }
+  function collectPageMain() {
+    var main = doc.querySelector('main.wrap') || doc.querySelector('main');
+    if (main && !doc.querySelector('body > header')) {
+      if (!main.classList.contains('wrap')) main.classList.add('wrap');
+      return main;
+    }
+    var shell = doc.createElement('main');
+    shell.className = 'wrap sa-auto-wrap';
+    var moved = false;
+    Array.prototype.forEach.call(body.childNodes, function (n) {
+      if (n.nodeType !== 1) return;
+      if (n.tagName === 'SCRIPT') return;
+      shell.appendChild(n);
+      moved = true;
+    });
+    if (!moved) return null;
+    var firstScript = body.querySelector('script');
+    if (firstScript) body.insertBefore(shell, firstScript);
+    else body.appendChild(shell);
+    return shell;
+  }
   var phone = doc.querySelector('.phone');
   if (!phone) {
-    var main = doc.querySelector('main.wrap') || doc.querySelector('main');
-    if (!main) return;
-    phone = doc.createElement('div');
-    phone.className = 'phone'; phone.id = 'phone';
-    phone.innerHTML = '<div class="phone-notch"></div><div class="status-bar">' + STATUS + '</div><div class="screen bk-screen" id="bkScreen"></div>';
-    main.parentNode.insertBefore(phone, main);
-    phone.querySelector('.screen').appendChild(main);
+    var auth = doc.querySelector('.auth-phone');
+    if (auth) {
+      body.classList.add('bk-auth-shell');
+      phone = makePhoneShell();
+      auth.parentNode.insertBefore(phone, auth);
+      phone.querySelector('.screen').appendChild(auth);
+    } else {
+      var main = collectPageMain();
+      if (!main) return;
+      phone = makePhoneShell();
+      main.parentNode.insertBefore(phone, main);
+      phone.querySelector('.screen').appendChild(main);
+    }
   } else {
     var sb = phone.querySelector('.status-bar');
     if (sb) sb.innerHTML = STATUS;

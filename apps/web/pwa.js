@@ -316,4 +316,13 @@
   function onLoad() { register(); startNotifLoop(); liveHealthBoot(); bulutBoot(); }
   if (doc.readyState === 'complete') onLoad();
   else global.addEventListener('load', onLoad);
+
+  /* k102 · iPhone 12 kabuğu — sayfada .phone yoksa bk-kabuk + nav.js */
+  (function () {
+    if (global.__saIphone12BootInject) return;
+    global.__saIphone12BootInject = 1;
+    var s = doc.createElement('script');
+    s.src = 'sa-iphone12-boot.js?v=' + encodeURIComponent(VERSION);
+    (body || doc.documentElement).appendChild(s);
+  })();
 })(window);
