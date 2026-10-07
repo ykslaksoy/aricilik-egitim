@@ -11,7 +11,7 @@ assert.ok(nav.includes('saPhoneStage') && nav.includes('border-radius:44px!impor
 assert.ok(nav.includes('.phone>.status-bar{display:flex!important'), 'status bar visible in shell');
 assert.ok(!/if \(isAnaPage\(\) && !isShotMode\(\)\) return/.test(nav), 'Ana no longer skips strip');
 assert.ok(!/if \(isPhoneMobile\(\) && !isShotMode\(\)\) return/.test(nav), 'phone no longer skips strip');
-assert.ok(nav.includes("scale('") && nav.includes('fitIphone12Shell'), 'desktop scale keep');
+assert.ok(nav.includes('k105') && nav.includes('layoutPhoneStage(phone, 1)'), 'birebir 390x844 no shrink');
 const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
 assert.ok(bk.includes('k100:') || bk.includes('k99:'), 'bk shell marker');
 assert.ok(bk.includes('100dvh') || bk.includes('390px'), 'bk phone size');

@@ -1,4 +1,4 @@
-/* k103: masaüstü — saat/alt menu cerceve icinde; ok ile sayfa kaydirma; stage boyutu scale ile */
+/* k103: masaüstü — saat/alt menu cerceve icinde; ok ile sayfa kaydirma; k105 birebir stage */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
