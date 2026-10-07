@@ -84,5 +84,14 @@
     Array.prototype.forEach.call(doc.querySelectorAll('[data-bk-clock]'), function (e) { e.textContent = t; });
   }
   tick(); global.setInterval(tick, 1000);
+  try {
+    if (!body.classList.contains('shot') && global.matchMedia
+      && !global.matchMedia('(max-width:520px)').matches
+      && !global.matchMedia('(display-mode: standalone)').matches) {
+      doc.documentElement.classList.add('sa-shell-framed');
+      body.classList.add('sa-shell-framed');
+    }
+  } catch (eFr) { /* ignore */ }
   global.SuperAriBkKabuk = { phone: phone, screen: phone.querySelector('.screen'), nav: nav };
+  try { global.dispatchEvent(new Event('superari-shell-ready')); } catch (eEv) { /* ignore */ }
 })(window);

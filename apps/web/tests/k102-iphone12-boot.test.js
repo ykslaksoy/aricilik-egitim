@@ -11,4 +11,7 @@ assert.ok(pwa.includes('sa-iphone12-boot.js'), 'pwa injects boot');
 assert.ok(bk.includes('auth-phone'), 'bk wraps auth');
 assert.ok(bk.includes('sa-auto-wrap'), 'bk generic wrap');
 assert.ok(boot.includes("var v = 'koloni-104'"), 'boot default cache tag koloni-104');
+const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
+assert.ok(nav.includes('superari-shell-ready'), 'shell refit after late bk-kabuk');
+assert.ok(nav.includes('saPhoneStage'), 'k104 stage keeps frame visible');
 console.log('k102-iphone12-boot ok');
