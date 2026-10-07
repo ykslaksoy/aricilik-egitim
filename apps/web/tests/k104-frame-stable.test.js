@@ -1,0 +1,14 @@
+/* k104: cerceve kalici — viewport fixed telefon yok; saat/tabbar cerceve icinde */
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
+const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
+assert.ok(nav.includes('k104'), 'k104 marker');
+assert.ok(!nav.includes('html.sa-phone-mobile .phone') || !/sa-phone-mobile \.phone[\s\S]{0,120}position:fixed/.test(nav), 'no viewport-fixed phone');
+assert.ok(nav.includes('border-radius:44px!important'), 'visible frame');
+assert.ok(nav.includes('layoutPhoneStage'), 'stage layout always');
+assert.ok(!/if \(isPhoneMobile\(\)\) \{[\s\S]{0,80}unwrapPhoneStage/.test(nav), 'mobile does not unwrap stage');
+assert.ok(bk.includes('k104') && !bk.includes('position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important'), 'bk no fixed phone');
+console.log('k104-frame-stable ok');

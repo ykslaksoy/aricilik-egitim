@@ -5,6 +5,11 @@
  */
 (function (global) {
   var doc = global.document;
+  try {
+    if (doc.documentElement && (doc.querySelector('.phone') || doc.querySelector('main.wrap') || doc.querySelector('.auth-phone'))) {
+      doc.documentElement.classList.add('sa-iphone12');
+    }
+  } catch (eEarly) { /* ignore */ }
   var VERSION = (function () {
     var s = doc.currentScript, m = s && /[?&]v=([^&]+)/.exec(s.src || '');
     return m ? decodeURIComponent(m[1]) : 'dev';
@@ -70,7 +75,7 @@
     Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
     doc.head.appendChild(el);
   }
-  addHead('link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }); /* koloni-103: tarayıcının ilk /favicon.ico isteği 404 vermesin */
+  addHead('link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }); /* koloni-104: tarayıcının ilk /favicon.ico isteği 404 vermesin */
   addHead('link', { rel: 'manifest', href: '/manifest.json' });
   addHead('link', { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' });
   addHead('meta', { name: 'theme-color', content: '#c9a227' });

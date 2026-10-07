@@ -9,7 +9,7 @@ assert.ok(nav.includes('ensureShellPan'), 'pan controls');
 assert.ok(nav.includes('sa-shell-desktop'), 'desktop shell class');
 assert.ok(nav.includes('overflow-y:auto!important'), 'page scroll');
 assert.ok(nav.includes('sa-shell-desktop'), 'desktop shell class');
-assert.ok(nav.includes('pointer: coarse'), 'phone mobile needs touch/coarse');
+assert.ok(nav.includes('k104'), 'unified frame');
 assert.ok(nav.includes('ArrowUp'), 'keyboard pan');
 assert.ok(nav.includes('.phone>.status-bar') && nav.includes('position:relative!important'), 'status bar in frame');
 assert.ok(nav.includes('.phone>nav.tabbar') && nav.includes('position:relative!important'), 'tabbar in frame');

@@ -162,42 +162,21 @@ body.bk-kabuk.shot .phone > nav.tabbar, body.shot .phone > nav.tabbar {
   body.bk-kabuk .phone-notch, body.bk-kabuk .status-bar, body.bk-kabuk .phone > nav.tabbar, body.bk-kabuk .home-indicator { display: none !important; }
 }
 
-/* k101: fixed inset:0 (visualViewport degil) — k100: dar ekran / standalone — visual viewporti doldur (kucuk ortali 390x844 yok) */
+/* k104: dar ekran / PWA — cerceve ve kaydirma nav.js fitIphone12Shell + #saPhoneStage (viewport fixed telefon yok) */
 @media (max-width:520px), (display-mode: standalone) {
   html.bk-kabuk-html, body.bk-kabuk {
-    padding: 0 !important; margin: 0 !important; background: #f7f8fa !important;
-    display: block !important; align-items: stretch !important; justify-content: stretch !important;
-    min-height: 100% !important; min-height: 100dvh !important; overflow: hidden !important;
+    padding: 12px 0 20px !important; margin: 0 !important; background: #1a1a1a !important;
+    display: flex !important; align-items: flex-start !important; justify-content: center !important;
+    min-height: 100% !important; min-height: 100dvh !important; overflow-x: hidden !important; overflow-y: auto !important;
   }
   body.bk-kabuk .phone {
-    position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-    width: auto !important; max-width: none !important; min-width: 0 !important;
-    height: auto !important; min-height: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important; box-sizing: border-box !important;
-    border-radius: 0 !important; box-shadow: none !important;
-    display: flex !important; flex-direction: column !important;
-    transform: none !important; transform-origin: center center !important;
-    margin: 0 !important;
+    position: relative !important; width: var(--phone-w) !important; height: var(--phone-h) !important;
+    max-width: 390px !important; min-height: 844px !important; flex: 0 0 auto !important;
+    border-radius: 44px !important; box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55) !important;
+    transform: none !important; margin: 0 auto !important;
   }
-  body.bk-kabuk .phone-notch { display: none !important; }
-  body.bk-kabuk .home-indicator {
-    display: block !important; position: relative !important; bottom: auto !important; left: auto !important;
-    transform: none !important; margin: 4px auto 8px !important; flex: 0 0 auto !important;
-  }
-  body.bk-kabuk .status-bar {
-    display: flex !important; flex: 0 0 auto !important; height: auto !important; min-height: 36px !important;
-    padding: 10px 16px 4px !important;
-  }
-  body.bk-kabuk .phone > .screen {
-    height: auto !important; flex: 1 1 auto !important; min-height: 0 !important;
-    padding-top: 2px !important; padding-bottom: 8px !important;
-    overflow-y: auto !important; -webkit-overflow-scrolling: touch;
-  }
-  body.bk-kabuk .phone > nav.tabbar {
-    position: relative !important; left: auto !important; right: auto !important; bottom: auto !important;
-    z-index: 5 !important; height: 72px !important; min-height: 72px;
-    padding: 0 2px 10px !important; max-width: none; margin: 0;
-  }
+  body.bk-kabuk .phone > nav.tabbar { position: relative !important; }
+  body.bk-kabuk .status-bar { position: relative !important; }
 }
 
 /* k97-shot-win: shot kabuğu dar viewport'ta da sabit çerçeveyi korur (Playwright 390px) */
