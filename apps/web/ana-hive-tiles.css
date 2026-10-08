@@ -1,0 +1,286 @@
+/* k107 · Ana ekran kovan döşemesi — grid + tile + hive (ana.html ile birebir; ana.html’e dokunmaz) */
+:root {
+  --ah-card: #f4f5f7;
+  --ah-card-border: #e4e6ea;
+  --ah-brown-mid: #5c3a1f;
+  --ah-wood-hi: #e8c48e;
+  --ah-wood-lo: #c99755;
+  --ah-wood-edge: #8a6030;
+  --ah-green: #2f9e44;
+  --ah-green-bg: #d8f3dc;
+  --ah-tan-bg: #efe2cb;
+  --ah-tan-fg: #7a5a32;
+  --ah-blue: #1c7ed6;
+  --ah-blue-bg: #d0ebff;
+  --ah-red: #e03131;
+  --ah-red-bg: #ffe3e3;
+  --ah-purple: #7048e8;
+  --ah-purple-bg: #e5dbff;
+  --ah-orange: #f08c00;
+}
+.grid.ana-hive-grid,
+.ana-hive-grid.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+.grid.ana-hive-grid .tile,
+.ana-hive-grid .tile {
+  background: var(--ah-card);
+  border: 1px solid var(--ah-card-border);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  min-height: 122px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 3px;
+  box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.grid.ana-hive-grid .tile:focus-visible,
+.ana-hive-grid .tile:focus-visible {
+  outline: 2px solid #d4a017;
+  outline-offset: 2px;
+}
+.grid.ana-hive-grid .tile:active,
+.ana-hive-grid .tile:active {
+  transform: scale(.985);
+}
+.grid.ana-hive-grid .tile.sev-act,
+.ana-hive-grid .tile.sev-act { border: 2px solid #e03131; }
+.grid.ana-hive-grid .tile.sev-check,
+.ana-hive-grid .tile.sev-check { border: 2px solid #f08c00; }
+.grid.ana-hive-grid .hive-area,
+.ana-hive-grid .hive-area {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+}
+.grid.ana-hive-grid .hive,
+.ana-hive-grid .hive {
+  width: 58px;
+  height: 54px;
+  position: relative;
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+.grid.ana-hive-grid .hive-stack,
+.ana-hive-grid .hive-stack {
+  position: absolute;
+  left: 50%;
+  top: 1px;
+  transform: translateX(-50%);
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.grid.ana-hive-grid .hive-lid,
+.ana-hive-grid .hive-lid {
+  width: 50px;
+  height: 6px;
+  margin-left: -3px;
+  margin-bottom: 0;
+  background: linear-gradient(180deg, #f4f5f7 0%, #c8ccd2 48%, #9aa1aa 100%);
+  border-radius: 2px 2px 1px 1px;
+  box-shadow: 0 1px 0 #7c828a;
+  position: relative;
+  z-index: 1;
+}
+.grid.ana-hive-grid .hive-lid::after,
+.ana-hive-grid .hive-lid::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 2.5px;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: rgba(60, 60, 70, .45);
+}
+.grid.ana-hive-grid .hive-box,
+.ana-hive-grid .hive-box {
+  height: 18px;
+  width: 100%;
+  background-color: var(--ah-wood-hi);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 52, 16, .07) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, rgba(255, 248, 230, .35), transparent 42%, rgba(90, 50, 14, .16));
+  border-left: 1px solid var(--ah-wood-edge);
+  border-right: 1px solid var(--ah-wood-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35);
+  position: relative;
+  box-sizing: border-box;
+}
+.grid.ana-hive-grid .hive-box.top,
+.ana-hive-grid .hive-box.top { border-top: 1px solid var(--ah-wood-edge); }
+.grid.ana-hive-grid .hive-box.bottom,
+.ana-hive-grid .hive-box.bottom {
+  border-bottom: 1px solid var(--ah-wood-edge);
+  border-top: 1px solid var(--ah-wood-edge);
+}
+.grid.ana-hive-grid .hive-box::before,
+.grid.ana-hive-grid .hive-box::after,
+.ana-hive-grid .hive-box::before,
+.ana-hive-grid .hive-box::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 4px;
+  background: repeating-linear-gradient(180deg, #7a5224 0 3px, #e0b87a 3px 7px);
+}
+.grid.ana-hive-grid .hive-box::before,
+.ana-hive-grid .hive-box::before { left: 0; }
+.grid.ana-hive-grid .hive-box::after,
+.ana-hive-grid .hive-box::after { right: 0; }
+.grid.ana-hive-grid .hive-entrance,
+.ana-hive-grid .hive-entrance {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 2px;
+  background: #2a1a0c;
+  border-radius: 0 0 1px 1px;
+  z-index: 1;
+}
+.grid.ana-hive-grid .hive-door,
+.ana-hive-grid .hive-door {
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+.grid.ana-hive-grid .hive-feet,
+.ana-hive-grid .hive-feet {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  margin-top: 2px;
+}
+.grid.ana-hive-grid .hive-feet span,
+.ana-hive-grid .hive-feet span {
+  width: 7px;
+  height: 4px;
+  background: var(--ah-wood-lo);
+  border-radius: 1px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+.grid.ana-hive-grid .hive-shadow,
+.ana-hive-grid .hive-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 3px;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, .12), transparent 70%);
+}
+.grid.ana-hive-grid .hive-icon,
+.ana-hive-grid .hive-icon {
+  position: absolute;
+  left: 50%;
+  top: 26px;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+}
+.grid.ana-hive-grid .hive-icon.hive-icon-burn,
+.ana-hive-grid .hive-icon.hive-icon-burn {
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  overflow: visible;
+  display: grid;
+  place-items: center;
+}
+.grid.ana-hive-grid .hive-icon.hive-icon-burn svg,
+.ana-hive-grid .hive-icon.hive-icon-burn svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: none;
+  stroke: #1a0c06;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  mix-blend-mode: multiply;
+}
+.grid.ana-hive-grid .hive-icon-burn .burn-ring,
+.ana-hive-grid .hive-icon-burn .burn-ring {
+  fill: rgba(255, 236, 179, .55);
+  stroke: #160a05;
+  stroke-width: 1.55;
+  mix-blend-mode: multiply;
+}
+.grid.ana-hive-grid .hive-icon-burn text,
+.ana-hive-grid .hive-icon-burn text {
+  mix-blend-mode: multiply;
+}
+.grid.ana-hive-grid .tile-label,
+.ana-hive-grid .tile-label {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ah-brown-mid);
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.grid.ana-hive-grid .badge,
+.ana-hive-grid .badge {
+  position: relative;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.grid.ana-hive-grid .badge.green,
+.ana-hive-grid .badge.green { background: var(--ah-green-bg); color: var(--ah-green); }
+.grid.ana-hive-grid .badge.tan,
+.ana-hive-grid .badge.tan { background: var(--ah-tan-bg); color: var(--ah-tan-fg); }
+.grid.ana-hive-grid .badge.blue,
+.ana-hive-grid .badge.blue { background: var(--ah-blue-bg); color: var(--ah-blue); }
+.grid.ana-hive-grid .badge.red,
+.ana-hive-grid .badge.red { background: var(--ah-red-bg); color: var(--ah-red); }
+.grid.ana-hive-grid .badge.purple,
+.ana-hive-grid .badge.purple { background: var(--ah-purple-bg); color: var(--ah-purple); }
+.grid.ana-hive-grid .badge.yellow,
+.ana-hive-grid .badge.yellow { background: #fff3bf; color: #8a5a00; }
+.grid.ana-hive-grid .badge.orange,
+.ana-hive-grid .badge.orange { background: #ffe8cc; color: #d9480f; }
+.grid.ana-hive-grid .badge.gray,
+.ana-hive-grid .badge.gray { background: #e9ecef; color: #495057; }

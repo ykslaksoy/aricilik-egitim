@@ -14,7 +14,7 @@ assert.ok(ks.includes('if (o.num != null && !o.svg && !o.burn) return anaHiveHtm
 const css = fs.readFileSync(path.join(root, 'kapsam.css'), 'utf8');
 assert.ok(css.includes('.ks-tile .hive-area') && css.includes('.ks-end.weather-temp') && css.includes('ks-end-chip'));
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
-assert.ok(kv.includes('anaHiveHtml({ num:'));
+assert.ok(kv.includes('anaHiveTileHtml'));
 const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
 assert.ok(bk.includes('phone-notch') && bk.includes('home-indicator'));
 assert.ok(bk.includes('96px') || nav.includes('96px'));

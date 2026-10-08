@@ -248,5 +248,26 @@
   var ICON_MUAYENE = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="6" width="18" height="22" rx="3" fill="#cfd8e3" stroke="#9aa8b8" stroke-width="1"/><rect x="11.5" y="3.5" width="9" height="5" rx="1.6" fill="#f7b731"/><circle cx="15" cy="17" r="4.2" fill="#fff" stroke="#5c3a1f" stroke-width="1.8"/><path d="M18 20l3.2 3.2" stroke="#5c3a1f" stroke-width="2" stroke-linecap="round"/></svg>';
   var ICON_KOVAN = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="5" rx="1.4" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><rect x="7" y="11" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="7" y="18.6" width="18" height="7" rx="1" fill="#e8c48e" stroke="#8a6030" stroke-width="1"/><rect x="14" y="24" width="4" height="1.4" fill="#2a1a0c"/></svg>';
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
+  /** k107: Ana .grid > .tile ile birebir (bakim-akis muayene listesi ile aynı işaretleme) */
+  function anaHiveTileHtml(o) {
+    o = o || {};
+    var sev = o.sev === 'act' ? ' sev-act' : (o.sev === 'check' ? ' sev-check' : '');
+    var extra = o.extraClass ? ' ' + o.extraClass : '';
+    var href = o.href ? ' href="' + esc(o.href) + '"' : '';
+    var data = '';
+    if (o.dataHive) data += ' data-hive="' + esc(o.dataHive) + '"';
+    if (o.dataTeHive) data += ' data-te-hive="' + esc(o.dataTeHive) + '"';
+    var aria = o.aria ? ' aria-label="' + esc(o.aria) + '"' : '';
+    var tone = o.tone || 'tan';
+    if (tone === 'priority-1') tone = 'red';
+    if (tone === 'priority-2') tone = 'orange';
+    if (tone === 'priority-3') tone = 'green';
+    var badge = o.badge != null && o.badge !== '' ? '<div class="badge ' + esc(tone) + '">' + esc(o.badge) + '</div>' : '';
+    return '<a class="tile' + sev + extra + '"' + href + data + aria + '>' +
+      anaHiveHtml({ num: o.num, burn: o.burn }) +
+      '<div class="tile-label">' + esc(o.label || '') + '</div>' +
+      badge + '</a>';
+  }
+
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
 })(typeof window !== 'undefined' ? window : this);

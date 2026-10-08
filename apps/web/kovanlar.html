@@ -5,8 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
+<<<<<<< HEAD
   <link rel="stylesheet" href="kapsam.css?v=koloni-105" />
   <link rel="stylesheet" href="bk-kabuk.css?v=koloni-105" />
+=======
+  <link rel="stylesheet" href="kapsam.css?v=koloni-104" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-104" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-104" />
+>>>>>>> cb963b5 (feat(web): Kovanlar döşemeleri Ana ile birebir (k107))
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -39,7 +45,7 @@
     <section id="ksScope" hidden></section>
     <div class="ks-tools" id="ksTools" hidden></div>
     <div class="ks-sec" id="ksSec" hidden><h3>Kovanlar</h3><small id="ksCount"></small></div>
-    <div class="ks-grid" id="ksTiles" hidden aria-label="Kovanlar (önce sorunlu)"></div>
+    <div class="grid ana-hive-grid" id="ksTiles" hidden aria-label="Kovanlar (önce sorunlu)"></div>
     <section class="card stack" id="oldCard">
       <h2 style="margin:0;" id="pageTitle">Kovanlar</h2>
       <div id="koloniGrid"></div>
@@ -263,6 +269,17 @@
           try { var lev = SuperAriLiveHealth.evaluate(h); hsc = lev.score; if (view !== 'tarti' && view !== 'koloni') meta = place + ' · sağlık ' + (lev.score == null ? 'veri az' : lev.band.label + ' ' + lev.score); } catch (e) { hsc = null; }
         }
         var tone = hsc == null ? 'priority-3' : (hsc < 50 ? 'priority-1' : (hsc < 70 ? 'priority-2' : 'priority-3'));
+        if (window.SuperAriKapsam && SuperAriKapsam.anaHiveTileHtml) {
+          return SuperAriKapsam.anaHiveTileHtml({
+            href: 'kovan.html?id=' + encodeURIComponent(h.id),
+            label: h.name,
+            badge: badge,
+            tone: tone,
+            num: SuperAriKapsam.hiveNum(h),
+            aria: h.name + ' · ' + meta,
+            dataHive: h.id
+          });
+        }
         return (
           '<a class="item-card" id="hive-' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
             '<div class="row">' +
@@ -310,11 +327,16 @@
           var infos = sortInfos(list.map(function (h) { return tileInfo(h, sum); }));
           return infos.map(function (x) {
             var h = x.h;
-            return '<a class="ks-tile' + (x.hl.key === 'act' ? ' sev-act' : (x.hl.key === 'check' ? ' sev-check' : '')) + '" data-hive="' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" aria-label="' + esc(h.name + ', ' + x.hl.label + ', ' + x.line) + '">' +
-              KS.anaHiveHtml({ num: KS.hiveNum(h) }) +
-              '<span class="ks-tl">' + esc(h.name) + '</span>' +
-              '<span class="ks-badge ' + x.hl.tone + '" data-health="' + esc(x.hl.key) + '">' + esc(x.hl.label) + '</span>' +
-              '<span class="ks-sub">' + esc(x.line) + '</span></a>';
+            return KS.anaHiveTileHtml({
+              href: 'kovan.html?id=' + encodeURIComponent(h.id),
+              label: h.name,
+              badge: x.hl.label,
+              tone: x.hl.tone,
+              num: KS.hiveNum(h),
+              sev: x.hl.key === 'act' ? 'act' : (x.hl.key === 'check' ? 'check' : ''),
+              dataHive: h.id,
+              aria: h.name + ', ' + x.hl.label + ', ' + x.line
+            });
           }).join('') || '<p class="ks-empty">Kovan yok.</p>';
         }
         function drawTiles(list, active) {
@@ -527,9 +549,16 @@
           tilesV.hidden = false;
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
           tilesV.innerHTML = infT.map(function (x) {
-            return '<a class="ks-tile' + (x.old && liveT ? ' sev-check' : '') + '" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '" data-te-hive="' + esc(x.h.id) + '" aria-label="' + esc(x.h.name + ' tart, ' + x.kg + ', ' + x.sub) + '">' +
-              KV.anaHiveHtml({ num: KV.hiveNum(x.h) }) + '<span class="ks-tl">' + esc(x.h.name) + '</span>' +
-              '<span class="ks-badge ' + (x.old || x.kg === 'Tartı yok' ? 'orange' : 'green') + '">' + esc(x.kg) + '</span><span class="ks-sub">' + esc(x.sub) + '</span></a>';
+            return KV.anaHiveTileHtml({
+              href: 'kovan.html?id=' + encodeURIComponent(x.h.id),
+              label: x.h.name,
+              badge: x.kg,
+              tone: (x.old || x.kg === 'Tartı yok' ? 'orange' : 'green'),
+              num: KV.hiveNum(x.h),
+              sev: x.old && liveT ? 'check' : '',
+              dataTeHive: x.h.id,
+              aria: x.h.name + ' tart, ' + x.kg + ', ' + x.sub
+            });
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
           /* kovan kutucuğu → o kovanın tartım ekranı (otomatik okuma + elle tartım); kapatınca liste yenilenir */
           tilesV.addEventListener('click', function (e) {
@@ -600,7 +629,7 @@
             allHives: function () { return hives; },
             apiaryId: function () { return K && K.lastApiary ? K.lastApiary() : ''; },
             onChange: function (res, active) {
-              listEl.innerHTML = active ? (res.map(renderHiveCard).join('') || '<p class="muted">Eşleşen kovan yok.</p>') : chooserHtml;
+              listEl.innerHTML = active ? ('<div class="grid ana-hive-grid">' + (res.map(renderHiveCard).join('') || '<p class="muted">Eşleşen kovan yok.</p>') + '</div>') : chooserHtml;
               modeSwitchEl.style.display = active ? 'none' : '';
             }
           });
@@ -772,12 +801,12 @@
           allHives: function () { return allH; },
           apiaryId: function () { return effectiveMode === 'apiary' && apiaryFilter ? apiaryFilter : (K && K.lastApiary ? K.lastApiary() : ''); },
           onChange: function (res) {
-            listEl.innerHTML = res.map(renderHiveCard).join('') || '<p class="muted">' + (hives.length ? 'Eşleşen kovan yok.' : 'Kovan bulunamadı.') + '</p>';
+            listEl.innerHTML = '<div class="grid ana-hive-grid">' + (res.map(renderHiveCard).join('') || '<p class="ks-empty">Eşleşen kovan yok.</p>') + '</div>';
           }
         });
         return;
       }
-      listEl.innerHTML = hives.map(renderHiveCard).join('') || '<p class="muted">Kovan bulunamadı.</p>';
+      listEl.innerHTML = '<div class="grid ana-hive-grid">' + (hives.map(renderHiveCard).join('') || '<p class="ks-empty">Kovan bulunamadı.</p>') + '</div>';
     })();
   </script>
 <script>
