@@ -45,6 +45,7 @@
     o = o || {};
     var inner = '';
     if (o.burn && BURN[o.burn]) inner = BURN[o.burn];
+    else if (o.svg) inner = o.svg;
     else if (o.num != null) {
       var t = String(o.num), fs = t.length >= 4 ? 7.2 : t.length === 3 ? 8.6 : 10.5;
       inner = '<text x="12" y="12.2" text-anchor="middle" dominant-baseline="central" font-size="' + fs + '" font-weight="800" fill="#1a0c06" stroke="none" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" letter-spacing="-.3">' + esc(t) + '</text>';
@@ -257,6 +258,8 @@
     var data = '';
     if (o.dataHive) data += ' data-hive="' + esc(o.dataHive) + '"';
     if (o.dataTeHive) data += ' data-te-hive="' + esc(o.dataTeHive) + '"';
+    if (o.dataTopic) data += ' data-topic="' + esc(o.dataTopic) + '"';
+    if (o.dataKey) data += ' data-key="' + esc(o.dataKey) + '"';
     var aria = o.aria ? ' aria-label="' + esc(o.aria) + '"' : '';
     var tone = o.tone || 'tan';
     if (tone === 'priority-1') tone = 'red';
@@ -264,10 +267,39 @@
     if (tone === 'priority-3') tone = 'green';
     var badge = o.badge != null && o.badge !== '' ? '<div class="badge ' + esc(tone) + '">' + esc(o.badge) + '</div>' : '';
     return '<a class="tile' + sev + extra + '"' + href + data + aria + '>' +
-      anaHiveHtml({ num: o.num, burn: o.burn }) +
+      anaHiveHtml({ num: o.num, burn: o.burn, svg: o.svg }) +
       '<div class="tile-label">' + esc(o.label || '') + '</div>' +
       badge + '</a>';
   }
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
+  function ksBadgeTone(cls) {
+    if (cls === 'green') return 'green';
+    if (cls === 'red') return 'red';
+    if (cls === 'orange') return 'orange';
+    if (cls === 'blue') return 'blue';
+    if (cls === 'purple') return 'purple';
+    if (cls === 'yellow') return 'yellow';
+    return 'gray';
+  }
+
+  /** Koloni konu / cihaz türü gibi modül seçici döşemeler (Ana .tile ile aynı işaretleme). */
+  function anaModuleTile(o) {
+    o = o || {};
+    var tone = o.tone || ksBadgeTone(o.badgeCls);
+    return anaHiveTileHtml({
+      href: o.href,
+      label: o.label,
+      badge: o.badge,
+      tone: tone,
+      burn: o.burn,
+      svg: o.svg,
+      sev: o.sev,
+      extraClass: o.extraClass,
+      dataTopic: o.dataTopic,
+      dataKey: o.dataKey,
+      aria: o.aria
+    });
+  }
+
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
 })(typeof window !== 'undefined' ? window : this);

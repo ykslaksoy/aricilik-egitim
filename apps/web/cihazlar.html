@@ -6,6 +6,7 @@
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
 <link rel="stylesheet" href="kapsam.css?v=koloni-105" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-105" />
   <link rel="stylesheet" href="bk-kabuk.css?v=koloni-105" />
 <style>
   .mode-switch {
@@ -241,13 +242,26 @@
     /* eski başlık / görünüm seçimi gizli (kapsam kartı yerini aldı) */
     ['modeSwitch', 'workModeBanner'].forEach(function (id) { var e = document.getElementById(id); if (e) { e.hidden = true; e.style.display = 'none'; } });
     var host = document.getElementById('ksScope');
-    var grid = document.createElement('div'); grid.className = 'ks-grid'; grid.id = 'ksTiles'; grid.setAttribute('aria-label', 'Cihaz türleri');
+    var grid = document.createElement('div'); grid.className = 'grid ana-hive-grid'; grid.id = 'ksTiles'; grid.setAttribute('aria-label', 'Cihaz türleri');
     grid.innerHTML = TYPES.map(function (t) {
       var l = all.filter(function (d) { var x = typeOf(d); return x && x.k === t.k; }), s0 = sum(l);
-      var badge = !s0.n ? '<span class="ks-badge gray">Yok</span>' : (s0.off ? '<span class="ks-badge ' + (l.some(function (d) { return d.status === 'arizali'; }) ? 'red' : 'orange') + '">' + s0.on + ' / ' + s0.n + ' bağlı</span>' : '<span class="ks-badge green">' + s0.n + ' bağlı</span>');
+      var badgeText, badgeCls;
+      if (!s0.n) { badgeText = 'Yok'; badgeCls = 'gray'; }
+      else if (s0.off) {
+        badgeText = s0.on + ' / ' + s0.n + ' bağlı';
+        badgeCls = l.some(function (d) { return d.status === 'arizali'; }) ? 'red' : 'orange';
+      } else { badgeText = s0.n + ' bağlı'; badgeCls = 'green'; }
       var sub = !s0.n ? 'bağlı değil' : [s0.off ? s0.off + ' bağlı değil' : '', s0.low ? s0.low + ' düşük pil' : ''].filter(Boolean).join(' · ') || ('son veri ' + relAgo(s0.last));
-      return '<a class="ks-tile' + (tipSel === t.k ? ' on' : '') + '" href="' + href(tipSel === t.k ? '' : t.k) + '" aria-label="' + esc(t.l + ', ' + (s0.n ? s0.on + ' / ' + s0.n + ' bağlı' : 'cihaz yok')) + '">' +
-        KS.hiveHtml({ svg: t.svg }) + '<span class="ks-tl">' + esc(t.l) + '</span>' + badge + '<span class="ks-sub">' + esc(sub) + '</span></a>';
+      return KS.anaModuleTile({
+        href: href(tipSel === t.k ? '' : t.k),
+        label: t.l,
+        badge: badgeText,
+        badgeCls: badgeCls,
+        svg: t.svg,
+        dataKey: t.k,
+        extraClass: tipSel === t.k ? 'on' : '',
+        aria: t.l + ', ' + (s0.n ? s0.on + ' / ' + s0.n + ' bağlı, ' + sub : 'cihaz yok')
+      });
     }).join('');
     host.parentNode.insertBefore(grid, host.nextSibling);
     /* liste: seçili tür (yoksa tümü) */
