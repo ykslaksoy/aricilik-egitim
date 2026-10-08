@@ -12,5 +12,5 @@ assert.ok(nav.includes('orientationchange'), 'orientation');
 assert.ok(nav.includes('requestAnimationFrame'), 'raf debounce');
 assert.ok(nav.includes('sa-shell-1to1') && nav.includes('layoutPhoneStage(phone, 1)'), 'k105 birebir stage');
 const bk = fs.readFileSync(path.join(path.join(__dirname, '..'), 'bk-kabuk.css'), 'utf8');
-assert.ok(bk.includes('k104:'), 'bk k104');
+assert.ok(bk.includes('k104') || bk.includes('k108'), 'bk shell marker');
 console.log('k100-phone-fill-shell ok');

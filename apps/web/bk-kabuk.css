@@ -165,21 +165,24 @@ body.bk-kabuk.shot .phone > nav.tabbar, body.shot .phone > nav.tabbar {
   body.bk-kabuk .phone-notch, body.bk-kabuk .status-bar, body.bk-kabuk .phone > nav.tabbar, body.bk-kabuk .home-indicator { display: none !important; }
 }
 
-/* k104: dar ekran / PWA — cerceve ve kaydirma nav.js fitIphone12Shell + #saPhoneStage (viewport fixed telefon yok) */
+/* k108: dar ekran / PWA — sahte cerceve yok; nav.js sa-phone-mobile tam ekran */
 @media (max-width:520px), (display-mode: standalone) {
-  html.bk-kabuk-html, body.bk-kabuk {
-    padding: 12px 0 20px !important; margin: 0 !important; background: #1a1a1a !important;
-    display: flex !important; align-items: flex-start !important; justify-content: center !important;
-    min-height: 100% !important; min-height: 100dvh !important; overflow-x: hidden !important; overflow-y: auto !important;
+  html.bk-kabuk-html:not(.sa-shell-framed), body.bk-kabuk:not(.sa-shell-framed) {
+    padding: 0 !important; margin: 0 !important; background: #f7f8fa !important;
+    display: block !important; min-height: 100% !important; min-height: 100dvh !important;
+    overflow-x: hidden !important; padding-top: env(safe-area-inset-top, 0px);
   }
-  body.bk-kabuk .phone {
-    position: relative !important; width: var(--phone-w) !important; height: var(--phone-h) !important;
-    max-width: 390px !important; min-height: 844px !important; flex: 0 0 auto !important;
-    border-radius: 44px !important; box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55) !important;
-    transform: none !important; margin: 0 auto !important;
+  body.bk-kabuk:not(.sa-shell-framed) .phone {
+    position: relative !important; width: 100% !important; height: auto !important; min-height: 100dvh !important;
+    max-width: none !important; flex: 1 1 auto !important; border-radius: 0 !important; box-shadow: none !important;
+    transform: none !important; margin: 0 !important;
   }
-  body.bk-kabuk .phone > nav.tabbar { position: relative !important; }
-  body.bk-kabuk .status-bar { position: relative !important; }
+  body.bk-kabuk:not(.sa-shell-framed) .phone-notch,
+  body.bk-kabuk:not(.sa-shell-framed) .home-indicator,
+  body.bk-kabuk:not(.sa-shell-framed) .status-bar { display: none !important; }
+  body.bk-kabuk:not(.sa-shell-framed) .phone > nav.tabbar {
+    position: relative !important; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
 
 /* k97-shot-win: shot kabuğu dar viewport'ta da sabit çerçeveyi korur (Playwright 390px) */

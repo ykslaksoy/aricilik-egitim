@@ -14,7 +14,7 @@ assert.ok(nav.includes('.phone>.screen>*{flex-shrink:0!important;}'), 'screen ch
 assert.ok(nav.includes('.phone>.screen>#weatherStrip') && nav.includes('min-height:min-content!important'), 'Ana weather keeps content height');
 assert.ok(nav.includes('.phone>nav.tabbar{position:relative!important'), 'tabbar flex sibling at bottom');
 const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
-assert.ok(bk.includes('k104:'), 'bk k104');
+assert.ok(bk.includes('k104') || bk.includes('k108'), 'bk shell marker');
 const dr = fs.readFileSync(path.join(root, 'device-runtime.js'), 'utf8');
 assert.ok(dr.includes('LOCKED 2026-09-23'), 'locked Ana safe layout untouched');
 console.log('k101-nav-bottom ok');
