@@ -10,5 +10,5 @@ assert.ok(boot.includes('bk-kabuk.js'), 'boot loads kabuk');
 assert.ok(pwa.includes('sa-iphone12-boot.js'), 'pwa injects boot');
 assert.ok(bk.includes('auth-phone'), 'bk wraps auth');
 assert.ok(bk.includes('sa-auto-wrap'), 'bk generic wrap');
-assert.ok(boot.includes("var v = 'koloni-104'"), 'boot default cache tag koloni-104');
+assert.ok(boot.includes("var v = 'koloni-105'"), 'boot default cache tag koloni-105');
 console.log('k102-iphone12-boot ok');

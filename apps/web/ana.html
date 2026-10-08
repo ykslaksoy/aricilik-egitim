@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-104 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-105 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
   <script>
@@ -74,8 +74,11 @@
 
   .phone {
     width: var(--phone-w); height: var(--phone-h);
-    background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
+    background: #f7f8fa; border-radius: 44px; position: relative;
     box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
+    overflow-x: hidden; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .phone-notch {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -88,11 +91,14 @@
   .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .02em; }
 
   .screen {
-    height: calc(var(--phone-h) - 48px - 72px);
-    overflow: hidden; display: flex; flex-direction: column; background: var(--bg);
+    height: auto;
+    min-height: min-content;
+    overflow: visible; display: flex; flex-direction: column; background: var(--bg);
     padding: 2px 12px 6px;
-   position: relative;
+    position: relative;
+    flex: 0 0 auto;
   }
+  .status-bar, .tabbar, .home-indicator { flex-shrink: 0; }
 
   /* Hardal işletme şeridi — 3D bee logo + brand + lock; location lives in weather card below */
   .brand-strip {
@@ -1052,14 +1058,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-104"></script>
+<script src="demo-data.js?v=koloni-105"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-104"></script>
-<script src="saglik-canli.js?v=koloni-104"></script>
+<script src="sensor-health.js?v=koloni-105"></script>
+<script src="saglik-canli.js?v=koloni-105"></script>
 <script src="hava-kayit.js"></script>
-<script src="ilac-katalog.js?v=koloni-104"></script>
-<script src="bakim-plan.js?v=koloni-104"></script>
-<script src="ana-ipucu.js?v=koloni-104"></script>
+<script src="ilac-katalog.js?v=koloni-105"></script>
+<script src="bakim-plan.js?v=koloni-105"></script>
+<script src="ana-ipucu.js?v=koloni-105"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
 (function () {
@@ -3148,7 +3154,7 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-104"></script>
-<script src="pwa.js?v=koloni-104"></script>
+<script src="nav.js?v=koloni-105"></script>
+<script src="pwa.js?v=koloni-105"></script>
 </body>
 </html>
