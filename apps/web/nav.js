@@ -472,7 +472,30 @@
     + '<span class="sa-sb-batt" title="Pil"><span class="sa-sb-batt-pct">87%</span><svg viewBox="0 0 28 13" width="26" height="12"><rect x="0.7" y="1.2" width="23" height="10.5" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="24.2" y="4" width="2.4" height="5" rx=".7" fill="currentColor"/><rect class="sa-sb-batt-fill" x="2.4" y="3" width="18.2" height="7" rx="1.2" fill="currentColor"/></svg></span>';
   function fmtClock() {
     var n = new Date();
-    return n.getHours() + ':' + (n.getMinutes() < 10 ? '0' : '') + n.getMinutes();
+    var h = n.getHours();
+    var m = n.getMinutes();
+    return h + ':' + (m < 10 ? '0' : '') + m;
+  }
+  var CLOCK_SEL = '[data-bk-clock], #statusClock, .sa-sb-clock, .status-bar #clock, .status-bar > span#clock';
+  function paintStatusClocks() {
+    var t = fmtClock();
+    try {
+      Array.prototype.forEach.call(document.querySelectorAll(CLOCK_SEL), function (el) {
+        if (el) el.textContent = t;
+      });
+    } catch (eP) { /* ignore */ }
+  }
+  function ensureStatusClock() {
+    paintStatusClocks();
+    if (global.__saSbClock) return;
+    global.__saSbClock = setInterval(paintStatusClocks, 1000);
+    if (!global.__saSbClockVis) {
+      global.__saSbClockVis = 1;
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') paintStatusClocks();
+      });
+      global.addEventListener('pageshow', paintStatusClocks);
+    }
   }
   function applyBattPct(root, pct) {
     var el = root.querySelector('.sa-sb-batt-pct');
@@ -600,7 +623,10 @@
     if (!bars.length) bars = document.querySelectorAll('.status-bar');
     Array.prototype.forEach.call(bars, function (sb) {
       if (!sb) return;
-      if (sb.getAttribute('data-sa-sb') === '1' && sb.querySelector('.sa-sb-batt-pct')) return;
+      if (sb.getAttribute('data-sa-sb') === '1' && sb.querySelector('.sa-sb-batt-pct')) {
+        paintStatusClocks();
+        return;
+      }
       sb.setAttribute('data-sa-sb', '1');
       var clock = sb.querySelector('[data-bk-clock], #statusClock, .sa-sb-clock');
       if (!clock) {
@@ -613,7 +639,7 @@
         clock.setAttribute('data-bk-clock', '');
         clock.classList.add('sa-sb-clock');
       }
-      clock.textContent = fmtClock();
+      paintStatusClocks();
       var icons = sb.querySelector('.status-icons');
       if (!icons) {
         icons = document.createElement('div');
@@ -624,14 +650,7 @@
       icons.innerHTML = STATUS_ICONS;
       applyBattPct(icons, 87);
     });
-    if (!global.__saSbClock) {
-      global.__saSbClock = setInterval(function () {
-        var t = fmtClock();
-        Array.prototype.forEach.call(document.querySelectorAll('[data-bk-clock], #statusClock, .sa-sb-clock'), function (e) {
-          e.textContent = t;
-        });
-      }, 1000);
-    }
+    ensureStatusClock();
   }
   function ensureBack() {
     var p = page();
@@ -722,6 +741,7 @@
       ensureAnaStickyTop();
     } catch (eM) {}
     try { ensureStatusStrip(); } catch (eSb) { /* ignore */ }
+    try { ensureStatusClock(); } catch (eClk) { /* ignore */ }
     try { ensureAnaStickyTop(); } catch (eAna2) { /* ignore */ }
     try { ensureBack(); } catch (eBack) { /* ignore */ }
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
@@ -770,7 +790,7 @@
     if (global.visualViewport) global.visualViewport.addEventListener('resize', onFit);
   }
   function refitShell() {
-    try { fitIphone12Shell(); ensureShellPan(); ensureStatusStrip(); ensureAnaStickyTop(); ensureBack(); ensureBakimEnd(); } catch (eRf) { /* ignore */ }
+    try { fitIphone12Shell(); ensureShellPan(); ensureStatusStrip(); ensureStatusClock(); ensureAnaStickyTop(); ensureBack(); ensureBakimEnd(); } catch (eRf) { /* ignore */ }
   }
   global.addEventListener('superari-shell-ready', function () { setTimeout(refitShell, 0); });
   setTimeout(refitShell, 0);
