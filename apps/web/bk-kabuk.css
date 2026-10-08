@@ -45,9 +45,12 @@ body.bk-kabuk .status-bar {
   align-items: center; font-size: 14px; font-weight: 600; color: #111; background: #f7f8fa; box-sizing: border-box;
 }
 body.bk-kabuk .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .02em; }
+body.bk-kabuk .phone {
+  overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
 body.bk-kabuk .phone > .screen {
-  flex: 1 1 auto; min-height: 0; height: auto;
-  display: block; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  flex: 0 0 auto; min-height: min-content; height: auto;
+  display: block; overflow: visible;
   background: #f0f1f3; padding: 2px 12px 12px; position: relative; box-sizing: border-box;
 }
 body.bk-kabuk .home-indicator {
