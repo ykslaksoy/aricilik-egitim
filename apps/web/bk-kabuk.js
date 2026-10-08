@@ -84,10 +84,24 @@
     Array.prototype.forEach.call(doc.querySelectorAll('[data-bk-clock]'), function (e) { e.textContent = t; });
   }
   tick(); global.setInterval(tick, 1000);
+  function isRealMobile() {
+    try {
+      var nav = global.navigator || {};
+      var ua = String(nav.userAgent || '');
+      if (body.classList.contains('shot')) return false;
+      if (nav.standalone) return true;
+      if (global.matchMedia && global.matchMedia('(display-mode: standalone)').matches) return true;
+      if (nav.userAgentData && nav.userAgentData.mobile) return true;
+      if (/iPhone|iPod|Android|Mobile|webOS/i.test(ua)) return true;
+      if (/Macintosh/.test(ua) && nav.maxTouchPoints > 1) return true;
+      if (global.matchMedia && global.matchMedia('(max-width:520px)').matches) return true;
+      if (nav.maxTouchPoints > 0 && global.matchMedia && global.matchMedia('(hover: none)').matches
+        && global.matchMedia('(max-width:932px)').matches) return true;
+    } catch (eM) {}
+    return false;
+  }
   try {
-    if (!body.classList.contains('shot') && global.matchMedia
-      && !global.matchMedia('(max-width:520px)').matches
-      && !global.matchMedia('(display-mode: standalone)').matches) {
+    if (!isRealMobile()) {
       doc.documentElement.classList.add('sa-shell-framed');
       body.classList.add('sa-shell-framed');
     }
