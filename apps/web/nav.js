@@ -30,7 +30,7 @@
     'nav.tabbar .nav-badge{position:absolute;top:0;left:calc(50% + 4px);min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#e03131;color:#fff;' +
       'font-size:10px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 0 0 2px #fffdf8;box-sizing:border-box;}' +
     'nav.tabbar .nav-badge[hidden]{display:none;}' +
-    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k104: her cihaz — 390x844 cerceve kalici; saat/alt menu cerceve icinde (viewport fixed yok) */html:has(.phone),body:has(>.phone),body:has(.phone),html.sa-iphone12,body.sa-iphone12{padding:0!important;margin:0!important;background:#1a1a1a!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:100%!important;min-height:100dvh!important;width:100%!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}#saPhoneStage{position:relative;flex:0 0 auto;margin:0 auto;overflow:visible;min-height:1px;}#saPhoneStage>.phone{transform-origin:top left!important;margin:0!important;opacity:1!important;visibility:visible!important;}#saShellPan{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:10050;display:grid;grid-template-columns:36px 36px 36px;grid-template-rows:36px 36px 36px;gap:4px;pointer-events:none;}#saShellPan[hidden]{display:none!important;}#saShellPan button{pointer-events:auto;width:36px;height:36px;border:0;border-radius:10px;background:rgba(28,28,28,.82);color:#fff;font-size:17px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.35);}#saShellPan button:active{transform:scale(.96);}#saShellPan [data-pan=up]{grid-column:2;grid-row:1;}#saShellPan [data-pan=left]{grid-column:1;grid-row:2;}#saShellPan [data-pan=right]{grid-column:3;grid-row:2;}#saShellPan [data-pan=down]{grid-column:2;grid-row:3;}body:has(>.phone)>.phone,.phone:has(>nav.tabbar),html.sa-iphone12 .phone,body.sa-iphone12 .phone,html.sa-page-ana .phone,body.sa-page-ana .phone,html.sa-iphone12 body .phone{width:390px!important;height:844px!important;max-width:390px!important;min-width:390px!important;min-height:844px!important;border-radius:44px!important;box-shadow:0 0 0 10px #111,0 0 0 12px #333,0 30px 80px rgba(0,0,0,.55)!important;display:flex!important;flex-direction:column!important;flex:0 0 auto!important;position:relative!important;overflow:hidden!important;transform-origin:top left!important;background:#f7f8fa!important;}.phone>.phone-notch{display:block!important;}.phone>.home-indicator{display:block!important;position:relative!important;bottom:auto!important;left:auto!important;transform:none!important;margin:4px auto 8px!important;flex:0 0 auto!important;z-index:60!important;}.phone>.status-bar{display:flex!important;flex:0 0 auto!important;height:auto!important;min-height:36px!important;padding:10px 16px 4px!important;font-size:13px!important;font-weight:600!important;color:#111!important;background:#f7f8fa!important;align-items:center!important;justify-content:space-between!important;box-sizing:border-box!important;gap:8px!important;position:relative!important;z-index:40!important;margin:0!important;overflow:visible!important;opacity:1!important;}.phone>.status-bar .status-icons{display:flex!important;gap:7px!important;align-items:center!important;font-size:11px!important;color:#111!important;}.phone>.status-bar .status-icons svg{display:block;}.phone>.status-bar .sa-sb-batt{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;letter-spacing:-.02em;}.phone>.status-bar .sa-sb-batt-pct{font-variant-numeric:tabular-nums;}.phone>.screen>*{flex-shrink:0!important;}html.sa-iphone12 body .phone>.screen>#weatherStrip,html.sa-iphone12 body .phone>.screen>section.weather{flex:1 0 auto!important;flex-shrink:0!important;min-height:min-content!important;}html.sa-iphone12 body .phone>.screen>#grid{flex:0 0 auto!important;flex-shrink:0!important;}.phone>.screen>.grid{min-height:min-content!important;}html.sa-iphone12 .phone,body.sa-iphone12 .phone{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}.phone>.screen{flex:0 0 auto!important;height:auto!important;min-height:min-content!important;max-height:none!important;padding-top:2px!important;padding-bottom:8px!important;overflow:visible!important;}.phone>.status-bar,.phone>nav.tabbar{flex-shrink:0!important;position:relative!important;top:auto!important;bottom:auto!important;}.phone>nav.tabbar:not(.sa-fixed),.phone>nav.tabbar{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto!important;height:72px!important;min-height:72px!important;padding:0 2px 10px!important;max-width:none!important;margin:0!important;z-index:5!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;transform:none!important;}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;padding-top:2px;}.bk-top .weather-temp,.ks-end.weather-temp{margin-left:4px;flex:0 0 auto;font-size:22px;font-weight:700;color:#2c241c;line-height:1;text-decoration:none;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}.bk-sel{max-width:42%!important;}.bk-sel .weather-loc-label{max-width:7em!important;}@media print{.sa-back,.sa-back-row{display:none!important;}}body.shot,html.sa-shot{background:#f7f8fa!important;width:390px!important;height:844px!important;overflow:hidden!important;margin:0!important;padding:0!important;display:block!important;}body.shot .phone,html.sa-shot .phone{transform:none!important;border-radius:0!important;box-shadow:none!important;}nav.tabbar.sa-fixed{display:none!important;}';
+    '@media print{nav.tabbar.sa-fixed{display:none!important;}body.sa-has-fixed-tabbar{padding-bottom:0!important;}}/* k104: her cihaz — 390x844 cerceve kalici; saat/alt menu cerceve icinde (viewport fixed yok) */html:has(.phone),body:has(>.phone),body:has(.phone),html.sa-iphone12,body.sa-iphone12{padding:0!important;margin:0!important;background:#1a1a1a!important;display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:100%!important;min-height:100dvh!important;width:100%!important;overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;}#saPhoneStage{position:relative;flex:0 0 auto;margin:0 auto;overflow:visible;min-height:1px;}html.sa-phone-fill,html.sa-phone-fill body.sa-iphone12{padding:0!important;margin:0!important;background:#f7f8fa!important;align-items:stretch!important;justify-content:flex-start!important;}html.sa-phone-fill #saPhoneStage{margin:0 auto!important;max-width:100%!important;}html.sa-phone-fill .phone,html.sa-phone-fill body .phone{border-radius:0!important;box-shadow:none!important;}#saPhoneStage>.phone{transform-origin:top left!important;margin:0!important;opacity:1!important;visibility:visible!important;}#saShellPan{position:fixed;right:max(10px,env(safe-area-inset-right,0px));bottom:max(10px,env(safe-area-inset-bottom,0px));z-index:10050;display:grid;grid-template-columns:36px 36px 36px;grid-template-rows:36px 36px 36px;gap:4px;pointer-events:none;}#saShellPan[hidden]{display:none!important;}#saShellPan button{pointer-events:auto;width:36px;height:36px;border:0;border-radius:10px;background:rgba(28,28,28,.82);color:#fff;font-size:17px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.35);}#saShellPan button:active{transform:scale(.96);}#saShellPan [data-pan=up]{grid-column:2;grid-row:1;}#saShellPan [data-pan=left]{grid-column:1;grid-row:2;}#saShellPan [data-pan=right]{grid-column:3;grid-row:2;}#saShellPan [data-pan=down]{grid-column:2;grid-row:3;}body:has(>.phone)>.phone,.phone:has(>nav.tabbar),html.sa-iphone12 .phone,body.sa-iphone12 .phone,html.sa-page-ana .phone,body.sa-page-ana .phone,html.sa-iphone12 body .phone{width:390px!important;height:844px!important;max-width:390px!important;min-width:390px!important;min-height:844px!important;border-radius:44px!important;box-shadow:0 0 0 10px #111,0 0 0 12px #333,0 30px 80px rgba(0,0,0,.55)!important;display:flex!important;flex-direction:column!important;flex:0 0 auto!important;position:relative!important;overflow-x:hidden!important;overflow-y:auto!important;transform-origin:top left!important;background:#f7f8fa!important;}.phone>.phone-notch{display:block!important;}.phone>.home-indicator{display:block!important;position:relative!important;bottom:auto!important;left:auto!important;transform:none!important;margin:4px auto 8px!important;flex:0 0 auto!important;z-index:60!important;}.phone>.status-bar{display:flex!important;flex:0 0 auto!important;height:auto!important;min-height:36px!important;padding:10px 16px 4px!important;font-size:13px!important;font-weight:600!important;color:#111!important;background:#f7f8fa!important;align-items:center!important;justify-content:space-between!important;box-sizing:border-box!important;gap:8px!important;position:relative!important;z-index:40!important;margin:0!important;overflow:visible!important;opacity:1!important;}.phone>.status-bar .status-icons{display:flex!important;gap:7px!important;align-items:center!important;font-size:11px!important;color:#111!important;}.phone>.status-bar .status-icons svg{display:block;}.phone>.status-bar .sa-sb-batt{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;letter-spacing:-.02em;}.phone>.status-bar .sa-sb-batt-pct{font-variant-numeric:tabular-nums;}.phone>.screen>*{flex-shrink:0!important;}html.sa-iphone12 body .phone>.screen>#weatherStrip,html.sa-iphone12 body .phone>.screen>section.weather{flex:1 0 auto!important;flex-shrink:0!important;min-height:min-content!important;}html.sa-iphone12 body .phone>.screen>#grid{flex:0 0 auto!important;flex-shrink:0!important;}.phone>.screen>.grid{min-height:min-content!important;}html.sa-iphone12 .phone,body.sa-iphone12 .phone{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}.phone>.screen{flex:0 0 auto!important;height:auto!important;min-height:min-content!important;max-height:none!important;padding-top:2px!important;padding-bottom:8px!important;overflow:visible!important;}.phone>.status-bar,.phone>nav.tabbar{flex-shrink:0!important;position:relative!important;top:auto!important;bottom:auto!important;}.phone>nav.tabbar:not(.sa-fixed),.phone>nav.tabbar{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto!important;height:72px!important;min-height:72px!important;padding:0 2px 10px!important;max-width:none!important;margin:0!important;z-index:5!important;background:#fffdf8!important;border-top:1px solid #e4d6c2!important;transform:none!important;}.sa-back{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-height:32px;min-width:44px;padding:0 10px;border-radius:999px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df,#f4e3b0);color:#4a2f1a;font:inherit;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;box-sizing:border-box;line-height:1;flex:0 0 auto;}.sa-back:active{transform:scale(.97);}.status-bar .sa-back{margin-right:8px;}.status-bar{gap:6px;}.sa-back-row{display:flex;align-items:center;gap:8px;margin:0 0 6px;min-height:32px;padding-top:2px;}.bk-top .weather-temp,.ks-end.weather-temp{margin-left:4px;flex:0 0 auto;font-size:22px;font-weight:700;color:#2c241c;line-height:1;text-decoration:none;cursor:pointer;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}.bk-sel{max-width:42%!important;}.bk-sel .weather-loc-label{max-width:7em!important;}@media print{.sa-back,.sa-back-row{display:none!important;}}body.shot,html.sa-shot{background:#f7f8fa!important;width:390px!important;height:844px!important;overflow:hidden!important;margin:0!important;padding:0!important;display:block!important;}body.shot .phone,html.sa-shot .phone{transform:none!important;border-radius:0!important;box-shadow:none!important;}nav.tabbar.sa-fixed{display:none!important;}';
 
   function page() {
     var p = (location.pathname.split('/').pop() || 'ana.html').toLowerCase();
@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-105'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-105'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-106'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-106'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-105').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-106').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-105').catch(function () {});
+      return loadScript('koloni.js?v=koloni-106').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -413,6 +413,28 @@
       phone.style.transform = '';
     }
   }
+  function shellFillWidth(vw) {
+    try {
+      if (isShotMode()) return false;
+      if (isPhoneMobile()) return true;
+      if (vw <= 520) return true;
+      if (global.matchMedia && global.matchMedia('(display-mode: standalone)').matches) return true;
+    } catch (eF) { /* ignore */ }
+    return false;
+  }
+  function computeShellScale(vw, vh) {
+    var pad = 24;
+    if (shellFillWidth(vw)) {
+      var sw = vw / 390;
+      if (!isFinite(sw) || sw <= 0) sw = 1;
+      if (sw > 2.5) sw = 2.5;
+      return sw;
+    }
+    var scale = Math.min(vw / 390, (vh - pad) / 844);
+    if (!isFinite(scale) || scale <= 0) scale = 1;
+    if (scale > 2.5) scale = 2.5;
+    return scale;
+  }
   function fitIphone12Shell() {
     var phone = document.querySelector('.phone');
     if (!phone || !document.body) return;
@@ -436,17 +458,15 @@
     var vh = global.innerHeight || document.documentElement.clientHeight || 844;
     if (!isFinite(vw) || vw <= 0) vw = 390;
     if (!isFinite(vh) || vh <= 0) vh = 844;
+    var fill = shellFillWidth(vw);
     try {
-      document.documentElement.classList.add('sa-shell-desktop');
-      document.documentElement.classList.remove('sa-phone-mobile');
-      document.body.classList.remove('sa-phone-mobile');
+      document.documentElement.classList.toggle('sa-phone-fill', fill);
+      document.body.classList.toggle('sa-phone-fill', fill);
+      document.documentElement.classList.toggle('sa-shell-desktop', !fill);
     } catch (eR) {}
     clearPhoneInlineSize(phone);
-    /* k104: tum cihazlar — 390x844 cerceve + stage (saat/alt menu asla viewport fixed degil) */
-    var pad = 24;
-    var scale = Math.min(vw / 390, (vh - pad) / 844);
-    if (!isFinite(scale) || scale <= 0) scale = 1;
-    if (scale > 2.5) scale = 2.5;
+    /* k106: mobil — genisligi doldur (Safari vh kucultmesin); masaustu contain */
+    var scale = computeShellScale(vw, vh);
     layoutPhoneStage(phone, scale);
     ensureShellPan();
   }
@@ -581,7 +601,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-105').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-106').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -625,4 +645,5 @@
   }
   setTimeout(function () { try { fitIphone12Shell(); ensureStatusStrip(); ensureBack(); ensureBakimEnd(); } catch (e) {} }, 0);
   setTimeout(function () { try { fitIphone12Shell(); ensureStatusStrip(); ensureBack(); ensureBakimEnd(); } catch (e2) {} }, 400);
+  global.addEventListener('superari-shell-ready', function () { setTimeout(function () { try { fitIphone12Shell(); } catch (eSr) {} }, 0); });
 })(window);
