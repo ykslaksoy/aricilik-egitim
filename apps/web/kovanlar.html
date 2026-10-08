@@ -467,10 +467,30 @@
             var apE = apiaryFilter ? String(apiaryFilter) : 'all';
             KE.KEYS.forEach(function (k) {
               var inf = KE.tileInfo(k, apE), lbl = K.TOPIC_LABEL[k] || k;
-              o[k] = '<a class="ks-tile ke-tile" data-topic="' + k + '" href="koloni-ek.html?ek=' + k + (apE !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(apE) : '&mode=all') + '" aria-label="' + esc(lbl + ', ' + inf.badge.t) + '">' +
-                KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(lbl) + '</span><span class="ks-badge ' + inf.badge.cls + '">' + esc(inf.badge.t) + '</span><span class="ks-sub">' + esc(inf.sub) + '</span></a>';
+              o[k] = KV.anaModuleTile({
+                href: 'koloni-ek.html?ek=' + k + (apE !== 'all' ? '&mode=apiary&apiary=' + encodeURIComponent(apE) : '&mode=all'),
+                label: lbl,
+                badge: inf.badge.t,
+                badgeCls: inf.badge.cls,
+                svg: (K.TOPIC_ICONS || {})[k],
+                dataTopic: k,
+                extraClass: 'ke-tile',
+                aria: lbl + ', ' + inf.badge.t + ', ' + inf.sub
+              });
             });
             return o;
+          }
+          function koloniTopicTile(k, lbl, hrefK, badgeText, badgeCls, aria) {
+            return KV.anaModuleTile({
+              href: topicHref(hrefK),
+              label: lbl,
+              badge: badgeText,
+              badgeCls: badgeCls,
+              svg: (K.TOPIC_ICONS || {})[k],
+              dataTopic: k,
+              extraClass: topic === k ? 'on' : '',
+              aria: aria
+            });
           }
           /* k90: düğme sırası (3 sütun, satır satır); 6. satırın 3. hücresi boş (yeri ayrılmış) */
           var KOLONI_ORDER = ['irk', 'hat', 'larva', 'kayip', 'hastalik', 'vet', 'ana', 'tasima', 'uretim', 'yavru', 'guc', 'hircin', 'foto', 'ogul', 'kapan', 'bolme', 'besleme'];
@@ -483,37 +503,19 @@
             var tileHtml = extraTiles();
             KT.forEach(function (t) {
               var k = t[0], n = k === 'irk' ? unk : (cnt[k] || 0);
-              /* Hat ve Genetik rozeti: hatsız yoksa ✓, varsa nötr «eksik» (sayı alt yazıda; tekrar yok) */
-              var badge = k === 'irk' ? (!list.length ? '<span class="ks-badge gray">—</span>' : (n ? '<span class="ks-badge gray">eksik</span>' : '<span class="ks-badge green">✓</span>'))
-                : (n ? '<span class="ks-badge orange">' + n + ' kovan</span>' : '<span class="ks-badge green">✓</span>');
+              var badgeText, badgeCls;
+              if (k === 'irk') {
+                if (!list.length) { badgeText = '—'; badgeCls = 'gray'; }
+                else if (n) { badgeText = 'eksik'; badgeCls = 'gray'; }
+                else { badgeText = '✓'; badgeCls = 'green'; }
+              } else if (n) { badgeText = n + ' kovan'; badgeCls = 'orange'; }
+              else { badgeText = '✓'; badgeCls = 'green'; }
               var sub = k === 'irk' ? (!list.length ? 'kovan yok' : lsp.map(function (c) { return c.short + ' ' + c.n; }).join(' · ')) : (n ? WHY[k] : 'sorun yok');
-              /* Hat ve Genetik: öğeler bölünmez; satır yalnız «·» ayracından sonra kırılır */
-              var subHtml = k === 'irk' && list.length ? lsp.map(function (c) { return '<span style="white-space:nowrap">' + esc(c.short + ' ' + c.n) + '</span>'; }).join('&nbsp;· ') : esc(sub);
               var aria = k === 'irk' ? t[1] + (list.length ? ', ' + lsp.map(function (c) { return c.label + ' ' + c.n; }).join(', ') : '') : t[1] + (n ? ', ' + n + ' kovan' : '');
-              tileHtml[k] = '<a class="ks-tile' + (topic === k ? ' on' : '') + '" data-topic="' + k + '" href="' + topicHref(k) + '" aria-label="' + esc(aria) + '">' +
-                KV.hiveHtml({ svg: (K.TOPIC_ICONS || {})[k] }) + '<span class="ks-tl">' + esc(t[1]) + '</span>' + badge + '<span class="ks-sub">' + subHtml + '</span></a>';
+              if (sub && sub !== 'sorun yok') aria += ', ' + sub;
+              tileHtml[k] = koloniTopicTile(k, t[1], k, badgeText, badgeCls, aria);
             });
             tilesV.innerHTML = KOLONI_ORDER.map(function (k) { return tileHtml[k] || ''; }).join('');
-            /* tam ad en fazla 2 satır: sığmayan adda yazı 0,5 px adımlarla küçülür (en az 11,5 px; kutu boyu aynı, «…» yok) */
-            tilesV.querySelectorAll('.ks-tl').forEach(function (l) {
-              var fs = parseFloat(getComputedStyle(l).fontSize) || 13, lh = 1.15;
-              while (fs > 11.5 && l.getBoundingClientRect().height > fs * lh * 2 + 1) { fs -= 0.5; l.style.fontSize = fs + 'px'; l.style.letterSpacing = '-0.1px'; }
-            });
-            /* Hat ve Genetik alt yazısı: önce tek satır denenir (kutunun tam genişliği, yazı 0,5 px adımlarla en az 9 px);
-               sığmazsa YALNIZ bu döşemede 2 satıra izin verilir (normal boy, kırılma yalnız «·» sonrasında) */
-            var irkSub = tilesV.querySelector('[data-topic="irk"] .ks-sub');
-            if (irkSub) {
-              var base = 'display:block;overflow:hidden;margin:0 -3px;width:calc(100% + 6px);';
-              irkSub.style.cssText = base + 'white-space:nowrap;';
-              var fs0 = parseFloat(getComputedStyle(irkSub).fontSize) || 10.5, fsI = fs0;
-              while (fsI > 9 && irkSub.scrollWidth > irkSub.clientWidth) { fsI -= 0.5; irkSub.style.fontSize = fsI + 'px'; }
-              if (irkSub.scrollWidth > irkSub.clientWidth) {
-                irkSub.style.cssText = base + '-webkit-line-clamp:unset;line-height:1.2;';
-                irkSub.setAttribute('data-lines', '2');
-                fsI = fs0;
-                while (fsI > 9 && irkSub.getBoundingClientRect().height > fsI * 1.2 * 2 + 1) { fsI -= 0.5; irkSub.style.fontSize = fsI + 'px'; }
-              }
-            }
             secV.hidden = false;
             secV.querySelector('h3').textContent = topic ? (K.TOPIC_LABEL[topic] || (topic === 'irk' ? 'Hat ve Genetik' : 'Kovanlar')) : 'Kovanlar · koloni bilgisi';
             document.getElementById('ksCount').textContent = list.length + ' kovan' + (KV.live() ? '' : ' · Demo');
