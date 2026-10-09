@@ -70,6 +70,14 @@
     margin: 14px 0 8px; font-size: 11px; font-weight: 800;
     color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
   }
+  .poll-meta {
+    display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #5c4813;
+  }
+  .poll-meta select {
+    font: inherit; font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 8px;
+    border: 1px solid #d8c7aa; background: #fff; max-width: 100%;
+  }
+  .poll-ret { color: var(--muted); font-weight: 650; }
 </style>
 </head>
 <body>
@@ -98,6 +106,7 @@
 <script src="bk-kabuk.js?v=koloni-105"></script>
 <script src="demo-data.js?v=koloni-105"></script>
 <script src="device-runtime.js?v=koloni-105"></script>
+<script src="sensor-polling.js?v=koloni-105"></script>
 <script src="kapsam.js?v=koloni-105"></script>
 <script src="ks-sayfa.js?v=koloni-105"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
@@ -162,6 +171,14 @@
     '</div>';
   }
 
+  var POLLABLE = ['tarti', 'isi_nem', 'ses', 'titresim', 'ir'];
+  var Poll = window.SuperAriSensorPolling;
+
+  function pollMetaHtml(d) {
+    if (!Poll || !Poll.selectHtml || POLLABLE.indexOf(d.tip) < 0) return '';
+    return Poll.selectHtml(d);
+  }
+
   function renderDevice(d) {
     var pills = (d.channels || []).map(function (c) {
       return '<span class="chan-pill">' + esc(c) + '</span>';
@@ -186,6 +203,7 @@
           ' · ' + esc(relAgo(d.lastMins)) + '</div>' +
         '<div style="margin-top:4px">' + pills +
           '<span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
+        pollMetaHtml(d) +
       '</div>' +
       '<div class="right"><span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
     '</a>';
@@ -277,6 +295,7 @@
     body.innerHTML = list.length ? list.map(renderDevice).join('')
       : '<p class="dev-empty">' + (tSel ? tSel.l + ' cihazı bu kapsamda bağlı değil. ' : 'Bu kapsamda cihaz bağlı değil. ') + 'Tak–çalıştır: donanım bağlanınca otomatik listelenir; elle ekleme gerekmez.</p>';
     if (tSel) body.insertAdjacentHTML('beforeend', '<a class="ks-btn dev-clear" href="' + href('') + '">Tüm cihaz türleri</a>');
+    if (Poll && Poll.bindPollSelects) Poll.bindPollSelects(body);
     var sp = document.getElementById('summary'); if (sp) sp.parentNode.insertBefore(sec.querySelector('h2'), sp);
     grid.parentNode.insertBefore(sec, grid.nextSibling);
     document.getElementById('pageNote').textContent = workMode === 'demo' ? 'Demo: sabit örnek cihaz paketi · kullanıcı kayıtları karışmaz' : 'Canlı: yalnızca gerçek / keşfedilen cihazlar';
@@ -375,6 +394,7 @@
     out += list.map(renderDevice).join('');
   }
   body.innerHTML = out;
+  if (Poll && Poll.bindPollSelects) Poll.bindPollSelects(body);
 })();
 </script>
 <script>

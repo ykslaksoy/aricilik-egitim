@@ -18,6 +18,7 @@ const SHELL = [
   "/admin.css",
   "/admin.html",
   "/admin.js",
+  "/ana-hive-tiles.css",
   "/ana-ipucu.js",
   "/ana.css",
   "/ana.html",
@@ -119,6 +120,10 @@ const SHELL = [
   "/forage-analysis.js",
   "/forage-yield-estimate.js",
   "/foto.js",
+  "/geo/fireRisk.js",
+  "/geo/firms.js",
+  "/geo/index.js",
+  "/geo/overpass.js",
   "/gider-store.js",
   "/giderler.html",
   "/giris.html",
@@ -187,6 +192,7 @@ const SHELL = [
   "/rapor-store.js",
   "/rapor-uyari-gorev.html",
   "/raporlar.html",
+  "/sa-iphone12-boot.js",
   "/saglik-canli.js",
   "/saglik-detay.html",
   "/saglik.html",
@@ -195,14 +201,15 @@ const SHELL = [
   "/satis-store.js",
   "/satis.html",
   "/sensor-health.js",
+  "/sensor-polling.js",
   "/sensorler.html",
   "/sesle-muayene.js",
   "/stok-talep.js",
   "/stok.html",
   "/styles.css",
-  "/tarti-muayene-sync.js",
   "/tarti-bakim-delta.js",
   "/tarti-elle.js",
+  "/tarti-muayene-sync.js",
   "/uyarilar.html",
   "/vendor/jsqr.js",
   "/vendor/qrcode.js",
@@ -339,9 +346,22 @@ self.addEventListener("fetch", (e) => {
 
 /* Arka planda eşitleme (Background Sync, destekleyen tarayıcılarda): açık sayfalara outbox'ı göndermelerini söyle. */
 self.addEventListener("sync", (e) => {
-  if (e.tag !== "superari-outbox") return;
+  if (e.tag === "superari-outbox") {
+    e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      list.forEach((c) => c.postMessage({ type: "sync-outbox" }));
+    }));
+    return;
+  }
+  if (e.tag === "superari-sensor-poll") {
+    e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      list.forEach((c) => c.postMessage({ type: "sensor-poll" }));
+    }));
+  }
+});
+self.addEventListener("periodicsync", (e) => {
+  if (e.tag !== "superari-sensor-poll") return;
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-    list.forEach((c) => c.postMessage({ type: "sync-outbox" }));
+    list.forEach((c) => c.postMessage({ type: "sensor-poll" }));
   }));
 });
 self.addEventListener("message", (e) => {
