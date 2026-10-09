@@ -283,7 +283,16 @@
   }
   function addRec(h, kind, rec, undo) {
     var r = D.records.add(h.id, kind, rec);
-    if (r) undo.push(function () { D.records.remove(h.id, kind, r.id); });
+    if (r) {
+      undo.push(function () { D.records.remove(h.id, kind, r.id); });
+      try {
+        var BD = global.SuperAriTartiBakim;
+        if (BD && BD.applyFromRecord && (kind === 'feed' || kind === 'disease' || kind === 'strength')) {
+          var ap = BD.applyFromRecord(h.id, kind, r);
+          if (ap && ap.key) undo.push(function () { try { BD.revokeLink(h.id, ap.key); } catch (eB) { /* ignore */ } });
+        }
+      } catch (eR) { /* ignore */ }
+    }
     return r;
   }
   function addTask(h, title, due, pri, undo, note) {
@@ -296,16 +305,18 @@
   }
   function addEvent(h, type, text, res, step, undo) {
     if (!D.colony || !D.colony.addEvent) return null;
-    var id = D.colony.addEvent(h.id, { type: type, text: 'Hızlı muayene · ' + text, sug: res.sug, sugText: step.kind === 'amount' && step.fmt ? step.fmt(step.rec, step.type) : (step.recLabel || '') });
-    if (id) undo.push(function () { D.colony.removeEvent(h.id, id); });
-    /* tarti-bakim-delta.js → SuperAriTartiBakim.onBakimEvent: kat/çerçeve/besleme/ilaç sonrası tartı kg düzeltmesi */
-    try {
-      var TB = global.SuperAriTartiBakim;
-      if (TB && typeof TB.onBakimEvent === 'function') {
-        var tr = TB.onBakimEvent(h.id, { hiveId: h.id, type: type, text: text, fullText: 'Hızlı muayene · ' + text, stepKey: step && step.key, res: res, eventId: id });
-        if (tr && tr.undo && undo) undo.push(tr.undo);
-      }
-    } catch (eTB) { /* ignore */ }
+    var full = 'Hızlı muayene · ' + text;
+    var id = D.colony.addEvent(h.id, { type: type, text: full, sug: res.sug, sugText: step.kind === 'amount' && step.fmt ? step.fmt(step.rec, step.type) : (step.recLabel || '') });
+    if (id) {
+      undo.push(function () { D.colony.removeEvent(h.id, id); });
+      try {
+        var BD = global.SuperAriTartiBakim;
+        if (BD && BD.applyFromEvent) {
+          var ap = BD.applyFromEvent(h.id, { eventId: id, text: full, date: today() });
+          if (ap && ap.key) undo.push(function () { try { BD.revokeLink(h.id, ap.key); } catch (eB) { /* ignore */ } });
+        }
+      } catch (eE) { /* ignore */ }
+    }
     return id;
   }
   function stockUse(item, qty, reason, undo) {
