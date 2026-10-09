@@ -60,6 +60,11 @@
       </div>
       <label id="bpCamWrap" style="font-size:.82rem;display:none;"><input type="checkbox" id="bpCam" /> Çam balı akımına gidiliyor (sonbahar ilaçlaması akımdan sonra)</label>
       <p class="muted" id="bpDesc" style="margin:0;font-size:.8rem;"></p>
+      <div class="bp-row" id="bpStratWrap" style="margin-top:.35rem;">
+        <label>Sezon hedefi<select id="bpStratGoal" aria-label="Genişleme hedefi"></select></label>
+        <label>Bu sezon kovan hedefi<input type="number" id="bpStratHives" min="0" max="999" step="1" placeholder="ör. 2" aria-label="Kovan sayısı hedefi" style="width:100%;font:inherit;font-size:.9rem;padding:.55rem .6rem;border-radius:12px;border:1px solid var(--border);" /></label>
+      </div>
+      <p class="muted" id="bpStratSum" style="margin:0;font-size:.78rem;"></p>
     </section>
 
     <section class="card stack" style="margin-top:1rem;" id="liste">
@@ -97,15 +102,17 @@
   <script src="demo-data.js?v=koloni-105"></script>
   <script src="ilac-katalog.js?v=koloni-105"></script>
   <script src="bakim-plan.js?v=koloni-105"></script>
+  <script src="kovan-strateji.js?v=koloni-105"></script>
   <script src="kovan-ara.js?v=koloni-105"></script>
   <script src="kapsam.js?v=koloni-105"></script>
   <script src="ks-sayfa.js?v=koloni-105"></script>
   <script>
   (function () {
-    var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac;
+    var D = window.SuperAriDemo, P = window.SuperAriPlan, I = window.SuperAriIlac, STR = window.SuperAriKovanStrateji;
     if (!D || !P || !I) return;
     var esc = P.esc, fmt = P.fmt;
     var apEl = document.getElementById('bpAp'), prEl = document.getElementById('bpProf');
+    var stratGoalEl = document.getElementById('bpStratGoal'), stratHivesEl = document.getElementById('bpStratHives');
     var aps = D.loadApiaries();
     var q = new URLSearchParams(location.search);
     var ap = q.get('apiary');
@@ -114,6 +121,18 @@
     apEl.innerHTML = aps.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
     apEl.value = ap;
     prEl.innerHTML = Object.keys(P.PROFILES).map(function (k) { return '<option value="' + k + '">' + esc(P.PROFILES[k].label) + '</option>'; }).join('');
+    if (STR && stratGoalEl) {
+      stratGoalEl.innerHTML = Object.keys(STR.GOALS).map(function (k) { return '<option value="' + k + '">' + esc(STR.GOALS[k].label) + '</option>'; }).join('');
+    } else if (document.getElementById('bpStratWrap')) document.getElementById('bpStratWrap').style.display = 'none';
+
+    function renderStrat() {
+      if (!STR || !stratGoalEl) return;
+      var prefs = STR.apiaryPrefs(ap);
+      stratGoalEl.value = prefs.goal;
+      if (stratHivesEl) stratHivesEl.value = prefs.seasonHiveTarget != null && prefs.seasonHiveTarget > 0 ? String(prefs.seasonHiveTarget) : '';
+      var sum = document.getElementById('bpStratSum');
+      if (sum) sum.textContent = STR.seasonSummary(ap) + (STR.GOALS[prefs.goal] ? ' — ' + STR.GOALS[prefs.goal].hint : '');
+    }
 
     function renderTop() {
       var pk = P.profileKey(ap), pr = P.PROFILES[pk];
@@ -124,6 +143,7 @@
       var auto = P.autoProfile(D.apiaryById(ap));
       document.getElementById('bpDesc').textContent = pr.desc + ' Kışlık hedef (tahmin): ' + pr.winterKg + ' kg/kovan.' + (auto === pk ? ' Profil arılık konumundan seçildi.' : '');
       (document.getElementById('bpMode') || document.createElement('p')).textContent = P.mode() === 'live' ? 'Canlı mod: görevler ve kayıtlar sizin verinize eklenir.' : 'Demo mod: eklenen görev ve kayıtlar «Demo» verisidir, gerçek kayıt sayılmaz.';
+      renderStrat();
     }
     function renderTl() {
       var t = P.today();
@@ -197,6 +217,20 @@
       history.replaceState(null, '', 'bakim-plan.html?apiary=' + encodeURIComponent(ap)); render();
     });
     prEl.addEventListener('change', function () { P.setProfile(ap, prEl.value === P.autoProfile(D.apiaryById(ap)) ? '' : prEl.value); render(); });
+    if (STR && stratGoalEl) {
+      stratGoalEl.addEventListener('change', function () {
+        var n = stratHivesEl && stratHivesEl.value ? Number(stratHivesEl.value) : null;
+        STR.setApiaryGoal(ap, stratGoalEl.value, { seasonHiveTarget: n });
+        renderStrat();
+      });
+    }
+    if (STR && stratHivesEl) {
+      stratHivesEl.addEventListener('change', function () {
+        var n = stratHivesEl.value === '' ? null : Number(stratHivesEl.value);
+        STR.setApiaryGoal(ap, stratGoalEl ? stratGoalEl.value : null, { seasonHiveTarget: n });
+        renderStrat();
+      });
+    }
     document.getElementById('bpCam').addEventListener('change', function (e) { P.setCamBali(ap, e.target.checked); render(); });
     document.getElementById('bpTl').addEventListener('click', function (e) {
       var b = e.target.closest('[data-phase]'); if (!b) return;

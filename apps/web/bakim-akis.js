@@ -563,9 +563,10 @@
     }
 
 
-    /* 3) Çerçeve / kat */
+    /* 3) Çerçeve / kat (kovan-strateji.js: ilkbahar çerçeve → kat → güçlü kolonide bal/bölme/hibrit) */
     if (bee != null) {
       var cap = 10 * (box.body + box.kat), ratio = bee / cap;
+      var STR = global.SuperAriKovanStrateji;
       var setKat = function (d, undo) {
         var hb = null; try { hb = D.colony.boxes(D.hiveById(h.id)); } catch (e) { hb = null; }
         if (!hb || !D.colony.setBoxes) return;
@@ -575,21 +576,69 @@
         undo.push(function () { D.colony.setBoxes(h.id, prev); });
       };
       var boxWhy = bee + ' arılı çerçeve · ' + cap + ' çerçeve yer';
-      if (growing && (a.yer === 'dolu' || ratio >= 0.9)) {
+      var exp = STR && growing ? STR.recommendExpansion({ seasonKey: sk, bee: bee, body: box.body, kat: box.kat, ratio: ratio, yer: a.yer, ogul: a.ogul, meme: a.meme, apiaryId: h.apiaryId, hiveId: h.id }) : null;
+      function pushExpandTasks(optId, undo) {
+        var list = STR ? STR.followUpTasks(optId) : [];
+        list.forEach(function (tk) { addTask(h, tk.title, plusDays(tk.days || 7), tk.pri || 2, undo); });
+      }
+      function saveExpansion(res, step, recId) {
+        var u = [], opt = res.opt || recId || 'kat_ekle';
+        if (STR) STR.saveChoice(h.id, { choice: opt, season: sk, goal: STR.getEffectiveGoal(h.apiaryId) });
+        if (opt === 'yok') {
+          addEvent(h, 'bakim', 'Genişleme kararı ertelendi', res, step, u);
+          pushExpandTasks('yok', u);
+          return { text: 'Karar ertelendi · görev eklendi', say: 'karar ertelendi', undo: u };
+        }
+        if (opt === 'cerceve') {
+          addEvent(h, 'bakim', 'Boş çerçeve verildi (genişleme)', res, step, u);
+          pushExpandTasks('cerceve', u);
+          return { text: 'Boş çerçeve kaydedildi', say: 'boş çerçeve verildi', undo: u };
+        }
+        if (opt === 'bolme') {
+          addEvent(h, 'bakim', 'Genişleme: bölme seçildi', res, step, u);
+          addTask(h, 'Bölme: ana çıktı mı yumurta kontrolü', plusDays(21), 2, u);
+          pushExpandTasks('bolme', u);
+          return { text: 'Bölme planı kaydedildi', say: 'bölme seçildi', undo: u };
+        }
+        if (opt === 'hibrit') {
+          setKat(1, u);
+          addEvent(h, 'bakim', 'Hibrit: kat + sonrası bölme planı', res, step, u);
+          pushExpandTasks('hibrit', u);
+          return { text: 'Hibrit plan kaydedildi · kat işlendi', say: 'hibrit plan, kat eklendi', undo: u };
+        }
+        setKat(1, u);
+        addEvent(h, 'bakim', '1 kat eklendi (genişleme)', res, step, u);
+        pushExpandTasks('kat_ekle', u);
+        return { text: '1 kat eklendi', say: 'bir kat eklendi', undo: u };
+      }
+      if (exp && exp.kind === 'strategy' && exp.options.length) {
+        var stratOpts = exp.options.filter(function (o) { return o.id !== exp.recommendedId; }).map(function (o) {
+          return { id: o.id, label: o.label, say: o.say || [o.id] };
+        });
+        var recOpt = exp.options.filter(function (o) { return o.id === exp.recommendedId; })[0];
+        steps.push({ key: 'cerceve', icon: '📦', title: 'Genişleme stratejisi', kind: 'choice', recId: exp.recommendedId,
+          recLabel: recOpt ? recOpt.label : exp.recLabel, why: exp.why, say: exp.say, opts: stratOpts,
+          save: function (res, step) { return saveExpansion(res, step, exp.recommendedId); } });
+      } else if (exp && (exp.kind === 'first_super' || exp.kind === 'kat_dar') && exp.options.length) {
+        var exOpts = exp.options.filter(function (o) { return o.id !== exp.recommendedId; }).map(function (o) {
+          return { id: o.id, label: o.label, say: o.say || [o.id] };
+        });
+        var exRec = exp.options.filter(function (o) { return o.id === exp.recommendedId; })[0];
+        steps.push({ key: 'cerceve', icon: '📦', title: 'Çerçeve / kat', kind: 'choice', recId: exp.recommendedId,
+          recLabel: exRec ? exRec.label : exp.recLabel, why: exp.why || boxWhy, say: exp.say,
+          opts: exOpts, save: function (res, step) { return saveExpansion(res, step, exp.recommendedId); } });
+      } else if (growing && (a.yer === 'dolu' || ratio >= 0.9)) {
         steps.push({ key: 'cerceve', icon: '📦', title: 'Çerçeve / kat', kind: 'choice', recLabel: box.kat ? '1 kat daha ekleyin (yer dar)' : '1 kat (bal katı) ekleyin — yer dar',
-          why: boxWhy, say: 'Kovan dolu. Önerim: bir kat ekleyin. Tamam deyin, ya da boş çerçeve verdim deyin.',
-          opts: [{ id: 'cer2', label: '2 boş çerçeve / temel petek verdim', say: ['cerceve', 'bos'] }, { id: 'yok', label: 'Şimdilik ekleme yapmadım (görev)', say: ['yok', 'sonra'] }],
-          save: function (res, step) {
-            var u = [];
-            if (res.opt === 'yok') { addEvent(h, 'bakim', 'Yer dar; ekleme yapılmadı', res, step, u); addTask(h, 'Yer dar: kat / boş çerçeve ver', plusDays(3), 1, u); return { text: 'Ekleme yapılmadı · görev eklendi', say: 'ekleme yapılmadı, görev eklendi', undo: u }; }
-            if (res.opt === 'cer2') { addEvent(h, 'bakim', '2 boş çerçeve verildi', res, step, u); return { text: '2 boş çerçeve verildi', say: 'iki boş çerçeve', undo: u }; }
-            setKat(1, u); addEvent(h, 'bakim', '1 kat eklendi', res, step, u); return { text: '1 kat eklendi', say: 'bir kat eklendi', undo: u };
-          } });
+          why: (exp && exp.why) || boxWhy, say: (exp && exp.say) || 'Kovan dolu. Önerim: bir kat ekleyin. Tamam deyin, ya da boş çerçeve verdim deyin.',
+          recId: 'kat_ekle',
+          opts: [{ id: 'cerceve', label: '2 boş çerçeve / temel petek verdim', say: ['cerceve', 'bos'] }, { id: 'yok', label: 'Şimdilik ekleme yapmadım (görev)', say: ['yok', 'sonra'] }],
+          save: function (res, step) { return saveExpansion(res, step, 'kat_ekle'); } });
       } else if (growing && (a.yer === 'dolmak' || ratio >= 0.75)) {
+        var frameWhy = (exp && exp.why) || boxWhy;
         steps.push({ key: 'cerceve', icon: '🖼', title: 'Çerçeve ekle', kind: 'amount', unit: 'cerceve', rec: 2, inc: 1, min: 1, max: 10, presets: [{ id: 'az', v: 1 }, { id: 'uygun', v: 2 }, { id: 'cok', v: 3 }],
           fmt: function (x) { return x + ' boş çerçeve / temel petek verin'; }, sub: function () { return 'Kovan dolmak üzere; kuluçkalığın kenarına'; }, sayV: function (x) { return x + ' boş çerçeve verin'; },
-          why: boxWhy,
-          save: function (res, step) { var u = []; addEvent(h, 'bakim', res.v + ' boş çerçeve verildi' + changed(res), res, step, u); return { text: res.v + ' boş çerçeve verildi', say: res.v + ' boş çerçeve', undo: u }; } });
+          why: frameWhy,
+          save: function (res, step) { var u = []; addEvent(h, 'bakim', res.v + ' boş çerçeve verildi' + changed(res), res, step, u); pushExpandTasks('cerceve', u); return { text: res.v + ' boş çerçeve verildi', say: res.v + ' boş çerçeve', undo: u }; } });
       } else if ((sk === 'sonbahar' || sk === 'kis') && box.kat > 0 && bee <= 10 * box.body) {
         steps.push({ key: 'cerceve', icon: '📦', title: 'Kat / daraltma', kind: 'choice', recLabel: 'Bal katını alın (kışa gövdeyle girsin)', why: bee + ' arılı çerçeve · ' + box.kat + ' kat takılı',
           say: 'Arı kat için az. Önerim: bal katını alın. Tamam ya da bırakıyorum deyin.',
