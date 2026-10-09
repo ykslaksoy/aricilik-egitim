@@ -1843,7 +1843,7 @@
     }).join('');
   }
   ctl = KS.mount($('stScope'), {
-    bk: true, title: 'Stok', icon: ICON_STOK, page: 'stok.html',
+    bk: true, navInCard: true, title: 'Stok', icon: ICON_STOK, page: 'stok.html',
     topEnd: '<a class="ks-end ks-end-chip" href="#stAps" title="Alınacaklar" aria-label="Alınacak stok">Alım</a>',
     initial: q.get('ap') || q.get('apiary') || '',
     stats: function (hs, scope) {

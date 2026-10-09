@@ -377,7 +377,7 @@
         }
         var initScope = apiaryFilter || (modeParam === 'all' ? 'all' : '');
         ctlT = KS.mount(document.getElementById('ksScope'), {
-          title: 'Kovanlar', icon: KS.ICON_KOVAN, page: 'kovanlar.html', initial: initScope,
+          bk: true, navInCard: true, title: 'Kovanlar', icon: KS.ICON_KOVAN.replace('class="ks-ico"', 'class="weather-icon"'), page: 'kovanlar.html', initial: initScope,
           topEnd: '<a class="ks-end ks-end-chip" href="#kvSearchHost" title="Kovan ara" aria-label="Kovan ara">Ara</a>',
           stats: function (hs, scope, sm) {
             var bad = 0; hs.forEach(function (h) { var k = KS.health(h).key; if (k === 'act' || k === 'check') bad++; });
@@ -432,13 +432,14 @@
           hs.forEach(function (h) { var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : ''; if (at && at >= d7) out.wk++; if (!at || at < d14) out.none++; if (at > out.last) out.last = at; });
           return out;
         };
-        var ICON_TARTI = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="22" width="22" height="5" rx="1.5" fill="#cfd8e3" stroke="#9aa8b8"/><rect x="9" y="9" width="14" height="12" rx="1.5" fill="#e8c48e" stroke="#8a6030"/><rect x="8" y="6" width="16" height="3.5" rx="1" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><text x="16" y="26.4" font-size="4.6" text-anchor="middle" font-weight="800" fill="#2c241c">kg</text></svg>';
-        var topEndV = view === 'tarti'
+        var ICON_TARTI = '<svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="22" width="22" height="5" rx="1.5" fill="#cfd8e3" stroke="#9aa8b8"/><rect x="9" y="9" width="14" height="12" rx="1.5" fill="#e8c48e" stroke="#8a6030"/><rect x="8" y="6" width="16" height="3.5" rx="1" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><text x="16" y="26.4" font-size="4.6" text-anchor="middle" font-weight="800" fill="#2c241c">kg</text></svg>';
+        var topEndChip = view === 'tarti'
           ? '<a class="ks-end ks-end-chip" href="#elle" id="ksElleTart" title="Elle tartım gir" aria-label="Elle tartım gir">Elle tart</a>'
           : '<a class="ks-end ks-end-chip" href="' + topicHref('guc') + '" title="Koloni gücü" aria-label="Koloni gücü dağılımı">Güç</a>';
         var ctlV = KV.mount(document.getElementById('ksScope'), {
-          title: view === 'tarti' ? 'Tartı' : 'Koloni', icon: view === 'tarti' ? ICON_TARTI : KV.ICON_KOVAN, page: 'kovanlar.html', initial: initV,
-          topEnd: topEndV,
+          bk: true, navInCard: true,
+          title: view === 'tarti' ? 'Tartı' : 'Koloni', icon: view === 'tarti' ? ICON_TARTI : KV.ICON_KOVAN.replace('class="ks-ico"', 'class="weather-icon"'), page: 'kovanlar.html', initial: initV,
+          topEnd: topEndChip,
           stats: function (hs, scope, sm) {
             var apQ = scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '';
             if (view === 'tarti') {
@@ -568,8 +569,10 @@
           }).sort(function (a, b) { return (b.old - a.old) || (Number(KV.hiveNum(a.h)) - Number(KV.hiveNum(b.h))); });
           tilesV.hidden = false;
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
+          var apQTile = apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '';
           tilesV.innerHTML = infT.map(function (x) {
             var badgeTone = x.kg === 'Tartı yok' ? 'tan' : (x.old && liveT ? 'orange' : 'green');
+            var acts = '<span class="tile-act" data-te-tart role="button" tabindex="0">Tart</span><span class="tile-act" data-te-bakim data-href="bakim-akis.html' + apQTile + '">Bakım</span>';
             return KV.anaHiveTileHtml({
               href: 'kovan.html?id=' + encodeURIComponent(x.h.id),
               label: x.h.name,
@@ -577,13 +580,20 @@
               tone: badgeTone,
               num: KV.hiveNum(x.h),
               dataTeHive: x.h.id,
+              acts: acts,
               aria: x.h.name + ' tart, ' + x.kg + ', ' + x.sub
             });
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
-          /* kovan kutucuğu → o kovanın tartım ekranı (otomatik okuma + elle tartım); kapatınca liste yenilenir */
+          /* kovan kutucuğu → tartım; tile-acts: Tart / Bakım */
           tilesV.addEventListener('click', function (e) {
-            var tl = e.target.closest ? e.target.closest('[data-te-hive]') : null; if (!tl || !TE) return;
-            e.preventDefault(); var dirty = false;
+            var bakAct = e.target.closest ? e.target.closest('[data-te-bakim]') : null;
+            if (bakAct) { e.preventDefault(); e.stopPropagation(); location.href = bakAct.getAttribute('data-href') || ('bakim-akis.html' + apQTile); return; }
+            var tartAct = e.target.closest ? e.target.closest('[data-te-tart]') : null;
+            var tl = tartAct ? tartAct.closest('[data-te-hive]') : (e.target.closest ? e.target.closest('[data-te-hive]') : null);
+            if (!tl || !TE) return;
+            if (tartAct) { e.preventDefault(); e.stopPropagation(); }
+            else e.preventDefault();
+            var dirty = false;
             TE.open(tl.getAttribute('data-te-hive'), { onSaved: function () { dirty = true; }, onClose: function () { if (dirty) location.reload(); } });
           });
           /* liste altta: Bakım düzeninde Kapsam → düğme → son tartımlar → kovanlar */

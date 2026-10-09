@@ -76,12 +76,22 @@ body.bk-kabuk .phone > nav.tabbar .tab-plus { padding: 0 2px 4px; }
 body.bk-kabuk .screen > main.wrap { width: auto; max-width: none; margin: 0; padding: 0; }
 body.bk-kabuk .screen *, body.bk-kabuk .screen *::before, body.bk-kabuk .screen *::after { box-sizing: border-box; }
 /* Kapsam kartı = bakim.html .weather.bk-scope */
+body.bk-kabuk #ksScope.weather.bk-scope,
 body.bk-kabuk #ksScope.ks-card {
   margin: 0; min-height: 205px; justify-content: space-between; gap: 6px;
   background: #fff; border: 1px solid #e6e8ec; border-radius: 14px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-body.bk-kabuk #ksScope .ks-top { gap: 6px; flex-wrap: wrap; row-gap: 2px; }
-body.bk-kabuk #ksScope .ks-title { font-size: 14px; font-weight: 700; color: #2c241c; white-space: normal; line-height: 1.2; }
+body.bk-kabuk #ksScope .bk-scope-head { gap: 5px; }
+body.bk-kabuk #ksScope .bk-scope-page-title,
+body.bk-kabuk #ksScope .bk-title.bk-scope-page-title { font-size: 21px; font-weight: 800; color: #2c241c; white-space: nowrap; line-height: 1.12; letter-spacing: -0.02em; }
+body.bk-kabuk #ksScope .bk-scope-geri-row { min-height: 34px; }
+body.bk-kabuk #ksScope .bk-geri-pill { font-size: 13px; font-weight: 750; }
+body.bk-kabuk #ksScope .bk-scope-sel-row.bk-top,
+body.bk-kabuk #ksScope .bk-scope-sel-row.ks-top { justify-content: center; }
+body.bk-kabuk #ksScope .bk-scope-sel-row .bk-sel,
+body.bk-kabuk #ksScope .bk-scope-sel-row .ks-sel { max-width: min(100%, 17em) !important; margin-left: 0 !important; }
+body.bk-kabuk #ksScope .ks-top:not(.bk-scope-sel-row) { gap: 6px; flex-wrap: wrap; row-gap: 2px; }
+body.bk-kabuk #ksScope .ks-title:not(.bk-scope-page-title) { font-size: 14px; font-weight: 700; color: #2c241c; white-space: normal; line-height: 1.2; }
 body.bk-kabuk #ksScope .ks-mode { padding: 2px 6px; border: 1px solid #a5d8ff; border-radius: 8px; background: #e7f5ff; color: #1864ab; font-size: 10px; font-weight: 700; line-height: 1.2; }
 body.bk-kabuk #ksScope .ks-sel { margin-left: auto; max-width: 62%; }
 body.bk-kabuk #ksScope .ks-label { font-size: 13px; font-weight: 600; letter-spacing: .01em; max-width: 9.5em; }
@@ -92,11 +102,20 @@ body.bk-kabuk #ksScope .ks-note {
   color: #4a2f1a; font-size: 11px; font-weight: 650; line-height: 1.2; flex-wrap: nowrap;
 }
 body.bk-kabuk #ksScope .ks-note-t { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 2px; }
-body.bk-kabuk #ksScope .ks-note-b {
+body.bk-kabuk #ksScope .ks-note-b,
+body.bk-kabuk #ksScope .muayene-hint-ok {
   height: 26px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid rgba(176, 140, 60, 0.45); border-radius: 8px; background: rgba(255, 252, 244, 0.95);
   color: #4a2f1a; font-size: 11px; font-weight: 750; letter-spacing: .01em;
 }
+body.bk-kabuk #ksScope.weather.bk-scope .bk-note,
+body.bk-kabuk #ksScope.weather.bk-scope .muayene-hint.bk-note {
+  height: 36px; min-height: 36px; max-height: 36px; overflow: hidden; margin-top: 2px;
+  padding: 4px 6px; border-radius: 10px; background: #fff8df; border: 1px solid #e0c56a;
+  color: #4a2f1a; font-size: 11px; font-weight: 650; line-height: 1.2; flex-wrap: nowrap;
+  text-decoration: none; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+body.bk-kabuk #ksScope.weather.bk-scope .muayene-hint-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 2px; flex: 1; min-width: 0; }
 /* Döşemeler = bakim.html .grid / .tile / .tile-label / .badge */
 body.bk-kabuk .ks-grid,
 body.bk-kabuk .grid.ana-hive-grid,

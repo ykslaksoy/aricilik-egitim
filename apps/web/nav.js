@@ -655,6 +655,9 @@
   function ensureBack() {
     var p = page();
     if (BACK_SKIP[p] || document.getElementById('saBack')) return;
+    if (document.body && (document.body.classList.contains('ks-scope-nav-in-card') || document.body.getAttribute('data-scope-nav-in-card') === '1')) return;
+    var scopeHost = document.querySelector('#ksScope [data-ks-nav-chips], #bkScope [data-ks-nav-chips]');
+    if (scopeHost) return;
     var btn = document.createElement('a');
     btn.id = 'saBack'; btn.className = 'sa-back'; btn.href = backParent();
     btn.setAttribute('aria-label', 'Geri'); btn.textContent = '\u2039 Geri';

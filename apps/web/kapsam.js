@@ -134,7 +134,94 @@
 
   /** Kapsam kartı sağ kestirme (Ana'daki °C ile aynı yer/stil): tıklanınca hava raporu. */
   function weatherEndHtml() {
-    return '<a class="ks-end weather-temp" data-ks-end href="hava-raporu.html" title="Arılık hava raporu" aria-label="Arılık hava raporunu aç">—°</a>';
+    return '<a class="ks-end weather-temp" data-ks-end href="hava-raporu.html" title="Arılık hava raporu" aria-label="Hava">—°</a>';
+  }
+  /** Sayfa kestirmesi + °C (Bakım düzeni). */
+  function topEndWithWeather(chipHtml) {
+    var chips = chipHtml || '';
+    var w = weatherEndHtml();
+    if (!chips) return w;
+    return '<span class="bk-top-end">' + chips + w + '</span>';
+  }
+  function navChipLink(c) {
+    var cls = c.back ? 'bk-geri-pill' : 'bk-nav-chip';
+    return '<a class="' + cls + '" href="' + esc(c.href || '#') + '"' +
+      (c.id ? ' id="' + esc(c.id) + '"' : '') +
+      (c.back ? ' data-sa-scope-geri' : '') +
+      (c.bakim ? ' data-ks-nav-bakim' : '') +
+      '>' + esc(c.label || '') + '</a>';
+  }
+  function splitNavChips(chips) {
+    var back = null, rest = [];
+    (chips || []).forEach(function (c) { if (c && c.back) back = c; else if (c) rest.push(c); });
+    return { back: back, rest: rest };
+  }
+  function navChipsHtml(chips) {
+    if (!chips || !chips.length) return '';
+    return chips.map(navChipLink).join('');
+  }
+  /** Üst: belirgin sayfa adı + sağ kestirmeler; ortada cam Geri; alt: arılık seçici. */
+  function scopeCardHeadHtml(variant, opts, navChipList, end) {
+    var isBk = variant === 'bk';
+    var titleCls = isBk ? 'bk-title bk-scope-page-title' : 'ks-title bk-scope-page-title';
+    var titleTag = isBk ? 'span' : 'h2';
+    var modeCls = isBk ? 'bk-mode demo' : 'ks-mode';
+    var split = splitNavChips(navChipList);
+    var leftHtml = split.rest.map(navChipLink).join('');
+    var geriHtml = split.back ? navChipLink(split.back) : '';
+    var navRow = (geriHtml || leftHtml)
+      ? '<div class="bk-scope-geri-row">' +
+        '<div class="bk-scope-nav-left">' + leftHtml + '</div>' +
+        '<div class="bk-scope-nav-center">' + geriHtml + '</div>' +
+        '<div class="bk-scope-nav-right" aria-hidden="true"></div></div>'
+      : '';
+    var dataChips = navChipList && navChipList.length ? ' data-ks-nav-chips' : '';
+    var selInner = isBk
+      ? '<div class="weather-loc bk-sel"><div class="arilik-loc-controls">' +
+        '<button type="button" class="arilik-nav" data-ks-prev aria-label="Önceki kapsam" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
+        '<span class="weather-loc-label" data-ks-label aria-live="polite">Tümü</span>' +
+        '<button type="button" class="arilik-nav" data-ks-next aria-label="Sonraki kapsam" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button></div></div>'
+      : '<div class="ks-sel">' +
+        '<button type="button" class="ks-nav" data-ks-prev aria-label="Önceki arılık" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
+        '<span class="ks-label" data-ks-label aria-live="polite">Tümü</span>' +
+        '<button type="button" class="ks-nav" data-ks-next aria-label="Sonraki arılık" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button></div>';
+    var selRowCls = isBk ? 'bk-top bk-scope-sel-row' : 'ks-top bk-scope-sel-row';
+    return '<div class="bk-scope-head"' + dataChips + '>' +
+      '<div class="bk-scope-title-row">' + (opts.icon || '') +
+        '<div class="bk-scope-title-main"><' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' + end +
+      '</div>' + navRow +
+      '<div class="' + selRowCls + '">' + selInner + '</div></div>';
+  }
+  function defaultNavChips(scope) {
+    var apQ = scope && scope !== 'all' ? ('?apiary=' + encodeURIComponent(scope)) : '';
+    return [
+      { label: '‹ Geri', href: '#', id: 'ksNavGeri', back: true },
+      { label: 'Bakım', href: 'bakim.html' + apQ, id: 'ksNavBakim', bakim: true }
+    ];
+  }
+  function bindNavChips(host, getScope) {
+    host.addEventListener('click', function (e) {
+      var g = e.target.closest && e.target.closest('[data-sa-scope-geri]');
+      if (g) {
+        e.preventDefault();
+        var N = global.SuperAriNav;
+        if (N && N.goBack) N.goBack(e);
+        else { try { if (global.history.length > 1) { global.history.back(); return; } } catch (err) {} global.location.href = 'ana.html'; }
+      }
+    });
+    if (getScope) {
+      var bak = host.querySelector('[data-ks-nav-bakim]');
+      if (bak) {
+        var upd = function () {
+          var s = getScope(), apQ = s && s !== 'all' ? ('?apiary=' + encodeURIComponent(s)) : '';
+          bak.href = 'bakim.html' + apQ;
+        };
+        upd();
+        return upd;
+      }
+    }
+    return null;
   }
   function bindWeatherEnd(host) {
     var el = host && host.querySelector('[data-ks-end].weather-temp');
@@ -170,60 +257,31 @@
     var saved = null; try { saved = global.localStorage.getItem(SCOPE_KEY); } catch (e) { saved = null; }
     scope = valid(opts.initial || saved || 'all');
     host.setAttribute('aria-label', (opts.title || 'Kapsam') + ' kapsamı');
+    var navChipList = opts.navChips;
+    if (opts.navInCard && !navChipList) navChipList = defaultNavChips(scope);
+    if (navChipList && navChipList.length) {
+      try { global.document.body.classList.add('ks-scope-nav-in-card'); } catch (eNav) { /* ignore */ }
+    }
     var SC = opts.bk ? 'bk-stat' : 'ks-stat';
     if (opts.bk) {
       /* Bakım'daki Kapsam kartının birebir işaretlemesi (bakim.html #bkScope sınıfları; stil bakim-akis.html'e senkronlanır) */
       host.classList.add('weather', 'bk-scope');
       var end = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
-      if (!end) end = weatherEndHtml();
-      host.innerHTML =
-        '<div class="bk-top">' + (opts.icon || '') +
-          '<span class="bk-title">' + esc(opts.title || '') + '</span>' +
-          '<span class="bk-mode demo" data-ks-mode hidden>Demo</span>' +
-          '<div class="weather-loc bk-sel"><div class="arilik-loc-controls">' +
-            '<button type="button" class="arilik-nav" data-ks-prev aria-label="Önceki kapsam" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
-            '<span class="weather-loc-label" data-ks-label aria-live="polite">Tümü</span>' +
-            '<button type="button" class="arilik-nav" data-ks-next aria-label="Sonraki kapsam" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button>' +
-          '</div></div>' + end +
-        '</div>' +
+      if (opts.topEnd != null && opts.weatherEnd !== false) end = topEndWithWeather(end);
+      else if (!end) end = weatherEndHtml();
+      host.innerHTML = scopeCardHeadHtml('bk', opts, navChipList, end) +
         '<div class="bk-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
         (opts.bottom != null ? opts.bottom : '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>');
     } else {
     host.classList.add('ks-card');
     var endK = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
-    if (!endK) endK = weatherEndHtml();
-    host.innerHTML =
-      '<div class="ks-top">' + (opts.icon || '') +
-        '<h2 class="ks-title">' + esc(opts.title || '') + '</h2>' +
-        '<span class="ks-mode" data-ks-mode hidden>Demo</span>' +
-        '<div class="ks-sel">' +
-          '<button type="button" class="ks-nav" data-ks-prev aria-label="Önceki arılık" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
-          '<span class="ks-label" data-ks-label aria-live="polite">Tümü</span>' +
-          '<button type="button" class="ks-nav" data-ks-next aria-label="Sonraki arılık" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button>' +
-        '</div>' + endK +
-      '</div>' +
+    if (opts.topEnd != null && opts.weatherEnd !== false) endK = topEndWithWeather(endK);
+    else if (!endK) endK = weatherEndHtml();
+    host.innerHTML = scopeCardHeadHtml('ks', opts, navChipList, endK) +
       '<div class="ks-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
       '<a class="ks-note" data-ks-note href="#"><span class="ks-note-t" data-ks-nt>—</span><span class="ks-note-b" data-ks-nb>Aç</span></a>';
     }
     function q(sel) { return host.querySelector(sel); }
-    function render() {
-      loadAps(); scope = valid(scope);
-      var hs = hives(), sum = summary(hs), ap = scope === 'all' ? null : apOf(scope);
-      q('[data-ks-label]').textContent = ap ? ap.name : 'Tümü';
-      q('[data-ks-label]').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
-      var multi = list().length > 1;
-      q('[data-ks-prev]').disabled = !multi; q('[data-ks-next]').disabled = !multi;
-      q('[data-ks-mode]').hidden = live(); /* rozet yalnız Demo'da */
-      q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : [], SC);
-      var n = opts.note ? opts.note(hs, scope, sum) : null;
-      var ne = q('[data-ks-note]');
-      if (ne) ne.hidden = !n;
-      if (ne && n) {
-        q('[data-ks-nt]').textContent = n.t; q('[data-ks-nb]').textContent = n.b || 'Aç';
-        ne.href = n.href || '#'; ne.setAttribute('data-note', n.k || ''); ne.setAttribute('aria-label', n.t + ' — ' + (n.b || 'Aç'));
-      }
-      if (opts.onChange) opts.onChange(scope, hs, sum);
-    }
     function setScope(s) {
       scope = valid(s);
       try { global.localStorage.setItem(SCOPE_KEY, scope); } catch (e) { /* ignore */ }
@@ -241,6 +299,26 @@
     function step(d) { var l = list(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
     q('[data-ks-prev]').addEventListener('click', function () { step(-1); });
     q('[data-ks-next]').addEventListener('click', function () { step(1); });
+    var syncBakimNav = bindNavChips(host, navChipList && navChipList.length ? function () { return scope; } : null);
+    function render() {
+      loadAps(); scope = valid(scope);
+      var hs = hives(), sum = summary(hs), ap = scope === 'all' ? null : apOf(scope);
+      q('[data-ks-label]').textContent = ap ? ap.name : 'Tümü';
+      q('[data-ks-label]').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
+      var multi = list().length > 1;
+      q('[data-ks-prev]').disabled = !multi; q('[data-ks-next]').disabled = !multi;
+      q('[data-ks-mode]').hidden = live(); /* rozet yalnız Demo'da */
+      q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : [], SC);
+      var n = opts.note ? opts.note(hs, scope, sum) : null;
+      var ne = q('[data-ks-note]');
+      if (ne) ne.hidden = !n;
+      if (ne && n) {
+        q('[data-ks-nt]').textContent = n.t; q('[data-ks-nb]').textContent = n.b || 'Aç';
+        ne.href = n.href || '#'; ne.setAttribute('data-note', n.k || ''); ne.setAttribute('aria-label', n.t + ' — ' + (n.b || 'Aç'));
+      }
+      if (syncBakimNav) syncBakimNav();
+      if (opts.onChange) opts.onChange(scope, hs, sum);
+    }
     render();
     bindWeatherEnd(host);
     return { scope: function () { return scope; }, hives: hives, setScope: setScope, render: render, apOf: apOf };
@@ -270,10 +348,12 @@
     if (tone === 'priority-3') tone = 'green';
     var badge = o.badge != null && o.badge !== '' ? '<div class="badge ' + esc(tone) + '">' + esc(o.badge) + '</div>' : '';
     var sub = o.sub ? '<div class="tile-sub">' + esc(o.sub) + '</div>' : '';
+    var acts = o.acts ? '<div class="tile-acts">' + o.acts + '</div>' : '';
+    if (acts) extra += ' has-acts';
     return '<a class="tile' + sev + extra + '"' + href + data + aria + '>' +
       anaHiveHtml({ num: o.num, burn: o.burn, svg: o.svg }) +
       '<div class="tile-label">' + esc(o.label || '') + '</div>' + sub +
-      badge + '</a>';
+      badge + acts + '</a>';
   }
 
   function ksBadgeTone(cls) {
@@ -305,5 +385,5 @@
     });
   }
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml, topEndWithWeather: topEndWithWeather, defaultNavChips: defaultNavChips };
 })(typeof window !== 'undefined' ? window : this);
