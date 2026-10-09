@@ -269,9 +269,10 @@
     if (tone === 'priority-2') tone = 'orange';
     if (tone === 'priority-3') tone = 'green';
     var badge = o.badge != null && o.badge !== '' ? '<div class="badge ' + esc(tone) + '">' + esc(o.badge) + '</div>' : '';
+    var sub = o.sub ? '<div class="tile-sub">' + esc(o.sub) + '</div>' : '';
     return '<a class="tile' + sev + extra + '"' + href + data + aria + '>' +
       anaHiveHtml({ num: o.num, burn: o.burn, svg: o.svg }) +
-      '<div class="tile-label">' + esc(o.label || '') + '</div>' +
+      '<div class="tile-label">' + esc(o.label || '') + '</div>' + sub +
       badge + '</a>';
   }
 

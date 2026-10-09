@@ -54,6 +54,7 @@
     </section>
   </main>
   <script src="bk-kabuk.js?v=koloni-105"></script>
+  <script src="bal-agirlik.js?v=koloni-105"></script>
   <script src="demo-data.js?v=koloni-105"></script>
   <script src="rapor-store.js?v=koloni-105"></script>
   <script src="sensor-health.js?v=koloni-105"></script>
@@ -240,6 +241,8 @@
       function renderHiveCard(h) {
         var ap = D.apiaryById(h.apiaryId);
         var place = ap ? ap.name : '—';
+        var BAgList = window.SuperAriBalAgirlik;
+        var typeLbl = BAgList ? BAgList.typeDisplayLabel(BAgList.resolveHiveType(h), h) : '';
         var badge;
         var meta;
         var liveW = window.SuperAriLiveHealth && SuperAriLiveHealth.isLive();
@@ -281,7 +284,9 @@
         return (
           '<a class="item-card" id="hive-' + esc(h.id) + '" href="kovan.html?id=' + encodeURIComponent(h.id) + '" style="display:block;text-decoration:none;color:inherit;">' +
             '<div class="row">' +
-              '<h3>' + (K && K.dotHtml ? K.dotHtml(h.queenYear) : '') + esc(h.name) + '</h3>' +
+              '<div><h3 style="margin:0;">' + (K && K.dotHtml ? K.dotHtml(h.queenYear) : '') + esc(h.name) + '</h3>' +
+              (typeLbl ? '<span class="kol-hive-type-chip" style="display:inline-block;margin-top:.2rem;padding:.12rem .5rem;border-radius:999px;background:#fff8e6;border:1px solid #e0c56a;font-size:.72rem;font-weight:800;color:#5c4813;">' + esc(typeLbl) + '</span>' : '') +
+              '</div>' +
               '<span class="badge ' + tone + '">' + esc(badge) + '</span>' +
             '</div>' +
             (K && K.recordChipsHtml ? K.recordChipsHtml(h) : '') +
@@ -325,14 +330,17 @@
           var infos = sortInfos(list.map(function (h) { return tileInfo(h, sum); }));
           return infos.map(function (x) {
             var h = x.h;
+            var BAgT = window.SuperAriBalAgirlik;
+            var subT = BAgT ? BAgT.typeDisplayLabel(BAgT.resolveHiveType(h), h) : '';
             return KS.anaHiveTileHtml({
               href: 'kovan.html?id=' + encodeURIComponent(h.id),
               label: h.name,
+              sub: subT,
               badge: x.hl.label,
               tone: x.hl.tone,
               num: KS.hiveNum(h),
               dataHive: h.id,
-              aria: h.name + ', ' + x.hl.label + ', ' + x.line
+              aria: h.name + (subT ? ', ' + subT : '') + ', ' + x.hl.label + ', ' + x.line
             });
           }).join('') || '<p class="ks-empty">Kovan yok.</p>';
         }

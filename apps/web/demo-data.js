@@ -884,6 +884,18 @@
       if (pm.breed) out.pendingMother.breed = String(pm.breed).slice(0, 60);
       if (pm.fromHiveId != null && isFinite(Number(pm.fromHiveId))) out.pendingMother.fromHiveId = Number(pm.fromHiveId);
     }
+    if (h.hiveType) {
+      var ht = String(h.hiveType).trim();
+      if ((global.SuperAriBalAgirlik && global.SuperAriBalAgirlik.isKnownHiveType(ht)) ||
+          /^(langstroth_10|langstroth_8|dadant_11|layens_12|national|warre|kafkas|ozel|custom_[a-z0-9_]{1,28})$/.test(ht)) {
+        out.hiveType = ht;
+      }
+    }
+    if (h.customTypeLabel != null && String(h.customTypeLabel).trim()) out.customTypeLabel = String(h.customTypeLabel).trim().slice(0, 60);
+    var ehk = numIn(h.emptyHiveKg, 0, 200);
+    if (ehk != null && ehk > 0) out.emptyHiveKg = ehk;
+    if (h.emptyHiveSource && /^(manuel|tarti|varsayilan)$/.test(String(h.emptyHiveSource))) out.emptyHiveSource = String(h.emptyHiveSource);
+    if (h.lastTareAt && /^\d{4}-\d{2}-\d{2}$/.test(String(h.lastTareAt))) out.lastTareAt = String(h.lastTareAt);
     if (Array.isArray(h.colonyEvents) && h.colonyEvents.length) {
       out.colonyEvents = h.colonyEvents.filter(function (e) { return e && e.date && e.text; }).slice(-30).map(function (e) {
         var o = { id: String(e.id || '').slice(0, 40), date: String(e.date).slice(0, 10), type: String(e.type || '').slice(0, 20), text: String(e.text).slice(0, 300) };
@@ -1289,11 +1301,13 @@
   }
 
   function applyColonyTraits(copy, patch) {
-    ['calmness', 'swarmTendency', 'colonyNote'].forEach(function (f) {
+    ['calmness', 'swarmTendency', 'colonyNote', 'hiveType', 'customTypeLabel', 'emptyHiveKg', 'emptyHiveSource', 'lastTareAt'].forEach(function (f) {
       if (patch && Object.prototype.hasOwnProperty.call(patch, f)) delete copy[f];
     });
     var tmp = {};
-    ['calmness', 'swarmTendency', 'colonyNote'].forEach(function (f) { if (patch && patch[f] != null) tmp[f] = patch[f]; });
+    ['calmness', 'swarmTendency', 'colonyNote', 'hiveType', 'customTypeLabel', 'emptyHiveKg', 'emptyHiveSource', 'lastTareAt'].forEach(function (f) {
+      if (patch && Object.prototype.hasOwnProperty.call(patch, f)) tmp[f] = patch[f];
+    });
     copyColonyFields(copy, tmp);
   }
 
@@ -1598,7 +1612,7 @@
 
   function synthHive(apiaryId, id, i) {
     /* Canlı: yeni kovan boş kayıt — örnek ağırlık/ırk/güç/skor atanmaz (normalizeHive varsayılanları arayüzde Canlı’da gösterilmez). */
-    if (isLiveMode()) return normalizeHive({ id: id, name: 'Kovan ' + id, apiaryId: apiaryId });
+    if (isLiveMode()) return normalizeHive({ id: id, name: 'Kovan ' + id, apiaryId: apiaryId, hiveType: 'langstroth_10' });
     var health = HEALTHS[i % HEALTHS.length];
     var score = health === 'Kritik' ? 40 + (i % 10) : (health === 'Dikkat' ? 58 + (i % 12) : 78 + (i % 18));
     var delta = ((i % 7) - 2) * 0.3;
@@ -2237,7 +2251,31 @@
         try { saveHives(eq.list); } catch (eS3) {}
       }
     }
-    return attachSwarmRisk(eq.list);
+    list = eq.list;
+    var HT_MIG = 'superari.hiveType.migrated.v1';
+    var htDone = false;
+    try { htDone = localStorage.getItem(HT_MIG) === '1'; } catch (eHt) { /* ignore */ }
+    if (!htDone) {
+      var mig = global.SuperAriBalAgirlik && global.SuperAriBalAgirlik.migrateHiveTypesOnList
+        ? global.SuperAriBalAgirlik.migrateHiveTypesOnList(list)
+        : null;
+      if (!mig) {
+        mig = { list: list, changed: false };
+        mig.list = list.map(function (h) {
+          if (!h || h.hiveType) return h;
+          mig.changed = true;
+          var c = cloneObj(h);
+          c.hiveType = 'langstroth_10';
+          return c;
+        });
+      }
+      if (mig.changed) {
+        try { saveHives(mig.list); } catch (eHt2) { /* ignore */ }
+        list = mig.list;
+      }
+      try { localStorage.setItem(HT_MIG, '1'); } catch (eHt3) { /* ignore */ }
+    }
+    return attachSwarmRisk(list);
   }
 
   /* ================= Koloni muayene kayıtları (güç / yavru / hastalık) =================
@@ -2865,7 +2903,28 @@
     o.source = pick(r.source, ['rapor', 'kayit', 'eski'], 'kayit');
     var pcnt = intIn(r.photoCount, 0, 50); if (pcnt) o.photoCount = pcnt;
     if (r.demo === true) o.demo = true;
+    var nk = numIn(r.netKg, 0, 100000);
+    if (nk != null && nk > 0) o.netKg = nk;
+    if (r.method && /^(cerceve|tarti|karma)$/.test(String(r.method))) o.method = String(r.method);
+    var sb = numIn(r.scaleBeforeKg, 0, 400); if (sb != null) o.scaleBeforeKg = sb;
+    var sa = numIn(r.scaleAfterKg, 0, 400); if (sa != null) o.scaleAfterKg = sa;
     return o;
+  }
+  function enrichHarvestEntry(e) {
+    var B = global.SuperAriBalAgirlik;
+    if (!B || !B.enrichHarvestRow || !e) return e;
+    try { return B.enrichHarvestRow(e); } catch (err) { return e; }
+  }
+  function logHarvestHiveEvent(row) {
+    if (!row || row.hiveId == null) return;
+    var B = global.SuperAriBalAgirlik;
+    var text = B && B.harvestEventText ? B.harvestEventText(row) : null;
+    if (!text) {
+      var kg = row.netKg != null ? row.netKg : row.honeyKg;
+      if (!(Number(kg) > 0)) return;
+      text = 'Sağım: ' + String(kg).replace('.', ',') + ' kg bal';
+    }
+    try { addHiveEvent(row.hiveId, { type: 'hasat', date: row.date, text: text }); } catch (e) { /* ignore */ }
   }
   function isOldSeedRow(row) {
     if (!row) return false;
@@ -2943,11 +3002,12 @@
     var e = {}; Object.keys(entry || {}).forEach(function (k) { e[k] = entry[k]; });
     delete e.demo; /* kullanıcı girişi asla demo örneği olarak işaretlenmez */
     if (!e.id) delete e.id;
-    var n = normalizeHarvest(e);
+    var n = normalizeHarvest(enrichHarvestEntry(e));
     if (!n) return null;
     var list = readHarvestKey(harvestKey());
     list.push(n);
     writeHarvestKey(harvestKey(), list);
+    logHarvestHiveEvent(n);
     return n;
   }
   function updateHarvestRow(id, patch) {
@@ -2958,7 +3018,7 @@
       var m = {}; Object.keys(x).forEach(function (k) { m[k] = x[k]; });
       Object.keys(patch || {}).forEach(function (k) { if (k !== 'id' && k !== 'demo') m[k] = patch[k]; });
       if (patch && patch.kg != null && patch.honeyKg == null) m.honeyKg = patch.kg;
-      out = normalizeHarvest(m);
+      out = normalizeHarvest(enrichHarvestEntry(m));
       return out;
     });
     if (out) writeHarvestKey(harvestKey(), list);
@@ -2977,6 +3037,8 @@
     if (h.honeyType) o.honeyType = h.honeyType;
     if (h.note) o.note = h.note;
     if (h.photoCount) o.photoCount = h.photoCount;
+    if (h.netKg != null) o.netKg = h.netKg;
+    if (h.method) o.method = h.method;
     if (h.demo) o.demo = true;
     return o;
   }
