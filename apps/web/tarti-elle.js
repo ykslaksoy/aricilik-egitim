@@ -1,7 +1,7 @@
 /**
  * SüperArı — Elle tartım (manuel ağırlık kaydı). Cihaz/tartı bağlı olsa da her zaman kullanılabilir.
  * Depo: superari.tartiElle.v1 (Canlı, buluta eşitlenir) / superari.tartiElle.demo.v1 (Demo, «Demo» etiketli, eşitlenmez).
- * Kayıt: { id:'tw…', hiveId, at:'YYYY-MM-DDTHH:MM', date, kg, addKg?, kat?, besleme?, note?, demo? }
+ * Kayıt: { id:'tw…', hiveId, at:'YYYY-MM-DDTHH:MM', date, kg, addKg?, kat?, besleme?, note?, demo?, syncFrom? }
  * addKg: tartımdan önce eklenen kat / besleme ağırlığı; grafikte sonraki okumalardan düşülür (düzeltilmiş eğri).
  */
 (function (global) {
@@ -100,6 +100,7 @@
     if (!isFinite(r.hiveId)) throw new Error('Kovan seçin');
     if (o.kat) r.kat = true;
     if (o.besleme) r.besleme = true;
+    if (Array.isArray(o.syncFrom) && o.syncFrom.length) r.syncFrom = o.syncFrom.map(function (s) { return String(s).slice(0, 48); }).slice(0, 12);
     var ad = parseKg(o.addKg); if (ad > 0 && ad < 100 && (r.kat || r.besleme)) r.addKg = ad;
     var note = String(o.note || '').trim(); if (note) r.note = note.slice(0, 200);
     /* dara: kayıt anındaki kovandaki malzeme (sonraki kayıt değişikliklerinden etkilenmesin diye saklanır). Elle eklenen besleme ağırlığı varsa besleme kalemleri düşülmez (çift sayım yok). */
@@ -203,7 +204,8 @@
     '.te-msg{margin:0;font-size:14px;}.te-msg.ok{color:#1b7a3d;font-weight:700;}.te-msg.err{color:#c92a2a;font-weight:700;}' +
     '.te-row{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #f1e8da;font-size:14px;}.te-row:first-child{border-top:0;}' +
     '.te-tag{flex:none;background:#fff3bf;color:#7a5b00;border:1px solid #ffe066;border-radius:999px;font-size:11px;font-weight:800;padding:1px 7px;margin-top:1px;}' +
-    '.te [hidden]{display:none!important;}.te-tare{margin:-4px 0 0;font-size:13px;font-weight:700;color:#5c4813;background:#fff3bf;border:1px solid #ffe066;border-radius:10px;padding:6px 8px;}' +
+    '.te [hidden]{display:none!important;}.te-sync{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 6px;}.te-sync span{font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:#e7f5ff;color:#1864ab;border:1px solid #a5d8ff;}' +
+    '.te-tare{margin:-4px 0 0;font-size:13px;font-weight:700;color:#5c4813;background:#fff3bf;border:1px solid #ffe066;border-radius:10px;padding:6px 8px;}' +
     '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:#f8f1e6;border-radius:12px;font-size:20px;cursor:pointer;width:64px;height:64px;}';
   function ensureCss() { if (document.getElementById('teCss')) return; var s = document.createElement('style'); s.id = 'teCss'; s.textContent = css; document.head.appendChild(s); }
   function close() { var b = document.getElementById('teSheet'); if (b) b.remove(); }
@@ -223,6 +225,7 @@
       '<label class="f">Ağırlık (kg)<input class="te-kg" type="number" name="kg" inputmode="decimal" step="0.1" min="1" max="400" placeholder="ör. 42,5" required></label>' +
       '<label class="f">Tarih / saat<input type="datetime-local" name="at" value="' + nowLocal() + '"></label>' +
       '<p class="te-tare" data-te-tare hidden></p>' +
+      '<div class="te-sync" data-te-sync hidden></div>' +
       '<label class="te-chk"><input type="checkbox" name="kat"> Kat eklendi</label>' +
       '<label class="te-chk"><input type="checkbox" name="besleme"> Besleme yapıldı</label>' +
       '<label class="f" data-te-add hidden>Eklenen ağırlık (kg, isteğe bağlı — sonraki okumalardan düşülür)<input type="number" name="addKg" inputmode="decimal" step="0.1" min="0" max="100" placeholder="ör. kat ≈ 8, 5 L şurup ≈ 6,5"></label>' +
@@ -238,6 +241,22 @@
       (h ? '<a class="te-link" style="margin-top:10px;" href="kovan.html?id=' + encodeURIComponent(h.id) + '">🏠 Kovan detayı ›</a>' : '') + '</div>';
     document.body.appendChild(back);
     var f = back.querySelector('[data-te-form]');
+    var syncHint = null;
+    if (h) {
+      var TS = global.SuperAriTartiSync;
+      if (TS && TS.hints) {
+        try { syncHint = TS.hints(h.id, { list: list }); } catch (eS) { syncHint = null; }
+        if (syncHint && (syncHint.kat || syncHint.besleme)) {
+          if (syncHint.kat) f.elements.kat.checked = true;
+          if (syncHint.besleme) f.elements.besleme.checked = true;
+          var syncEl = back.querySelector('[data-te-sync]');
+          if (syncEl && syncHint.chips && syncHint.chips.length) {
+            syncEl.hidden = false;
+            syncEl.innerHTML = syncHint.chips.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('');
+          }
+        }
+      }
+    }
     function curHive() { return h ? h.id : (f.elements.hive && f.elements.hive.value); }
     function renderList() {
       var hid = curHive(), l = hid != null && hid !== '' ? list(hid).slice(0, 6) : [];
@@ -250,10 +269,27 @@
       el.hidden = !(tw.kg > 0);
       el.textContent = tw.kg > 0 ? '⚖ ' + tareNote(tw).charAt(0).toLocaleUpperCase('tr') + tareNote(tw).slice(1) + ' (' + tw.items.map(function (x) { return x.label; }).join(', ') + ')' : '';
     }
-    renderList(); showTare();
+    function applySyncForHive(hid) {
+      syncHint = null;
+      var syncEl = back.querySelector('[data-te-sync]');
+      if (syncEl) { syncEl.hidden = true; syncEl.innerHTML = ''; }
+      if (hid == null || hid === '') return;
+      var TS = global.SuperAriTartiSync;
+      if (!TS || !TS.hints) return;
+      try { syncHint = TS.hints(hid, { list: list }); } catch (eS) { syncHint = null; }
+      if (!syncHint || !(syncHint.kat || syncHint.besleme)) return;
+      if (syncHint.kat) f.elements.kat.checked = true;
+      if (syncHint.besleme) f.elements.besleme.checked = true;
+      if (syncEl && syncHint.chips && syncHint.chips.length) {
+        syncEl.hidden = false;
+        syncEl.innerHTML = syncHint.chips.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('');
+      }
+      toggleAdd();
+    }
+    renderList(); showTare(); if (syncHint && (syncHint.kat || syncHint.besleme)) toggleAdd();
     back.addEventListener('change', function (e) {
-      if (e.target.name === 'ap') { f.elements.hive.innerHTML = hiveOpts(e.target.value); renderList(); showTare(); }
-      else if (e.target.name === 'hive') { renderList(); showTare(); }
+      if (e.target.name === 'ap') { f.elements.hive.innerHTML = hiveOpts(e.target.value); renderList(); applySyncForHive(curHive()); showTare(); }
+      else if (e.target.name === 'hive') { renderList(); applySyncForHive(curHive()); showTare(); }
       else if (e.target.name === 'at' || e.target.name === 'addKg') showTare();
       else if (e.target.name === 'kat' || e.target.name === 'besleme') toggleAdd();
     });
@@ -270,14 +306,26 @@
       if (!e.target.closest || !e.target.closest('[data-te-save]')) return;
       var m = back.querySelector('[data-te-msg]');
       try {
-        var r = add({ hiveId: curHive(), at: f.elements.at.value, kg: f.elements.kg.value, kat: f.elements.kat.checked, besleme: f.elements.besleme.checked, addKg: f.elements.addKg.value, note: f.elements.note.value });
+        var syncFrom = [];
+        if (syncHint) {
+          if (f.elements.kat.checked && syncHint.katSrc && syncHint.katSrc.length) syncFrom = syncFrom.concat(syncHint.katSrc);
+          if (f.elements.besleme.checked && syncHint.beslemeSrc && syncHint.beslemeSrc.length) syncFrom = syncFrom.concat(syncHint.beslemeSrc);
+        }
+        var r = add({ hiveId: curHive(), at: f.elements.at.value, kg: f.elements.kg.value, kat: f.elements.kat.checked, besleme: f.elements.besleme.checked, addKg: f.elements.addKg.value, note: f.elements.note.value, syncFrom: syncFrom });
         m.className = 'te-msg ok'; m.textContent = '✓ Kaydedildi: ' + num(r.kg) + ' kg (' + fmtAt(r.at) + ')' + (r.tareKg ? ' · net ' + num2(netOf(r)) + ' kg, ' + tareNote({ kg: r.tareKg }) : '');
-        f.elements.kg.value = ''; f.elements.note.value = ''; f.elements.kat.checked = false; f.elements.besleme.checked = false; f.elements.addKg.value = ''; toggleAdd();
+        f.elements.kg.value = ''; f.elements.note.value = ''; f.elements.kat.checked = false; f.elements.besleme.checked = false; f.elements.addKg.value = ''; syncHint = null;
+        var syncEl2 = back.querySelector('[data-te-sync]'); if (syncEl2) { syncEl2.hidden = true; syncEl2.innerHTML = ''; }
+        toggleAdd();
         renderList();
         if (typeof opts.onSaved === 'function') opts.onSaved(r);
       } catch (err) { m.className = 'te-msg err'; m.textContent = err.message || 'Kaydedilemedi'; }
     });
     if (!auto) setTimeout(function () { try { f.elements.kg.focus(); } catch (e) { /* ignore */ } }, 50);
   }
-  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, ensureCss: ensureCss, open: open, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
+  function muayeneHints(hiveId, opts) {
+    var TS = global.SuperAriTartiSync;
+    if (!TS || !TS.hints) return { kat: false, besleme: false, katSrc: [], beslemeSrc: [], chips: [] };
+    return TS.hints(hiveId, Object.assign({ list: list }, opts || {}));
+  }
+  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
 })(window);

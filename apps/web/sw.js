@@ -200,6 +200,7 @@ const SHELL = [
   "/stok-talep.js",
   "/stok.html",
   "/styles.css",
+  "/tarti-muayene-sync.js",
   "/tarti-elle.js",
   "/uyarilar.html",
   "/vendor/jsqr.js",
