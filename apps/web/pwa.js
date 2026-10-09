@@ -75,7 +75,7 @@
     Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
     doc.head.appendChild(el);
   }
-  addHead('link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }); /* koloni-105: tarayıcının ilk /favicon.ico isteği 404 vermesin */
+  addHead('link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }); /* koloni-112: tarayıcının ilk /favicon.ico isteği 404 vermesin */
   addHead('link', { rel: 'manifest', href: '/manifest.json' });
   addHead('link', { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' });
   addHead('meta', { name: 'theme-color', content: '#c9a227' });

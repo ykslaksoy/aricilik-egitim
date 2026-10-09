@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-105'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-105'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-112'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-112'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-105').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-112').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-105').catch(function () {});
+      return loadScript('koloni.js?v=koloni-112').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -750,7 +750,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-105').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-112').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */

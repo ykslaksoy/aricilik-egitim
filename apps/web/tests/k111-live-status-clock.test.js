@@ -10,5 +10,5 @@ assert.ok(nav.includes('function ensureStatusClock') && nav.includes('function p
 assert.ok(nav.includes('visibilitychange') && nav.includes('pageshow'), 'refresh on focus');
 assert.ok(nav.includes('paintStatusClocks()') && nav.includes('setInterval(paintStatusClocks'), 'interval');
 assert.ok(ana.includes('liveStatusClock') || ana.includes('statusClock'), 'ana clock hook');
-assert.ok(ana.includes('koloni-111'), 'cache bust');
+assert.ok(ana.includes('koloni-112'), 'cache bust');
 console.log('k111-live-status-clock ok');
