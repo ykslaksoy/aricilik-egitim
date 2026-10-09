@@ -106,6 +106,7 @@
   /** Olay metninden kg delta; 0 ise uygulanmaz. */
   function deltaFromEventText(text) {
     var tx = stripPrefix(text);
+    if (/kat\s+rotasyonu/i.test(tx)) return null;
     var M = material(), d = 0, label = '';
     var m;
     m = /^(\d+)\s+boş çerçeve verildi/i.exec(tx);

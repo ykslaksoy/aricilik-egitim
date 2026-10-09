@@ -69,6 +69,8 @@
   <script src="tarti-muayene-sync.js?v=koloni-105"></script>
   <script src="tarti-bakim-delta.js?v=koloni-105"></script>
   <script src="tarti-elle.js?v=koloni-105"></script>
+  <script src="sensor-polling.js?v=koloni-105"></script>
+  <script src="tarti-rotasyon.js?v=koloni-105"></script>
   <script src="kapsam.js?v=koloni-105"></script>
   <script>
     (function () {
@@ -156,9 +158,20 @@
         var rec = TE.all().filter(function (x) { if (!ap) return true; var hh = D.hiveById(x.hiveId); return hh && String(hh.apiaryId) === String(ap); }).slice(0, 5);
         el.hidden = false;
         /* k94: «Elle tartım gir» düğmesi kaldırıldı — Kapsam notundaki «Tart» ve alt menüdeki ＋ Kayıt aynı formu açar */
-        el.hidden = !rec.length;
-        el.innerHTML = (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '');
-        if (!el.__b) { el.__b = true; el.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-te-open]')) TE.open(params.get('hiveId') || '', { apiaryId: ap, onSaved: renderTartiTop }); }); }
+        el.hidden = false;
+        var bulkBtn = '<button type="button" class="kol-bulk-btn" id="btnWeighAllTarti" style="width:100%;margin:.5rem 0;">📡 Tümünü tarttır</button>';
+        el.innerHTML = bulkBtn + (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '<p class="muted" style="margin:.4rem 0;">Henüz tartım yok — tümünü tarttır veya ＋ Kayıt ile elle girin.</p>');
+        if (!el.__b) {
+          el.__b = true;
+          el.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('#btnWeighAllTarti')) {
+              var TR = window.SuperAriTartiRotasyon;
+              if (TR && TR.weighAll) TR.weighAll({ apiaryId: ap || '' });
+              return;
+            }
+            if (e.target.closest && e.target.closest('[data-te-open]')) TE.open(params.get('hiveId') || '', { apiaryId: ap, onSaved: renderTartiTop });
+          });
+        }
       }
       renderTartiTop();
 

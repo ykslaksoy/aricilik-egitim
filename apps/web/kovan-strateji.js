@@ -112,11 +112,11 @@
 
   function rankOptions(options, goal) {
     var order = {
-      bal: ['kat_ekle', 'cerceve', 'hibrit', 'bolme', 'yok'],
-      'ogul-onle': ['bolme', 'cerceve', 'kat_ekle', 'hibrit', 'yok'],
-      'koloni-artir': ['bolme', 'hibrit', 'kat_ekle', 'cerceve', 'yok'],
-      hibrit: ['kat_ekle', 'bolme', 'hibrit', 'cerceve', 'yok']
-    }[goal] || ['kat_ekle', 'bolme', 'hibrit', 'cerceve', 'yok'];
+      bal: ['kat_ekle', 'kat_rotasyon', 'cerceve', 'hibrit', 'bolme', 'yok'],
+      'ogul-onle': ['bolme', 'cerceve', 'kat_ekle', 'kat_rotasyon', 'hibrit', 'yok'],
+      'koloni-artir': ['bolme', 'hibrit', 'kat_ekle', 'kat_rotasyon', 'cerceve', 'yok'],
+      hibrit: ['kat_ekle', 'kat_rotasyon', 'bolme', 'hibrit', 'cerceve', 'yok']
+    }[goal] || ['kat_ekle', 'kat_rotasyon', 'bolme', 'hibrit', 'cerceve', 'yok'];
     return options.slice().sort(function (a, b) {
       var ia = order.indexOf(a.id), ib = order.indexOf(b.id);
       if (ia < 0) ia = 99; if (ib < 0) ib = 99;
@@ -183,6 +183,37 @@
       };
     }
 
+    if (kat >= 2 && ratio >= 0.78 && isStrong(ctx)) {
+      var shOpts = rankOptions([
+          {
+            id: 'kat_rotasyon',
+            label: '2. katı aldım, 3. katı 2. sıraya koydum (rotasyon)',
+            say: ['rotasyon', 'kat rotasyon'],
+            why: 'Dolu 2. katı kaldırıp 3. katı araya yerleştirmek.',
+            tradeoff: 'Artı: dolu kutu kontrolü, üstte boş kat. Eksi: işçilik; tartım şart.'
+          },
+          {
+            id: 'kat_ekle',
+            label: '3. katı üste ekledim (klasik istifleme)',
+            say: ['kat', 'ust'],
+            why: 'En yaygın yol: yeni kat en üste.',
+            tradeoff: 'Artı: hızlı. Eksi: alttaki dolu kat hasat/taşıma zorluğu.'
+          },
+          { id: 'cerceve', label: 'Yalnız boş çerçeve verdim', say: ['cerceve'], why: 'Kat eklemeden yer açma.', tradeoff: 'Bal potansiyeli sınırlı kalabilir.' },
+          { id: 'yok', label: 'Karar vermedim (görev)', say: ['yok'], why: 'Kısa süre içinde tekrar muayene.', tradeoff: 'Sıkışıklık sürebilir.' }
+        ], goal);
+      var shRec = shOpts[0] ? shOpts[0].id : 'kat_rotasyon';
+      return {
+        kind: 'super_shuffle',
+        recommendedId: shRec,
+        banner: banner,
+        recLabel: '2. kat dolu: 3. katı üste koymadan önce rotasyon düşün',
+        why: baseWhy + '\n2. bal katı dolunca bazı arıcılar 3. katı yalnızca üste istiflemek yerine 2. katı kaldırır, 3. katı 2. sıraya koyar — dolu kutu yönetimi ve hasat kolaylığı. Tartım sihirbazı ile önce/sonra kaydedin.',
+        say: 'İkinci kat dolu. Üçüncü katı verecekseniz rotasyon veya üst üste istifleme seçebilirsiniz. Rotasyon için tartım önerilir.',
+        options: shOpts
+      };
+    }
+
     if (isStrong(ctx) && (ratio >= 0.8 || ctx.yer === 'dolu' || ctx.yer === 'dolmak' || Number(ctx.ogul) > 0)) {
       var opts = [
         {
@@ -191,6 +222,13 @@
           say: ['kat', 'bal'],
           why: 'Güçlü koloni bal akımını üst kata taşıyabilir.',
           tradeoff: 'Artı: daha fazla bal. Eksi: oğul riski artabilir, taşıma işi.'
+        },
+        {
+          id: 'kat_rotasyon',
+          label: '2. katı alıp 3. katı 2. sıraya koydum (rotasyon)',
+          say: ['rotasyon', 'kat rotasyon'],
+          why: 'Dolu katı kaldırıp yeni katı araya yerleştirmek (kutu rotasyonu).',
+          tradeoff: 'Artı: dolu kutu yönetimi. Eksi: tartım ve işçilik gerekir.'
         },
         {
           id: 'bolme',
@@ -256,6 +294,10 @@
   function followUpTasks(optionId) {
     switch (optionId) {
       case 'kat_ekle': return [{ title: 'Yeni kat / çerçeve doldu mu kontrol', days: 7, pri: 2 }];
+      case 'kat_rotasyon': return [
+        { title: 'Kat rotasyonu: önce/sonra tartım tamamlandı mı', days: 0, pri: 1 },
+        { title: 'Rotasyon sonrası üst kat dolumu kontrol', days: 7, pri: 2 }
+      ];
       case 'bolme': return [
         { title: 'Bölme: ana çıktı mı yumurta kontrolü', days: 21, pri: 2 },
         { title: 'Bölme sonrası besleme gerekir mi kontrol', days: 10, pri: 3 }

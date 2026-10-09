@@ -12,7 +12,7 @@ assert.strictEqual(mid.kind, 'first_super');
 assert.ok(mid.options.some(function (o) { return o.id === 'kat_ekle'; }));
 
 let strong = STR.recommendExpansion({
-  seasonKey: 'akim', bee: 18, body: 1, kat: 2, ratio: 0.85, yer: 'dolmak', apiaryId: 'a1', goal: 'bal'
+  seasonKey: 'akim', bee: 18, body: 1, kat: 1, ratio: 0.85, yer: 'dolmak', apiaryId: 'a1', goal: 'bal'
 });
 assert.strictEqual(strong.kind, 'strategy');
 assert.strictEqual(strong.recommendedId, 'kat_ekle');
@@ -25,5 +25,11 @@ assert.strictEqual(splitGoal.recommendedId, 'bolme');
 
 assert.ok(STR.followUpTasks('hibrit').length >= 2);
 assert.ok(STR.GOALS.bal);
+
+var shuffle = STR.recommendExpansion({
+  seasonKey: 'akim', bee: 18, body: 1, kat: 2, ratio: 0.82, yer: 'dolu', apiaryId: 'a1', goal: 'bal'
+});
+assert.strictEqual(shuffle.kind, 'super_shuffle');
+assert.ok(shuffle.options.some(function (o) { return o.id === 'kat_rotasyon'; }));
 
 console.log('kovan-strateji: ok');

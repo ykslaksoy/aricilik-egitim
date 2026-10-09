@@ -210,6 +210,7 @@ const SHELL = [
   "/tarti-bakim-delta.js",
   "/tarti-elle.js",
   "/tarti-muayene-sync.js",
+  "/tarti-rotasyon.js",
   "/uyarilar.html",
   "/vendor/jsqr.js",
   "/vendor/qrcode.js",
