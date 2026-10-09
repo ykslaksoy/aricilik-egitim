@@ -195,6 +195,7 @@
   /* ---- Bakım düzeni (k88): Kapsam kartı (arılık + Bağlı / Bağlı değil / Düşük pil / Son veri) → cihaz türü döşemeleri → seçili türün listesi.
      Uydurma veri yok: cihaz yoksa «Yok · bağlı değil»; canlıda yalnız kayıtlı / keşfedilen cihazlar. ---- */
   function ksLayout() {
+    document.body.classList.add('sa-tile-select');
     var TYPES = [
       { k: 'tarti', l: 'Tartı', tips: ['tarti'], svg: '<path d="M12 6.2v11.4M8.6 17.8h6.8M6.4 8.8h11.2"/><path d="M6.4 8.8 4.6 12.6a1.9 1.9 0 0 0 3.6 0zM17.6 8.8l-1.8 3.8a1.9 1.9 0 0 0 3.6 0z"/>' },
       { k: 'isi_nem', l: 'Sıcaklık / Nem', tips: ['isi_nem'], svg: '<path d="M10 14.6V7.4a1.8 1.8 0 0 1 3.6 0v7.2a3 3 0 1 1-3.6 0z"/><path d="M11.8 10.5v5.2"/><path d="M16.8 9.2c.9 1.2 1.4 2 1.4 2.7a1.4 1.4 0 0 1-2.8 0c0-.7.5-1.5 1.4-2.7z"/>' },

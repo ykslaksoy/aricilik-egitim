@@ -98,7 +98,9 @@ body.bk-kabuk #ksScope .ks-note-b {
   color: #4a2f1a; font-size: 11px; font-weight: 750; letter-spacing: .01em;
 }
 /* Döşemeler = bakim.html .grid / .tile / .tile-label / .badge */
-body.bk-kabuk .ks-grid { gap: 5px; margin-top: 8px; }
+body.bk-kabuk .ks-grid,
+body.bk-kabuk .grid.ana-hive-grid,
+body.bk-kabuk #ksTiles.grid.ana-hive-grid { gap: 5px; margin-top: 8px; }
 body.bk-kabuk .ks-tile {
   background: #f4f5f7; border: 1px solid #e4e6ea; border-radius: 14px; padding: 4px 3px; min-height: 122px; gap: 0;
 }

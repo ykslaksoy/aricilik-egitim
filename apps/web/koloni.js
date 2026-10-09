@@ -1018,8 +1018,31 @@
   }
 
   function gridHtml(hives, activeTopic, hrefFor) {
-    ensureGridCss();
     var counts = topicCounts(hives);
+    var KS = global.SuperAriKapsam;
+    if (KS && KS.anaModuleTile) {
+      return '<div class="grid ana-hive-grid" role="navigation" aria-label="Koloni konuları">' + TOPICS.map(function (t) {
+        if (!t.ready) {
+          return '<button type="button" class="tile soon" data-soon="' + esc(t.label) + '" aria-label="' + esc(t.label) + ' — yakında">' +
+            KS.anaHiveHtml({ burn: 'liste' }) +
+            '<div class="tile-label">' + esc(t.label) + '</div><div class="badge gray">Yakında</div></button>';
+        }
+        var n = counts[t.key] || 0;
+        var badgeText = n ? (n + ' kovan') : '✓';
+        var badgeCls = n ? 'orange' : 'green';
+        return KS.anaModuleTile({
+          href: hrefFor(t.key),
+          label: t.label,
+          badge: badgeText,
+          badgeCls: badgeCls,
+          svg: TOPIC_ICONS[t.key],
+          extraClass: activeTopic === t.key ? 'on' : '',
+          dataTopic: t.key,
+          aria: t.label + (n ? ', ' + n + ' kovan ilgi bekliyor' : '')
+        });
+      }).join('') + '</div>';
+    }
+    ensureGridCss();
     return '<div class="kg-grid" role="navigation" aria-label="Koloni konuları">' + TOPICS.map(function (t) {
       var icon = '<div class="kg-hive" aria-hidden="true"><div class="kg-lid"></div><div class="kg-box t"></div><div class="kg-box b"></div>' +
         '<div class="kg-feet"><span></span><span></span></div>' +

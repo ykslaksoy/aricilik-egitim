@@ -73,6 +73,7 @@
       if (!D) return;
       var params = new URLSearchParams(location.search);
       var view = (params.get('view') || '').toLowerCase();
+      if (view === 'koloni') document.body.classList.add('sa-tile-select');
       var focusId = params.get('id');
       var hasMode = params.has('mode');
       var modeParam = params.get('mode');
@@ -328,7 +329,6 @@
               badge: x.hl.label,
               tone: x.hl.tone,
               num: KS.hiveNum(h),
-              sev: x.hl.key === 'act' ? 'act' : (x.hl.key === 'check' ? 'check' : ''),
               dataHive: h.id,
               aria: h.name + ', ' + x.hl.label + ', ' + x.line
             });
@@ -391,7 +391,7 @@
       var ksKoloni = null;
       if ((view === 'koloni' || view === 'tarti') && window.SuperAriKapsam) {
         var KV = window.SuperAriKapsam;
-        document.body.classList.add('ks-body', 'ks-page');
+        document.body.classList.add('ks-body', 'ks-page', 'sa-tile-select');
         var brandV = document.querySelector('.brand'); if (brandV) brandV.style.display = 'none';
         var oc = document.getElementById('oldCard');
         oc.classList.add('ks-flat');

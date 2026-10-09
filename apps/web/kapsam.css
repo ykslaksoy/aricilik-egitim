@@ -116,8 +116,10 @@ body.ks-body{background:#f0f1f3;}
 .ks-glove main .bk-item{min-height:64px;}
 .ks-glove .bp-row{grid-template-columns:1fr !important;}
 
+/* k115: Ana döşeme (.ana-hive-grid .tile) legacy .ks-tile ile karışmaz; yalnız ana-hive-tiles.css */
+.ana-hive-grid .tile { border: 1px solid var(--ks-border, #e4e6ea); }
 /* k96: Ana/Muayene kovan çizimi (anaHiveHtml) — Tartı/Kovanlar döşemelerinde aynı görünüm */
-.ks-tile .hive-area,.ak-grid .hive-area{position:relative;flex:0 0 auto;width:100%;display:flex;align-items:center;justify-content:center;padding-top:0;}
+.ks-tile .hive-area,.ak-grid .hive-area,.ana-hive-grid .hive-area{position:relative;flex:0 0 auto;width:100%;display:flex;align-items:center;justify-content:center;padding-top:0;}
 .ks-tile .hive,.ak-grid .hive{width:58px;height:54px;position:relative;flex:0 0 auto;margin-top:0;}
 .ks-tile .hive-stack,.ak-grid .hive-stack{position:absolute;left:50%;top:1px;transform:translateX(-50%);width:44px;display:flex;flex-direction:column;align-items:stretch;}
 .ks-tile .hive-lid,.ak-grid .hive-lid{width:50px;height:6px;margin-left:-3px;margin-bottom:0;background:linear-gradient(180deg,#f4f5f7 0%,#c8ccd2 48%,#9aa1aa 100%);border-radius:2px 2px 1px 1px;box-shadow:0 1px 0 #7c828a;position:relative;z-index:1;}

@@ -252,7 +252,10 @@
   /** k107: Ana .grid > .tile ile birebir (bakim-akis muayene listesi ile aynı işaretleme) */
   function anaHiveTileHtml(o) {
     o = o || {};
-    var sev = o.sev === 'act' ? ' sev-act' : (o.sev === 'check' ? ' sev-check' : '');
+    var sev = '';
+    if (o.sevBorder && (o.sev === 'act' || o.sev === 'check')) {
+      sev = o.sev === 'act' ? ' sev-act' : ' sev-check';
+    }
     var extra = o.extraClass ? ' ' + o.extraClass : '';
     var href = o.href ? ' href="' + esc(o.href) + '"' : '';
     var data = '';

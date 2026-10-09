@@ -13,6 +13,9 @@ const pages = [
   { file: 'cihazlar.html', grid: 'grid ana-hive-grid', helper: 'anaModuleTile', forbid: 'ks-tile' }
 ];
 
+const css = fs.readFileSync(path.join(root, 'ana-hive-tiles.css'), 'utf8');
+assert.ok(!css.match(/^\.grid\.ana-hive-grid \.tile\.sev-check/m), 'sev-check must not apply without sa-health-tiles scope');
+
 pages.forEach(function (p) {
   const html = fs.readFileSync(path.join(root, p.file), 'utf8');
   assert.ok(html.includes('ana-hive-tiles.css'), p.file + ' links ana-hive-tiles.css');

@@ -54,12 +54,17 @@
 .ana-hive-grid .tile:active {
   transform: scale(.985);
 }
-.grid.ana-hive-grid .tile.sev-act,
-.ana-hive-grid .tile.sev-act { border: 2px solid #e03131; }
-.grid.ana-hive-grid .tile.sev-check,
-.ana-hive-grid .tile.sev-check { border: 2px solid #f08c00; }
-.grid.ana-hive-grid .tile.on,
-.ana-hive-grid .tile.on { border: 2px solid #1b5e20; background: #ebfbee; }
+/* Sağlık kenarlığı yalnızca açıkça istenen sayfalarda (Ana modül döşemeleri = rozet only). */
+body.sa-health-tiles .grid.ana-hive-grid .tile.sev-act,
+body.sa-health-tiles .ana-hive-grid .tile.sev-act,
+.grid.ana-hive-grid .tile[data-tile-sev="act"],
+.ana-hive-grid .tile[data-tile-sev="act"] { border: 2px solid #e03131; }
+body.sa-health-tiles .grid.ana-hive-grid .tile.sev-check,
+body.sa-health-tiles .ana-hive-grid .tile.sev-check,
+.grid.ana-hive-grid .tile[data-tile-sev="check"],
+.ana-hive-grid .tile[data-tile-sev="check"] { border: 2px solid #f08c00; }
+body.sa-tile-select .grid.ana-hive-grid .tile.on,
+body.sa-tile-select .ana-hive-grid .tile.on { border: 2px solid #1b5e20; background: #ebfbee; }
 .grid.ana-hive-grid .hive-area,
 .ana-hive-grid .hive-area {
   position: relative;
