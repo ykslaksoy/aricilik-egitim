@@ -95,8 +95,16 @@
     var kg = parseKg(o.kg);
     if (!(kg > 0 && kg < 400)) throw new Error('Geçerli bir ağırlık girin (kg)');
     var at = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(o.at || '')) ? String(o.at).slice(0, 16) : nowLocal();
-    var r = { id: 'tw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hiveId: Number(o.hiveId), at: at, date: at.slice(0, 10), kg: kg, source: o.source === 'otomatik' ? 'otomatik' : 'elle' };
+    var src = o.source === 'otomatik' ? 'otomatik' : (o.source === 'bakim-revize' ? 'bakim-revize' : 'elle');
+    var r = { id: 'tw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hiveId: Number(o.hiveId), at: at, date: at.slice(0, 10), kg: kg, source: src };
     if (r.source === 'otomatik') { if (o.deviceId) r.deviceId = String(o.deviceId).slice(0, 60); if (read().some(function (x) { return x.source === 'otomatik' && Number(x.hiveId) === r.hiveId && x.at === at; })) throw new Error('Bu okuma zaten kaydedildi'); }
+    if (r.source === 'bakim-revize') {
+      var lk = String(o.linkedEventId || '').slice(0, 48);
+      if (!lk) throw new Error('Bakım revizesi için olay bağlantısı gerekli');
+      if (read().some(function (x) { return x.source === 'bakim-revize' && Number(x.hiveId) === r.hiveId && (x.linkedEventId === lk || (x.syncFrom && x.syncFrom.indexOf(lk) >= 0)); })) throw new Error('Bu bakım kaydı için revize zaten yapıldı');
+      r.linkedEventId = lk;
+      var rd = parseKg(o.revizeDeltaKg); if (isFinite(rd) && rd !== 0) r.revizeDeltaKg = rd;
+    }
     if (!isFinite(r.hiveId)) throw new Error('Kovan seçin');
     if (o.kat) r.kat = true;
     if (o.besleme) r.besleme = true;
@@ -109,7 +117,25 @@
     var l = read(); l.push(r); write(l);
     return r;
   }
-  function remove(id) { write(read().filter(function (x) { return x.id !== id; })); }
+  function revertRevizeRow(x) {
+    if (!x || x.source !== 'bakim-revize' || !Number(x.revizeDeltaKg)) return;
+    var rev = Number(x.revizeDeltaKg), n = Number(x.hiveId);
+    var BD = global.SuperAriTartiBakim;
+    var cur = BD && BD.currentWeightKg ? BD.currentWeightKg(n) : Number(x.kg);
+    try {
+      var D = global.SuperAriDemo;
+      if (D && D.loadHives && D.saveHives) {
+        var w = Math.round((cur - rev) * 100) / 100;
+        D.saveHives(D.loadHives().map(function (h) { return h.id === n ? Object.assign({}, h, { weightKg: w > 0 ? w : h.weightKg }) : h; }));
+      }
+    } catch (eW) { /* ignore */ }
+  }
+  function removeRaw(id) { write(read().filter(function (r) { return r.id !== id; })); }
+  function remove(id) {
+    var l = read(), x = l.filter(function (r) { return r.id === id; })[0];
+    if (x) revertRevizeRow(x);
+    removeRaw(id);
+  }
   /** Grafik için: eskiden yeniye, eklenen kat/besleme ağırlığı sonraki okumalardan düşülmüş. */
   function series(hiveId, days) {
     var from = new Date(Date.now() - (days || 30) * 86400000).toISOString().slice(0, 10);
@@ -127,7 +153,9 @@
   }
   function rowHtml(x, opts) {
     var D = global.SuperAriDemo, h = opts && opts.showHive && D ? D.hiveById(x.hiveId) : null;
-    return '<div class="te-row"><span class="te-tag' + (x.source === 'otomatik' ? ' oto' : '') + '">' + (x.source === 'otomatik' ? 'Cihaz' : 'Elle') + '</span><span class="te-main"><b>' + num(x.kg) + ' kg</b>' + (h ? ' · ' + esc(h.name) : '') + ' <small>' + esc(fmtAt(x.at)) + (x.demo ? ' · Demo' : '') + '</small>' +
+    var tag = x.source === 'otomatik' ? 'Cihaz' : (x.source === 'bakim-revize' ? 'Bakım' : 'Elle');
+    var tagCls = x.source === 'otomatik' ? ' oto' : (x.source === 'bakim-revize' ? ' rev' : '');
+    return '<div class="te-row"><span class="te-tag' + tagCls + '">' + tag + '</span><span class="te-main"><b>' + num(x.kg) + ' kg</b>' + (x.revizeDeltaKg ? ' <small>(' + (x.revizeDeltaKg > 0 ? '+' : '−') + num(Math.abs(x.revizeDeltaKg)) + ')</small>' : '') + (h ? ' · ' + esc(h.name) : '') + ' <small>' + esc(fmtAt(x.at)) + (x.demo ? ' · Demo' : '') + (x.source === 'bakim-revize' ? ' · Otomatik revize' : '') + '</small>' +
       (flagText(x) || x.note ? '<small class="te-sub">' + esc([flagText(x), x.note || ''].filter(Boolean).join(' · ')) + '</small>' : '') + '</span>' +
       (opts && opts.del ? '<button type="button" class="te-del" data-te-del="' + esc(x.id) + '" aria-label="Sil">🗑</button>' : '') + '</div>';
   }
@@ -203,7 +231,8 @@
     '.te-link{display:flex;align-items:center;justify-content:center;min-height:64px;padding:0 14px;border-radius:12px;border:1px solid #d8c7aa;background:#fff;color:#3d2616;font-weight:800;text-decoration:none;box-sizing:border-box;}.te-noscale .te-link{flex:none;}' +
     '.te-msg{margin:0;font-size:14px;}.te-msg.ok{color:#1b7a3d;font-weight:700;}.te-msg.err{color:#c92a2a;font-weight:700;}' +
     '.te-row{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid #f1e8da;font-size:14px;}.te-row:first-child{border-top:0;}' +
-    '.te-tag{flex:none;background:#fff3bf;color:#7a5b00;border:1px solid #ffe066;border-radius:999px;font-size:11px;font-weight:800;padding:1px 7px;margin-top:1px;}' +
+    '.te-tag{flex:none;background:#fff3bf;color:#7a5b00;border:1px solid #ffe066;border-radius:999px;font-size:11px;font-weight:800;padding:1px 7px;margin-top:1px;}.te-tag.rev{background:#e7f5ff;color:#1864ab;border-color:#a5d8ff;}' +
+    '.te-rev{margin:-2px 0 8px;padding:10px 12px;border-radius:12px;background:#f1f8ff;border:1px solid #a5d8ff;font-size:13px;font-weight:700;color:#1864ab;}.te-rev button{font:inherit;font-size:13px;font-weight:800;border-radius:10px;border:1px solid #74c0fc;background:#fff;color:#1864ab;padding:6px 10px;margin-top:8px;cursor:pointer;}' +
     '.te [hidden]{display:none!important;}.te-sync{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 6px;}.te-sync span{font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:#e7f5ff;color:#1864ab;border:1px solid #a5d8ff;}' +
     '.te-tare{margin:-4px 0 0;font-size:13px;font-weight:700;color:#5c4813;background:#fff3bf;border:1px solid #ffe066;border-radius:10px;padding:6px 8px;}' +
     '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:#f8f1e6;border-radius:12px;font-size:20px;cursor:pointer;width:64px;height:64px;}';
@@ -226,6 +255,7 @@
       '<label class="f">Tarih / saat<input type="datetime-local" name="at" value="' + nowLocal() + '"></label>' +
       '<p class="te-tare" data-te-tare hidden></p>' +
       '<div class="te-sync" data-te-sync hidden></div>' +
+      '<div class="te-rev" data-te-rev hidden></div>' +
       '<label class="te-chk"><input type="checkbox" name="kat"> Kat eklendi</label>' +
       '<label class="te-chk"><input type="checkbox" name="besleme"> Besleme yapıldı</label>' +
       '<label class="f" data-te-add hidden>Eklenen ağırlık (kg, isteğe bağlı — sonraki okumalardan düşülür)<input type="number" name="addKg" inputmode="decimal" step="0.1" min="0" max="100" placeholder="ör. kat ≈ 8, 5 L şurup ≈ 6,5"></label>' +
@@ -241,7 +271,27 @@
       (h ? '<a class="te-link" style="margin-top:10px;" href="kovan.html?id=' + encodeURIComponent(h.id) + '">🏠 Kovan detayı ›</a>' : '') + '</div>';
     document.body.appendChild(back);
     var f = back.querySelector('[data-te-form]');
-    var syncHint = null;
+    var syncHint = null, revHint = null;
+    function renderRev(hid) {
+      var revEl = back.querySelector('[data-te-rev]');
+      if (!revEl) return;
+      revHint = null;
+      revEl.hidden = true;
+      revEl.innerHTML = '';
+      if (hid == null || hid === '') return;
+      var BD = global.SuperAriTartiBakim;
+      if (!BD || !BD.pendingRevize) return;
+      try { revHint = BD.pendingRevize(hid); } catch (eR) { revHint = null; }
+      if (!revHint) return;
+      var parts = [];
+      if (revHint.autoApplied && revHint.autoApplied.length) parts.push('Otomatik uygulandı: ' + revHint.autoApplied.slice(0, 3).join(' · '));
+      if (revHint.chips && revHint.chips.length) parts.push('Bekleyen: ' + revHint.chips.join(' · '));
+      if (!parts.length) return;
+      var sug = revHint.suggestedKg != null && revHint.netKg ? ' Önerilen tartı: ' + num(revHint.suggestedKg) + ' kg.' : '';
+      revEl.hidden = false;
+      revEl.innerHTML = parts.join('<br>') + sug + (revHint.netKg ? '<br><button type="button" data-te-rev-dismiss>Öneriyi kapat (otomatik revize zaten uygulandıysa elle girin)</button>' : '');
+      if (revHint.suggestedKg != null && revHint.netKg && !f.elements.kg.value) f.elements.kg.value = String(revHint.suggestedKg).replace('.', ',');
+    }
     if (h) {
       var TS = global.SuperAriTartiSync;
       if (TS && TS.hints) {
@@ -256,6 +306,7 @@
           }
         }
       }
+      renderRev(h.id);
     }
     function curHive() { return h ? h.id : (f.elements.hive && f.elements.hive.value); }
     function renderList() {
@@ -285,6 +336,7 @@
         syncEl.innerHTML = syncHint.chips.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('');
       }
       toggleAdd();
+      renderRev(hid);
     }
     renderList(); showTare(); if (syncHint && (syncHint.kat || syncHint.besleme)) toggleAdd();
     back.addEventListener('change', function (e) {
@@ -294,6 +346,14 @@
       else if (e.target.name === 'kat' || e.target.name === 'besleme') toggleAdd();
     });
     back.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-te-rev-dismiss]')) {
+        var hidD = curHive(), BD = global.SuperAriTartiBakim;
+        if (BD && revHint && revHint.items && hidD != null) {
+          revHint.items.forEach(function (it) { if (!it.applied && it.key) BD.dismiss(hidD, it.key); });
+          renderRev(hidD);
+        }
+        return;
+      }
       if (e.target === back || (e.target.hasAttribute && e.target.hasAttribute('data-te-close'))) { close(); if (typeof opts.onClose === 'function') opts.onClose(); return; }
       if (e.target.closest && e.target.closest('[data-te-auto-save]') && auto) {
         var ma = back.querySelector('[data-te-msg]'), bt = e.target.closest('[data-te-auto-save]');
@@ -327,5 +387,5 @@
     if (!TS || !TS.hints) return { kat: false, besleme: false, katSrc: [], beslemeSrc: [], chips: [] };
     return TS.hints(hiveId, Object.assign({ list: list }, opts || {}));
   }
-  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
+  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, removeRaw: removeRaw, revertRevizeRow: revertRevizeRow, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
 })(window);

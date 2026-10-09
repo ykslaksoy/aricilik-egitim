@@ -201,6 +201,7 @@ const SHELL = [
   "/stok.html",
   "/styles.css",
   "/tarti-muayene-sync.js",
+  "/tarti-bakim-delta.js",
   "/tarti-elle.js",
   "/uyarilar.html",
   "/vendor/jsqr.js",

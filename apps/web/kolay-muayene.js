@@ -366,14 +366,34 @@
     function save(andNext) {
       var b = build(h, st), R = D.records, ids = [], msgs = [];
       if (!b.strength && !b.brood && !b.calm && !b.boxes) { global.alert && global.alert('Kaydedilecek bilgi yok; en az bir adımı yanıtlayın.'); return; }
-      var s1 = b.strength ? R.add(h.id, 'strength', b.strength) : null; if (s1) { ids.push({ id: s1.id, kind: 'strength' }); msgs.push('muayene'); }
+      var s1 = b.strength ? R.add(h.id, 'strength', b.strength) : null;
+      if (s1) {
+        ids.push({ id: s1.id, kind: 'strength' });
+        msgs.push('muayene');
+        try {
+          var BDs = global.SuperAriTartiBakim;
+          if (BDs && BDs.applyFromRecord) BDs.applyFromRecord(h.id, 'strength', s1);
+        } catch (eSt) { /* ignore */ }
+      }
       var s2 = b.brood ? R.add(h.id, 'brood', b.brood) : null; if (s2) { ids.push({ id: s2.id, kind: 'brood' }); msgs.push('yavru durumu'); }
       var patch = {};
       if (b.calm) patch.calmness = b.calm;
       if (b.queenYear) patch.queenYear = b.queenYear;
       if (Object.keys(patch).length) { try { D.colony.updateHive(h.id, patch, 'correct'); msgs.push(b.queenYear ? 'sakinlik / ana yılı' : 'sakinlik'); } catch (e) { /* ignore */ } }
       var P = global.SuperAriPlan;
-      if (b.boxes && D.colony.setBoxes) { D.colony.setBoxes(h.id, b.boxes); msgs.push('kovan kutusu'); }
+      if (b.boxes && D.colony.setBoxes) {
+        var prevBox = null;
+        try { prevBox = D.colony.boxes ? D.colony.boxes(h) : null; } catch (eBx) { prevBox = null; }
+        D.colony.setBoxes(h.id, b.boxes);
+        msgs.push('kovan kutusu');
+        try {
+          var BD = global.SuperAriTartiBakim;
+          if (BD && BD.applyFromBoxes) {
+            var apB = BD.applyFromBoxes(h.id, prevBox, b.boxes, today());
+            if (apB && apB.key && ids.length) ids.push({ id: apB.key, kind: 'boxes-revize' });
+          }
+        } catch (eBd) { /* ignore */ }
+      }
       else if (b.superOn && P && P.setSuper) { P.setSuper(h.id, true); msgs.push('bal katı'); }
       var open = []; try { open = D.taskStore.open().map(function (x) { return x.title; }); } catch (e) { open = []; }
       var nt = 0;
