@@ -64,6 +64,110 @@
     return String(n);
   }
 
+  /** E-posta girişi — ham API kodlarını kullanıcıya gösterme */
+  var Membership = (function () {
+    var K = 'superari.membership';
+    var ERRORS = {
+      invalid_credentials: 'E-posta veya şifre hatalı',
+      no_session: 'Oturum bulunamadı',
+      method_not_allowed: 'İstek geçersiz',
+      login_failed: 'Giriş yapılamadı',
+      not_found: 'Sunucuya ulaşılamadı',
+      email_mismatch: 'E-posta veya şifre hatalı',
+      password_mismatch: 'E-posta veya şifre hatalı',
+      not_verified: 'Hesap henüz doğrulanmadı. Lütfen onay kodunu girin.'
+    };
+
+    function errorText(code) {
+      if (!code) return 'Giriş yapılamadı';
+      var key = String(code);
+      if (ERRORS[key]) return ERRORS[key];
+      if (/^[a-z0-9]+(?:_[a-z0-9]+)+$/i.test(key)) return 'Giriş yapılamadı';
+      return 'Giriş yapılamadı';
+    }
+
+    function get() {
+      return readJson(K, null);
+    }
+    function set(d) {
+      writeJson(K, d);
+    }
+    function clear() {
+      try { localStorage.removeItem(K); } catch (e) { /* ignore */ }
+    }
+    function token() {
+      var g = get();
+      return g && g.token ? g.token : null;
+    }
+
+    function login(creds) {
+      creds = creds || {};
+      return fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: creds.email, password: creds.password })
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          if (data && data.ok && data.session) {
+            set({
+              token: data.session.token,
+              email: data.user.email,
+              ad: data.user.ad,
+              mode: data.user.mode
+            });
+          }
+          return data;
+        });
+      }).catch(function () {
+        return { ok: false, error: 'login_failed' };
+      });
+    }
+
+    function me() {
+      var t = token();
+      if (!t) return Promise.resolve(null);
+      return fetch('/api/auth/me', { headers: { 'X-Session-Token': t } })
+        .then(function (res) {
+          if (!res.ok) {
+            clear();
+            return null;
+          }
+          return res.json();
+        })
+        .catch(function () {
+          clear();
+          return null;
+        });
+    }
+
+    function logout() {
+      var t = token();
+      var done = Promise.resolve();
+      if (t) {
+        done = fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': t },
+          body: JSON.stringify({ token: t })
+        }).catch(function () {});
+      }
+      return done.then(function () {
+        clear();
+      });
+    }
+
+    return {
+      get: get,
+      set: set,
+      clear: clear,
+      token: token,
+      login: login,
+      me: me,
+      logout: logout,
+      errorText: errorText
+    };
+  })();
+  window.Membership = Membership;
+
   function normalizeAccount(raw) {
     raw = raw || {};
     var tip = normalizeHesapTipi(raw.hesapTipi || raw.role || raw.rol || 'arici');
@@ -311,6 +415,8 @@
       var show = input.type === "password";
       input.type = show ? "text" : "password";
       btn.textContent = show ? "Gizle" : "Göster";
+      btn.setAttribute('aria-label', show ? 'Şifreyi gizle' : 'Şifreyi göster');
+      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
     });
   });
 
@@ -366,21 +472,38 @@
         clearFormError(form);
         var email = String(fd.get('email') || '').trim();
         var password = String(fd.get('password') || '');
-        var result = SuperAriHesap.login(email, password);
-        if (!result.ok) {
-          var msg = 'Giriş başarısız.';
-          if (result.error === 'password_mismatch' || result.error === 'email_mismatch') {
-            msg = 'E-posta veya şifre hatalı.';
-          } else if (result.error === 'not_verified') {
-            msg = 'Hesap henüz doğrulanmadı. Lütfen onay kodunu girin.';
+        if (btn) btn.disabled = true;
+
+        function finishLocal() {
+          var result = SuperAriHesap.login(email, password);
+          if (!result.ok) {
+            showFormError(form, Membership.errorText(result.error));
+            if (result.error === 'not_verified') {
+              setTimeout(function () { window.location.href = 'onay.html'; }, 900);
+            }
+            return;
           }
-          showFormError(form, msg);
-          if (result.error === 'not_verified') {
-            setTimeout(function () { window.location.href = 'onay.html'; }, 900);
-          }
-          return;
+          window.location.href = SuperAriHesap.homeFor(SuperAriHesap.get());
         }
-        window.location.href = SuperAriHesap.homeFor(SuperAriHesap.get());
+
+        Membership.login({ email: email, password: password }).then(function (data) {
+          if (btn) btn.disabled = false;
+          if (data && data.ok) {
+            SuperAriHesap.set('arici');
+            writeJson(SESSION_KEY, { email: data.user.email || email, at: nowIso(), membership: true });
+            window.location.href = data.panel || SuperAriHesap.homeFor('arici');
+            return;
+          }
+          if (data && data.ok === false && data.error === 'invalid_credentials') {
+            showFormError(form, Membership.errorText(data.error));
+            return;
+          }
+          if (data && data.ok === false && data.error === 'login_failed') {
+            finishLocal();
+            return;
+          }
+          finishLocal();
+        });
         return;
       }
 
