@@ -66,4 +66,30 @@ mem['superari.workMode'] = 'demo';
 P.appendReading({ type: 'tarti', hiveId: 101, deviceId: dev.id, at: '2026-10-09T12:00', kg: 38.5, demo: true });
 assert.ok(P.readStore('tarti').length >= 2);
 
+assert.strictEqual(P.clampBatteryPct(150), 100);
+assert.strictEqual(P.clampBatteryPct(-3), 0);
+assert.strictEqual(P.getBatteryLowPct(), 20);
+P.setBatteryLowPct(15, 'a1');
+assert.strictEqual(P.getBatteryLowPct('a1'), 15);
+
+const pilKey = P.storageKey('pil');
+mem[pilKey] = JSON.stringify([
+  { deviceId: dev.id, at: oldAt, batteryPct: 55, type: 'pil' },
+  { deviceId: dev.id, at: '2026-10-09T11:00', batteryPct: 48, type: 'pil' }
+]);
+const pilRemoved = P.pruneTip('pil');
+assert.ok(pilRemoved >= 1);
+assert.strictEqual(P.readBatteryStore().length, 1);
+
+P.appendReading({
+  type: 'pil', deviceId: dev.id, hiveId: 101, at: '2026-10-09T12:00',
+  batteryPct: 72, batteryV: 3.91, demo: true
+});
+const pilLast = P.lastBatteryReading(dev.id);
+assert.ok(pilLast && pilLast.batteryPct === 72);
+
+P.tick();
+const devAfter = Dev.listDevices().filter((d) => d.id === dev.id)[0];
+assert.ok(devAfter && devAfter.batteryPct != null);
+
 console.log('sensor-polling ok');

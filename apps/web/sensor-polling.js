@@ -16,8 +16,12 @@
     isi_nem: 'superari.sensor.isi_nem.v1',
     ses: 'superari.sensor.ses.v1',
     titresim: 'superari.sensor.titresim.v1',
-    ir: 'superari.sensor.ir.v1'
+    ir: 'superari.sensor.ir.v1',
+    pil: 'superari.sensor.pil.v1'
   };
+
+  var DEFAULT_BATTERY_LOW_PCT = 20;
+  var DEFAULT_BATTERY_INTERVAL_MS = 14400000; /* 4 saat */
 
   /** Rakip varsayımları: BroodMinder tartı ~1 sa; TH sık; Arnia/bScale günlük/4x günlük ağırlık. */
   var DEFAULT_INTERVAL_MS = {
@@ -64,7 +68,15 @@
   function dayOf(at) { return String(at || '').slice(0, 10); }
 
   function emptyConfig() {
-    return { defaults: {}, byDevice: {}, byApiary: {}, lastPoll: {} };
+    return {
+      defaults: {},
+      byDevice: {},
+      byApiary: {},
+      lastPoll: {},
+      lastPollBattery: {},
+      batteryLowPct: DEFAULT_BATTERY_LOW_PCT,
+      batteryLowPctByApiary: {}
+    };
   }
 
   function getConfig() {
@@ -74,7 +86,41 @@
     c.byDevice = c.byDevice && typeof c.byDevice === 'object' ? c.byDevice : {};
     c.byApiary = c.byApiary && typeof c.byApiary === 'object' ? c.byApiary : {};
     c.lastPoll = c.lastPoll && typeof c.lastPoll === 'object' ? c.lastPoll : {};
+    c.lastPollBattery = c.lastPollBattery && typeof c.lastPollBattery === 'object' ? c.lastPollBattery : {};
+    if (c.batteryLowPct == null || !isFinite(Number(c.batteryLowPct))) c.batteryLowPct = DEFAULT_BATTERY_LOW_PCT;
+    c.batteryLowPctByApiary = c.batteryLowPctByApiary && typeof c.batteryLowPctByApiary === 'object'
+      ? c.batteryLowPctByApiary : {};
     return c;
+  }
+
+  function clampBatteryPct(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return null;
+    return Math.max(0, Math.min(100, Math.round(x)));
+  }
+
+  function getBatteryLowPct(apiaryId) {
+    var c = getConfig();
+    var ap = apiaryId != null ? String(apiaryId) : '';
+    if (ap && c.batteryLowPctByApiary[ap] != null) {
+      var v = clampBatteryPct(c.batteryLowPctByApiary[ap]);
+      if (v != null) return v;
+    }
+    var g = clampBatteryPct(c.batteryLowPct);
+    return g != null ? g : DEFAULT_BATTERY_LOW_PCT;
+  }
+
+  function setBatteryLowPct(pct, apiaryId) {
+    var v = clampBatteryPct(pct);
+    if (v == null) return false;
+    var c = getConfig();
+    if (apiaryId != null && String(apiaryId)) {
+      c.batteryLowPctByApiary[String(apiaryId)] = v;
+    } else {
+      c.batteryLowPct = v;
+    }
+    saveConfig(c);
+    return true;
   }
 
   function saveConfig(c) { writeJ(CONFIG_KEY, c || emptyConfig()); }
@@ -187,25 +233,33 @@
   function pruneAll() {
     var n = 0;
     POLLABLE_TIPS.forEach(function (t) { n += pruneTip(t); });
+    n += pruneTip('pil');
     return n;
   }
 
   function appendReading(rec) {
-    if (!rec || !rec.type || !rec.hiveId || !rec.at) return null;
+    if (!rec || !rec.type || !rec.at) return null;
+    if (rec.type === 'pil') {
+      if (!rec.deviceId) return null;
+    } else if (!rec.hiveId) return null;
     var tip = rec.type;
     var key = storageKey(tip);
     if (!key) return null;
     var list = pruneList(readStore(tip), tip);
     var dup = list.some(function (x) {
-      return Number(x.hiveId) === Number(rec.hiveId) && String(x.deviceId || '') === String(rec.deviceId || '') && x.at === rec.at;
+      if (x.at !== rec.at) return false;
+      if (tip === 'pil') return String(x.deviceId || '') === String(rec.deviceId || '');
+      return Number(x.hiveId) === Number(rec.hiveId) &&
+        String(x.deviceId || '') === String(rec.deviceId || '');
     });
     if (dup) return null;
     var row = {
-      hiveId: Number(rec.hiveId),
       deviceId: rec.deviceId != null ? String(rec.deviceId) : undefined,
       at: String(rec.at).slice(0, 16),
       type: tip
     };
+    if (rec.hiveId != null) row.hiveId = Number(rec.hiveId);
+    if (rec.apiaryId != null) row.apiaryId = String(rec.apiaryId);
     if (tip === 'tarti' && rec.kg != null) row.kg = Math.round(Number(rec.kg) * 100) / 100;
     if (tip === 'isi_nem') {
       if (rec.tempC != null) row.tempC = Math.round(Number(rec.tempC) * 10) / 10;
@@ -214,6 +268,10 @@
     if (tip === 'ses' && rec.level != null) row.level = Math.round(Number(rec.level) * 10) / 10;
     if (tip === 'titresim' && rec.level != null) row.level = Math.round(Number(rec.level) * 10) / 10;
     if (tip === 'ir' && rec.count != null) row.count = Math.round(Number(rec.count));
+    if (tip === 'pil') {
+      if (rec.batteryPct != null) row.batteryPct = clampBatteryPct(rec.batteryPct);
+      if (rec.batteryV != null) row.batteryV = Math.round(Number(rec.batteryV) * 100) / 100;
+    }
     if (rec.demo) row.demo = true;
     list.push(row);
     list = pruneList(list, tip);
@@ -246,6 +304,66 @@
     var c = getConfig();
     c.lastPoll[String(deviceId)] = nowMs;
     saveConfig(c);
+  }
+
+  function markBatteryPolled(deviceId, nowMs) {
+    var c = getConfig();
+    c.lastPollBattery[String(deviceId)] = nowMs;
+    saveConfig(c);
+  }
+
+  function deviceHasBattery(device) {
+    if (!device || device.tip === 'gateway') return false;
+    var Dev = global.SuperAriDevices;
+    if (Dev && typeof Dev.hasBatterySensor === 'function') return Dev.hasBatterySensor(device.tip);
+    return device.tip !== 'gateway';
+  }
+
+  function isBatteryDue(device, nowMs, piggyback) {
+    if (!deviceHasBattery(device)) return false;
+    if (device.status !== 'bagli' && !piggyback) return false;
+    var c = getConfig();
+    var last = c.lastPollBattery[String(device.id)] || 0;
+    if (piggyback) return true;
+    return !last || (nowMs - last) >= DEFAULT_BATTERY_INTERVAL_MS;
+  }
+
+  function simulateBattery(device) {
+    if (!deviceHasBattery(device)) return null;
+    var id = String(device.id || 'x');
+    var seed = 0;
+    for (var i = 0; i < id.length; i++) seed += id.charCodeAt(i);
+    var hours = Date.now() / 3600000;
+    var wave = (Math.sin(hours / 36 + seed * 0.17) + 1) / 2;
+    var pct = clampBatteryPct(12 + wave * 83);
+    var v = Math.round((3.25 + (pct / 100) * 0.95) * 100) / 100;
+    var at = nowLocalIso();
+    var row = appendReading({
+      type: 'pil',
+      deviceId: device.id,
+      hiveId: device.hiveId,
+      apiaryId: device.apiaryId,
+      at: at,
+      batteryPct: pct,
+      batteryV: v,
+      demo: device.source === 'demo' || !isLive()
+    });
+    var Dev = global.SuperAriDevices;
+    if (Dev && typeof Dev.setDeviceBattery === 'function') {
+      Dev.setDeviceBattery(device.id, { batteryPct: pct, batteryV: v, batteryAt: at }, { source: device.source });
+    }
+    return row;
+  }
+
+  function pollBattery(device, piggyback) {
+    if (!device) return null;
+    var nowMs = Date.now();
+    if (!isBatteryDue(device, nowMs, !!piggyback)) return null;
+    var row = null;
+    if (device.source === 'demo' || !isLive()) row = simulateBattery(device);
+    else pruneTip('pil');
+    markBatteryPolled(device.id, nowMs);
+    return row;
   }
 
   function simulateDemo(device) {
@@ -286,6 +404,7 @@
     if (device.source === 'demo' || !isLive()) row = simulateDemo(device);
     else pruneTip(device.tip); /* canlı: yalnız saklama; okuma entegrasyon push eder */
     markPolled(device.id, nowMs);
+    pollBattery(device, true);
     return row;
   }
 
@@ -298,11 +417,27 @@
     return list.filter(function (d) { return isDue(d, nowMs); });
   }
 
+  function listBatteryDueDevices() {
+    var Dev = global.SuperAriDevices;
+    if (!Dev || !Dev.listDevices) return [];
+    var nowMs = Date.now();
+    var list = [];
+    try { list = Dev.listDevices(); } catch (e) { list = []; }
+    return list.filter(function (d) {
+      if (!isBatteryDue(d, nowMs, false)) return false;
+      if (POLLABLE_TIPS.indexOf(d.tip) >= 0) return !isDue(d, nowMs);
+      return true;
+    });
+  }
+
   function tick() {
     pruneAll();
     var polled = 0;
     listDueDevices().forEach(function (d) {
       if (pollDevice(d)) polled += 1;
+    });
+    listBatteryDueDevices().forEach(function (d) {
+      if (pollBattery(d, false)) polled += 1;
     });
     return polled;
   }
@@ -395,7 +530,20 @@
     startScheduler: startScheduler,
     selectHtml: selectHtml,
     bindPollSelects: bindPollSelects,
-    presetsForTip: presetsForTip
+    presetsForTip: presetsForTip,
+    DEFAULT_BATTERY_INTERVAL_MS: DEFAULT_BATTERY_INTERVAL_MS,
+    DEFAULT_BATTERY_LOW_PCT: DEFAULT_BATTERY_LOW_PCT,
+    getBatteryLowPct: getBatteryLowPct,
+    setBatteryLowPct: setBatteryLowPct,
+    clampBatteryPct: clampBatteryPct,
+    pollBattery: pollBattery,
+    readBatteryStore: function () { return readStore('pil'); },
+    lastBatteryReading: function (deviceId) {
+      var list = readStore('pil').filter(function (x) {
+        return String(x.deviceId || '') === String(deviceId);
+      });
+      return list.length ? list[list.length - 1] : null;
+    }
   };
 
   mountSwListener();

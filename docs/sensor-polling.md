@@ -20,15 +20,17 @@ SüperArı istemci zamanlayıcısı bu tabloya göre **varsayılan aralıkları*
 | Ses (`ses`) | 1 saat | 1 / 4 / 12 / 24 saat |
 | Titreşim (`titresim`) | 30 dk | 30 dk, 1 / 4 / 12 / 24 saat |
 | IR (`ir`) | 4 saat | 1 / 4 / 12 / 24 saat |
+| Pil (`pil`) | 4 saat (veya sensör ölçümüyle birlikte) | — (otomatik) |
 
-Yapılandırma: `localStorage` anahtarı `superari.sensor.polling.v1` (`byDevice`, `byApiary`, `defaults`).
+Yapılandırma: `localStorage` anahtarı `superari.sensor.polling.v1` (`byDevice`, `byApiary`, `defaults`, `batteryLowPct`, `batteryLowPctByApiary`).
 
 ## Saklama (~6 ay)
 
 - **Süre:** 183 gün (`RETENTION_DAYS`).
 - **Yöntem:** Okuma listelerinde `at` alanına göre budama; her yazımda da uygulanır.
-- **Depo anahtarları:** `superari.sensor.tarti.v1`, `superari.sensor.isi_nem.v1`, `superari.sensor.ses.v1`, `superari.sensor.titresim.v1`, `superari.sensor.ir.v1`.
-- **Kayıt şeması:** `{ hiveId, deviceId?, at, type, kg|tempC|rh|level|count, demo? }`.
+- **Depo anahtarları:** `superari.sensor.tarti.v1`, `superari.sensor.isi_nem.v1`, `superari.sensor.ses.v1`, `superari.sensor.titresim.v1`, `superari.sensor.ir.v1`, `superari.sensor.pil.v1`.
+- **Kayıt şeması:** `{ hiveId, deviceId?, at, type, kg|tempC|rh|level|count|batteryPct|batteryV, demo? }`.
+- **Pil:** Cihaz kaydında `batteryPct`, `batteryV`, `batteryAt`, `batteryLow` (`device-runtime.js`). Düşük pil eşiği varsayılan **%20** (Ayarlar › Cihazlar).
 
 ### Yaklaşık üst sınır (tek kovan, tek cihaz)
 

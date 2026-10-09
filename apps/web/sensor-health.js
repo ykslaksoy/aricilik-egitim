@@ -291,10 +291,30 @@
     };
   }
 
+  /** Tartı / sensör kopukken pil ipucu (tek satır, Türkçe). */
+  function deviceBatteryOfflineHint(hiveId, tip) {
+    var Dev = global.SuperAriDevices;
+    if (!Dev || !Dev.listDevices || hiveId == null) return '';
+    var want = tip || 'tarti';
+    var list = [];
+    try { list = Dev.listDevices(); } catch (e) { list = []; }
+    var d = list.filter(function (x) {
+      return x && x.tip === want && x.hiveId != null && Number(x.hiveId) === Number(hiveId);
+    })[0];
+    if (!d || d.status === 'bagli') return '';
+    var pct = d.batteryPct != null ? d.batteryPct : d.battery;
+    if (pct == null) return '';
+    var low = Dev.isBatteryLow ? Dev.isBatteryLow(d) : Number(pct) <= 20;
+    if (!low) return '';
+    var label = want === 'tarti' ? 'Tartı' : (Dev.tipLabel ? Dev.tipLabel(want) : 'Cihaz');
+    return label + ' bağlı değil — pil düşük (%' + pct + '); şarj veya pil değişimi gerekebilir.';
+  }
+
   global.SuperAriSensorHealth = {
     band: band,
     evaluateHive: evaluateHive,
     evaluateAll: evaluateAll,
-    materialsForActions: materialsForActions
+    materialsForActions: materialsForActions,
+    deviceBatteryOfflineHint: deviceBatteryOfflineHint
   };
 })(window);
