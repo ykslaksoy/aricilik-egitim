@@ -625,12 +625,22 @@
           pushExpandTasks('hibrit', u);
           return { text: 'Hibrit plan kaydedildi · kat işlendi', say: 'hibrit plan, kat eklendi', undo: u };
         }
+        if (opt === 'kat_rotasyon') {
+          setKat(1, u);
+          addEvent(h, 'bakim', 'Kat rotasyonu (2→3 sıra): 2. kat alındı, 3. kat 2. sıraya kondu', res, step, u);
+          pushExpandTasks('kat_rotasyon', u);
+          try {
+            var TR = global.SuperAriTartiRotasyon;
+            if (TR && TR.open) global.setTimeout(function () { TR.open({ hiveId: h.id, fromBakim: true }); }, 500);
+          } catch (eTr) { /* ignore */ }
+          return { text: 'Kat rotasyonu kaydedildi · tartım sihirbazı açılıyor', say: 'kat rotasyonu, tartım gerekli', undo: u };
+        }
         setKat(1, u);
         addEvent(h, 'bakim', '1 kat eklendi (genişleme)', res, step, u);
         pushExpandTasks('kat_ekle', u);
         return { text: '1 kat eklendi', say: 'bir kat eklendi', undo: u };
       }
-      if (exp && exp.kind === 'strategy' && exp.options.length) {
+      if (exp && (exp.kind === 'strategy' || exp.kind === 'super_shuffle') && exp.options.length) {
         var stratOpts = exp.options.filter(function (o) { return o.id !== exp.recommendedId; }).map(function (o) {
           return { id: o.id, label: o.label, say: o.say || [o.id] };
         });

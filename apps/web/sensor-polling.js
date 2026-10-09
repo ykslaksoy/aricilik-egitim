@@ -400,12 +400,42 @@
     if (!device) return null;
     var nowMs = Date.now();
     if (!isDue(device, nowMs)) return null;
+    return pollDeviceNow(device, { nowMs: nowMs });
+  }
+
+  /** Zamanlayıcıyı beklemeden ölçüm isteği (tartı «tarttır»). Demo simüle eder; canlıda son push okuması döner. */
+  function pollDeviceNow(device, opts) {
+    opts = opts || {};
+    if (!device) return null;
+    var nowMs = opts.nowMs != null ? opts.nowMs : Date.now();
     var row = null;
     if (device.source === 'demo' || !isLive()) row = simulateDemo(device);
-    else pruneTip(device.tip); /* canlı: yalnız saklama; okuma entegrasyon push eder */
+    else {
+      pruneTip(device.tip);
+      if (device.tip === 'tarti' && device.hiveId != null) {
+        var list = readStore('tarti').filter(function (x) {
+          return Number(x.hiveId) === Number(device.hiveId) && Number(x.kg) > 0;
+        });
+        row = list.length ? list[list.length - 1] : null;
+      }
+    }
     markPolled(device.id, nowMs);
     pollBattery(device, true);
     return row;
+  }
+
+  function requestTartiWeigh(hiveId) {
+    var Dev = global.SuperAriDevices;
+    if (!Dev || !Dev.listDevices) return { ok: false, reason: 'no-devices' };
+    var list = [];
+    try { list = Dev.listDevices(); } catch (e) { list = []; }
+    var dv = list.filter(function (d) {
+      return d && d.tip === 'tarti' && d.hiveId != null && Number(d.hiveId) === Number(hiveId);
+    })[0];
+    if (!dv) return { ok: false, reason: 'no-scale' };
+    var row = pollDeviceNow(dv, { force: true });
+    if (!row || row.kg == null) return { ok: false, reason: 'no-reading', device: dv };
+    return { ok: true, device: dv, row: row };
   }
 
   function listDueDevices() {
@@ -526,6 +556,8 @@
     pruneTip: pruneTip,
     appendReading: appendReading,
     pollDevice: pollDevice,
+    pollDeviceNow: pollDeviceNow,
+    requestTartiWeigh: requestTartiWeigh,
     tick: tick,
     startScheduler: startScheduler,
     selectHtml: selectHtml,

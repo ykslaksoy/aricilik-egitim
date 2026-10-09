@@ -95,9 +95,13 @@
     var kg = parseKg(o.kg);
     if (!(kg > 0 && kg < 400)) throw new Error('Geçerli bir ağırlık girin (kg)');
     var at = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(o.at || '')) ? String(o.at).slice(0, 16) : nowLocal();
-    var src = o.source === 'otomatik' ? 'otomatik' : (o.source === 'bakim-revize' ? 'bakim-revize' : 'elle');
+    var src = o.source === 'otomatik' ? 'otomatik' : (o.source === 'talep' ? 'talep' : (o.source === 'bakim-revize' ? 'bakim-revize' : 'elle'));
     var r = { id: 'tw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hiveId: Number(o.hiveId), at: at, date: at.slice(0, 10), kg: kg, source: src };
-    if (r.source === 'otomatik') { if (o.deviceId) r.deviceId = String(o.deviceId).slice(0, 60); if (read().some(function (x) { return x.source === 'otomatik' && Number(x.hiveId) === r.hiveId && x.at === at; })) throw new Error('Bu okuma zaten kaydedildi'); }
+    if (r.source === 'otomatik' || r.source === 'talep') {
+      if (o.deviceId) r.deviceId = String(o.deviceId).slice(0, 60);
+      if (o.requestedAt) r.requestedAt = String(o.requestedAt).slice(0, 16);
+      if (read().some(function (x) { return (x.source === 'otomatik' || x.source === 'talep') && Number(x.hiveId) === r.hiveId && x.at === at; })) throw new Error('Bu okuma zaten kaydedildi');
+    }
     if (r.source === 'bakim-revize') {
       var lk = String(o.linkedEventId || '').slice(0, 48);
       if (!lk) throw new Error('Bakım revizesi için olay bağlantısı gerekli');
@@ -153,8 +157,8 @@
   }
   function rowHtml(x, opts) {
     var D = global.SuperAriDemo, h = opts && opts.showHive && D ? D.hiveById(x.hiveId) : null;
-    var tag = x.source === 'otomatik' ? 'Cihaz' : (x.source === 'bakim-revize' ? 'Bakım' : 'Elle');
-    var tagCls = x.source === 'otomatik' ? ' oto' : (x.source === 'bakim-revize' ? ' rev' : '');
+    var tag = x.source === 'otomatik' ? 'Cihaz' : (x.source === 'talep' ? 'Talep' : (x.source === 'bakim-revize' ? 'Bakım' : 'Elle'));
+    var tagCls = x.source === 'otomatik' || x.source === 'talep' ? ' oto' : (x.source === 'bakim-revize' ? ' rev' : '');
     return '<div class="te-row"><span class="te-tag' + tagCls + '">' + tag + '</span><span class="te-main"><b>' + num(x.kg) + ' kg</b>' + (x.revizeDeltaKg ? ' <small>(' + (x.revizeDeltaKg > 0 ? '+' : '−') + num(Math.abs(x.revizeDeltaKg)) + ')</small>' : '') + (h ? ' · ' + esc(h.name) : '') + ' <small>' + esc(fmtAt(x.at)) + (x.demo ? ' · Demo' : '') + (x.source === 'bakim-revize' ? ' · Otomatik revize' : '') + '</small>' +
       (flagText(x) || x.note ? '<small class="te-sub">' + esc([flagText(x), x.note || ''].filter(Boolean).join(' · ')) + '</small>' : '') + '</span>' +
       (opts && opts.del ? '<button type="button" class="te-del" data-te-del="' + esc(x.id) + '" aria-label="Sil">🗑</button>' : '') + '</div>';
