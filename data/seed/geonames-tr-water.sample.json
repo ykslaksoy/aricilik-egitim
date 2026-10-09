@@ -1,0 +1,22 @@
+{
+  "description": "GeoNames TR su özellikleri — örnek kayıt (tam liste: scripts/import/download-geonames-tr.sh)",
+  "license": "GeoNames CC BY 4.0",
+  "features": [
+    {
+      "geonameId": 750269,
+      "name": "Uzungöl",
+      "lat": 40.619,
+      "lon": 40.288,
+      "featureClass": "H",
+      "featureCode": "LK"
+    },
+    {
+      "geonameId": 298117,
+      "name": "Yanikdag",
+      "lat": 41.081,
+      "lon": 40.754,
+      "featureClass": "T",
+      "featureCode": "MT"
+    }
+  ]
+}

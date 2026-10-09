@@ -1,0 +1,22 @@
+{
+  "description": "CLMS/CORINE özet ızgara — ~3 km hücre (üretim: scripts/import/README-corine-clms.md)",
+  "resolutionM": 3000,
+  "cells": [
+    {
+      "lat": 41.08,
+      "lon": 40.754,
+      "halfDeg": 0.014,
+      "label": "Karışık orman / çayır",
+      "dominance": "mixed_forest",
+      "forestPct": 62
+    },
+    {
+      "lat": 41.02,
+      "lon": 28.98,
+      "halfDeg": 0.014,
+      "label": "Maki / kırsal",
+      "dominance": "shrubland",
+      "forestPct": 18
+    }
+  ]
+}
