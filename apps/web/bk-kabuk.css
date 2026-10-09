@@ -76,6 +76,7 @@ body.bk-kabuk .phone > nav.tabbar .tab-plus { padding: 0 2px 4px; }
 body.bk-kabuk .screen > main.wrap { width: auto; max-width: none; margin: 0; padding: 0; }
 body.bk-kabuk .screen *, body.bk-kabuk .screen *::before, body.bk-kabuk .screen *::after { box-sizing: border-box; }
 /* Kapsam kartı = bakim.html .weather.bk-scope */
+body.bk-kabuk #ksScope.weather.bk-scope,
 body.bk-kabuk #ksScope.ks-card {
   margin: 0; min-height: 205px; justify-content: space-between; gap: 6px;
   background: #fff; border: 1px solid #e6e8ec; border-radius: 14px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
@@ -92,11 +93,20 @@ body.bk-kabuk #ksScope .ks-note {
   color: #4a2f1a; font-size: 11px; font-weight: 650; line-height: 1.2; flex-wrap: nowrap;
 }
 body.bk-kabuk #ksScope .ks-note-t { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 2px; }
-body.bk-kabuk #ksScope .ks-note-b {
+body.bk-kabuk #ksScope .ks-note-b,
+body.bk-kabuk #ksScope .muayene-hint-ok {
   height: 26px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid rgba(176, 140, 60, 0.45); border-radius: 8px; background: rgba(255, 252, 244, 0.95);
   color: #4a2f1a; font-size: 11px; font-weight: 750; letter-spacing: .01em;
 }
+body.bk-kabuk #ksScope.weather.bk-scope .bk-note,
+body.bk-kabuk #ksScope.weather.bk-scope .muayene-hint.bk-note {
+  height: 36px; min-height: 36px; max-height: 36px; overflow: hidden; margin-top: 2px;
+  padding: 4px 6px; border-radius: 10px; background: #fff8df; border: 1px solid #e0c56a;
+  color: #4a2f1a; font-size: 11px; font-weight: 650; line-height: 1.2; flex-wrap: nowrap;
+  text-decoration: none; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+body.bk-kabuk #ksScope.weather.bk-scope .muayene-hint-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 2px; flex: 1; min-width: 0; }
 /* Döşemeler = bakim.html .grid / .tile / .tile-label / .badge */
 body.bk-kabuk .ks-grid,
 body.bk-kabuk .grid.ana-hive-grid,

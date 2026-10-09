@@ -50,9 +50,14 @@
       host.parentNode.insertBefore(tools, host.nextSibling);
     }
     var init0 = o.initial || scopeNow();
+    var navChips = o.navChips;
+    var navInCard = o.navInCard !== false;
+    if (navInCard && !navChips) navChips = KS.defaultNavChips(init0 === 'all' ? '' : init0);
+    if (navInCard) doc.body.classList.add('ks-scope-nav-in-card');
     var ctl = KS.mount(host, {
       title: o.title, icon: o.icon || KS.ICON_KOVAN, page: o.page || global.location.pathname.split('/').pop(), initial: init0,
-      stats: o.stats, note: o.note, noAll: !!o.noAll, topEnd: o.topEnd, topExtra: o.topExtra,
+      bk: o.bk !== false, navInCard: navInCard, navChips: navChips,
+      stats: o.stats, note: o.note, noAll: !!o.noAll, topEnd: o.topEnd, topExtra: o.topExtra, weatherEnd: o.weatherEnd,
       onChange: function (scope, hs, sum) {
         /* kapsam değişti → sayfa o arılıkla yeniden açılır (sayfanın kendi süzgeci ?apiary= ile çalışır) */
         if (scope !== init0 && o.reload !== false) { global.location.reload(); return; }

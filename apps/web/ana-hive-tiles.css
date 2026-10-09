@@ -65,6 +65,20 @@ body.sa-health-tiles .ana-hive-grid .tile.sev-check,
 .ana-hive-grid .tile[data-tile-sev="check"] { border: 2px solid #f08c00; }
 body.sa-tile-select .grid.ana-hive-grid .tile.on,
 body.sa-tile-select .ana-hive-grid .tile.on { border: 2px solid #1b5e20; background: #ebfbee; }
+/* Modül kovan döşemeleri: alt kestirme satırı (Ana #grid’e uygulanmaz) */
+body:not(.sa-page-ana) .grid.ana-hive-grid .tile-acts,
+body:not(.sa-page-ana) .ana-hive-grid .tile-acts {
+  display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; width: 100%;
+  margin-top: 1px; padding: 0 2px 2px; box-sizing: border-box;
+}
+body:not(.sa-page-ana) .grid.ana-hive-grid .tile-act,
+body:not(.sa-page-ana) .ana-hive-grid .tile-act {
+  flex: 0 1 auto; padding: 1px 7px; border-radius: 8px; border: 1px solid rgba(176, 140, 60, 0.45);
+  background: rgba(255, 252, 244, 0.95); color: #4a2f1a; font-size: 9px; font-weight: 750; line-height: 1.35;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+body:not(.sa-page-ana) .grid.ana-hive-grid .tile.has-acts,
+body:not(.sa-page-ana) .ana-hive-grid .tile.has-acts { min-height: 128px; padding-bottom: 2px; }
 .grid.ana-hive-grid .hive-area,
 .ana-hive-grid .hive-area {
   position: relative;

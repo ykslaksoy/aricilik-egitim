@@ -134,7 +134,55 @@
 
   /** Kapsam kartı sağ kestirme (Ana'daki °C ile aynı yer/stil): tıklanınca hava raporu. */
   function weatherEndHtml() {
-    return '<a class="ks-end weather-temp" data-ks-end href="hava-raporu.html" title="Arılık hava raporu" aria-label="Arılık hava raporunu aç">—°</a>';
+    return '<a class="ks-end weather-temp" data-ks-end href="hava-raporu.html" title="Arılık hava raporu" aria-label="Hava">—°</a>';
+  }
+  /** Sayfa kestirmesi + °C (Bakım düzeni). */
+  function topEndWithWeather(chipHtml) {
+    var chips = chipHtml || '';
+    var w = weatherEndHtml();
+    if (!chips) return w;
+    return '<span class="bk-top-end">' + chips + w + '</span>';
+  }
+  function navChipsHtml(chips) {
+    if (!chips || !chips.length) return '';
+    return '<div class="bk-nav-chips" data-ks-nav-chips>' + chips.map(function (c) {
+      var cls = 'bk-nav-chip' + (c.back ? ' bk-nav-chip-back' : '');
+      return '<a class="' + cls + '" href="' + esc(c.href || '#') + '"' +
+        (c.id ? ' id="' + esc(c.id) + '"' : '') +
+        (c.back ? ' data-sa-scope-geri' : '') +
+        (c.bakim ? ' data-ks-nav-bakim' : '') +
+        '>' + esc(c.label || '') + '</a>';
+    }).join('') + '</div>';
+  }
+  function defaultNavChips(scope) {
+    var apQ = scope && scope !== 'all' ? ('?apiary=' + encodeURIComponent(scope)) : '';
+    return [
+      { label: '‹ Geri', href: '#', id: 'ksNavGeri', back: true },
+      { label: 'Bakım', href: 'bakim.html' + apQ, id: 'ksNavBakim', bakim: true }
+    ];
+  }
+  function bindNavChips(host, getScope) {
+    host.addEventListener('click', function (e) {
+      var g = e.target.closest && e.target.closest('[data-sa-scope-geri]');
+      if (g) {
+        e.preventDefault();
+        var N = global.SuperAriNav;
+        if (N && N.goBack) N.goBack(e);
+        else { try { if (global.history.length > 1) { global.history.back(); return; } } catch (err) {} global.location.href = 'ana.html'; }
+      }
+    });
+    if (getScope) {
+      var bak = host.querySelector('[data-ks-nav-bakim]');
+      if (bak) {
+        var upd = function () {
+          var s = getScope(), apQ = s && s !== 'all' ? ('?apiary=' + encodeURIComponent(s)) : '';
+          bak.href = 'bakim.html' + apQ;
+        };
+        upd();
+        return upd;
+      }
+    }
+    return null;
   }
   function bindWeatherEnd(host) {
     var el = host && host.querySelector('[data-ks-end].weather-temp');
@@ -170,13 +218,19 @@
     var saved = null; try { saved = global.localStorage.getItem(SCOPE_KEY); } catch (e) { saved = null; }
     scope = valid(opts.initial || saved || 'all');
     host.setAttribute('aria-label', (opts.title || 'Kapsam') + ' kapsamı');
+    var navChipList = opts.navChips;
+    if (opts.navInCard && !navChipList) navChipList = defaultNavChips(scope);
+    if (navChipList && navChipList.length) {
+      try { global.document.body.classList.add('ks-scope-nav-in-card'); } catch (eNav) { /* ignore */ }
+    }
     var SC = opts.bk ? 'bk-stat' : 'ks-stat';
     if (opts.bk) {
       /* Bakım'daki Kapsam kartının birebir işaretlemesi (bakim.html #bkScope sınıfları; stil bakim-akis.html'e senkronlanır) */
       host.classList.add('weather', 'bk-scope');
       var end = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
-      if (!end) end = weatherEndHtml();
-      host.innerHTML =
+      if (opts.topEnd != null && opts.weatherEnd !== false) end = topEndWithWeather(end);
+      else if (!end) end = weatherEndHtml();
+      host.innerHTML = navChipsHtml(navChipList) +
         '<div class="bk-top">' + (opts.icon || '') +
           '<span class="bk-title">' + esc(opts.title || '') + '</span>' +
           '<span class="bk-mode demo" data-ks-mode hidden>Demo</span>' +
@@ -191,8 +245,9 @@
     } else {
     host.classList.add('ks-card');
     var endK = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
-    if (!endK) endK = weatherEndHtml();
-    host.innerHTML =
+    if (opts.topEnd != null && opts.weatherEnd !== false) endK = topEndWithWeather(endK);
+    else if (!endK) endK = weatherEndHtml();
+    host.innerHTML = navChipsHtml(navChipList) +
       '<div class="ks-top">' + (opts.icon || '') +
         '<h2 class="ks-title">' + esc(opts.title || '') + '</h2>' +
         '<span class="ks-mode" data-ks-mode hidden>Demo</span>' +
@@ -206,24 +261,6 @@
       '<a class="ks-note" data-ks-note href="#"><span class="ks-note-t" data-ks-nt>—</span><span class="ks-note-b" data-ks-nb>Aç</span></a>';
     }
     function q(sel) { return host.querySelector(sel); }
-    function render() {
-      loadAps(); scope = valid(scope);
-      var hs = hives(), sum = summary(hs), ap = scope === 'all' ? null : apOf(scope);
-      q('[data-ks-label]').textContent = ap ? ap.name : 'Tümü';
-      q('[data-ks-label]').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
-      var multi = list().length > 1;
-      q('[data-ks-prev]').disabled = !multi; q('[data-ks-next]').disabled = !multi;
-      q('[data-ks-mode]').hidden = live(); /* rozet yalnız Demo'da */
-      q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : [], SC);
-      var n = opts.note ? opts.note(hs, scope, sum) : null;
-      var ne = q('[data-ks-note]');
-      if (ne) ne.hidden = !n;
-      if (ne && n) {
-        q('[data-ks-nt]').textContent = n.t; q('[data-ks-nb]').textContent = n.b || 'Aç';
-        ne.href = n.href || '#'; ne.setAttribute('data-note', n.k || ''); ne.setAttribute('aria-label', n.t + ' — ' + (n.b || 'Aç'));
-      }
-      if (opts.onChange) opts.onChange(scope, hs, sum);
-    }
     function setScope(s) {
       scope = valid(s);
       try { global.localStorage.setItem(SCOPE_KEY, scope); } catch (e) { /* ignore */ }
@@ -241,6 +278,26 @@
     function step(d) { var l = list(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
     q('[data-ks-prev]').addEventListener('click', function () { step(-1); });
     q('[data-ks-next]').addEventListener('click', function () { step(1); });
+    var syncBakimNav = bindNavChips(host, navChipList && navChipList.length ? function () { return scope; } : null);
+    function render() {
+      loadAps(); scope = valid(scope);
+      var hs = hives(), sum = summary(hs), ap = scope === 'all' ? null : apOf(scope);
+      q('[data-ks-label]').textContent = ap ? ap.name : 'Tümü';
+      q('[data-ks-label]').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
+      var multi = list().length > 1;
+      q('[data-ks-prev]').disabled = !multi; q('[data-ks-next]').disabled = !multi;
+      q('[data-ks-mode]').hidden = live(); /* rozet yalnız Demo'da */
+      q('[data-ks-stats]').innerHTML = statsHtml(opts.stats ? opts.stats(hs, scope, sum) : [], SC);
+      var n = opts.note ? opts.note(hs, scope, sum) : null;
+      var ne = q('[data-ks-note]');
+      if (ne) ne.hidden = !n;
+      if (ne && n) {
+        q('[data-ks-nt]').textContent = n.t; q('[data-ks-nb]').textContent = n.b || 'Aç';
+        ne.href = n.href || '#'; ne.setAttribute('data-note', n.k || ''); ne.setAttribute('aria-label', n.t + ' — ' + (n.b || 'Aç'));
+      }
+      if (syncBakimNav) syncBakimNav();
+      if (opts.onChange) opts.onChange(scope, hs, sum);
+    }
     render();
     bindWeatherEnd(host);
     return { scope: function () { return scope; }, hives: hives, setScope: setScope, render: render, apOf: apOf };
@@ -270,10 +327,12 @@
     if (tone === 'priority-3') tone = 'green';
     var badge = o.badge != null && o.badge !== '' ? '<div class="badge ' + esc(tone) + '">' + esc(o.badge) + '</div>' : '';
     var sub = o.sub ? '<div class="tile-sub">' + esc(o.sub) + '</div>' : '';
+    var acts = o.acts ? '<div class="tile-acts">' + o.acts + '</div>' : '';
+    if (acts) extra += ' has-acts';
     return '<a class="tile' + sev + extra + '"' + href + data + aria + '>' +
       anaHiveHtml({ num: o.num, burn: o.burn, svg: o.svg }) +
       '<div class="tile-label">' + esc(o.label || '') + '</div>' + sub +
-      badge + '</a>';
+      badge + acts + '</a>';
   }
 
   function ksBadgeTone(cls) {
@@ -305,5 +364,5 @@
     });
   }
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml };
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml, topEndWithWeather: topEndWithWeather, defaultNavChips: defaultNavChips };
 })(typeof window !== 'undefined' ? window : this);
