@@ -398,6 +398,10 @@
     var clipSel = '<option value="">—</option><option value="1"' + (h.queenClipped === true ? ' selected' : '') + '>Evet</option>' +
       '<option value="0"' + (h.queenClipped === false ? ' selected' : '') + '>Hayır</option>';
     var ap = d.apiaryById(h.apiaryId);
+    var BAg = global.SuperAriBalAgirlik;
+    var curType = BAg ? BAg.resolveHiveType(h) : (h.hiveType || 'langstroth_10');
+    var tare = BAg ? BAg.getHiveTare(h.id) : { kg: h.emptyHiveKg || '', source: h.emptyHiveSource || 'varsayilan' };
+    var hiveTypeSel = BAg ? BAg.hiveTypeOptionsHtml(curType) : '<option value="langstroth_10">Langstroth 10 çerçeve (standart)</option>';
 
     var back = document.createElement('div');
     back.className = 'kol-back';
@@ -414,6 +418,10 @@
         '<p class="kol-sub" id="kolModeHint">Aynı ana arının bilgilerini düzeltir; yeni ana kaydı oluşturmaz.</p>' +
         '<form class="kol-form" id="kolForm" autocomplete="off">' +
           '<label class="full" id="kolDateWrap" hidden>Değişim tarihi<input type="date" name="date" value="' + esc(c.todayLocal ? c.todayLocal() : '') + '"></label>' +
+          '<label class="full">Kovan tipi<select name="hiveType" required>' + hiveTypeSel + '</select></label>' +
+          '<p class="full kol-sub" id="kolTypeHint" style="margin:-.2rem 0 0;">' + (BAg ? BAg.typeHintHtml(curType) : '') + '</p>' +
+          '<label class="full">Kovan boş ağırlığı (kg, tare)<input type="number" name="emptyHiveKg" min="5" max="80" step="0.1" inputmode="decimal" value="' + esc(tare.kg > 0 ? tare.kg : '') + '" placeholder="ör. 18,5"></label>' +
+          '<p class="full kol-sub" style="margin:-.2rem 0 0;">Kaynak: <span id="kolTareSrc">' + esc(tare.source) + '</span> · tip değişince önerilen dara güncellenir (elle girilmişse sorulur).</p>' +
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
           '<p class="full kol-sub" id="kolIrkHint" style="margin:-.2rem 0 0;"' + (!curBreed || h.breedEstimated ? '' : ' hidden') + '>' + (h.breedEstimated ? 'Irk tahminidir. ' : 'Irk bilinmiyor. ') +
             '<a href="#" id="kolIrkTahmin" style="color:#2b6cb0;text-decoration:underline;font-weight:700;">Irk tahmini (kesin değil)</a></p>' +
@@ -484,6 +492,27 @@
       otherWrap.hidden = form.breed.value !== 'Diğer';
       var ih = back.querySelector('#kolIrkHint'); if (ih) ih.hidden = !!form.breed.value && !(h.breedEstimated && form.breed.value === curBreed);
     });
+    if (BAg && form.hiveType) {
+      function refreshTypeHint() {
+        var hint = back.querySelector('#kolTypeHint');
+        if (hint) hint.innerHTML = BAg.typeHintHtml(form.hiveType.value);
+        var spec = BAg.typeSpec(form.hiveType.value);
+        if (form.hiveType.value !== 'ozel' && spec.emptyHiveKg > 0) {
+          var srcEl = back.querySelector('#kolTareSrc');
+          var manual = srcEl && srcEl.textContent === 'manuel';
+          if (!manual && (!form.emptyHiveKg.value || form.emptyHiveKg.value === String(tare.kg))) {
+            form.emptyHiveKg.value = String(spec.emptyHiveKg);
+            if (srcEl) srcEl.textContent = 'varsayilan';
+          }
+        }
+      }
+      form.hiveType.addEventListener('change', refreshTypeHint);
+      refreshTypeHint();
+      form.emptyHiveKg.addEventListener('input', function () {
+        var srcEl = back.querySelector('#kolTareSrc');
+        if (srcEl) srcEl.textContent = 'manuel';
+      });
+    }
     var irkLink = back.querySelector('#kolIrkTahmin');
     if (irkLink) irkLink.addEventListener('click', function (e) {
       e.preventDefault();
@@ -511,8 +540,22 @@
         queenMarked: marked,
         calmness: form.calmness.value,
         swarmTendency: form.swarmTendency.value,
-        colonyNote: form.colonyNote.value
+        colonyNote: form.colonyNote.value,
+        hiveType: form.hiveType ? form.hiveType.value : curType
       };
+      if (form.emptyHiveKg && String(form.emptyHiveKg.value).trim() !== '') {
+        patch.emptyHiveKg = form.emptyHiveKg.value;
+        var srcEl = back.querySelector('#kolTareSrc');
+        patch.emptyHiveSource = (srcEl && srcEl.textContent === 'manuel') ? 'manuel' : 'varsayilan';
+        patch.lastTareAt = c.todayLocal ? c.todayLocal() : '';
+      } else if (BAg && form.hiveType && form.hiveType.value !== 'ozel') {
+        var spec = BAg.typeSpec(form.hiveType.value);
+        if (spec.emptyHiveKg > 0) {
+          patch.emptyHiveKg = spec.emptyHiveKg;
+          patch.emptyHiveSource = 'varsayilan';
+          patch.lastTareAt = c.todayLocal ? c.todayLocal() : '';
+        }
+      }
       if (mode === 'replace') { patch.note = form.queenNote.value; patch.date = form.date.value; }
       else {
         patch.queenNote = form.queenNote.value;
@@ -1325,10 +1368,11 @@
     } else if (topic === 'hasat') {
       form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
         '<label>Bal (kg)<input type="number" name="kg" min="0" max="500" step="0.1" inputmode="decimal"></label>' +
-        '<label>Çerçeve<input type="number" name="frames" min="0" max="60" inputmode="numeric"></label>' +
+        '<label>Ballı çerçeve<input type="number" name="frames" min="0" max="60" inputmode="numeric"></label>' +
+        '<div class="kr-info full" id="krHasatEst" style="grid-column:1 / -1;display:none;" aria-live="polite"></div>' +
         '<label class="full">Bal türü<input name="honeyType" maxlength="40" list="krHoneyTypes" placeholder="ör. Çiçek, Kestane">' + honeyTypesDatalist() + '</label>' +
         '<label class="full">Not<input name="note" maxlength="300" placeholder="ör. 2 ballık, ikinci sıyırma"></label>' +
-        '<p class="kol-sub full" style="grid-column:1 / -1;margin:0;">Raporlar › Bal / verim toplamlarına da eklenir.</p>';
+        '<p class="kol-sub full" style="grid-column:1 / -1;margin:0;">Raporlar › Bal / verim toplamlarına da eklenir. Çerçeve girildiğinde ≈ kg tahmini gösterilir.</p>';
     } else {
       form = '<label class="full">Tarih<input type="date" name="date" value="' + esc(today) + '"></label>' +
         '<label class="full">Hastalık<select name="disease">' + r.DISEASES.map(function (x) { return '<option value="' + x.key + '">' + esc(x.label) + '</option>'; }).join('') + '</select></label>' +
@@ -1464,6 +1508,21 @@
     if (topic === 'hastalik' || topic === 'ilac') {
       f.elements.disease.addEventListener('change', function () { root.querySelector('#krDzFields').innerHTML = diseaseFieldsHtml(f.elements.disease.value); });
     }
+    if (topic === 'hasat' && hid != null) {
+      var estEl = root.querySelector('#krHasatEst');
+      var updEst = function () {
+        var B = global.SuperAriBalAgirlik;
+        if (!estEl || !B) return;
+        var fr = Number(f.elements.frames && f.elements.frames.value);
+        if (!(fr > 0)) { estEl.style.display = 'none'; estEl.textContent = ''; return; }
+        var kg = B.estimateHarvestKg(hid, fr);
+        estEl.style.display = 'block';
+        estEl.innerHTML = '≈ <b>' + esc(B.fmtKg(kg)) + '</b> bal (çerçeve tahmini)' +
+          (f.elements.kg && String(f.elements.kg.value).trim() ? ' · girilen kg ile kayıt «karma» yöntemi olur' : '');
+      };
+      f.addEventListener('input', updEst);
+      updEst();
+    }
   }
   function resetTopicForm(topic, f, root, today) {
     var r = R();
@@ -1489,7 +1548,15 @@
     }
     if (topic === 'hasat') {
       if (v('kg') === '' && v('frames') === '' && v('note') === '') { f.elements.kg.focus(); toast('Kg, çerçeve veya not girin'); return null; }
-      return { kind: 'harvest', rec: { date: v('date'), kg: v('kg'), frames: v('frames'), honeyType: v('honeyType'), note: v('note') } };
+      var rec = { date: v('date'), kg: v('kg'), frames: v('frames'), honeyType: v('honeyType'), note: v('note') };
+      var B = global.SuperAriBalAgirlik, hid = f.__hiveId;
+      if (B && hid != null) {
+        var patch = B.enrichHarvestRow({ hiveId: Number(hid), honeyKg: rec.kg, frames: rec.frames, date: rec.date });
+        if (patch.method) rec.method = patch.method;
+        if (patch.netKg != null) rec.netKg = patch.netKg;
+        if (!(Number(String(rec.kg).replace(',', '.')) > 0) && patch.honeyKg > 0) rec.kg = patch.honeyKg;
+      }
+      return { kind: 'harvest', rec: rec };
     }
     if (topic === 'ilac' && !v('treatment')) { f.elements.treatment.focus(); toast('Uygulanan ilacı / yöntemi yazın'); return null; }
     return { kind: 'disease', rec: { date: v('date'), disease: v('disease'), count: v('count'), method: v('method'), infestation: v('infestation'), status: v('status'), spores: v('spores'),
@@ -1595,6 +1662,7 @@
     back.addEventListener('click', function (e) { if (e.target === back) close(); });
     back.querySelector('#krClose').addEventListener('click', close);
     fillForm(editRec);
+    f.__hiveId = hiveId;
     wireTopicForm(topic, f, back, hiveId);
     back.querySelector('#krHist').addEventListener('click', function (e) {
       var hz = e.target.closest ? e.target.closest('[data-hz-open]') : null;
@@ -1675,9 +1743,14 @@
   }
   function harvestText(x) {
     var p = [];
-    if (x.kg != null) p.push(num(x.kg) + ' kg');
+    var kg = x.netKg != null ? x.netKg : x.kg;
+    if (kg != null && Number(kg) > 0) p.push(num(kg) + ' kg' + (x.netKg != null && x.kg != null && Number(x.netKg) !== Number(x.kg) ? ' net' : ''));
+    else if (x.kg != null) p.push(num(x.kg) + ' kg');
     if (x.honeyType) p.push(x.honeyType);
     if (x.frames != null) p.push(x.frames + ' çerçeve');
+    if (x.method === 'cerceve') p.push('çerçeve');
+    else if (x.method === 'tarti') p.push('tartı');
+    else if (x.method === 'karma') p.push('karma');
     if (x.note) p.push(x.note);
     return p.join(' · ') || '—';
   }

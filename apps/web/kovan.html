@@ -363,6 +363,7 @@
   <div class="home-indicator"></div>
 </div>
 
+<script src="bal-agirlik.js?v=koloni-105"></script>
 <script src="demo-data.js?v=koloni-105"></script>
 <script src="rapor-store.js?v=koloni-105"></script>
 <script src="sensor-health.js?v=koloni-105"></script>
@@ -379,6 +380,12 @@
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target.closest('[data-te-open]') : null; if (!t || !window.SuperAriTarti) return;
     e.preventDefault(); SuperAriTarti.open(t.getAttribute('data-te-open'), { onSaved: function () { window.__teReload = true; } });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-ba-tare]') : null;
+    if (!b || !window.SuperAriBalAgirlik) return;
+    e.preventDefault();
+    SuperAriBalAgirlik.openHiveTareDialog(b.getAttribute('data-ba-tare'), function () { window.__teReload = true; });
   });
   new MutationObserver(function () { if (window.__teReload && !document.getElementById('teSheet')) { window.__teReload = false; location.reload(); } }).observe(document.body, { childList: true });
 })();</script>
@@ -869,6 +876,20 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     var tareNow = TEm && TEm.tare ? (liveKd ? (lastManual && lastManual.tareKg ? { kg: lastManual.tareKg } : null) : TEm.tare(hive.id)) : null;
     var tareTxt = tareNow && tareNow.kg > 0 ? TEm.tareNote(tareNow) : '';
     var weightTxt = liveKd ? (lastManual ? String(TEm.netOf ? TEm.netOf(lastManual) : lastManual.kg).replace('.', ',') + ' kg' : '—') : (Number(hive.weightKg) - (tareNow ? tareNow.kg : 0)).toFixed(1).replace('.', ',') + ' kg';
+    var BAg = window.SuperAriBalAgirlik, netBalHtml = '';
+    if (BAg) {
+      var grossKg = liveKd ? (lastManual ? lastManual.kg : null) : Number(hive.weightKg);
+      if (grossKg > 0) {
+        var nh = BAg.netHoneyFromScale(grossKg, hive.id, { at: lastManual ? lastManual.at : null });
+        if (nh) {
+          var th = BAg.getHiveTare(hive.id);
+          var typeLbl = BAg.typeSpec(th.hiveType).label;
+          netBalHtml = '<div class="sum-tare">' + escapeHtml(typeLbl) + '</div>' +
+            '<div class="sum-tare">Net bal (tahmin): <b>' + escapeHtml(BAg.fmtKg(nh.netKg)) + '</b> · dara ' + escapeHtml(BAg.fmtKg(th.kg)) + ' (' + escapeHtml(th.source) + ')</div>' +
+            '<button type="button" class="sum-tare" data-ba-tare="' + escapeHtml(hive.id) + '" style="border:0;background:transparent;padding:0;color:#2b6cb0;font:inherit;font-weight:700;cursor:pointer;text-align:left;">Kovan boş ağırlığı ayarla</button>';
+        }
+      }
+    }
     if (liveKd) wt = '';
     var deltaStr = liveKd ? (lastManual ? 'Elle · ' + (TEm && TEm.fmtAt ? TEm.fmtAt(lastManual.at) : '') : 'Tartı yok') : (function () {
       var n = Number(hive.deltaKg);
@@ -948,6 +969,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
           '<div class="sum-val' + cls(wt) + '">' + escapeHtml(weightTxt) + '</div>' +
           '<span class="sum-badge' + cls(wt) + '">' + escapeHtml(deltaStr) + '</span>' +
           (tareTxt ? '<div class="sum-tare">' + escapeHtml(tareTxt) + '</div>' : '') +
+          netBalHtml +
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +

@@ -79,6 +79,7 @@
         <label>Not
           <input type="text" id="fNote" maxlength="120" placeholder="Ana hasat, ikinci sıyırma…" />
         </label>
+        <p class="hint" id="fEst" style="grid-column:1 / -1;margin:0;display:none;" aria-live="polite"></p>
         <button type="submit" class="btn">Kaydet</button>
         <p class="form-msg" id="formMsg" aria-live="polite"></p>
       </form>
@@ -95,6 +96,7 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
+<script src="bal-agirlik.js?v=koloni-105"></script>
 <script src="demo-data.js?v=koloni-105"></script>
 <script src="rapor-store.js?v=koloni-105"></script>
 <script>
@@ -175,6 +177,19 @@
   fillApiarySelects();
   fillHiveSelect();
   fApiary.addEventListener('change', fillHiveSelect);
+
+  function refreshHarvestEstimate() {
+    var est = document.getElementById('fEst');
+    var B = window.SuperAriBalAgirlik;
+    if (!est || !B) return;
+    var hid = fHive.value;
+    var fr = Number(document.getElementById('fFrames').value);
+    if (!hid || !(fr > 0)) { est.style.display = 'none'; est.textContent = ''; return; }
+    est.style.display = 'block';
+    est.textContent = '≈ ' + B.fmtKg(B.estimateHarvestKg(hid, fr)) + ' bal (çerçeve tahmini)';
+  }
+  document.getElementById('fFrames').addEventListener('input', refreshHarvestEstimate);
+  fHive.addEventListener('change', refreshHarvestEstimate);
 
   var today = new Date();
   var iso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
@@ -270,8 +285,8 @@
       return '<div class="row-item"><div class="left"><div class="title">' + escapeHtml(who) +
         (h.demo ? ' <span class="meta" style="font-weight:700">· Demo</span>' : '') + '</div>' +
         '<div class="meta">' + escapeHtml(h.date) + (h.honeyType ? ' · ' + escapeHtml(h.honeyType) : '') + (h.note ? ' · ' + escapeHtml(h.note) : '') +
-        (h.frames ? ' · ' + h.frames + ' çerçeve' : '') + (h.source === 'kayit' ? ' · kovan kaydı' : '') + '</div></div>' +
-        '<div class="right">' + R.fmtKg(h.honeyKg) + '</div>' +
+        (h.frames ? ' · ' + h.frames + ' çerçeve' : '') + (h.method ? ' · ' + escapeHtml(h.method) : '') + (h.source === 'kayit' ? ' · kovan kaydı' : '') + '</div></div>' +
+        '<div class="right">' + R.fmtKg(h.netKg != null ? h.netKg : h.honeyKg) + '</div>' +
         '<button type="button" class="del" data-del="' + escapeHtml(h.id) + '" aria-label="Sil">Sil</button></div>';
     }).join('') || '<p class="meta">Kayıt yok. Aşağıdan ekleyin.</p>';
 
@@ -305,7 +320,7 @@
       }
     }
     try {
-      R.addHarvest({
+      var entry = {
         apiaryId: fApiary.value,
         apiaryName: opt ? opt.textContent : fApiary.value,
         hiveId: fHive.value === '' ? null : Number(fHive.value),
@@ -314,7 +329,10 @@
         frames: document.getElementById('fFrames').value,
         honeyType: document.getElementById('fType').value,
         note: document.getElementById('fNote').value
-      });
+      };
+      var B = window.SuperAriBalAgirlik;
+      if (B && entry.hiveId != null) entry = B.enrichHarvestRow(entry);
+      R.addHarvest(entry);
       document.getElementById('fType').value = '';
       document.getElementById('fKg').value = '';
       document.getElementById('fFrames').value = '';
