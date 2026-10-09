@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "node apps/api/src/server.js",
     "dev:api": "node apps/api/src/server.js",
-    "check:ana": "node scripts/check-ana-ia.js"
+    "check:ana": "node scripts/check-ana-ia.js",
+    "test:login": "node --test apps/api/src/services/membershipAuth.test.js",
+    "test": "node --test apps/api/src/services/membershipAuth.test.js apps/web/tests/k*.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

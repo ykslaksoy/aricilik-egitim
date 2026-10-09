@@ -20,6 +20,7 @@
     <section class="auth-card">
       <h2>Giriş yap</h2>
       <p class="auth-lead">E-posta ve şifrenizle devam edin. Doğrulanmış hesap varsa ona göre yönlendirilirsiniz.</p>
+      <p class="auth-lead muted">Demo: demo@superari.com / demo1234</p>
 
       <form class="stack" data-login="1" data-demo="ana.html" id="giris-form">
         <label>E-posta
@@ -28,7 +29,7 @@
         <label>Şifre
           <div class="field-row">
             <input id="password" type="password" name="password" autocomplete="current-password" placeholder="••••••••" required />
-            <button type="button" class="toggle" data-toggle-password="password">Göster</button>
+            <button type="button" class="toggle" data-toggle-password="password" aria-label="Şifreyi göster" aria-pressed="false">Göster</button>
           </div>
         </label>
         <button class="btn" type="submit">Giriş Yap</button>
@@ -43,6 +44,14 @@
   <script>
     (function () {
       var H = window.SuperAriHesap;
+      var M = window.Membership;
+      if (M && M.me) {
+        M.me().then(function (me) {
+          if (me && me.ok) {
+            window.location.href = me.panel || (H ? H.homeFor('arici') : 'ana.html');
+          }
+        });
+      }
       if (!H) return;
       var acc = H.getAccount();
       if (acc && acc.email) {
