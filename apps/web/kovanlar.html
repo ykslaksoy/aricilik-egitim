@@ -546,13 +546,13 @@
           tilesV.hidden = false;
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
           tilesV.innerHTML = infT.map(function (x) {
+            var badgeTone = x.kg === 'Tartı yok' ? 'tan' : (x.old && liveT ? 'orange' : 'green');
             return KV.anaHiveTileHtml({
               href: 'kovan.html?id=' + encodeURIComponent(x.h.id),
               label: x.h.name,
               badge: x.kg,
-              tone: (x.old || x.kg === 'Tartı yok' ? 'orange' : 'green'),
+              tone: badgeTone,
               num: KV.hiveNum(x.h),
-              sev: x.old && liveT ? 'check' : '',
               dataTeHive: x.h.id,
               aria: x.h.name + ' tart, ' + x.kg + ', ' + x.sub
             });
