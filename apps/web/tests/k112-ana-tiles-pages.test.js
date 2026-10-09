@@ -8,6 +8,7 @@ const ks = fs.readFileSync(path.join(root, 'kapsam.js'), 'utf8');
 assert.ok(ks.includes('function anaModuleTile'));
 assert.ok(ks.includes('function anaHiveTileHtml'));
 assert.ok(ks.includes('topEndWithWeather') && ks.includes('defaultNavChips') && ks.includes('navChipsHtml'));
+assert.ok(ks.includes('scopeCardHeadHtml') && ks.includes('bk-geri-pill') && ks.includes('bk-scope-page-title'));
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
 assert.ok(kv.includes("view === 'tarti'") && kv.includes('bk: true') && kv.includes('navInCard: true'));
 assert.ok(kv.includes('Elle tart') && ks.includes('weatherEndHtml'));

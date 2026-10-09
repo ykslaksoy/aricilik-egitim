@@ -81,8 +81,17 @@ body.bk-kabuk #ksScope.ks-card {
   margin: 0; min-height: 205px; justify-content: space-between; gap: 6px;
   background: #fff; border: 1px solid #e6e8ec; border-radius: 14px; padding: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
 }
-body.bk-kabuk #ksScope .ks-top { gap: 6px; flex-wrap: wrap; row-gap: 2px; }
-body.bk-kabuk #ksScope .ks-title { font-size: 14px; font-weight: 700; color: #2c241c; white-space: normal; line-height: 1.2; }
+body.bk-kabuk #ksScope .bk-scope-head { gap: 5px; }
+body.bk-kabuk #ksScope .bk-scope-page-title,
+body.bk-kabuk #ksScope .bk-title.bk-scope-page-title { font-size: 21px; font-weight: 800; color: #2c241c; white-space: nowrap; line-height: 1.12; letter-spacing: -0.02em; }
+body.bk-kabuk #ksScope .bk-scope-geri-row { min-height: 34px; }
+body.bk-kabuk #ksScope .bk-geri-pill { font-size: 13px; font-weight: 750; }
+body.bk-kabuk #ksScope .bk-scope-sel-row.bk-top,
+body.bk-kabuk #ksScope .bk-scope-sel-row.ks-top { justify-content: center; }
+body.bk-kabuk #ksScope .bk-scope-sel-row .bk-sel,
+body.bk-kabuk #ksScope .bk-scope-sel-row .ks-sel { max-width: min(100%, 17em) !important; margin-left: 0 !important; }
+body.bk-kabuk #ksScope .ks-top:not(.bk-scope-sel-row) { gap: 6px; flex-wrap: wrap; row-gap: 2px; }
+body.bk-kabuk #ksScope .ks-title:not(.bk-scope-page-title) { font-size: 14px; font-weight: 700; color: #2c241c; white-space: normal; line-height: 1.2; }
 body.bk-kabuk #ksScope .ks-mode { padding: 2px 6px; border: 1px solid #a5d8ff; border-radius: 8px; background: #e7f5ff; color: #1864ab; font-size: 10px; font-weight: 700; line-height: 1.2; }
 body.bk-kabuk #ksScope .ks-sel { margin-left: auto; max-width: 62%; }
 body.bk-kabuk #ksScope .ks-label { font-size: 13px; font-weight: 600; letter-spacing: .01em; max-width: 9.5em; }
