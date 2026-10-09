@@ -165,7 +165,13 @@
   }
   function overpassQuery(lat, lon, radiusM) {
     var around = '(around:' + Math.round(radiusM) + ',' + lat + ',' + lon + ')';
-    return '[out:json][timeout:18];(node["natural"="spring"]' + around + ';way["waterway"~"^(stream|brook)$"]' + around + ';way["waterway"="river"]' + around + ';);out tags center;';
+    return '[out:json][timeout:18];(' +
+      'node["natural"="spring"]' + around + ';' +
+      'node["amenity"="drinking_water"]' + around + ';' +
+      'node["man_made"="water_well"]' + around + ';' +
+      'way["waterway"~"^(stream|brook)$"]' + around + ';' +
+      'way["waterway"="river"]' + around + ';' +
+      ');out tags center;';
   }
   function fetchOverpass(query) {
     function attempt(i) {

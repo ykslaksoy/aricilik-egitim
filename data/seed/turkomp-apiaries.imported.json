@@ -1,0 +1,31 @@
+{
+  "importedAt": "2026-10-09T21:12:28.475Z",
+  "sourceFile": "turkomp-apiaries.template.csv",
+  "count": 2,
+  "apiaries": [
+    {
+      "id": "turkomp_1",
+      "name": "Örnek Arılık",
+      "il": "Trabzon",
+      "ilce": "Çaykara",
+      "koy": "Uzungöl",
+      "lat": 40.619,
+      "lon": 40.288,
+      "registreNo": "TRK-0000",
+      "notlar": "Manuel Turkomp / Tarım Bakanlığı haritasından",
+      "source": "turkomp_manual_import"
+    },
+    {
+      "id": "turkomp_2",
+      "name": "Yanıkdağ Demo",
+      "il": "Rize",
+      "ilce": "Çayeli",
+      "koy": "",
+      "lat": 41.0808,
+      "lon": 40.754,
+      "registreNo": "",
+      "notlar": "Demo koordinat",
+      "source": "turkomp_manual_import"
+    }
+  ]
+}

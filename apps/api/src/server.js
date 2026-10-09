@@ -61,6 +61,9 @@ const offlineSyncService = require("./services/offlineSyncService");
 const subscriptionService = require("./services/subscriptionService");
 const slaService = require("./services/slaService");
 const openMeteoService = require("./services/openMeteoService");
+const geoContextService = require("./geo/geoContextService");
+const overpassGeo = require("./geo/overpassService");
+const { assessFireRisk } = require("../../web/geo/fireRisk");
 const { computeProLigScore, flagsFromEnv } = require("./services/proLigScoreService");
 const { getStrengthPreserveReport } = require("./services/strengthPreserveService");
 const { FEATURES: MASTER_FEATURES } = require("../../../scripts/superhero-score-data.js");
@@ -2363,6 +2366,52 @@ app.get("/api/weather", (req, res) => {
     source: "konum",
     ...(loc.weather || {}),
   });
+});
+
+/** Geo: yakın su (Overpass + yerel GeoNames örneği) */
+app.get("/api/geo/water", async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lon = Number(req.query.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return res.status(400).json({ error: "lat_lon_required" });
+  }
+  try {
+    const water = await overpassGeo.findNearestWater(lat, lon);
+    res.json({ lat, lon, water, source: water?.source || "overpass" });
+  } catch (e) {
+    res.status(502).json({ error: "overpass_fail", message: e.message });
+  }
+});
+
+/** Geo: Open-Meteo tabanlı yangın riski skoru */
+app.get("/api/geo/fire-risk", async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lon = Number(req.query.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return res.status(400).json({ error: "lat_lon_required" });
+  }
+  try {
+    const risk = await assessFireRisk(lat, lon);
+    res.json({ lat, lon, ...risk });
+  } catch (e) {
+    res.status(502).json({ error: "fire_risk_fail", message: e.message });
+  }
+});
+
+/** Geo: arılık bağlamı — su, yangın, FIRMS, statik flora/meşcere */
+app.get("/api/geo/context", async (req, res) => {
+  const lat = Number(req.query.lat);
+  const lon = Number(req.query.lon);
+  const demo = req.query.demo === "1" || req.query.demo === "true";
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return res.status(400).json({ error: "lat_lon_required" });
+  }
+  try {
+    const ctx = await geoContextService.buildGeoContext(lat, lon, { skipNetwork: demo });
+    res.json(ctx);
+  } catch (e) {
+    res.status(500).json({ error: "geo_context_fail", message: e.message });
+  }
 });
 
 app.patch("/api/hives/:id/konum", (req, res) => {

@@ -1,0 +1,26 @@
+{
+  "type": "FeatureCollection",
+  "description": "OGM meşcere .shp örneği — tam veri: scripts/import/import-ogm-mescere.md",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mesereTipi": "Kızılçam",
+        "kod": "KP",
+        "kaynak": "OGM örnek poligon"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [40.748, 41.076],
+            [40.762, 41.076],
+            [40.762, 41.086],
+            [40.748, 41.086],
+            [40.748, 41.076]
+          ]
+        ]
+      }
+    }
+  ]
+}
