@@ -318,7 +318,19 @@
     s.src = 'saglik-canli.js?v=' + encodeURIComponent(VERSION);
     doc.head.appendChild(s);
   }
-  function onLoad() { register(); startNotifLoop(); liveHealthBoot(); bulutBoot(); }
+  function sensorPollBoot() {
+    function go() {
+      if (global.SuperAriSensorPolling && global.SuperAriSensorPolling.startScheduler) {
+        global.SuperAriSensorPolling.startScheduler();
+      }
+    }
+    if (global.SuperAriSensorPolling) { go(); return; }
+    var s = doc.createElement('script');
+    s.src = 'sensor-polling.js?v=' + encodeURIComponent(VERSION);
+    s.onload = go;
+    doc.head.appendChild(s);
+  }
+  function onLoad() { register(); startNotifLoop(); liveHealthBoot(); bulutBoot(); sensorPollBoot(); }
   if (doc.readyState === 'complete') onLoad();
   else global.addEventListener('load', onLoad);
 
