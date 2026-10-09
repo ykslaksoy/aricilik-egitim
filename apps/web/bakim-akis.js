@@ -298,6 +298,14 @@
     if (!D.colony || !D.colony.addEvent) return null;
     var id = D.colony.addEvent(h.id, { type: type, text: 'Hızlı muayene · ' + text, sug: res.sug, sugText: step.kind === 'amount' && step.fmt ? step.fmt(step.rec, step.type) : (step.recLabel || '') });
     if (id) undo.push(function () { D.colony.removeEvent(h.id, id); });
+    /* tarti-bakim-delta.js → SuperAriTartiBakim.onBakimEvent: kat/çerçeve/besleme/ilaç sonrası tartı kg düzeltmesi */
+    try {
+      var TB = global.SuperAriTartiBakim;
+      if (TB && typeof TB.onBakimEvent === 'function') {
+        var tr = TB.onBakimEvent(h.id, { hiveId: h.id, type: type, text: text, fullText: 'Hızlı muayene · ' + text, stepKey: step && step.key, res: res, eventId: id });
+        if (tr && tr.undo && undo) undo.push(tr.undo);
+      }
+    } catch (eTB) { /* ignore */ }
     return id;
   }
   function stockUse(item, qty, reason, undo) {
