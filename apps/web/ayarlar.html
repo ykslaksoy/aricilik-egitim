@@ -134,6 +134,19 @@
         <div id="cihaz-toast" class="form-alert" hidden></div>
         <div id="cihaz-list" class="stack" style="gap:.5rem"></div>
         <p class="hint-inline">Asıl yol: cihazlar otomatik tanınır. Elle kayıt yalnızca test / nadir durumlar içindir. · <a href="cihazlar.html">Cihazlar listesi</a></p>
+        <div class="stack" id="battery-low-panel" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid #e8dcc6">
+          <h3 style="margin:0;font-size:1rem">Düşük pil uyarısı</h3>
+          <p class="hint-inline" style="margin:0">Cihaz kartlarında «Düşük pil» rozeti bu eşiğin altında gösterilir (varsayılan %20).</p>
+          <label>Arılık (boş = tüm arılıklar için genel)
+            <select id="battery-low-apiary">
+              <option value="">Genel (tüm arılıklar)</option>
+            </select>
+          </label>
+          <label>Eşik (%)
+            <input type="number" id="battery-low-pct" min="5" max="50" step="1" value="20" inputmode="numeric">
+          </label>
+          <button class="btn secondary" type="button" id="btn-battery-low-save">Eşiği kaydet</button>
+        </div>
       </div>
     </section>
 
@@ -246,6 +259,7 @@
   </div>
   <script src="demo-data.js?v=koloni-105"></script>
   <script src="device-runtime.js?v=koloni-105"></script>
+  <script src="sensor-polling.js?v=koloni-105"></script>
   <script>
   (function () {
     try {
@@ -551,6 +565,42 @@
       }
       maybeFocus();
       window.addEventListener('hashchange', maybeFocus);
+    })();
+  </script>
+  <script>
+    (function () {
+      var P = window.SuperAriSensorPolling;
+      var D = window.SuperAriDemo;
+      var apEl = document.getElementById('battery-low-apiary');
+      var pctEl = document.getElementById('battery-low-pct');
+      var btn = document.getElementById('btn-battery-low-save');
+      if (!P || !pctEl || !btn) return;
+      function fillApiaries() {
+        if (!apEl || !D || !D.loadApiaries) return;
+        var cur = apEl.value;
+        apEl.innerHTML = '<option value="">Genel (tüm arılıklar)</option>' + (D.loadApiaries() || []).map(function (a) {
+          return '<option value="' + String(a.id).replace(/"/g, '&quot;') + '">' + (a.name || a.place || a.id) + '</option>';
+        }).join('');
+        if (cur) apEl.value = cur;
+      }
+      function paint() {
+        var ap = apEl ? apEl.value : '';
+        var v = P.getBatteryLowPct(ap || null);
+        pctEl.value = String(v);
+      }
+      fillApiaries();
+      paint();
+      if (apEl) apEl.addEventListener('change', paint);
+      btn.addEventListener('click', function () {
+        var ap = apEl ? apEl.value : '';
+        var n = Number(pctEl.value);
+        if (!P.setBatteryLowPct(n, ap || null)) {
+          alert('Geçerli bir eşik girin (%5–50).');
+          return;
+        }
+        paint();
+        alert(ap ? 'Arılık pil eşiği kaydedildi.' : 'Genel pil eşiği kaydedildi.');
+      });
     })();
   </script>
   <script>

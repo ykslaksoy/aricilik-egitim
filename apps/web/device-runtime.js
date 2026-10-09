@@ -14,6 +14,9 @@
   var MODE_KEY = 'superari.workMode';
   var DEVICES_KEY = 'superari.devices';
   var DISCOVERED_KEY = 'superari.discovered';
+  var DEFAULT_BATTERY_LOW_PCT = 20;
+  /** Demo modda pil simülasyonu (oturum içi; DEMO_SEED dosyası değişmez). */
+  var demoBatteryPatch = {};
 
   var STATUS = {
     yok: 'yok',
@@ -260,6 +263,95 @@
     } catch (e) { return []; }
   }
 
+  function writeJsonArray(key, arr) {
+    try { localStorage.setItem(key, JSON.stringify(arr || [])); return true; } catch (e) { return false; }
+  }
+
+  function clampBatteryPct(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return null;
+    return Math.max(0, Math.min(100, Math.round(x)));
+  }
+
+  function getLowBatteryThreshold(apiaryId) {
+    var P = global.SuperAriSensorPolling;
+    if (P && typeof P.getBatteryLowPct === 'function') {
+      return P.getBatteryLowPct(apiaryId);
+    }
+    return DEFAULT_BATTERY_LOW_PCT;
+  }
+
+  function attachBatteryFields(out, raw, apiaryId) {
+    var src = raw || {};
+    var pct = src.batteryPct != null ? src.batteryPct : (src.battery != null ? src.battery : null);
+    out.batteryPct = pct == null ? null : clampBatteryPct(pct);
+    out.battery = out.batteryPct;
+    out.batteryV = src.batteryV != null && isFinite(Number(src.batteryV))
+      ? Math.round(Number(src.batteryV) * 100) / 100 : null;
+    out.batteryAt = src.batteryAt != null ? String(src.batteryAt).slice(0, 16) : null;
+    var thr = getLowBatteryThreshold(apiaryId != null ? apiaryId : out.apiaryId);
+    out.batteryLow = out.batteryPct != null && out.batteryPct <= thr;
+    return out;
+  }
+
+  function isBatteryLow(device) {
+    if (!device) return false;
+    if (device.batteryLow === true) return true;
+    var pct = device.batteryPct != null ? device.batteryPct : device.battery;
+    if (pct == null) return false;
+    return Number(pct) <= getLowBatteryThreshold(device.apiaryId);
+  }
+
+  function hasBatterySensor(tip) {
+    return tip !== 'gateway';
+  }
+
+  function patchStoredDevice(id, patch, source) {
+    if (!id || !patch) return false;
+    var key = source === 'discovered' ? DISCOVERED_KEY : DEVICES_KEY;
+    var list = readJsonArray(key);
+    var found = false;
+    list = list.map(function (d) {
+      if (!d || String(d.id) !== String(id)) return d;
+      found = true;
+      return Object.assign({}, d, patch);
+    });
+    if (!found) return false;
+    return writeJsonArray(key, list);
+  }
+
+  /** Pil okuması sonrası cihaz kaydını güncelle (canlı LS / demo oturum). */
+  function setDeviceBattery(deviceId, fields, meta) {
+    if (!deviceId || !fields) return false;
+    var pct = fields.batteryPct != null ? fields.batteryPct : fields.battery;
+    var patch = {
+      batteryPct: pct == null ? null : clampBatteryPct(pct),
+      battery: pct == null ? null : clampBatteryPct(pct),
+      batteryV: fields.batteryV != null ? Math.round(Number(fields.batteryV) * 100) / 100 : undefined,
+      batteryAt: fields.batteryAt != null ? String(fields.batteryAt).slice(0, 16) : undefined
+    };
+    Object.keys(patch).forEach(function (k) { if (patch[k] === undefined) delete patch[k]; });
+    if (isDemo()) {
+      demoBatteryPatch[String(deviceId)] = Object.assign({}, demoBatteryPatch[String(deviceId)] || {}, patch);
+      try {
+        global.dispatchEvent(new CustomEvent('superari:device-battery', { detail: { deviceId: deviceId, patch: patch } }));
+      } catch (e) { /* ignore */ }
+      return true;
+    }
+    var src = meta && meta.source === 'discovered' ? 'discovered' : 'user';
+    var ok = patchStoredDevice(deviceId, patch, src);
+    if (!ok) patchStoredDevice(deviceId, patch, src === 'discovered' ? 'user' : 'discovered');
+    try {
+      global.dispatchEvent(new CustomEvent('superari:device-battery', { detail: { deviceId: deviceId, patch: patch } }));
+    } catch (e2) { /* ignore */ }
+    return true;
+  }
+
+  function mergeDemoBattery(raw) {
+    var p = demoBatteryPatch[String(raw.id)];
+    return p ? Object.assign({}, raw, p) : raw;
+  }
+
   function resolveLiveNames(row) {
     var D = global.SuperAriDemo;
     var hiveId = row.hiveId != null ? row.hiveId : null;
@@ -293,7 +385,7 @@
       status = STATUS.bagli;
     }
     var kind = isCameraTip(tip) ? 'kamera' : 'paket';
-    return {
+    var out = {
       id: raw.id || (source + '-' + tip + '-' + (names.hiveId || names.apiaryId || 'x')),
       tip: tip,
       typeLabel: tipLabel(tip),
@@ -304,32 +396,33 @@
       hiveName: names.hiveName || (kind === 'kamera' ? tipLabel(tip) : 'Cihaz'),
       apiaryId: names.apiaryId,
       apiaryName: names.apiaryName,
-      battery: raw.battery != null ? raw.battery : null,
       lastMins: raw.lastMins != null ? raw.lastMins : null,
       channels: raw.channels || [tipLabel(tip)],
       at: raw.at || null
     };
+    return attachBatteryFields(out, raw, out.apiaryId);
   }
 
   function normalizeDemo(raw) {
-    var tip = raw.tip || '';
+    var merged = mergeDemoBattery(raw);
+    var tip = merged.tip || '';
     var kind = isCameraTip(tip) ? 'kamera' : 'paket';
-    return {
-      id: raw.id,
+    var out = {
+      id: merged.id,
       tip: tip,
       typeLabel: tipLabel(tip),
       kind: kind,
       source: 'demo',
-      status: raw.status,
-      hiveId: raw.hiveId,
-      hiveName: raw.hiveName || (kind === 'kamera' ? tipLabel(tip) : 'Cihaz'),
-      apiaryId: String(raw.apiaryId || 'none'),
-      apiaryName: raw.apiaryName || 'Arılık',
-      battery: raw.battery != null ? raw.battery : null,
-      lastMins: raw.lastMins != null ? raw.lastMins : null,
-      channels: raw.channels || [tipLabel(tip)],
+      status: merged.status,
+      hiveId: merged.hiveId,
+      hiveName: merged.hiveName || (kind === 'kamera' ? tipLabel(tip) : 'Cihaz'),
+      apiaryId: String(merged.apiaryId || 'none'),
+      apiaryName: merged.apiaryName || 'Arılık',
+      lastMins: merged.lastMins != null ? merged.lastMins : null,
+      channels: merged.channels || [tipLabel(tip)],
       at: null
     };
+    return attachBatteryFields(out, merged, out.apiaryId);
   }
 
   /** Demo: yalnızca DEMO_SEED — kullanıcı kaydı okunmaz. */
@@ -481,7 +574,13 @@
     anaCihazBadge: anaCihazBadge,
     anaKameraBadge: anaKameraBadge,
     syncDemoBanner: syncDemoBanner,
-    ensureBannerStyles: ensureBannerStyles
+    ensureBannerStyles: ensureBannerStyles,
+    DEFAULT_BATTERY_LOW_PCT: DEFAULT_BATTERY_LOW_PCT,
+    clampBatteryPct: clampBatteryPct,
+    getLowBatteryThreshold: getLowBatteryThreshold,
+    isBatteryLow: isBatteryLow,
+    hasBatterySensor: hasBatterySensor,
+    setDeviceBattery: setDeviceBattery
   };
 
   mount();

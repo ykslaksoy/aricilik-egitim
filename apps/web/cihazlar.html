@@ -70,6 +70,35 @@
     margin: 14px 0 8px; font-size: 11px; font-weight: 800;
     color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
   }
+  .poll-meta {
+    display: block; margin-top: 6px; font-size: 11px; font-weight: 700; color: #5c4813;
+  }
+  .poll-meta select {
+    font: inherit; font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 8px;
+    border: 1px solid #d8c7aa; background: #fff; max-width: 100%;
+  }
+  .poll-ret { color: var(--muted); font-weight: 650; }
+  .bat-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    margin: 0 4px 0 0; padding: 2px 7px; border-radius: 999px;
+    font-size: 10px; font-weight: 800; border: 1px solid #b2f2bb;
+    background: #ebfbee; color: #2b8a3e;
+  }
+  .bat-chip.low { border-color: #ffc078; background: #fff4e6; color: #e67700; }
+  .bat-chip.crit { border-color: #ffa8a8; background: #fff5f5; color: #c92a2a; }
+  .bat-warn-pill {
+    display: inline-block; margin: 0 0 0 4px; padding: 2px 7px; border-radius: 999px;
+    font-size: 10px; font-weight: 800; border: 1px solid #ffa8a8;
+    background: #fff5f5; color: #c92a2a;
+  }
+  .pil-panel {
+    margin: 0 0 14px; padding: 12px 14px; border-radius: 14px;
+    border: 1.5px solid #b2f2bb; background: #f1faf2;
+  }
+  .pil-panel.low { border-color: #ffc078; background: #fff8ef; }
+  .pil-spark { width: 100%; height: 40px; margin-top: 8px; }
+  .pil-spark path { fill: none; stroke: #2f9e44; stroke-width: 3; stroke-linejoin: round; }
+  .pil-panel.low .pil-spark path { stroke: #e67700; }
 </style>
 </head>
 <body>
@@ -98,6 +127,7 @@
 <script src="bk-kabuk.js?v=koloni-105"></script>
 <script src="demo-data.js?v=koloni-105"></script>
 <script src="device-runtime.js?v=koloni-105"></script>
+<script src="sensor-polling.js?v=koloni-105"></script>
 <script src="kapsam.js?v=koloni-105"></script>
 <script src="ks-sayfa.js?v=koloni-105"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
@@ -162,6 +192,93 @@
     '</div>';
   }
 
+  var POLLABLE = ['tarti', 'isi_nem', 'ses', 'titresim', 'ir'];
+  var Poll = window.SuperAriSensorPolling;
+  var deviceFocusId = params.get('device') || '';
+
+  function batteryPctOf(d) {
+    if (!d) return null;
+    if (d.batteryPct != null) return Number(d.batteryPct);
+    if (d.battery != null) return Number(d.battery);
+    return null;
+  }
+
+  function batteryIcon(pct) {
+    if (pct == null) return '🔋';
+    if (pct <= 10) return '🪫';
+    if (pct <= 35) return '🔋';
+    return '🔋';
+  }
+
+  function batteryChipHtml(d) {
+    var pct = batteryPctOf(d);
+    if (pct == null) return '<span class="bat-chip" title="Pil verisi yok">🔌 Şebeke / pil yok</span>';
+    var low = Dev.isBatteryLow ? Dev.isBatteryLow(d) : pct <= 20;
+    var cls = low ? (pct <= 10 ? 'bat-chip crit' : 'bat-chip low') : 'bat-chip';
+    var warn = low ? '<span class="bat-warn-pill">Düşük pil</span>' : '';
+    return '<span class="' + cls + '" title="Pil durumu">'
+      + batteryIcon(pct) + ' %' + esc(pct) + '</span>' + warn;
+  }
+
+  function pilSparkSvg(points) {
+    if (!points || points.length < 2) return '';
+    var vals = points.map(function (p) { return p.pct; });
+    var mn = Math.min.apply(null, vals);
+    var mx = Math.max.apply(null, vals);
+    var rg = mx - mn || 1;
+    var W = 220;
+    var H = 40;
+    var d = points.map(function (p, i) {
+      return (i ? 'L' : 'M') + Math.round(i / (points.length - 1) * W) + ' '
+        + Math.round(H - 4 - (p.pct - mn) / rg * (H - 8));
+    }).join(' ');
+    return '<svg class="pil-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '"/></svg>';
+  }
+
+  function pilHistory(deviceId, limit) {
+    if (!Poll || !Poll.readBatteryStore) return [];
+    var rows = Poll.readBatteryStore().filter(function (x) {
+      return x && String(x.deviceId) === String(deviceId) && x.batteryPct != null;
+    });
+    rows.sort(function (a, b) { return a.at < b.at ? -1 : 1; });
+    if (limit && rows.length > limit) rows = rows.slice(rows.length - limit);
+    return rows.map(function (x) { return { at: x.at, pct: Number(x.batteryPct) }; });
+  }
+
+  function deviceDetailPanel(d) {
+    if (!d) return '';
+    var pct = batteryPctOf(d);
+    var low = Dev.isBatteryLow ? Dev.isBatteryLow(d) : (pct != null && pct <= 20);
+    var hist = pilHistory(d.id, 24);
+    var v = d.batteryV != null ? (' · ' + esc(d.batteryV) + ' V') : '';
+    var at = d.batteryAt ? ('Son okuma: ' + esc(d.batteryAt)) : 'Henüz pil okuması yok';
+    return '<section class="pil-panel' + (low ? ' low' : '') + '" id="devDetail">' +
+      '<h2 class="section-label" style="margin-top:0">Pil durumu · ' + esc(d.hiveName || d.typeLabel || 'Cihaz') + '</h2>' +
+      '<p style="margin:0;font-size:15px;font-weight:800">' + batteryChipHtml(d) + v + '</p>' +
+      '<p class="meta" style="margin:6px 0 0">' + esc(at) + (hist.length >= 2 ? ' · trend (son ' + hist.length + ' okuma)' : '') + '</p>' +
+      pilSparkSvg(hist) +
+      '<p style="margin:10px 0 0"><a class="ks-btn" href="' + esc(listBackHref()) + '">← Listeye dön</a></p>' +
+    '</section>';
+  }
+
+  function devicePageHref(d) {
+    var q = new URLSearchParams(location.search);
+    q.set('device', d.id);
+    return 'cihazlar.html?' + q.toString() + '#devDetail';
+  }
+
+  function listBackHref() {
+    var q = new URLSearchParams(location.search);
+    q.delete('device');
+    var s = q.toString();
+    return 'cihazlar.html' + (s ? '?' + s : '') + '#devList';
+  }
+
+  function pollMetaHtml(d) {
+    if (!Poll || !Poll.selectHtml || POLLABLE.indexOf(d.tip) < 0) return '';
+    return Poll.selectHtml(d);
+  }
+
   function renderDevice(d) {
     var pills = (d.channels || []).map(function (c) {
       return '<span class="chan-pill">' + esc(c) + '</span>';
@@ -174,18 +291,15 @@
     var stLabel = Dev.statusLabel(st);
     var stClass = Dev.statusTone(st);
     var title = d.hiveName || d.typeLabel || 'Cihaz';
-    var bat = (d.battery == null) ? '—' : ('batarya %' + d.battery);
-    var href = d.kind === 'kamera'
-      ? 'kamera.html'
-      : (d.hiveId != null ? ('kovan.html?id=' + encodeURIComponent(d.hiveId)) : 'cihazlar.html');
+    var href = devicePageHref(d);
     return '<a class="row-item device-link" href="' + href + '">' +
       '<div class="left">' +
-        '<div class="title">' + esc(title) + ' ' + typeTag + '</div>' +
+        '<div class="title">' + esc(title) + ' ' + typeTag + ' ' + batteryChipHtml(d) + '</div>' +
         '<div class="meta">' + esc(d.apiaryName) +
-          ' · ' + bat +
           ' · ' + esc(relAgo(d.lastMins)) + '</div>' +
         '<div style="margin-top:4px">' + pills +
           '<span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
+        pollMetaHtml(d) +
       '</div>' +
       '<div class="right"><span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
     '</a>';
@@ -212,7 +326,7 @@
     var tipSel = params.get('tip') || '';
     if (tipSel === 'ses_titresim') tipSel = 'ses';
     var typeOf = function (d) { var t = String(d.tip || ''); return TYPES.filter(function (x) { return x.tips.indexOf(t) >= 0; })[0] || (Dev.isCamera && d.kind === 'kamera' ? TYPES[5] : null); };
-    var low = function (d) { return d.battery != null && Number(d.battery) <= 20; };
+    var low = function (d) { return Dev.isBatteryLow ? Dev.isBatteryLow(d) : (batteryPctOf(d) != null && batteryPctOf(d) <= 20); };
     var sum = function (list) {
       var o = { n: list.length, on: 0, off: 0, low: 0, last: null };
       list.forEach(function (d) { if (d.status === 'bagli') o.on++; else o.off++; if (low(d)) o.low++; if (d.lastMins != null && (o.last == null || d.lastMins < o.last)) o.last = d.lastMins; });
@@ -274,9 +388,12 @@
     document.getElementById('listHeading').textContent = (tSel ? tSel.l : 'Tüm cihazlar') + ' · ' + list.length + (list.length > 1 ? ' (önce arızalı / bağlı değil)' : '');
     document.getElementById('summary').textContent = '';
     var body = document.getElementById('deviceBody');
-    body.innerHTML = list.length ? list.map(renderDevice).join('')
-      : '<p class="dev-empty">' + (tSel ? tSel.l + ' cihazı bu kapsamda bağlı değil. ' : 'Bu kapsamda cihaz bağlı değil. ') + 'Tak–çalıştır: donanım bağlanınca otomatik listelenir; elle ekleme gerekmez.</p>';
+    var focusDev = deviceFocusId ? list.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0]
+      : (deviceFocusId ? all.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0] : null);
+    body.innerHTML = (focusDev ? deviceDetailPanel(focusDev) : '') + (list.length ? list.map(renderDevice).join('')
+      : '<p class="dev-empty">' + (tSel ? tSel.l + ' cihazı bu kapsamda bağlı değil. ' : 'Bu kapsamda cihaz bağlı değil. ') + 'Tak–çalıştır: donanım bağlanınca otomatik listelenir; elle ekleme gerekmez.</p>');
     if (tSel) body.insertAdjacentHTML('beforeend', '<a class="ks-btn dev-clear" href="' + href('') + '">Tüm cihaz türleri</a>');
+    if (Poll && Poll.bindPollSelects) Poll.bindPollSelects(body);
     var sp = document.getElementById('summary'); if (sp) sp.parentNode.insertBefore(sec.querySelector('h2'), sp);
     grid.parentNode.insertBefore(sec, grid.nextSibling);
     document.getElementById('pageNote').textContent = workMode === 'demo' ? 'Demo: sabit örnek cihaz paketi · kullanıcı kayıtları karışmaz' : 'Canlı: yalnızca gerçek / keşfedilen cihazlar';
@@ -369,12 +486,16 @@
 
   var body = document.getElementById('deviceBody');
   var out = '';
+  var focusDev = deviceFocusId ? list.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0]
+    : (deviceFocusId ? devices.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0] : null);
+  if (focusDev) out += deviceDetailPanel(focusDev);
   if (!list.length) {
     out += emptyLiveHtml();
   } else {
     out += list.map(renderDevice).join('');
   }
   body.innerHTML = out;
+  if (Poll && Poll.bindPollSelects) Poll.bindPollSelects(body);
 })();
 </script>
 <script>
