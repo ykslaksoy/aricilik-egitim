@@ -22,7 +22,18 @@ const B = globalThis.SuperAriBalAgirlik;
 const D = globalThis.SuperAriDemo;
 
 assert.strictEqual(B.DEFAULT_HIVE_TYPE, 'langstroth_10');
+assert.strictEqual(B.typeSpec('langstroth_10').label, 'Langstroth');
+assert.strictEqual(B.typeSpec('langstroth_10').subtitle, 'Standart · 10 çerçeve');
 assert.strictEqual(B.typeSpec('langstroth_10').frameHoneyKg, 3);
+assert.ok(B.isKnownHiveType('layens_12'));
+assert.ok(B.isKnownHiveType('national'));
+assert.ok(B.isKnownHiveType('warre'));
+assert.strictEqual(B.typeSpec('dadant_11').label, 'Dadant');
+B.saveCustomHiveType({ id: 'custom_wbc', label: 'WBC', emptyHiveKg: 14, frameEmptyKg: 1, frameHoneyKg: 2.8, frameCapacity: 10 });
+assert.ok(B.isKnownHiveType('custom_wbc'));
+assert.strictEqual(B.typeSpec('custom_wbc').emptyHiveKg, 14);
+assert.strictEqual(B.typeDisplayLabel('ozel', { customTypeLabel: 'Yerel' }), 'Yerel');
+B.saveCustomHiveType(null);
 assert.strictEqual(B.estimateHarvestKg(101, 10), 18);
 const net = B.netHoneyFromScale(40, 101, { skipMaterial: true });
 assert.strictEqual(net.netKg, 21.5);

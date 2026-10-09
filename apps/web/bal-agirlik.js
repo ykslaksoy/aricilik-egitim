@@ -8,41 +8,73 @@
   'use strict';
 
   var KEY = 'superari.balAgirlik.v1';
+  var CUSTOM_TYPES_KEY = 'superari.hiveTypes.custom.v1';
   var TARE_SOURCES = ['manuel', 'tarti', 'varsayilan'];
   var DEFAULT_HIVE_TYPE = 'langstroth_10';
 
   /**
-   * Türkiye pazarı varsayılanları — ballı çerçeve ≈ 3 kg (bakim-plan.js KG_PER_HONEY_FRAME ile uyumlu).
-   * emptyHiveKg: taban + çatı + boş gövde/kat yığını (çerçeveli, arısız).
+   * TR/Avrupa yaygın tipler — ballı çerçeve ≈ 3 kg (bakim-plan.js KG_PER_HONEY_FRAME ile uyumlu).
+   * emptyHiveKg: taban + çatı + boş gövde/kat (çerçeveli, arısız). Ağırlıklar pazar ortalaması tahmini.
    */
   var HIVE_TYPE_CATALOG = {
     langstroth_10: {
       key: 'langstroth_10',
-      label: 'Langstroth 10 çerçeve (standart)',
+      label: 'Langstroth',
+      subtitle: 'Standart · 10 çerçeve',
       frameCapacity: 10,
       emptyHiveKg: 18.5,
       frameEmptyKg: 1.2,
       frameHoneyKg: 3
     },
-    dadant_11: {
-      key: 'dadant_11',
-      label: 'Dadant 11 çerçeve',
-      frameCapacity: 11,
-      emptyHiveKg: 20,
-      frameEmptyKg: 1.25,
-      frameHoneyKg: 3.1
-    },
     langstroth_8: {
       key: 'langstroth_8',
-      label: 'Langstroth 8 çerçeve (küçük)',
+      label: 'Langstroth',
+      subtitle: 'Küçük gövde · 8 çerçeve',
       frameCapacity: 8,
       emptyHiveKg: 15.5,
       frameEmptyKg: 1.1,
       frameHoneyKg: 2.8
     },
+    dadant_11: {
+      key: 'dadant_11',
+      label: 'Dadant',
+      subtitle: '11 çerçeve',
+      frameCapacity: 11,
+      emptyHiveKg: 20,
+      frameEmptyKg: 1.25,
+      frameHoneyKg: 3.1
+    },
+    layens_12: {
+      key: 'layens_12',
+      label: 'Layens',
+      subtitle: '12 çerçeve (yaygın referans)',
+      frameCapacity: 12,
+      emptyHiveKg: 17.5,
+      frameEmptyKg: 1.05,
+      frameHoneyKg: 2.85
+    },
+    national: {
+      key: 'national',
+      label: 'National',
+      subtitle: 'British National · 10 çerçeve',
+      frameCapacity: 10,
+      emptyHiveKg: 16,
+      frameEmptyKg: 1.1,
+      frameHoneyKg: 2.9
+    },
+    warre: {
+      key: 'warre',
+      label: 'Warre',
+      subtitle: 'Küçük kutu · 8 çerçeve eşdeğeri',
+      frameCapacity: 8,
+      emptyHiveKg: 12.5,
+      frameEmptyKg: 0.85,
+      frameHoneyKg: 2.2
+    },
     kafkas: {
       key: 'kafkas',
-      label: 'Kafkas / bölgesel yüksek gövde',
+      label: 'Kafkas',
+      subtitle: 'Bölgesel yüksek gövde · 10 çerçeve',
       frameCapacity: 10,
       emptyHiveKg: 22,
       frameEmptyKg: 1.3,
@@ -50,13 +82,16 @@
     },
     ozel: {
       key: 'ozel',
-      label: 'Özel — elle kg girin',
+      label: 'Özel',
+      subtitle: 'Elle boş kg ve çerçeve ağırlığı',
       frameCapacity: null,
       emptyHiveKg: null,
       frameEmptyKg: 1.2,
       frameHoneyKg: 3
     }
   };
+
+  var HIVE_TYPE_ORDER = ['langstroth_10', 'langstroth_8', 'dadant_11', 'layens_12', 'national', 'warre', 'kafkas', 'ozel'];
 
   var DEFAULTS = {
     tabanKg: 2.5,
@@ -83,21 +118,100 @@
     return String(round2(n)).replace('.', ',') + ' kg';
   }
 
+  function loadCustomHiveType() {
+    var raw = readJ(CUSTOM_TYPES_KEY, null);
+    if (!raw || typeof raw !== 'object' || !raw.id) return null;
+    var id = String(raw.id).trim();
+    if (!/^custom_[a-z0-9_]{1,28}$/.test(id)) return null;
+    var label = String(raw.label || '').trim().slice(0, 60);
+    if (!label) return null;
+    var emptyHiveKg = parseKg(raw.emptyHiveKg);
+    var frameEmptyKg = parseKg(raw.frameEmptyKg);
+    var frameHoneyKg = parseKg(raw.frameHoneyKg);
+    var frameCapacity = raw.frameCapacity == null || raw.frameCapacity === '' ? null : Math.round(Number(raw.frameCapacity));
+    if (!(emptyHiveKg > 0) || !(frameEmptyKg > 0) || !(frameHoneyKg > frameEmptyKg)) return null;
+    if (frameCapacity != null && (!(frameCapacity > 0) || frameCapacity > 24)) frameCapacity = null;
+    return {
+      id: id,
+      label: label,
+      emptyHiveKg: emptyHiveKg,
+      frameEmptyKg: frameEmptyKg,
+      frameHoneyKg: frameHoneyKg,
+      frameCapacity: frameCapacity
+    };
+  }
+
+  function saveCustomHiveType(entry) {
+    if (!entry) { try { global.localStorage.removeItem(CUSTOM_TYPES_KEY); } catch (e) { /* ignore */ } return true; }
+    return writeJ(CUSTOM_TYPES_KEY, entry);
+  }
+
+  function customToSpec(c) {
+    return {
+      key: c.id,
+      label: c.label,
+      subtitle: c.frameCapacity ? c.frameCapacity + ' çerçeve · özel katalog' : 'Özel katalog girişi',
+      frameCapacity: c.frameCapacity,
+      emptyHiveKg: c.emptyHiveKg,
+      frameEmptyKg: c.frameEmptyKg,
+      frameHoneyKg: c.frameHoneyKg,
+      customCatalog: true
+    };
+  }
+
+  function catalogEntry(key) {
+    var k = String(key == null ? '' : key).trim();
+    if (HIVE_TYPE_CATALOG[k]) return HIVE_TYPE_CATALOG[k];
+    var custom = loadCustomHiveType();
+    if (custom && custom.id === k) return customToSpec(custom);
+    return null;
+  }
+
+  function fullCatalog() {
+    var out = {};
+    Object.keys(HIVE_TYPE_CATALOG).forEach(function (k) { out[k] = HIVE_TYPE_CATALOG[k]; });
+    var custom = loadCustomHiveType();
+    if (custom) out[custom.id] = customToSpec(custom);
+    return out;
+  }
+
+  function isKnownHiveType(key) {
+    return !!catalogEntry(key);
+  }
+
   function normalizeHiveTypeKey(v) {
     var k = String(v == null ? '' : v).trim();
-    return HIVE_TYPE_CATALOG[k] ? k : DEFAULT_HIVE_TYPE;
+    return catalogEntry(k) ? k : DEFAULT_HIVE_TYPE;
   }
 
   function typeSpec(key) {
-    return HIVE_TYPE_CATALOG[normalizeHiveTypeKey(key)] || HIVE_TYPE_CATALOG[DEFAULT_HIVE_TYPE];
+    return catalogEntry(key) || HIVE_TYPE_CATALOG[DEFAULT_HIVE_TYPE];
+  }
+
+  function typeDisplayLabel(typeKey, hive) {
+    var k = normalizeHiveTypeKey(typeKey);
+    if (k === 'ozel' && hive && String(hive.customTypeLabel || '').trim()) {
+      return String(hive.customTypeLabel).trim().slice(0, 60);
+    }
+    return typeSpec(k).label || k;
   }
 
   function hiveTypeOptionsHtml(selected) {
     var cur = normalizeHiveTypeKey(selected);
-    return Object.keys(HIVE_TYPE_CATALOG).map(function (k) {
-      var t = HIVE_TYPE_CATALOG[k];
-      return '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(t.label) + '</option>';
+    var cat = fullCatalog();
+    var keys = HIVE_TYPE_ORDER.filter(function (k) { return cat[k]; });
+    Object.keys(cat).forEach(function (k) {
+      if (keys.indexOf(k) < 0) keys.push(k);
+    });
+    return keys.map(function (k) {
+      var t = cat[k];
+      var text = t.label + (t.subtitle ? ' — ' + t.subtitle : '');
+      return '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(text) + '</option>';
     }).join('');
+  }
+
+  function hiveTypeSelectAttrs() {
+    return ' class="sa-hive-type-select" size="8"';
   }
 
   function defaultSettings() {
@@ -229,7 +343,8 @@
   function typeHintHtml(typeKey) {
     var spec = typeSpec(typeKey);
     var per = round2(spec.frameHoneyKg - spec.frameEmptyKg);
-    return 'Önerilen boş kovan: <b>' + fmtKg(spec.emptyHiveKg) + '</b> · çerçeve farkı ≈ ' + fmtKg(per) +
+    var sub = spec.subtitle ? '<span style="display:block;font-size:.82em;color:#6b7280;font-weight:650;margin-bottom:.15rem;">' + esc(spec.subtitle) + '</span>' : '';
+    return sub + 'Önerilen boş kovan: <b>' + fmtKg(spec.emptyHiveKg) + '</b> · çerçeve farkı ≈ ' + fmtKg(per) +
       (spec.frameCapacity ? ' · ' + spec.frameCapacity + ' çerçeve kapasite' : ' · kg elle girilir');
   }
 
@@ -332,14 +447,30 @@
 
   function settingsPanelHtml() {
     var s = loadSettings(), g = s.global || {};
+    var custom = loadCustomHiveType();
     return '<div id="balAgirlikBox" style="display:grid;gap:.55rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">' +
       '<strong style="font-size:.95rem;">🍯 Net bal ve çerçeve varsayılanları</strong>' +
-      '<p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Kovan tipi kovan kaydında seçilir (varsayılan Langstroth 10). «Özel» tip için aşağıdaki çerçeve kg kullanılır.</p>' +
+      '<p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Kovan tipi kovan kaydında seçilir (varsayılan Langstroth). «Özel» tip için aşağıdaki çerçeve kg kullanılır.</p>' +
       '<label style="font-size:.85rem;">Boş çerçeve (kg, özel tip) <input type="number" id="baFrameEmpty" min="0.5" max="5" step="0.1" inputmode="decimal" value="' + esc(g.frameEmptyKg) + '"></label>' +
       '<label style="font-size:.85rem;">Ballı çerçeve (kg, özel tip) <input type="number" id="baFrameHoney" min="1" max="6" step="0.1" inputmode="decimal" value="' + esc(g.frameHoneyKg) + '"></label>' +
       '<label class="kr-checkline" style="font-size:.85rem;"><input type="checkbox" id="baBeeMass" ' + (g.subtractBeeMass ? 'checked' : '') + '> Tartıdan arı kitlesi düş (varsayılan kapalı, ~' + DEFAULTS.beeMassKg + ' kg)</label>' +
       '<button type="button" class="btn secondary" id="baSaveDefaults">Kaydet</button>' +
-      '</div>';
+      '<details id="baCustomTypeDetails" style="margin-top:.25rem;font-size:.85rem;">' +
+        '<summary style="cursor:pointer;font-weight:800;">Gelişmiş · standart kovan ekle</summary>' +
+        '<p class="muted" style="margin:.45rem 0;font-size:.8rem;line-height:1.4;">Tek özel katalog girişi (cihazda saklanır). Kovan ekle/düzenle listesinde görünür.</p>' +
+        (custom ? '<p style="margin:0 0 .4rem;font-weight:700;">Kayıtlı: ' + esc(custom.label) + ' <button type="button" class="btn secondary" id="baCustomRemove" style="margin-left:.35rem;padding:.2rem .5rem;font-size:.78rem;">Kaldır</button></p>' : '') +
+        '<label>Görünen ad<input type="text" id="baCustomLabel" maxlength="60" placeholder="ör. WBC National" value="' + esc(custom ? custom.label : '') + '"></label>' +
+        '<label>Boş kovan (kg)<input type="number" id="baCustomEmpty" min="5" max="80" step="0.1" inputmode="decimal" value="' + esc(custom ? custom.emptyHiveKg : '') + '"></label>' +
+        '<label>Boş çerçeve (kg)<input type="number" id="baCustomFrameEmpty" min="0.4" max="5" step="0.05" inputmode="decimal" value="' + esc(custom ? custom.frameEmptyKg : '') + '"></label>' +
+        '<label>Ballı çerçeve (kg)<input type="number" id="baCustomFrameHoney" min="1" max="6" step="0.05" inputmode="decimal" value="' + esc(custom ? custom.frameHoneyKg : '') + '"></label>' +
+        '<label>Kapasite (çerçeve, isteğe bağlı)<input type="number" id="baCustomCap" min="1" max="24" step="1" inputmode="numeric" value="' + esc(custom && custom.frameCapacity != null ? custom.frameCapacity : '') + '"></label>' +
+        '<button type="button" class="btn secondary" id="baCustomSave">Standart kovanı kaydet</button>' +
+      '</details></div>';
+  }
+
+  function slugCustomId(label) {
+    var s = String(label || '').toLocaleLowerCase('tr').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 28);
+    return s ? 'custom_' + s : 'custom_tip';
   }
 
   function wireSettingsPanel(root) {
@@ -357,6 +488,38 @@
       btn.textContent = 'Kaydedildi ✓';
       setTimeout(function () { btn.textContent = 'Kaydet'; }, 2000);
     });
+    var cSave = box.querySelector('#baCustomSave');
+    if (cSave && !cSave.__wired) {
+      cSave.__wired = true;
+      cSave.addEventListener('click', function () {
+        var label = String(box.querySelector('#baCustomLabel').value || '').trim();
+        if (!label) { global.alert('Görünen ad girin.'); return; }
+        var entry = {
+          id: slugCustomId(label),
+          label: label,
+          emptyHiveKg: parseKg(box.querySelector('#baCustomEmpty').value),
+          frameEmptyKg: parseKg(box.querySelector('#baCustomFrameEmpty').value),
+          frameHoneyKg: parseKg(box.querySelector('#baCustomFrameHoney').value),
+          frameCapacity: parseKg(box.querySelector('#baCustomCap').value) || null
+        };
+        if (!(entry.emptyHiveKg > 0) || !(entry.frameEmptyKg > 0) || !(entry.frameHoneyKg > entry.frameEmptyKg)) {
+          global.alert('Boş kovan ve çerçeve ağırlıklarını kontrol edin.');
+          return;
+        }
+        saveCustomHiveType(entry);
+        cSave.textContent = 'Kaydedildi ✓';
+        setTimeout(function () { location.reload(); }, 600);
+      });
+    }
+    var cRem = box.querySelector('#baCustomRemove');
+    if (cRem && !cRem.__wired) {
+      cRem.__wired = true;
+      cRem.addEventListener('click', function () {
+        if (!global.confirm('Özel katalog girişi kaldırılsın mı?')) return;
+        saveCustomHiveType(null);
+        location.reload();
+      });
+    }
   }
 
   function openHiveTareDialog(hiveId, onSaved) {
@@ -382,7 +545,7 @@
     var changed = false;
     var out = list.map(function (h) {
       if (!h || !isFinite(h.id)) return h;
-      if (h.hiveType && HIVE_TYPE_CATALOG[h.hiveType]) return h;
+      if (h.hiveType && isKnownHiveType(h.hiveType)) return h;
       var c = {};
       Object.keys(h).forEach(function (k) { c[k] = h[k]; });
       c.hiveType = DEFAULT_HIVE_TYPE;
@@ -397,11 +560,18 @@
     DEFAULTS: DEFAULTS,
     DEFAULT_HIVE_TYPE: DEFAULT_HIVE_TYPE,
     HIVE_TYPE_CATALOG: HIVE_TYPE_CATALOG,
+    CUSTOM_TYPES_KEY: CUSTOM_TYPES_KEY,
     loadSettings: loadSettings,
     saveSettings: saveSettings,
+    loadCustomHiveType: loadCustomHiveType,
+    saveCustomHiveType: saveCustomHiveType,
+    fullCatalog: fullCatalog,
+    isKnownHiveType: isKnownHiveType,
     normalizeHiveTypeKey: normalizeHiveTypeKey,
     typeSpec: typeSpec,
+    typeDisplayLabel: typeDisplayLabel,
     hiveTypeOptionsHtml: hiveTypeOptionsHtml,
+    hiveTypeSelectAttrs: hiveTypeSelectAttrs,
     typeHintHtml: typeHintHtml,
     resolveHiveType: resolveHiveType,
     frameWeights: frameWeights,

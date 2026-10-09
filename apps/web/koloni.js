@@ -124,6 +124,8 @@
     '.qcol{display:inline-flex;align-items:center;gap:.1rem;padding:.2rem .6rem;border-radius:999px;background:#fff;border:1px solid #ced4da;font-weight:800;font-size:.85rem;white-space:nowrap;}' +
     '.qleg{font-size:.8rem;padding:.55rem .7rem;border-radius:12px;background:#fff;border:1px solid var(--border,#ead9b3);}.qleg-s{color:#6b7280;font-size:.74rem;}' +
     '.qleg-row{display:flex;flex-wrap:wrap;gap:.3rem .7rem;margin-top:.3rem;}.qleg-row>span{white-space:nowrap;}' +
+    '.kol-hive-type-chip{display:inline-block;margin-top:.2rem;padding:.12rem .5rem;border-radius:999px;background:#fff8e6;border:1px solid #e0c56a;font-size:.72rem;font-weight:800;color:#5c4813;}' +
+    '.sa-hive-type-select{width:100%;max-height:12rem;}' +
     '.qlabel-hint{font-size:.8rem;margin-top:.4rem;padding:.45rem .55rem;border-radius:10px;background:#fff4e6;border:1px solid #ffd8a8;color:#8a4b00;}.qlabel-hint a{color:#2b6cb0;text-decoration:underline;}' +
     '.qbadge{display:inline-flex;align-items:center;padding:.12rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;white-space:nowrap;margin-left:.3rem;}' +
     '.qbadge.renew{background:#ffe3e3;color:#c92a2a;}' +
@@ -345,8 +347,10 @@
     ensureCss();
     var sw = h.swarmTendency || '—';
     var swTone = sw === 'Yüksek' ? ' style="color:#c92a2a;font-weight:800"' : (sw === 'Orta' ? ' style="color:#e67700;font-weight:800"' : '');
+    var BAg = global.SuperAriBalAgirlik;
+    var typeChip = BAg ? '<span class="kol-hive-type-chip">' + esc(BAg.typeDisplayLabel(BAg.resolveHiveType(h), h)) + '</span>' : '';
     return '<button type="button" class="item-card kol-card" data-hive="' + esc(h.id) + '" aria-label="' + esc(h.name) + ' koloni bilgisini düzenle">' +
-      '<div class="row"><h3>' + esc(h.name) + '</h3><span class="badge priority-3" title="Koloni gücü (0–100)">' + esc(cardScore(h)) + '</span></div>' +
+      '<div class="row"><div><h3 style="margin:0;">' + esc(h.name) + '</h3>' + typeChip + '</div><span class="badge priority-3" title="Koloni gücü (0–100)">' + esc(cardScore(h)) + '</span></div>' +
       '<div class="kol-grid">' +
         '<div><span class="k">Irk</span>' + esc(h.breed || '—') + '</div>' +
         '<div><span class="k">Ana arı yaşı</span>' + queenHtml(h) + '</div>' +
@@ -401,7 +405,8 @@
     var BAg = global.SuperAriBalAgirlik;
     var curType = BAg ? BAg.resolveHiveType(h) : (h.hiveType || 'langstroth_10');
     var tare = BAg ? BAg.getHiveTare(h.id) : { kg: h.emptyHiveKg || '', source: h.emptyHiveSource || 'varsayilan' };
-    var hiveTypeSel = BAg ? BAg.hiveTypeOptionsHtml(curType) : '<option value="langstroth_10">Langstroth 10 çerçeve (standart)</option>';
+    var hiveTypeSel = BAg ? BAg.hiveTypeOptionsHtml(curType) : '<option value="langstroth_10">Langstroth — Standart · 10 çerçeve</option>';
+    var hiveTypeAttrs = BAg && BAg.hiveTypeSelectAttrs ? BAg.hiveTypeSelectAttrs() : '';
 
     var back = document.createElement('div');
     back.className = 'kol-back';
@@ -418,8 +423,9 @@
         '<p class="kol-sub" id="kolModeHint">Aynı ana arının bilgilerini düzeltir; yeni ana kaydı oluşturmaz.</p>' +
         '<form class="kol-form" id="kolForm" autocomplete="off">' +
           '<label class="full" id="kolDateWrap" hidden>Değişim tarihi<input type="date" name="date" value="' + esc(c.todayLocal ? c.todayLocal() : '') + '"></label>' +
-          '<label class="full">Kovan tipi<select name="hiveType" required>' + hiveTypeSel + '</select></label>' +
+          '<label class="full">Kovan tipi<select name="hiveType" required' + hiveTypeAttrs + '>' + hiveTypeSel + '</select></label>' +
           '<p class="full kol-sub" id="kolTypeHint" style="margin:-.2rem 0 0;">' + (BAg ? BAg.typeHintHtml(curType) : '') + '</p>' +
+          '<label class="full" id="kolCustomTypeWrap"' + (curType === 'ozel' ? '' : ' hidden') + '>Özel tip adı (isteğe bağlı)<input name="customTypeLabel" maxlength="60" value="' + esc(h.customTypeLabel || '') + '" placeholder="ör. Yerel standart"></label>' +
           '<label class="full">Kovan boş ağırlığı (kg, tare)<input type="number" name="emptyHiveKg" min="5" max="80" step="0.1" inputmode="decimal" value="' + esc(tare.kg > 0 ? tare.kg : '') + '" placeholder="ör. 18,5"></label>' +
           '<p class="full kol-sub" style="margin:-.2rem 0 0;">Kaynak: <span id="kolTareSrc">' + esc(tare.source) + '</span> · tip değişince önerilen dara güncellenir (elle girilmişse sorulur).</p>' +
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
@@ -493,9 +499,11 @@
       var ih = back.querySelector('#kolIrkHint'); if (ih) ih.hidden = !!form.breed.value && !(h.breedEstimated && form.breed.value === curBreed);
     });
     if (BAg && form.hiveType) {
+      var customWrap = back.querySelector('#kolCustomTypeWrap');
       function refreshTypeHint() {
         var hint = back.querySelector('#kolTypeHint');
         if (hint) hint.innerHTML = BAg.typeHintHtml(form.hiveType.value);
+        if (customWrap) customWrap.hidden = form.hiveType.value !== 'ozel';
         var spec = BAg.typeSpec(form.hiveType.value);
         if (form.hiveType.value !== 'ozel' && spec.emptyHiveKg > 0) {
           var srcEl = back.querySelector('#kolTareSrc');
@@ -543,6 +551,10 @@
         colonyNote: form.colonyNote.value,
         hiveType: form.hiveType ? form.hiveType.value : curType
       };
+      if (form.customTypeLabel) {
+        var ctl = String(form.customTypeLabel.value || '').trim();
+        patch.customTypeLabel = patch.hiveType === 'ozel' && ctl ? ctl : '';
+      }
       if (form.emptyHiveKg && String(form.emptyHiveKg.value).trim() !== '') {
         patch.emptyHiveKg = form.emptyHiveKg.value;
         var srcEl = back.querySelector('#kolTareSrc');

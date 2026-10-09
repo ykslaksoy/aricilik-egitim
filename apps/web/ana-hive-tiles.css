@@ -263,6 +263,17 @@ body.sa-tile-select .ana-hive-grid .tile.on { border: 2px solid #1b5e20; backgro
   text-align: center;
   overflow-wrap: anywhere;
 }
+.grid.ana-hive-grid .tile-sub,
+.ana-hive-grid .tile-sub {
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 750;
+  color: #8a7a62;
+  line-height: 1.1;
+  text-align: center;
+}
 .grid.ana-hive-grid .badge,
 .ana-hive-grid .badge {
   position: relative;

@@ -884,7 +884,14 @@
       if (pm.breed) out.pendingMother.breed = String(pm.breed).slice(0, 60);
       if (pm.fromHiveId != null && isFinite(Number(pm.fromHiveId))) out.pendingMother.fromHiveId = Number(pm.fromHiveId);
     }
-    if (h.hiveType && /^(langstroth_10|dadant_11|langstroth_8|kafkas|ozel)$/.test(String(h.hiveType))) out.hiveType = String(h.hiveType);
+    if (h.hiveType) {
+      var ht = String(h.hiveType).trim();
+      if ((global.SuperAriBalAgirlik && global.SuperAriBalAgirlik.isKnownHiveType(ht)) ||
+          /^(langstroth_10|langstroth_8|dadant_11|layens_12|national|warre|kafkas|ozel|custom_[a-z0-9_]{1,28})$/.test(ht)) {
+        out.hiveType = ht;
+      }
+    }
+    if (h.customTypeLabel != null && String(h.customTypeLabel).trim()) out.customTypeLabel = String(h.customTypeLabel).trim().slice(0, 60);
     var ehk = numIn(h.emptyHiveKg, 0, 200);
     if (ehk != null && ehk > 0) out.emptyHiveKg = ehk;
     if (h.emptyHiveSource && /^(manuel|tarti|varsayilan)$/.test(String(h.emptyHiveSource))) out.emptyHiveSource = String(h.emptyHiveSource);
@@ -1294,12 +1301,12 @@
   }
 
   function applyColonyTraits(copy, patch) {
-    ['calmness', 'swarmTendency', 'colonyNote', 'hiveType', 'emptyHiveKg', 'emptyHiveSource', 'lastTareAt'].forEach(function (f) {
+    ['calmness', 'swarmTendency', 'colonyNote', 'hiveType', 'customTypeLabel', 'emptyHiveKg', 'emptyHiveSource', 'lastTareAt'].forEach(function (f) {
       if (patch && Object.prototype.hasOwnProperty.call(patch, f)) delete copy[f];
     });
     var tmp = {};
-    ['calmness', 'swarmTendency', 'colonyNote', 'hiveType', 'emptyHiveKg', 'emptyHiveSource', 'lastTareAt'].forEach(function (f) {
-      if (patch && patch[f] != null && patch[f] !== '') tmp[f] = patch[f];
+    ['calmness', 'swarmTendency', 'colonyNote', 'hiveType', 'customTypeLabel', 'emptyHiveKg', 'emptyHiveSource', 'lastTareAt'].forEach(function (f) {
+      if (patch && Object.prototype.hasOwnProperty.call(patch, f)) tmp[f] = patch[f];
     });
     copyColonyFields(copy, tmp);
   }
