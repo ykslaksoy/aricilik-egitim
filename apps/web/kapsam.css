@@ -99,6 +99,20 @@ body.ks-body{background:#f0f1f3;}
 .gk-det{display:block;margin-top:8px;font-size:14px;font-weight:700;color:#2b6cb0;min-height:44px;line-height:44px;text-decoration:underline;}
 .gk-rows{margin-top:6px;}
 .gk-rows .task{margin:8px 0 0;}
+.gk-toggle{width:100%;display:flex;align-items:center;gap:10px;min-height:64px;padding:0;border:0;background:transparent;font:inherit;text-align:left;cursor:pointer;}
+.gk-toggle:focus-visible{outline:2px solid #2b6cb0;outline-offset:2px;border-radius:12px;}
+.gk-chev{flex:0 0 auto;font-size:18px;color:#6b635a;line-height:1;margin-left:4px;}
+.gk-badge{flex:0 0 auto;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:#2b6cb0;color:#fff;font-size:14px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;}
+.gk-card.late-head .gk-badge{background:#e03131;}
+.gk-overdue{flex:0 0 auto;font-size:13px;font-weight:800;color:#c92a2a;white-space:nowrap;}
+.gk-body{margin-top:8px;}
+.gk-child{display:grid;gap:8px;margin-top:8px;}
+.gk-child-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid #eadfcd;background:#fffdf7;min-height:64px;box-sizing:border-box;}
+.gk-child-row .gk-lt{font-size:15px;font-weight:750;color:#2c241c;overflow-wrap:anywhere;}
+.gk-child-row .gk-ls{font-size:12px;font-weight:650;color:#6b635a;margin-top:2px;}
+.gk-child-row .gk-due{font-size:12px;font-weight:800;color:#6b635a;white-space:nowrap;text-align:right;}
+.gk-child-row .gk-due.late{color:#c92a2a;}
+.gk-child-row .gk-one{min-height:48px;padding:.35rem .65rem;border-radius:10px;border:1px solid #b2f2bb;background:#ebfbee;color:#2b8a3e;font:inherit;font-size:.8rem;font-weight:800;cursor:pointer;white-space:nowrap;}
 /* Eldiven boyu: Bakım düzenine geçirilen sayfalarda düğme, seçim ve giriş alanları ≥64 px */
 .ks-glove main select,.ks-glove .screen select,
 .ks-glove main input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),.ks-glove .screen input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),

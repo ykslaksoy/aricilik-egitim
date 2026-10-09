@@ -30,6 +30,13 @@
     .bk-done-btn{font:inherit;font-size:.74rem;font-weight:800;padding:.35rem .5rem;border-radius:10px;border:1px solid #b2f2bb;background:#ebfbee;color:#2b8a3e;cursor:pointer;white-space:nowrap;}
     .bk-undo-btn{font:inherit;font-size:.74rem;font-weight:800;padding:.35rem .5rem;border-radius:10px;border:1px solid var(--border);background:#fff;color:#5c4813;cursor:pointer;white-space:nowrap;}
     .bk-item.done .bk-t{text-decoration:line-through;color:var(--muted);}
+    .bg-grp{border:1px solid var(--border);border-radius:14px;background:#fff;overflow:hidden;margin-bottom:6px;}
+    .bg-grp-h{width:100%;display:flex;align-items:center;gap:8px;min-height:64px;padding:10px 12px;border:0;background:#fffdf7;font:inherit;text-align:left;cursor:pointer;}
+    .bg-grp-h b{flex:1;font-size:.9rem;color:#2c241c;}
+    .bg-grp-badge{min-width:26px;height:26px;border-radius:999px;background:#2b6cb0;color:#fff;font-size:13px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;padding:0 7px;}
+    .bg-grp-h.late .bg-grp-badge{background:#e03131;}
+    .bg-grp-late{font-size:.74rem;font-weight:800;color:#c92a2a;white-space:nowrap;}
+    .bg-grp-body{padding:0 8px 8px;}
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
   </style>
@@ -67,6 +74,7 @@
   </main>
   <script src="bk-kabuk.js?v=koloni-105"></script>
   <script src="demo-data.js?v=koloni-105"></script>
+  <script src="task-group.js?v=koloni-105"></script>
   <script src="rapor-store.js?v=koloni-105"></script>
   <script src="hava-kayit.js"></script>
   <script src="koloni.js?v=koloni-105"></script>
@@ -75,8 +83,10 @@
   <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
   (function () {
-    var D = window.SuperAriDemo, K = window.SuperAriKoloni, H = window.SuperAriHava;
-    if (!D || !K || !D.records) return;
+    var D = window.SuperAriDemo, K = window.SuperAriKoloni, H = window.SuperAriHava, TG = window.SuperAriTaskGroup;
+    if (!D || !K || !D.records || !TG) return;
+    var BG_EXPAND = 'superari.bugun.expanded.v1';
+    var bgExpanded = TG.readExpanded(BG_EXPAND);
     var R = D.records, esc = K.esc, fmt = K.fmtDate;
     var aps = D.loadApiaries();
     var sel = document.getElementById('bgApiary');
@@ -157,12 +167,35 @@
       var m = K.maintenance(hs);
       var ids = {}; hs.forEach(function (h) { ids[String(h.id)] = true; });
       var todays = m.week.filter(function (x) { return x.date === today || (!x.date && x.priority === 1); });
-      var list = m.overdue.map(function (x) {
-        var late = daysBetween(x.date, today);
-        return taskItem('⏰', x, late > 0 ? late + ' gün gecikti' : 'Bugün', 'red', true);
+      var rawList = m.overdue.map(function (x) {
+        return Object.assign({ _late: true, _ico: '⏰' }, x);
       }).concat(todays.map(function (x) {
-        return taskItem(x.priority === 1 ? '❗' : '📌', x, x.date ? 'Bugün' : 'Acil', x.priority === 1 ? 'red' : '');
+        return Object.assign({ _late: false, _ico: x.priority === 1 ? '❗' : '📌' }, x);
       }));
+      var pseudo = rawList.map(function (x) { return { id: x.id, title: x.title, note: '', kind: null, due: x.date }; });
+      var groups = TG.groupTasksByCategory(pseudo, today).map(function (g) {
+        var items = [];
+        g.tasks.forEach(function (t) {
+          var hit = rawList.filter(function (x) { return String(x.id) === String(t.id); })[0];
+          if (hit) items.push(hit);
+        });
+        return Object.assign({}, g, { items: items });
+      });
+      function groupHtml(g) {
+        var gid = 'bg-' + g.key, open = !!bgExpanded[gid];
+        var worst = g.late && g.worstLateDays ? g.worstLateDays + ' gün gecikti' : '';
+        var inner = open ? g.items.map(function (x) {
+          var late = x._late && x.date ? daysBetween(x.date, today) : 0;
+          return taskItem(x._ico, x, late > 0 ? late + ' gün gecikti' : (x.date ? 'Bugün' : 'Acil'), x._late ? 'red' : (x.priority === 1 ? 'red' : ''), late > 0);
+        }).join('') : '';
+        return '<div class="bg-grp" id="' + gid + '"><button type="button" class="bg-grp-h' + (g.late ? ' late' : '') + '" data-bg-toggle="' + gid + '" aria-expanded="' + open + '">' +
+          '<span aria-hidden="true">' + esc(g.icon) + '</span><b>' + esc(g.label) + '</b>' +
+          '<span class="bg-grp-badge">' + g.count + '</span>' +
+          (worst ? '<span class="bg-grp-late">' + esc(worst) + '</span>' : '') +
+          '<span aria-hidden="true">' + (open ? '▾' : '▸') + '</span></button>' +
+          (open ? '<div class="bg-grp-body bk-list">' + inner + '</div>' : '') + '</div>';
+      }
+      var list = groups.map(groupHtml);
       var undated = m.week.filter(function (x) { return !x.date && x.priority !== 1; }).length;
       var staticN = (D.tasks || []).filter(function (t) { return !t.auto && !t.manual && ids[String(t.hiveId)]; }).length;
       var dToday = (m.done || []).filter(function (x) { return x.date === today; });
@@ -172,7 +205,7 @@
           '<span><span class="bk-t" style="display:block;">' + esc(x.title) + '</span>' + (x.note ? '<span class="bk-s" style="display:block;">' + esc(x.note) + '</span>' : '') + '</span><span class="bk-d">Bugün</span></a>' +
           '<button type="button" class="bk-undo-btn" data-undo="' + esc(x.id) + '">Geri al</button></div>';
       }).join('');
-      document.getElementById('cTasks').textContent = list.length ? '(' + list.length + ')' : '';
+      document.getElementById('cTasks').textContent = rawList.length ? '(' + rawList.length + ' · ' + groups.length + ' kategori)' : '';
       document.getElementById('bgTasks').innerHTML = (list.join('') || '<p class="bk-empty">Bugün için tarihli veya geciken iş yok.</p>') +
         ((undated || staticN) ? '<p class="bk-empty">Ayrıca ' + (undated + staticN) + ' tarihsiz açık görev var · <a href="gorevler.html" style="color:#2b6cb0;text-decoration:underline;">Görevler</a> · <a href="bakim.html?apiary=' + encodeURIComponent(apiaryId) + '" style="color:#2b6cb0;text-decoration:underline;">Bakım</a></p>' : '');
       var att = K.attentionHives(hs);
@@ -200,8 +233,9 @@
       render(); loadWx();
     });
     document.querySelector('main').addEventListener('click', function (e) {
-      var b = e.target.closest && e.target.closest('[data-done],[data-undo]');
+      var b = e.target.closest && e.target.closest('[data-done],[data-undo],[data-bg-toggle]');
       if (!b) return;
+      if (b.hasAttribute('data-bg-toggle')) { bgExpanded = TG.toggleExpanded(bgExpanded, b.getAttribute('data-bg-toggle'), BG_EXPAND); render(); return; }
       e.preventDefault();
       if (b.hasAttribute('data-done')) K.openTaskDone(b.getAttribute('data-done'), render);
       else K.undoTask(b.getAttribute('data-undo'), render);
