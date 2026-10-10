@@ -13,8 +13,10 @@ assert.ok(ks.includes('navChipsForView') && ks.includes('smartBackChip') && ks.i
 assert.ok(ks.includes("view !== 'tarti'") && ks.includes('data-sa-scope-nav-href'));
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
 assert.ok(kv.includes("view === 'tarti'") && kv.includes('bk: true') && kv.includes('navInCard: true'));
-assert.ok(kv.includes('Elle tart') && ks.includes('weatherEndHtml'));
-assert.ok(kv.includes('topEnd: topEndChip') || kv.includes('topEndChip'));
+assert.ok(kv.includes('Elle tart') && kv.includes('data-te-has-scale') && ks.includes('weatherEndHtml'));
+assert.ok(!kv.includes('ksElleTart'), 'tarti header must not show Elle tart chip');
+assert.ok(kv.includes('requestTartiWeigh') || kv.includes('SuperAriSensorPolling'), 'scale tile act should request weigh');
+assert.ok(kv.includes('Son tartım') && kv.includes('openScopeRecent') && kv.includes('tartiLastStatVal'));
 assert.ok(kv.includes('tile-act') && kv.includes('data-te-tart'));
 assert.ok(kv.includes('navChipsForView') && kv.includes("headLayout: view === 'tarti' ? 'tarti' : 'bakim'"));
 assert.ok(ks.includes("layout === 'tarti'") && ks.includes('bk-scope-head--tarti'));

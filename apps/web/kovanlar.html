@@ -443,13 +443,24 @@
         hasMode = true; mode = initV === 'all' ? 'all' : 'apiary'; apiaryFilter = initV === 'all' ? '' : initV;
         try { var uV = new URLSearchParams(location.search); uV.set('mode', mode); if (apiaryFilter) uV.set('apiary', apiaryFilter); else uV.delete('apiary'); history.replaceState(null, '', 'kovanlar.html?' + uV.toString() + location.hash); } catch (e) { /* ignore */ }
         var tsum = function (hs) {
-          var out = { n: hs.length, wk: 0, none: 0, last: '' }, d7 = D.records ? D.records.addDays(D.records.todayLocal(), -7) : '', d14 = D.records ? D.records.addDays(D.records.todayLocal(), -14) : '';
-          hs.forEach(function (h) { var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : ''; if (at && at >= d7) out.wk++; if (!at || at < d14) out.none++; if (at > out.last) out.last = at; });
+          var out = { n: hs.length, wk: 0, none: 0, last: '', lastRec: null }, d7 = D.records ? D.records.addDays(D.records.todayLocal(), -7) : '', d14 = D.records ? D.records.addDays(D.records.todayLocal(), -14) : '';
+          hs.forEach(function (h) {
+            var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
+            if (at && at >= d7) out.wk++;
+            if (!at || at < d14) out.none++;
+            if (at > out.last) out.last = at;
+            if (l && (!out.lastRec || String(l.at) > String(out.lastRec.at))) out.lastRec = l;
+          });
           return out;
         };
+        function tartiLastStatVal(lastRec) {
+          if (!lastRec || !(Number(lastRec.kg) > 0)) return '—';
+          var kg = String(Math.round(Number(lastRec.kg) * 10) / 10).replace('.', ',') + ' kg';
+          return kg + ' · ' + KV.fmtAgo(String(lastRec.at).slice(0, 10), D.records.todayLocal());
+        }
         var ICON_TARTI = '<svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="22" width="22" height="5" rx="1.5" fill="#cfd8e3" stroke="#9aa8b8"/><rect x="9" y="9" width="14" height="12" rx="1.5" fill="#e8c48e" stroke="#8a6030"/><rect x="8" y="6" width="16" height="3.5" rx="1" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><text x="16" y="26.4" font-size="4.6" text-anchor="middle" font-weight="800" fill="#2c241c">kg</text></svg>';
         var topEndChip = view === 'tarti'
-          ? '<a class="ks-end ks-end-chip" href="#elle" id="ksElleTart" title="Elle tartım gir" aria-label="Elle tartım gir">Elle tart</a>'
+          ? ''
           : '<a class="ks-end ks-end-chip" href="' + topicHref('guc') + '" title="Koloni gücü" aria-label="Koloni gücü dağılımı">Güç</a>';
         var ctlV = KV.mount(document.getElementById('ksScope'), {
           bk: true, navInCard: true, view: view, headLayout: view === 'tarti' ? 'tarti' : 'bakim', compactHead: true,
@@ -464,7 +475,7 @@
                 { k: 'kovan', v: t.n, l: 'Kovan', href: '#' },
                 { k: 'muayene', v: t.wk, l: 'Tartılan (7 gün)', href: '#' },
                 { k: 'uyari', v: t.n ? t.none : '—', l: '14 gündür tartısız', href: '#', tone: t.none ? 'hot' : '' },
-                { k: 'saat', v: KV.fmtAgo(t.last, D.records.todayLocal()), l: 'Son elle tartım', href: '#' }
+                { k: 'saat', v: tartiLastStatVal(t.lastRec), l: 'Son tartım', href: '#son-tartim' }
               ];
             }
             var cs = D.colony ? D.colony.summary(hs) : { requeen: 0, breeds: [] }, weak = 0, ql = 0;
@@ -493,8 +504,15 @@
         });
         var noteA = document.querySelector('#ksScope [data-ks-note]');
         if (noteA) noteA.addEventListener('click', function (e) { if (noteA.getAttribute('data-note') === 'elle' && TE) { e.preventDefault(); TE.open('', { apiaryId: apiaryFilter, onSaved: function () { location.reload(); } }); } });
-        var elleChip = document.getElementById('ksElleTart');
-        if (elleChip && TE) elleChip.addEventListener('click', function (e) { e.preventDefault(); TE.open('', { apiaryId: apiaryFilter, onSaved: function () { location.reload(); } }); });
+        if (view === 'tarti') {
+          var scopeHostT = document.getElementById('ksScope');
+          if (scopeHostT && TE) scopeHostT.addEventListener('click', function (e) {
+            var st = e.target.closest && e.target.closest('a[data-stat="saat"]');
+            if (!st) return;
+            e.preventDefault();
+            if (TE.openScopeRecent) TE.openScopeRecent(ctlV.hives().map(function (h) { return h.id; }), { limit: 8, title: 'Son tartımlar' });
+          });
+        }
         if (view === 'koloni' && K) {
           /* Büyük konu düğmeleri (3 sütun, 128 px): sayı rozeti + kısa açıklama; seçili konu yeşil çerçeve */
           /* düğme adları = açılan sayfa başlığı (K.TOPIC_LABEL tek kaynak) */
@@ -586,9 +604,24 @@
           tilesV.hidden = false;
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
           var apQTile = apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '';
+          function hiveHasScale(hiveId) {
+            return !!(TE && TE.scaleDevice && TE.scaleDevice(hiveId));
+          }
+          function openTartiForHive(hiveId, withWeigh) {
+            var dirty = false;
+            var o = { onSaved: function () { dirty = true; }, onClose: function () { if (dirty) location.reload(); } };
+            if (withWeigh) {
+              var Poll = window.SuperAriSensorPolling;
+              if (Poll && Poll.requestTartiWeigh) Poll.requestTartiWeigh(hiveId);
+            }
+            TE.open(hiveId, o);
+          }
           tilesV.innerHTML = infT.map(function (x) {
             var badgeTone = x.kg === 'Tartı yok' ? 'tan' : (x.old && liveT ? 'orange' : 'green');
-            var acts = '<span class="tile-act" data-te-tart role="button" tabindex="0">Tart</span>';
+            var hasScale = hiveHasScale(x.h.id);
+            var actLabel = hasScale ? 'Tart' : 'Elle tart';
+            var actAria = hasScale ? (x.h.name + ', tartı cihazından tart') : (x.h.name + ', elle tartım gir');
+            var acts = '<span class="tile-act" data-te-tart data-te-has-scale="' + (hasScale ? '1' : '0') + '" role="button" tabindex="0" aria-label="' + actAria.replace(/"/g, '&quot;') + '">' + actLabel + '</span>';
             return KV.anaHiveTileHtml({
               href: 'kovan.html?id=' + encodeURIComponent(x.h.id),
               label: x.h.name,
@@ -597,18 +630,22 @@
               num: KV.hiveNum(x.h),
               dataTeHive: x.h.id,
               acts: acts,
-              aria: x.h.name + ' tart, ' + x.kg + ', ' + x.sub
+              aria: x.h.name + ', ' + x.kg + ', ' + x.sub
             });
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
-          /* kovan kutucuğu veya «Tart» → tartım formu */
+          /* kovan kutucuğu veya «Tart» / «Elle tart» → tartım */
           tilesV.addEventListener('click', function (e) {
             var tartAct = e.target.closest ? e.target.closest('[data-te-tart]') : null;
             var tl = tartAct ? tartAct.closest('[data-te-hive]') : (e.target.closest ? e.target.closest('[data-te-hive]') : null);
             if (!tl || !TE) return;
-            if (tartAct) { e.preventDefault(); e.stopPropagation(); }
-            else e.preventDefault();
-            var dirty = false;
-            TE.open(tl.getAttribute('data-te-hive'), { onSaved: function () { dirty = true; }, onClose: function () { if (dirty) location.reload(); } });
+            var hid = tl.getAttribute('data-te-hive');
+            if (tartAct) {
+              e.preventDefault(); e.stopPropagation();
+              openTartiForHive(hid, tartAct.getAttribute('data-te-has-scale') === '1');
+              return;
+            }
+            e.preventDefault();
+            openTartiForHive(hid, false);
           });
           /* liste altta: Bakım düzeninde Kapsam → düğme → son tartımlar → kovanlar */
           var mainV = oc.parentNode;
