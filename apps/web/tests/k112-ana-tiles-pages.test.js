@@ -16,8 +16,11 @@ assert.ok(kv.includes("view === 'tarti'") && kv.includes('bk: true') && kv.inclu
 assert.ok(kv.includes('Elle tart') && ks.includes('weatherEndHtml'));
 assert.ok(kv.includes('topEnd: topEndChip') || kv.includes('topEndChip'));
 assert.ok(kv.includes('tile-act') && kv.includes('data-te-tart'));
-assert.ok(kv.includes('navChipsForView') && kv.includes("headLayout: 'bakim'"));
+assert.ok(kv.includes('navChipsForView') && kv.includes("headLayout: view === 'tarti' ? 'tarti' : 'bakim'"));
+assert.ok(ks.includes("layout === 'tarti'") && ks.includes('bk-scope-head--tarti'));
 assert.ok(!kv.includes("id: 'ksNavBakim'"), 'tarti mount must not hardcode Bakım chip');
+assert.ok(!kv.includes('data-te-bakim'), 'tarti tiles must not show Bakım act');
+assert.ok(kv.includes('tartiScopeHasScale'), 'hide auto-scale UI when no device in scope');
 const ana = fs.readFileSync(path.join(root, 'ana.html'), 'utf8');
 assert.ok(ana.includes("from=ana") && ana.includes("key === 'tarti'"));
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');

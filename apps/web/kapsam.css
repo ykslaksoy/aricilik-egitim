@@ -193,6 +193,26 @@ a.muayene-hint.bk-note{text-decoration:none;margin-top:0;display:flex;align-item
 .bk-scope-head--bakim .bk-top .bk-sel{margin-left:auto;max-width:min(42%,11em)!important;}
 .bk-scope-head--bakim .bk-top .bk-sel .weather-loc-label{max-width:7.5em!important;font-size:13px;font-weight:650;}
 .bk-scope-head--bakim .bk-top .bk-top-end{margin-left:2px;flex:0 0 auto;}
+/* Tartı: geri + başlık + arılık/Elle tart/°C tek satır (bakim.html arılık stili korunur) */
+.bk-scope-head--tarti{gap:2px;}
+.bk-scope-head--tarti .bk-scope-tarti-top{
+  display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;gap:4px 6px;min-width:0;
+}
+.bk-scope-tarti-left{justify-self:start;display:flex;align-items:center;gap:4px;min-width:0;flex-wrap:nowrap;}
+.bk-scope-tarti-center{
+  justify-self:center;display:flex;align-items:center;justify-content:center;gap:4px;
+  min-width:0;max-width:min(52vw,11.5em);
+}
+.bk-scope-head--tarti .bk-scope-tarti-center .weather-icon,.bk-scope-head--tarti .bk-scope-tarti-center .ks-ico{width:22px;height:22px;flex:0 0 auto;}
+.bk-scope-head--tarti .bk-scope-page-title{flex:0 1 auto;max-width:100%;text-align:center;font-size:17px;line-height:1.1;}
+.bk-scope-tarti-right{
+  justify-self:end;display:flex;align-items:center;justify-content:flex-end;gap:2px;
+  min-width:0;max-width:100%;
+}
+.bk-scope-head--tarti .bk-top .bk-sel{margin-left:0;max-width:min(46%,9.5em)!important;flex:0 1 auto;}
+.bk-scope-head--tarti .bk-top .bk-sel .weather-loc-label{max-width:6.5em!important;font-size:12px;font-weight:650;}
+.bk-scope-head--tarti .bk-top .bk-top-end{margin-left:0;flex:0 0 auto;}
 .bk-scope-head--compact .bk-scope-geri-row{min-height:30px;gap:4px;}
 .bk-scope-head--compact+.bk-stats,.weather.bk-scope>.bk-scope-head--compact~.bk-stats{margin-top:0;}
 .bk-scope-title-row{display:flex;align-items:flex-start;gap:8px;min-width:0;}

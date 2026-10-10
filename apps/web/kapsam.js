@@ -190,7 +190,17 @@
         '<div class="bk-scope-nav-right" aria-hidden="true"></div></div>'
       : '';
     var dataChips = navChipList && navChipList.length ? ' data-ks-nav-chips' : '';
-    var headCls = 'bk-scope-head' + (layout === 'bakim' ? ' bk-scope-head--bakim' : '') + (opts.compactHead ? ' bk-scope-head--compact' : '');
+    var headCls = 'bk-scope-head' + (layout === 'bakim' || layout === 'tarti' ? ' bk-scope-head--bakim' : '') + (layout === 'tarti' ? ' bk-scope-head--tarti' : '') + (opts.compactHead ? ' bk-scope-head--compact' : '');
+    if (layout === 'tarti') {
+      return '<div class="' + headCls + '"' + dataChips + '>' +
+        '<div class="bk-top bk-scope-tarti-top">' +
+        '<div class="bk-scope-tarti-left">' + geriHtml + leftHtml + '</div>' +
+        '<div class="bk-scope-tarti-center">' + (opts.icon || '') +
+        '<' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' +
+        '<div class="bk-scope-tarti-right">' + arilikSelHtml(isBk) + (end || '') + '</div>' +
+        '</div></div>';
+    }
     if (layout === 'bakim') {
       return '<div class="' + headCls + '"' + dataChips + '>' +
         '<div class="bk-top">' + (opts.icon || '') +

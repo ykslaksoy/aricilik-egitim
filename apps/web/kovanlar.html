@@ -150,6 +150,18 @@
       var modeSwitchEl = document.getElementById('modeSwitch');
       /* Tartı görünümü: elle tartım her zaman (cihaz bağlı olsa da) girilebilir. */
       var TE = window.SuperAriTarti;
+      function tartiScopeHasScale(ap) {
+        var Dv = window.SuperAriDevices;
+        if (!Dv || !Dv.listDevices) return false;
+        var devs = [];
+        try { devs = Dv.listDevices(); } catch (e) { devs = []; }
+        return devs.some(function (d) {
+          if (!d || d.tip !== 'tarti' || d.hiveId == null) return false;
+          if (!ap) return true;
+          var hh = D.hiveById(d.hiveId);
+          return hh && String(hh.apiaryId) === String(ap);
+        });
+      }
       function renderTartiTop() {
         var el = document.getElementById('tartiTop');
         if (!el || view !== 'tarti' || !TE) return;
@@ -158,9 +170,10 @@
         var rec = TE.all().filter(function (x) { if (!ap) return true; var hh = D.hiveById(x.hiveId); return hh && String(hh.apiaryId) === String(ap); }).slice(0, 5);
         el.hidden = false;
         /* k94: «Elle tartım gir» düğmesi kaldırıldı — Kapsam notundaki «Tart» ve alt menüdeki ＋ Kayıt aynı formu açar */
-        el.hidden = false;
-        var bulkBtn = '<button type="button" class="kol-bulk-btn" id="btnWeighAllTarti" style="width:100%;margin:.5rem 0;">📡 Tümünü tarttır</button>';
-        el.innerHTML = bulkBtn + (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '<p class="muted" style="margin:.4rem 0;">Henüz tartım yok — tümünü tarttır veya ＋ Kayıt ile elle girin.</p>');
+        var hasScale = tartiScopeHasScale(ap);
+        var bulkBtn = hasScale ? '<button type="button" class="kol-bulk-btn" id="btnWeighAllTarti" style="width:100%;margin:.5rem 0;">📡 Tümünü tarttır</button>' : '';
+        var emptyHint = hasScale ? 'Henüz tartım yok — tümünü tarttır veya ＋ Kayıt ile elle girin.' : 'Henüz tartım yok — ＋ Kayıt ile elle girin.';
+        el.innerHTML = bulkBtn + (rec.length ? '<div style="margin-top:.6rem;"><b style="font-size:.9rem;">Son tartımlar</b>' + rec.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') + '</div>' : '<p class="muted" style="margin:.4rem 0;">' + emptyHint + '</p>');
         if (!el.__b) {
           el.__b = true;
           el.addEventListener('click', function (e) {
@@ -439,7 +452,7 @@
           ? '<a class="ks-end ks-end-chip" href="#elle" id="ksElleTart" title="Elle tartım gir" aria-label="Elle tartım gir">Elle tart</a>'
           : '<a class="ks-end ks-end-chip" href="' + topicHref('guc') + '" title="Koloni gücü" aria-label="Koloni gücü dağılımı">Güç</a>';
         var ctlV = KV.mount(document.getElementById('ksScope'), {
-          bk: true, navInCard: true, view: view, headLayout: 'bakim', compactHead: true,
+          bk: true, navInCard: true, view: view, headLayout: view === 'tarti' ? 'tarti' : 'bakim', compactHead: true,
           navChips: KV.navChipsForView(view, initV),
           title: view === 'tarti' ? 'Tartı' : 'Koloni', icon: view === 'tarti' ? ICON_TARTI : KV.ICON_KOVAN.replace('class="ks-ico"', 'class="weather-icon"'), page: 'kovanlar.html', initial: initV,
           topEnd: topEndChip,
@@ -575,7 +588,7 @@
           var apQTile = apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '';
           tilesV.innerHTML = infT.map(function (x) {
             var badgeTone = x.kg === 'Tartı yok' ? 'tan' : (x.old && liveT ? 'orange' : 'green');
-            var acts = '<span class="tile-act" data-te-tart role="button" tabindex="0">Tart</span><span class="tile-act" data-te-bakim data-href="bakim-akis.html' + apQTile + '">Bakım</span>';
+            var acts = '<span class="tile-act" data-te-tart role="button" tabindex="0">Tart</span>';
             return KV.anaHiveTileHtml({
               href: 'kovan.html?id=' + encodeURIComponent(x.h.id),
               label: x.h.name,
@@ -587,10 +600,8 @@
               aria: x.h.name + ' tart, ' + x.kg + ', ' + x.sub
             });
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
-          /* kovan kutucuğu → tartım; tile-acts: Tart / Bakım */
+          /* kovan kutucuğu veya «Tart» → tartım formu */
           tilesV.addEventListener('click', function (e) {
-            var bakAct = e.target.closest ? e.target.closest('[data-te-bakim]') : null;
-            if (bakAct) { e.preventDefault(); e.stopPropagation(); location.href = bakAct.getAttribute('data-href') || ('bakim-akis.html' + apQTile); return; }
             var tartAct = e.target.closest ? e.target.closest('[data-te-tart]') : null;
             var tl = tartAct ? tartAct.closest('[data-te-hive]') : (e.target.closest ? e.target.closest('[data-te-hive]') : null);
             if (!tl || !TE) return;
