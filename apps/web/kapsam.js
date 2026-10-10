@@ -141,7 +141,8 @@
     var chips = chipHtml || '';
     var w = weatherEndHtml();
     if (!chips) return w;
-    return '<span class="bk-top-end">' + chips + w + '</span>';
+    void w; /* k114: Muayene deseni — sağda tek kestirme çipi (°C yalnız çipsiz sayfalarda) */
+    return '<span class="bk-top-end">' + chips + '</span>';
   }
   function navChipLink(c) {
     var cls = c.back ? 'bk-geri-pill' : 'bk-nav-chip';
@@ -169,7 +170,8 @@
     var split = splitNavChips(navChipList);
     var leftHtml = split.rest.map(navChipLink).join('');
     var geriHtml = ''; /* k113: Geri karta girmez — nav.js sol ustte .sa-back */
-    var navRow = (geriHtml || leftHtml)
+    void leftHtml; /* k114: ayrı «Bakım» çip satırı kaldırıldı (PR #47 artığı) */
+    var navRow = false
       ? '<div class="bk-scope-geri-row bk-scope-geri-row--left">' +
         '<div class="bk-scope-nav-left">' + leftHtml + geriHtml + '</div></div>'
       : '';
@@ -187,9 +189,9 @@
     return '<div class="bk-scope-head"' + dataChips + '>' +
       '<div class="bk-scope-title-row">' + (opts.icon || '') +
         '<div class="bk-scope-title-main"><' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
-        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' + end +
-      '</div>' + navRow +
-      '<div class="' + selRowCls + '">' + selInner + '</div></div>';
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' +
+        '<div class="' + selRowCls + ' bk-scope-sel-inline">' + selInner + '</div>' + end +
+      '</div>' + (navRow || '') + '</div>';
   }
   function defaultNavChips(scope) {
     var apQ = scope && scope !== 'all' ? ('?apiary=' + encodeURIComponent(scope)) : '';

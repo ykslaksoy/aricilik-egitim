@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-113" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-113" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-113" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-114" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-114" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-114" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -53,25 +53,25 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-113"></script>
-  <script src="bal-agirlik.js?v=koloni-113"></script>
-  <script src="demo-data.js?v=koloni-113"></script>
-  <script src="rapor-store.js?v=koloni-113"></script>
-  <script src="sensor-health.js?v=koloni-113"></script>
-<script src="saglik-canli.js?v=koloni-113"></script>
-  <script src="koloni.js?v=koloni-113"></script>
-  <script src="koloni-ek.js?v=koloni-113"></script>
-  <script src="ilac-katalog.js?v=koloni-113"></script>
-  <script src="bakim-plan.js?v=koloni-113"></script>
-  <script src="irk-tahmin.js?v=koloni-113"></script>
-  <script src="kovan-ara.js?v=koloni-113"></script>
+  <script src="bk-kabuk.js?v=koloni-114"></script>
+  <script src="bal-agirlik.js?v=koloni-114"></script>
+  <script src="demo-data.js?v=koloni-114"></script>
+  <script src="rapor-store.js?v=koloni-114"></script>
+  <script src="sensor-health.js?v=koloni-114"></script>
+<script src="saglik-canli.js?v=koloni-114"></script>
+  <script src="koloni.js?v=koloni-114"></script>
+  <script src="koloni-ek.js?v=koloni-114"></script>
+  <script src="ilac-katalog.js?v=koloni-114"></script>
+  <script src="bakim-plan.js?v=koloni-114"></script>
+  <script src="irk-tahmin.js?v=koloni-114"></script>
+  <script src="kovan-ara.js?v=koloni-114"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-113"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-113"></script>
-  <script src="tarti-elle.js?v=koloni-113"></script>
-  <script src="sensor-polling.js?v=koloni-113"></script>
-  <script src="tarti-rotasyon.js?v=koloni-113"></script>
-  <script src="kapsam.js?v=koloni-113"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-114"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-114"></script>
+  <script src="tarti-elle.js?v=koloni-114"></script>
+  <script src="sensor-polling.js?v=koloni-114"></script>
+  <script src="tarti-rotasyon.js?v=koloni-114"></script>
+  <script src="kapsam.js?v=koloni-114"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -429,7 +429,8 @@
         try { var uV = new URLSearchParams(location.search); uV.set('mode', mode); if (apiaryFilter) uV.set('apiary', apiaryFilter); else uV.delete('apiary'); history.replaceState(null, '', 'kovanlar.html?' + uV.toString() + location.hash); } catch (e) { /* ignore */ }
         var tsum = function (hs) {
           var out = { n: hs.length, wk: 0, none: 0, last: '' }, d7 = D.records ? D.records.addDays(D.records.todayLocal(), -7) : '', d14 = D.records ? D.records.addDays(D.records.todayLocal(), -14) : '';
-          hs.forEach(function (h) { var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : ''; if (at && at >= d7) out.wk++; if (!at || at < d14) out.none++; if (at > out.last) out.last = at; });
+          hs.forEach(function (h) { var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : ''; if (at && at >= d7) out.wk++; if (!at || at < d14) out.none++; if (at > out.last) out.last = at; var kgv = l ? Number(l.kg) : (h.weightKg != null ? Number(h.weightKg) : NaN); if (isFinite(kgv)) { out.kgS = (out.kgS || 0) + kgv; out.kgN = (out.kgN || 0) + 1; } });
+          out.avg = out.kgN ? Math.round(out.kgS / out.kgN * 10) / 10 : null;
           return out;
         };
         var ICON_TARTI = '<svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="22" width="22" height="5" rx="1.5" fill="#cfd8e3" stroke="#9aa8b8"/><rect x="9" y="9" width="14" height="12" rx="1.5" fill="#e8c48e" stroke="#8a6030"/><rect x="8" y="6" width="16" height="3.5" rx="1" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><text x="16" y="26.4" font-size="4.6" text-anchor="middle" font-weight="800" fill="#2c241c">kg</text></svg>';
@@ -446,9 +447,10 @@
               var t = tsum(hs);
               return [
                 { k: 'kovan', v: t.n, l: 'Kovan', href: '#' },
-                { k: 'muayene', v: t.wk, l: 'Tartılan (7 gün)', href: '#' },
-                { k: 'uyari', v: t.n ? t.none : '—', l: '14 gündür tartısız', href: '#', tone: t.none ? 'hot' : '' },
-                { k: 'saat', v: KV.fmtAgo(t.last, D.records.todayLocal()), l: 'Son elle tartım', href: '#' }
+                { k: 'muayene', v: t.wk, l: '7 günde', href: '#' },
+                { k: 'uyari', v: t.n ? t.none : '—', l: 'Tartısız', href: '#', tone: t.none ? 'hot' : '' },
+                { k: 'bal', v: t.avg != null ? String(t.avg).replace('.', ',') : '—', l: 'Ort. kg', href: '#', tone: 'gold', svg: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M7 9h10l2.5 11h-15z\" fill=\"#f4d27a\" stroke=\"#b8860b\" stroke-width=\"1.4\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"6\" r=\"2.6\" fill=\"none\" stroke=\"#b8860b\" stroke-width=\"1.6\"/><text x=\"12\" y=\"18\" font-size=\"6\" text-anchor=\"middle\" font-weight=\"800\" fill=\"#5a3d10\">kg</text></svg>" },
+                { k: 'saat', v: KV.fmtAgo(t.last, D.records.todayLocal()), l: 'Son tartım', href: '#' }
               ];
             }
             var cs = D.colony ? D.colony.summary(hs) : { requeen: 0, breeds: [] }, weak = 0, ql = 0;
@@ -572,7 +574,7 @@
           var apQTile = apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '';
           tilesV.innerHTML = infT.map(function (x) {
             var badgeTone = x.kg === 'Tartı yok' ? 'tan' : (x.old && liveT ? 'orange' : 'green');
-            var acts = '<span class="tile-act" data-te-tart role="button" tabindex="0">Tart</span><span class="tile-act" data-te-bakim data-href="bakim-akis.html' + apQTile + '">Bakım</span>';
+            /* k114: Muayene kutucuğu ile aynı — mini Tart/Bakım düğmeleri yok; kutucuğa dokun → tartım */
             return KV.anaHiveTileHtml({
               href: 'kovan.html?id=' + encodeURIComponent(x.h.id),
               label: x.h.name,
@@ -580,7 +582,6 @@
               tone: badgeTone,
               num: KV.hiveNum(x.h),
               dataTeHive: x.h.id,
-              acts: acts,
               aria: x.h.name + ' tart, ' + x.kg + ', ' + x.sub
             });
           }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
@@ -872,7 +873,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-113"></script>
-<script src="pwa.js?v=koloni-113"></script>
+<script src="nav.js?v=koloni-114"></script>
+<script src="pwa.js?v=koloni-114"></script>
 </body>
 </html>
