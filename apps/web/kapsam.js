@@ -148,6 +148,7 @@
     return '<a class="' + cls + '" href="' + esc(c.href || '#') + '"' +
       (c.id ? ' id="' + esc(c.id) + '"' : '') +
       (c.back ? ' data-sa-scope-geri' : '') +
+      (c.navHref ? ' data-sa-scope-nav-href="1"' : '') +
       (c.bakim ? ' data-ks-nav-bakim' : '') +
       '>' + esc(c.label || '') + '</a>';
   }
@@ -160,9 +161,22 @@
     if (!chips || !chips.length) return '';
     return chips.map(navChipLink).join('');
   }
-  /** Üst: belirgin sayfa adı + sağ kestirmeler; ortada cam Geri; alt: arılık seçici. */
+  function arilikSelHtml(isBk) {
+    if (isBk) {
+      return '<div class="weather-loc bk-sel"><div class="arilik-loc-controls">' +
+        '<button type="button" class="arilik-nav" data-ks-prev aria-label="Önceki kapsam" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
+        '<span class="weather-loc-label" data-ks-label aria-live="polite">Tümü</span>' +
+        '<button type="button" class="arilik-nav" data-ks-next aria-label="Sonraki kapsam" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button></div></div>';
+    }
+    return '<div class="ks-sel">' +
+      '<button type="button" class="ks-nav" data-ks-prev aria-label="Önceki arılık" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
+      '<span class="ks-label" data-ks-label aria-live="polite">Tümü</span>' +
+      '<button type="button" class="ks-nav" data-ks-next aria-label="Sonraki arılık" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button></div>';
+  }
+  /** Üst bant: bakim.html #bkScope (arılık üst satırda) veya eski üç satır düzeni. */
   function scopeCardHeadHtml(variant, opts, navChipList, end) {
     var isBk = variant === 'bk';
+    var layout = opts.headLayout || (isBk ? 'bakim' : 'stacked');
     var titleCls = isBk ? 'bk-title bk-scope-page-title' : 'ks-title bk-scope-page-title';
     var titleTag = isBk ? 'span' : 'h2';
     var modeCls = isBk ? 'bk-mode demo' : 'ks-mode';
@@ -176,35 +190,78 @@
         '<div class="bk-scope-nav-right" aria-hidden="true"></div></div>'
       : '';
     var dataChips = navChipList && navChipList.length ? ' data-ks-nav-chips' : '';
-    var selInner = isBk
-      ? '<div class="weather-loc bk-sel"><div class="arilik-loc-controls">' +
-        '<button type="button" class="arilik-nav" data-ks-prev aria-label="Önceki kapsam" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
-        '<span class="weather-loc-label" data-ks-label aria-live="polite">Tümü</span>' +
-        '<button type="button" class="arilik-nav" data-ks-next aria-label="Sonraki kapsam" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button></div></div>'
-      : '<div class="ks-sel">' +
-        '<button type="button" class="ks-nav" data-ks-prev aria-label="Önceki arılık" title="Önceki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5L3.5 6l4 3.5"/></svg></button>' +
-        '<span class="ks-label" data-ks-label aria-live="polite">Tümü</span>' +
-        '<button type="button" class="ks-nav" data-ks-next aria-label="Sonraki arılık" title="Sonraki"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8.5 6l-4 3.5"/></svg></button></div>';
+    var headCls = 'bk-scope-head' + (layout === 'bakim' || layout === 'tarti' ? ' bk-scope-head--bakim' : '') + (layout === 'tarti' ? ' bk-scope-head--tarti' : '') + (opts.compactHead ? ' bk-scope-head--compact' : '');
+    if (layout === 'tarti') {
+      var metaEnd = end || '';
+      return '<div class="' + headCls + '"' + dataChips + '>' +
+        '<div class="bk-top bk-scope-tarti-top">' +
+        '<div class="bk-scope-tarti-left">' + geriHtml + '</div>' +
+        '<div class="bk-scope-tarti-center">' + (opts.icon || '') +
+        '<' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' +
+        '<div class="bk-scope-tarti-right">' + arilikSelHtml(isBk) + '</div>' +
+        '</div>' +
+        (metaEnd ? '<div class="bk-scope-tarti-meta">' + metaEnd + '</div>' : '') +
+        '</div>';
+    }
+    if (layout === 'bakim') {
+      return '<div class="' + headCls + '"' + dataChips + '>' +
+        '<div class="bk-top">' + (opts.icon || '') +
+        '<' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span>' +
+        arilikSelHtml(isBk) + (end || '') +
+        '</div>' + navRow + '</div>';
+    }
     var selRowCls = isBk ? 'bk-top bk-scope-sel-row' : 'ks-top bk-scope-sel-row';
-    return '<div class="bk-scope-head"' + dataChips + '>' +
+    return '<div class="' + headCls + '"' + dataChips + '>' +
       '<div class="bk-scope-title-row">' + (opts.icon || '') +
         '<div class="bk-scope-title-main"><' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
-        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' + end +
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' + (end || '') +
       '</div>' + navRow +
-      '<div class="' + selRowCls + '">' + selInner + '</div></div>';
+      '<div class="' + selRowCls + '">' + arilikSelHtml(isBk) + '</div></div>';
+  }
+  function smartBackChip(scope) {
+    var from = '';
+    try { from = String(new URLSearchParams(global.location.search).get('from') || '').toLowerCase(); } catch (e) { from = ''; }
+    var ap = scope && scope !== 'all' ? String(scope) : '';
+    if (from === 'ana') return { label: '‹ Ana', href: 'ana.html' + (ap ? '?apiary=' + encodeURIComponent(ap) : ''), back: true, navHref: true };
+    if (from === 'bakim') return { label: '‹ Bakım', href: 'bakim.html' + (ap ? '?apiary=' + encodeURIComponent(ap) : ''), back: true, navHref: true };
+    if (from === 'kovan') {
+      var hid = '';
+      try {
+        var p = new URLSearchParams(global.location.search);
+        hid = p.get('hiveId') || p.get('fromHive') || '';
+      } catch (e2) { hid = ''; }
+      var href = hid
+        ? ('kovan.html?id=' + encodeURIComponent(hid) + (ap ? '&apiary=' + encodeURIComponent(ap) : ''))
+        : ('kovanlar.html' + (ap ? '?mode=apiary&apiary=' + encodeURIComponent(ap) : ''));
+      return { label: '‹ Kovan', href: href, back: true, navHref: true };
+    }
+    return { label: '‹ Geri', href: '#', id: 'ksNavGeri', back: true };
+  }
+  /** Tartı: yalnız geri; Koloni/Kovanlar: Bakım + geri (?from= ile akıllı etiket). */
+  function navChipsForView(view, scope) {
+    var chips = [];
+    if (view !== 'tarti') {
+      var apQ = scope && scope !== 'all' ? ('?apiary=' + encodeURIComponent(scope)) : '';
+      chips.push({ label: 'Bakım', href: 'bakim.html' + apQ, id: 'ksNavBakim', bakim: true });
+    }
+    chips.push(smartBackChip(scope));
+    return chips;
   }
   function defaultNavChips(scope) {
-    var apQ = scope && scope !== 'all' ? ('?apiary=' + encodeURIComponent(scope)) : '';
-    return [
-      { label: '‹ Geri', href: '#', id: 'ksNavGeri', back: true },
-      { label: 'Bakım', href: 'bakim.html' + apQ, id: 'ksNavBakim', bakim: true }
-    ];
+    return navChipsForView('', scope);
   }
   function bindNavChips(host, getScope) {
     host.addEventListener('click', function (e) {
       var g = e.target.closest && e.target.closest('[data-sa-scope-geri]');
       if (g) {
         e.preventDefault();
+        var href = g.getAttribute('href') || '#';
+        if (g.getAttribute('data-sa-scope-nav-href') === '1' && href && href !== '#') {
+          global.location.href = href;
+          return;
+        }
         var N = global.SuperAriNav;
         if (N && N.goBack) N.goBack(e);
         else { try { if (global.history.length > 1) { global.history.back(); return; } } catch (err) {} global.location.href = 'ana.html'; }
@@ -258,7 +315,7 @@
     scope = valid(opts.initial || saved || 'all');
     host.setAttribute('aria-label', (opts.title || 'Kapsam') + ' kapsamı');
     var navChipList = opts.navChips;
-    if (opts.navInCard && !navChipList) navChipList = defaultNavChips(scope);
+    if (opts.navInCard && !navChipList) navChipList = navChipsForView(opts.view || '', scope);
     if (navChipList && navChipList.length) {
       try { global.document.body.classList.add('ks-scope-nav-in-card'); } catch (eNav) { /* ignore */ }
     }
@@ -385,5 +442,5 @@
     });
   }
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml, topEndWithWeather: topEndWithWeather, defaultNavChips: defaultNavChips };
+  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml, topEndWithWeather: topEndWithWeather, defaultNavChips: defaultNavChips, navChipsForView: navChipsForView, smartBackChip: smartBackChip };
 })(typeof window !== 'undefined' ? window : this);
