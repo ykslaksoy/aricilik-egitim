@@ -9,12 +9,17 @@ assert.ok(ks.includes('function anaModuleTile'));
 assert.ok(ks.includes('function anaHiveTileHtml'));
 assert.ok(ks.includes('topEndWithWeather') && ks.includes('defaultNavChips') && ks.includes('navChipsHtml'));
 assert.ok(ks.includes('scopeCardHeadHtml') && ks.includes('bk-geri-pill') && ks.includes('bk-scope-page-title'));
+assert.ok(ks.includes('navChipsForView') && ks.includes('smartBackChip') && ks.includes('bk-scope-head--bakim'));
+assert.ok(ks.includes("view !== 'tarti'") && ks.includes('data-sa-scope-nav-href'));
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
 assert.ok(kv.includes("view === 'tarti'") && kv.includes('bk: true') && kv.includes('navInCard: true'));
 assert.ok(kv.includes('Elle tart') && ks.includes('weatherEndHtml'));
 assert.ok(kv.includes('topEnd: topEndChip') || kv.includes('topEndChip'));
 assert.ok(kv.includes('tile-act') && kv.includes('data-te-tart'));
-assert.ok(kv.includes('ksNavBakim') || kv.includes('Bakım') && kv.includes('navInCard'));
+assert.ok(kv.includes('navChipsForView') && kv.includes("headLayout: 'bakim'"));
+assert.ok(!kv.includes("id: 'ksNavBakim'"), 'tarti mount must not hardcode Bakım chip');
+const ana = fs.readFileSync(path.join(root, 'ana.html'), 'utf8');
+assert.ok(ana.includes("from=ana") && ana.includes("key === 'tarti'"));
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
 assert.ok(nav.includes('ks-scope-nav-in-card'));
 

@@ -186,6 +186,15 @@ a.muayene-hint.bk-note{text-decoration:none;margin-top:0;display:flex;align-item
 .ks-end-chip:active{transform:scale(.97);}
 .bk-top-end{display:inline-flex;align-items:center;gap:2px;flex:0 0 auto;margin-left:auto;}
 .bk-scope-head{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.bk-scope-head--bakim{gap:4px;}
+.bk-scope-head--bakim>.bk-top{align-items:center;gap:4px;min-width:0;}
+.bk-scope-head--bakim .bk-scope-page-title{flex:0 1 auto;min-width:0;max-width:38%;font-size:17px;line-height:1.1;}
+.bk-scope-head--bakim .bk-top>.weather-icon,.bk-scope-head--bakim .bk-top>.ks-ico{width:24px;height:24px;flex:0 0 auto;margin-top:0;}
+.bk-scope-head--bakim .bk-top .bk-sel{margin-left:auto;max-width:min(42%,11em)!important;}
+.bk-scope-head--bakim .bk-top .bk-sel .weather-loc-label{max-width:7.5em!important;font-size:13px;font-weight:650;}
+.bk-scope-head--bakim .bk-top .bk-top-end{margin-left:2px;flex:0 0 auto;}
+.bk-scope-head--compact .bk-scope-geri-row{min-height:30px;gap:4px;}
+.bk-scope-head--compact+.bk-stats,.weather.bk-scope>.bk-scope-head--compact~.bk-stats{margin-top:0;}
 .bk-scope-title-row{display:flex;align-items:flex-start;gap:8px;min-width:0;}
 .bk-scope-title-row>.weather-icon,.bk-scope-title-row>.ks-ico{flex:0 0 auto;width:28px;height:28px;margin-top:2px;}
 .bk-scope-title-main{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;}

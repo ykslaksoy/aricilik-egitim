@@ -244,7 +244,13 @@
     var p = page(), base = BACK_PARENT[p] || 'ana.html';
     if (p === 'kovanlar.html') {
       try {
-        var q = new URLSearchParams(location.search), v = q.get('view');
+        var q = new URLSearchParams(location.search), v = q.get('view'), from = String(q.get('from') || '').toLowerCase();
+        if (from === 'ana') return 'ana.html';
+        if (from === 'bakim') return 'bakim.html';
+        if (from === 'kovan') {
+          var hid = q.get('hiveId') || q.get('fromHive');
+          if (hid) return 'kovan.html?id=' + encodeURIComponent(hid);
+        }
         if (v === 'koloni' || v === 'tarti') return 'bakim.html';
       } catch (e) {}
     }

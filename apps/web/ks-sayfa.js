@@ -52,11 +52,11 @@
     var init0 = o.initial || scopeNow();
     var navChips = o.navChips;
     var navInCard = o.navInCard !== false;
-    if (navInCard && !navChips) navChips = KS.defaultNavChips(init0 === 'all' ? '' : init0);
+    if (navInCard && !navChips) navChips = KS.navChipsForView(o.view || '', init0 === 'all' ? 'all' : init0);
     if (navInCard) doc.body.classList.add('ks-scope-nav-in-card');
     var ctl = KS.mount(host, {
       title: o.title, icon: o.icon || KS.ICON_KOVAN, page: o.page || global.location.pathname.split('/').pop(), initial: init0,
-      bk: o.bk !== false, navInCard: navInCard, navChips: navChips,
+      bk: o.bk !== false, navInCard: navInCard, navChips: navChips, view: o.view || '', headLayout: o.headLayout || 'bakim', compactHead: !!o.compactHead,
       stats: o.stats, note: o.note, noAll: !!o.noAll, topEnd: o.topEnd, topExtra: o.topExtra, weatherEnd: o.weatherEnd,
       onChange: function (scope, hs, sum) {
         /* kapsam değişti → sayfa o arılıkla yeniden açılır (sayfanın kendi süzgeci ?apiary= ile çalışır) */

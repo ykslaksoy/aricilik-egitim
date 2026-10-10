@@ -377,7 +377,9 @@
         }
         var initScope = apiaryFilter || (modeParam === 'all' ? 'all' : '');
         ctlT = KS.mount(document.getElementById('ksScope'), {
-          bk: true, navInCard: true, title: 'Kovanlar', icon: KS.ICON_KOVAN.replace('class="ks-ico"', 'class="weather-icon"'), page: 'kovanlar.html', initial: initScope,
+          bk: true, navInCard: true, view: 'kovanlar', headLayout: 'bakim', compactHead: true,
+          navChips: KS.navChipsForView('kovanlar', initScope),
+          title: 'Kovanlar', icon: KS.ICON_KOVAN.replace('class="ks-ico"', 'class="weather-icon"'), page: 'kovanlar.html', initial: initScope,
           topEnd: '<a class="ks-end ks-end-chip" href="#kvSearchHost" title="Kovan ara" aria-label="Kovan ara">Ara</a>',
           stats: function (hs, scope, sm) {
             var bad = 0; hs.forEach(function (h) { var k = KS.health(h).key; if (k === 'act' || k === 'check') bad++; });
@@ -437,7 +439,8 @@
           ? '<a class="ks-end ks-end-chip" href="#elle" id="ksElleTart" title="Elle tartım gir" aria-label="Elle tartım gir">Elle tart</a>'
           : '<a class="ks-end ks-end-chip" href="' + topicHref('guc') + '" title="Koloni gücü" aria-label="Koloni gücü dağılımı">Güç</a>';
         var ctlV = KV.mount(document.getElementById('ksScope'), {
-          bk: true, navInCard: true,
+          bk: true, navInCard: true, view: view, headLayout: 'bakim', compactHead: true,
+          navChips: KV.navChipsForView(view, initV),
           title: view === 'tarti' ? 'Tartı' : 'Koloni', icon: view === 'tarti' ? ICON_TARTI : KV.ICON_KOVAN.replace('class="ks-ico"', 'class="weather-icon"'), page: 'kovanlar.html', initial: initV,
           topEnd: topEndChip,
           stats: function (hs, scope, sm) {
