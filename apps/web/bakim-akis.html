@@ -60,8 +60,11 @@
 
   .phone {
     width: var(--phone-w); height: var(--phone-h);
-    background: #f7f8fa; border-radius: 44px; overflow: hidden; position: relative;
+    background: #f7f8fa; border-radius: 44px; position: relative;
     box-shadow: 0 0 0 10px #111, 0 0 0 12px #333, 0 30px 80px rgba(0,0,0,.55);
+    display: flex; flex-direction: column;
+    overflow-x: hidden; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .phone-notch {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -74,11 +77,14 @@
   .status-icons { display: flex; gap: 6px; align-items: center; font-size: 11px; letter-spacing: .02em; }
 
   .screen {
-    height: calc(var(--phone-h) - 48px - 72px);
-    overflow: hidden; display: flex; flex-direction: column; background: var(--bg);
+    height: auto;
+    min-height: min-content;
+    overflow: visible; display: flex; flex-direction: column; background: var(--bg);
     padding: 2px 12px 6px;
-   position: relative;
+    position: relative;
+    flex: 0 0 auto;
   }
+  .status-bar, .tabbar, .home-indicator { flex-shrink: 0; }
 
   /* Hardal işletme şeridi — 3D bee logo + brand + lock; location lives in weather card below */
   .brand-strip {
@@ -994,22 +1000,22 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-112"></script>
-<script src="sensor-health.js?v=koloni-112"></script>
-<script src="saglik-canli.js?v=koloni-112"></script>
-<script src="koloni.js?v=koloni-112"></script>
-<script src="ilac-katalog.js?v=koloni-112"></script>
-<script src="bakim-plan.js?v=koloni-112"></script>
-<script src="kovan-strateji.js?v=koloni-112"></script>
-<script src="mic-session.js?v=koloni-112"></script>
-<script src="kolay-muayene.js?v=koloni-112"></script>
-<script src="tarti-muayene-sync.js?v=koloni-112"></script>
-<script src="tarti-bakim-delta.js?v=koloni-112"></script>
-<script src="tarti-elle.js?v=koloni-112"></script>
-<script src="sensor-polling.js?v=koloni-112"></script>
-<script src="tarti-rotasyon.js?v=koloni-112"></script>
-<script src="bakim-akis.js?v=koloni-112"></script>
-<script src="kapsam.js?v=koloni-112"></script>
+<script src="demo-data.js?v=koloni-113"></script>
+<script src="sensor-health.js?v=koloni-113"></script>
+<script src="saglik-canli.js?v=koloni-113"></script>
+<script src="koloni.js?v=koloni-113"></script>
+<script src="ilac-katalog.js?v=koloni-113"></script>
+<script src="bakim-plan.js?v=koloni-113"></script>
+<script src="kovan-strateji.js?v=koloni-113"></script>
+<script src="mic-session.js?v=koloni-113"></script>
+<script src="kolay-muayene.js?v=koloni-113"></script>
+<script src="tarti-muayene-sync.js?v=koloni-113"></script>
+<script src="tarti-bakim-delta.js?v=koloni-113"></script>
+<script src="tarti-elle.js?v=koloni-113"></script>
+<script src="sensor-polling.js?v=koloni-113"></script>
+<script src="tarti-rotasyon.js?v=koloni-113"></script>
+<script src="bakim-akis.js?v=koloni-113"></script>
+<script src="kapsam.js?v=koloni-113"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, A = window.SuperAriBakimAkis, KS = window.SuperAriKapsam;
@@ -1098,7 +1104,7 @@
   if (hh0) setTimeout(function () { start(hh0.id); }, 150);
 })();
 </script>
-<script src="nav.js?v=koloni-112"></script>
-<script src="pwa.js?v=koloni-112"></script>
+<script src="nav.js?v=koloni-113"></script>
+<script src="pwa.js?v=koloni-113"></script>
 </body>
 </html>

@@ -215,3 +215,58 @@ a.muayene-hint.bk-note{text-decoration:none;margin-top:0;display:flex;align-item
   -webkit-tap-highlight-color:transparent;box-sizing:border-box;
 }
 .bk-nav-chip:active{transform:scale(.97);}
+/* k113: Geri kart dışında (nav.js .sa-back, sol üst); kartta yalnız sola yaslı kestirme çipleri */
+.bk-scope-geri-row.bk-scope-geri-row--left{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-height:0;}
+.bk-scope-geri-row--left:empty{display:none;}
+
+/* k113: Tartı/Cihazlar — Kapsam ‹ › oklari Ana ile ayni (kapsam.css yuklenen sayfalarda bicimsiz dugme kutusu kalmasin) */
+  body:not(.sa-page-ana) .bk-scope .arilik-nav {
+    flex: 0 0 auto;
+    box-sizing: content-box;
+    width: 1em;
+    height: 1em;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 4px;
+    margin: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #8a7358;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .18s ease, background .18s ease;
+  }
+  body:not(.sa-page-ana) .bk-scope .arilik-nav:hover {
+    color: var(--brown-mid, #5c3a1f);
+    background: rgba(232, 220, 200, 0.45);
+  }
+  body:not(.sa-page-ana) .bk-scope .arilik-nav:active {
+    color: var(--brown, #3d2616);
+    background: rgba(224, 208, 180, 0.55);
+  }
+  body:not(.sa-page-ana) .bk-scope .arilik-nav:focus-visible {
+    outline: 1.5px solid rgba(184, 134, 11, 0.55);
+    outline-offset: 1px;
+  }
+  body:not(.sa-page-ana) .bk-scope .arilik-nav:disabled {
+    opacity: 0.28;
+    cursor: default;
+    background: transparent;
+  }
+  body:not(.sa-page-ana) .bk-scope .arilik-nav svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+

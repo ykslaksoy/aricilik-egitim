@@ -13,5 +13,5 @@ assert.ok(nav.includes('isDesktopShell()'), 'desktop shell gate');
 const fit = nav.slice(nav.indexOf('function fitIphone12Shell'), nav.indexOf('function ensureStatusStrip'));
 assert.ok(/remove\('sa-shell-framed'\)/.test(fit), 'mobile strips framed class');
 assert.ok(bk.includes('function isRealMobile') && bk.includes('iPhone'), 'bk-kabuk mobile UA');
-assert.ok(ana.includes('nav.js?v=koloni-112'), 'ana cache bust nav');
+assert.ok(ana.includes('nav.js?v=koloni-113'), 'ana cache bust nav');
 console.log('k109-mobile-ua-shell ok');

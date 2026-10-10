@@ -168,12 +168,10 @@
     var modeCls = isBk ? 'bk-mode demo' : 'ks-mode';
     var split = splitNavChips(navChipList);
     var leftHtml = split.rest.map(navChipLink).join('');
-    var geriHtml = split.back ? navChipLink(split.back) : '';
+    var geriHtml = ''; /* k113: Geri karta girmez — nav.js sol ustte .sa-back */
     var navRow = (geriHtml || leftHtml)
-      ? '<div class="bk-scope-geri-row">' +
-        '<div class="bk-scope-nav-left">' + leftHtml + '</div>' +
-        '<div class="bk-scope-nav-center">' + geriHtml + '</div>' +
-        '<div class="bk-scope-nav-right" aria-hidden="true"></div></div>'
+      ? '<div class="bk-scope-geri-row bk-scope-geri-row--left">' +
+        '<div class="bk-scope-nav-left">' + leftHtml + geriHtml + '</div></div>'
       : '';
     var dataChips = navChipList && navChipList.length ? ' data-ks-nav-chips' : '';
     var selInner = isBk
