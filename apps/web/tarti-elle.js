@@ -262,6 +262,31 @@
     '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:#f8f1e6;border-radius:12px;font-size:20px;cursor:pointer;width:64px;height:64px;}';
   function ensureCss() { if (document.getElementById('teCss')) return; var s = document.createElement('style'); s.id = 'teCss'; s.textContent = css; document.head.appendChild(s); }
   function close() { var b = document.getElementById('teSheet'); if (b) b.remove(); }
+  /** Kapsam için son tartımlar (elle / cihaz / bakım / talep). hiveIds: number[]; opts: { limit, title, onClose } */
+  function openScopeRecent(hiveIds, opts) {
+    opts = opts || {};
+    ensureCss();
+    close();
+    var limit = Number(opts.limit) > 0 ? Number(opts.limit) : 8;
+    var set = {};
+    (hiveIds || []).forEach(function (id) { if (id != null && id !== '') set[Number(id)] = true; });
+    var recs = all().filter(function (x) { return set[Number(x.hiveId)]; }).slice(0, limit);
+    var title = opts.title || 'Son tartımlar';
+    var back = document.createElement('div');
+    back.className = 'te-back';
+    back.id = 'teSheet';
+    back.innerHTML = '<div class="te" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><h2>⚖ ' + esc(title) + '<button type="button" class="te-x" data-te-close aria-label="Kapat">×</button></h2>' +
+      '<p style="margin:0 0 10px;font-size:13px;color:#6b5a48;">Bu kapsamdaki son kayıtlar (elle, cihaz, bakım, talep).</p>' +
+      (recs.length ? '<div data-te-list>' + recs.map(function (x) { return rowHtml(x, { showHive: true }); }).join('') + '</div>' : '<p class="te-auto-n">Bu kapsamda tartım kaydı yok.</p>') +
+      '</div>';
+    document.body.appendChild(back);
+    back.addEventListener('click', function (e) {
+      if (e.target === back || (e.target.closest && e.target.closest('[data-te-close]'))) {
+        close();
+        if (typeof opts.onClose === 'function') opts.onClose();
+      }
+    });
+  }
   /** Elle tartım formu. opts: { apiaryId, onSaved } — hiveId boşsa kovan seçilir. */
   function open(hiveId, opts) {
     opts = opts || {};
@@ -411,5 +436,5 @@
     if (!TS || !TS.hints) return { kat: false, besleme: false, katSrc: [], beslemeSrc: [], chips: [] };
     return TS.hints(hiveId, Object.assign({ list: list }, opts || {}));
   }
-  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, removeRaw: removeRaw, revertRevizeRow: revertRevizeRow, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
+  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, removeRaw: removeRaw, revertRevizeRow: revertRevizeRow, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, openScopeRecent: openScopeRecent, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
 })(window);

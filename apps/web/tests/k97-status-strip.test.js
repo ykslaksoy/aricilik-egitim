@@ -15,7 +15,8 @@ assert.ok(bk.includes('display: flex !important'));
 const bj = fs.readFileSync(path.join(root, 'bk-kabuk.js'), 'utf8');
 assert.ok(bj.includes('sa-sb-batt-pct') && bj.includes('sa-sb-sig'));
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
-assert.ok(kv.includes('Elle tart') && kv.includes('topEnd: topEndChip') && kv.includes('ksElleTart'));
+assert.ok(kv.includes('Elle tart') && kv.includes('topEnd: topEndChip') && !kv.includes('ksElleTart'), 'tarti tile Elle tart; header chip removed');
+assert.ok(kv.includes('Son tartım') && kv.includes('openScopeRecent'));
 assert.ok(kv.includes('Koloni gücü') || kv.includes(">Güç</a>"));
 const pages = {
   'gorevler.html': '＋ Görev',

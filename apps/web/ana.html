@@ -2187,6 +2187,10 @@
       var href = tileEl.getAttribute('data-href');
       var meta = byKey[key];
       if (href) {
+        if (key === 'tarti' && href.indexOf('from=') < 0) {
+          location.href = href + (href.indexOf('?') >= 0 ? '&' : '?') + 'from=ana';
+          return;
+        }
         location.href = href;
         return;
       }

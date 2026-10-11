@@ -9,5 +9,6 @@ const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
 assert.ok(ks.includes('bk-scope-sel-inline') && ks.includes('var navRow = false'), 'inline selector, no chip row');
 assert.ok(nav.includes('.bk-scope-title-row>.bk-scope-sel-inline'), 'inline selector css');
 assert.ok(kv.includes("l: 'Ort. kg'") && kv.includes("l: '7 günde'") && !kv.includes('Tartılan (7 gün)'), 'tarti 5 short stats');
-assert.ok(!kv.includes('data-te-tart role="button"') && !kv.includes('acts: acts'), 'no per-tile mini buttons');
+assert.ok(kv.includes('tile-act') && kv.includes('data-te-tart') && kv.includes('Elle tart'), 'tarti tiles: Tart / Elle tart');
+assert.ok(kv.includes('tartiLastStatVal'), 'Son tartım uses last record');
 console.log('k114 ok');
