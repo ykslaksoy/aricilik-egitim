@@ -11,6 +11,7 @@ assert.ok(ks.includes('topEndWithWeather') && ks.includes('defaultNavChips') && 
 assert.ok(ks.includes('scopeCardHeadHtml') && ks.includes('bk-geri-pill') && ks.includes('bk-scope-page-title'));
 assert.ok(ks.includes('navChipsForView') && ks.includes('smartBackChip') && ks.includes('bk-scope-head--bakim'));
 assert.ok(ks.includes("view !== 'tarti'") && ks.includes('data-sa-scope-nav-href'));
+assert.ok(ks.includes('bk-scope-sel-inline'), 'stacked kapsam uses inline selector');
 const kv = fs.readFileSync(path.join(root, 'kovanlar.html'), 'utf8');
 assert.ok(kv.includes("view === 'tarti'") && kv.includes('bk: true') && kv.includes('navInCard: true'));
 assert.ok(kv.includes('Elle tart') && kv.includes('data-te-has-scale') && ks.includes('weatherEndHtml'));
@@ -28,7 +29,7 @@ assert.ok(kv.includes('tartiScopeHasScale'), 'hide auto-scale UI when no device 
 const ana = fs.readFileSync(path.join(root, 'ana.html'), 'utf8');
 assert.ok(ana.includes("from=ana") && ana.includes("key === 'tarti'"));
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
-assert.ok(nav.includes('ks-scope-nav-in-card'));
+assert.ok(nav.includes('k113: tek Geri')); /* k113: kart ici cam Geri kaldirildi */
 
 const pages = [
   { file: 'kovanlar.html', grid: 'class="grid ana-hive-grid"', helper: 'anaHiveTileHtml', forbid: 'ks-tile' },

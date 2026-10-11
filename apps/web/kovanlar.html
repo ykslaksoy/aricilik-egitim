@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-112" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-112" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-112" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-114" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-114" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-114" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -53,25 +53,25 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-112"></script>
-  <script src="bal-agirlik.js?v=koloni-112"></script>
-  <script src="demo-data.js?v=koloni-112"></script>
-  <script src="rapor-store.js?v=koloni-112"></script>
-  <script src="sensor-health.js?v=koloni-112"></script>
-<script src="saglik-canli.js?v=koloni-112"></script>
-  <script src="koloni.js?v=koloni-112"></script>
-  <script src="koloni-ek.js?v=koloni-112"></script>
-  <script src="ilac-katalog.js?v=koloni-112"></script>
-  <script src="bakim-plan.js?v=koloni-112"></script>
-  <script src="irk-tahmin.js?v=koloni-112"></script>
-  <script src="kovan-ara.js?v=koloni-112"></script>
+  <script src="bk-kabuk.js?v=koloni-114"></script>
+  <script src="bal-agirlik.js?v=koloni-114"></script>
+  <script src="demo-data.js?v=koloni-114"></script>
+  <script src="rapor-store.js?v=koloni-114"></script>
+  <script src="sensor-health.js?v=koloni-114"></script>
+<script src="saglik-canli.js?v=koloni-114"></script>
+  <script src="koloni.js?v=koloni-114"></script>
+  <script src="koloni-ek.js?v=koloni-114"></script>
+  <script src="ilac-katalog.js?v=koloni-114"></script>
+  <script src="bakim-plan.js?v=koloni-114"></script>
+  <script src="irk-tahmin.js?v=koloni-114"></script>
+  <script src="kovan-ara.js?v=koloni-114"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-112"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-112"></script>
-  <script src="tarti-elle.js?v=koloni-112"></script>
-  <script src="sensor-polling.js?v=koloni-112"></script>
-  <script src="tarti-rotasyon.js?v=koloni-112"></script>
-  <script src="kapsam.js?v=koloni-112"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-114"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-114"></script>
+  <script src="tarti-elle.js?v=koloni-114"></script>
+  <script src="sensor-polling.js?v=koloni-114"></script>
+  <script src="tarti-rotasyon.js?v=koloni-114"></script>
+  <script src="kapsam.js?v=koloni-114"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -450,7 +450,10 @@
             if (!at || at < d14) out.none++;
             if (at > out.last) out.last = at;
             if (l && (!out.lastRec || String(l.at) > String(out.lastRec.at))) out.lastRec = l;
+            var kgv = l ? Number(l.kg) : (h.weightKg != null ? Number(h.weightKg) : NaN);
+            if (isFinite(kgv)) { out.kgS = (out.kgS || 0) + kgv; out.kgN = (out.kgN || 0) + 1; }
           });
+          out.avg = out.kgN ? Math.round(out.kgS / out.kgN * 10) / 10 : null;
           return out;
         };
         function tartiLastStatVal(lastRec) {
@@ -473,8 +476,9 @@
               var t = tsum(hs);
               return [
                 { k: 'kovan', v: t.n, l: 'Kovan', href: '#' },
-                { k: 'muayene', v: t.wk, l: 'Tartılan (7 gün)', href: '#' },
-                { k: 'uyari', v: t.n ? t.none : '—', l: '14 gündür tartısız', href: '#', tone: t.none ? 'hot' : '' },
+                { k: 'muayene', v: t.wk, l: '7 günde', href: '#' },
+                { k: 'uyari', v: t.n ? t.none : '—', l: 'Tartısız', href: '#', tone: t.none ? 'hot' : '' },
+                { k: 'bal', v: t.avg != null ? String(t.avg).replace('.', ',') : '—', l: 'Ort. kg', href: '#', tone: 'gold', svg: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M7 9h10l2.5 11h-15z\" fill=\"#f4d27a\" stroke=\"#b8860b\" stroke-width=\"1.4\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"6\" r=\"2.6\" fill=\"none\" stroke=\"#b8860b\" stroke-width=\"1.6\"/><text x=\"12\" y=\"18\" font-size=\"6\" text-anchor=\"middle\" font-weight=\"800\" fill=\"#5a3d10\">kg</text></svg>" },
                 { k: 'saat', v: tartiLastStatVal(t.lastRec), l: 'Son tartım', href: '#son-tartim' }
               ];
             }
@@ -923,7 +927,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-112"></script>
-<script src="pwa.js?v=koloni-112"></script>
+<script src="nav.js?v=koloni-114"></script>
+<script src="pwa.js?v=koloni-114"></script>
 </body>
 </html>

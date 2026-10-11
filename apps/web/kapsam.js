@@ -141,7 +141,8 @@
     var chips = chipHtml || '';
     var w = weatherEndHtml();
     if (!chips) return w;
-    return '<span class="bk-top-end">' + chips + w + '</span>';
+    void w; /* k114: Muayene deseni — sağda tek kestirme çipi (°C yalnız çipsiz sayfalarda) */
+    return '<span class="bk-top-end">' + chips + '</span>';
   }
   function navChipLink(c) {
     var cls = c.back ? 'bk-geri-pill' : 'bk-nav-chip';
@@ -182,20 +183,20 @@
     var modeCls = isBk ? 'bk-mode demo' : 'ks-mode';
     var split = splitNavChips(navChipList);
     var leftHtml = split.rest.map(navChipLink).join('');
-    var geriHtml = split.back ? navChipLink(split.back) : '';
-    var navRow = (geriHtml || leftHtml)
-      ? '<div class="bk-scope-geri-row">' +
-        '<div class="bk-scope-nav-left">' + leftHtml + '</div>' +
-        '<div class="bk-scope-nav-center">' + geriHtml + '</div>' +
-        '<div class="bk-scope-nav-right" aria-hidden="true"></div></div>'
+    var geriHtml = ''; /* k113: Geri karta girmez — nav.js sol ustte .sa-back */
+    void leftHtml; /* k114: ayrı «Bakım» çip satırı kaldırıldı (PR #47 artığı) */
+    var navRow = false
+      ? '<div class="bk-scope-geri-row bk-scope-geri-row--left">' +
+        '<div class="bk-scope-nav-left">' + leftHtml + geriHtml + '</div></div>'
       : '';
     var dataChips = navChipList && navChipList.length ? ' data-ks-nav-chips' : '';
     var headCls = 'bk-scope-head' + (layout === 'bakim' || layout === 'tarti' ? ' bk-scope-head--bakim' : '') + (layout === 'tarti' ? ' bk-scope-head--tarti' : '') + (opts.compactHead ? ' bk-scope-head--compact' : '');
     if (layout === 'tarti') {
       var tartiEnd = end || weatherEndHtml();
+      var tartiGeri = split.back ? navChipLink(split.back) : '';
       return '<div class="' + headCls + '"' + dataChips + '>' +
         '<div class="bk-top bk-scope-tarti-top">' +
-        '<div class="bk-scope-tarti-left">' + geriHtml + '</div>' +
+        '<div class="bk-scope-tarti-left">' + tartiGeri + '</div>' +
         '<div class="bk-scope-tarti-center">' + arilikSelHtml(isBk) + tartiEnd + '</div>' +
         '<div class="bk-scope-tarti-right">' + (opts.icon || '') +
         '<' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
@@ -215,9 +216,9 @@
     return '<div class="' + headCls + '"' + dataChips + '>' +
       '<div class="bk-scope-title-row">' + (opts.icon || '') +
         '<div class="bk-scope-title-main"><' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
-        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' + (end || '') +
-      '</div>' + navRow +
-      '<div class="' + selRowCls + '">' + arilikSelHtml(isBk) + '</div></div>';
+        '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' +
+        '<div class="' + selRowCls + ' bk-scope-sel-inline">' + arilikSelHtml(isBk) + '</div>' + (end || '') +
+      '</div>' + (navRow || '') + '</div>';
   }
   function smartBackChip(scope) {
     var from = '';

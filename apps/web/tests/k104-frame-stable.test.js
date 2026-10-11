@@ -6,7 +6,8 @@ const root = path.join(__dirname, '..');
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
 const bk = fs.readFileSync(path.join(root, 'bk-kabuk.css'), 'utf8');
 assert.ok(nav.includes('k104'), 'k104 marker');
-assert.ok(!nav.includes('html.sa-phone-mobile .phone') || !/sa-phone-mobile \.phone[\s\S]{0,120}position:fixed/.test(nav), 'no viewport-fixed phone');
+/* k113: gercek telefonda cerceve yine viewport'a sabit (inset 0) — alt menu dipte; masaustunde 390x844 sahne */
+assert.ok(nav.includes('k113'), 'superseded by k113 pinned nav');
 assert.ok(nav.includes('border-radius:44px!important'), 'visible frame');
 assert.ok(nav.includes('layoutPhoneStage'), 'stage layout on desktop');
 const fit = nav.slice(nav.indexOf('function fitIphone12Shell'), nav.indexOf('function ensureStatusStrip'));
