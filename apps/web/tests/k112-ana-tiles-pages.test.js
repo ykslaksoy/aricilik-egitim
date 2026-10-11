@@ -20,6 +20,8 @@ assert.ok(kv.includes('Son tartım') && kv.includes('openScopeRecent') && kv.inc
 assert.ok(kv.includes('tile-act') && kv.includes('data-te-tart'));
 assert.ok(kv.includes('navChipsForView') && kv.includes("headLayout: view === 'tarti' ? 'tarti' : 'bakim'"));
 assert.ok(ks.includes("layout === 'tarti'") && ks.includes('bk-scope-head--tarti'));
+assert.ok(ks.includes('bk-scope-tarti-center">') && ks.includes('arilikSelHtml(isBk) + tartiEnd'), 'tarti center: arılık + °C');
+assert.ok(ks.includes('bk-scope-tarti-right">') && ks.includes('opts.icon'), 'tarti right: icon + title');
 assert.ok(!kv.includes("id: 'ksNavBakim'"), 'tarti mount must not hardcode Bakım chip');
 assert.ok(!kv.includes('data-te-bakim'), 'tarti tiles must not show Bakım act');
 assert.ok(kv.includes('tartiScopeHasScale'), 'hide auto-scale UI when no device in scope');

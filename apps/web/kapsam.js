@@ -196,10 +196,10 @@
       return '<div class="' + headCls + '"' + dataChips + '>' +
         '<div class="bk-top bk-scope-tarti-top">' +
         '<div class="bk-scope-tarti-left">' + geriHtml + '</div>' +
-        '<div class="bk-scope-tarti-center">' + (opts.icon || '') +
+        '<div class="bk-scope-tarti-center">' + arilikSelHtml(isBk) + tartiEnd + '</div>' +
+        '<div class="bk-scope-tarti-right">' + (opts.icon || '') +
         '<' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
         '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' +
-        '<div class="bk-scope-tarti-right">' + arilikSelHtml(isBk) + tartiEnd + '</div>' +
         '</div>' +
         '</div>';
     }
