@@ -288,7 +288,7 @@ a.muayene-hint.bk-note{text-decoration:none;margin-top:0;display:flex;align-item
   -webkit-tap-highlight-color:transparent;box-sizing:border-box;
 }
 .bk-nav-chip:active{transform:scale(.97);}
-/* k113: Geri kart dışında (nav.js .sa-back, sol üst); kartta yalnız sola yaslı kestirme çipleri */
+/* Kapsam kartı: Geri bk-geri-pill (nav.js .sa-back gizlenir — ks-scope-nav-in-card) */
 .bk-scope-geri-row.bk-scope-geri-row--left{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-height:0;}
 .bk-scope-geri-row--left:empty{display:none;}
 

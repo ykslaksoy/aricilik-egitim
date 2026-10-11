@@ -340,6 +340,6 @@
     global.__saIphone12BootInject = 1;
     var s = doc.createElement('script');
     s.src = 'sa-iphone12-boot.js?v=' + encodeURIComponent(VERSION);
-    (body || doc.documentElement).appendChild(s);
+    (doc.body || doc.documentElement).appendChild(s);
   })();
 })(window);
