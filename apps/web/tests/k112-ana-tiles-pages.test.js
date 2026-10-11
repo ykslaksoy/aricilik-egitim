@@ -29,7 +29,7 @@ assert.ok(kv.includes('tartiScopeHasScale'), 'hide auto-scale UI when no device 
 const ana = fs.readFileSync(path.join(root, 'ana.html'), 'utf8');
 assert.ok(ana.includes("from=ana") && ana.includes("key === 'tarti'"));
 const nav = fs.readFileSync(path.join(root, 'nav.js'), 'utf8');
-assert.ok(nav.includes('k113: tek Geri')); /* k113: kart ici cam Geri kaldirildi */
+assert.ok(nav.includes('scopeGeriInCard')); /* floating Geri off when kapsam pill */
 
 const pages = [
   { file: 'kovanlar.html', grid: 'class="grid ana-hive-grid"', helper: 'anaHiveTileHtml', forbid: 'ks-tile' },

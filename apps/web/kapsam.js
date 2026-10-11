@@ -183,11 +183,10 @@
     var modeCls = isBk ? 'bk-mode demo' : 'ks-mode';
     var split = splitNavChips(navChipList);
     var leftHtml = split.rest.map(navChipLink).join('');
-    var geriHtml = ''; /* k113: Geri karta girmez — nav.js sol ustte .sa-back */
-    void leftHtml; /* k114: ayrı «Bakım» çip satırı kaldırıldı (PR #47 artığı) */
-    var navRow = false
+    var geriHtml = split.back ? navChipLink(split.back) : '';
+    var navRow = leftHtml
       ? '<div class="bk-scope-geri-row bk-scope-geri-row--left">' +
-        '<div class="bk-scope-nav-left">' + leftHtml + geriHtml + '</div></div>'
+        '<div class="bk-scope-nav-left">' + leftHtml + '</div></div>'
       : '';
     var dataChips = navChipList && navChipList.length ? ' data-ks-nav-chips' : '';
     var headCls = 'bk-scope-head' + (layout === 'bakim' || layout === 'tarti' ? ' bk-scope-head--bakim' : '') + (layout === 'tarti' ? ' bk-scope-head--tarti' : '') + (opts.compactHead ? ' bk-scope-head--compact' : '');
@@ -206,7 +205,7 @@
     }
     if (layout === 'bakim') {
       return '<div class="' + headCls + '"' + dataChips + '>' +
-        '<div class="bk-top">' + (opts.icon || '') +
+        '<div class="bk-top">' + geriHtml + (opts.icon || '') +
         '<' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
         '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span>' +
         arilikSelHtml(isBk) + (end || '') +
@@ -214,7 +213,7 @@
     }
     var selRowCls = isBk ? 'bk-top bk-scope-sel-row' : 'ks-top bk-scope-sel-row';
     return '<div class="' + headCls + '"' + dataChips + '>' +
-      '<div class="bk-scope-title-row">' + (opts.icon || '') +
+      '<div class="bk-scope-title-row">' + geriHtml + (opts.icon || '') +
         '<div class="bk-scope-title-main"><' + titleTag + ' class="' + titleCls + '">' + esc(opts.title || '') + '</' + titleTag + '>' +
         '<span class="' + modeCls + '" data-ks-mode hidden>Demo</span></div>' +
         '<div class="' + selRowCls + ' bk-scope-sel-inline">' + arilikSelHtml(isBk) + '</div>' + (end || '') +
