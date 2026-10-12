@@ -13,7 +13,7 @@ assert.ok(nav.includes('padding-bottom:calc(10px + env(safe-area-inset-bottom'),
 assert.ok(nav.includes("addEventListener('resize', onFit)") && nav.includes('orientationchange'), 'live adapt listeners');
 assert.ok(!/visualViewport\.height/.test(nav), 'no visualViewport height');
 assert.ok(ks.includes('split.back ? navChipLink(split.back)') && ks.includes('bk-geri-pill'), 'Geri in kapsam card');
-assert.ok(nav.includes('scopeGeriInCard') && nav.includes('ks-scope-nav-in-card .sa-back'), 'hide floating Geri when card has pill');
+assert.ok(!nav.includes('body.ks-scope-nav-in-card .sa-back,'), 'k117: sol ust Geri gizlenmez');
 assert.ok(!ks.includes("'<div class=\"bk-scope-nav-center\">'"), 'no centered glass Geri');
 assert.ok(kc.includes('body:not(.sa-page-ana) .bk-scope .arilik-nav'), 'Tarti arrows styled');
 assert.ok(nav.includes('.bk-scope-title-row{display:flex!important;flex-wrap:nowrap!important'), 'Muayene head no wrap');
