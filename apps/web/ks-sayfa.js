@@ -52,7 +52,7 @@
     var init0 = o.initial || scopeNow();
     var navChips = o.navChips;
     var navInCard = o.navInCard !== false;
-    if (navInCard && !navChips) navChips = KS.navChipsForView(o.view || '', init0 === 'all' ? 'all' : init0);
+    if (navInCard && !navChips) navChips = !KS.navChipsForView ? (KS.defaultNavChips ? KS.defaultNavChips(init0 === 'all' ? '' : init0) : undefined) : KS.navChipsForView(o.view || '', init0 === 'all' ? 'all' : init0);
     if (navInCard) doc.body.classList.add('ks-scope-nav-in-card');
     var ctl = KS.mount(host, {
       title: o.title, icon: o.icon || KS.ICON_KOVAN, page: o.page || global.location.pathname.split('/').pop(), initial: init0,
