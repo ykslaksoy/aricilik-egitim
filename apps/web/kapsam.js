@@ -177,14 +177,16 @@
   /** Üst bant: bakim.html #bkScope (arılık üst satırda) veya eski üç satır düzeni. */
   function scopeCardHeadHtml(variant, opts, navChipList, end) {
     var isBk = variant === 'bk';
-    var layout = opts.headLayout || (isBk ? 'bakim' : 'stacked');
+    var layout = 'stacked'; /* k116: tek satır (k114) her sayfada — PR #49 bakim/tarti düzenleri Geri’yi karta alıp başlığı 390px’te kesiyordu */
+    void opts.headLayout;
     var titleCls = isBk ? 'bk-title bk-scope-page-title' : 'ks-title bk-scope-page-title';
     var titleTag = isBk ? 'span' : 'h2';
     var modeCls = isBk ? 'bk-mode demo' : 'ks-mode';
     var split = splitNavChips(navChipList);
     var leftHtml = split.rest.map(navChipLink).join('');
-    var geriHtml = split.back ? navChipLink(split.back) : '';
-    var navRow = leftHtml
+    var geriHtml = ''; /* k116: Geri karta girmez — nav.js sol üstte .sa-back (içerikle kayar) */
+    void leftHtml;
+    var navRow = false && leftHtml
       ? '<div class="bk-scope-geri-row bk-scope-geri-row--left">' +
         '<div class="bk-scope-nav-left">' + leftHtml + '</div></div>'
       : '';
