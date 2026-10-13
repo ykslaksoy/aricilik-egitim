@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SüperArı Yönetici</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="stylesheet" href="panels.css" />
+  <style>
+    .fe { margin-top: 1rem; }
+    .fe h2 { margin: 0 0 .25rem; font-size: 1.1rem; }
+    .fe-sub { margin: 0 0 .75rem; color: var(--muted); font-size: .88rem; line-height: 1.4; }
+    .fe-sub a { text-decoration: underline; }
+    .fe-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+    .fe-list li { border: 1px solid var(--border); border-radius: 14px; padding: .65rem .8rem; background: #fffaf0; min-width: 0; }
+    .fe-top { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+    .fe-top b { font-size: .98rem; overflow-wrap: anywhere; }
+    .fe-top span { flex: 0 0 auto; font-size: .78rem; font-weight: 700; color: var(--accent-dark); white-space: nowrap; }
+    .fe-meta { display: block; margin-top: .2rem; font-size: .8rem; color: var(--muted); line-height: 1.4; overflow-wrap: anywhere; }
+    .fe-tag { display: inline-block; margin-left: .35rem; padding: 0 .45rem; border-radius: 999px; font-size: .72rem; font-weight: 700; background: #eef6ee; color: var(--ok); vertical-align: middle; }
+    .fe-tag.dev { background: #f3efe4; color: var(--muted); }
+    .fe-empty { color: var(--muted); font-size: .9rem; margin: 0; }
+    .os-f fieldset { border: 1px solid var(--border); border-radius: 14px; margin: .5rem 0; padding: .5rem .7rem; }
+    .os-f legend { font-weight: 800; padding: 0 .3rem; }
+    .os-f label { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .25rem 0; border-bottom: 1px dashed var(--border); }
+    .os-f label:last-child { border-bottom: 0; }
+    .os-f input { width: 5.5rem; padding: .35rem .45rem; border: 1px solid var(--border); border-radius: 10px; font: inherit; text-align: right; }
+    .os-f input.chg { border-color: #c98a00; background: #fff5d6; }
+    .os-dn { display: grid; gap: .2rem; padding: .4rem 0; border-bottom: 1px dashed var(--border); }
+    .os-dr { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+    .os-dr input[type=date] { width: auto; text-align: left; }
+    .os-acts { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+  .gate { max-width: 380px; margin: 2rem auto; }
+    .gate label { display:block; margin:.5rem 0 .2rem; font-weight:700; }
+    .gate input { width:100%; padding:.6rem .7rem; border:1px solid var(--border); border-radius:12px; font:inherit; box-sizing:border-box; }
+    .gate .err { color:#b42318; min-height:1.2em; margin:.5rem 0; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">
+      <div class="brand-badge">🐝</div>
+      <div>
+        <h1>SüperArı</h1>
+        <p>Yönetici paneli</p>
+      </div>
+    </div>
+    <section class="card gate" id="gate">
+      <h2 style="margin-top:0">Yönetici girişi</h2>
+      <p class="fe-sub">Yalnız yönetici hesapları girebilir.</p>
+      <form id="gForm" autocomplete="on">
+        <label for="gMail">E-posta</label><input id="gMail" type="email" autocomplete="username" required />
+        <label for="gPw">Şifre</label><input id="gPw" type="password" autocomplete="current-password" required />
+        <p class="err" id="gErr"></p>
+        <button class="btn" type="submit" id="gBtn">Giriş yap</button>
+      </form>
+    </section>
+    <div id="panel" hidden>
+      <div class="nav"><span class="chip" id="who"></span><button type="button" class="chip" id="cikis">Çıkış</button></div>
+    <section class="card fe" aria-labelledby="feH">
+      <h2 id="feH">Fiyatı bulunamayan kalemler</h2>
+      <p class="fe-sub" id="feSub">Yükleniyor…</p>
+      <ol class="fe-list" id="feList"></ol>
+    </section>
+    <section class="card fe" id="osSec" aria-labelledby="osH" hidden>
+      <h2 id="osH">Oğul skorları</h2>
+      <p class="fe-sub">Yalnız yönetici. Oğul Risk Skoru (ORS, 0–100): son muayenede ana memesi varsa <b>100</b>; yoksa
+        <b>Genetik × w<sub>g</sub> + Sıkışıklık × w<sub>s</sub> + Mevsim × w<sub>m</sub> + Ana yaşı × w<sub>a</sub></b>.
+        Sıkışıklık = dolu çerçeve / kapasite × 100 (veri yoksa muayene: dolu 100, dolmak üzere 75, diğer 50) · Mevsim: bölge oğul mevsimi 100, dışı 50 ·
+        Ana yaşı: 0–1 → 20, 1–2 → 60, 2+ → 100 · Anasız ≤ 5, son 120 günde oğul ≤ 15 · &lt;35 Düşük, 35–69 Orta, ≥70 Kritik.
+        Değerler buluta (Supabase) kaydedilir; kayıt yoksa koddaki varsayılanlar geçerlidir. <span id="osStat"></span></p>
+      <form id="osForm" class="os-f" autocomplete="off"></form>
+      <div class="os-acts"><button type="button" class="btn" id="osSave">Kaydet…</button> <button type="button" class="btn secondary" id="osReset">Varsayılanları yükle</button></div>
+    </section>
+    <section class="card fe" aria-labelledby="ieH">
+      <h2 id="ieH">Oğul verisi eksik melezler</h2>
+      <p class="fe-sub" id="ieSub">Oğul riskinde ırk ölçeği tabloda olmayan melezler: bu kovanlarda ırk hesaba katılmaz. Yayın bulununca <code>demo-data.js › HYBRID_SWARM</code>’a eklenmeli. <span id="ieCloud"></span></p>
+      <ol class="fe-list" id="ieList"></ol>
+    </section>
+    </div>
+  </main>
+<script>try{localStorage.setItem('superari.workMode','live');}catch(e){}</script>
+<script src="bulut.js?v=yon-1"></script>
+<script src="demo-data.js?v=yon-1"></script>
+<script>
+/* Kapı: Supabase oturumu + sa_is_admin() = true değilse panel yüklenmez. Veri erişimi zaten RLS / RPC (sa_is_admin) ile korunur. */
+(function () {
+  var B = window.SuperAriBulut, $ = function (i) { return document.getElementById(i); };
+  function err(t) { $('gErr').textContent = t || ''; }
+  function apiaries(c) {
+    return c.from('apiaries').select('local_id,name,data').eq('deleted', false).limit(500).then(function (r) {
+      if (r.error || !r.data) return;
+      var list = r.data.map(function (a) { var d = a.data || {}; var o = Object.assign({}, d); o.id = String(a.local_id); o.name = a.name || d.name || 'Arılık'; return o; });
+      var seen = {}; list = list.filter(function (a) { if (seen[a.id]) return false; seen[a.id] = 1; return true; });
+      try { localStorage.setItem('superari.ariliklar.v1', JSON.stringify(list)); } catch (e) {}
+    }).catch(function () {});
+  }
+  function load(src) { return new Promise(function (ok) { var s = document.createElement('script'); s.src = src; s.onload = s.onerror = ok; document.body.appendChild(s); }); }
+  var started = false;
+  function check() {
+    return B.session().then(function (s) {
+      if (!s) return false;
+      return B.client().then(function (c) {
+        return c.rpc('sa_is_admin').then(function (r) {
+          if (r.error || r.data !== true) { return c.auth.signOut().then(function () { err('Bu hesap yönetici değil.'); return false; }); }
+          $('who').textContent = (s.user && s.user.email) || 'Yönetici';
+          return apiaries(c).then(function () {
+            $('gate').hidden = true; $('panel').hidden = false;
+            if (!started) { started = true; return load('panel.js?v=yon-1').then(function(){return load('panel2.js?v=yon-1');}); }
+          }).then(function () { return true; });
+        });
+      });
+    }).catch(function () { err('Bağlantı kurulamadı.'); return false; });
+  }
+  $('gForm').addEventListener('submit', function (e) {
+    e.preventDefault(); err(''); $('gBtn').disabled = true;
+    B.signInPassword($('gMail').value, $('gPw').value).then(check).catch(function (x) { err(/Invalid login/i.test(String(x && x.message)) ? 'E-posta veya şifre hatalı.' : 'Giriş yapılamadı: ' + ((x && x.message) || 'hata')); })
+      .then(function () { $('gBtn').disabled = false; });
+  });
+  $('cikis').addEventListener('click', function () { B.signOut ? B.signOut().then(function () { location.reload(); }) : location.reload(); });
+  check();
+})();
+</script>
+</body>
+</html>
