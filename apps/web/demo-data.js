@@ -3367,8 +3367,49 @@
     'kafkas+karadeniz+mugla': 55, 'buckfast+italyan+mugla': 55, 'kafkas+karniyol+mugla': 75, 'anadolu+kafkas+mugla': 75, 'anadolu+kafkas+karniyol': 90, 'anadolu+italyan+karniyol': 90
   };
   var GENETIK_BUCKFAST_IKILI = 45, GENETIK_BILINMEYEN = 55;
+  var ORS_WEIGHTS = { genetik: 0.30, sikisiklik: 0.40, mevsim: 0.15, anaYasi: 0.15 };
+  /* k130: yönetici ayarları (Supabase public.ogul_skor_ayar, id 1) — cihaz önbelleği; yoksa yukarıdaki varsayılanlar. */
+  var OGUL_SKOR_KEY = 'superari.ogul.skor.v1';
+  var GENETIK_ADLAR = { kafkas: 'Kafkas', buckfast: 'Buckfast', karadeniz: 'Karadeniz', italyan: 'İtalyan', mugla: 'Muğla', anadolu: 'Anadolu', trakya: 'Trakya', karniyol: 'Karniyol', iran: 'İran', yigilca: 'Yığılca', hatay: 'Hatay / Suriye',
+    'kafkas+karadeniz': 'Kafkas × Karadeniz', 'anadolu+kafkas': 'Kafkas × Anadolu', 'kafkas+karniyol': 'Kafkas × Karniyol (iki yön)', 'karniyol+mugla': 'Karniyol × Muğla', 'anadolu+karniyol': 'Anadolu × Karniyol', 'anadolu+mugla': 'Anadolu × Muğla', 'italyan+karniyol': 'İtalyan × Karniyol',
+    'kafkas+karadeniz+mugla': '(Kafkas × Karadeniz) × Muğla', 'buckfast+italyan+mugla': '(Buckfast × İtalyan) × Muğla', 'kafkas+karniyol+mugla': '(Kafkas × Karniyol) × Muğla', 'anadolu+kafkas+mugla': '(Kafkas × Anadolu) × Muğla', 'anadolu+kafkas+karniyol': '(Kafkas × Anadolu) × Karniyol', 'anadolu+italyan+karniyol': '(Karniyol × İtalyan) × Anadolu' };
+  function num01(v, lo, hi) { v = Number(v); return isFinite(v) && v >= lo && v <= hi ? v : null; }
+  function ogulSkorDefaults() { return { weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
+  /** Geçerli ayar = varsayılan + (geçerliyse) yönetici kaydı. Ağırlık toplamı 1 değilse ağırlıklar varsayılan kalır. */
+  function ogulSkorMerge(o) {
+    var d = ogulSkorDefaults(); if (!o || typeof o !== 'object') return d;
+    var w = o.weights || {}, ww = {}, sum = 0, ok = true;
+    ['genetik', 'sikisiklik', 'mevsim', 'anaYasi'].forEach(function (k) { var v = num01(w[k], 0, 1); if (v == null) ok = false; else { ww[k] = v; sum += v; } });
+    if (ok && Math.abs(sum - 1) < 0.001) d.weights = ww;
+    ['saf', 'melez'].forEach(function (g) { var src = o[g] || {}; Object.keys(d[g]).forEach(function (k) { var v = num01(src[k], 0, 100); if (v != null) d[g][k] = v; }); });
+    var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
+    var u = num01(o.bilinmeyen, 0, 100); if (u != null) d.bilinmeyen = u;
+    return d;
+  }
+  var OGUL_SKOR = ogulSkorDefaults();
+  try { var oc = JSON.parse(localStorage.getItem(OGUL_SKOR_KEY) || 'null'); if (oc && oc.data) OGUL_SKOR = ogulSkorMerge(oc.data); } catch (eOS) { /* varsayılan */ }
+  function ogulSkorSet(data, meta) {
+    OGUL_SKOR = ogulSkorMerge(data);
+    try { localStorage.setItem(OGUL_SKOR_KEY, JSON.stringify({ data: data, at: (meta && meta.at) || new Date().toISOString() })); } catch (e) {}
+    return OGUL_SKOR;
+  }
+  /** Buluttan güncel ayarı çeker (oturum gerekmez); değiştiyse önbelleğe yazar. */
+  function ogulSkorSync() {
+    var g = typeof window !== 'undefined' ? window : globalThis, B = g.SuperAriBulut;
+    if (!B || !B.client || !B.loadConfig) return Promise.resolve(false);
+    return B.loadConfig().then(function (cfg) {
+      if (!cfg || !cfg.enabled) return false;
+      return B.client().then(function (c) { return c.from('ogul_skor_ayar').select('data,updated_at').eq('id', 1).maybeSingle(); }).then(function (r) {
+        if (!r || r.error || !r.data || !r.data.data) return false;
+        var prev = null; try { prev = (JSON.parse(localStorage.getItem(OGUL_SKOR_KEY) || 'null') || {}).at; } catch (e) {}
+        if (prev === r.data.updated_at) return false;
+        ogulSkorSet(r.data.data, { at: r.data.updated_at }); return true;
+      });
+    }).catch(function () { return false; });
+  }
+  if (typeof setTimeout === 'function' && typeof window !== 'undefined' && window.document) setTimeout(function () { ogulSkorSync(); }, 2500);
   /** ORS saf hesap: bypass → 100; aksi ağırlıklı toplam (0–100, 0,1 hassasiyet). */
-  function orsCompute(o) { if (o.bypass) return 100; var v = o.genetik * 0.30 + Math.min(100, o.sikisiklik) * 0.40 + o.mevsim * 0.20 + o.anaYasi * 0.10; return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; }
+  function orsCompute(o) { if (o.bypass) return 100; var W = OGUL_SKOR.weights; var v = o.genetik * W.genetik + Math.min(100, o.sikisiklik) * W.sikisiklik + o.mevsim * W.mevsim + o.anaYasi * W.anaYasi; return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; }
   function genetikWord(gen) {
     if (!gen.known) return gen.missing ? 'bilinmiyor (melez verisi yok)' : 'bilinmiyor';
     var g = gen.g; return g <= 5 ? 'çok çok az' : g <= 15 ? 'çok az' : g <= 35 ? 'az' : g <= 45 ? 'az–orta (nesle göre değişir)' : g <= 55 ? 'orta' : g <= 65 ? 'orta–yüksek' : g <= 75 ? 'yüksek' : g <= 90 ? 'çok yüksek' : 'çok çok yüksek';
@@ -3376,13 +3417,13 @@
   function genetikScore(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr'), found = [];
     BREED_SWARM_SCALE.forEach(function (x) { if (x.m.some(function (w) { return b.indexOf(w) >= 0; })) found.push(x.key); });
-    if (!found.length) return { g: GENETIK_BILINMEYEN, known: false, hybrid: false, label: b ? 'ırk tabloda yok' : 'ırk bilinmiyor' };
-    if (found.length === 1) return { g: GENETIK_SAF[found[0]], known: true, hybrid: false, label: 'saf hat' };
+    if (!found.length) return { g: OGUL_SKOR.bilinmeyen, known: false, hybrid: false, label: b ? 'ırk tabloda yok' : 'ırk bilinmiyor' };
+    if (found.length === 1) return { g: OGUL_SKOR.saf[found[0]], known: true, hybrid: false, label: 'saf hat' };
     var key = found.slice().sort().join('+');
-    if (GENETIK_MELEZ[key] != null) return { g: GENETIK_MELEZ[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
-    if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: GENETIK_BUCKFAST_IKILI, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
+    if (OGUL_SKOR.melez[key] != null) return { g: OGUL_SKOR.melez[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
+    if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: OGUL_SKOR.buckfastIkili, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
     reportHybridMissing(key, found.join(' × '));
-    return { g: GENETIK_BILINMEYEN, known: false, hybrid: true, missing: true, label: 'melez tabloda yok' };
+    return { g: OGUL_SKOR.bilinmeyen, known: false, hybrid: true, missing: true, label: 'melez tabloda yok' };
   }
   /* k127: tabloya eklenen melezler cihazdaki «veri eksik» kaydından düşülür. */
   (function purgeCovered() { try { var m = irkEksikLog(), ch = 0; Object.keys(m.items).forEach(function (k) { if (GENETIK_MELEZ[k] != null || (k.split('+').length === 2 && k.indexOf('buckfast') >= 0)) { delete m.items[k]; ch = 1; } }); if (ch) localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m)); } catch (e) {} })();
@@ -3541,7 +3582,7 @@
       }
     }
     /* --- k129 Oğul Risk Skoru (ORS) ---
-       Ana memesi (açık/kapalı) son muayenede → 100. Aksi: Genetik×0,30 + Sıkışıklık×0,40 + Mevsim×0,20 + AnaYaşı×0,10.
+       Ana memesi (açık/kapalı) son muayenede → 100. Aksi: Genetik×0,30 + Sıkışıklık×0,40 + Mevsim×0,15 + AnaYaşı×0,15 (varsayılan; yönetici değiştirebilir).
        Sınırlar: anasız ≤ 5; son 120 günde oğul verdi ≤ 15. */
     var gen = genetikScore(breed);
     var capTot = capF || 10, fullF = null;
@@ -5515,7 +5556,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute,
+        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

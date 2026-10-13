@@ -19,6 +19,13 @@
     .fe-tag { display: inline-block; margin-left: .35rem; padding: 0 .45rem; border-radius: 999px; font-size: .72rem; font-weight: 700; background: #eef6ee; color: var(--ok); vertical-align: middle; }
     .fe-tag.dev { background: #f3efe4; color: var(--muted); }
     .fe-empty { color: var(--muted); font-size: .9rem; margin: 0; }
+    .os-f fieldset { border: 1px solid var(--border); border-radius: 14px; margin: .5rem 0; padding: .5rem .7rem; }
+    .os-f legend { font-weight: 800; padding: 0 .3rem; }
+    .os-f label { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .25rem 0; border-bottom: 1px dashed var(--border); }
+    .os-f label:last-child { border-bottom: 0; }
+    .os-f input { width: 5.5rem; padding: .35rem .45rem; border: 1px solid var(--border); border-radius: 10px; font: inherit; text-align: right; }
+    .os-f input.chg { border-color: #c98a00; background: #fff5d6; }
+    .os-acts { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
   </style>
 </head>
 <body>
@@ -62,14 +69,85 @@
       <p class="fe-sub" id="feSub">Yükleniyor…</p>
       <ol class="fe-list" id="feList"></ol>
     </section>
+    <section class="card fe" id="osSec" aria-labelledby="osH" hidden>
+      <h2 id="osH">Oğul skorları</h2>
+      <p class="fe-sub">Yalnız yönetici. Oğul Risk Skoru (ORS, 0–100): son muayenede ana memesi varsa <b>100</b>; yoksa
+        <b>Genetik × w<sub>g</sub> + Sıkışıklık × w<sub>s</sub> + Mevsim × w<sub>m</sub> + Ana yaşı × w<sub>a</sub></b>.
+        Sıkışıklık = dolu çerçeve / kapasite × 100 (veri yoksa muayene: dolu 100, dolmak üzere 75, diğer 50) · Mevsim: bölge oğul mevsimi 100, dışı 50 ·
+        Ana yaşı: 0–1 → 20, 1–2 → 60, 2+ → 100 · Anasız ≤ 5, son 120 günde oğul ≤ 15 · &lt;35 Düşük, 35–69 Orta, ≥70 Kritik.
+        Değerler buluta (Supabase) kaydedilir; kayıt yoksa koddaki varsayılanlar geçerlidir. <span id="osStat"></span></p>
+      <form id="osForm" class="os-f" autocomplete="off"></form>
+      <div class="os-acts"><button type="button" class="btn" id="osSave">Kaydet…</button> <button type="button" class="btn secondary" id="osReset">Varsayılanları yükle</button></div>
+    </section>
     <section class="card fe" aria-labelledby="ieH">
       <h2 id="ieH">Oğul verisi eksik melezler</h2>
       <p class="fe-sub" id="ieSub">Oğul riskinde ırk ölçeği tabloda olmayan melezler: bu kovanlarda ırk hesaba katılmaz. Yayın bulununca <code>demo-data.js › HYBRID_SWARM</code>’a eklenmeli. <span id="ieCloud"></span></p>
       <ol class="fe-list" id="ieList"></ol>
     </section>
   </main>
-<script src="pwa.js?v=koloni-129"></script>
-<script src="bulut.js?v=koloni-129"></script>
+<script src="pwa.js?v=koloni-130"></script>
+<script src="bulut.js?v=koloni-130"></script>
+<script src="demo-data.js?v=koloni-130"></script>
+<script>
+/* k130: Oğul skorları (yalnız yönetici) — Supabase public.ogul_skor_ayar · kaydet: sa_ogul_skor_kaydet (onaylı). */
+(function () {
+  var sec = document.getElementById('osSec'), D = window.SuperAriDemo, B = window.SuperAriBulut;
+  if (!sec || !D || !D.colony || !D.colony.ogulSkorDefaults || !B) return;
+  var C = D.colony, MIG = 'supabase/migrations/20261013190000_ogul_skor_ayar.sql';
+  var WL = { genetik: 'Genetik (w<sub>g</sub>)', sikisiklik: 'Sıkışıklık (w<sub>s</sub>)', mevsim: 'Mevsim (w<sub>m</sub>)', anaYasi: 'Ana yaşı (w<sub>a</sub>)' };
+  var cur = C.ogulSkor(), base = JSON.stringify(cur);
+  function stat(t) { document.getElementById('osStat').innerHTML = t; }
+  function inp(name, v, step, max) { return '<input name="' + name + '" type="number" inputmode="decimal" min="0" max="' + max + '" step="' + step + '" value="' + v + '">'; }
+  function paint(o) {
+    var A = C.GENETIK_ADLAR, h = '<fieldset><legend>Ağırlıklar (toplam 1)</legend>' + Object.keys(WL).map(function (k) { return '<label><span>' + WL[k] + '</span>' + inp('w.' + k, o.weights[k], '0.01', 1) + '</label>'; }).join('') + '</fieldset>';
+    h += '<fieldset><legend>Saf hatlar — Genetik</legend>' + Object.keys(o.saf).map(function (k) { return '<label><span>' + (A[k] || k) + '</span>' + inp('saf.' + k, o.saf[k], '1', 100) + '</label>'; }).join('') + '</fieldset>';
+    var iki = Object.keys(o.melez).filter(function (k) { return k.split('+').length === 2; }), uc = Object.keys(o.melez).filter(function (k) { return k.split('+').length > 2; });
+    h += '<fieldset><legend>İkili melezler — Genetik</legend>' + iki.map(function (k) { return '<label><span>' + (A[k] || k) + '</span>' + inp('melez.' + k, o.melez[k], '1', 100) + '</label>'; }).join('') +
+      '<label><span>Buckfast melezleri (diğer)</span>' + inp('buckfastIkili', o.buckfastIkili, '1', 100) + '</label></fieldset>';
+    h += '<fieldset><legend>Üçlü melezler — Genetik</legend>' + uc.map(function (k) { return '<label><span>' + (A[k] || k) + '</span>' + inp('melez.' + k, o.melez[k], '1', 100) + '</label>'; }).join('') + '</fieldset>';
+    h += '<fieldset><legend>Bilinmeyen</legend><label><span>Tabloda olmayan melez / ırk</span>' + inp('bilinmeyen', o.bilinmeyen, '1', 100) + '</label></fieldset>';
+    document.getElementById('osForm').innerHTML = h;
+  }
+  function read() {
+    var o = { weights: {}, saf: {}, melez: {} }, bad = [];
+    [].forEach.call(document.querySelectorAll('#osForm input'), function (el) {
+      var v = Number(String(el.value).replace(',', '.')), n = el.name.split('.'), mx = n[0] === 'w' ? 1 : 100;
+      if (!isFinite(v) || v < 0 || v > mx || el.value === '') bad.push(el);
+      if (n[0] === 'w') o.weights[n[1]] = v; else if (n.length === 2) o[n[0]][n[1]] = v; else o[n[0]] = v;
+    });
+    return { o: o, bad: bad };
+  }
+  document.getElementById('osForm').addEventListener('input', function (e) { if (e.target.tagName === 'INPUT') e.target.classList.add('chg'); });
+  document.getElementById('osReset').addEventListener('click', function () { paint(C.ogulSkorDefaults()); [].forEach.call(document.querySelectorAll('#osForm input'), function (el) { el.classList.add('chg'); }); stat('Varsayılanlar yüklendi — kaydetmeden geçerli olmaz.'); });
+  document.getElementById('osSave').addEventListener('click', function () {
+    var r = read();
+    if (r.bad.length) { r.bad[0].focus(); stat('<b>Geçersiz değer</b>: puanlar 0–100, ağırlıklar 0–1 olmalı.'); return; }
+    var w = r.o.weights, sum = w.genetik + w.sikisiklik + w.mevsim + w.anaYasi;
+    if (Math.abs(sum - 1) > 0.001) { stat('<b>Ağırlıkların toplamı 1 olmalı</b> (şu an ' + Math.round(sum * 1000) / 1000 + ').'); return; }
+    var nChg = document.querySelectorAll('#osForm input.chg').length;
+    if (JSON.stringify(C.ogulSkorMerge(r.o)) === base) { stat('Değişiklik yok.'); return; }
+    if (!window.confirm('Oğul skoru ayarları buluta kaydedilsin mi?\n' + nChg + ' alan değişti. Tüm kullanıcıların oğul riski bu değerlerle hesaplanır.')) { stat('Kaydedilmedi.'); return; }
+    stat('Kaydediliyor…');
+    B.client().then(function (c) { return c.rpc('sa_ogul_skor_kaydet', { p_data: r.o }); }).then(function (res) {
+      if (res.error) { var m = String(res.error.message || '') + ' ' + String(res.error.code || ''); stat(/PGRST202|42883|does not exist|schema cache/i.test(m) ? 'Veritabanı güncellemesi gerekli (' + MIG + ').' : 'Kaydedilemedi: ' + (res.error.message || 'hata')); return; }
+      C.ogulSkorSet(r.o, { at: res.data }); cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur);
+      stat('Kaydedildi (' + new Date(res.data).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) + ').');
+    }).catch(function () { stat('Kaydedilemedi (bağlantı yok olabilir).'); });
+  });
+  /* Yalnız yöneticiye göster: oturum + sa_is_admin() */
+  B.loadConfig().then(function (cfg) {
+    if (!cfg || !cfg.enabled) return;
+    return B.session().then(function (s) {
+      if (!s) return;
+      return B.client().then(function (c) { return c.rpc('sa_is_admin'); }).then(function (r) {
+        if (r.error || r.data !== true) return;
+        sec.hidden = false; paint(cur);
+        return C.ogulSkorSync().then(function (ch) { if (ch) { cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur); } stat(ch ? 'Buluttaki son kayıt yüklendi.' : ''); });
+      });
+    });
+  }).catch(function () {});
+})();
+</script>
 <script>
 /* Fiyatı bulunamayan kalemler: Alım talebinde alınacak olup fiyatı olmayan kalemler (kullanıcıya uyarı gösterilmez).
    Bulut: sa_fiyat_eksik_list (yalnız yönetici) · Çevrimdışı yedek: bu cihazın superari.stok.fiyatsiz.v1 kaydı.

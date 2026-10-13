@@ -23,6 +23,8 @@ Bulut, yapılandırma yokken tamamen kapalıdır; uygulama yalnız cihazda çal�
    İsteğe bağlı: Vercel'de `SUPERARI_LOG_SALT` (IP özeti tuzu) tanımlayın.
 9. Oğul verisi eksik melezler (yönetici listesi): SQL Editor'de `migrations/20261013140000_irk_ogul_veri_eksik.sql` dosyasını çalıştırın
    (önce `20261003230000_fiyat_eksik.sql` çalışmış olmalı; `sa_is_admin()` oradan gelir). Olmadan liste yalnız cihazda kalır.
-10. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
+10. Oğul skorları (yönetici düzenler): SQL Editor'de `migrations/20261013190000_ogul_skor_ayar.sql` dosyasını çalıştırın (sa_is_admin gerekir).
+   Olmadan uygulama koddaki varsayılan Genetik tablosunu ve ağırlıkları kullanır.
+11. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
 
 Demo verisi hiçbir zaman buluta gönderilmez.
