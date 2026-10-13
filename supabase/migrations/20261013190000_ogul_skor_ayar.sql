@@ -1,4 +1,5 @@
--- SüperArı: Oğul Risk Skoru (ORS) ayarları — Genetik puan tablosu + ağırlıklar (koloni-130) + sensörlü mod eşikleri (koloni-131).
+-- SüperArı: Oğul Risk Skoru (ORS) ayarları — Genetik puan tablosu + ağırlıklar (koloni-130) + sensörlü mod eşikleri (koloni-131)
+-- + arılık başına elle oğul dönemi (koloni-132): data.donem = { "<arılık id>": { "from": "AA-GG", "to": "AA-GG", "isCustomPeriod": true } }; kayıt yoksa otomatik dönem.
 -- Tek satır (id = 1) JSON. Okuma: herkes (istemci skoru hesaplamak için; gizli veri yok). Yazma: yalnız yönetici (sa_is_admin, fiyat_eksik migration'ı).
 -- Satır yoksa uygulama koddaki varsayılanları kullanır. Supabase → SQL Editor'da bir kez çalıştırın (tekrar çalıştırmak güvenlidir).
 
@@ -45,6 +46,7 @@ insert into public.ogul_skor_ayar (id, data) values (1, '{
   "saf": {"kafkas": 5, "buckfast": 15, "karadeniz": 35, "italyan": 55, "mugla": 55, "anadolu": 75, "trakya": 75, "karniyol": 75, "iran": 75, "yigilca": 90, "hatay": 100},
   "melez": {"kafkas+karadeniz": 35, "anadolu+kafkas": 55, "kafkas+karniyol": 55, "karniyol+mugla": 75, "anadolu+karniyol": 75, "anadolu+mugla": 75, "italyan+karniyol": 65,
             "kafkas+karadeniz+mugla": 55, "buckfast+italyan+mugla": 55, "kafkas+karniyol+mugla": 75, "anadolu+kafkas+mugla": 75, "anadolu+kafkas+karniyol": 90, "anadolu+italyan+karniyol": 90},
+  "donem": {},
   "piping": {"kafkas": 2, "buckfast": 2, "karadeniz": 2, "italyan": 2, "mugla": 2, "anadolu": 2, "trakya": 2, "karniyol": 2, "iran": 2, "yigilca": 2, "hatay": 2, "kafkas+karadeniz": 2, "anadolu+kafkas": 2, "kafkas+karniyol": 2, "karniyol+mugla": 2, "anadolu+karniyol": 2, "anadolu+mugla": 2, "italyan+karniyol": 2, "kafkas+karadeniz+mugla": 2, "buckfast+italyan+mugla": 2, "kafkas+karniyol+mugla": 2, "anadolu+kafkas+mugla": 2, "anadolu+kafkas+karniyol": 2, "anadolu+italyan+karniyol": 2},
   "buckfastIkili": 45, "bilinmeyen": 55,
   "sensor": {"pipingHzMin": 400, "pipingHzMax": 500, "pipingDk": 2, "pipingAraSn": 60,

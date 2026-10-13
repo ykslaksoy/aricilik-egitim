@@ -3280,11 +3280,14 @@
   }
   var AY_KISA = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
   function mdLabel(md) { var p = md.split('-'); return Number(p[1]) + ' ' + AY_KISA[Number(p[0]) - 1]; }
+  /* k132: arılık başına elle oğul dönemi (yönetici; OGUL_SKOR.donem[apId] = { from, to: 'AA-GG', isCustomPeriod: true }). */
+  function customPeriod(apId) { var d = OGUL_SKOR && OGUL_SKOR.donem && OGUL_SKOR.donem[String(apId)]; return d && d.isCustomPeriod ? d : null; }
   function swarmSeason(apId, date, ctx) {
-    var key = seasonProfileKey(apId, ctx), w = SWARM_WINDOWS[key];
+    var key = seasonProfileKey(apId, ctx), w = SWARM_WINDOWS[key], cp = customPeriod(apId);
+    if (cp) w = { pre: cp.from, from: cp.from, to: cp.to, post: cp.to };
     var md = String(date || todayLocal()).slice(5, 10);
     var phase = (md >= w.from && md <= w.to) ? 'zirve' : ((md >= w.pre && md < w.from) || (md > w.to && md <= w.post) ? 'kenar' : 'disi');
-    return { profile: key, profileLabel: PROFILE_SHORT[key], phase: phase, window: mdLabel(w.from) + '–' + mdLabel(w.to),
+    return { profile: key, profileLabel: cp ? 'elle dönem' : PROFILE_SHORT[key], custom: !!cp, phase: phase, window: mdLabel(w.from) + '–' + mdLabel(w.to),
       factor: phase === 'zirve' ? 1 : (phase === 'kenar' ? 0.6 : 0.15) };
   }
   /* Irk etkisi (oğul eğilimi): melez türü ayrı değerlendirilir. */
@@ -3390,7 +3393,7 @@
     ariTrendOran: 'Arı sayısı kapasiteye yakın (oran)', ariTrendArti: '→ Sıkışıklık artışı', ariCerceve: 'Çerçeve başına arı (kapasite hesabı)', ariZirveOran: 'Sert kilo artışı + arı yoğunluğu zirve (oran) → Sıkışıklık 100',
     nektarKg: 'Canlı nektar akımı: günlük artış en az (kg)' };
   function pipingDefaults() { var o = {}; Object.keys(GENETIK_SAF).concat(Object.keys(GENETIK_MELEZ)).forEach(function (k) { o[k] = ORS_SENSOR.pipingDk; }); return o; }
-  function ogulSkorDefaults() { return { piping: pipingDefaults(), sensor: Object.assign({}, ORS_SENSOR), weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
+  function ogulSkorDefaults() { return { donem: {}, piping: pipingDefaults(), sensor: Object.assign({}, ORS_SENSOR), weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
   /** Geçerli ayar = varsayılan + (geçerliyse) yönetici kaydı. Ağırlık toplamı 1 değilse ağırlıklar varsayılan kalır. */
   function ogulSkorMerge(o) {
     var d = ogulSkorDefaults(); if (!o || typeof o !== 'object') return d;
@@ -3398,6 +3401,8 @@
     ['genetik', 'sikisiklik', 'mevsim', 'anaYasi'].forEach(function (k) { var v = num01(w[k], 0, 1); if (v == null) ok = false; else { ww[k] = v; sum += v; } });
     if (ok && Math.abs(sum - 1) < 0.001) d.weights = ww;
     ['saf', 'melez'].forEach(function (g) { var src = o[g] || {}; Object.keys(d[g]).forEach(function (k) { var v = num01(src[k], 0, 100); if (v != null) d[g][k] = v; }); });
+    var MD = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    Object.keys(o.donem || {}).slice(0, 500).forEach(function (k) { var x = o.donem[k]; if (x && x.isCustomPeriod === true && MD.test(x.from) && MD.test(x.to) && x.from <= x.to) d.donem[String(k).slice(0, 40)] = { from: x.from, to: x.to, isCustomPeriod: true }; });
     var po = o.piping || {}; Object.keys(d.piping).forEach(function (k) { var v = num01(po[k], 0.1, 600); if (v != null) d.piping[k] = v; });
     var so = o.sensor || {}; Object.keys(d.sensor).forEach(function (k) { var v = num01(so[k], 0, 100000); if (v != null) d.sensor[k] = v; });
     var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
@@ -5654,7 +5659,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

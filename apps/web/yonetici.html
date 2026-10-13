@@ -25,6 +25,9 @@
     .os-f label:last-child { border-bottom: 0; }
     .os-f input { width: 5.5rem; padding: .35rem .45rem; border: 1px solid var(--border); border-radius: 10px; font: inherit; text-align: right; }
     .os-f input.chg { border-color: #c98a00; background: #fff5d6; }
+    .os-dn { display: grid; gap: .2rem; padding: .4rem 0; border-bottom: 1px dashed var(--border); }
+    .os-dr { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+    .os-dr input[type=date] { width: auto; text-align: left; }
     .os-acts { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
   </style>
 </head>
@@ -85,9 +88,9 @@
       <ol class="fe-list" id="ieList"></ol>
     </section>
   </main>
-<script src="pwa.js?v=koloni-131"></script>
-<script src="bulut.js?v=koloni-131"></script>
-<script src="demo-data.js?v=koloni-131"></script>
+<script src="pwa.js?v=koloni-132"></script>
+<script src="bulut.js?v=koloni-132"></script>
+<script src="demo-data.js?v=koloni-132"></script>
 <script>
 /* k130: Oğul skorları (yalnız yönetici) — Supabase public.ogul_skor_ayar · kaydet: sa_ogul_skor_kaydet (onaylı). */
 (function () {
@@ -99,6 +102,9 @@
   function stat(t) { document.getElementById('osStat').innerHTML = t; }
   function row(lb, gk, gv, k) { return '<label><span>' + lb + '</span><span style="display:flex;gap:.35rem;align-items:center;"><small>Genetik</small>' + inp(gk, gv, '1', 100) + (k ? '<small>piping süresi (dk)</small>' + inp('piping.' + k, pg[k] != null ? pg[k] : 2, 'any', 600) : '') + '</span></label>'; }
   var pg = {};
+  var AYS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  function md(x) { var p = String(x || '').split('-'); return p.length === 2 ? Number(p[1]) + ' ' + AYS[Number(p[0]) - 1] : '—'; }
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function inp(name, v, step, max) { return '<input name="' + name + '" type="number" inputmode="decimal" min="0" max="' + max + '" step="' + step + '" value="' + v + '">'; }
   function paint(o) {
     pg = o.piping || {};
@@ -111,19 +117,47 @@
     var SA = C.ORS_SENSOR_ADLAR || {};
     h += '<fieldset><legend>Sensörlü mod — eşikler</legend><p class="fe-sub" style="margin:.2rem 0;">Kovanda sensör verisi varsa: piping (Hz aralığı + ritmik desen + kesintisiz süre, üçü birden) → 100; ısı / nem tek başına alarm vermez, yalnız Sıkışıklığa stres eki; sert kilo artışı + arı yoğunluğu zirvede → Sıkışıklık 100; günlük kilo artışı nektar eşiğini geçerse Mevsim 100. Sensör yoksa formül aynen kalır.</p>' +
       Object.keys(o.sensor || {}).map(function (k) { return '<label><span>' + (SA[k] || k) + '</span>' + inp('sensor.' + k, o.sensor[k], 'any', 100000) + '</label>'; }).join('') + '</fieldset>';
+    var aps = []; try { aps = (D.loadApiaries ? D.loadApiaries() : []) || []; } catch (e) { aps = []; }
+    var yr = new Date().getFullYear(), dn = o.donem || {};
+    h += '<fieldset><legend>Arılık oğul dönemleri</legend><p class="fe-sub" style="margin:.2rem 0;">Otomatik dönem bölge profilinden (rakım / il) hesaplanır. Tarih aralığı seçilirse ORS Mevsim bu dönemi kullanır (her yıl aynı gün/ay).</p>' +
+      (aps.length ? aps.map(function (a) {
+        var au = C.autoSwarmWindow(a.id), cp = dn[a.id] && dn[a.id].isCustomPeriod ? dn[a.id] : null;
+        return '<div class="os-dn" data-ap="' + esc(a.id) + '" data-custom="' + (cp ? '1' : '0') + '"><b>' + esc(a.name || a.place || a.id) + '</b>' +
+          '<small class="fe-meta">Otomatik: ' + esc(au.label) + ' · ' + md(au.from) + ' – ' + md(au.to) + (cp ? ' · <b>elle: ' + md(cp.from) + ' – ' + md(cp.to) + '</b>' : '') + '</small>' +
+          '<span class="os-dr"><input type="date" name="dn-from" value="' + yr + '-' + (cp || au).from + '"> – <input type="date" name="dn-to" value="' + yr + '-' + (cp || au).to + '"> ' +
+          '<button type="button" class="btn secondary" data-dn-reset' + (cp ? '' : ' disabled') + '>Otomatik hesaplamaya dön</button></span></div>';
+      }).join('') : '<p class="fe-empty">Arılık yok.</p>') + '</fieldset>';
     h += '<fieldset><legend>Bilinmeyen</legend><label><span>Tabloda olmayan melez / ırk</span>' + inp('bilinmeyen', o.bilinmeyen, '1', 100) + '</label></fieldset>';
     document.getElementById('osForm').innerHTML = h;
   }
   function read() {
     var o = { weights: {}, saf: {}, melez: {}, sensor: {}, piping: {} }, bad = [];
-    [].forEach.call(document.querySelectorAll('#osForm input'), function (el) {
+    o.donem = {};
+    [].forEach.call(document.querySelectorAll('#osForm .os-dn'), function (row) {
+      if (row.getAttribute('data-custom') !== '1') return;
+      var f = row.querySelector('[name=dn-from]').value.slice(5), t = row.querySelector('[name=dn-to]').value.slice(5);
+      if (!/^\d\d-\d\d$/.test(f) || !/^\d\d-\d\d$/.test(t) || f > t) { bad.push(row.querySelector('[name=dn-from]')); return; }
+      o.donem[row.getAttribute('data-ap')] = { from: f, to: t, isCustomPeriod: true };
+    });
+    [].forEach.call(document.querySelectorAll('#osForm input:not([type=date])'), function (el) {
       var v = Number(String(el.value).replace(',', '.')), n = el.name.split('.'), mx = n[0] === 'w' ? 1 : (n[0] === 'sensor' ? 100000 : (n[0] === 'piping' ? 600 : 100));
       if (!isFinite(v) || v < 0 || v > mx || el.value === '') bad.push(el);
       if (n[0] === 'w') o.weights[n[1]] = v; else if (n.length === 2) o[n[0]][n[1]] = v; else o[n[0]] = v;
     });
     return { o: o, bad: bad };
   }
-  document.getElementById('osForm').addEventListener('input', function (e) { if (e.target.tagName === 'INPUT') e.target.classList.add('chg'); });
+  document.getElementById('osForm').addEventListener('input', function (e) {
+    if (e.target.tagName !== 'INPUT') return; e.target.classList.add('chg');
+    var row = e.target.closest('.os-dn'); if (row) { row.setAttribute('data-custom', '1'); row.querySelector('[data-dn-reset]').disabled = false; }
+  });
+  document.getElementById('osForm').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-dn-reset]'); if (!b) return;
+    var row = b.closest('.os-dn'), au = C.autoSwarmWindow(row.getAttribute('data-ap')), yr = new Date().getFullYear();
+    row.setAttribute('data-custom', '0'); /* isCustomPeriod false → kayıtta silinir */
+    row.querySelector('[name=dn-from]').value = yr + '-' + au.from; row.querySelector('[name=dn-to]').value = yr + '-' + au.to;
+    row.querySelector('[name=dn-from]').classList.add('chg'); b.disabled = true;
+    stat('Otomatik döneme dönüldü — kaydedince geçerli olur.');
+  });
   document.getElementById('osReset').addEventListener('click', function () { paint(C.ogulSkorDefaults()); [].forEach.call(document.querySelectorAll('#osForm input'), function (el) { el.classList.add('chg'); }); stat('Varsayılanlar yüklendi — kaydetmeden geçerli olmaz.'); });
   document.getElementById('osSave').addEventListener('click', function () {
     var r = read();
