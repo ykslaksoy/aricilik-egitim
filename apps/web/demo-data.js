@@ -3276,32 +3276,65 @@
       factor: phase === 'zirve' ? 1 : (phase === 'kenar' ? 0.6 : 0.15) };
   }
   /* Irk etkisi (oğul eğilimi): melez türü ayrı değerlendirilir. */
-  /* Irk = ana arının karakteri (eğilim), kovanın durumu değil: yalnız küçük bir kaydırma (en fazla bir düzey, sınırda). */
-  var BREED_TENDENCY = {
-    'cok-dusuk': { f: 0.45, shift: -8, note: 'oğul eğilimi çok düşük' },
-    'dusuk': { f: 0.65, shift: -5, note: 'oğul eğilimi düşük' },
-    'orta': { f: 1.0, shift: 0, note: 'oğul eğilimi orta' },
-    'yuksek': { f: 1.2, shift: 4, note: 'oğul eğilimi yüksek' },
-    'cok-yuksek': { f: 1.3, shift: 6, note: 'oğul eğilimi çok yüksek' }
+  /* Irk = ana arının karakteri (eğilim): k125'ten beri oğul riskinin ana etkenlerinden biri. */
+  /* k125: ırk oğul riskinde ana etkenlerden biri (kullanıcı ölçeği, 7 düzey). Melez = ebeveyn ırklarının ortalaması. */
+  var BREED_SWARM_SCALE = [
+    { key: 'kafkas', v: 1, m: ['kafkas'] },
+    { key: 'buckfast', v: 2, m: ['buckfast'] },
+    { key: 'karadeniz', v: 3, m: ['karadeniz'] },
+    { key: 'italyan', v: 4, m: ['italyan'] },
+    { key: 'mugla', v: 4, m: ['muğla', 'mugla'] },
+    { key: 'anadolu', v: 5, m: ['anadolu'] },
+    { key: 'trakya', v: 5, m: ['trakya'] },
+    { key: 'karniyol', v: 5, m: ['karniyol', 'karnika', 'carnica'] },
+    { key: 'iran', v: 5, m: ['iran'] },
+    { key: 'yigilca', v: 6, m: ['yığılca', 'yigilca'] },
+    { key: 'hatay', v: 7, m: ['hatay', 'suriye'] }
+  ];
+  var BREED_SWARM_LABELS = ['', 'çok çok az', 'çok az', 'az', 'orta', 'yüksek', 'çok yüksek', 'çok çok yüksek'];
+  var BREED_LEVEL_KEYS = ['', 'cok-cok-dusuk', 'cok-dusuk', 'dusuk', 'orta', 'yuksek', 'cok-yuksek', 'cok-cok-yuksek'];
+  /* k125: melezler ebeveyn ortalaması DEĞİL — her melezin kendi düzeyi (yayın varsa). F1 melezlerde heterosis oğulu artırabilir.
+     Anahtar: ırk anahtarları alfabetik, «+» ile. Kaynak her satırda. Tabloda olmayan melez → etki yok + yöneticiye «veri eksik». */
+  var HYBRID_SWARM = {
+    'anadolu+kafkas': { v: 4, src: 'Yığılca çalışması (Kafkas Üniv. Vet. Fak. Derg.): ana arı yüksüğü — Anadolu ırkı melezi 13,0±7,0; Kafkas ırkı melezi 8,0±1,15; Yığılca 49,9±18,0 / koloni. Kafkas’tan belirgin yüksek, Yığılca’dan çok düşük → orta.' }
   };
-  /* 5 düzeyli karakter ölçeği (melezler önce). */
+  var IRK_EKSIK_KEY = 'superari.irk.ogulVeriEksik.v1';
+  var irkEksikSeen = {};
+  function reportHybridMissing(key, name) {
+    if (irkEksikSeen[key]) return; irkEksikSeen[key] = 1;
+    try {
+      var m = JSON.parse(localStorage.getItem(IRK_EKSIK_KEY) || 'null') || { items: {} };
+      var now = new Date().toISOString(), e = m.items[key] || { name: name, first: now, count: 0 };
+      e.name = name; e.last = now; e.count = (e.count || 0) + 1; m.items[key] = e;
+      localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m));
+    } catch (eR) { /* ignore */ }
+  }
   function breedSwarmFactor(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
-    function has(x) { return b.indexOf(x) >= 0; }
-    var kaf = has('kafkas'), kar = has('karadeniz'), kni = has('karniyol'), mug = has('muğla') || has('mugla'), ana = has('anadolu');
-    var k = null;
-    if (has('buckfast')) k = 'cok-dusuk';
-    else if (kaf && kar) k = 'dusuk';
-    else if (kaf && kni) k = 'orta';
-    else if (kaf && ana) k = 'dusuk';
-    else if (kni && mug) k = 'yuksek';
-    else if (kni) k = 'cok-yuksek';
-    else if (mug) k = 'yuksek';
-    else if (kaf || kar) k = 'dusuk';
-    else if (ana || has('italyan')) k = 'orta';
-    if (!k) return { f: 1.0, shift: 0, note: '', level: '' };
-    var t = BREED_TENDENCY[k];
-    return { f: t.f, shift: t.shift, note: t.note, level: k };
+    var found = [];
+    BREED_SWARM_SCALE.forEach(function (x) {
+      if (x.m.some(function (w) { return b.indexOf(w) >= 0; })) found.push(x);
+    });
+    if (!found.length) return { f: 1.0, shift: 0, note: '', level: '', v: null, label: '' };
+    var v = null, src = '', hybrid = found.length > 1;
+    if (!hybrid) v = found[0].v;
+    else {
+      var key = found.map(function (x) { return x.key; }).sort().join('+');
+      var hy = HYBRID_SWARM[key];
+      if (hy) { v = hy.v; src = hy.src; }
+      else {
+        reportHybridMissing(key, found.map(function (x) { return x.key; }).join(' × '));
+        return { f: 1.0, shift: 0, note: 'melez: oğul verisi yok', level: '', v: null, label: '', hybrid: true, missing: true };
+      }
+    }
+    var d = v - 4; /* −3 … +3 */
+    return {
+      v: v, hybrid: hybrid, src: src,
+      f: Math.round((1 + d * 0.12) * 100) / 100, /* çarpan 0,64 … 1,36 */
+      shift: Math.round(d * 6), /* ±18 puan */
+      level: BREED_LEVEL_KEYS[v], label: BREED_SWARM_LABELS[v],
+      note: 'oğul eğilimi ' + BREED_SWARM_LABELS[v] + (hybrid ? ' (melez, yayına göre)' : '')
+    };
   }
   function swarmLevelOf(score) {
     var i = score >= 75 ? 4 : (score >= 55 ? 3 : (score >= 35 ? 2 : (score >= 15 ? 1 : 0)));
@@ -3387,12 +3420,13 @@
     }
     if (h.sensorSwarmSignal === true) { s += 15; R('sensor', 'Sensör: oğul öncesi ses/ısı işareti', 'up'); }
     s = Math.max(0, Math.min(100, s)) * season.factor;
-    /* --- Ana arı karakteri (küçük kaydırma) --- */
+    /* --- Ana arı karakteri: ırk ana etkenlerden biri (k125) — çarpan + kaydırma --- */
+    if (bf.v != null) s = s * (inSeason ? bf.f : 1 + (bf.f - 1) / 2);
     var t = String(h.swarmTendency || '');
     var shift = bf.shift || 0;
     if (t === 'Yüksek') { shift += 4; R('egilim', 'Gözlenen oğul eğilimi yüksek', 'up', 'karakter'); }
     else if (t === 'Düşük') { shift -= 2; R('egilim', 'Gözlenen oğul eğilimi düşük', 'down', 'karakter'); }
-    shift = Math.max(-8, Math.min(8, shift)) * (inSeason ? 1 : 0.5);
+    shift = Math.max(-22, Math.min(22, shift)) * (inSeason ? 1 : 0.5);
     var clipped = h.queenClipped === true;
     if (clipped) R('kirpik', 'Ana arı kırpık: oğul kaçışı riski azalır', 'down', 'karakter');
     /* Ana memesi kaydı (son yavru muayenesi): yer, sayı, kapalı/açık. */
@@ -3437,7 +3471,7 @@
     }
     s = Math.round(Math.max(0, Math.min(100, s)));
     var lv = swarmLevelOf(s);
-    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breedTxt + (bf.note ? ', ' + bf.note : ''), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
+    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breedTxt + ' — ' + (bf.label ? 'oğul eğilimi ' + bf.label + (bf.hybrid ? ' (melez, yayına göre)' : '') : (bf.missing ? 'melez: oğul verisi yok, hesaba katılmadı' : 'ırk ölçekte yok, hesaba katılmadı')), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
     /* Öneriler (nedene göre). */
     var recs = [];
     function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }

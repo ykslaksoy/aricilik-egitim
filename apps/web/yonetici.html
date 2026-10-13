@@ -62,9 +62,14 @@
       <p class="fe-sub" id="feSub">Yükleniyor…</p>
       <ol class="fe-list" id="feList"></ol>
     </section>
+    <section class="card fe" aria-labelledby="ieH">
+      <h2 id="ieH">Oğul verisi eksik melezler</h2>
+      <p class="fe-sub" id="ieSub">Oğul riskinde ırk ölçeği tabloda olmayan melezler: bu kovanlarda ırk hesaba katılmaz. Yayın bulununca <code>demo-data.js › HYBRID_SWARM</code>’a eklenmeli. (Yalnız bu cihazda görülenler.)</p>
+      <ol class="fe-list" id="ieList"></ol>
+    </section>
   </main>
-<script src="pwa.js?v=koloni-124"></script>
-<script src="bulut.js?v=koloni-124"></script>
+<script src="pwa.js?v=koloni-125"></script>
+<script src="bulut.js?v=koloni-125"></script>
 <script>
 /* Fiyatı bulunamayan kalemler: Alım talebinde alınacak olup fiyatı olmayan kalemler (kullanıcıya uyarı gösterilmez).
    Bulut: sa_fiyat_eksik_list (yalnız yönetici) · Çevrimdışı yedek: bu cihazın superari.stok.fiyatsiz.v1 kaydı.
@@ -119,6 +124,16 @@
   }
   paint({ msg: 'Bulut kontrol ediliyor…' }, null);
   Promise.all([cloud(), refFile()]).then(function (a) { paint(a[0], a[1]); });
+})();
+</script>
+<script>
+/* k125: oğul verisi eksik melezler (superari.irk.ogulVeriEksik.v1, demo-data.js breedSwarmFactor yazar) */
+(function () {
+  var L = document.getElementById('ieList'); if (!L) return;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var it = {}; try { it = (JSON.parse(localStorage.getItem('superari.irk.ogulVeriEksik.v1') || 'null') || {}).items || {}; } catch (e) {}
+  var ks = Object.keys(it).sort(function (a, b) { return String(it[b].last || '').localeCompare(String(it[a].last || '')); });
+  L.innerHTML = ks.length ? ks.map(function (k) { var e = it[k]; return '<li><div class="fe-top"><b>' + esc(e.name || k) + '</b><span>' + (Number(e.count) || 1) + ' kez</span></div><small class="fe-meta">Anahtar <code>' + esc(k) + '</code> · son ' + esc(new Date(e.last).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })) + '</small></li>'; }).join('') : '<li class="fe-empty">Kayıt yok. (Oğul sayfası açıldığında melezler kontrol edilir.)</li>';
 })();
 </script>
 </body>
