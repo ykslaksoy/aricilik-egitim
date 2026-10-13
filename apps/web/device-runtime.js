@@ -278,6 +278,7 @@
     if (P && typeof P.getBatteryLowPct === 'function') {
       return P.getBatteryLowPct(apiaryId);
     }
+    try { var E = global.SuperAriEsikler && global.SuperAriEsikler.get(); if (E && E.uyari && E.uyari.dusukPilYuzde > 0) return clampBatteryPct(E.uyari.dusukPilYuzde); } catch (e) { /* ignore */ }
     return DEFAULT_BATTERY_LOW_PCT;
   }
 
