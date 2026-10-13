@@ -3374,7 +3374,23 @@
     'kafkas+karadeniz': 'Kafkas × Karadeniz', 'anadolu+kafkas': 'Kafkas × Anadolu', 'kafkas+karniyol': 'Kafkas × Karniyol (iki yön)', 'karniyol+mugla': 'Karniyol × Muğla', 'anadolu+karniyol': 'Anadolu × Karniyol', 'anadolu+mugla': 'Anadolu × Muğla', 'italyan+karniyol': 'İtalyan × Karniyol',
     'kafkas+karadeniz+mugla': '(Kafkas × Karadeniz) × Muğla', 'buckfast+italyan+mugla': '(Buckfast × İtalyan) × Muğla', 'kafkas+karniyol+mugla': '(Kafkas × Karniyol) × Muğla', 'anadolu+kafkas+mugla': '(Kafkas × Anadolu) × Muğla', 'anadolu+kafkas+karniyol': '(Kafkas × Anadolu) × Karniyol', 'anadolu+italyan+karniyol': '(Karniyol × İtalyan) × Anadolu' };
   function num01(v, lo, hi) { v = Number(v); return isFinite(v) && v >= lo && v <= hi ? v : null; }
-  function ogulSkorDefaults() { return { weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
+  /* k131: sensörlü mod eşikleri (yönetici düzenler). Sensör yoksa ORS cihazsız modda (KİLİTLİ) kalır. */
+  var ORS_SENSOR = { pipingHzMin: 400, pipingHzMax: 500, pipingDk: 2, pipingAraSn: 60,
+    tempHigh: 36, tempHighSaat: 6, tempHighArti: 10,
+    riseMin: 37, riseMax: 38.5, riseDelta: 1.5, riseSaat: 3, riseArti: 15,
+    nemHigh: 75, nemArti: 10,
+    kiloHizli: 1.5, kiloPlato: 0.3, ariYuksekOran: 0.8, kiloArti: 15,
+    ariTrendOran: 0.9, ariTrendArti: 15, ariCerceve: 2500, ariZirveOran: 0.9,
+    nektarKg: 1 };
+  var ORS_SENSOR_ADLAR = { pipingHzMin: 'Piping alt frekans (Hz)', pipingHzMax: 'Piping üst frekans (Hz)', pipingDk: 'Piping süresi — bilinmeyen ırk (dk; ırk satırlarında ayrı)', pipingAraSn: 'Kesinti sayılmayan en uzun ara (sn)',
+    tempHigh: 'Kuluçka ısısı eşiği (°C)', tempHighSaat: 'Eşik üstü en az süre (saat)', tempHighArti: '→ Sıkışıklık artışı',
+    riseMin: 'Ani yükseliş alt (°C)', riseMax: 'Ani yükseliş üst (°C)', riseDelta: 'Ani yükseliş en az fark (°C)', riseSaat: 'Ani yükseliş penceresi (saat)', riseArti: '→ Sıkışıklık artışı',
+    nemHigh: 'Nem eşiği (%)', nemArti: '→ Sıkışıklık artışı',
+    kiloHizli: 'Hızlı kilo artışı (kg/gün)', kiloPlato: 'Plato: günlük değişim en çok (kg)', ariYuksekOran: 'Plato için arı sayısı / kapasite', kiloArti: '→ Sıkışıklık artışı',
+    ariTrendOran: 'Arı sayısı kapasiteye yakın (oran)', ariTrendArti: '→ Sıkışıklık artışı', ariCerceve: 'Çerçeve başına arı (kapasite hesabı)', ariZirveOran: 'Sert kilo artışı + arı yoğunluğu zirve (oran) → Sıkışıklık 100',
+    nektarKg: 'Canlı nektar akımı: günlük artış en az (kg)' };
+  function pipingDefaults() { var o = {}; Object.keys(GENETIK_SAF).concat(Object.keys(GENETIK_MELEZ)).forEach(function (k) { o[k] = ORS_SENSOR.pipingDk; }); return o; }
+  function ogulSkorDefaults() { return { piping: pipingDefaults(), sensor: Object.assign({}, ORS_SENSOR), weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
   /** Geçerli ayar = varsayılan + (geçerliyse) yönetici kaydı. Ağırlık toplamı 1 değilse ağırlıklar varsayılan kalır. */
   function ogulSkorMerge(o) {
     var d = ogulSkorDefaults(); if (!o || typeof o !== 'object') return d;
@@ -3382,6 +3398,8 @@
     ['genetik', 'sikisiklik', 'mevsim', 'anaYasi'].forEach(function (k) { var v = num01(w[k], 0, 1); if (v == null) ok = false; else { ww[k] = v; sum += v; } });
     if (ok && Math.abs(sum - 1) < 0.001) d.weights = ww;
     ['saf', 'melez'].forEach(function (g) { var src = o[g] || {}; Object.keys(d[g]).forEach(function (k) { var v = num01(src[k], 0, 100); if (v != null) d[g][k] = v; }); });
+    var po = o.piping || {}; Object.keys(d.piping).forEach(function (k) { var v = num01(po[k], 0.1, 600); if (v != null) d.piping[k] = v; });
+    var so = o.sensor || {}; Object.keys(d.sensor).forEach(function (k) { var v = num01(so[k], 0, 100000); if (v != null) d.sensor[k] = v; });
     var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
     var u = num01(o.bilinmeyen, 0, 100); if (u != null) d.bilinmeyen = u;
     return d;
@@ -3408,6 +3426,75 @@
     }).catch(function () { return false; });
   }
   if (typeof setTimeout === 'function' && typeof window !== 'undefined' && window.document) setTimeout(function () { ogulSkorSync(); }, 2500);
+  /* k131: sensör okumaları (sensor-polling.js deposu, localStorage) — kovan başına son 72 saat. */
+  var SENS_KEYS = { tarti: 'superari.sensor.tarti.v1', isi_nem: 'superari.sensor.isi_nem.v1', ses: 'superari.sensor.ses.v1', titresim: 'superari.sensor.titresim.v1', ir: 'superari.sensor.ir.v1' };
+  var sensCache = {};
+  function sensList(tip) {
+    var raw = null; try { raw = localStorage.getItem(SENS_KEYS[tip]); } catch (e) { raw = null; }
+    var c = sensCache[tip]; if (c && c.raw === raw) return c.list;
+    var l = []; try { l = JSON.parse(raw || '[]'); } catch (e) { l = []; } if (!Array.isArray(l)) l = [];
+    l = l.map(function (x) { var t = Date.parse(String(x.at || '').length <= 16 ? x.at + ':00' : x.at); return isFinite(t) ? Object.assign({ t: t }, x) : null; }).filter(Boolean).sort(function (a, b) { return a.t - b.t; });
+    sensCache[tip] = { raw: raw, list: l }; return l;
+  }
+  function hiveSens(hid, nowMs) {
+    var from = nowMs - 72 * 3600000, o = {}, any = false;
+    Object.keys(SENS_KEYS).forEach(function (tip) { o[tip] = sensList(tip).filter(function (x) { return Number(x.hiveId) === Number(hid) && x.t >= from && x.t <= nowMs + 600000; }); if (o[tip].length) any = true; });
+    o.any = any; return o;
+  }
+  /** Sensör katkısı: { piping, sikArti, sikTahmin, nektar, notes[] }. T = eşikler. */
+  function sensorOrs(S, capFrames, T) {
+    var r = { piping: false, sikArti: 0, sikTahmin: null, nektar: false, notes: [] }, H = 3600000;
+    /* (1) Ses/titreşim piping: ÜÇÜ birden — frekans pipingHzMin–Max, ritmik desen (okuma.ritmik), pipingDk dakika kesintisiz (ara ≤ pipingAraSn). */
+    [S.ses, S.titresim].forEach(function (L) {
+      if (r.piping || !L || !L.length) return;
+      var st0 = null, prev = null;
+      L.forEach(function (x) {
+        var hz = Number(x.hz), on = isFinite(hz) && hz >= T.pipingHzMin && hz <= T.pipingHzMax && (x.ritmik === true || x.rhythmic === true);
+        if (on && (st0 == null || (prev && x.t - prev.t > T.pipingAraSn * 1000))) st0 = x.t;
+        if (!on) st0 = null;
+        if (on && st0 != null && x.t - st0 >= T.pipingDk * 60000) r.piping = true;
+        prev = x;
+      });
+    });
+    if (r.piping) r.notes.push('Sensör: sürekli ana arı sesi (piping) — oğul hazırlığı');
+    /* (2) Isı / nem */
+    var I = S.isi_nem || [];
+    if (I.length) {
+      var lastT = I[I.length - 1], runStart = null, maxRun = 0, p0 = null;
+      I.forEach(function (x) { var hi = Number(x.tempC) > T.tempHigh; if (hi && (runStart == null || (p0 && x.t - p0.t > 2 * H))) runStart = x.t; if (!hi) runStart = null; if (hi && runStart != null) maxRun = Math.max(maxRun, x.t - runStart); p0 = x; });
+      if (maxRun >= T.tempHighSaat * H) { r.sikArti += T.tempHighArti; r.notes.push('Sensör: kuluçka ısısı ' + T.tempHigh + ' °C üstünde ' + Math.floor(maxRun / H) + ' saat'); }
+      var lt = Number(lastT.tempC);
+      if (lt >= T.riseMin && lt <= T.riseMax) {
+        var mn = Infinity; I.forEach(function (x) { if (x.t >= lastT.t - T.riseSaat * H && x.t < lastT.t) mn = Math.min(mn, Number(x.tempC)); });
+        if (isFinite(mn) && lt - mn >= T.riseDelta) { r.sikArti += T.riseArti; r.notes.push('Sensör: ısı aniden ' + lt + ' °C’ye çıktı'); }
+      }
+      var rh = Number(lastT.rh); if (isFinite(rh) && rh > T.nemHigh) { r.sikArti += T.nemArti; r.notes.push('Sensör: nem %' + rh); }
+    }
+    /* Arı sayısı (IR) → kapasite oranı */
+    var capBees = (capFrames || 10) * T.ariCerceve, Ir = S.ir || [], bees = null, beeTrendUp = false;
+    if (Ir.length) {
+      bees = Number(Ir[Ir.length - 1].count);
+      var old = Ir.filter(function (x) { return x.t <= Ir[Ir.length - 1].t - 24 * H; }); old = old.length ? old[old.length - 1] : Ir[0];
+      beeTrendUp = Ir.length > 1 && bees > Number(old.count);
+      if (isFinite(bees)) r.sikTahmin = Math.min(100, bees / capBees * 100);
+    }
+    var ratio = isFinite(bees) && bees != null ? bees / capBees : null;
+    /* Tartı: günlük değişim */
+    var W = S.tarti || [], dayGain = null;
+    if (W.length > 1) {
+      var lw = W[W.length - 1], ow = W.filter(function (x) { return x.t <= lw.t - 20 * H; }); ow = ow.length ? ow[ow.length - 1] : null;
+      if (ow) dayGain = (Number(lw.kg) - Number(ow.kg)) / Math.max(1, (lw.t - ow.t) / (24 * H));
+    }
+    /* Sert kilo artışı + arı yoğunluğu zirvede → Sıkışıklık dolu (100). Isı/nem tek başına alarm vermez, yalnız stres eki. */
+    if (dayGain != null && dayGain >= T.kiloHizli && ratio != null && ratio >= T.ariZirveOran) { r.sikDolu = true; r.notes.push('Sensör: sert kilo artışı ve arı yoğunluğu zirvede — kovan dolu'); }
+    else if (dayGain != null && (dayGain >= T.kiloHizli || (Math.abs(dayGain) <= T.kiloPlato && ratio != null && ratio >= T.ariYuksekOran))) {
+      r.sikArti += T.kiloArti; r.notes.push(dayGain >= T.kiloHizli ? 'Sensör: hızlı kilo artışı (' + (Math.round(dayGain * 10) / 10) + ' kg/gün)' : 'Sensör: kilo platoda, arı sayısı yüksek');
+    }
+    if (beeTrendUp && ratio != null && ratio >= T.ariTrendOran) { r.sikArti += T.ariTrendArti; r.notes.push('Sensör: arı sayısı artıyor, kapasiteye yakın'); }
+    /* (3) Canlı nektar akımı */
+    if (dayGain != null && dayGain >= T.nektarKg) { r.nektar = true; r.notes.push('Sensör: canlı nektar akımı (+' + (Math.round(dayGain * 10) / 10) + ' kg/gün)'); }
+    return r;
+  }
   /** ORS saf hesap: bypass → 100; aksi ağırlıklı toplam (0–100, 0,1 hassasiyet). */
   function orsCompute(o) { if (o.bypass) return 100; var W = OGUL_SKOR.weights; var v = o.genetik * W.genetik + Math.min(100, o.sikisiklik) * W.sikisiklik + o.mevsim * W.mevsim + o.anaYasi * W.anaYasi; return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; }
   function genetikWord(gen) {
@@ -3418,9 +3505,9 @@
     var b = String(breed || '').toLocaleLowerCase('tr'), found = [];
     BREED_SWARM_SCALE.forEach(function (x) { if (x.m.some(function (w) { return b.indexOf(w) >= 0; })) found.push(x.key); });
     if (!found.length) return { g: OGUL_SKOR.bilinmeyen, known: false, hybrid: false, label: b ? 'ırk tabloda yok' : 'ırk bilinmiyor' };
-    if (found.length === 1) return { g: OGUL_SKOR.saf[found[0]], known: true, hybrid: false, label: 'saf hat' };
+    if (found.length === 1) return { key: found[0], g: OGUL_SKOR.saf[found[0]], known: true, hybrid: false, label: 'saf hat' };
     var key = found.slice().sort().join('+');
-    if (OGUL_SKOR.melez[key] != null) return { g: OGUL_SKOR.melez[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
+    if (OGUL_SKOR.melez[key] != null) return { key: key, g: OGUL_SKOR.melez[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
     if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: OGUL_SKOR.buckfastIkili, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
     reportHybridMissing(key, found.join(' × '));
     return { g: OGUL_SKOR.bilinmeyen, known: false, hybrid: true, missing: true, label: 'melez tabloda yok' };
@@ -3591,7 +3678,18 @@
     var mev = season.phase === 'zirve' ? 100 : 50;
     var anaP = age == null ? 60 : (age <= 0 ? 20 : (age === 1 ? 60 : 100));
     var anyCell = !!(st && (st.swarmCell || st.supersedureCell));
-    var ors = { genetik: gen.g, sikisiklik: Math.round(sik * 10) / 10, mevsim: mev, anaYasi: anaP, bypass: anyCell };
+    /* k131 sensörlü mod: sensör verisi yoksa yukarıdaki cihazsız mod aynen geçerli. */
+    var sensorlu = false, S = hiveSens(id, ctx.now || Date.now());
+    if (S.any) {
+      var Tp = Object.assign({}, OGUL_SKOR.sensor, { pipingDk: (gen.key && OGUL_SKOR.piping[gen.key]) || ORS_SENSOR.pipingDk }), so = sensorOrs(S, capTot, Tp), noFrame = fullF == null && !(sr && (sr.space === 'dolu' || sr.space === 'dolmak'));
+      if (noFrame && so.sikTahmin != null) { sik = so.sikTahmin; sensorlu = true; }
+      if (so.sikArti) { sik = Math.min(100, sik + so.sikArti); sensorlu = true; }
+      if (so.sikDolu) { sik = 100; sensorlu = true; }
+      if (so.nektar && mev < 100) { mev = 100; sensorlu = true; }
+      if (so.piping) { anyCell = true; sensorlu = true; }
+      so.notes.forEach(function (t) { R('sensor', t, 'up'); });
+    }
+    var ors = { genetik: gen.g, sikisiklik: Math.round(sik * 10) / 10, mevsim: mev, anaYasi: anaP, bypass: anyCell, sensorlu: sensorlu };
     s = orsCompute(ors);
     if (capQ) s = Math.min(s, 5);
     if (capS) s = Math.min(s, 15);
@@ -3629,7 +3727,7 @@
       A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol edin.' : 'Oğul mevsimi dışında; olağan bakımla devam edin.');
     }
     var seasonNote = why[0].text;
-    return { score: s, display: lv.label + ' ' + Math.round(s), ors: ors, genetik: gen, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
+    return { score: s, sensorlu: sensorlu, display: lv.label + ' ' + Math.round(s) + (sensorlu ? ' · sensörlü' : ''), ors: ors, genetik: gen, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
       season: season, seasonNote: seasonNote, reasons: why.slice(1).map(function (x) { return x.text; }), details: why, recs: recs };
   }
   /** Kovan listesine hesaplanan oğul riskini (swarmRisk) tembel olarak bağlar. */
@@ -5556,7 +5654,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

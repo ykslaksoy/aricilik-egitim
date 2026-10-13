@@ -1,4 +1,4 @@
--- SüperArı: Oğul Risk Skoru (ORS) ayarları — Genetik puan tablosu + ağırlıklar (koloni-130).
+-- SüperArı: Oğul Risk Skoru (ORS) ayarları — Genetik puan tablosu + ağırlıklar (koloni-130) + sensörlü mod eşikleri (koloni-131).
 -- Tek satır (id = 1) JSON. Okuma: herkes (istemci skoru hesaplamak için; gizli veri yok). Yazma: yalnız yönetici (sa_is_admin, fiyat_eksik migration'ı).
 -- Satır yoksa uygulama koddaki varsayılanları kullanır. Supabase → SQL Editor'da bir kez çalıştırın (tekrar çalıştırmak güvenlidir).
 
@@ -38,3 +38,19 @@ $$;
 revoke all on function public.sa_ogul_skor_kaydet(jsonb) from public;
 revoke all on function public.sa_ogul_skor_kaydet(jsonb) from anon;
 grant execute on function public.sa_ogul_skor_kaydet(jsonb) to authenticated;
+
+-- Varsayılan kayıt (koddaki varsayılanlarla aynı; varsa dokunulmaz). Yönetici yonetici.html › Oğul skorları'ndan düzenler.
+insert into public.ogul_skor_ayar (id, data) values (1, '{
+  "weights": {"genetik": 0.30, "sikisiklik": 0.40, "mevsim": 0.15, "anaYasi": 0.15},
+  "saf": {"kafkas": 5, "buckfast": 15, "karadeniz": 35, "italyan": 55, "mugla": 55, "anadolu": 75, "trakya": 75, "karniyol": 75, "iran": 75, "yigilca": 90, "hatay": 100},
+  "melez": {"kafkas+karadeniz": 35, "anadolu+kafkas": 55, "kafkas+karniyol": 55, "karniyol+mugla": 75, "anadolu+karniyol": 75, "anadolu+mugla": 75, "italyan+karniyol": 65,
+            "kafkas+karadeniz+mugla": 55, "buckfast+italyan+mugla": 55, "kafkas+karniyol+mugla": 75, "anadolu+kafkas+mugla": 75, "anadolu+kafkas+karniyol": 90, "anadolu+italyan+karniyol": 90},
+  "piping": {"kafkas": 2, "buckfast": 2, "karadeniz": 2, "italyan": 2, "mugla": 2, "anadolu": 2, "trakya": 2, "karniyol": 2, "iran": 2, "yigilca": 2, "hatay": 2, "kafkas+karadeniz": 2, "anadolu+kafkas": 2, "kafkas+karniyol": 2, "karniyol+mugla": 2, "anadolu+karniyol": 2, "anadolu+mugla": 2, "italyan+karniyol": 2, "kafkas+karadeniz+mugla": 2, "buckfast+italyan+mugla": 2, "kafkas+karniyol+mugla": 2, "anadolu+kafkas+mugla": 2, "anadolu+kafkas+karniyol": 2, "anadolu+italyan+karniyol": 2},
+  "buckfastIkili": 45, "bilinmeyen": 55,
+  "sensor": {"pipingHzMin": 400, "pipingHzMax": 500, "pipingDk": 2, "pipingAraSn": 60,
+             "tempHigh": 36, "tempHighSaat": 6, "tempHighArti": 10,
+             "riseMin": 37, "riseMax": 38.5, "riseDelta": 1.5, "riseSaat": 3, "riseArti": 15,
+             "nemHigh": 75, "nemArti": 10,
+             "kiloHizli": 1.5, "kiloPlato": 0.3, "ariYuksekOran": 0.8, "kiloArti": 15,
+             "ariTrendOran": 0.9, "ariTrendArti": 15, "ariCerceve": 2500, "ariZirveOran": 0.9, "nektarKg": 1}
+}'::jsonb) on conflict (id) do nothing;

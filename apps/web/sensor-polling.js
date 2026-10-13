@@ -266,6 +266,8 @@
       if (rec.rh != null) row.rh = Math.round(Number(rec.rh));
     }
     if (tip === 'ses' && rec.level != null) row.level = Math.round(Number(rec.level) * 10) / 10;
+    if ((tip === 'ses' || tip === 'titresim') && rec.hz != null && isFinite(Number(rec.hz))) row.hz = Math.round(Number(rec.hz)); /* k131: baskın frekans (piping 400–500 Hz) */
+    if ((tip === 'ses' || tip === 'titresim') && rec.ritmik != null) row.ritmik = rec.ritmik === true; /* ritmik desen (piping) */
     if (tip === 'titresim' && rec.level != null) row.level = Math.round(Number(rec.level) * 10) / 10;
     if (tip === 'ir' && rec.count != null) row.count = Math.round(Number(rec.count));
     if (tip === 'pil') {

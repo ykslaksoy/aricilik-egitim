@@ -85,9 +85,9 @@
       <ol class="fe-list" id="ieList"></ol>
     </section>
   </main>
-<script src="pwa.js?v=koloni-130"></script>
-<script src="bulut.js?v=koloni-130"></script>
-<script src="demo-data.js?v=koloni-130"></script>
+<script src="pwa.js?v=koloni-131"></script>
+<script src="bulut.js?v=koloni-131"></script>
+<script src="demo-data.js?v=koloni-131"></script>
 <script>
 /* k130: Oğul skorları (yalnız yönetici) — Supabase public.ogul_skor_ayar · kaydet: sa_ogul_skor_kaydet (onaylı). */
 (function () {
@@ -97,21 +97,27 @@
   var WL = { genetik: 'Genetik (w<sub>g</sub>)', sikisiklik: 'Sıkışıklık (w<sub>s</sub>)', mevsim: 'Mevsim (w<sub>m</sub>)', anaYasi: 'Ana yaşı (w<sub>a</sub>)' };
   var cur = C.ogulSkor(), base = JSON.stringify(cur);
   function stat(t) { document.getElementById('osStat').innerHTML = t; }
+  function row(lb, gk, gv, k) { return '<label><span>' + lb + '</span><span style="display:flex;gap:.35rem;align-items:center;"><small>Genetik</small>' + inp(gk, gv, '1', 100) + (k ? '<small>piping süresi (dk)</small>' + inp('piping.' + k, pg[k] != null ? pg[k] : 2, 'any', 600) : '') + '</span></label>'; }
+  var pg = {};
   function inp(name, v, step, max) { return '<input name="' + name + '" type="number" inputmode="decimal" min="0" max="' + max + '" step="' + step + '" value="' + v + '">'; }
   function paint(o) {
+    pg = o.piping || {};
     var A = C.GENETIK_ADLAR, h = '<fieldset><legend>Ağırlıklar (toplam 1)</legend>' + Object.keys(WL).map(function (k) { return '<label><span>' + WL[k] + '</span>' + inp('w.' + k, o.weights[k], '0.01', 1) + '</label>'; }).join('') + '</fieldset>';
-    h += '<fieldset><legend>Saf hatlar — Genetik</legend>' + Object.keys(o.saf).map(function (k) { return '<label><span>' + (A[k] || k) + '</span>' + inp('saf.' + k, o.saf[k], '1', 100) + '</label>'; }).join('') + '</fieldset>';
+    h += '<fieldset><legend>Saf hatlar — Genetik</legend>' + Object.keys(o.saf).map(function (k) { return row(A[k] || k, 'saf.' + k, o.saf[k], k); }).join('') + '</fieldset>';
     var iki = Object.keys(o.melez).filter(function (k) { return k.split('+').length === 2; }), uc = Object.keys(o.melez).filter(function (k) { return k.split('+').length > 2; });
-    h += '<fieldset><legend>İkili melezler — Genetik</legend>' + iki.map(function (k) { return '<label><span>' + (A[k] || k) + '</span>' + inp('melez.' + k, o.melez[k], '1', 100) + '</label>'; }).join('') +
+    h += '<fieldset><legend>İkili melezler — Genetik</legend>' + iki.map(function (k) { return row(A[k] || k, 'melez.' + k, o.melez[k], k); }).join('') +
       '<label><span>Buckfast melezleri (diğer)</span>' + inp('buckfastIkili', o.buckfastIkili, '1', 100) + '</label></fieldset>';
-    h += '<fieldset><legend>Üçlü melezler — Genetik</legend>' + uc.map(function (k) { return '<label><span>' + (A[k] || k) + '</span>' + inp('melez.' + k, o.melez[k], '1', 100) + '</label>'; }).join('') + '</fieldset>';
+    h += '<fieldset><legend>Üçlü melezler — Genetik</legend>' + uc.map(function (k) { return row(A[k] || k, 'melez.' + k, o.melez[k], k); }).join('') + '</fieldset>';
+    var SA = C.ORS_SENSOR_ADLAR || {};
+    h += '<fieldset><legend>Sensörlü mod — eşikler</legend><p class="fe-sub" style="margin:.2rem 0;">Kovanda sensör verisi varsa: piping (Hz aralığı + ritmik desen + kesintisiz süre, üçü birden) → 100; ısı / nem tek başına alarm vermez, yalnız Sıkışıklığa stres eki; sert kilo artışı + arı yoğunluğu zirvede → Sıkışıklık 100; günlük kilo artışı nektar eşiğini geçerse Mevsim 100. Sensör yoksa formül aynen kalır.</p>' +
+      Object.keys(o.sensor || {}).map(function (k) { return '<label><span>' + (SA[k] || k) + '</span>' + inp('sensor.' + k, o.sensor[k], 'any', 100000) + '</label>'; }).join('') + '</fieldset>';
     h += '<fieldset><legend>Bilinmeyen</legend><label><span>Tabloda olmayan melez / ırk</span>' + inp('bilinmeyen', o.bilinmeyen, '1', 100) + '</label></fieldset>';
     document.getElementById('osForm').innerHTML = h;
   }
   function read() {
-    var o = { weights: {}, saf: {}, melez: {} }, bad = [];
+    var o = { weights: {}, saf: {}, melez: {}, sensor: {}, piping: {} }, bad = [];
     [].forEach.call(document.querySelectorAll('#osForm input'), function (el) {
-      var v = Number(String(el.value).replace(',', '.')), n = el.name.split('.'), mx = n[0] === 'w' ? 1 : 100;
+      var v = Number(String(el.value).replace(',', '.')), n = el.name.split('.'), mx = n[0] === 'w' ? 1 : (n[0] === 'sensor' ? 100000 : (n[0] === 'piping' ? 600 : 100));
       if (!isFinite(v) || v < 0 || v > mx || el.value === '') bad.push(el);
       if (n[0] === 'w') o.weights[n[1]] = v; else if (n.length === 2) o[n[0]][n[1]] = v; else o[n[0]] = v;
     });
@@ -121,7 +127,7 @@
   document.getElementById('osReset').addEventListener('click', function () { paint(C.ogulSkorDefaults()); [].forEach.call(document.querySelectorAll('#osForm input'), function (el) { el.classList.add('chg'); }); stat('Varsayılanlar yüklendi — kaydetmeden geçerli olmaz.'); });
   document.getElementById('osSave').addEventListener('click', function () {
     var r = read();
-    if (r.bad.length) { r.bad[0].focus(); stat('<b>Geçersiz değer</b>: puanlar 0–100, ağırlıklar 0–1 olmalı.'); return; }
+    if (r.bad.length) { r.bad[0].focus(); stat('<b>Geçersiz değer</b>: puanlar 0–100, ağırlıklar 0–1, eşikler 0 veya üstü olmalı.'); return; }
     var w = r.o.weights, sum = w.genetik + w.sikisiklik + w.mevsim + w.anaYasi;
     if (Math.abs(sum - 1) > 0.001) { stat('<b>Ağırlıkların toplamı 1 olmalı</b> (şu an ' + Math.round(sum * 1000) / 1000 + ').'); return; }
     var nChg = document.querySelectorAll('#osForm input.chg').length;
