@@ -15,6 +15,18 @@
     try {
       var u = new URLSearchParams(global.location.search), ap = u.get('apiary') || '';
       if (ap && !apOk(ap)) ap = '';
+      /* k133: Ana sabitlemesi varsa ortak kapsamı ona çek */
+      if (!ap && u.get('mode') !== 'all' && !o.noSaved) {
+        try {
+          var pin = global.SuperAriPin && global.SuperAriPin.read ? global.SuperAriPin.read() : null;
+          if (!pin) {
+            var raw = global.localStorage.getItem('superari.ana.arilikLock');
+            var parsed = raw ? JSON.parse(raw) : null;
+            if (parsed && parsed.locked && parsed.id) pin = { id: String(parsed.id) };
+          }
+          if (pin && pin.id && apOk(pin.id)) ap = pin.id;
+        } catch (ePin) { /* ignore */ }
+      }
       if (!ap && u.get('mode') !== 'all' && !o.noSaved) { var s = saved(); if (s && s !== 'all' && apOk(s)) ap = s; }
       if (o.mode) u.set('mode', ap ? 'apiary' : 'all');
       if (ap) u.set('apiary', ap); else u.delete('apiary');

@@ -7,6 +7,37 @@
   function live() { try { return global.localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
   var SCOPE_KEY = 'superari.bakim.scope'; /* Bakım ile ortak kapsam */
 
+  var LOCK_KEY = 'superari.ana.arilikLock';
+  function pinRead() {
+    try {
+      var P = global.SuperAriPin;
+      if (P && P.read) return P.read();
+      var raw = global.localStorage.getItem(LOCK_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return parsed && parsed.locked && parsed.id ? { id: String(parsed.id) } : null;
+    } catch (e) { return null; }
+  }
+  function pinWrite(id) {
+    try {
+      if (global.SuperAriPin && global.SuperAriPin.write) { global.SuperAriPin.write(id); return; }
+      if (!id || id === 'all') {
+        global.localStorage.removeItem(LOCK_KEY);
+        global.localStorage.setItem(SCOPE_KEY, 'all');
+        return;
+      }
+      global.localStorage.setItem(LOCK_KEY, JSON.stringify({ locked: true, id: String(id) }));
+      global.localStorage.setItem(SCOPE_KEY, String(id));
+    } catch (e) { /* ignore */ }
+  }
+  function pinClear() {
+    try {
+      if (global.SuperAriPin && global.SuperAriPin.clear) { global.SuperAriPin.clear(); return; }
+      global.localStorage.removeItem(LOCK_KEY);
+      global.localStorage.setItem(SCOPE_KEY, 'all');
+    } catch (e) { /* ignore */ }
+  }
+
   var ICO = {
     kovan: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="4" width="12" height="3.2" rx="1" fill="#f7b731"/><rect x="4.6" y="8" width="10.8" height="3.6" rx=".8" fill="#e8c48e" stroke="#c99755" stroke-width=".8"/><rect x="4.6" y="12.2" width="10.8" height="3.6" rx=".8" fill="#e8c48e" stroke="#c99755" stroke-width=".8"/></svg>',
     muayene: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="4.4" fill="#d0ebff" stroke="#5b8def" stroke-width="1.6"/><path d="M12 12l4 4" stroke="#5b8def" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -313,7 +344,12 @@
     function hives() { var hs = []; try { hs = (D.loadHives() || []).filter(function (h) { return h && h.colonyState !== 'sonuk'; }); } catch (e) { hs = []; } /* k89: sönük kovan etkin sayımlara girmez */ return scope === 'all' ? hs : hs.filter(function (h) { return String(h.apiaryId) === scope; }); }
     loadAps();
     var saved = null; try { saved = global.localStorage.getItem(SCOPE_KEY); } catch (e) { saved = null; }
-    scope = valid(opts.initial || saved || 'all');
+    var pinned = pinRead();
+    var prefer = opts.initial || (pinned && pinned.id) || saved || 'all';
+    scope = valid(prefer);
+    if (pinned && pinned.id && scope === String(pinned.id)) {
+      try { global.localStorage.setItem(SCOPE_KEY, scope); } catch (ePin) { /* ignore */ }
+    }
     host.setAttribute('aria-label', (opts.title || 'Kapsam') + ' kapsamı');
     var navChipList = opts.navChips;
     if (opts.navInCard && !navChipList) navChipList = navChipsForView(opts.view || '', scope);
@@ -343,6 +379,9 @@
     function setScope(s) {
       scope = valid(s);
       try { global.localStorage.setItem(SCOPE_KEY, scope); } catch (e) { /* ignore */ }
+      /* k133: sabitleme varken oklarla değişince pin de güncellenir; Tümü = pin kalkar */
+      if (scope === 'all') pinClear();
+      else if (pinRead()) pinWrite(scope);
       var K = global.SuperAriKoloni;
       if (scope !== 'all' && K && K.setLastApiary) { try { K.setLastApiary(scope); } catch (e) { /* ignore */ } }
       try {
@@ -357,12 +396,33 @@
     function step(d) { var l = list(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
     q('[data-ks-prev]').addEventListener('click', function () { step(-1); });
     q('[data-ks-next]').addEventListener('click', function () { step(1); });
+    /* k133: sabitlenen arılık adına dokununca sabitlemeyi kaldır → Tümü */
+    (function bindLabelUnpin() {
+      var lab = q('[data-ks-label]');
+      if (!lab || lab.getAttribute('data-pin-bound')) return;
+      lab.setAttribute('data-pin-bound', '1');
+      function unpin() {
+        if (scope === 'all') return;
+        if (!pinRead()) return;
+        pinClear();
+        setScope('all');
+      }
+      lab.addEventListener('click', function (e) { e.preventDefault(); unpin(); });
+      lab.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unpin(); }
+      });
+    })();
     var syncBakimNav = bindNavChips(host, navChipList && navChipList.length ? function () { return scope; } : null);
     function render() {
       loadAps(); scope = valid(scope);
       var hs = hives(), sum = summary(hs), ap = scope === 'all' ? null : apOf(scope);
-      q('[data-ks-label]').textContent = ap ? ap.name : 'Tümü';
-      q('[data-ks-label]').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
+      var lab = q('[data-ks-label]');
+      lab.textContent = ap ? ap.name : 'Tümü';
+      var isPinned = !!(pinRead() && ap);
+      lab.title = ap ? (isPinned ? (ap.name + ' — dokununca sabitlemeyi kaldır') : ap.name) : 'Tüm arılıklar (' + aps.length + ')';
+      lab.style.cursor = ap ? 'pointer' : '';
+      lab.setAttribute('role', ap ? 'button' : 'text');
+      if (ap) lab.setAttribute('tabindex', '0'); else lab.removeAttribute('tabindex');
       var multi = list().length > 1;
       q('[data-ks-prev]').disabled = !multi; q('[data-ks-next]').disabled = !multi;
       q('[data-ks-mode]').hidden = live(); /* rozet yalnız Demo'da */
@@ -443,5 +503,5 @@
     });
   }
 
-  global.SuperAriKapsam = { mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml, topEndWithWeather: topEndWithWeather, defaultNavChips: defaultNavChips, navChipsForView: navChipsForView, smartBackChip: smartBackChip };
+  global.SuperAriKapsam = { pinRead: pinRead, pinWrite: pinWrite, pinClear: pinClear, mount: mount, summary: summary, health: health, SEV: SEV, hiveHtml: hiveHtml, anaHiveHtml: anaHiveHtml, anaHiveTileHtml: anaHiveTileHtml, anaModuleTile: anaModuleTile, ksBadgeTone: ksBadgeTone, hiveNum: hiveNum, BURN: BURN, shortAlert: shortAlert, fmtAgo: fmtAgo, esc: esc, live: live, ICON_MUAYENE: ICON_MUAYENE, ICON_KOVAN: ICON_KOVAN, weatherEndHtml: weatherEndHtml, topEndWithWeather: topEndWithWeather, defaultNavChips: defaultNavChips, navChipsForView: navChipsForView, smartBackChip: smartBackChip };
 })(typeof window !== 'undefined' ? window : this);

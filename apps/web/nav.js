@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-132'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-132'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-133'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-133'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-132').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-133').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-132').catch(function () {});
+      return loadScript('koloni.js?v=koloni-133').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -851,7 +851,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-132').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-133').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -875,6 +875,40 @@
     });
   }
   global.addEventListener('superari-records-changed', function () { setTimeout(updateBadge, 0); });
+
+  /* k133: Ana «Konumu sabitle» ↔ tüm sayfa arılık kapsamı (superari.bakim.scope) */
+  var PIN_LOCK_KEY = 'superari.ana.arilikLock';
+  var PIN_SCOPE_KEY = 'superari.bakim.scope';
+  function pinRead() {
+    try {
+      var raw = localStorage.getItem(PIN_LOCK_KEY);
+      if (!raw) return null;
+      var p = JSON.parse(raw);
+      if (!p || !p.locked || !p.id) return null;
+      return { id: String(p.id), idx: p.idx };
+    } catch (e) { return null; }
+  }
+  function pinWrite(id, idx) {
+    if (!id || id === 'all') { pinClear(); return; }
+    try {
+      localStorage.setItem(PIN_LOCK_KEY, JSON.stringify({ locked: true, id: String(id), idx: typeof idx === 'number' ? idx : 0 }));
+      localStorage.setItem(PIN_SCOPE_KEY, String(id));
+    } catch (e) { /* ignore */ }
+    try { global.dispatchEvent(new CustomEvent('superari:scope-pin', { detail: { locked: true, id: String(id) } })); } catch (e2) {}
+  }
+  function pinClear() {
+    try { localStorage.removeItem(PIN_LOCK_KEY); } catch (e) {}
+    try { localStorage.setItem(PIN_SCOPE_KEY, 'all'); } catch (e2) {}
+    try { global.dispatchEvent(new CustomEvent('superari:scope-pin', { detail: { locked: false, id: null } })); } catch (e3) {}
+  }
+  function pinSyncScope() {
+    var p = pinRead();
+    if (!p) return null;
+    try { localStorage.setItem(PIN_SCOPE_KEY, p.id); } catch (e) {}
+    return p.id;
+  }
+  global.SuperAriPin = { read: pinRead, write: pinWrite, clear: pinClear, syncScope: pinSyncScope, LOCK_KEY: PIN_LOCK_KEY, SCOPE_KEY: PIN_SCOPE_KEY };
+
   global.SuperAriNav = { openQuick: openQuick, navHtml: navHtml, activeTab: activeTab, openActions: openActions, pickHive: pickHive, rec: rec, hiveEditor: hiveEditor, quickType: quickType, focusEl: focusEl, go: go, info: info, scopeApiary: scopeApiary, ensureKoloni: ensureKoloni, closeSheet: closeSheet, emitSaved: emitSaved, goBack: goBack, backParent: backParent, V: V, setQuickHandler: function (fn) { global.SuperAriQuickHandler = typeof fn === 'function' ? fn : null; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   /* Geç gelen DOM (kapsam / kabuk) için bir kez daha */

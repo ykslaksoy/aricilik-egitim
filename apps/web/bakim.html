@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-132 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-133 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
@@ -990,12 +990,12 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-132"></script>
-<script src="rapor-store.js?v=koloni-132"></script>
-<script src="koloni.js?v=koloni-132"></script>
-<script src="ilac-katalog.js?v=koloni-132"></script>
-<script src="bakim-plan.js?v=koloni-132"></script>
-<script src="ekipman-store.js?v=koloni-132"></script>
+<script src="demo-data.js?v=koloni-133"></script>
+<script src="rapor-store.js?v=koloni-133"></script>
+<script src="koloni.js?v=koloni-133"></script>
+<script src="ilac-katalog.js?v=koloni-133"></script>
+<script src="bakim-plan.js?v=koloni-133"></script>
+<script src="ekipman-store.js?v=koloni-133"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, P = window.SuperAriPlan, E = window.SuperAriEkipman;
@@ -1009,14 +1009,41 @@
   (function () { var el = $('statusClock'); function t() { var n = new Date(); el.textContent = n.getHours() + ':' + (n.getMinutes() < 10 ? '0' : '') + n.getMinutes(); } t(); setInterval(t, 1000); })();
 
   var SCOPE_KEY = 'superari.bakim.scope';
+  var LOCK_KEY = 'superari.ana.arilikLock';
+  function pinRead() {
+    try {
+      if (window.SuperAriPin && SuperAriPin.read) return SuperAriPin.read();
+      var raw = localStorage.getItem(LOCK_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return parsed && parsed.locked && parsed.id ? { id: String(parsed.id) } : null;
+    } catch (e) { return null; }
+  }
+  function pinWrite(id) {
+    try {
+      if (window.SuperAriPin && SuperAriPin.write) { SuperAriPin.write(id); return; }
+      if (!id || id === 'all') { localStorage.removeItem(LOCK_KEY); localStorage.setItem(SCOPE_KEY, 'all'); return; }
+      localStorage.setItem(LOCK_KEY, JSON.stringify({ locked: true, id: String(id) }));
+      localStorage.setItem(SCOPE_KEY, String(id));
+    } catch (e) { /* ignore */ }
+  }
+  function pinClear() {
+    try {
+      if (window.SuperAriPin && SuperAriPin.clear) { SuperAriPin.clear(); return; }
+      localStorage.removeItem(LOCK_KEY); localStorage.setItem(SCOPE_KEY, 'all');
+    } catch (e) { /* ignore */ }
+  }
   var aps = [], scope = 'all';
   function loadAps() { try { aps = D.loadApiaries() || []; } catch (e) { aps = []; } }
   function validScope(s) { return s === 'all' || aps.some(function (a) { return String(a.id) === String(s); }) ? String(s) : 'all'; }
   loadAps();
   (function initScope() {
-    var q = new URLSearchParams(location.search).get('apiary'), saved = null;
+    var q = new URLSearchParams(location.search).get('apiary'), saved = null, pinned = pinRead();
     try { saved = localStorage.getItem(SCOPE_KEY); } catch (e) { saved = null; }
-    scope = validScope(q || saved || 'all');
+    scope = validScope(q || (pinned && pinned.id) || saved || 'all');
+    if (pinned && pinned.id && scope === String(pinned.id)) {
+      try { localStorage.setItem(SCOPE_KEY, scope); } catch (e2) { /* ignore */ }
+    }
   })();
   function scopeList() { return ['all'].concat(aps.map(function (a) { return String(a.id); })); }
   function apOf(id) { return aps.filter(function (a) { return String(a.id) === String(id); })[0] || null; }
@@ -1099,8 +1126,13 @@
   };
   function renderScope(hs) {
     var ap = scope === 'all' ? null : apOf(scope), M = lastM || {};
-    $('bkLabel').textContent = ap ? ap.name : 'Tümü';
-    $('bkLabel').title = ap ? ap.name : 'Tüm arılıklar (' + aps.length + ')';
+    var lab = $('bkLabel');
+    lab.textContent = ap ? ap.name : 'Tümü';
+    var isPinned = !!(pinRead() && ap);
+    lab.title = ap ? (isPinned ? (ap.name + ' — dokununca sabitlemeyi kaldır') : ap.name) : 'Tüm arılıklar (' + aps.length + ')';
+    lab.style.cursor = ap ? 'pointer' : '';
+    lab.setAttribute('role', ap ? 'button' : 'text');
+    if (ap) lab.setAttribute('tabindex', '0'); else lab.removeAttribute('tabindex');
     var multi = scopeList().length > 1;
     $('bkPrev').disabled = !multi; $('bkNext').disabled = !multi;
     $('bkMode').textContent = 'Demo'; /* Mod rozeti yalnız Demo'da; Canlı'da gizli (boşluk kalmaz) */
@@ -1149,6 +1181,8 @@
   function setScope(s) {
     scope = validScope(s);
     try { localStorage.setItem(SCOPE_KEY, scope); } catch (e) { /* ignore */ }
+    if (scope === 'all') pinClear();
+    else if (pinRead()) pinWrite(scope);
     if (scope !== 'all' && K && K.setLastApiary) { try { K.setLastApiary(scope); } catch (e) { /* ignore */ } }
     var q = new URLSearchParams(location.search);
     if (scope === 'all') q.delete('apiary'); else q.set('apiary', scope);
@@ -1158,13 +1192,27 @@
   function step(d) { var l = scopeList(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
   $('bkPrev').addEventListener('click', function () { step(-1); });
   $('bkNext').addEventListener('click', function () { step(1); });
+  (function bindLabelUnpin() {
+    var lab = $('bkLabel');
+    if (!lab || lab.getAttribute('data-pin-bound')) return;
+    lab.setAttribute('data-pin-bound', '1');
+    function unpin() {
+      if (scope === 'all' || !pinRead()) return;
+      pinClear();
+      setScope('all');
+    }
+    lab.addEventListener('click', function (e) { e.preventDefault(); unpin(); });
+    lab.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unpin(); }
+    });
+  })();
   window.addEventListener('superari-records-changed', render);
   window.addEventListener('superari-cloud-pulled', render);
   window.addEventListener('pageshow', function (e) { if (e.persisted) render(); });
   render();
 })();
 </script>
-<script src="nav.js?v=koloni-132"></script>
-<script src="pwa.js?v=koloni-132"></script>
+<script src="nav.js?v=koloni-133"></script>
+<script src="pwa.js?v=koloni-133"></script>
 </body>
 </html>
