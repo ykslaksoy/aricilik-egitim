@@ -3300,14 +3300,40 @@
   };
   var IRK_EKSIK_KEY = 'superari.irk.ogulVeriEksik.v1';
   var irkEksikSeen = {};
+  function irkEksikLog() { try { var m = JSON.parse(localStorage.getItem(IRK_EKSIK_KEY) || 'null'); return m && m.items ? m : { items: {} }; } catch (e) { return { items: {} }; } }
   function reportHybridMissing(key, name) {
     if (irkEksikSeen[key]) return; irkEksikSeen[key] = 1;
     try {
-      var m = JSON.parse(localStorage.getItem(IRK_EKSIK_KEY) || 'null') || { items: {} };
+      var m = irkEksikLog();
       var now = new Date().toISOString(), e = m.items[key] || { name: name, first: now, count: 0 };
       e.name = name; e.last = now; e.count = (e.count || 0) + 1; m.items[key] = e;
       localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m));
     } catch (eR) { /* ignore */ }
+    scheduleIrkFlush();
+  }
+  /* k126: buluta (Supabase sa_report_irk_ogul_eksik → public.irk_ogul_eksik), fiyat_eksik ile aynı desen.
+     Yalnız melez anahtarı + adı gider (kullanıcı/kovan verisi yok); hata olursa kayıt cihazda bekler. */
+  var irkFlushT = null, irkFlushing = false, irkFlushTry = 0;
+  function scheduleIrkFlush() { if (irkFlushT || typeof setTimeout !== 'function') return; irkFlushT = setTimeout(function () { irkFlushT = null; flushIrkEksik(); }, 1500); }
+  function flushIrkEksik() {
+    var g = typeof window !== 'undefined' ? window : globalThis, B = g.SuperAriBulut, m = irkEksikLog();
+    var items = Object.keys(m.items).filter(function (k) { var e = m.items[k]; return (Number(e.count) || 0) > (Number(e.sentN) || 0); });
+    if (!items.length || irkFlushing || (g.navigator && g.navigator.onLine === false)) return Promise.resolve(false);
+    if (!B || !B.client || !B.session) { if (irkFlushTry++ < 3 && typeof setTimeout === 'function') setTimeout(flushIrkEksik, 6000); return Promise.resolve(false); }
+    irkFlushing = true;
+    var payload = items.slice(0, 30).map(function (k) { return { key: k, name: m.items[k].name, n: Number(m.items[k].count) || 0 }; });
+    var v = ((g.document && g.document.querySelector && g.document.querySelector('script[src*="demo-data.js"]')) || {}).src || '';
+    v = v.replace(/^.*[?&]v=/, '').slice(0, 40);
+    return Promise.resolve(B.session()).then(function (s) {
+      if (!s) return false;
+      return B.client().then(function (c) { return c.rpc('sa_report_irk_ogul_eksik', { p_items: payload, p_version: v || null }); }).then(function (r) {
+        var m2 = irkEksikLog();
+        if (r && r.error) { m2.cloud = 'error'; m2.cloudErr = String(r.error.code || r.error.message || 'hata').slice(0, 80); }
+        else { payload.forEach(function (p) { var e = m2.items[p.key]; if (e) e.sentN = Math.max(Number(e.sentN) || 0, p.n); }); m2.cloud = 'ok'; m2.cloudAt = new Date().toISOString(); delete m2.cloudErr; }
+        try { localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m2)); } catch (e) {}
+        return !(r && r.error);
+      });
+    }).catch(function () { return false; }).then(function (ok) { irkFlushing = false; return ok; });
   }
   function breedSwarmFactor(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');

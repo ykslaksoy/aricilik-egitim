@@ -21,6 +21,8 @@ Bulut, yapılandırma yokken tamamen kapalıdır; uygulama yalnız cihazda çal�
    Olmadan «Hesabımı sil» «veritabanı güncellemesi gerekli» der ve `/api/log` hataları yazmaz (uygulama çalışmaya devam eder).
    Hata kayıtları `public.client_errors` tablosunda (yalnız Table Editor / service role görür; 90 gün sonra silinir).
    İsteğe bağlı: Vercel'de `SUPERARI_LOG_SALT` (IP özeti tuzu) tanımlayın.
-9. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
+9. Oğul verisi eksik melezler (yönetici listesi): SQL Editor'de `migrations/20261013140000_irk_ogul_veri_eksik.sql` dosyasını çalıştırın
+   (önce `20261003230000_fiyat_eksik.sql` çalışmış olmalı; `sa_is_admin()` oradan gelir). Olmadan liste yalnız cihazda kalır.
+10. Uygulamada Canlı modda Ayarlar › Hesap ve bulut › giriş › ilk yükleme › ekip daveti.
 
 Demo verisi hiçbir zaman buluta gönderilmez.

@@ -67,7 +67,7 @@
       '<span class="og-lvl" style="background:' + a.color + '">' + esc(a.level) + (a.key === 'orta' ? ' · izlemede' : '') + '</span>' +
       '<div class="og-sec"><h3>Kovan durumu</h3><ul class="og-why">' + li(a.details.filter(function (x) { return x.group !== 'karakter'; })) + '</ul></div>' +
       (kar.length ? '<div class="og-sec"><h3>Ana arı karakteri</h3><ul class="og-why">' + li(kar) + '</ul>' +
-        '<div class="og-foot" style="margin-top:4px;">Karakter yalnız eğilimi gösterir; düzeyi kovanın durumu belirler.</div></div>' : '') +
+        '<div class="og-foot" style="margin-top:4px;">Irk, kovanın durumu ve oğul mevsimiyle birlikte oğul riskinin ana etkenlerindendir.</div></div>' : '') +
       '<div class="og-sec"><h3>Öneriler</h3>' + a.recs.map(function (r, i) {
         return '<div class="og-rec"><b>' + esc(r.title) + '</b><p>' + esc(r.detail) + '</p><div class="og-acts">' +
           (r.href ? '<a class="pri" href="' + esc(r.href) + '">Bölme ekranını aç</a>' : '') +

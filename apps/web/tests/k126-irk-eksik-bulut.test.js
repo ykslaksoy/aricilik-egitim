@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path'),assert=require('assert');
+const W=path.join(__dirname,'..'),R=path.join(W,'..','..');
+const sql=fs.readFileSync(path.join(R,'supabase/migrations/20261013140000_irk_ogul_veri_eksik.sql'),'utf8');
+assert.ok(/alter table public\.irk_ogul_eksik enable row level security/.test(sql));
+assert.ok(/revoke all on public\.irk_ogul_eksik from anon, authenticated/.test(sql));
+assert.ok(/grant execute on function public\.sa_report_irk_ogul_eksik\(jsonb, text\) to authenticated/.test(sql));
+assert.ok(!/to anon/.test(sql));
+assert.ok(/sa_is_admin\(\)/.test(sql));
+const dd=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');
+assert.ok(/sa_report_irk_ogul_eksik/.test(dd));
+const yon=fs.readFileSync(path.join(W,'yonetici.html'),'utf8');
+assert.ok(/sa_irk_ogul_eksik_list/.test(yon)&&/superari\.irk\.ogulVeriEksik\.v1/.test(yon));
+const og=fs.readFileSync(path.join(W,'ogul.js'),'utf8');
+assert.ok(!/Karakter yalnız eğilimi/.test(og)&&/ana etkenlerindendir/.test(og));
+assert.ok(/koloni-126/.test(fs.readFileSync(path.join(W,'uyarilar.html'),'utf8')));
+console.log('k126 ok');

@@ -64,12 +64,12 @@
     </section>
     <section class="card fe" aria-labelledby="ieH">
       <h2 id="ieH">Oğul verisi eksik melezler</h2>
-      <p class="fe-sub" id="ieSub">Oğul riskinde ırk ölçeği tabloda olmayan melezler: bu kovanlarda ırk hesaba katılmaz. Yayın bulununca <code>demo-data.js › HYBRID_SWARM</code>’a eklenmeli. (Yalnız bu cihazda görülenler.)</p>
+      <p class="fe-sub" id="ieSub">Oğul riskinde ırk ölçeği tabloda olmayan melezler: bu kovanlarda ırk hesaba katılmaz. Yayın bulununca <code>demo-data.js › HYBRID_SWARM</code>’a eklenmeli. <span id="ieCloud"></span></p>
       <ol class="fe-list" id="ieList"></ol>
     </section>
   </main>
-<script src="pwa.js?v=koloni-125"></script>
-<script src="bulut.js?v=koloni-125"></script>
+<script src="pwa.js?v=koloni-126"></script>
+<script src="bulut.js?v=koloni-126"></script>
 <script>
 /* Fiyatı bulunamayan kalemler: Alım talebinde alınacak olup fiyatı olmayan kalemler (kullanıcıya uyarı gösterilmez).
    Bulut: sa_fiyat_eksik_list (yalnız yönetici) · Çevrimdışı yedek: bu cihazın superari.stok.fiyatsiz.v1 kaydı.
@@ -127,13 +127,39 @@
 })();
 </script>
 <script>
-/* k125: oğul verisi eksik melezler (superari.irk.ogulVeriEksik.v1, demo-data.js breedSwarmFactor yazar) */
+/* k126: oğul verisi eksik melezler — Bulut: sa_irk_ogul_eksik_list (yalnız yönetici) · Çevrimdışı yedek: superari.irk.ogulVeriEksik.v1 (demo-data.js yazar). */
 (function () {
   var L = document.getElementById('ieList'); if (!L) return;
+  var MIG = 'supabase/migrations/20261013140000_irk_ogul_veri_eksik.sql';
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  var it = {}; try { it = (JSON.parse(localStorage.getItem('superari.irk.ogulVeriEksik.v1') || 'null') || {}).items || {}; } catch (e) {}
-  var ks = Object.keys(it).sort(function (a, b) { return String(it[b].last || '').localeCompare(String(it[a].last || '')); });
-  L.innerHTML = ks.length ? ks.map(function (k) { var e = it[k]; return '<li><div class="fe-top"><b>' + esc(e.name || k) + '</b><span>' + (Number(e.count) || 1) + ' kez</span></div><small class="fe-meta">Anahtar <code>' + esc(k) + '</code> · son ' + esc(new Date(e.last).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })) + '</small></li>'; }).join('') : '<li class="fe-empty">Kayıt yok. (Oğul sayfası açıldığında melezler kontrol edilir.)</li>';
+  function dt(iso) { var d = new Date(iso); return isNaN(d) ? '—' : d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  function local() { var it = {}; try { it = (JSON.parse(localStorage.getItem('superari.irk.ogulVeriEksik.v1') || 'null') || {}).items || {}; } catch (e) {}
+    return Object.keys(it).map(function (k) { var e = it[k]; return { key: k, name: e.name, first_seen: e.first, last_seen: e.last, seen_count: e.count, local: true }; }); }
+  function cloud() {
+    var B = window.SuperAriBulut; if (!B) return Promise.resolve({ msg: 'Bulut modülü yüklenemedi.' });
+    return B.loadConfig().then(function (cfg) {
+      if (!cfg || !cfg.enabled) return { msg: 'Bulut kapalı.' };
+      return B.session().then(function (s) {
+        if (!s) return { msg: 'Tüm kullanıcılardan gelen liste için <a href="hesap.html">Hesap</a> sayfasından yönetici hesabıyla oturum açın.' };
+        return B.client().then(function (c) { return c.rpc('sa_irk_ogul_eksik_list', { p_limit: 200 }); }).then(function (r) {
+          if (!r.error) return { rows: r.data || [] };
+          var m = String(r.error.message || '') + ' ' + String(r.error.code || '');
+          if (/42501|Yalnız yönetici/.test(m)) return { msg: 'Bu hesap yönetici değil; bulut listesi yalnız yöneticiye açıktır.' };
+          if (/Could not find the function|schema cache|does not exist|PGRST202|42883/i.test(m)) return { msg: 'Veritabanı güncellemesi gerekli (' + esc(MIG) + ').' };
+          return { msg: 'Bulut listesi alınamadı: ' + esc(r.error.message || 'hata') };
+        });
+      });
+    }).catch(function () { return { msg: 'Bulut listesi alınamadı (bağlantı yok olabilir).' }; });
+  }
+  function paint(c) {
+    var by = {}; (c.rows || []).forEach(function (r) { by[r.key] = r; }); local().forEach(function (r) { if (!by[r.key]) by[r.key] = r; });
+    var rows = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return String(b.last_seen || '').localeCompare(String(a.last_seen || '')); });
+    var sub = document.getElementById('ieCloud'), nL = rows.filter(function (r) { return r.local; }).length;
+    if (sub) sub.innerHTML = c.rows ? 'Buluttan ' + c.rows.length + ' melez' + (nL ? ' + yalnız bu cihazda görülen ' + nL : '') + '.' : (c.msg || '') + (rows.length ? ' Aşağıda yalnız bu cihazda görülenler var.' : '');
+    L.innerHTML = rows.length ? rows.map(function (r) { return '<li><div class="fe-top"><b>' + esc(r.name || r.key) + (r.local ? '<span class="fe-tag dev">bu cihaz</span>' : '') + '</b><span>' + (Number(r.seen_count) || 1) + ' kez' + (r.users ? ' · ' + r.users + ' kişi' : '') + '</span></div><small class="fe-meta">Anahtar <code>' + esc(r.key) + '</code>' + (r.last_email ? ' · ' + esc(r.last_email) : '') + ' · son ' + esc(dt(r.last_seen)) + ' · ilk ' + esc(dt(r.first_seen)) + '</small></li>'; }).join('') : '<li class="fe-empty">Kayıt yok. (Oğul sayfası açıldığında melezler kontrol edilir.)</li>';
+  }
+  paint({ msg: 'Bulut kontrol ediliyor…' });
+  cloud().then(paint);
 })();
 </script>
 </body>
