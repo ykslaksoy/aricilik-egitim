@@ -79,7 +79,7 @@
     </section>
     </div>
   </main>
-<script>try{localStorage.setItem('superari.workMode','live');}catch(e){}</script>
+<script>/* Ana uygulamayla aynı adreste açılırsa (superari.vercel.app/apps/yonetici) kullanıcının yerel verisine dokunma */window.SA_YON_AYRI=!/^superari\.vercel\.app$/.test(location.hostname);if(window.SA_YON_AYRI){try{localStorage.setItem('superari.workMode','live');}catch(e){}}</script>
 <script src="bulut.js?v=yon-1"></script>
 <script src="demo-data.js?v=yon-1"></script>
 <script>
@@ -92,7 +92,7 @@
       if (r.error || !r.data) return;
       var list = r.data.map(function (a) { var d = a.data || {}; var o = Object.assign({}, d); o.id = String(a.local_id); o.name = a.name || d.name || 'Arılık'; return o; });
       var seen = {}; list = list.filter(function (a) { if (seen[a.id]) return false; seen[a.id] = 1; return true; });
-      try { localStorage.setItem('superari.ariliklar.v1', JSON.stringify(list)); } catch (e) {}
+      if (window.SA_YON_AYRI) try { localStorage.setItem('superari.ariliklar.v1', JSON.stringify(list)); } catch (e) {}
     }).catch(function () {});
   }
   function load(src) { return new Promise(function (ok) { var s = document.createElement('script'); s.src = src; s.onload = s.onerror = ok; document.body.appendChild(s); }); }
