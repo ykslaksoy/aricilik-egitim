@@ -80,8 +80,9 @@
     </div>
   </main>
 <script>/* Ana uygulamayla aynı adreste açılırsa (superari.vercel.app/apps/yonetici) kullanıcının yerel verisine dokunma */window.SA_YON_AYRI=!/^superari\.vercel\.app$/.test(location.hostname);if(window.SA_YON_AYRI){try{localStorage.setItem('superari.workMode','live');}catch(e){}}</script>
-<script src="bulut.js?v=yon-1"></script>
-<script src="demo-data.js?v=yon-1"></script>
+<script src="agac.js?v=yon-2"></script>
+<script src="bulut.js?v=yon-2"></script>
+<script src="demo-data.js?v=yon-2"></script>
 <script>
 /* Kapı: Supabase oturumu + sa_is_admin() = true değilse panel yüklenmez. Veri erişimi zaten RLS / RPC (sa_is_admin) ile korunur. */
 (function () {
@@ -106,7 +107,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('panel.js?v=yon-1').then(function(){return load('panel2.js?v=yon-1');}); }
+            if (!started) { started = true; return load('panel.js?v=yon-2').then(function(){return load('panel2.js?v=yon-2');}); }
           }).then(function () { return true; });
         });
       });

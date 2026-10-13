@@ -15,7 +15,7 @@
 
   /* 1) Kullanıcılar + kullanıcı detayı */
   var kul = sec('s-kul', 'Kullanıcılar', 'Tüm hesaplar. «Dondur»: giriş ve oturum yenileme engellenir (Supabase banned_until), veriler silinmez.');
-  var det = sec('s-det', 'Kullanıcı detayı', 'Listeden bir kullanıcı seçin.'); det.innerHTML = empty('Kullanıcı seçilmedi.');
+  var det = document.createElement('div');
   function loadUsers() {
     q().then(function (c) { return c.rpc('sa_admin_users'); }).then(function (r) {
       if (r.error) { kul.innerHTML = empty(migMsg(r.error)); return; }
@@ -23,7 +23,7 @@
       kul.innerHTML = '<p class="fe-sub">' + l.length + ' kullanıcı · ' + l.filter(function (u) { return u.frozen; }).length + ' dondurulmuş</p><ol class="fe-list">' + l.map(function (u) {
         return '<li><div class="fe-top"><b>' + esc(u.display_name || u.email) + (u.is_admin ? '<span class="fe-tag">yönetici</span>' : '') + (u.frozen ? '<span class="fe-tag dev">donduruldu</span>' : '') + '</b><span>' + u.apiaries + ' arılık · ' + u.hives + ' kovan</span></div>' +
           '<small class="fe-meta">' + esc(u.email) + ' · kayıt ' + esc(dt(u.created_at)) + ' · son giriş ' + esc(dt(u.last_sign_in_at)) + ' · son senkron ' + esc(dt(u.last_sync)) + '</small>' +
-          '<div class="os-acts"><button class="btn secondary" data-det="' + u.id + '">Detay</button>' + (u.is_admin ? '' : '<button class="btn secondary" data-frz="' + u.id + '" data-v="' + (u.frozen ? '0' : '1') + '" data-em="' + esc(u.email) + '">' + (u.frozen ? 'Dondurmayı kaldır' : 'Dondur') + '</button>') + '</div></li>';
+          '<div class="ud" data-uid="' + u.id + '"></div><div class="os-acts"><button class="btn secondary" data-det="' + u.id + '">Detayı yenile</button>' + (u.is_admin ? '' : '<button class="btn secondary" data-frz="' + u.id + '" data-v="' + (u.frozen ? '0' : '1') + '" data-em="' + esc(u.email) + '">' + (u.frozen ? 'Dondurmayı kaldır' : 'Dondur') + '</button>') + '</div></li>';
       }).join('') + '</ol>';
     }).catch(function (e) { kul.innerHTML = empty(migMsg(e)); });
   }
@@ -33,12 +33,13 @@
       q().then(function (c) { return c.rpc('sa_admin_set_frozen', { p_user: f.getAttribute('data-frz'), p_frozen: on }); }).then(function (r) { if (r.error) alert(migMsg(r.error).replace(/<[^>]+>/g, '')); loadUsers(); }); }
     if (d) userDetail(d.getAttribute('data-det'));
   });
+  kul.addEventListener('toggle', function (e) { var dd = e.target; if (!dd.open || !dd.querySelector) return; var u = dd.querySelector(':scope > .tr-body > .ud'); if (u && !u.getAttribute('data-ok')) { u.setAttribute('data-ok', '1'); userDetail(u.getAttribute('data-uid')); } }, true);
   function userDetail(uid) {
-    det.innerHTML = empty('Yükleniyor…'); location.hash = 's-det';
+    var tgt = kul.querySelector('.ud[data-uid="' + uid + '"]'); if (tgt) det = tgt; det.innerHTML = empty('Yükleniyor…');
     q().then(function (c) {
       return Promise.all([
         c.from('profiles').select('email,display_name,created_at').eq('id', uid).maybeSingle(),
-        c.from('apiaries').select('local_id,name,data,server_updated_at').eq('owner_id', uid).eq('deleted', false),
+        c.from('apiaries').select('id,local_id,name,data,server_updated_at').eq('owner_id', uid).eq('deleted', false),
         c.from('hives').select('local_id,name,apiary_id,data,server_updated_at').eq('owner_id', uid).eq('deleted', false).limit(500),
         c.from('tasks').select('local_id,kind,due,data,server_updated_at').eq('owner_id', uid).eq('deleted', false).order('due', { ascending: true }).limit(200),
         c.from('push_subscriptions').select('ua,created_at,last_ok_at').eq('user_id', uid),
@@ -51,12 +52,13 @@
       var devs = []; A.concat(H).forEach(function (x) { var d = x.data || {}; (d.devices || d.cihazlar || []).forEach(function (v) { devs.push(v); }); });
       var st = (A[0] && A[0].data && (A[0].data.settings || A[0].data.ayarlar)) || null;
       det.innerHTML = '<p class="fe-sub"><b>' + esc(p.display_name || p.email || uid) + '</b> · ' + esc(p.email || '') + ' · son senkron ' + esc(dt(last)) + '</p>' +
-        '<h3>Arılıklar (' + A.length + ')</h3>' + (A.length ? '<ul>' + A.map(function (a) { return '<li>' + esc(a.name) + (a.data && a.data.place ? ' · ' + esc(a.data.place) : '') + '</li>'; }).join('') + '</ul>' : empty('Buluta senkronlanmış arılık yok.')) +
-        '<h3>Kovanlar (' + H.length + ')</h3>' + (H.length ? '<p class="fe-meta">' + H.slice(0, 60).map(function (h) { return esc(h.name || h.local_id); }).join(', ') + (H.length > 60 ? ' …' : '') + '</p>' : empty('Kovan yok.')) +
-        '<h3>Cihazlar (' + devs.length + ')</h3>' + (devs.length ? '<ul>' + devs.map(function (d) { return '<li>' + esc(d.tip || d.type || 'cihaz') + ' · son veri ' + esc(dt(d.lastSeen || d.last_seen)) + '</li>'; }).join('') + '</ul>' : empty('Cihaz verisi buluta gelmiyor (cihazlar yalnız telefonda kayıtlı).')) +
-        '<h3>Görevler (' + T.length + ')</h3>' + (T.length ? '<ul>' + T.slice(0, 30).map(function (t) { return '<li>' + esc((t.data && (t.data.title || t.data.text)) || t.kind) + (t.due ? ' · ' + esc(t.due) : '') + '</li>'; }).join('') + '</ul>' : empty('Görev yok.')) +
-        '<h3>Ayarlar / bildirim</h3>' + (st ? '<pre class="fe-meta">' + esc(JSON.stringify(st, null, 1).slice(0, 1500)) + '</pre>' : empty('Ayarlar buluta senkronlanmıyor.')) +
-        '<p class="fe-meta">Bildirim aboneliği: ' + (P.length ? P.length + ' cihaz · son başarılı ' + esc(dt(P[0].last_ok_at)) : 'yok') + '</p>';
+        '<fieldset><legend>Arılıklar (' + A.length + ')</legend>' + (A.length ? A.map(function (a) { var hh = H.filter(function (h) { return h.apiary_id === a.id; });
+          return '<fieldset><legend>' + esc(a.name) + (a.data && a.data.place ? ' · ' + esc(a.data.place) : '') + ' (' + hh.length + ' kovan)</legend>' + (hh.length ? hh.map(function (h) { var d = h.data || {};
+            return '<label><span>' + esc(h.name || h.local_id) + '</span><span class="fe-meta">' + [d.breed && 'ırk ' + esc(d.breed), d.strength && 'güç ' + esc(d.strength), d.health && esc(d.health), d.weightKg != null && esc(d.weightKg) + ' kg', 'güncelleme ' + esc(dt(h.server_updated_at))].filter(Boolean).join(' · ') + '</span></label>'; }).join('') : empty('Kovan yok.')) + '</fieldset>'; }).join('') : empty('Buluta senkronlanmış arılık yok.')) + '</fieldset>' +
+        '<fieldset><legend>Cihazlar (' + devs.length + ')</legend>' + (devs.length ? devs.map(function (d) { return '<label><span>' + esc(d.tip || d.type || 'cihaz') + '</span><span class="fe-meta">son veri ' + esc(dt(d.lastSeen || d.last_seen)) + '</span></label>'; }).join('') : empty('Cihaz verisi buluta gelmiyor (cihazlar yalnız telefonda kayıtlı).')) + '</fieldset>' +
+        '<fieldset><legend>Görevler (' + T.length + ')</legend>' + (T.length ? T.slice(0, 30).map(function (t) { return '<label><span>' + esc((t.data && (t.data.title || t.data.text)) || t.kind) + '</span><span class="fe-meta">' + esc(t.due || '') + '</span></label>'; }).join('') : empty('Görev yok.')) + '</fieldset>' +
+        '<fieldset><legend>Ayarlar / bildirim</legend>' + (st ? '<pre class="fe-meta">' + esc(JSON.stringify(st, null, 1).slice(0, 1500)) + '</pre>' : empty('Ayarlar buluta senkronlanmıyor.')) +
+        '<p class="fe-meta">Bildirim aboneliği: ' + (P.length ? P.length + ' cihaz · son başarılı ' + esc(dt(P[0].last_ok_at)) : 'yok') + '</p></fieldset>';
     }).catch(function (e) { det.innerHTML = empty(migMsg(e)); });
   }
 
