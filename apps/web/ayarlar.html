@@ -202,6 +202,17 @@
       </div>
     </section>
 
+    <section class="auth-card" id="arilik-ozet">
+      <div class="settings-head"><div><h2>Arılık özeti</h2><p class="sub">Ekip, cihazlar, güvenlik, harita ve sezon — bu cihazdaki kayıtlardan, internetsiz de çalışır.</p></div></div>
+      <div class="stack">
+        <h3 style="margin:0;font-size:1rem">👥 Ekip ve görev atama</h3><div id="oz-ekip" class="stack" style="gap:.4rem"></div>
+        <h3 style="margin:.5rem 0 0;font-size:1rem">📡 Cihaz sağlığı</h3><div id="oz-cihaz"></div>
+        <h3 style="margin:.5rem 0 0;font-size:1rem">🚨 İzinsiz taşınma / açılma</h3><div id="oz-izinsiz"></div>
+        <h3 style="margin:.5rem 0 0;font-size:1rem">🗺 Arılık haritası</h3><div id="oz-harita"></div>
+        <h3 style="margin:.5rem 0 0;font-size:1rem">📊 Sezon sonu raporu</h3><div id="oz-sezon"></div>
+      </div>
+    </section>
+
     <section class="auth-card">
       <div class="settings-head">
         <div>
@@ -258,10 +269,10 @@
       </details>
     </section>
   </div>
-  <script src="bal-agirlik.js?v=koloni-133"></script>
-  <script src="demo-data.js?v=koloni-133"></script>
-  <script src="device-runtime.js?v=koloni-133"></script>
-  <script src="sensor-polling.js?v=koloni-133"></script>
+  <script src="bal-agirlik.js?v=koloni-134"></script>
+  <script src="demo-data.js?v=koloni-134"></script>
+  <script src="device-runtime.js?v=koloni-134"></script>
+  <script src="sensor-polling.js?v=koloni-134"></script>
   <script>
   (function () {
     var B = window.SuperAriBalAgirlik, mount = document.getElementById('bal-agirlik-mount');
@@ -705,9 +716,9 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="harita-offline.js?v=koloni-133"></script>
+<script src="harita-offline.js?v=koloni-134"></script>
 <script>try { SuperAriOfflineMap.renderSettings(document.getElementById('harita-list')); } catch (e) {}</script>
-<script src="sesle-muayene.js?v=koloni-133"></script>
+<script src="sesle-muayene.js?v=koloni-134"></script>
 <script>
   /* Ayarlar › Ses seçimi: cihazdaki tr sesler, ▶ dinle, seçim + hız (sesle-muayene.js ile aynı anahtarlar) */
   (function () {
@@ -753,9 +764,10 @@
     try { speechSynthesis.addEventListener('voiceschanged', draw); } catch (e) {}
   })();
 </script>
-<script src="nav.js?v=koloni-133"></script>
-<script src="pwa.js?v=koloni-133"></script>
-<script src="bulut.js?v=koloni-133"></script>
+<script src="nav.js?v=koloni-134"></script>
+<script src="pwa.js?v=koloni-134"></script>
+<script src="bulut.js?v=koloni-134"></script>
+<script src="ayarlar-arilik-ozet.js?v=koloni-134"></script>
 <script>
   (function () {
     var B = window.SuperAriBulut, el = document.getElementById('bulut-status');
