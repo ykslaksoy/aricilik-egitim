@@ -15,11 +15,11 @@ function risk(breed) { const h = Object.assign({}, base, { breed: breed, current
 const lv = { 'Kafkas': 'çok çok az', 'Buckfast': 'çok az', 'Karadeniz': 'az', 'İtalyan': 'orta', 'Muğla': 'orta', 'Anadolu': 'yüksek', 'Trakya': 'yüksek', 'Karniyol': 'yüksek', 'İran': 'yüksek', 'Yığılca': 'çok yüksek', 'Hatay': 'çok çok yüksek' };
 Object.keys(lv).forEach((b) => { const r = risk(b); assert.ok(r.irk.indexOf('oğul eğilimi ' + lv[b]) >= 0 && (lv[b] !== 'yüksek' || r.irk.indexOf('çok yüksek') < 0), b + ' → ' + r.irk); });
 assert.ok(risk('Hatay').a.score > risk('Kafkas').a.score + 10, 'race is a strong factor');
-assert.ok(risk('Kafkas × Anadolu').irk.indexOf('oğul eğilimi orta (melez, yayına göre)') >= 0, 'Kafkas×Anadolu from Yığılca study');
+assert.ok(risk('Kafkas × Anadolu').irk.indexOf('oğul eğilimi orta') >= 0, 'Kafkas×Anadolu from Yığılca study');
 const kk = risk('Karadeniz × İran');
-assert.ok(kk.irk.indexOf('oğul verisi yok') >= 0, 'no-data hybrid is not averaged');
+assert.ok(kk.irk.indexOf('melez verisi yok') >= 0, 'no-data hybrid is not averaged');
 assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['iran+karadeniz'], 'missing hybrid reported for admin');
 const ua = fs.readFileSync(path.join(root, 'uyarilar.html'), 'utf8');
-assert.ok(!ua.includes('yalnız küçük bir etkidir') && ua.includes('ve ana arının ırkı.'), 'bottom note updated');
+assert.ok(!ua.includes('yalnız küçük bir etkidir') && ua.includes('ana arının ırkına'), 'bottom note updated');
 assert.ok(fs.readFileSync(path.join(root, 'yonetici.html'), 'utf8').includes('superari.irk.ogulVeriEksik.v1'), 'admin lists missing hybrids');
 console.log('k125 ok');

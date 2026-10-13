@@ -11,6 +11,6 @@ assert.ok(/sa_report_irk_ogul_eksik/.test(dd));
 const yon=fs.readFileSync(path.join(W,'yonetici.html'),'utf8');
 assert.ok(/sa_irk_ogul_eksik_list/.test(yon)&&/superari\.irk\.ogulVeriEksik\.v1/.test(yon));
 const og=fs.readFileSync(path.join(W,'ogul.js'),'utf8');
-assert.ok(!/Karakter yalnız eğilimi/.test(og)&&/ana etkenlerindendir/.test(og));
-assert.ok(/koloni-128/.test(fs.readFileSync(path.join(W,'uyarilar.html'),'utf8')));
+assert.ok(!/Karakter yalnız eğilimi/.test(og)&&/oğul riskini belirler/.test(og));
+assert.ok(/koloni-129/.test(fs.readFileSync(path.join(W,'uyarilar.html'),'utf8')));
 console.log('k126 ok');

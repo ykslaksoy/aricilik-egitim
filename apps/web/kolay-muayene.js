@@ -405,7 +405,7 @@
       });
       var h2 = D.hiveById(h.id), res = [];
       try { var cs = D.records.status(h.id); if (cs.strengthClass) res.push('Koloni: <b>' + esc(cs.strengthTag || cs.strengthClass) + '</b>'); if (cs.queenless) res.push('<b>Anasız</b>'); } catch (e) { /* ignore */ }
-      try { var sw = D.colony.swarm(h2); if (sw && sw.level) res.push('Oğul riski: <b>' + esc(sw.level) + '</b>'); } catch (e) { /* ignore */ }
+      try { var sw = D.colony.swarm(h2); if (sw && sw.level) res.push('Oğul riski: <b>' + esc(sw.display || sw.level) + '</b>'); } catch (e) { /* ignore */ }
       try { var SH = global.SuperAriSensorHealth; var ev = SH && SH.evaluateHive ? SH.evaluateHive(h2) : null; if (ev && ev.band) res.push('Sağlık: <b>' + esc(ev.band.label) + '</b>'); } catch (e) { /* ignore */ }
       st.result = res.length ? '<div class="km-sum"><h3>Güncel durum</h3><p style="margin:0;font-size:14px;line-height:1.5;">' + res.join(' · ') + '</p></div>' : '';
       var files = []; st.steps.forEach(function (id) { (st.photos[id] || []).forEach(function (p) { files.push(p.file); }); });

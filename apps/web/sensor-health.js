@@ -27,9 +27,9 @@
     var dT = clamp(base * 0.9 + (health.indexOf('kritik') >= 0 ? 1.5 : 0), 0, 5);
     var dRH = clamp(base * 0.7 + (Math.abs(delta) > 1.5 ? 0.8 : 0), 0, 5);
     var dIR = clamp(base * 0.85, 0, 5);
-    var dS = clamp(base * 0.6 + (swarm.indexOf('yüksek') >= 0 || swarm.indexOf('yuksek') >= 0 ? 2.2 : swarm.indexOf('orta') >= 0 ? 1.2 : 0), 0, 5);
+    var dS = clamp(base * 0.6 + (swarm.indexOf('yüksek') >= 0 || swarm.indexOf('yuksek') >= 0 || swarm.indexOf('kritik') >= 0 ? 2.2 : swarm.indexOf('orta') >= 0 ? 1.2 : 0), 0, 5);
     var dW = clamp(base * 0.5 + (delta < -1 ? Math.min(3, Math.abs(delta)) : delta > 2.5 ? 0.8 : 0), 0, 5);
-    var dV = clamp(base * 0.35 + (swarm.indexOf('yüksek') >= 0 || swarm.indexOf('yuksek') >= 0 ? 1.5 : 0), 0, 5);
+    var dV = clamp(base * 0.35 + (swarm.indexOf('yüksek') >= 0 || swarm.indexOf('yuksek') >= 0 || swarm.indexOf('kritik') >= 0 ? 1.5 : 0), 0, 5);
 
     return {
       T: Math.round(dT * 10) / 10,
@@ -136,7 +136,7 @@
       return { kind: r.kind, title: r.title, detail: r.detail };
     });
     var swarm = String((h && h.swarmRisk) || '').toLocaleLowerCase('tr');
-    if ((swarm.indexOf('yüksek') >= 0 || swarm.indexOf('yuksek') >= 0) &&
+    if ((swarm.indexOf('yüksek') >= 0 || swarm.indexOf('yuksek') >= 0 || swarm.indexOf('kritik') >= 0) &&
         !actions.some(function (a) { return a.kind === 'ogul'; })) {
       actions.unshift({
         kind: 'ogul',

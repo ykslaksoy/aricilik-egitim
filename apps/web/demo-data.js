@@ -797,7 +797,7 @@
   /* k127: seçici grupları — Saf / İkili melez / Üçlü melez ((ana hattı) × erkek arı). */
   var COLONY_BREED_GROUPS = [
     { key: 'saf', label: 'Saf', items: ['Kafkas', 'Karadeniz', 'Karniyol', 'Muğla', 'Anadolu', 'İtalyan', 'Buckfast'] },
-    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Buckfast × İtalyan'] },
+    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Anadolu × Karniyol', 'Anadolu × Muğla', 'İtalyan × Karniyol', 'Buckfast × İtalyan'] },
     { key: 'uc', label: 'Üçlü melez', items: ['(Kafkas × Karniyol) × Muğla', '(Kafkas × Karadeniz) × Muğla', '(Kafkas × Anadolu) × Muğla', '(Kafkas × Anadolu) × Karniyol', '(Karniyol × İtalyan) × Anadolu', '(Buckfast × İtalyan) × Muğla'] }
   ];
   var COLONY_BREED_OPTIONS = COLONY_BREED_GROUPS.reduce(function (a, g) { return a.concat(g.items); }, []).concat(['Diğer']);
@@ -3233,12 +3233,11 @@
    * koloni gücü (muayene > kovan kaydı), ana yaşı, gözlenen oğul eğilimi, oğul/ana hücresi,
    * anasızlık, tartı artışı (sıkışıklık) ve bal katı verilmiş olması (yer açma).
    * Sonuç 5 düzey: Çok düşük · Düşük · Orta · Yüksek · Çok yüksek. */
+  /* k129 ORS düzeyleri: <35 Düşük · 35–69 Orta · ≥70 Kritik */
   var SWARM_LEVELS = [
-    { key: 'cok-dusuk', label: 'Çok düşük', tone: 'ok', color: '#1b7a3d' },
-    { key: 'dusuk', label: 'Düşük', tone: 'ok', color: '#4f9d2d' },
+    { key: 'dusuk', label: 'Düşük', tone: 'ok', color: '#1b7a3d' },
     { key: 'orta', label: 'Orta', tone: 'warn', color: '#c98a00' },
-    { key: 'yuksek', label: 'Yüksek', tone: 'bad', color: '#d9480f' },
-    { key: 'cok-yuksek', label: 'Çok yüksek', tone: 'bad', color: '#b3001b' }
+    { key: 'kritik', label: 'Kritik', tone: 'bad', color: '#b3001b' }
   ];
   /* Bölge profili: bakim-plan.js ile aynı anahtarlar (sicak / iliman / yayla / yuksek). */
   /* örnek arılıklar: yaklaşık rakım (m) — bakim-plan.js SEED_ALT ile aynı; Yanıkdağ Baluğundüzü ≈215 m kıyı → ılıman */
@@ -3360,8 +3359,33 @@
       });
     }).catch(function () { return false; }).then(function (ok) { irkFlushing = false; return ok; });
   }
+  /* k129: ORS Genetik puanı (0–100). KİLİTLİ — kullanıcı onayladı; onaysız değiştirmeyin (tests/k129-genetik-kilit.test.js).
+     Anahtar: ırk anahtarları alfabetik, «+» ile. Üçlü: (ana hattı) × erkek arı. Bilinmeyen melez → 55 + yöneticiye. */
+  var GENETIK_SAF = { kafkas: 5, buckfast: 15, karadeniz: 35, italyan: 55, mugla: 55, anadolu: 75, trakya: 75, karniyol: 75, iran: 75, yigilca: 90, hatay: 100 };
+  var GENETIK_MELEZ = {
+    'kafkas+karadeniz': 35, 'anadolu+kafkas': 55, 'kafkas+karniyol': 55, 'karniyol+mugla': 75, 'anadolu+karniyol': 75, 'anadolu+mugla': 75, 'italyan+karniyol': 65,
+    'kafkas+karadeniz+mugla': 55, 'buckfast+italyan+mugla': 55, 'kafkas+karniyol+mugla': 75, 'anadolu+kafkas+mugla': 75, 'anadolu+kafkas+karniyol': 90, 'anadolu+italyan+karniyol': 90
+  };
+  var GENETIK_BUCKFAST_IKILI = 45, GENETIK_BILINMEYEN = 55;
+  /** ORS saf hesap: bypass → 100; aksi ağırlıklı toplam (0–100, 0,1 hassasiyet). */
+  function orsCompute(o) { if (o.bypass) return 100; var v = o.genetik * 0.30 + Math.min(100, o.sikisiklik) * 0.40 + o.mevsim * 0.20 + o.anaYasi * 0.10; return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; }
+  function genetikWord(gen) {
+    if (!gen.known) return gen.missing ? 'bilinmiyor (melez verisi yok)' : 'bilinmiyor';
+    var g = gen.g; return g <= 5 ? 'çok çok az' : g <= 15 ? 'çok az' : g <= 35 ? 'az' : g <= 45 ? 'az–orta (nesle göre değişir)' : g <= 55 ? 'orta' : g <= 65 ? 'orta–yüksek' : g <= 75 ? 'yüksek' : g <= 90 ? 'çok yüksek' : 'çok çok yüksek';
+  }
+  function genetikScore(breed) {
+    var b = String(breed || '').toLocaleLowerCase('tr'), found = [];
+    BREED_SWARM_SCALE.forEach(function (x) { if (x.m.some(function (w) { return b.indexOf(w) >= 0; })) found.push(x.key); });
+    if (!found.length) return { g: GENETIK_BILINMEYEN, known: false, hybrid: false, label: b ? 'ırk tabloda yok' : 'ırk bilinmiyor' };
+    if (found.length === 1) return { g: GENETIK_SAF[found[0]], known: true, hybrid: false, label: 'saf hat' };
+    var key = found.slice().sort().join('+');
+    if (GENETIK_MELEZ[key] != null) return { g: GENETIK_MELEZ[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
+    if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: GENETIK_BUCKFAST_IKILI, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
+    reportHybridMissing(key, found.join(' × '));
+    return { g: GENETIK_BILINMEYEN, known: false, hybrid: true, missing: true, label: 'melez tabloda yok' };
+  }
   /* k127: tabloya eklenen melezler cihazdaki «veri eksik» kaydından düşülür. */
-  (function purgeCovered() { try { var m = irkEksikLog(), ch = 0; Object.keys(m.items).forEach(function (k) { if (HYBRID_SWARM[k] || (k.split('+').length === 2 && k.indexOf('buckfast') >= 0)) { delete m.items[k]; ch = 1; } }); if (ch) localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m)); } catch (e) {} })();
+  (function purgeCovered() { try { var m = irkEksikLog(), ch = 0; Object.keys(m.items).forEach(function (k) { if (GENETIK_MELEZ[k] != null || (k.split('+').length === 2 && k.indexOf('buckfast') >= 0)) { delete m.items[k]; ch = 1; } }); if (ch) localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m)); } catch (e) {} })();
   function breedSwarmFactor(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
     var found = [];
@@ -3376,7 +3400,6 @@
       var hy = HYBRID_SWARM[key] || (found.length === 2 && key.indexOf('buckfast') >= 0 ? BUCKFAST_CROSS : null);
       if (hy) { v = hy.v; src = hy.src; hlabel = hy.label || ''; }
       else {
-        reportHybridMissing(key, found.map(function (x) { return x.key; }).join(' × '));
         return { f: 1.0, shift: 0, note: 'melez: oğul verisi yok', level: '', v: null, label: '', hybrid: true, missing: true };
       }
     }
@@ -3390,7 +3413,7 @@
     };
   }
   function swarmLevelOf(score) {
-    var i = score >= 75 ? 4 : (score >= 55 ? 3 : (score >= 35 ? 2 : (score >= 15 ? 1 : 0)));
+    var i = score >= 70 ? 2 : (score >= 35 ? 1 : 0);
     return SWARM_LEVELS[i];
   }
   function fmtTrShort(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY_KISA[Number(m[2]) - 1] : ''; }
@@ -3422,22 +3445,22 @@
       ? (season.phase === 'zirve' ? 'Oğul mevsimi (' + season.profileLabel + ', ' + season.window + ')' : 'Oğul mevsimine yakın (' + season.profileLabel + ', ' + season.window + ')')
       : 'Oğul mevsimi dışı (' + season.profileLabel + '; mevsim ' + season.window + ')', inSeason ? 'up' : 'down');
     /* --- Kovan durumu (asıl belirleyici) --- */
-    var s = 20;
+    var s = 0;
     var cls = st && st.strengthClass ? st.strengthClass : null;
     var slv = strengthLevel(cls || h.strength), strength = slv ? slv.key : '';
     var sr = st && st.strength ? st.strength : null;
     var bees = sr && Number(sr.beeFrames) ? Number(sr.beeFrames) : null;
     var broodF = sr && Number(sr.broodFrames) ? Number(sr.broodFrames) : null;
     var beeTxt = bees ? ', ' + bees + ' çerçeve arı' : '';
-    if (strength === 'bolunmeli') { s += 24; R('guc', 'Koloni bölünmesi gerekiyor' + beeTxt, 'up'); }
-    else if (strength === 'cok-guclu') { s += 24; R('guc', 'Koloni çok güçlü' + beeTxt, 'up'); }
-    else if (strength === 'guclu') { s += 20; R('guc', 'Koloni güçlü' + beeTxt, 'up'); }
-    else if (strength === 'normal') { s += 6; R('guc', 'Koloni normal güçte' + beeTxt, 'info'); }
-    else if (strength === 'zayif') { s -= 20; R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
-    else if (strength === 'cok-zayif') { s -= 26; R('guc', 'Koloni çok zayıf' + beeTxt, 'down'); }
-    else if (strength === 'birlestir') { s -= 30; R('guc', 'Koloni birleştirilmeli' + beeTxt, 'down'); }
-    if (broodF != null && broodF >= 6) { s += 10; R('yavru', 'Çok yavru (' + broodF + ' çerçeve)', 'up'); }
-    else if (broodF != null && broodF >= 4) s += 5;
+    if (strength === 'bolunmeli') { R('guc', 'Koloni bölünmesi gerekiyor' + beeTxt, 'up'); }
+    else if (strength === 'cok-guclu') { R('guc', 'Koloni çok güçlü' + beeTxt, 'up'); }
+    else if (strength === 'guclu') { R('guc', 'Koloni güçlü' + beeTxt, 'up'); }
+    else if (strength === 'normal') { R('guc', 'Koloni normal güçte' + beeTxt, 'info'); }
+    else if (strength === 'zayif') { R('guc', 'Koloni zayıf' + beeTxt, 'down'); }
+    else if (strength === 'cok-zayif') { R('guc', 'Koloni çok zayıf' + beeTxt, 'down'); }
+    else if (strength === 'birlestir') { R('guc', 'Koloni birleştirilmeli' + beeTxt, 'down'); }
+    if (broodF != null && broodF >= 6) { R('yavru', 'Çok yavru (' + broodF + ' çerçeve)', 'up'); }
+    else if (broodF != null && broodF >= 4)
     var bxs = hiveBoxes(h, ctx.plan || (ctx.plan = planState()));
     var hasSuper = !!(bxs && (bxs.kat > 0 || bxs.ballik));
     /* Yer darlığı: arılı çerçeve / kutu kapasitesi (her gövde ve kat 10 çerçeve). */
@@ -3448,33 +3471,31 @@
       var used = bees / capF;
       var full = sr ? (Number(sr.broodFrames) || 0) + (Number(sr.honeyFrames) || 0) + (Number(sr.pollenFrames) || 0) : 0;
       var noEmpty = full >= capF - 1;
-      if (used >= 0.9 || (used >= 0.8 && noEmpty)) { s += 25; space = true; severe = true; R('yer', 'Yer darlığı: ' + bees + '/' + capF + ' çerçeve arılı' + (noEmpty ? ', boş çerçeve yok' : ''), 'up'); }
-      else if (used >= 0.8 || noEmpty) { s += 12; space = true; R('yer', noEmpty ? 'Boş çerçeve kalmamış' : 'Kovan dolmak üzere (' + bees + '/' + capF + ' çerçeve arılı)', 'up'); }
-    } else if (strength === 'güçlü' && !hasSuper) { s += 8; space = true; R('yer', 'Yer darlığı olabilir (bal katı verilmemiş)', 'up'); }
+      if (used >= 0.9 || (used >= 0.8 && noEmpty)) { space = true; severe = true; R('yer', 'Yer darlığı: ' + bees + '/' + capF + ' çerçeve arılı' + (noEmpty ? ', boş çerçeve yok' : ''), 'up'); }
+      else if (used >= 0.8 || noEmpty) { space = true; R('yer', noEmpty ? 'Boş çerçeve kalmamış' : 'Kovan dolmak üzere (' + bees + '/' + capF + ' çerçeve arılı)', 'up'); }
+    } else if (strength === 'güçlü' && !hasSuper) { space = true; R('yer', 'Yer darlığı olabilir (bal katı verilmemiş)', 'up'); }
     /* Muayenede gözlenen yer durumu (Kolay muayene): sayıdan bağımsız doğrudan gözlem. */
-    if (sr && sr.space === 'dolu' && !severe) { s += space ? 13 : 25; space = true; severe = true; R('yer', 'Muayenede kovan dolu / sıkışık gözlendi', 'up'); }
-    else if (sr && sr.space === 'dolmak' && !space) { s += 12; space = true; R('yer', 'Muayenede kovan dolmak üzere gözlendi', 'up'); }
-    if (hasSuper && !severe) { s -= 8; R('kat', 'Bal katı verilmiş (yer açıldı)', 'down'); }
+    if (sr && sr.space === 'dolu' && !severe) { space = true; severe = true; R('yer', 'Muayenede kovan dolu / sıkışık gözlendi', 'up'); }
+    else if (sr && sr.space === 'dolmak' && !space) { space = true; R('yer', 'Muayenede kovan dolmak üzere gözlendi', 'up'); }
+    if (hasSuper && !severe) { R('kat', 'Bal katı verilmiş (yer açıldı)', 'down'); }
     var age = queenAge(h);
     if (age == null) R('ana', 'Ana arı yaşı bilinmiyor', 'info');
-    else if (age <= 0) { s -= 10; R('ana', 'Genç ana arı (bu yıl)', 'down'); }
+    else if (age <= 0) { R('ana', 'Genç ana arı (bu yıl)', 'down'); }
     else if (age === 1) R('ana', 'Ana arı 1 yaşında', 'info');
-    else if (age === 2) { s += 8; R('ana', 'Ana arı 2 yaşında', 'up'); }
-    else { s += 12; R('ana', 'Ana arı yaşlı (' + age + ' yaş)', 'up'); }
+    else if (age === 2) { R('ana', 'Ana arı 2 yaşında', 'up'); }
+    else { R('ana', 'Ana arı yaşlı (' + age + ' yaş)', 'up'); }
     var dk = Number(h.deltaKg) || 0;
-    if (inSeason && dk >= 1.5) { s += 6; R('tarti', 'Hızlı ağırlık artışı (bal akımı, yer dolmakta)', 'up'); }
-    else if (inSeason && dk <= -2) { s += 10; R('tarti', 'Ani ağırlık düşüşü — oğul çıkmış olabilir, kontrol edin', 'up'); }
+    if (inSeason && dk >= 1.5) { R('tarti', 'Hızlı ağırlık artışı (bal akımı, yer dolmakta)', 'up'); }
+    else if (inSeason && dk <= -2) { R('tarti', 'Ani ağırlık düşüşü — oğul çıkmış olabilir, kontrol edin', 'up'); }
     var swD = h.lastSwarmDate && /^\d{4}-\d{2}-\d{2}$/.test(String(h.lastSwarmDate)) ? String(h.lastSwarmDate) : '';
     var today0 = ctx.date || todayLocal();
     /* Bu mevsim oğul verdiyse (son 120 gün): koloni ana memesinden yeni ana yetiştirir, tekrar oğul riski düşüktür. */
     var recentSwarm = !!(swD && swD <= today0 && swD >= addDays(today0, -120));
     if (swD && !recentSwarm && swD >= addDays(today0, -365)) {
-      s += 10; R('gecmis', 'Son bir yılda oğul verdi (' + fmtTrShort(swD) + ')', 'up');
+      R('gecmis', 'Son bir yılda oğul verdi (' + fmtTrShort(swD) + ')', 'up');
     }
-    if (h.sensorSwarmSignal === true) { s += 15; R('sensor', 'Sensör: oğul öncesi ses/ısı işareti', 'up'); }
-    s = Math.max(0, Math.min(100, s)) * season.factor;
+    if (h.sensorSwarmSignal === true) { R('sensor', 'Sensör: oğul öncesi ses/ısı işareti', 'up'); }
     /* --- Ana arı karakteri: ırk ana etkenlerden biri (k125) — çarpan + kaydırma --- */
-    if (bf.v != null) s = s * (inSeason ? bf.f : 1 + (bf.f - 1) / 2);
     var t = String(h.swarmTendency || '');
     var shift = bf.shift || 0;
     if (t === 'Yüksek') { shift += 4; R('egilim', 'Gözlenen oğul eğilimi yüksek', 'up', 'karakter'); }
@@ -3486,28 +3507,25 @@
     var cell = !!(st && st.swarmCell);
     var capped = !!(st && st.cellCapped === 'kapali');
     if ((capped && cell) || (severe && inSeason)) shift = Math.max(0, shift); /* karakter bu durumlarda düşürmez */
-    s += shift;
-    if (severe && inSeason) s = Math.max(s, 55);
     var cellN = st && st.cellCount ? st.cellCount : null;
     var cd = st && st.brood && st.brood.date ? ' — muayene ' + fmtTrShort(st.brood.date) : '';
     var nTxt = function (w) { return (cellN ? cellN + ' ' : '') + (st.cellCapped ? CELL_CAP_LABEL[st.cellCapped] + ' ' : '') + w; };
     var quietCells = false, manyCells = false;
     if (cell) {
-      s = Math.max(s, capped ? 80 : (inSeason ? 60 : 40));
       why.splice(1, 0, { key: 'meme', text: 'Alt kenarda ' + nTxt('ana memesi (oğul memesi)') + cd, dir: 'up', group: 'durum' });
     } else if (st && st.supersedureCell) {
       if (cellN != null && cellN > 3) {
         manyCells = true;
-        s = Math.max(s, inSeason ? 45 : 25);
         why.splice(1, 0, { key: 'meme', text: 'Petek ortasında çok sayıda ana memesi (' + cellN + ') — oğul hazırlığı olabilir' + cd, dir: 'up', group: 'durum' });
       } else {
         quietCells = true;
         why.splice(1, 0, { key: 'meme', text: 'Sessiz ana değiştirme: petek ortasında ' + nTxt('ana memesi') + cd, dir: 'down', group: 'durum' });
       }
     }
+    var capQ = false, capS = false;
     var queenless = !!(st && st.queenless);
     if (queenless) {
-      s = Math.min(s, 5);
+      capQ = true;
       why = why.filter(function (x) { return ['ana', 'egilim', 'kirpik'].indexOf(x.key) === -1; }); /* ana yok: ana yaşı/eğilimi anlamsız */
       why.splice(1, 0, st.emergencyCell
         ? { key: 'acil', text: 'Acil ana memesi (genç larvadan' + (cellN ? ', ' + cellN + ' meme' : '') + ') — koloni anasız, yeni ana yetiştiriyor' + cd, dir: 'down', group: 'durum' }
@@ -3517,25 +3535,39 @@
       /* Oğuldan 3 haftadan uzun süre sonra yeniden alt kenar memesi kaydı varsa sınırlama kalkar. */
       var lateCell = cell && st && st.brood && st.brood.date && st.brood.date > addDays(swD, 21);
       if (!lateCell) {
-        s = Math.min(s, 15);
+        capS = true;
         why = why.filter(function (x) { return x.key !== 'yer' && x.key !== 'tarti'; });
         why.splice(1, 0, { key: 'ogulverdi', text: 'Oğul verdi (' + fmtTrShort(swD) + ') — bu mevsim tekrar oğul riski düşük', dir: 'down', group: 'durum' });
       }
     }
-    s = Math.round(Math.max(0, Math.min(100, s)));
+    /* --- k129 Oğul Risk Skoru (ORS) ---
+       Ana memesi (açık/kapalı) son muayenede → 100. Aksi: Genetik×0,30 + Sıkışıklık×0,40 + Mevsim×0,20 + AnaYaşı×0,10.
+       Sınırlar: anasız ≤ 5; son 120 günde oğul verdi ≤ 15. */
+    var gen = genetikScore(breed);
+    var capTot = capF || 10, fullF = null;
+    if (sr) { var ff = (Number(sr.broodFrames) || 0) + (Number(sr.honeyFrames) || 0) + (Number(sr.pollenFrames) || 0); fullF = Math.max(bees || 0, ff) || null; }
+    var sik = fullF != null ? Math.min(100, fullF / capTot * 100) : (sr && sr.space === 'dolu' ? 100 : (sr && sr.space === 'dolmak' ? 75 : 50));
+    var mev = season.phase === 'zirve' ? 100 : 50;
+    var anaP = age == null ? 60 : (age <= 0 ? 20 : (age === 1 ? 60 : 100));
+    var anyCell = !!(st && (st.swarmCell || st.supersedureCell));
+    var ors = { genetik: gen.g, sikisiklik: Math.round(sik * 10) / 10, mevsim: mev, anaYasi: anaP, bypass: anyCell };
+    s = orsCompute(ors);
+    if (capQ) s = Math.min(s, 5);
+    if (capS) s = Math.min(s, 15);
+    s = Math.round(Math.max(0, Math.min(100, s)) * 10) / 10;
     var lv = swarmLevelOf(s);
-    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breedTxt + ' — ' + (bf.label ? bf.note : (bf.missing ? 'melez: oğul verisi yok, hesaba katılmadı' : 'ırk ölçekte yok, hesaba katılmadı')), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
+    if (!queenless) R('irk', 'Ana arı karakteri: ' + (breedTxt || 'ırk bilinmiyor') + ' — oğul eğilimi ' + genetikWord(gen), gen.g >= 70 ? 'up' : (gen.g < 35 ? 'down' : 'info'), 'karakter');
     /* Öneriler (nedene göre). */
     var recs = [];
     function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }
-    var elevated = lv.key === 'orta' || lv.key === 'yuksek' || lv.key === 'cok-yuksek';
+    var elevated = lv.key === 'orta' || lv.key === 'kritik';
     if (queenless && st && st.emergencyCell) {
       A('anasiz', 'Anasız akışı: memelere dokunma', 'Acil memelerden ana ~1 haftada çıkar, çiftleşme ~2 hafta sürer; ~3 hafta sonra yumurta kontrolü yapın. Meme tutmazsa ana verin veya birleştirin.');
     } else if (queenless) {
       A('anasiz', 'Ana arı ver veya birleştir', 'Anasız koloni oğul vermez ama zayıflar; ana verin, ana memesi verin ya da birleştirin.');
     } else if (quietCells) {
       A('dokunma', 'Memelere dokunma, izle', 'Petek ortasındaki 1–3 meme koloninin anasını sessizce yenilediğini gösterir; memeleri kırmayın, 3 hafta sonra yumurta kontrolü yapın.');
-      if (inSeason && (lv.key === 'yuksek' || lv.key === 'cok-yuksek') && (space || strength === 'güçlü')) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
+      if (inSeason && lv.key === 'kritik' && (space || strength === 'güçlü')) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
     } else if (cell || (inSeason && elevated)) {
       if (cell) A('meme', capped ? 'Ana memelerini kır veya bölmede kullan' : 'Ana memelerini kontrol et / kır', capped
         ? 'Alt kenarda kapalı oğul memesi: oğul birkaç gün içinde çıkabilir. Memeleri kırın ya da koloniyi bölüp memeyi bölmede kullanın.'
@@ -3549,14 +3581,14 @@
       if (season.profile === 'sicak' || strength === 'güçlü') A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını açın, sıcak saatlerde gölge sağlayın.');
       /* Kanat kırpma: yalnız çiftleşmiş ve yumurtlayan, henüz kırpılmamış ana. */
       var laying = !(st && st.queenCellSince) && ((st && st.brood && st.brood.eggs === true) || (age != null && age >= 1));
-      if ((lv.key === 'yuksek' || lv.key === 'cok-yuksek') && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; ana memesi kontrolü, kat atma veya bölme ile birlikte yapın.');
+      if (lv.key === 'kritik' && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; ana memesi kontrolü, kat atma veya bölme ile birlikte yapın.');
     } else {
       if (manyCells) A('meme', 'Ana memelerini kontrol et', 'Memelerin yerine bakın: alt kenardaysa oğul, petek ortasındaysa sessiz ana değiştirmedir.');
       if (age != null && age >= 3) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
       A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol edin.' : 'Oğul mevsimi dışında; olağan bakımla devam edin.');
     }
     var seasonNote = why[0].text;
-    return { score: s, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
+    return { score: s, display: lv.label + ' ' + Math.round(s), ors: ors, genetik: gen, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
       season: season, seasonNote: seasonNote, reasons: why.slice(1).map(function (x) { return x.text; }), details: why, recs: recs };
   }
   /** Kovan listesine hesaplanan oğul riskini (swarmRisk) tembel olarak bağlar. */
@@ -3576,15 +3608,15 @@
     });
     return list;
   }
-  /** Oğul uyarıları: hesaplanan Yüksek / Çok yüksek kovanlar. */
+  /** Oğul uyarıları: ORS ≥ 70 (Kritik) kovanlar. */
   function swarmAlerts() {
     var out = [];
     var ctx = { date: todayLocal() };
     loadHives().forEach(function (h) {
       var a = swarmAssess(h, ctx);
-      if (a && (a.key === 'yuksek' || a.key === 'cok-yuksek')) {
-        out.push({ id: 'ogul-' + h.id, title: 'Oğul riski ' + a.level.toLocaleLowerCase('tr'), type: 'ogul', hiveId: h.id,
-          apiaryId: h.apiaryId, severity: a.key === 'cok-yuksek' ? 'high' : 'medium', auto: true });
+      if (a && a.key === 'kritik') {
+        out.push({ id: 'ogul-' + h.id, title: 'Kritik Uyarı: Kovan Sıkıştı, Oğul Riski!', type: 'ogul', hiveId: h.id, score: a.score,
+          apiaryId: h.apiaryId, severity: 'high', auto: true, href: 'bakim-akis.html?id=' + encodeURIComponent(h.id) + '&apiary=' + encodeURIComponent(h.apiaryId), hrefLabel: 'Hızlı muayene' });
       }
     });
     return out;
@@ -5296,7 +5328,7 @@
       if (a.key === 'orta') {
         out.push({ id: 'kr-ogul-izle-' + h.id, title: 'Oğul izleme — ' + h.name + ': ana hücresi ve yer darlığı kontrolü (7–10 günde bir)', hiveId: h.id, apiaryId: h.apiaryId,
           priority: 2, auto: true, kind: 'ogul', due: addDays(ctx.date, 7), sig: 'o-orta-' + ctx.date.slice(0, 4) });
-      } else if (a.key === 'yuksek' || a.key === 'cok-yuksek') {
+      } else if (a.key === 'kritik') {
         out.push({ id: 'kr-ogul-kontrol-' + h.id, title: 'Oğul kontrolü — ' + h.name + ': ana hücrelerini kontrol et, yer aç / bal katı ver veya böl', hiveId: h.id, apiaryId: h.apiaryId,
           priority: 1, auto: true, kind: 'ogul', due: ctx.date, sig: 'o-yuksek-' + ctx.date.slice(0, 4) });
       }
@@ -5483,8 +5515,8 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS,
-        swarm: function (h, date) { return swarmAssess(h, date ? { date: date } : null); },
+        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute,
+        swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },
         setBoxes: setHiveBoxes,
