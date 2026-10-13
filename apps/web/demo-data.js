@@ -794,7 +794,20 @@
   }
 
   /* ---------- Koloni: ana arı + koloni özellikleri (tek kaynak: kovan kaydı) ---------- */
-  var COLONY_BREED_OPTIONS = ['Kafkas', 'Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Kafkas × Anadolu', 'Karadeniz', 'Karniyol', 'Karniyol × Muğla', 'Muğla', 'Anadolu', 'İtalyan', 'Buckfast', 'Diğer'];
+  /* k127: seçici grupları — Saf / İkili melez / Üçlü melez ((ana hattı) × erkek arı). */
+  var COLONY_BREED_GROUPS = [
+    { key: 'saf', label: 'Saf', items: ['Kafkas', 'Karadeniz', 'Karniyol', 'Muğla', 'Anadolu', 'İtalyan', 'Buckfast'] },
+    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Buckfast × İtalyan'] },
+    { key: 'uc', label: 'Üçlü melez', items: ['(Kafkas × Karniyol) × Muğla', '(Kafkas × Karadeniz) × Muğla', '(Kafkas × Anadolu) × Muğla', '(Kafkas × Anadolu) × Karniyol', '(Karniyol × İtalyan) × Anadolu', '(Buckfast × İtalyan) × Muğla'] }
+  ];
+  var COLONY_BREED_OPTIONS = COLONY_BREED_GROUPS.reduce(function (a, g) { return a.concat(g.items); }, []).concat(['Diğer']);
+  /** <optgroup>'lu seçenekler. sel(b) → seçili mi; withOther: «Diğer» eklensin mi. */
+  function breedOptionsHtml(sel, withOther) {
+    function e(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    return COLONY_BREED_GROUPS.map(function (g) {
+      return '<optgroup label="' + e(g.label) + '">' + g.items.map(function (b) { return '<option value="' + e(b) + '"' + (sel && sel(b) ? ' selected' : '') + '>' + e(b) + '</option>'; }).join('') + '</optgroup>';
+    }).join('') + (withOther ? '<option value="Diğer"' + (sel && sel('Diğer') ? ' selected' : '') + '>Diğer</option>' : '');
+  }
   var SWARM_TENDENCIES = ['Düşük', 'Orta', 'Yüksek'];
   var CALM_LABELS = { 1: 'Çok sinirli', 2: 'Sinirli', 3: 'Orta', 4: 'Sakin', 5: 'Çok sakin' };
   /* Uluslararası ana arı renk kodu (yılın son hanesi). */
@@ -2441,7 +2454,7 @@
   function liteHives() { var m = envMemoFresh(); if (m) return Object.keys(m.hives).map(function (k) { return m.hives[k]; }); return loadHives(); }
   function breedEnv1(b) { return COLONY_ENV.BREEDS.filter(function (x) { return x.test(b); })[0]; }
   /** Melez yazımını bileşenlere ayırır: «Kafkas × Karadeniz × Muğla» → ['kafkas','karadeniz','muğla'] (×, x, *, + ayırıcı). */
-  function breedParts(b) { return String(b || '').toLocaleLowerCase('tr').split(/\s*(?:×|✕|\*|\+|\sx\s)\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  function breedParts(b) { return String(b || '').toLocaleLowerCase('tr').replace(/[()]/g, ' ').split(/\s*(?:×|✕|\*|\+|\sx\s)\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
   function crossOf(ga, gb) {
     return COLONY_ENV.CROSS.filter(function (c) { return (c.g[0] === ga && c.g[1] === gb) || (c.g[0] === gb && c.g[1] === ga); })[0] || null;
   }
@@ -3296,8 +3309,20 @@
   /* k125: melezler ebeveyn ortalaması DEĞİL — her melezin kendi düzeyi (yayın varsa). F1 melezlerde heterosis oğulu artırabilir.
      Anahtar: ırk anahtarları alfabetik, «+» ile. Kaynak her satırda. Tabloda olmayan melez → etki yok + yöneticiye «veri eksik». */
   var HYBRID_SWARM = {
-    'anadolu+kafkas': { v: 4, src: 'Yığılca çalışması (Kafkas Üniv. Vet. Fak. Derg.): ana arı yüksüğü — Anadolu ırkı melezi 13,0±7,0; Kafkas ırkı melezi 8,0±1,15; Yığılca 49,9±18,0 / koloni. Kafkas’tan belirgin yüksek, Yığılca’dan çok düşük → orta.' }
+    'anadolu+kafkas': { v: 4, src: 'Yığılca çalışması (Kafkas Üniv. Vet. Fak. Derg.): ana arı yüksüğü — Anadolu ırkı melezi 13,0±7,0; Kafkas ırkı melezi 8,0±1,15; Yığılca 49,9±18,0 / koloni. Kafkas’tan belirgin yüksek, Yığılca’dan çok düşük → orta.' },
+    /* k127: kullanıcının belirlediği düzeyler (arıcı deneyimi). Üçlü: (ana hattı) × erkek arı. */
+    'kafkas+karadeniz': { v: 3, src: 'kullanıcı (arıcı deneyimi)' },
+    'kafkas+karniyol': { v: 4, src: 'kullanıcı (arıcı deneyimi)' },
+    'karniyol+mugla': { v: 5, src: 'kullanıcı (arıcı deneyimi)' },
+    'kafkas+karniyol+mugla': { v: 5, src: 'kullanıcı (arıcı deneyimi)' },
+    'kafkas+karadeniz+mugla': { v: 4, src: 'kullanıcı (arıcı deneyimi)' },
+    'anadolu+kafkas+mugla': { v: 5, src: 'kullanıcı (arıcı deneyimi)' },
+    'anadolu+kafkas+karniyol': { v: 6, src: 'kullanıcı (arıcı deneyimi)' },
+    'anadolu+italyan+karniyol': { v: 6, src: 'kullanıcı (arıcı deneyimi)' },
+    'buckfast+italyan+mugla': { v: 4, src: 'kullanıcı (arıcı deneyimi)' }
   };
+  /* Buckfast ikili melezleri: az–orta (3,5), nesle göre değişir. */
+  var BUCKFAST_CROSS = { v: 3.5, label: 'az–orta (nesle göre değişir)', src: 'kullanıcı (arıcı deneyimi)' };
   var IRK_EKSIK_KEY = 'superari.irk.ogulVeriEksik.v1';
   var irkEksikSeen = {};
   function irkEksikLog() { try { var m = JSON.parse(localStorage.getItem(IRK_EKSIK_KEY) || 'null'); return m && m.items ? m : { items: {} }; } catch (e) { return { items: {} }; } }
@@ -3335,6 +3360,8 @@
       });
     }).catch(function () { return false; }).then(function (ok) { irkFlushing = false; return ok; });
   }
+  /* k127: tabloya eklenen melezler cihazdaki «veri eksik» kaydından düşülür. */
+  (function purgeCovered() { try { var m = irkEksikLog(), ch = 0; Object.keys(m.items).forEach(function (k) { if (HYBRID_SWARM[k] || (k.split('+').length === 2 && k.indexOf('buckfast') >= 0)) { delete m.items[k]; ch = 1; } }); if (ch) localStorage.setItem(IRK_EKSIK_KEY, JSON.stringify(m)); } catch (e) {} })();
   function breedSwarmFactor(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
     var found = [];
@@ -3342,12 +3369,12 @@
       if (x.m.some(function (w) { return b.indexOf(w) >= 0; })) found.push(x);
     });
     if (!found.length) return { f: 1.0, shift: 0, note: '', level: '', v: null, label: '' };
-    var v = null, src = '', hybrid = found.length > 1;
+    var v = null, src = '', hlabel = '', hybrid = found.length > 1;
     if (!hybrid) v = found[0].v;
     else {
       var key = found.map(function (x) { return x.key; }).sort().join('+');
-      var hy = HYBRID_SWARM[key];
-      if (hy) { v = hy.v; src = hy.src; }
+      var hy = HYBRID_SWARM[key] || (found.length === 2 && key.indexOf('buckfast') >= 0 ? BUCKFAST_CROSS : null);
+      if (hy) { v = hy.v; src = hy.src; hlabel = hy.label || ''; }
       else {
         reportHybridMissing(key, found.map(function (x) { return x.key; }).join(' × '));
         return { f: 1.0, shift: 0, note: 'melez: oğul verisi yok', level: '', v: null, label: '', hybrid: true, missing: true };
@@ -3358,8 +3385,8 @@
       v: v, hybrid: hybrid, src: src,
       f: Math.round((1 + d * 0.12) * 100) / 100, /* çarpan 0,64 … 1,36 */
       shift: Math.round(d * 6), /* ±18 puan */
-      level: BREED_LEVEL_KEYS[v], label: BREED_SWARM_LABELS[v],
-      note: 'oğul eğilimi ' + BREED_SWARM_LABELS[v] + (hybrid ? ' (melez, yayına göre)' : '')
+      level: BREED_LEVEL_KEYS[Math.round(v)] || (v === 3.5 ? 'dusuk' : ''), label: hlabel || BREED_SWARM_LABELS[v],
+      note: 'oğul eğilimi ' + (hlabel || BREED_SWARM_LABELS[v]) + (hybrid ? (src === 'kullanıcı (arıcı deneyimi)' ? ' (melez, arıcı deneyimi)' : ' (melez, yayına göre)') : '')
     };
   }
   function swarmLevelOf(score) {
@@ -5423,7 +5450,7 @@
       hivesForApiary: hivesForApiary,
       BREEDS: BREEDS,
       colony: {
-        BREED_OPTIONS: COLONY_BREED_OPTIONS,
+        BREED_OPTIONS: COLONY_BREED_OPTIONS, BREED_GROUPS: COLONY_BREED_GROUPS, breedOptionsHtml: breedOptionsHtml,
         PURE_BREEDS: PURE_BREEDS,
         breedKind: breedKind,
         joinBreed: joinBreed,

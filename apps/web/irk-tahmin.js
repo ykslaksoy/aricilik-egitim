@@ -224,7 +224,7 @@
     }
     function renderLin() {
       var L = lineage(), el = back.querySelector('[data-it-lin]');
-      var opts = ['<option value="">Bilinmiyor</option>'].concat(D.colony.BREED_OPTIONS.filter(function (b) { return b !== 'Diğer'; }).map(function (b) { return '<option' + (st.man.breed === b ? ' selected' : '') + '>' + esc(b) + '</option>'; })).join('');
+      var opts = '<option value="">Bilinmiyor</option>' + D.colony.breedOptionsHtml(function (b) { return st.man.breed === b; }, false);
       el.innerHTML = '<div class="it-sec"><h3>🧬 Soy (ilk kanıt)</h3>' +
         (L.kind ? '<p><b>' + esc(L.text) + '</b></p><p class="it-mut">Kaynak: ' + esc(L.source) + (L.kind === 'satin' ? ' · en yüksek ağırlık' : ' · güçlü ön bilgi') + (L.kind === 'yerel' && L.localBreed ? ' · arılık çoğunluğu: ' + esc(L.localBreed) : '') + '</p>'
           : '<p class="it-mut">Kayıtlarda anne ana bulunamadı (ana geçmişi, ana üretimi, bölme). Biliyorsanız aşağıdan girin.</p>') +

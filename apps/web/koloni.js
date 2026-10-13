@@ -382,10 +382,7 @@
     var opts = c.BREED_OPTIONS.slice();
     var curBreed = String(h.breed || '');
     var isOther = curBreed && opts.indexOf(curBreed) === -1;
-    var breedSel = '<option value="">Bilinmiyor</option>' + opts.map(function (b) {
-      var sel = (b === curBreed || (isOther && b === 'Diğer')) ? ' selected' : '';
-      return '<option value="' + esc(b) + '"' + sel + '>' + esc(b) + '</option>';
-    }).join('');
+    var breedSel = '<option value="">Bilinmiyor</option>' + c.breedOptionsHtml(function (b) { return b === curBreed || (isOther && b === 'Diğer'); }, true);
     var yearSel = '<option value="">Bilinmiyor</option>';
     var yMin = Math.min(yr - 7, h.queenYear || yr);
     for (var y = yr; y >= yMin; y--) {
@@ -809,9 +806,7 @@
     for (var y = yr; y >= yr - 3; y--) {
       yearSel += '<option value="' + y + '"' + (y === yr ? ' selected' : '') + '>' + y + ' · ' + c.queenColor(y).name + '</option>';
     }
-    var breedSel = '<option value="">Değiştirme (mevcut ırk kalsın)</option>' + c.BREED_OPTIONS.filter(function (b) { return b !== 'Diğer'; }).map(function (b) {
-      return '<option value="' + esc(b) + '">' + esc(b) + '</option>';
-    }).join('');
+    var breedSel = '<option value="">Değiştirme (mevcut ırk kalsın)</option>' + c.breedOptionsHtml(null, false);
     var apSel = aps.map(function (a) {
       return '<option value="' + esc(a.id) + '"' + (String(a.id) === apId ? ' selected' : '') + '>' + esc(a.name) + '</option>';
     }).join('');

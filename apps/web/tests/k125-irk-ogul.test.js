@@ -16,9 +16,9 @@ const lv = { 'Kafkas': 'çok çok az', 'Buckfast': 'çok az', 'Karadeniz': 'az',
 Object.keys(lv).forEach((b) => { const r = risk(b); assert.ok(r.irk.indexOf('oğul eğilimi ' + lv[b]) >= 0 && (lv[b] !== 'yüksek' || r.irk.indexOf('çok yüksek') < 0), b + ' → ' + r.irk); });
 assert.ok(risk('Hatay').a.score > risk('Kafkas').a.score + 10, 'race is a strong factor');
 assert.ok(risk('Kafkas × Anadolu').irk.indexOf('oğul eğilimi orta (melez, yayına göre)') >= 0, 'Kafkas×Anadolu from Yığılca study');
-const kk = risk('Kafkas × Karadeniz');
+const kk = risk('Karadeniz × İran');
 assert.ok(kk.irk.indexOf('oğul verisi yok') >= 0, 'no-data hybrid is not averaged');
-assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['kafkas+karadeniz'], 'missing hybrid reported for admin');
+assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['iran+karadeniz'], 'missing hybrid reported for admin');
 const ua = fs.readFileSync(path.join(root, 'uyarilar.html'), 'utf8');
 assert.ok(!ua.includes('yalnız küçük bir etkidir') && ua.includes('ve ana arının ırkı.'), 'bottom note updated');
 assert.ok(fs.readFileSync(path.join(root, 'yonetici.html'), 'utf8').includes('superari.irk.ogulVeriEksik.v1'), 'admin lists missing hybrids');
