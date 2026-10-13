@@ -3524,7 +3524,7 @@
     }
     s = Math.round(Math.max(0, Math.min(100, s)));
     var lv = swarmLevelOf(s);
-    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breedTxt + ' — ' + (bf.label ? 'oğul eğilimi ' + bf.label + (bf.hybrid ? ' (melez, yayına göre)' : '') : (bf.missing ? 'melez: oğul verisi yok, hesaba katılmadı' : 'ırk ölçekte yok, hesaba katılmadı')), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
+    if (breed && !queenless) R('irk', 'Ana arı karakteri: ' + breedTxt + ' — ' + (bf.label ? bf.note : (bf.missing ? 'melez: oğul verisi yok, hesaba katılmadı' : 'ırk ölçekte yok, hesaba katılmadı')), bf.shift < 0 ? 'down' : (bf.shift > 0 ? 'up' : 'info'), 'karakter');
     /* Öneriler (nedene göre). */
     var recs = [];
     function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }
