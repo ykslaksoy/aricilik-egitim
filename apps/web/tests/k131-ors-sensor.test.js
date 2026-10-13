@@ -15,8 +15,8 @@ const ses=[];for(let m=0;m<=3;m++)ses.push({hiveId:7001,type:'ses',at:iso(NOW-3*
 C=load({'superari.sensor.ses.v1':JSON.stringify(ses)});
 const p=C.swarm(h,{date:'2026-10-13',now:NOW});
 assert.strictEqual(p.score,100,'piping bypass');assert.strictEqual(p.key,'kritik');assert.ok(/sensörlü/.test(p.display));
-/* üçü birden şart: ritimsiz / 550 Hz / 1 dk → bypass yok */
-for(const bad of [ses.map(x=>({...x,ritmik:false})),ses.map(x=>({...x,hz:550})),ses.slice(-2)]){C=load({'superari.sensor.ses.v1':JSON.stringify(bad)});assert.ok(C.swarm(h,{date:'2026-10-13',now:NOW}).score<100);}
+/* üçü birden şart: ritimsiz / 550 Hz / 1 dk altı → bypass yok */
+for(const bad of [ses.map(x=>({...x,ritmik:false})),ses.map(x=>({...x,hz:550})),ses.slice(-1)]){C=load({'superari.sensor.ses.v1':JSON.stringify(bad)});assert.ok(C.swarm(h,{date:'2026-10-13',now:NOW}).score<100);}
 /* aralı (3 dk boşluk) → kesintisiz değil */
 C=load({'superari.sensor.ses.v1':JSON.stringify([ses[0],{...ses[3]}].map((x,i)=>({...x,at:iso(NOW-4*60000+i*4*60000)})))});assert.ok(C.swarm(h,{date:'2026-10-13',now:NOW}).score<100);
 /* 3) Isı artışı: 7 saat >35,5 °C → Sıkışıklık +15 */
@@ -34,10 +34,10 @@ assert.strictEqual(b.ors.sikisiklik,base.ors.sikisiklik+10);assert.strictEqual(M
 r=C.sensorOrs({tarti:[{t:NOW-24*H,kg:40},{t:NOW,kg:41.2}]},10,T);assert.ok(r.nektar);
 /* sert kilo artışı + arı zirvede → Sıkışıklık dolu */
 r=C.sensorOrs({tarti:[{t:NOW-24*H,kg:40},{t:NOW,kg:42}],ir:[{t:NOW-24*H,count:22000},{t:NOW,count:23000}]},10,T);assert.ok(r.sikDolu);
-/* ırka göre piping süresi: Kafkas 5 dk → 3 dk piping bypass değil; bilinmeyen ırk 2 dk */
+/* ırka göre piping süresi: Kafkas 5 dk → 3 dk piping bypass değil; bilinmeyen ırk 1 dk */
 C=load({'superari.sensor.ses.v1':JSON.stringify(ses),'superari.ogul.skor.v1':JSON.stringify({data:{piping:{kafkas:5}}})});
 assert.ok(C.swarm(h,{date:'2026-10-13',now:NOW}).score<100,'Kafkas 5 dk');
-assert.strictEqual(C.swarm({...h,breed:'Bilinmez'},{date:'2026-10-13',now:NOW}).score,100,'unknown → 2 dk');
-assert.strictEqual(C.ogulSkorDefaults().piping['anadolu+kafkas+karniyol'],2);
+assert.strictEqual(C.swarm({...h,breed:'Bilinmez'},{date:'2026-10-13',now:NOW}).score,100,'unknown → 1 dk');
+assert.strictEqual(C.ogulSkorDefaults().piping['anadolu+kafkas+karniyol'],1);assert.strictEqual(C.ORS_SENSOR.pipingDk,1);assert.strictEqual(C.ORS_SENSOR.pipingHzMin,400);assert.strictEqual(C.ORS_SENSOR.pipingHzMax,500);
 assert.ok(/piping süresi \(dk\)/.test(fs.readFileSync(path.join(W,'yonetici.html'),'utf8')));
 console.log('k131 ok');

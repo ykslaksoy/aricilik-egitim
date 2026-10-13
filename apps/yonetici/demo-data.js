@@ -3378,7 +3378,7 @@
     'kafkas+karadeniz+mugla': '(Kafkas × Karadeniz) × Muğla', 'buckfast+italyan+mugla': '(Buckfast × İtalyan) × Muğla', 'kafkas+karniyol+mugla': '(Kafkas × Karniyol) × Muğla', 'anadolu+kafkas+mugla': '(Kafkas × Anadolu) × Muğla', 'anadolu+kafkas+karniyol': '(Kafkas × Anadolu) × Karniyol', 'anadolu+italyan+karniyol': '(Karniyol × İtalyan) × Anadolu' };
   function num01(v, lo, hi) { v = Number(v); return isFinite(v) && v >= lo && v <= hi ? v : null; }
   /* k131: sensörlü mod eşikleri (yönetici düzenler). Sensör yoksa ORS cihazsız modda (KİLİTLİ) kalır. */
-  var ORS_SENSOR = { pipingHzMin: 400, pipingHzMax: 500, pipingDk: 2, pipingAraSn: 60,
+  var ORS_SENSOR = { pipingHzMin: 400, pipingHzMax: 500, pipingDk: 1, pipingAraSn: 60,
     tempHigh: 36, tempHighSaat: 6, tempHighArti: 10,
     riseMin: 37, riseMax: 38.5, riseDelta: 1.5, riseSaat: 3, riseArti: 15,
     nemHigh: 75, nemArti: 10,

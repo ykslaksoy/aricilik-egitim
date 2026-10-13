@@ -6,7 +6,7 @@
   var WL = { genetik: 'Genetik (w<sub>g</sub>)', sikisiklik: 'Sıkışıklık (w<sub>s</sub>)', mevsim: 'Mevsim (w<sub>m</sub>)', anaYasi: 'Ana yaşı (w<sub>a</sub>)' };
   var cur = C.ogulSkor(), base = JSON.stringify(cur);
   function stat(t) { document.getElementById('osStat').innerHTML = t; }
-  function row(lb, gk, gv, k) { return '<label><span>' + lb + '</span><span style="display:flex;gap:.35rem;align-items:center;"><small>Genetik</small>' + inp(gk, gv, '1', 100) + (k ? '<small>piping süresi (dk)</small>' + inp('piping.' + k, pg[k] != null ? pg[k] : 2, 'any', 600) : '') + '</span></label>'; }
+  function row(lb, gk, gv, k) { return '<label><span>' + lb + '</span><span style="display:flex;gap:.35rem;align-items:center;"><small>Genetik</small>' + inp(gk, gv, '1', 100) + (k ? '<small>piping süresi (dk)</small>' + inp('piping.' + k, pg[k] != null ? pg[k] : 1, 'any', 600) : '') + '</span></label>'; }
   var pg = {};
   var AYS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
   function md(x) { var p = String(x || '').split('-'); return p.length === 2 ? Number(p[1]) + ' ' + AYS[Number(p[0]) - 1] : '—'; }
