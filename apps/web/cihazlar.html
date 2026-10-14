@@ -319,16 +319,19 @@
       { k: 'ir', l: 'IR (giriş sayacı)', tips: ['ir'], svg: '<path d="M6.5 12h3M14.5 12h3"/><circle cx="12" cy="12" r="1.6"/><path d="M8.2 8.2l1.8 1.8M15.8 8.2 14 10M8.2 15.8l1.8-1.8M15.8 15.8 14 14"/>' },
       { k: 'ses', l: 'Ses (mikrofon)', tips: ['ses', 'ses_titresim'], svg: '<path d="M6.5 10h2.4l3.3-2.8v9.6L8.9 14H6.5z"/><path d="M14.3 9.6a3.2 3.2 0 0 1 0 4.8M15.9 8a5.4 5.4 0 0 1 0 8"/>' },
       { k: 'titresim', l: 'Titreşim (ivmeölçer)', tips: ['titresim'], svg: '<path d="M4.8 12h2.4M16.8 12h2.4M7.6 8.2l1.7 1.7M14.7 14.1l1.7 1.7M7.6 15.8l1.7-1.7M14.7 9.9l1.7-1.7"/><rect x="10" y="7.2" width="4" height="9.6" rx="1.2"/>' },
+      { k: 'kamera_kovan', l: 'Kovan kamerası', tips: ['kamera_kovan', 'kovan_kamerasi'], svg: '<rect x="6.4" y="11.4" width="11.2" height="6.2" rx=".8"/><path d="M6 11.4h12M8.6 8.2h4.6v2.4H8.6z"/><circle cx="10.9" cy="9.4" r=".7"/>' },
+      { k: 'role_hub', l: 'Kablosuz röle / hub', tips: ['role_hub'], svg: '<circle cx="12" cy="12" r="1.8"/><circle cx="7" cy="8" r="1.3"/><circle cx="17" cy="8" r="1.3"/><circle cx="12" cy="17.4" r="1.3"/><path d="M10.6 10.9 8 8.9M13.4 10.9 16 8.9M12 13.8v2.3"/>' },
+      { k: 'aku_kovan', l: 'Kovan aküsü / paneli', tips: ['aku_kovan', 'gunes_kovan'], aku: true, svg: '<rect x="5.4" y="8.6" width="11.6" height="7.6" rx="1.2"/><path d="M17 11v2.6"/><path d="M8.2 12.4h2.4M9.4 11.2v2.4M12.6 12.4h2"/>' },
+      { k: 'aku_merkez', l: 'Merkezi akü / panel', tips: ['aku_merkez', 'gunes_aku', 'gunes_panel'], aku: true, svg: '<path d="M5 15.6 7.4 8.4h9.2L19 15.6z"/><path d="M6.2 12h11.6M10.4 8.4 9.6 15.6M13.6 8.4l.8 7.2M12 15.6v2.2M9.6 17.8h4.8"/>' },
       { k: 'gateway', l: 'Gateway', tips: ['gateway'], svg: '<path d="M12 11v7M9 18h6"/><path d="M9.2 8.6a4 4 0 0 1 5.6 0M7.2 6.6a6.8 6.8 0 0 1 9.6 0"/><circle cx="12" cy="11" r="1.2"/>' },
       { k: 'kamera_merkez', l: 'Merkezi kamera', tips: ['kamera_merkez', 'kamera_arilik', 'merkezi_kamera'], svg: '<rect x="5.6" y="8.4" width="9.4" height="7.4" rx="1.4"/><path d="M15 11l3.6-2v6L15 13z"/>' },
-      { k: 'kamera_kovan', l: 'Kovan kamerası', tips: ['kamera_kovan', 'kovan_kamerasi'], svg: '<rect x="6.4" y="11.4" width="11.2" height="6.2" rx=".8"/><path d="M6 11.4h12M8.6 8.2h4.6v2.4H8.6z"/><circle cx="10.9" cy="9.4" r=".7"/>' },
-      { k: 'role_hub', l: 'Kablosuz röle / hub', tips: ['role_hub'], svg: '<circle cx="12" cy="12" r="1.8"/><circle cx="7" cy="8" r="1.3"/><circle cx="17" cy="8" r="1.3"/><circle cx="12" cy="17.4" r="1.3"/><path d="M10.6 10.9 8 8.9M13.4 10.9 16 8.9M12 13.8v2.3"/>' }
+      { k: 'dis_isi_nem', l: 'Merkezi ısı / nem', tips: ['dis_isi_nem'], svg: '<path d="M9 13.6V7.6a1.6 1.6 0 0 1 3.2 0v6a2.7 2.7 0 1 1-3.2 0z"/><path d="M10.6 10.4v4.6"/><path d="M14.6 7.6a2.4 2.4 0 1 1 3 3.4"/><path d="M15 15.8h4M16.2 18h2.6"/>' }
     ];
     var scopeAp = params.get('apiary') || '';
     var all = devices.filter(function (d) { return !scopeAp || String(d.apiaryId) === String(scopeAp); });
     var tipSel = params.get('tip') || '';
     if (tipSel === 'ses_titresim') tipSel = 'ses';
-    var typeOf = function (d) { var t = String(d.tip || ''); return TYPES.filter(function (x) { return x.tips.indexOf(t) >= 0; })[0] || (Dev.isCamera && d.kind === 'kamera' ? TYPES[5] : null); };
+    var typeOf = function (d) { var t = String(d.tip || ''); return TYPES.filter(function (x) { return x.tips.indexOf(t) >= 0; })[0] || (Dev.isCamera && d.kind === 'kamera' ? TYPES.filter(function (x) { return x.k === 'kamera_merkez'; })[0] : null); };
     var low = function (d) { return Dev.isBatteryLow ? Dev.isBatteryLow(d) : (batteryPctOf(d) != null && batteryPctOf(d) <= 20); };
     var sum = function (list) {
       var o = { n: list.length, on: 0, off: 0, low: 0, last: null };
@@ -365,6 +368,14 @@
     grid.innerHTML = TYPES.map(function (t) {
       var l = all.filter(function (d) { var x = typeOf(d); return x && x.k === t.k; }), s0 = sum(l);
       var badgeText, badgeCls;
+      /* k157: akü/panel — batarya % ve şarj; kovan aküsü ayrı cihaz yoksa kovan cihazlarının batarya verisi kullanılır */
+      var akuL = !t.aku ? null : (l.length ? l : (t.k === 'aku_kovan' ? all.filter(function (d) { var x = typeOf(d); return d.hiveId != null && x && !x.aku && batteryPctOf(d) != null; }) : []));
+      var akuP = akuL ? akuL.map(batteryPctOf).filter(function (v) { return v != null && isFinite(v); }) : [];
+      if (t.aku && akuP.length) {
+        var avgP = Math.round(akuP.reduce(function (a2, b2) { return a2 + b2; }, 0) / akuP.length), chg = akuL.some(function (d) { return d.charging === true || d.sarj === true; });
+        badgeText = '%' + avgP + (chg ? ' · şarjda' : ''); badgeCls = avgP <= 20 ? 'red' : (avgP <= 40 ? 'orange' : 'green');
+        if (!s0.n) s0 = sum(akuL);
+      } else
       if (!s0.n) { badgeText = 'Yok'; badgeCls = 'gray'; }
       else if (s0.off) {
         badgeText = s0.on + ' / ' + s0.n + ' bağlı';

@@ -119,6 +119,9 @@
                 <option value="kamera_arilik">Arılık kamerası</option>
                 <option value="kamera_kovan">Kovan kamerası (isteğe bağlı)</option>
                 <option value="role_hub">Wireless röle / hub</option>
+                <option value="aku_kovan">Kovan aküsü / paneli (batarya %, şarj)</option>
+                <option value="aku_merkez">Merkezi akü / güneş paneli (batarya %, şarj)</option>
+                <option value="dis_isi_nem">Merkezi ısı / nem (dış ortam)</option>
               </select>
             </label>
             <label id="cihaz-hedef-label">Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
@@ -443,7 +446,10 @@
         kamera_arilik: 'Arılık kamerası',
         kamera_merkez: 'Arılık kamerası',
         kamera_kovan: 'Kovan kamerası',
-        role_hub: 'Wireless röle / hub'
+        role_hub: 'Wireless röle / hub',
+    aku_kovan: 'Kovan aküsü / paneli',
+    aku_merkez: 'Merkezi akü / panel',
+    dis_isi_nem: 'Merkezi ısı / nem'
       };
       var formWrap = document.getElementById('cihaz-form-wrap');
       var form = document.getElementById('cihaz-form');
@@ -509,7 +515,7 @@
       }
       function isApiaryTip(tip) {
         return tip === 'kamera_arilik' || tip === 'kamera_merkez' ||
-          tip === 'gateway' || tip === 'role_hub';
+          tip === 'gateway' || tip === 'role_hub' || tip === 'aku_merkez' || tip === 'dis_isi_nem';
       }
       var hedefLabel = document.getElementById('cihaz-hedef-label');
       var kameraHint = document.getElementById('cihaz-kamera-hint');

@@ -37,7 +37,10 @@
     kamera_arilik: 'Arılık kamerası',
     kamera_merkez: 'Arılık kamerası',
     kamera_kovan: 'Kovan kamerası',
-    role_hub: 'Wireless röle / hub'
+    role_hub: 'Wireless röle / hub',
+    aku_kovan: 'Kovan aküsü / paneli',
+    aku_merkez: 'Merkezi akü / panel',
+    dis_isi_nem: 'Merkezi ısı / nem'
   };
 
   /**
@@ -252,7 +255,7 @@
 
   function isApiaryTip(tip) {
     return tip === 'kamera_arilik' || tip === 'kamera_merkez' ||
-      tip === 'gateway' || tip === 'role_hub';
+      tip === 'gateway' || tip === 'role_hub' || tip === 'aku_merkez' || tip === 'dis_isi_nem';
   }
 
   function readJsonArray(key) {
