@@ -98,6 +98,12 @@
     if (parts.length) {
       list.push({ level: 'critical', key: 'crit|' + (ap ? ap.id : 'all') + '|' + sig.join(',') + '|' + t, text: shortJoin(parts), full: '⚠️ ' + parts.join(' · '), href: href });
     }
+    /* k139: yağmur uyarısı (≥1 mm veya ≥%60) */
+    var rn = opts.rain;
+    if (rn && rn.days && rn.days.length) {
+      var rtx = 'Yağmur: ' + rn.days.join(', ') + ' (' + rn.n + ' günde ' + rn.days.length + ' gün)';
+      list.push({ level: 'critical', kind: 'rain', key: 'rain|' + (ap ? ap.id : 'all') + '|' + rn.days.join('') + '|' + t, text: '🌧️ ' + rtx, full: rtx, href: 'hava-gecmis.html' + (ap ? '?apiary=' + encodeURIComponent(ap.id) : '') });
+    }
     if (inspectionSeason(ap)) {
       var od = overdueCount(sc);
       if (best && od) list.push({ level: 'muayene', key: 'muayene|' + (ap ? ap.id : 'all') + '|' + best.date + '|' + od, text: '🔍 ' + dayText(best) + ' · ' + od + ' gecikti', full: 'Muayene: ' + dayText(best) + ' uygun · ' + od + ' kovan gecikti', href: kol('guc', ap) });

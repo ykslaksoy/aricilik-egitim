@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-138 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-139 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
   <script>
@@ -274,7 +274,7 @@
   /* Butonlar %5 kısaldı; açılan alan hava kartına verildi */
   .weather {
     flex: 0 0 auto; background: #fff; border: 1px solid #e6e8ec; border-radius: 14px;
-    padding: 10px 10px 10px; margin-top: 0; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    padding: 14px 12px 14px; /* k139: biraz daha geniş iç alan */ margin-top: 0; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
     overflow: hidden; /* breed podium taşmasın, kart büyümüş gibi görünmesin */
   }
   .weather-top {
@@ -1061,14 +1061,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-138"></script>
+<script src="demo-data.js?v=koloni-139"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-138"></script>
-<script src="saglik-canli.js?v=koloni-138"></script>
+<script src="sensor-health.js?v=koloni-139"></script>
+<script src="saglik-canli.js?v=koloni-139"></script>
 <script src="hava-kayit.js"></script>
-<script src="ilac-katalog.js?v=koloni-138"></script>
-<script src="bakim-plan.js?v=koloni-138"></script>
-<script src="ana-ipucu.js?v=koloni-138"></script>
+<script src="ilac-katalog.js?v=koloni-139"></script>
+<script src="bakim-plan.js?v=koloni-139"></script>
+<script src="ana-ipucu.js?v=koloni-139"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
 (function () {
@@ -1104,16 +1104,16 @@
     var monday = new Date(todayY, todayM, todayD);
     var dow = monday.getDay(); // 0 Sun … 6 Sat
     var offsetToMon = dow === 0 ? -6 : 1 - dow;
-    monday.setDate(monday.getDate() + offsetToMon);
+    void offsetToMon; /* k139: kayan 7 gün — ilk gün bugün */
     for (var i = 0; i < days.length && i < 7; i++) {
       var d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
       var nameEl = days[i].querySelector('.day-name');
       var dateEl = days[i].querySelector('.day-date');
-      if (nameEl) nameEl.textContent = trShort[i];
+      if (nameEl) nameEl.textContent = labels[d.getDay()];
       if (dateEl) dateEl.textContent = String(d.getDate());
       var isToday = d.getFullYear() === todayY && d.getMonth() === todayM && d.getDate() === todayD;
       days[i].classList.toggle('is-today', isToday);
-      days[i].setAttribute('aria-label', trShort[i] + ' ' + d.getDate());
+      days[i].setAttribute('aria-label', labels[d.getDay()] + ' ' + d.getDate());
     }
     // silence unused (kept for clarity of JS day index)
     void labels;
@@ -1150,6 +1150,7 @@
     var weatherCache = {};
     var locked = false;
     var activeMuayeneTipDate = null;
+    var lastRain = null, critTipIdx = 0;
 
     if (tempEl) {
       tempEl.removeAttribute('data-locked');
@@ -1204,12 +1205,12 @@
       var now = new Date();
       var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       var dow = monday.getDay();
-      monday.setDate(monday.getDate() + (dow === 0 ? -6 : 1 - dow));
+      void dow; /* k139: kayan 7 gün */
       var byDate = {};
       for (var di = 0; di < daily.time.length; di++) {
         byDate[daily.time[di]] = di;
       }
-      var nDays = 0, nRain = 0;
+      var nDays = 0, rainLabels = [];
       for (var i = 0; i < days.length && i < 7; i++) {
         var d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
         var key =
@@ -1224,7 +1225,7 @@
         var pmm = daily.precipitation_sum ? Number(daily.precipitation_sum[mi]) || 0 : 0;
         var ppr = daily.precipitation_probability_max ? Number(daily.precipitation_probability_max[mi]) || 0 : 0;
         var rainy = pmm >= 1 || ppr >= 60;
-        nDays++; if (rainy) nRain++;
+        nDays++; if (rainy) rainLabels.push(['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'][d.getDay()]);
         days[i].classList.toggle('is-rain', rainy);
         if (rainy) days[i].setAttribute('title', 'Yağmur: ' + (Math.round(pmm * 10) / 10) + ' mm · %' + Math.round(ppr)); else days[i].removeAttribute('title');
         var tempsEl = days[i].querySelector('.day-temps');
@@ -1240,7 +1241,10 @@
       }
       var rs = document.getElementById('forecastRain');
       if (!rs) { rs = document.createElement('div'); rs.id = 'forecastRain'; rs.className = 'forecast-rain'; root.parentNode.insertBefore(rs, root.nextSibling); }
-      rs.textContent = nDays ? (nRain ? (nDays + ' günde ' + nRain + ' gün yağmur') : (nDays + ' günde yağmur yok')) : '';
+      rs.textContent = nDays ? (rainLabels.length ? (nDays + ' günde ' + rainLabels.length + ' gün yağmur') : (nDays + ' günde yağmur yok')) : '';
+      /* k139: yağmur → öncelikli uyarı bandı (seçili/sabit arılık) */
+      var ca = currentApiary && currentApiary();
+      lastRain = nDays ? { apiaryId: ca && ca.id, days: rainLabels, n: nDays } : null;
     }
 
     function fetchMeteo(lat, lon) {
@@ -1320,20 +1324,20 @@
       o[k] = now;
       try { localStorage.setItem(HINT_DISMISS_KEY, JSON.stringify(o)); } catch (e) { /* ignore */ }
     }
-    function smartTip(onlyLevel) {
+    function smartTip(onlyLevel, nth) {
       var A = window.SuperAriAnaIpucu;
       if (!A) return null;
       var a = currentApiary(), list = [];
-      try { list = A.candidates({ apiaryId: a && a.id, best: lastBest }); } catch (e) { list = []; }
-      var gone = readHintDismiss();
+      try { list = A.candidates({ apiaryId: a && a.id, best: lastBest, rain: (lastRain && a && lastRain.apiaryId === a.id) ? lastRain : null }); } catch (e) { list = []; }
+      var gone = readHintDismiss(), hits = [];
       for (var i = 0; i < list.length; i++) {
         var t = list[i];
         if (gone[t.key]) continue;
         if (t.level === 'hava' && isMuayeneDismissed(t.date)) continue;
         if (onlyLevel && onlyLevel.indexOf(t.level) < 0) continue;
-        return t;
+        hits.push(t);
       }
-      return null;
+      return hits.length ? hits[(nth || 0) % hits.length] : null;
     }
     function smartMeta(t) {
       return { sticky: false, fromSmart: true, fromAlert: t.level === 'critical', hintKey: t.key, level: t.level, full: t.full || t.text, href: t.href || currentApiaryHref() };
@@ -1478,7 +1482,7 @@
 
     function nextRotatingTip() {
       /* 1) Akıllı not: kritik / önemli durum özeti (Müdahale, kritik stok, anasız, kritik uyarı …) */
-      var crit = smartTip(['critical']);
+      var crit = smartTip(['critical'], critTipIdx++);
       if (crit) { activeMuayeneTipDate = null; activeAlertHref = crit.href; var cm = smartMeta(crit); cm.text = crit.text; return cm; }
       /* Priority: open hive alerts (same list as Uyarılar) at bee-exit dock */
       var alerts = openAlerts();
@@ -1553,7 +1557,7 @@
       /* Akıllı not: kritik durum → muayene ihtiyacı + uygun gün → hava ipucu → sezon notu */
       if (window.SuperAriAnaIpucu) {
         lastBest = window.SuperAriHava && daily ? window.SuperAriHava.bestInspectionDay(daily) : null;
-        var st = smartTip();
+        var st = smartTip(['critical'], critTipIdx++) || smartTip(); /* k139: kritik + yağmur sırayla */
         pendingMuayeneTip = st && st.level === 'hava' ? lastBest : null;
         if (!st) { if (!hintVisible) setHintDock(); return; }
         if (!hintVisible || (lastHintMeta && lastHintMeta.fromSmart && lastHintMeta.hintKey !== st.key && st.level === 'critical')) {
@@ -3209,8 +3213,8 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-138"></script>
-<script src="pwa.js?v=koloni-138"></script>
-<script src="esikler.js?v=koloni-138"></script>
+<script src="nav.js?v=koloni-139"></script>
+<script src="pwa.js?v=koloni-139"></script>
+<script src="esikler.js?v=koloni-139"></script>
 </body>
 </html>
