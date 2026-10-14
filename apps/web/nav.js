@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-136'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-136'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-137'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-137'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-136').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-137').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-136').catch(function () {});
+      return loadScript('koloni.js?v=koloni-137').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -851,7 +851,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-136').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-137').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -934,4 +934,26 @@
   setTimeout(refitShell, 0);
   setTimeout(refitShell, 400);
   setTimeout(refitShell, 1200);
+})(window);
+/* k137: iPhone Safari — çerçevenin alt kenarı görünür alanın (araç çubuğunun hemen üstü) en altına iner.
+   Yükseklik visualViewport'tan (--sa-vvh); yoksa 100dvh. Çerçeve dışı arka plan koyu (beyaz boşluk kalmaz). */
+(function (g) {
+  if (g.__saVvh) return; g.__saVvh = 1;
+  var d = document, st = d.createElement('style');
+  st.textContent = 'html.sa-phone-mobile,html.sa-phone-mobile body.sa-phone-mobile{background:#1b1b1d!important;height:100%;}' +
+    'html.sa-phone-mobile body.sa-phone-mobile .phone.phone{bottom:auto!important;height:calc(var(--sa-vvh,100dvh) - var(--sa-top,4px) - 5px)!important;}' +
+    '@supports not (height:100dvh){html.sa-phone-mobile body.sa-phone-mobile .phone.phone{height:calc(var(--sa-vvh,100vh) - var(--sa-top,4px) - 5px)!important;}}';
+  (d.head || d.documentElement).appendChild(st);
+  var raf = 0;
+  function set() {
+    raf = 0;
+    var vv = g.visualViewport, h = vv ? vv.height + (vv.offsetTop || 0) : g.innerHeight;
+    if (h > 0) d.documentElement.style.setProperty('--sa-vvh', Math.round(h) + 'px');
+    var ph = d.querySelector('.phone'); if (ph) { var t = parseFloat(getComputedStyle(ph).top); if (isFinite(t)) d.documentElement.style.setProperty('--sa-top', t + 'px'); }
+  }
+  function q() { if (!raf) raf = (g.requestAnimationFrame || setTimeout)(set); }
+  set();
+  g.addEventListener('resize', q); g.addEventListener('orientationchange', function () { setTimeout(set, 250); }); g.addEventListener('pageshow', q);
+  if (g.visualViewport) { g.visualViewport.addEventListener('resize', q); g.visualViewport.addEventListener('scroll', q); }
+  d.addEventListener('DOMContentLoaded', set); setTimeout(set, 400);
 })(window);
