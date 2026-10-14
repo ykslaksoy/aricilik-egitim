@@ -8,7 +8,7 @@ assert.strictEqual(C.swarm(h,'2026-10-13').ors.mevsim,15);
 C=load({'superari.ogul.skor.v1':JSON.stringify({data:{donem:{a1:{from:'10-01',to:'10-31',isCustomPeriod:true}}}})});
 const a=C.swarm(h,'2026-10-13');assert.strictEqual(a.ors.mevsim,100,'override used');assert.ok(a.season.custom);
 C=load({'superari.ogul.skor.v1':JSON.stringify({data:{donem:{a1:{from:'10-01',to:'10-31',isCustomPeriod:false}}}})});
-assert.strictEqual(C.swarm(h,'2026-10-13').ors.mevsim,50,'isCustomPeriod false → auto');
+assert.strictEqual(C.swarm(h,'2026-10-13').ors.mevsim,15,'isCustomPeriod false → auto');
 assert.strictEqual(Object.keys(C.ogulSkorMerge({donem:{a1:{from:'12-01',to:'01-10',isCustomPeriod:true}}}).donem).length,0,'invalid range dropped');
 const y=fs.readFileSync(path.join(W,'yonetici.html'),'utf8');assert.ok(y.includes('Otomatik hesaplamaya dön')&&y.includes("dn-from"));
 assert.ok(/"donem"/.test(fs.readFileSync(path.join(W,'..','..','supabase/migrations/20261013190000_ogul_skor_ayar.sql'),'utf8')));
