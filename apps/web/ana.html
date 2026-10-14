@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-140 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-141 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
   <script>
@@ -1061,14 +1061,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-140"></script>
+<script src="demo-data.js?v=koloni-141"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-140"></script>
-<script src="saglik-canli.js?v=koloni-140"></script>
+<script src="sensor-health.js?v=koloni-141"></script>
+<script src="saglik-canli.js?v=koloni-141"></script>
 <script src="hava-kayit.js"></script>
-<script src="ilac-katalog.js?v=koloni-140"></script>
-<script src="bakim-plan.js?v=koloni-140"></script>
-<script src="ana-ipucu.js?v=koloni-140"></script>
+<script src="ilac-katalog.js?v=koloni-141"></script>
+<script src="bakim-plan.js?v=koloni-141"></script>
+<script src="ana-ipucu.js?v=koloni-141"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
 (function () {
@@ -1640,8 +1640,18 @@
       var a = currentApiary();
       writeSelectedApiary();
       var q = a && a.id ? ('?apiary=' + encodeURIComponent(a.id)) : '';
-      window.location.href = 'hava-raporu.html' + q;
+      window.location.href = 'hava.html' + q; /* k140: kart/derece → Hava sayfası (10 günlük tahmin) */
     }
+    (function bindWeatherCard() {
+      var card = document.getElementById('weatherStrip');
+      if (!card) return;
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('button, a, input, select, label, .muayene-hint, #muayeneHint, .arilik-loc-controls, .bee-sound-toggle, [role="button"]')) return;
+        if (e.target.closest && e.target.closest('#weatherTemp')) return;
+        openHavaRaporu();
+      });
+    })();
 
     if (tempEl) {
       tempEl.addEventListener('click', openHavaRaporu);
@@ -3213,8 +3223,8 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-140"></script>
-<script src="pwa.js?v=koloni-140"></script>
-<script src="esikler.js?v=koloni-140"></script>
+<script src="nav.js?v=koloni-141"></script>
+<script src="pwa.js?v=koloni-141"></script>
+<script src="esikler.js?v=koloni-141"></script>
 </body>
 </html>

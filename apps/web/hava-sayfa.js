@@ -1,0 +1,214 @@
+/* SüperArı · Hava sayfası (Bakım düzeni): özet kart + kare ızgara; her kare kendi detayını açar (#10gun, #saatlik …). */
+(function () {
+  var D = window.SuperAriDemo;
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
+  (function () { var el = $('statusClock'); if (!el) return; function t() { var n = new Date(); el.textContent = n.getHours() + ':' + (n.getMinutes() < 10 ? '0' : '') + n.getMinutes(); } t(); setInterval(t, 1000); })();
+
+  var LOCK_KEY = 'superari.ana.arilikLock', SEL_KEY = 'superari.ana.selectedApiary', CACHE = 'superari.hava.tahmin.v1.';
+  var GUN = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  var YON = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
+  var aps = [];
+  try { aps = (D && D.loadApiaries ? D.loadApiaries() : []).filter(function (a) { return a && a.lat != null && a.lon != null; }); } catch (e) { aps = []; }
+  function pinned() { try { var p = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null'); return p && p.locked && p.id ? String(p.id) : null; } catch (e) { return null; } }
+  function selected() { try { var s = JSON.parse(localStorage.getItem(SEL_KEY) || 'null'); return s && s.id ? String(s.id) : null; } catch (e) { return null; } }
+  var q = new URLSearchParams(location.search);
+  var cur = q.get('apiary') || pinned() || selected() || (aps[0] && aps[0].id);
+  function idxOf(id) { for (var i = 0; i < aps.length; i++) if (String(aps[i].id) === String(id)) return i; return 0; }
+  var idx = idxOf(cur);
+  var data = null;
+
+  function num(v) { var n = Number(v); return isFinite(n) ? n : null; }
+  function r0(v) { var n = num(v); return n == null ? '—' : Math.round(n); }
+  function dayLab(iso, i) { var d = new Date(iso + 'T12:00:00'); return i === 0 ? 'Bugün' : GUN[d.getDay()]; }
+  function rainy(d) { return (d.mm || 0) >= 1 || (d.pr || 0) >= 60; }
+  /* Arı uçuşu: ≥15° max, rüzgar ≤20 km/s, yağış yok/az → uygun; ≥12°, ≤30 km/s, olasılık <70 → kısmen */
+  function flight(d) {
+    if (d.hi == null) return 'no';
+    if (d.hi >= 15 && (d.wind || 0) <= 20 && (d.mm || 0) < 1 && (d.pr || 0) < 50) return 'ok';
+    if (d.hi >= 12 && (d.wind || 0) <= 30 && (d.pr || 0) < 70) return 'part';
+    return 'no';
+  }
+  var FL = { ok: 'Uçuş uygun', part: 'Kısmen', no: 'Uygun değil' };
+  function ico(code, mm) {
+    var c = Number(code) || 0;
+    if (c >= 95) return '⛈️'; if ((c >= 71 && c <= 77) || c === 85 || c === 86) return '🌨️'; if (c >= 51 || (mm || 0) >= 1) return '🌧️';
+    if (c >= 45) return '🌫️'; if (c >= 3) return '☁️'; if (c >= 1) return '⛅'; return '☀️';
+  }
+
+  function parse(j) {
+    var dl = j.daily || {}, out = { days: [], hours: [] };
+    (dl.time || []).forEach(function (t, i) {
+      out.days.push({ date: t, hi: num(dl.temperature_2m_max[i]), lo: num(dl.temperature_2m_min[i]), mm: num((dl.precipitation_sum || [])[i]) || 0,
+        pr: num((dl.precipitation_probability_max || [])[i]) || 0, wind: num((dl.wind_speed_10m_max || [])[i]), gust: num((dl.wind_gusts_10m_max || [])[i]),
+        dir: num((dl.wind_direction_10m_dominant || [])[i]), rh: num((dl.relative_humidity_2m_mean || [])[i]), code: (dl.weather_code || [])[i] });
+    });
+    var h = j.hourly || {}, now = Date.now();
+    (h.time || []).forEach(function (t, i) {
+      var ms = new Date(t).getTime(); if (ms < now - 3600e3 || out.hours.length >= 36) return;
+      out.hours.push({ t: t, temp: num(h.temperature_2m[i]), pr: num((h.precipitation_probability || [])[i]) || 0, mm: num((h.precipitation || [])[i]) || 0,
+        wind: num((h.wind_speed_10m || [])[i]), rh: num((h.relative_humidity_2m || [])[i]), code: (h.weather_code || [])[i] });
+    });
+    return out;
+  }
+  function fetchFc(a) {
+    var key = CACHE + a.id;
+    try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return Promise.resolve(c.d); } catch (e) { /* ignore */ }
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + a.lat + '&longitude=' + a.lon +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,relative_humidity_2m_mean,weather_code' +
+      '&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,weather_code' +
+      '&timezone=auto&forecast_days=10';
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error('hava_' + r.status); return r.json(); }).then(function (j) {
+      var d = parse(j); try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), d: d })); } catch (e) { /* ignore */ }
+      return d;
+    }).catch(function () {
+      try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c) return c.d; } catch (e) { /* ignore */ }
+      return null;
+    });
+  }
+
+  /* Bakım ızgarası ile aynı kovan kutusu + yakma damga simgesi */
+  var BURN = {
+    gun10: '<rect x="6.8" y="7.6" width="10.4" height="9.6" rx="1.2"/><path d="M6.8 10.6h10.4M9.6 6.2v2.6M14.4 6.2v2.6"/><path d="M9.2 14h5.6"/>',
+    saatlik: '<circle cx="12" cy="12" r="5.6"/><path d="M12 8.8V12l2.4 1.6"/>',
+    yagis: '<path d="M8 11.6a3.6 3.6 0 0 1 7-1.2 2.6 2.6 0 0 1 .6 5.1H8.6A2 2 0 0 1 8 11.6z"/><path d="M9.6 17.4l-.6 1.4M12.6 17.4l-.6 1.4"/>',
+    ruzgar: '<path d="M5.8 10h8.4a2 2 0 1 0-2-2M5.8 13.4h10.6a2 2 0 1 1-2 2"/>',
+    nem: '<path d="M12 5.8c2.4 3 3.8 5.2 3.8 7.1a3.8 3.8 0 0 1-7.6 0c0-1.9 1.4-4.1 3.8-7.1z"/><path d="M10.2 13.8l3.6-2.4"/>',
+    ucus: '<ellipse cx="12" cy="13" rx="2.4" ry="3.4"/><path d="M9.8 11.4c-2.2-1.6-4-1-4 .4s2 1.8 4 .8M14.2 11.4c2.2-1.6 4-1 4 .4s-2 1.8-4 .8M12 9.6V8"/>',
+    ariliklar: '<path d="M12 6.2c-2.4 0-4.2 1.8-4.2 4.1 0 3 4.2 7.3 4.2 7.3s4.2-4.3 4.2-7.3c0-2.3-1.8-4.1-4.2-4.1z"/><circle cx="12" cy="10.4" r="1.5"/>',
+    gecmis: '<path d="M6.6 12a5.4 5.4 0 1 0 1.6-3.8"/><path d="M6.4 6.8v2.6H9"/><path d="M12 9.4V12l1.8 1.2"/>',
+    rapor: '<rect x="7" y="6" width="10" height="12" rx="1.4"/><path d="M9.4 15v-2.4M12 15v-4.4M14.6 15v-3.2"/>'
+  };
+  function hiveHTML(key) {
+    return '<div class="hive-area"><div class="hive"><div class="hive-stack"><div class="hive-lid"></div><div class="hive-box top"></div>' +
+      '<div class="hive-box bottom"><div class="hive-entrance"></div><div class="hive-door" aria-hidden="true"></div></div>' +
+      '<div class="hive-feet"><span></span><span></span></div></div><div class="hive-shadow"></div>' +
+      '<div class="hive-icon hive-icon-burn" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="burn-ring" cx="12" cy="12" r="10.2"/>' + BURN[key] + '</svg></div></div></div>';
+  }
+  function ap() { return aps[idx] || null; }
+  function apQ() { var a = ap(); return a ? '?apiary=' + encodeURIComponent(a.id) : ''; }
+
+  function tiles() {
+    var d = data && data.days || [], rainN = d.filter(rainy).length, okN = d.filter(function (x) { return flight(x) === 'ok'; }).length;
+    var maxW = d.reduce(function (m, x) { return Math.max(m, x.wind || 0); }, 0);
+    var h0 = data && data.hours && data.hours[0];
+    var rh = d[0] && d[0].rh != null ? Math.round(d[0].rh) : null;
+    var has = !!d.length;
+    return [
+      { key: 'gun10', label: '10 günlük tahmin', href: '#10gun', badge: has ? d.length + ' gün' : '—', tone: 'blue' },
+      { key: 'saatlik', label: 'Saatlik', href: '#saatlik', badge: h0 ? r0(h0.temp) + '° şimdi' : '—', tone: 'tan' },
+      { key: 'yagis', label: 'Yağış', href: '#yagis', badge: has ? (rainN ? rainN + ' gün yağmur' : 'Yağmur yok') : '—', tone: rainN ? 'blue' : 'green' },
+      { key: 'ruzgar', label: 'Rüzgar', href: '#ruzgar', badge: has ? 'en çok ' + Math.round(maxW) + ' km/s' : '—', tone: maxW > 30 ? 'red' : 'tan' },
+      { key: 'nem', label: 'Nem', href: '#nem', badge: rh != null ? '%' + rh : '—', tone: 'tan' },
+      { key: 'ucus', label: 'Uçuş uygunluğu', href: '#ucus', badge: has ? okN + ' uygun gün' : '—', tone: okN ? 'green' : 'red' },
+      { key: 'ariliklar', label: 'Arılıklar', href: 'ariliklar.html', badge: String(aps.length), tone: 'tan' },
+      { key: 'gecmis', label: 'Geçmiş hava', href: 'hava-gecmis.html' + apQ(), badge: '', tone: 'tan' },
+      { key: 'rapor', label: 'Hava raporu', href: 'hava-raporu.html' + apQ(), badge: '', tone: 'tan' }
+    ];
+  }
+  function renderGrid() {
+    $('grid').innerHTML = tiles().map(function (t) {
+      var show = t.badge && t.badge !== '—';
+      return '<a class="tile" data-key="' + t.key + '" href="' + esc(t.href) + '" aria-label="' + esc(t.label + (show ? ', ' + t.badge : '')) + '">' + hiveHTML(t.key) +
+        '<div class="tile-label">' + esc(t.label) + '</div>' + (show ? '<div class="badge ' + t.tone + '">' + esc(t.badge) + '</div>' : '') + '</a>';
+    }).join('');
+  }
+  var ICO = {
+    t: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="8.4" y="3" width="3.2" height="10" rx="1.6" fill="#fff" stroke="#e03131" stroke-width="1"/><circle cx="10" cy="14.6" r="2.6" fill="#e03131"/></svg>',
+    r: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5c2.6 3.3 4.1 5.6 4.1 7.7a4.1 4.1 0 0 1-8.2 0c0-2.1 1.5-4.4 4.1-7.7z" fill="#d0ebff" stroke="#5b8def" stroke-width="1"/></svg>',
+    f: '<svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="11" rx="3" ry="4" fill="#f7b731" stroke="#5c3a1f" stroke-width=".9"/><path d="M7.4 9c-2.4-1.8-4.2-.8-3.8.6.4 1.2 2.2 1.2 3.8.4M12.6 9c2.4-1.8 4.2-.8 3.8.6-.4 1.2-2.2 1.2-3.8.4" fill="#e7f5ff" stroke="#9aa8b8" stroke-width=".8"/></svg>',
+    w: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 8h9a2 2 0 1 0-2-2M3.5 12h11a2 2 0 1 1-2 2" fill="none" stroke="#5b8def" stroke-width="1.6" stroke-linecap="round"/></svg>'
+  };
+  function renderScope() {
+    var a = ap();
+    $('bkLabel').textContent = a ? (a.place || a.name) : '—';
+    $('bkLabel').title = a ? a.name : '';
+    var multi = aps.length > 1; $('bkPrev').disabled = !multi; $('bkNext').disabled = !multi;
+    $('bkMode').hidden = live();
+    var d = data && data.days || [], t0 = d[0] || {}, h0 = data && data.hours && data.hours[0];
+    var rainD = d.slice(0, 7).filter(rainy), okD = d.filter(function (x) { return flight(x) === 'ok'; });
+    var stats = [
+      { k: 't', v: h0 ? r0(h0.temp) + '°' : (t0.hi != null ? r0(t0.hi) + '°' : '—'), l: t0.hi != null ? 'Bugün ' + r0(t0.lo) + '°/' + r0(t0.hi) + '°' : 'Sıcaklık', href: '#saatlik' },
+      { k: 'r', v: d.length ? String(rainD.length) : '—', l: '7 günde yağmur', href: '#yagis' },
+      { k: 'f', v: d.length ? String(okD.length) : '—', l: 'Uçuşa uygun gün', href: '#ucus' },
+      { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#ruzgar' }
+    ];
+    $('bkStats').innerHTML = stats.map(function (x) {
+      return '<a class="bk-stat" data-stat="' + x.k + '" href="' + x.href + '">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
+    }).join('');
+    var note;
+    if (!data) note = { t: 'Tahmin alınamadı — bağlantıyı kontrol edin', b: 'Yenile', h: '#' };
+    else if (okD.length) note = { t: '🐝 Uçuş uygun: ' + okD.slice(0, 4).map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', '), b: 'Uçuş', h: '#ucus' };
+    else if (rainD.length) note = { t: '🌧️ ' + rainD.map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', ') + ' yağmur', b: 'Yağış', h: '#yagis' };
+    else note = { t: 'Önümüzdeki günlerde uçuşa uygun gün yok', b: '10 gün', h: '#10gun' };
+    $('bkNoteText').textContent = note.t; $('bkNoteBtn').textContent = note.b; $('bkNote').setAttribute('href', note.h);
+  }
+
+  function backBtn() { return '<button type="button" class="sa-back hv-back" data-hv-back>‹ Geri</button>'; }
+  function head(t, s) { return '<div class="hv-h">' + esc(t) + '</div>' + (s ? '<div class="hv-sub">' + esc(s) + '</div>' : ''); }
+  function dirTxt(deg) { return deg == null ? '' : YON[Math.round(deg / 45) % 8]; }
+  function dayCard(x, i) {
+    var f = flight(x);
+    return '<div class="hv-card ' + (f === 'no' ? '' : f) + '"><div class="hv-d"><b>' + esc(dayLab(x.date, i)) + '</b><span>' + ico(x.code, x.mm) + '</span></div>' +
+      '<div class="hv-t">' + r0(x.hi) + '°<span class="lo"> / ' + r0(x.lo) + '°</span></div>' +
+      '<div class="hv-fl ' + f + '">' + (f === 'ok' ? '🐝 ' : '') + FL[f] + '</div>' +
+      '<div class="hv-m"><span>💧 ' + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span><span>💨 ' + r0(x.wind) + ' km/s ' + dirTxt(x.dir) + '</span><span>Nem %' + r0(x.rh) + '</span></div></div>';
+  }
+  function hrLab(t) { return t.slice(11, 16); }
+  function view(name) {
+    var a = ap(), d = data && data.days || [], hs = data && data.hours || [], sub = a ? a.name : '';
+    if (!data) return head('Hava', sub) + '<div class="hv-empty">Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.</div>';
+    if (name === '10gun') return head('10 günlük tahmin', sub + ' · 🐝 uçuş uygun günler yeşil') + d.map(dayCard).join('');
+    if (name === 'ucus') {
+      return head('Arı uçuşu uygunluğu', 'Uygun: en yüksek ≥15°, rüzgar ≤20 km/s, yağış yok') + d.map(dayCard).join('');
+    }
+    if (name === 'yagis') return head('Yağış', sub + ' · yağmurlu gün: ≥1 mm veya ≥%60') + d.map(function (x, i) {
+      return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.pr || 0)) + '%"></i></span><span class="v" style="flex:0 0 96px;text-align:right">' + (rainy(x) ? '🌧️ ' : '') + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span></div>';
+    }).join('');
+    if (name === 'ruzgar') return head('Rüzgar', sub + ' · günlük en yüksek / hamle') + d.map(function (x, i) {
+      return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="v">💨 ' + r0(x.wind) + ' km/s · hamle ' + r0(x.gust) + ' km/s · ' + dirTxt(x.dir) + '</span>' + ((x.wind || 0) > 30 ? '<span class="hv-fl no">Kuvvetli</span>' : '') + '</div>';
+    }).join('');
+    if (name === 'nem') return head('Nem', sub + ' · günlük ortalama bağıl nem') + d.map(function (x, i) {
+      return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.rh || 0)) + '%;background:#74c0fc"></i></span><span class="v" style="flex:0 0 48px;text-align:right">%' + r0(x.rh) + '</span></div>';
+    }).join('');
+    if (name === 'saatlik') return head('Saatlik', sub + ' · önümüzdeki 36 saat') + hs.map(function (h) {
+      var hr = Number(h.t.slice(11, 13)), okH = hr >= 8 && hr <= 19 && (h.temp || 0) >= 12 && (h.wind || 0) <= 20 && (h.pr || 0) < 40;
+      return '<div class="hv-row"><span class="k">' + hrLab(h.t) + '</span><span class="v">' + ico(h.code, h.mm) + ' ' + r0(h.temp) + '° · 💧%' + Math.round(h.pr) + ' · 💨' + r0(h.wind) + ' · Nem %' + r0(h.rh) + '</span>' + (okH ? '<span title="Uçuş uygun">🐝</span>' : '') + '</div>';
+    }).join('');
+    return '';
+  }
+  function route() {
+    var h = (location.hash || '').replace('#', '');
+    var ok = { '10gun': 1, saatlik: 1, yagis: 1, ruzgar: 1, nem: 1, ucus: 1 }[h];
+    document.body.classList.toggle('hv-in-detail', !!ok);
+    $('hvDetail').innerHTML = ok ? view(h) : '';
+    var sc = document.querySelector('.phone>.screen'), dv = $('hvDetail');
+    void dv; if (sc) sc.scrollTop = 0;
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-hv-back]');
+    if (b) { e.preventDefault(); if (history.length > 1 && document.referrer.indexOf('hava.html') >= 0) history.back(); else location.hash = ''; return; }
+    var n = e.target.closest && e.target.closest('#bkNote');
+    if (n && n.getAttribute('href') === '#') { e.preventDefault(); load(true); }
+  });
+  window.addEventListener('hashchange', route);
+
+  function load(force) {
+    var a = ap();
+    if (!a) { data = null; renderAll(); return; }
+    try { localStorage.setItem(SEL_KEY, JSON.stringify({ id: a.id, label: a.place || a.name, at: Date.now() })); } catch (e) { /* ignore */ }
+    if (force) { try { localStorage.removeItem(CACHE + a.id); } catch (e) { /* ignore */ } }
+    fetchFc(a).then(function (d) { if (ap() !== a) return; data = d; renderAll(); });
+  }
+  function renderAll() { renderGrid(); renderScope(); route(); }
+  function step(k) {
+    if (!aps.length) return; idx = ((idx + k) % aps.length + aps.length) % aps.length; data = null;
+    var p = pinned(); if (p) { try { localStorage.setItem(LOCK_KEY, JSON.stringify({ locked: true, id: String(ap().id) })); } catch (e) { /* ignore */ } }
+    try { var u = new URLSearchParams(location.search); u.set('apiary', ap().id); history.replaceState(null, '', 'hava.html?' + u.toString() + location.hash); } catch (e) { /* ignore */ }
+    renderAll(); load();
+  }
+  $('bkPrev').addEventListener('click', function () { step(-1); });
+  $('bkNext').addEventListener('click', function () { step(1); });
+  renderAll(); load();
+})();
