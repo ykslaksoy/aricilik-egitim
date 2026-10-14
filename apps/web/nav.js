@@ -35,17 +35,22 @@
       })();
     }
     /** Yerinde yeniden çizim: fn() öncesi konum/yükseklik saklanır, sonra geri yüklenir. */
-    function keep(fn) { var y = getY(), h = height(); try { return fn(); } finally { settle(y, h, 400); } }
+    var kept = null;
+    function keep(fn) { var y = getY(), h = height(), prev = kept; kept = { y: y, h: h }; try { return fn(); } finally { kept = prev; settle(y, h, 400); } }
     /** Yeniden yükleme: konum saklanır, yeni sayfa açılınca geri yüklenir. */
     function reload() {
-      try { global.sessionStorage.setItem(KEY, JSON.stringify({ p: location.pathname, y: getY(), h: height(), at: Date.now() })); } catch (e) { /* ignore */ }
+      try { /* k160: yeniden çizim içerikten önce boşaltıp sayfayı kısalttıysa konum 0'a düşmüş olur — keep() öncesi değer esas */
+      global.sessionStorage.setItem(KEY, JSON.stringify({ p: location.pathname, y: kept ? kept.y : getY(), h: kept ? kept.h : height(), at: Date.now() })); } catch (e) { /* ignore */ }
       global.location.reload();
     }
     function restore() {
       var r = null; try { r = JSON.parse(global.sessionStorage.getItem(KEY) || 'null'); global.sessionStorage.removeItem(KEY); } catch (e) { r = null; }
       if (!r || r.p !== location.pathname || Date.now() - r.at > 15000) return;
       try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { /* ignore */ }
-      settle(r.y, r.h, 1500);
+      /* k160: yeni sayfa içerik dolmadan kısa kalırsa kaydırma sıkışır — yükseklik önce sabitlenir, konum hemen verilir */
+      try { document.documentElement.style.minHeight = (r.h || 0) + 'px'; } catch (e) { /* ignore */ }
+      setY(r.y); settle(r.y, r.h, 1500);
+      setTimeout(function () { document.documentElement.style.minHeight = ''; }, 1600);
     }
     ['touchstart', 'wheel', 'keydown'].forEach(function (ev) { global.addEventListener(ev, function () { touched = true; }, { passive: true, capture: true }); });
     global.addEventListener('scroll', function () { if (pad && touched && getY() < 40) pad.style.height = '0px'; }, { passive: true, capture: true });
@@ -146,8 +151,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-159'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-159'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-160'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-160'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -173,11 +178,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-159').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-160').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-159').catch(function () {});
+      return loadScript('koloni.js?v=koloni-160').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -921,7 +926,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-159').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-160').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -1090,7 +1095,7 @@
   (d.head || d.documentElement).appendChild(st);
 })(window);
 
-/* koloni-159: telefon maketi sayfayla birlikte kayar; ekran içi sabit (durum çubuğu altında başlar) */
+/* koloni-160: telefon maketi sayfayla birlikte kayar; ekran içi sabit (durum çubuğu altında başlar) */
 (function(){
   if (typeof document === 'undefined') return;
   var F = 'html.sa-phone-mobile:not(.sa-standalone) body.sa-phone-mobile';
@@ -1123,7 +1128,7 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 
-/* koloni-159: iPhone 12 ekranı — alt kestirme çubuğu ekranın dibinde sabit (home indicator üstünde); yalnız .screen kayar, çubuk kaydırmada oynamaz */
+/* koloni-160: iPhone 12 ekranı — alt kestirme çubuğu ekranın dibinde sabit (home indicator üstünde); yalnız .screen kayar, çubuk kaydırmada oynamaz */
 (function(){
   if (typeof document === 'undefined') return;
   var P = 'html.sa-iphone12 body.sa-iphone12 .phone.phone';
@@ -1136,7 +1141,7 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 
-/* koloni-159: telefonda (Safari) çerçeve içi kaydırma yok — ekran içerik boyunca uzar, yalnız sayfa kayar, tüm telefon onunla hareket eder;
+/* koloni-160: telefonda (Safari) çerçeve içi kaydırma yok — ekran içerik boyunca uzar, yalnız sayfa kayar, tüm telefon onunla hareket eder;
    alt kestirme çubuğu sayfaya göre sticky: görünür alanın dibinde kalır, en sonda çerçevenin altına oturur (araç çubuğu değişse de kaybolmaz) */
 (function(){
   if (typeof document === 'undefined') return;
