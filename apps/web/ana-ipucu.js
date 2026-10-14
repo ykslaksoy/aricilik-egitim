@@ -101,7 +101,7 @@
     /* k139: yağmur uyarısı (≥1 mm veya ≥%60) */
     var rn = opts.rain;
     if (rn && rn.days && rn.days.length) {
-      var rtx = 'Yağmur: ' + rn.days.join(', ') + ' (' + rn.n + ' günde ' + rn.days.length + ' gün)';
+      var rtx = rn.days.join(', ') + ' yağmur';
       list.push({ level: 'critical', kind: 'rain', key: 'rain|' + (ap ? ap.id : 'all') + '|' + rn.days.join('') + '|' + t, text: '🌧️ ' + rtx, full: rtx, href: 'hava-gecmis.html' + (ap ? '?apiary=' + encodeURIComponent(ap.id) : '') });
     }
     if (inspectionSeason(ap)) {

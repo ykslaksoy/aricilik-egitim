@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-139 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-140 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
   <script>
@@ -1061,14 +1061,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-139"></script>
+<script src="demo-data.js?v=koloni-140"></script>
 <script src="device-runtime.js"></script>
-<script src="sensor-health.js?v=koloni-139"></script>
-<script src="saglik-canli.js?v=koloni-139"></script>
+<script src="sensor-health.js?v=koloni-140"></script>
+<script src="saglik-canli.js?v=koloni-140"></script>
 <script src="hava-kayit.js"></script>
-<script src="ilac-katalog.js?v=koloni-139"></script>
-<script src="bakim-plan.js?v=koloni-139"></script>
-<script src="ana-ipucu.js?v=koloni-139"></script>
+<script src="ilac-katalog.js?v=koloni-140"></script>
+<script src="bakim-plan.js?v=koloni-140"></script>
+<script src="ana-ipucu.js?v=koloni-140"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
 (function () {
@@ -1241,7 +1241,7 @@
       }
       var rs = document.getElementById('forecastRain');
       if (!rs) { rs = document.createElement('div'); rs.id = 'forecastRain'; rs.className = 'forecast-rain'; root.parentNode.insertBefore(rs, root.nextSibling); }
-      rs.textContent = nDays ? (rainLabels.length ? (nDays + ' günde ' + rainLabels.length + ' gün yağmur') : (nDays + ' günde yağmur yok')) : '';
+      rs.textContent = nDays ? (rainLabels.length ? (rainLabels.length + ' gün yağmur') : 'Yağmur yok') : '';
       /* k139: yağmur → öncelikli uyarı bandı (seçili/sabit arılık) */
       var ca = currentApiary && currentApiary();
       lastRain = nDays ? { apiaryId: ca && ca.id, days: rainLabels, n: nDays } : null;
@@ -3213,8 +3213,8 @@
 
 })();
 </script>
-<script src="nav.js?v=koloni-139"></script>
-<script src="pwa.js?v=koloni-139"></script>
-<script src="esikler.js?v=koloni-139"></script>
+<script src="nav.js?v=koloni-140"></script>
+<script src="pwa.js?v=koloni-140"></script>
+<script src="esikler.js?v=koloni-140"></script>
 </body>
 </html>
