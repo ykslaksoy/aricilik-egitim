@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-158" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-158" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-158" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-159" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-159" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-159" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -124,15 +124,15 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-158"></script>
-<script src="demo-data.js?v=koloni-158"></script>
-<script src="device-runtime.js?v=koloni-158"></script>
-<script src="sensor-polling.js?v=koloni-158"></script>
-<script src="tarti-bakim-delta.js?v=koloni-158"></script>
-<script src="tarti-elle.js?v=koloni-158"></script>
-<script src="tarti-rotasyon.js?v=koloni-158"></script>
-<script src="kapsam.js?v=koloni-158"></script>
-<script src="ks-sayfa.js?v=koloni-158"></script>
+<script src="bk-kabuk.js?v=koloni-159"></script>
+<script src="demo-data.js?v=koloni-159"></script>
+<script src="device-runtime.js?v=koloni-159"></script>
+<script src="sensor-polling.js?v=koloni-159"></script>
+<script src="tarti-bakim-delta.js?v=koloni-159"></script>
+<script src="tarti-elle.js?v=koloni-159"></script>
+<script src="tarti-rotasyon.js?v=koloni-159"></script>
+<script src="kapsam.js?v=koloni-159"></script>
+<script src="ks-sayfa.js?v=koloni-159"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -328,6 +328,10 @@
       { k: 'dis_isi_nem', l: 'Merkezi ısı / nem', tips: ['dis_isi_nem'], svg: '<path d="M9 13.6V7.6a1.6 1.6 0 0 1 3.2 0v6a2.7 2.7 0 1 1-3.2 0z"/><path d="M10.6 10.4v4.6"/><path d="M14.6 7.6a2.4 2.4 0 1 1 3 3.4"/><path d="M15 15.8h4M16.2 18h2.6"/>' }
     ];
     var scopeAp = params.get('apiary') || '';
+    function okList(tip, n) { try { return (D.colony && D.colony.sensorOkumalar) ? D.colony.sensorOkumalar({ tip: tip, apiaryId: scopeAp || null, limit: n || 30 }) : []; } catch (e) { return []; } }
+    function okSon(tip) { var l = okList(tip, 60), o = { isi: null, nem: null, ts: null }; l.forEach(function (x) { if (o.isi == null && x.isi != null) { o.isi = x.isi; o.ts = o.ts || x.ts; } if (o.nem == null && x.nem != null) { o.nem = x.nem; o.ts = o.ts || x.ts; } }); return o.isi == null && o.nem == null ? null : o; }
+    function okNum(v) { return String(v).replace('.', ','); }
+    function okFmt(o) { return [o.isi != null ? okNum(o.isi) + '°' : '', o.nem != null ? '%' + okNum(o.nem) : ''].filter(Boolean).join(' · '); }
     var all = devices.filter(function (d) { return !scopeAp || String(d.apiaryId) === String(scopeAp); });
     var tipSel = params.get('tip') || '';
     if (tipSel === 'ses_titresim') tipSel = 'ses';
@@ -371,6 +375,11 @@
       /* k157: batarya — % ve şarj; kovan bataryası ayrı cihaz yoksa kovan cihazlarının batarya verisi kullanılır */
       var akuL = !t.aku ? null : (l.length ? l : (t.k === 'aku_kovan' ? all.filter(function (d) { var x = typeOf(d); return d.hiveId != null && x && !x.aku && batteryPctOf(d) != null; }) : []));
       var akuP = akuL ? akuL.map(batteryPctOf).filter(function (v) { return v != null && isFinite(v); }) : [];
+      /* k159: Sıcaklık/Nem ve Merkezi ısı/nem tek düğme — son okuma «35,2° · %62», okuma yoksa «Yok» */
+      if (t.k === 'isi_nem' || t.k === 'dis_isi_nem') {
+        var son = okSon(t.k);
+        if (son) { badgeText = okFmt(son); badgeCls = 'green'; } else { badgeText = 'Yok'; badgeCls = 'gray'; }
+      } else
       if (t.aku && akuP.length) {
         var avgP = Math.round(akuP.reduce(function (a2, b2) { return a2 + b2; }, 0) / akuP.length), chg = akuL.some(function (d) { return d.charging === true || d.sarj === true; });
         badgeText = '%' + avgP + (chg ? ' · şarjda' : ''); badgeCls = avgP <= 20 ? 'red' : (avgP <= 40 ? 'orange' : 'green');
@@ -402,6 +411,17 @@
     var sec = document.querySelector('section.card-block'); sec.id = 'devList';
     document.getElementById('listHeading').textContent = (tSel ? tSel.l : 'Tüm cihazlar') + ' · ' + list.length + (list.length > 1 ? ' (önce arızalı / bağlı değil)' : '');
     document.getElementById('summary').textContent = '';
+    /* k159: Sıcaklık/Nem düğmesi → son okumalar (sıcaklık ve nem ayrı sütun) */
+    if (tSel && (tSel.k === 'isi_nem' || tSel.k === 'dis_isi_nem')) {
+      var okL = okList(tSel.k, 30), okH = document.createElement('div'); okH.id = 'okumaListe'; okH.style.cssText = 'margin:0 0 10px;';
+      var hn = function (x) { if (x.kovanId == null) return 'Arılık'; var hh = D.hiveById ? D.hiveById(x.kovanId) : null; return hh ? hh.name : 'Kovan ' + x.kovanId; };
+      var tf = function (iso) { var d = new Date(iso); return isFinite(d) ? d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''; };
+      okH.innerHTML = '<b style="font-size:14px;">Son okumalar</b>' + (okL.length
+        ? '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;"><thead><tr style="text-align:left;color:#6b5a48;"><th>Zaman</th>' + (tSel.k === 'isi_nem' ? '<th>Kovan</th>' : '') + '<th style="text-align:right">Sıcaklık</th><th style="text-align:right">Nem</th></tr></thead><tbody>' +
+          okL.map(function (x) { return '<tr style="border-top:1px solid #eee;"><td>' + tf(x.ts) + '</td>' + (tSel.k === 'isi_nem' ? '<td>' + esc(hn(x)) + '</td>' : '') + '<td style="text-align:right">' + (x.isi != null ? okNum(x.isi) + ' °C' : '—') + '</td><td style="text-align:right">' + (x.nem != null ? '%' + okNum(x.nem) : '—') + '</td></tr>'; }).join('') + '</tbody></table>'
+        : '<p class="meta" style="margin:4px 0 0;">Veri yok. Sensör okuma gönderince burada görünür.</p>');
+      sec.insertBefore(okH, sec.firstChild.nextSibling);
+    }
     var body = document.getElementById('deviceBody');
     var focusDev = deviceFocusId ? list.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0]
       : (deviceFocusId ? all.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0] : null);
@@ -547,8 +567,8 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-158"></script>
-<script src="nav.js?v=koloni-158"></script>
-<script src="pwa.js?v=koloni-158"></script>
+<script src="ses-siniflari.js?v=koloni-159"></script>
+<script src="nav.js?v=koloni-159"></script>
+<script src="pwa.js?v=koloni-159"></script>
 </body>
 </html>

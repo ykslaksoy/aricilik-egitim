@@ -2008,7 +2008,8 @@
           var out = waterDist.list;
           if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed || adminMig.changed || waterDist.changed) {
             try {
-              localStorage.setItem(mk(STORAGE_KEY), JSON.stringify(out));
+              var outS = JSON.stringify(out);
+              if (outS !== raw) localStorage.setItem(mk(STORAGE_KEY), outS); /* k159: aynıysa yazma (her okumada yeniden yazılıyordu) */
             } catch (eMig) { /* ignore */ }
           }
           if (ded.changed && ded.remappedIds && Object.keys(ded.remappedIds).length) {
@@ -2049,14 +2050,15 @@
   function saveApiaries(list) {
     if (!Array.isArray(list)) return;
     try {
-      localStorage.setItem(mk(STORAGE_KEY), JSON.stringify(list));
+      var asS = JSON.stringify(list); if (localStorage.getItem(mk(STORAGE_KEY)) !== asS) localStorage.setItem(mk(STORAGE_KEY), asS);
     } catch (e) { /* ignore */ }
   }
 
   function saveHives(list) {
     if (!Array.isArray(list)) return;
     try {
-      localStorage.setItem(mk(HIVES_KEY), JSON.stringify(list));
+      var hs = JSON.stringify(list);
+      if (localStorage.getItem(mk(HIVES_KEY)) !== hs) localStorage.setItem(mk(HIVES_KEY), hs); /* k159: değişmediyse yazma */
     } catch (e) { /* ignore */ }
   }
 
@@ -2109,14 +2111,15 @@
       }
 
       fleet.forEach(function (h) { out.push(h); });
-      return applyWaterDistance({
+      /* k159: il/ilçe/köy korunur (kaybolunca loadApiaries her okumada yeniden yazıyordu → önbellek hep düşüyordu) */
+      return copyAdminFields(applyWaterDistance({
         id: a.id,
         name: a.name,
         place: a.place,
         lat: a.lat,
         lon: a.lon,
         hiveCount: fleet.length
-      }, a);
+      }, a), a);
     });
 
     /* Keep orphan hives from unknown apiaries out of the active set (count is per known apiary). */
@@ -2229,7 +2232,16 @@
     return reconciled.hives;
   }
 
+  /* k159 performans: loadHives depo değişmedikçe önbellekten (her çağrıda 145 kovan normalize + yazma yapılıyordu) */
+  var LH = { sig: null, list: null, map: null };
   function loadHives() {
+    var sig = hiveStoreSig();
+    if (sig !== null && sig === LH.sig && LH.list) return LH.list.slice();
+    var l = loadHivesUncached();
+    LH.list = l; LH.map = null; LH.sig = hiveStoreSig();
+    return l.slice();
+  }
+  function loadHivesUncached() {
     var list = loadHivesBase();
     var QUEEN_SEED_KEY = mk('superari.queenSeed.v1');
     var done = false;
@@ -3473,6 +3485,57 @@
   }
   /** k151: olaya dayalı sensör girişi. JSON: { kovan_id, sensor_tipi, timestamp, deger } (ses/titresim: sinif, hz, db, sure_ms, ritmik; FFT kovan cihazında).
       Kaydeder ve YALNIZ o kovanın Sıkışıklık puanını yeniden hesaplar (zamanlayıcı yok). Dönen: { ok, kovanId, sikisiklik, etiket } */
+
+  /* k159: sıcaklık ve nem okumaları ayrı satırlar, zaman etiketli — cihazda (localStorage) + Supabase sensor_okumalari (kullanıcıya özel RLS). Olaya dayalı gönderim (zamanlayıcı yok). */
+  var OKUMA_KEY = 'superari.sensor.okumalar.v1', OKUMA_Q = 'superari.sensor.okumalar.kuyruk.v1';
+  function okumaRows(r, tip) {
+    var out = [], base = { kovan_id: r.hiveId >= 0 ? r.hiveId : null, arilik_id: r.apiaryId != null ? String(r.apiaryId) : null, sensor_tipi: tip, ts: r.at };
+    if (r.tempC != null && isFinite(r.tempC)) out.push(Object.assign({ olcum: 'isi', deger: Math.round(r.tempC * 10) / 10, birim: '°C' }, base));
+    if (r.rh != null && isFinite(r.rh)) out.push(Object.assign({ olcum: 'nem', deger: Math.round(r.rh * 10) / 10, birim: '%' }, base));
+    return out;
+  }
+  function okumaRead(k) { try { var l = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+  function okumaKaydet(rows, nowMs) {
+    if (!rows.length) return;
+    var cut = new Date((nowMs || Date.now()) - 30 * 86400000).toISOString();
+    var L = okumaRead(OKUMA_KEY).concat(rows).filter(function (x) { return String(x.ts) >= cut; }).slice(-5000);
+    try { localStorage.setItem(OKUMA_KEY, JSON.stringify(L)); } catch (e) { /* kota */ }
+    var Q = okumaRead(OKUMA_Q).concat(rows).slice(-2000);
+    try { localStorage.setItem(OKUMA_Q, JSON.stringify(Q)); } catch (e) { /* kota */ }
+    okumaGonder();
+  }
+  var okumaBusy = false;
+  function okumaGonder() {
+    var g = typeof window !== 'undefined' ? window : globalThis, B = g.SuperAriBulut;
+    if (okumaBusy || !B || !B.client || !B.session) return Promise.resolve(false);
+    var Q = okumaRead(OKUMA_Q); if (!Q.length) return Promise.resolve(true);
+    okumaBusy = true;
+    return B.session().then(function (ses) {
+      if (!ses) return false;
+      return B.client().then(function (c) {
+        var batch = Q.slice(0, 500);
+        return c.from('sensor_okumalari').upsert(batch, { onConflict: 'user_id,sensor_tipi,olcum,kovan_id,arilik_id,ts', ignoreDuplicates: true }).then(function (r) {
+          if (r && r.error) return false;
+          var rest = okumaRead(OKUMA_Q).slice(batch.length);
+          try { localStorage.setItem(OKUMA_Q, JSON.stringify(rest)); } catch (e) { /* ignore */ }
+          return true;
+        });
+      });
+    }).catch(function () { return false; }).then(function (v) { okumaBusy = false; return v; });
+  }
+  /** Son okumalar: { tip: 'isi_nem'|'dis_isi_nem', kovanId?, apiaryId?, limit } → [{ ts, isi, nem, kovanId, apiaryId }] (aynı zaman damgası tek satır) */
+  function sensorOkumalar(o) {
+    o = o || {}; var tip = o.tip || 'isi_nem', by = {};
+    okumaRead(OKUMA_KEY).forEach(function (x) {
+      if (x.sensor_tipi !== tip) return;
+      if (o.kovanId != null && Number(x.kovan_id) !== Number(o.kovanId)) return;
+      if (o.apiaryId && x.arilik_id != null && String(x.arilik_id) !== String(o.apiaryId)) return;
+      var k = x.ts + '|' + x.kovan_id + '|' + x.arilik_id;
+      var r = by[k] || (by[k] = { ts: x.ts, kovanId: x.kovan_id, apiaryId: x.arilik_id, isi: null, nem: null });
+      if (x.olcum === 'isi') r.isi = Number(x.deger); else if (x.olcum === 'nem') r.nem = Number(x.deger);
+    });
+    return Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return a.ts < b.ts ? 1 : -1; }).slice(0, o.limit || 50);
+  }
   var SIK_CACHE = {};
   function sensorGiris(j, nowMs) {
     if (typeof j === 'string') { try { j = JSON.parse(j); } catch (e) { return { ok: false, hata: 'json' }; } }
@@ -3494,6 +3557,7 @@
     L.push(r); var cut = (nowMs || Date.now()) - 8 * 24 * 3600000;
     L = L.filter(function (x) { var tt = Date.parse(x.at); return !isFinite(tt) || tt >= cut; }).slice(-20000);
     try { localStorage.setItem(SENS_KEYS[tip], JSON.stringify(L)); } catch (e) { /* kota */ }
+    if (tip === 'isi_nem' || tip === 'dis_isi_nem') okumaKaydet(okumaRows(r, tip), nowMs);
     var now = Math.max(nowMs || Date.now(), t), S = hiveSens(hid, now), h = null;
     try { h = (typeof hiveById === 'function' ? hiveById(hid) : null); } catch (e) { h = null; }
     var so = sensorOrs(S, h && h.boxes ? 10 * ((Number(h.boxes.body) || 1) + (Number(h.boxes.kat) || 0)) : 10, Object.assign({}, OGUL_SKOR.sensor));
@@ -3510,7 +3574,7 @@
     if (!o.dis.length && ap != null) { try { var hc = JSON.parse(localStorage.getItem('superari.hava.tahmin.v1.' + ap) || 'null'); ((hc && hc.d && hc.d.hours) || []).forEach(function (x) { var t = Date.parse(x.t); if (isFinite(t)) o.dis.push({ t: t, tempC: x.temp, rh: x.rh, mm: x.mm, pr: x.pr, kaynak: 'hava' }); }); } catch (e) { /* yok */ } }
     o.any = any; return o;
   }
-  /* KİLİTLİ 2026-10-14 (koloni-158) — kovan içi ses protokolü; kullanıcı onayı olmadan değiştirme. k146: bilimsel kaynaklı kovan ses sınıfları (varsayılan; bulut public.ses_siniflari yönetici düzenler) */
+  /* KİLİTLİ 2026-10-14 (koloni-159) — kovan içi ses protokolü; kullanıcı onayı olmadan değiştirme. k146: bilimsel kaynaklı kovan ses sınıfları (varsayılan; bulut public.ses_siniflari yönetici düzenler) */
   var SES_SINIFLARI = [{"id": "taban_gunduz", "ad": "Taban (gündüz)", "en": "Baseline (day)", "hzMin": 100, "hzMax": 300, "yapi": "Sürekli koloni uğultusu; tepe 200–270 Hz; kovanın kendi gündüz ortancası", "anlam": "Normal etkinlik — taban", "seviye": "kayit", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "taban_gece", "ad": "Taban (gece)", "en": "Baseline (night)", "hzMin": 25, "hzMax": 150, "yapi": "Sürekli, daha pes; kovanın kendi gece ortancası", "anlam": "Normal gece etkinliği — taban", "seviye": "kayit", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "anali_tepe", "ad": "Analı kovan tepesi", "en": "Queenright peak", "hzMin": 220, "hzMax": 230, "yapi": "Orta bant tepesi; ana yokken ~250 Hz’e kayabilir", "anlam": "Gösterge — sadece kayıt", "seviye": "kayit", "kaynak": "—", "zayif": true}, {"id": "yelpazeleme", "ad": "Yelpazeleme", "en": "Fanning", "hzMin": 150, "hzMax": 200, "yapi": "Sürekli; kanat vuruşu ~174 ± 20 Hz", "anlam": "Havalandırma (erkek arı değil) — sadece kayıt", "seviye": "kayit", "kaynak": "Peters J.M., Gravish N., Combes S.A. (2017). Wings as impellers: honey bees co-opt flight system to induce nest ventilation and disperse pheromones. J Exp Biol 220:2203", "zayif": false}, {"id": "tooting", "ad": "Ana arı ötmesi", "en": "Queen tooting (piping)", "hzMin": 340, "hzMax": 500, "yapi": "Arama 340–500 Hz; alarm 400–500 Hz ritmik ≥1 dk; 340–400 Hz yalnız kayıt. İlk hece 1–2 sn, sonra ~0,25 sn heceler", "anlam": "Yeni çıkan ana; oğul / ikinci oğul hazırlığı", "seviye": "kritik", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3) · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "quacking", "ad": "Vızıldama (yüksükteki ana)", "en": "Queen quacking", "hzMin": 200, "hzMax": 350, "yapi": "Hece <0,2 sn; 10 sn içinde ≥3 hece", "anlam": "Yüksükte bakire ana — ikinci oğul riski; ötmeyle 30 dk içinde → Yüksek", "seviye": "erken", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "anasizlik", "ad": "Anasızlık sesi", "en": "Queenless roar", "hzMin": 300, "hzMax": 400, "yapi": "Ritmik değil, 10 dk kesintisiz, kendi tabanı +6 dB", "anlam": "Anasızlık şüphesi — muayene et (Oğul skorunu etkilemez)", "seviye": "ayri", "kaynak": "Ruvinga S., Hunter G., Duran O., Nebel J.-C. (2023). Identifying queenlessness in honeybee hives from audio signals using machine learning. Electronics 12(7):1627", "zayif": false}, {"id": "isci_otmesi", "ad": "İşçi ötmesi", "en": "Worker piping", "hzMin": 100, "hzMax": 250, "yapi": "~0,8 sn darbe; 100–200 → 200–250 Hz yükselir", "anlam": "Oğul kalkışa hazırlanıyor", "seviye": "yuksek", "kaynak": "Seeley T.D., Tautz J. (2001). Worker piping in honey bee swarms and its role in preparing for liftoff. J Comp Physiol A 187:667–676", "zayif": false}, {"id": "ogul_ani", "ad": "Oğul anı sesi", "en": "Swarming sound", "hzMin": 500, "hzMax": 600, "yapi": "500–600 Hz’de ani enerji artışı (taban +6 dB, ≥2 dk)", "anlam": "Oğul çıkıyor", "seviye": "kritik", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "ogul_egilim", "ad": "Oğul hazırlığı (spektrum değişimi)", "en": "Pre-swarm spectral change", "hzMin": 100, "hzMax": 300, "yapi": "Gündüz taban tepe frekansı son 24 saatte ≥20 Hz yukarı", "anlam": "Oğul eğilimi — muayene et", "seviye": "erken", "kaynak": "Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5 · Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "kovan_sagligi", "ad": "Kovan sağlığı", "en": "Hive health", "hzMin": null, "hzMax": null, "yapi": "Taban sapması ≥6 dB veya yoğun yelpazeleme (≥%40 okuma)", "anlam": "Bilgi", "seviye": "bilgi", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77 · Peters J.M., Gravish N., Combes S.A. (2017). Wings as impellers: honey bees co-opt flight system to induce nest ventilation and disperse pheromones. J Exp Biol 220:2203", "zayif": false}, {"id": "dur_sinyali", "ad": "Dur sinyali", "en": "Stop signal / brief piping", "hzMin": 350, "hzMax": 420, "yapi": "~380 Hz, ~150 ms tek darbe; <1 sn sesler ötme/anasızlık sayılmaz", "anlam": "Toplayıcı alımını durdurma — alarm değil", "seviye": "kayit", "kaynak": "Lau C.W., Nieh J.C. (2010). Honey bee stop-signal production: temporal distribution and effect of feeder crowding. Apidologie 41(1) · Nieh J.C. (1993). The stop signal of honey bees: reconsidering its message. Behav Ecol Sociobiol 33:51–56 · Pastor K.A., Seeley T.D. (2005). The brief piping signal of the honey bee: begging call or stop signal? Ethology 111:775–784", "zayif": false}, {"id": "ciftlesmis_ana", "ad": "Çiftleşmiş ana ötmesi", "en": "Mated queen piping", "hzMin": 330, "hzMax": 430, "yapi": "Ötmeye benzer, daha pes", "anlam": "Oğul alarmı değil", "seviye": "kayit", "kaynak": "Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": true}, {"id": "titresim", "ad": "Titreşim sinyali", "en": "Shaking signal (DVAV)", "hzMin": null, "hzMax": null, "yapi": "Petek titreşimi, 1–2 sn; mikrofonla zayıf", "anlam": "İş bölümünü yeniden düzenleme", "seviye": "kayit", "kaynak": "Nieh J.C. (1998). The honey bee shaking signal: function and design of a modulatory communication signal. Behav Ecol Sociobiol 42:23–36", "zayif": false}, {"id": "sallanma_dansi", "ad": "Sallanma dansı sesi", "en": "Waggle dance sound", "hzMin": 200, "hzMax": 300, "yapi": "Düz koşuda ~200 Hz civarı darbeler", "anlam": "Aktif toplayıcılık", "seviye": "kayit", "kaynak": "Wenner A.M. (1962). Sound production during the waggle dance of the honey bee. Animal Behaviour 10:79–95 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": false}, {"id": "tislama", "ad": "Tıslama (savunma)", "en": "Hissing", "hzMin": 500, "hzMax": 16000, "yapi": "Geniş bant (A. m. cypria’da ~6 kHz)", "anlam": "Tehdit tepkisi", "seviye": "kayit", "kaynak": "Wehmann H.-N., Gustav D., Kirkerud N.H., Galizia C.G. (2015). The sound and the fury — bees hiss when expecting danger. PLoS ONE 10(3):e0118708 · Papachristoforou A. ve ark. (2008). High frequency sounds produced by Cyprian honeybees Apis mellifera cypria when confronting their predator, the Oriental hornet Vespa orientalis. Apidologie 39(4)", "zayif": false}, {"id": "stres_varroa", "ad": "Hastalık / stres sesi (varroa)", "en": "Stress / varroa", "hzMin": null, "hzMax": null, "yapi": "Akustik parmak izi farkı (sınırlı veri)", "anlam": "Varroa / stres şüphesi", "seviye": "kayit", "kaynak": "Qandour A., Ahmad I., Habibi D., Leppard M. (2014). Remote beehive monitoring using acoustic signals. Acoustics Australia 42(3):204–209", "zayif": true}, {"id": "kumelenme", "ad": "Kış kümelenmesi titremesi", "en": "Shivering thermogenesis", "hzMin": null, "hzMax": null, "yapi": "Kanat oynatmadan kas titremesi", "anlam": "Kışta ısı üretimi", "seviye": "kayit", "kaynak": "Stabentheiner A., Pressl H., Papst T., Hrassnigg N., Crailsheim K. (2003). Endothermic heat production in honeybee winter clusters. J Exp Biol 206:353–358", "zayif": true}, {"id": "yagma", "ad": "Yağma sesi", "en": "Robbing", "hzMin": null, "hzMax": null, "yapi": "Girişte düzensiz yüksek aktivite", "anlam": "Yağma şüphesi", "seviye": "kayit", "kaynak": "—", "zayif": true}];
   /* k146: <darbeMaxMs süreli darbe (ör. dur sinyali ~380–400 Hz, 100–150 ms) ötme/anasızlık sayılmaz. sureMs yoksa süre bilinmez → darbe değil. */
   function kisaDarbe(x, T) { var d = Number(x.sureMs); return isFinite(d) && d > 0 && d < (T.darbeMaxMs || 1000) && x.sinif !== 'quacking'; }
@@ -4446,14 +4510,17 @@
     return true;
   }
 
+  /* k159 performans: hiveById her çağrıda 145 kovanı yeniden normalize ediyordu (O(n²)). Depo değişmedikçe kimlik haritası önbellekte. */
+  function hiveStoreSig() {
+    try { return workMode() + '\u0001' + todayLocal() + '\u0001' + localStorage.getItem(mk(HIVES_KEY)) + '\u0001' + localStorage.getItem(mk(STORAGE_KEY)) + '\u0001' + localStorage.getItem(mk(QUEENS_KEY)); } catch (e) { return null; }
+  }
   function hiveById(id) {
     var n = Number(id);
-    var list = loadHives();
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].id === n) return list[i];
-    }
-    return null;
+    loadHives();
+    if (!LH.map) { var m = {}; (LH.list || []).forEach(function (h) { m[h.id] = h; }); LH.map = m; }
+    return LH.map[n] || null;
   }
+
 
   function apiaryById(id) {
     loadHives(); /* reconcile counts first */
@@ -5860,7 +5927,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

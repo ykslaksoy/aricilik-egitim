@@ -1,0 +1,14 @@
+const assert=require('assert'),vm=require('vm'),fs=require('fs'),path=require('path');const W=path.join(__dirname,'..');
+const store={};const ls={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]},key:i=>Object.keys(store)[i],get length(){return Object.keys(store).length}};
+const w={localStorage:ls,addEventListener(){},removeEventListener(){},dispatchEvent(){},CustomEvent:function(){},Event:function(){},console,setTimeout(){}};w.window=w;w.self=w;vm.createContext(w);vm.runInContext(fs.readFileSync(path.join(W,'demo-data.js'),'utf8'),w);
+const C=w.SuperAriDemo.colony,N=Date.now();
+assert.ok(C.sensorGiris({kovan_id:101,sensor_tipi:'isi_nem',timestamp:new Date(N-60000).toISOString(),deger:{tempC:35.2,rh:62}},N).ok);
+assert.ok(C.sensorGiris({arilik_id:'a1',sensor_tipi:'dis_isi_nem',timestamp:new Date(N).toISOString(),deger:{tempC:21.4,rh:80}},N).ok);
+const raw=JSON.parse(store['superari.sensor.okumalar.v1']);
+assert.strictEqual(raw.length,4);assert.ok(raw.every(x=>x.ts&&(x.olcum==='isi'&&x.birim==='°C'||x.olcum==='nem'&&x.birim==='%')));
+assert.strictEqual(JSON.parse(store['superari.sensor.okumalar.kuyruk.v1']).length,4);
+const l=C.sensorOkumalar({tip:'isi_nem'});assert.strictEqual(l.length,1);assert.strictEqual(l[0].isi,35.2);assert.strictEqual(l[0].nem,62);
+const d=C.sensorOkumalar({tip:'dis_isi_nem',apiaryId:'a1'});assert.strictEqual(d[0].kovanId,null);assert.strictEqual(d[0].isi,21.4);
+const ch=fs.readFileSync(path.join(W,'cihazlar.html'),'utf8');assert.ok(ch.includes("okNum(o.isi) + '°'")&&ch.includes("'%' + okNum(o.nem)")&&ch.includes('<th style="text-align:right">Sıcaklık</th><th style="text-align:right">Nem</th>'));
+const mg=fs.readFileSync(path.join(W,'../../supabase/migrations/20261015013000_sensor_okumalari.sql'),'utf8');assert.ok(/enable row level security/.test(mg)&&/user_id = auth.uid\(\)/.test(mg));
+console.log('k159 ok');
