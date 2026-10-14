@@ -79,6 +79,7 @@
     nektar: '<circle cx="12" cy="10.4" r="1.6"/><path d="M12 8.8c-.8-2.2.8-3.2 0-3.2s.8 1 0 3.2M13.6 10.4c2.2-.8 3.2.8 3.2 0s-1 .8-3.2 0M12 12c.8 2.2-.8 3.2 0 3.2s-.8-1 0-3.2M10.4 10.4c-2.2.8-3.2-.8-3.2 0s1-.8 3.2 0"/><path d="M12 15.2v3"/>',
     don: '<path d="M12 6v12M6.8 9l10.4 6M6.8 15l10.4-6"/>',
     isgunu: '<rect x="6.8" y="7.6" width="10.4" height="9.6" rx="1.2"/><path d="M6.8 10.6h10.4M9.6 6.2v2.6M14.4 6.2v2.6"/><path d="M9.4 13.6l1.6 1.6 3-3"/>',
+    bal: '<path d="M12 6.2l4.4 2.5v5L12 16.2l-4.4-2.5v-5z"/><path d="M12 16.2v2.6M10 11.2h4"/>',
     ucus: '<ellipse cx="12" cy="13" rx="2.4" ry="3.4"/><path d="M9.8 11.4c-2.2-1.6-4-1-4 .4s2 1.8 4 .8M14.2 11.4c2.2-1.6 4-1 4 .4s-2 1.8-4 .8M12 9.6V8"/>',
     ariliklar: '<path d="M12 6.2c-2.4 0-4.2 1.8-4.2 4.1 0 3 4.2 7.3 4.2 7.3s4.2-4.3 4.2-7.3c0-2.3-1.8-4.1-4.2-4.1z"/><circle cx="12" cy="10.4" r="1.5"/>',
     gecmis: '<path d="M6.6 12a5.4 5.4 0 1 0 1.6-3.8"/><path d="M6.4 6.8v2.6H9"/><path d="M12 9.4V12l1.8 1.2"/>',
@@ -95,6 +96,14 @@
 
   function frostDays(d) { return d.filter(function (x) { return (x.lo != null && x.lo <= 2) || (x.gust || 0) >= 50 || Number(x.code) >= 95; }); }
   function workDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && (x.wind || 0) <= 15 && (x.hi || 0) >= 15; }); }
+  function harvestDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && x.wind != null && x.wind <= 15 && (x.hi || 0) >= 18; }); }
+  function seasonStage() {
+    var m = new Date().getMonth() + 1;
+    if (m >= 3 && m <= 5) return { t: 'İlkbahar gelişmesi', n: 'Koloniler büyüyor; erken akım bölgeye göre başlar.' };
+    if (m >= 6 && m <= 8) return { t: 'Ana bal akımı', n: 'Çoğu bölgede ana akım dönemi; ballık ve hasat takibi.' };
+    if (m >= 9 && m <= 10) return { t: 'Sezon sonu / kışlığa hazırlık', n: 'Akım azalır; son hasat ve kışlık stok kontrolü.' };
+    return { t: 'Kış dönemi', n: 'Akım yok; kovanı açmayın, stoğu dıştan izleyin.' };
+  }
   function feedAlert(d) {
     var run = 0, best = 0, cold = 0, cbest = 0;
     d.forEach(function (x) { run = rainy(x) ? run + 1 : 0; best = Math.max(best, run); cold = (x.hi != null && x.hi < 12) ? cold + 1 : 0; cbest = Math.max(cbest, cold); });
@@ -113,6 +122,7 @@
       { key: 'karsi', label: 'Geçen yılla karşılaştırma', href: '#karsi', badge: '', tone: 'tan' },
       { key: 'nektar', label: 'Nektar akımı', href: '#nektar', badge: has ? 'tahmini' : '—', tone: 'tan' },
       { key: 'don', label: 'Don / fırtına', href: '#don', badge: has ? (fr ? fr + ' gün uyarı' : 'Uyarı yok') : '—', tone: fr ? 'red' : 'green' },
+      { key: 'bal', label: 'Bal sezonu', href: '#bal', badge: has ? (harvestDays(d).length ? harvestDays(d).length + ' hasat günü' : 'Hasat günü yok') : '—', tone: harvestDays(d).length ? 'green' : 'tan' },
       { key: 'isgunu', label: 'Uygun iş günü', href: '#isgunu', badge: has ? (wk.length ? dayLab(wk[0].date, d.indexOf(wk[0])) : 'Yok') : '—', tone: wk.length ? 'green' : 'tan' }
     ];
   }
@@ -199,6 +209,15 @@
         (wk.length ? wk.map(function (x) { return dayCard(x, d.indexOf(x)); }).join('')
           : '<div class="hv-empty">Önümüzdeki ' + d.length + ' günde ilaçlama/muayene için uygun (yağışsız ve rüzgarsız) gün görünmüyor.</div>');
     }
+    if (name === 'bal') {
+      var st = seasonStage(), hv = harvestDays(d), okB = d.filter(function (x) { return flight(x) === 'ok'; }).length;
+      var lvl = okB >= 6 ? 'iyi' : (okB >= 3 ? 'orta' : 'zayıf');
+      return head('Bal sezonu', sub) +
+        '<div class="hv-row"><span class="k">Aşama</span><span class="v"><b>' + esc(st.t) + '</b><br>' + esc(st.n) + ' <i>(aya göre genel)</i></span></div>' +
+        '<div class="' + (lvl === 'zayıf' ? 'hv-warn' : 'hv-good') + '">🍯 Bal akımı tahmini (tahmini, yalnız hava): <b>' + lvl + '</b> — ' + d.length + ' günde ' + okB + ' gün uçuş/toplama havası.</div>' +
+        '<div class="hv-h" style="font-size:14px">Hasada uygun günler</div><div class="hv-sub">Yağmursuz, rüzgar ≤15 km/s, en yüksek ≥18°</div>' +
+        (hv.length ? hv.map(function (x) { return dayCard(x, d.indexOf(x)); }).join('') : '<div class="hv-empty">Önümüzdeki ' + d.length + ' günde hasada uygun gün görünmüyor.</div>');
+    }
     if (name === 'nektar') {
       var okD = d.filter(function (x) { return flight(x) === 'ok'; });
       return head('Nektar akımı / çiçeklenme', sub) +
@@ -239,7 +258,7 @@
   }
   function route() {
     var h = (location.hash || '').replace('#', '');
-    var ok = { '10gun': 1, saatlik: 1, ucus: 1, don: 1, isgunu: 1, nektar: 1, karsi: 1 }[h];
+    var ok = { '10gun': 1, saatlik: 1, ucus: 1, don: 1, isgunu: 1, nektar: 1, karsi: 1, bal: 1 }[h];
     document.body.classList.toggle('hv-in-detail', !!ok);
     $('hvDetail').innerHTML = ok ? view(h) : '';
     $('hvTen').innerHTML = renderTen();

@@ -948,7 +948,9 @@
   #hvDetail{display:none;flex-direction:column;gap:8px;}
   body.hv-in-detail #grid,body.hv-in-detail #bkScope,body.hv-in-detail #hvTen{display:none!important;}
   body.hv-in-detail #hvDetail{display:flex;}
-  .hv-ten{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;}
+  html body .phone>.screen>#grid{grid-template-rows:none!important;height:auto!important;min-height:0!important;flex:0 0 auto!important;align-content:start!important;}
+  html body .phone>.screen>#bkScope{flex:0 0 auto!important;}
+  .hv-ten{display:flex;flex-direction:column;gap:6px;margin:10px 0 10px;}
   .hv-warn{background:#fff4e6;border:1px solid #ffd8a8;border-radius:12px;padding:8px 10px;font-size:13px;color:#7a4a00;}
   .hv-good{background:#ebfbee;border:1px solid #b2f2bb;border-radius:12px;padding:8px 10px;font-size:13px;color:#2b8a3e;}
   .hv-h{font-size:16px;font-weight:800;color:#4a2f1a;margin:2px 2px 0;}
@@ -1008,8 +1010,8 @@
       <a class="muayene-hint is-active bk-note" id="bkNote" href="#ucus"><span class="muayene-hint-text" id="bkNoteText">Tahmin yükleniyor…</span><span class="muayene-hint-ok" id="bkNoteBtn">Aç</span></a>
     </section>
 
-    <section id="hvTen" class="hv-ten" aria-label="10 günlük tahmin"></section>
     <section class="grid" id="grid" aria-label="Hava bölümleri"></section>
+    <section id="hvTen" class="hv-ten" aria-label="10 günlük tahmin"></section>
     <section id="hvDetail" aria-live="polite"></section>
   </div>
 
@@ -1021,9 +1023,9 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-143"></script>
-<script src="hava-sayfa.js?v=koloni-143"></script>
-<script src="nav.js?v=koloni-143"></script>
-<script src="pwa.js?v=koloni-143"></script>
+<script src="demo-data.js?v=koloni-144"></script>
+<script src="hava-sayfa.js?v=koloni-144"></script>
+<script src="nav.js?v=koloni-144"></script>
+<script src="pwa.js?v=koloni-144"></script>
 </body>
 </html>
