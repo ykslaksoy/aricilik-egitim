@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-155" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-155" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-155" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-156" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-156" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-156" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -53,25 +53,25 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-155"></script>
-  <script src="bal-agirlik.js?v=koloni-155"></script>
-  <script src="demo-data.js?v=koloni-155"></script>
-  <script src="rapor-store.js?v=koloni-155"></script>
-  <script src="sensor-health.js?v=koloni-155"></script>
-<script src="saglik-canli.js?v=koloni-155"></script>
-  <script src="koloni.js?v=koloni-155"></script>
-  <script src="koloni-ek.js?v=koloni-155"></script>
-  <script src="ilac-katalog.js?v=koloni-155"></script>
-  <script src="bakim-plan.js?v=koloni-155"></script>
-  <script src="irk-tahmin.js?v=koloni-155"></script>
-  <script src="kovan-ara.js?v=koloni-155"></script>
+  <script src="bk-kabuk.js?v=koloni-156"></script>
+  <script src="bal-agirlik.js?v=koloni-156"></script>
+  <script src="demo-data.js?v=koloni-156"></script>
+  <script src="rapor-store.js?v=koloni-156"></script>
+  <script src="sensor-health.js?v=koloni-156"></script>
+<script src="saglik-canli.js?v=koloni-156"></script>
+  <script src="koloni.js?v=koloni-156"></script>
+  <script src="koloni-ek.js?v=koloni-156"></script>
+  <script src="ilac-katalog.js?v=koloni-156"></script>
+  <script src="bakim-plan.js?v=koloni-156"></script>
+  <script src="irk-tahmin.js?v=koloni-156"></script>
+  <script src="kovan-ara.js?v=koloni-156"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-155"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-155"></script>
-  <script src="tarti-elle.js?v=koloni-155"></script>
-  <script src="sensor-polling.js?v=koloni-155"></script>
-  <script src="tarti-rotasyon.js?v=koloni-155"></script>
-  <script src="kapsam.js?v=koloni-155"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-156"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-156"></script>
+  <script src="tarti-elle.js?v=koloni-156"></script>
+  <script src="sensor-polling.js?v=koloni-156"></script>
+  <script src="tarti-rotasyon.js?v=koloni-156"></script>
+  <script src="kapsam.js?v=koloni-156"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -274,9 +274,10 @@
         var liveW = window.SuperAriLiveHealth && SuperAriLiveHealth.isLive();
         var leW = TE ? TE.latest(h.id) : null;
         /* Canlı: yalnız elle tartım (sensör/örnek ağırlık gösterilmez). */
-        var wTxt = liveW ? (leW ? String(leW.kg).replace('.', ',') + ' kg' : 'Tartı yok') : h.weightKg.toFixed(1) + ' kg';
+        var wTxt = liveW || view === 'tarti' ? (leW ? String(leW.kg).replace('.', ',') + ' kg' : 'Tartı yok') : h.weightKg.toFixed(1) + ' kg';
         if (view === 'tarti') {
-          if (liveW) {
+          /* k155: Tartı görünümü özetle aynı kaynak (yalnız gerçek tartım) — demo örnek ağırlığı gösterilmez */
+          if (true) {
             badge = wTxt;
             meta = place + (leW ? ' · elle ' + TE.fmtAt(leW.at) : ' · elle tartım girilmedi');
           } else {
@@ -602,7 +603,7 @@
           var d14T = D.records.addDays(D.records.todayLocal(), -14);
           var infT = hsT.map(function (h) {
             var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
-            var kg = l ? String(l.kg).replace('.', ',') + ' kg' : (liveT ? 'Tartı yok' : (h.weightKg != null ? h.weightKg.toFixed(1).replace('.', ',') + ' kg' : 'Tartı yok'));
+            var kg = l ? String(l.kg).replace('.', ',') + ' kg' : 'Tartı yok' /* k155: tek kaynak */;
             var sub = l ? (l.source === 'otomatik' ? 'Cihaz · ' : 'Elle · ') + KV.fmtAgo(at, D.records.todayLocal()) : (liveT ? 'elle tartım girilmedi' : 'örnek · ' + (h.deltaKg > 0 ? '+' : '') + h.deltaKg.toFixed(1).replace('.', ',') + ' kg');
             var dv = TE && TE.scaleDevice ? TE.scaleDevice(h.id) : null;
             if (dv) sub = '📡 ' + sub;
@@ -930,7 +931,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-155"></script>
-<script src="pwa.js?v=koloni-155"></script>
+<script src="nav.js?v=koloni-156"></script>
+<script src="pwa.js?v=koloni-156"></script>
 </body>
 </html>
