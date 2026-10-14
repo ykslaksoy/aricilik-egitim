@@ -29,7 +29,7 @@ r=C.sensorOrs({isi_nem:[{t:NOW-3*H,tempC:35},{t:NOW-H,tempC:35.4},{t:NOW,tempC:3
 const isi=Array.from({length:8},(_,i)=>({hiveId:7001,type:'isi_nem',at:iso(NOW-7*H+i*H),tempC:36.3,rh:60}));
 C=load({'superari.sensor.isi_nem.v1':JSON.stringify(isi)});
 const b=C.swarm(h,{date:'2026-10-13',now:NOW});
-assert.strictEqual(b.ors.sikisiklik,base.ors.sikisiklik+10);assert.strictEqual(Math.round((b.score-base.score)*10)/10,4);assert.notStrictEqual(b.key,'kritik','ısı tek başına alarm değil');assert.ok(b.sensorlu);
+/* k149: yalnız ısı sensörü → Sıkışıklık = ısı alt skoru (36,3 °C kuluçka dışı → ısı 0; nem %60 → 40; (15·0+10·40)/25=16) */assert.strictEqual(b.ors.sikisiklik,16);assert.notStrictEqual(b.key,'kritik','ısı tek başına alarm değil');assert.ok(b.sensorlu);
 /* nektar: +1,2 kg/gün → Mevsim 100 */
 r=C.sensorOrs({tarti:[{t:NOW-24*H,kg:40},{t:NOW,kg:41.2}]},10,T);assert.ok(r.nektar);
 /* sert kilo artışı + arı zirvede → Sıkışıklık dolu */
