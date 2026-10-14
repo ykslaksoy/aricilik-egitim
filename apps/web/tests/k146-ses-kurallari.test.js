@@ -31,3 +31,21 @@ r=run(base.concat(qs.map(x=>Object.assign({},x,{hz:170}))));assert.strictEqual(r
 /* ses sınıfları: kaynaklı liste */
 assert.ok(C.SES_SINIFLARI.length>=16);assert.ok(C.SES_SINIFLARI.find(x=>x.id==='quacking').kaynak.includes('Michelsen'));
 console.log('k146-ses-kurallari: ok');
+/* k148 KİLİTLİ protokol */
+const C2=load({}),T2=C2.ORS_SENSOR;
+assert.strictEqual(T2.pipingAramaHzMin,340);assert.strictEqual(T2.tabanGunduzHzMin,100);assert.strictEqual(T2.tabanGunduzHzMax,300);assert.strictEqual(T2.tabanGeceHzMax,150);
+assert.ok(!C2.SES_SINIFLARI.some(x=>x.id==='erkek_ucusu'),'erkek arı sınıfı kaldırıldı');
+assert.strictEqual(C2.SES_SINIFLARI.find(x=>x.id==='yelpazeleme').seviye,'kayit');
+/* 340–400 ritmik: kayıt, alarm yok */
+r=run([0,30,60,75].map(s=>({t:N+s*1000,hz:370,ritmik:true})));assert.strictEqual(r.piping,false);assert.strictEqual(r.otmeAltKayit,true);
+/* işçi ötmesi: 200 Hz, 800 ms, 3 darbe 5 dk içinde → Yüksek */
+r=run([0,1,2].map(m=>({t:N+m*M,hz:200,sureMs:800})));assert.strictEqual(r.isciOtme,true);
+/* oğul anı: 550 Hz, taban +8, 3 dk → Kritik */
+const om=[];for(let m=0;m<=3;m++)om.push({t:N+m*M,hz:550,dbRel:8});
+r=run(base.concat(om));assert.strictEqual(r.ogulAni,true);
+/* oğul eğilimi: gündüz tepe 225 → 250 Hz */
+const eg=[];for(let h=0;h<72;h++){const t=N-72*3600000+h*3600000;eg.push({t,hz:h<48?225:250,dbRel:0});}
+r=run(eg);assert.strictEqual(r.ogulEgilim,true);assert.ok(r.notes.some(t=>/Oğul eğilimi — muayene et/.test(t)));
+/* yelpazeleme yoğun → kovan sağlığı bilgisi; anasızlık değil */
+r=run([0,1,2,3,4].map(m=>({t:N+m*M,hz:175,dbRel:0})));assert.strictEqual(r.saglikBilgi,true);assert.strictEqual(r.anasizSes,false);
+console.log('k148-ses-protokol: ok');
