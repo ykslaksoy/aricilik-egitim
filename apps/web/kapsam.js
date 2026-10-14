@@ -391,7 +391,8 @@
         u.delete('id');
         global.history.replaceState(null, '', (opts.page || global.location.pathname.split('/').pop()) + (u.toString() ? '?' + u.toString() : '') + (global.location.hash || '')); /* görünüm (#…) korunur; geri tuşu doğru yere döner */
       } catch (e) { /* ignore */ }
-      render();
+      /* k157: arılık değişince ekran yerinde kalır (konum + yükseklik korunur) */
+      if (global.SuperAriScroll) global.SuperAriScroll.keep(render); else render();
     }
     function step(d) { var l = list(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
     q('[data-ks-prev]').addEventListener('click', function () { step(-1); });
@@ -418,6 +419,8 @@
       var hs = hives(), sum = summary(hs), ap = scope === 'all' ? null : apOf(scope);
       var lab = q('[data-ks-label]');
       lab.textContent = ap ? ap.name : 'Tümü';
+      /* k157: etiket genişliği sabit — ad değişince ‹ › okları parmağın altından kaymaz */
+      if (!lab.getAttribute('data-w-fixed')) { try { var mw = parseFloat(global.getComputedStyle(lab).maxWidth); if (mw > 0) { lab.style.display = 'inline-block'; lab.style.width = mw + 'px'; lab.style.textAlign = 'center'; lab.setAttribute('data-w-fixed', '1'); } } catch (e) { /* ignore */ } }
       var isPinned = !!(pinRead() && ap);
       lab.title = ap ? (isPinned ? (ap.name + ' — dokununca sabitlemeyi kaldır') : ap.name) : 'Tüm arılıklar (' + aps.length + ')';
       lab.style.cursor = ap ? 'pointer' : '';

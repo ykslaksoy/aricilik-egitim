@@ -72,7 +72,7 @@
       stats: o.stats, note: o.note, noAll: !!o.noAll, topEnd: o.topEnd, topExtra: o.topExtra, weatherEnd: o.weatherEnd,
       onChange: function (scope, hs, sum) {
         /* kapsam değişti → sayfa o arılıkla yeniden açılır (sayfanın kendi süzgeci ?apiary= ile çalışır) */
-        if (scope !== init0 && o.reload !== false) { global.location.reload(); return; }
+        if (scope !== init0 && o.reload !== false) { if (global.SuperAriScroll) global.SuperAriScroll.reload(); else global.location.reload(); return; }
         if (o.onChange) o.onChange(scope, hs, sum);
       }
     });
