@@ -1,4 +1,4 @@
-/* koloni-141: Yönetici eşikleri (Supabase public.app_esikler, herkese okunur). Son değer cihazda önbelleğe alınır; çevrimdışı önbellek, o da yoksa varsayılan. */
+/* koloni-142: Yönetici eşikleri (Supabase public.app_esikler, herkese okunur). Son değer cihazda önbelleğe alınır; çevrimdışı önbellek, o da yoksa varsayılan. */
 (function (g) {
   var KEY = 'superari.esikler.v1';
   var DEF = { koloniGucu: { zayifMaxCerceve: 4, ortaMaxCerceve: 7 }, bolmeMinCerceve: 9, uyari: { varroaYuzde: 3, dusukPilYuzde: 20, gunlukKiloDususKg: 1, kovanIciMinC: 10, kovanIciMaxC: 38, nemMaxYuzde: 80 } };

@@ -75,6 +75,10 @@
     yagis: '<path d="M8 11.6a3.6 3.6 0 0 1 7-1.2 2.6 2.6 0 0 1 .6 5.1H8.6A2 2 0 0 1 8 11.6z"/><path d="M9.6 17.4l-.6 1.4M12.6 17.4l-.6 1.4"/>',
     ruzgar: '<path d="M5.8 10h8.4a2 2 0 1 0-2-2M5.8 13.4h10.6a2 2 0 1 1-2 2"/>',
     nem: '<path d="M12 5.8c2.4 3 3.8 5.2 3.8 7.1a3.8 3.8 0 0 1-7.6 0c0-1.9 1.4-4.1 3.8-7.1z"/><path d="M10.2 13.8l3.6-2.4"/>',
+    karsi: '<path d="M6.4 16.6V11M10 16.6V7.6M14 16.6v-4M17.6 16.6V9.4"/><path d="M5.6 17.4h12.8"/>',
+    nektar: '<circle cx="12" cy="10.4" r="1.6"/><path d="M12 8.8c-.8-2.2.8-3.2 0-3.2s.8 1 0 3.2M13.6 10.4c2.2-.8 3.2.8 3.2 0s-1 .8-3.2 0M12 12c.8 2.2-.8 3.2 0 3.2s-.8-1 0-3.2M10.4 10.4c-2.2.8-3.2-.8-3.2 0s1-.8 3.2 0"/><path d="M12 15.2v3"/>',
+    don: '<path d="M12 6v12M6.8 9l10.4 6M6.8 15l10.4-6"/>',
+    isgunu: '<rect x="6.8" y="7.6" width="10.4" height="9.6" rx="1.2"/><path d="M6.8 10.6h10.4M9.6 6.2v2.6M14.4 6.2v2.6"/><path d="M9.4 13.6l1.6 1.6 3-3"/>',
     ucus: '<ellipse cx="12" cy="13" rx="2.4" ry="3.4"/><path d="M9.8 11.4c-2.2-1.6-4-1-4 .4s2 1.8 4 .8M14.2 11.4c2.2-1.6 4-1 4 .4s-2 1.8-4 .8M12 9.6V8"/>',
     ariliklar: '<path d="M12 6.2c-2.4 0-4.2 1.8-4.2 4.1 0 3 4.2 7.3 4.2 7.3s4.2-4.3 4.2-7.3c0-2.3-1.8-4.1-4.2-4.1z"/><circle cx="12" cy="10.4" r="1.5"/>',
     gecmis: '<path d="M6.6 12a5.4 5.4 0 1 0 1.6-3.8"/><path d="M6.4 6.8v2.6H9"/><path d="M12 9.4V12l1.8 1.2"/>',
@@ -89,22 +93,27 @@
   function ap() { return aps[idx] || null; }
   function apQ() { var a = ap(); return a ? '?apiary=' + encodeURIComponent(a.id) : ''; }
 
+  function frostDays(d) { return d.filter(function (x) { return (x.lo != null && x.lo <= 2) || (x.gust || 0) >= 50 || Number(x.code) >= 95; }); }
+  function workDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && (x.wind || 0) <= 15 && (x.hi || 0) >= 15; }); }
+  function feedAlert(d) {
+    var run = 0, best = 0, cold = 0, cbest = 0;
+    d.forEach(function (x) { run = rainy(x) ? run + 1 : 0; best = Math.max(best, run); cold = (x.hi != null && x.hi < 12) ? cold + 1 : 0; cbest = Math.max(cbest, cold); });
+    if (best >= 3) return best + ' gün üst üste yağmur bekleniyor — öncesinde besleme stoklarını kontrol edin';
+    if (cbest >= 3) return cbest + ' gün soğuk (en yüksek <12°) — arı uçamaz, besleme stoklarını kontrol edin';
+    return '';
+  }
   function tiles() {
-    var d = data && data.days || [], rainN = d.filter(rainy).length, okN = d.filter(function (x) { return flight(x) === 'ok'; }).length;
-    var maxW = d.reduce(function (m, x) { return Math.max(m, x.wind || 0); }, 0);
-    var h0 = data && data.hours && data.hours[0];
-    var rh = d[0] && d[0].rh != null ? Math.round(d[0].rh) : null;
-    var has = !!d.length;
+    var d = data && data.days || [], has = !!d.length, h0 = data && data.hours && data.hours[0];
+    var okN = d.filter(function (x) { return flight(x) === 'ok'; }).length, fr = frostDays(d).length, wk = workDays(d);
     return [
-      { key: 'gun10', label: '10 günlük tahmin', href: '#10gun', badge: has ? d.length + ' gün' : '—', tone: 'blue' },
       { key: 'saatlik', label: 'Saatlik', href: '#saatlik', badge: h0 ? r0(h0.temp) + '° şimdi' : '—', tone: 'tan' },
-      { key: 'yagis', label: 'Yağış', href: '#yagis', badge: has ? (rainN ? rainN + ' gün yağmur' : 'Yağmur yok') : '—', tone: rainN ? 'blue' : 'green' },
-      { key: 'ruzgar', label: 'Rüzgar', href: '#ruzgar', badge: has ? 'en çok ' + Math.round(maxW) + ' km/s' : '—', tone: maxW > 30 ? 'red' : 'tan' },
-      { key: 'nem', label: 'Nem', href: '#nem', badge: rh != null ? '%' + rh : '—', tone: 'tan' },
       { key: 'ucus', label: 'Uçuş uygunluğu', href: '#ucus', badge: has ? okN + ' uygun gün' : '—', tone: okN ? 'green' : 'red' },
-      { key: 'ariliklar', label: 'Arılıklar', href: 'ariliklar.html', badge: String(aps.length), tone: 'tan' },
       { key: 'gecmis', label: 'Geçmiş hava', href: 'hava-gecmis.html' + apQ(), badge: '', tone: 'tan' },
-      { key: 'rapor', label: 'Hava raporu', href: 'hava-raporu.html' + apQ(), badge: '', tone: 'tan' }
+      { key: 'rapor', label: 'Sezon raporu', href: 'hava-raporu.html' + apQ(), badge: '', tone: 'tan' },
+      { key: 'karsi', label: 'Geçen yılla karşılaştırma', href: '#karsi', badge: '', tone: 'tan' },
+      { key: 'nektar', label: 'Nektar akımı', href: '#nektar', badge: has ? 'tahmini' : '—', tone: 'tan' },
+      { key: 'don', label: 'Don / fırtına', href: '#don', badge: has ? (fr ? fr + ' gün uyarı' : 'Uyarı yok') : '—', tone: fr ? 'red' : 'green' },
+      { key: 'isgunu', label: 'Uygun iş günü', href: '#isgunu', badge: has ? (wk.length ? dayLab(wk[0].date, d.indexOf(wk[0])) : 'Yok') : '—', tone: wk.length ? 'green' : 'tan' }
     ];
   }
   function renderGrid() {
@@ -130,9 +139,9 @@
     var rainD = d.slice(0, 7).filter(rainy), okD = d.filter(function (x) { return flight(x) === 'ok'; });
     var stats = [
       { k: 't', v: h0 ? r0(h0.temp) + '°' : (t0.hi != null ? r0(t0.hi) + '°' : '—'), l: t0.hi != null ? 'Bugün ' + r0(t0.lo) + '°/' + r0(t0.hi) + '°' : 'Sıcaklık', href: '#saatlik' },
-      { k: 'r', v: d.length ? String(rainD.length) : '—', l: '7 günde yağmur', href: '#yagis' },
+      { k: 'r', v: d.length ? String(rainD.length) : '—', l: 'Yağmurlu gün', href: '#isgunu' },
       { k: 'f', v: d.length ? String(okD.length) : '—', l: 'Uçuşa uygun gün', href: '#ucus' },
-      { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#ruzgar' }
+      { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#don' }
     ];
     $('bkStats').innerHTML = stats.map(function (x) {
       return '<a class="bk-stat" data-stat="' + x.k + '" href="' + x.href + '">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
@@ -140,7 +149,7 @@
     var note;
     if (!data) note = { t: 'Tahmin alınamadı — bağlantıyı kontrol edin', b: 'Yenile', h: '#' };
     else if (okD.length) note = { t: '🐝 Uçuş uygun: ' + okD.slice(0, 4).map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', '), b: 'Uçuş', h: '#ucus' };
-    else if (rainD.length) note = { t: '🌧️ ' + rainD.map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', ') + ' yağmur', b: 'Yağış', h: '#yagis' };
+    else if (rainD.length) note = { t: '🌧️ ' + rainD.map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', ') + ' yağmur', b: 'İş günü', h: '#isgunu' };
     else note = { t: 'Önümüzdeki günlerde uçuşa uygun gün yok', b: '10 gün', h: '#10gun' };
     $('bkNoteText').textContent = note.t; $('bkNoteBtn').textContent = note.b; $('bkNote').setAttribute('href', note.h);
   }
@@ -172,17 +181,69 @@
     if (name === 'nem') return head('Nem', sub + ' · günlük ortalama bağıl nem') + d.map(function (x, i) {
       return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.rh || 0)) + '%;background:#74c0fc"></i></span><span class="v" style="flex:0 0 48px;text-align:right">%' + r0(x.rh) + '</span></div>';
     }).join('');
+    if (name === 'don') {
+      var fr = frostDays(d);
+      return head('Don / fırtına uyarıları', sub + ' · don: en düşük ≤2° · fırtına: hamle ≥50 km/s veya gök gürültülü') +
+        (fr.length ? fr.map(function (x) { var i = d.indexOf(x), w = [];
+          if (x.lo != null && x.lo <= 2) w.push('❄️ Don riski: en düşük ' + r0(x.lo) + '°');
+          if ((x.gust || 0) >= 50) w.push('💨 Fırtına: hamle ' + r0(x.gust) + ' km/s');
+          if (Number(x.code) >= 95) w.push('⛈️ Gök gürültülü sağanak');
+          return '<div class="hv-warn"><b>' + esc(dayLab(x.date, i)) + '</b> · ' + w.join(' · ') + '</div>'; }).join('') +
+          '<div class="hv-sub">Öneri: kovan kapaklarını sabitleyin, girişleri daraltın.</div>'
+        : '<div class="hv-good">Önümüzdeki ' + d.length + ' günde don veya fırtına beklenmiyor.</div>');
+    }
+    if (name === 'isgunu') {
+      var wk = workDays(d), fa = feedAlert(d);
+      return head('Uygun iş günü', 'İlaçlama / muayene için: yağışsız, rüzgar ≤15 km/s, en yüksek ≥15°') +
+        (fa ? '<div class="hv-warn">🍯 ' + esc(fa) + '</div>' : '') +
+        (wk.length ? wk.map(function (x) { return dayCard(x, d.indexOf(x)); }).join('')
+          : '<div class="hv-empty">Önümüzdeki ' + d.length + ' günde ilaçlama/muayene için uygun (yağışsız ve rüzgarsız) gün görünmüyor.</div>');
+    }
+    if (name === 'nektar') {
+      var okD = d.filter(function (x) { return flight(x) === 'ok'; });
+      return head('Nektar akımı / çiçeklenme', sub) +
+        '<div class="hv-empty">Bu arılık için çiçeklenme takvimi verisi yok. Aşağıdaki değerlendirme yalnız hava tahminine dayanır (tahmini).</div>' +
+        '<div class="' + (okD.length >= 4 ? 'hv-good' : 'hv-warn') + '">' + (okD.length >= 4 ? '🌼 ' + okD.length + ' gün uçuşa ve toplamaya uygun hava — nektar akımı olan bölgede iyi toplama beklenebilir.' : '🌧️ Yalnız ' + okD.length + ' gün toplamaya uygun hava — nektar akımı sınırlı kalabilir.') + '</div>';
+    }
+    if (name === 'karsi') return head('Geçen yılla karşılaştırma', sub + ' · aynı 10 gün, geçen yıl') + '<div id="hvKarsi"><div class="hv-empty">Geçen yılın kayıtları yükleniyor…</div></div>';
     if (name === 'saatlik') return head('Saatlik', sub + ' · önümüzdeki 36 saat') + hs.map(function (h) {
       var hr = Number(h.t.slice(11, 13)), okH = hr >= 8 && hr <= 19 && (h.temp || 0) >= 12 && (h.wind || 0) <= 20 && (h.pr || 0) < 40;
       return '<div class="hv-row"><span class="k">' + hrLab(h.t) + '</span><span class="v">' + ico(h.code, h.mm) + ' ' + r0(h.temp) + '° · 💧%' + Math.round(h.pr) + ' · 💨' + r0(h.wind) + ' · Nem %' + r0(h.rh) + '</span>' + (okH ? '<span title="Uçuş uygun">🐝</span>' : '') + '</div>';
     }).join('');
     return '';
   }
+  function renderTen() {
+    var d = data && data.days || [];
+    if (!data) return '<div class="hv-empty">' + (ap() ? 'Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.' : 'Konumu kayıtlı arılık yok — arılık ekleyince tahmin burada görünür.') + '</div>';
+    var fa = feedAlert(d);
+    return '<div class="hv-h">10 günlük tahmin</div>' + (fa ? '<div class="hv-warn">🍯 ' + esc(fa) + '</div>' : '') + d.map(dayCard).join('');
+  }
+  function loadKarsi() {
+    var a = ap(), d = data && data.days || [], el = $('hvKarsi');
+    if (!a || !d.length || !el) return;
+    function ly(iso) { return (Number(iso.slice(0, 4)) - 1) + iso.slice(4); }
+    var url = 'https://archive-api.open-meteo.com/v1/archive?latitude=' + a.lat + '&longitude=' + a.lon + '&start_date=' + ly(d[0].date) + '&end_date=' + ly(d[d.length - 1].date) +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto';
+    fetch(url).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) {
+      var t = (j.daily && j.daily.time) || []; if (!t.length) throw 0;
+      var x = $('hvKarsi'); if (!x) return;
+      var sumNow = 0, sumLy = 0;
+      x.innerHTML = d.map(function (k, i) {
+        var hi = j.daily.temperature_2m_max[i], lo = j.daily.temperature_2m_min[i], mm = j.daily.precipitation_sum[i] || 0;
+        sumNow += k.mm || 0; sumLy += mm;
+        var df = (k.hi != null && hi != null) ? Math.round(k.hi - hi) : null;
+        return '<div class="hv-row"><span class="k">' + esc(dayLab(k.date, i)) + '</span><span class="v">Bu yıl ' + r0(k.hi) + '°/' + r0(k.lo) + '° · geçen yıl ' + r0(hi) + '°/' + r0(lo) + '°' +
+          (df != null ? ' <b style="color:' + (df >= 0 ? '#e8590c' : '#1c7ed6') + '">(' + (df > 0 ? '+' : '') + df + '°)</b>' : '') + '<br>💧 ' + (Math.round((k.mm || 0) * 10) / 10) + ' mm · geçen yıl ' + (Math.round(mm * 10) / 10) + ' mm</span></div>';
+      }).join('') + '<div class="hv-sub">Toplam yağış: bu yıl ' + Math.round(sumNow) + ' mm · geçen yıl ' + Math.round(sumLy) + ' mm</div>';
+    }).catch(function () { var x = $('hvKarsi'); if (x) x.innerHTML = '<div class="hv-empty">Geçen yılın bu günlere ait kaydı alınamadı.</div>'; });
+  }
   function route() {
     var h = (location.hash || '').replace('#', '');
-    var ok = { '10gun': 1, saatlik: 1, yagis: 1, ruzgar: 1, nem: 1, ucus: 1 }[h];
+    var ok = { '10gun': 1, saatlik: 1, ucus: 1, don: 1, isgunu: 1, nektar: 1, karsi: 1 }[h];
     document.body.classList.toggle('hv-in-detail', !!ok);
     $('hvDetail').innerHTML = ok ? view(h) : '';
+    $('hvTen').innerHTML = renderTen();
+    if (h === 'karsi') loadKarsi();
     var sc = document.querySelector('.phone>.screen'), dv = $('hvDetail');
     void dv; if (sc) sc.scrollTop = 0;
   }

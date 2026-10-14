@@ -76,8 +76,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-141'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-141'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-142'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-142'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -103,11 +103,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-141').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-142').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-141').catch(function () {});
+      return loadScript('koloni.js?v=koloni-142').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -851,7 +851,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-141').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-142').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -1020,15 +1020,35 @@
   (d.head || d.documentElement).appendChild(st);
 })(window);
 
-/* koloni-141: telefon maketi sayfayla birlikte kayar; ekran içi sabit (durum çubuğu altında başlar) */
+/* koloni-142: telefon maketi sayfayla birlikte kayar; ekran içi sabit (durum çubuğu altında başlar) */
 (function(){
   if (typeof document === 'undefined') return;
   var F = 'html.sa-phone-mobile:not(.sa-standalone) body.sa-phone-mobile';
-  var css = 'html.sa-phone-mobile:not(.sa-standalone),' + F + '{height:auto!important;min-height:calc(var(--sa-vvh,100dvh) + 45vh)!important;background:#1b1b1d!important;overflow-y:auto!important;}' +
-    F + ' .phone.phone{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;margin:16px 5px 45vh!important;height:calc(var(--sa-vvh,100dvh) - 21px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;}' +
+  var css = 'html.sa-phone-mobile:not(.sa-standalone),' + F + '{height:auto!important;min-height:calc(100vh + 45vh)!important;min-height:calc(100svh + 45svh)!important;background:#1b1b1d!important;overflow-y:auto!important;}' +
+    F + ' .phone.phone{position:relative!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;margin:16px 5px 45vh!important;margin-bottom:45svh!important;height:calc(100vh - 21px)!important;height:calc(100svh - 21px)!important;height:var(--sa-fixh,calc(100svh - 21px))!important;min-height:var(--sa-fixh,0px)!important;max-height:var(--sa-fixh,none)!important;flex:0 0 auto!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;}' +
     F + ' .phone>.status-bar{position:relative!important;top:auto!important;flex:0 0 auto!important;}' +
     F + ' .phone>.screen{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior-y:auto!important;}' +
     F + ' .phone>.tabbar,' + F + ' .phone>.home-indicator{position:relative!important;bottom:auto!important;flex:0 0 auto!important;}';
+  /* k142: çerçeve yüksekliği bir kez sabitlenir (Safari araç çubuğu/dvh değişimiyle oynamaz); yalnız genişlik (yön) değişince yeniden */
+  (function fixH() {
+    var w0 = 0;
+    function calc(force) {
+      var w = window.innerWidth;
+      if (!force && w === w0) return;
+      w0 = w;
+      var t = document.createElement('div');
+      t.style.cssText = 'position:fixed;top:0;height:100svh;width:0;visibility:hidden;pointer-events:none';
+      (document.body || document.documentElement).appendChild(t);
+      var sv = t.getBoundingClientRect().height || window.innerHeight; t.remove();
+      var h = Math.round(Math.min(sv, window.innerHeight || sv) - 21);
+      var asp = Math.round((w - 10) * 844 / 390); /* iPhone 12 oranı üst sınır */
+      if (asp > 0) h = Math.min(h, asp);
+      if (h > 200) document.documentElement.style.setProperty('--sa-fixh', h + 'px');
+    }
+    if (document.body) calc(true); else document.addEventListener('DOMContentLoaded', function () { calc(true); });
+    window.addEventListener('orientationchange', function () { setTimeout(function () { calc(true); }, 300); });
+    window.addEventListener('resize', function () { calc(false); });
+  })();
   var st = document.createElement('style'); st.id = 'saK138'; st.textContent = css;
   (document.head || document.documentElement).appendChild(st);
 })();
