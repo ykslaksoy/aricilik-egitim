@@ -146,7 +146,7 @@
         banner: banner,
         recLabel: 'Tek gövdede güçlendir: boş çerçeve / temel petek ver',
         why: baseWhy + '. İlkbaharda sık yol: önce tek gövdede çerçeve ekleyerek koloniyi güçlendirmek; bal katı genelde alt gövde dolunca (~%75–80) düşünülür.',
-        say: 'Kovan güçleniyor. Önce tek gövdede boş çerçeve verin; bal katını alt dolunca düşünün.',
+        say: 'Kovan güçleniyor. Önce tek gövdede boş çerçeve ver; bal katını alt dolunca düşün.',
         options: []
       };
     }
@@ -158,7 +158,7 @@
         banner: banner,
         recLabel: 'Alt gövde dolmak üzere: 1. bal katı (veya 2. gövde) düşün',
         why: baseWhy + '. Alt kısım ~%75–80 dolulukta ikinci kat (bal katı) verilebilir; henüz tek gövdede çerçeve de ekleyebilirsiniz.',
-        say: 'Alt gövde dolmak üzere. Önerim: bir bal katı verin veya boş çerçeve ekleyin.',
+        say: 'Alt gövde dolmak üzere. Önerim: bir bal katı ver veya boş çerçeve ekle.',
         options: [
           { id: 'kat_ekle', label: '1 bal katı verdim', say: ['kat', 'tamam'], detail: 'Yer açıldı, bal akımı için üst kat.' },
           { id: 'cerceve', label: '2 boş çerçeve / temel petek verdim', say: ['cerceve', 'bos'], detail: 'Önce gövde içinde genişleme.' },
@@ -174,7 +174,7 @@
         banner: banner,
         recLabel: kat ? '1 kat daha ekleyin (yer dar)' : '1 kat (bal katı) ekleyin — yer dar',
         why: baseWhy,
-        say: 'Kovan dolu. Önerim: bir kat ekleyin veya boş çerçeve verin.',
+        say: 'Kovan dolu. Önerim: bir kat ekle veya boş çerçeve ver.',
         options: [
           { id: 'kat_ekle', label: '1 kat ekledim', say: ['kat', 'tamam'], detail: 'Üst kat ile yer açma.' },
           { id: 'cerceve', label: '2 boş çerçeve / temel petek verdim', say: ['cerceve', 'bos'], detail: 'Kat yerine gövde içi çerçeve.' },
@@ -283,7 +283,7 @@
         banner: banner,
         recLabel: 'Boş çerçeve / temel petek ver (dolmak üzere)',
         why: baseWhy,
-        say: 'Kovan dolmak üzere. Boş çerçeve verin.',
+        say: 'Kovan dolmak üzere. Boş çerçeve ver.',
         options: []
       };
     }

@@ -10,6 +10,6 @@
   var h = '<section class="ses-sec" id="sesSiniflari" style="margin-top:14px;background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:10px 12px"><h2 style="font-size:16px;margin:0 0 4px">Kovan sesleri</h2>';
   if (!ses.length) h += '<p class="meta" id="sesBos" style="margin:0">Ses sensörü bağlı değil. Sensör takılınca uyarılar burada görünür.</p>';
   else if (!alerts.length) h += '<p class="meta" style="margin:0">Ses uyarısı yok.</p>';
-  else h += alerts.map(function (a) { return '<p style="margin:0 0 6px;padding:6px 8px;border-radius:10px;background:' + (a.severity === 'high' ? '#fff5f5' : '#fff9db') + ';font-size:13px">⚠️ ' + esc(a.title) + '</p>'; }).join('');
+  else h += alerts.map(function (a) { return '<p style="margin:0 0 6px;padding:6px 8px;border-radius:10px;background:' + (a.severity === 'critical' ? '#ffe3e3' : a.severity === 'high' ? '#fff5f5' : '#fff9db') + ';font-size:13px"><b>' + esc(a.title) + '</b>' + (a.body ? '<br>' + esc(a.body) : '') + (a.action ? '<br>👉 ' + esc(a.action) : '') + '</p>'; }).join('');
   host.insertAdjacentHTML('afterend', h + '</section>');
 })();

@@ -36,19 +36,19 @@
 
   /* ---------------- Adımlar ---------------- */
   var S = {
-    giris: { id: 'giris', icon: '🚪', q: 'Uçuş deliği / giriş nasıl?', help: 'Kovanı açmadan önce 1 dakika girişe bakın.', opts: [
+    giris: { id: 'giris', icon: '🚪', q: 'Uçuş deliği / giriş nasıl?', help: 'Kovanı açmadan önce 1 dakika girişe bak.', opts: [
       ['yogun', 'Yoğun trafik, polen taşıyor'], ['normal', 'Normal'], ['zayif', 'Zayıf / sessiz'], ['olu', 'Ölü veya sürünen arı var'], ['yagma', 'Yağma / kavga var']] },
     ana: { id: 'ana', icon: '👑', q: 'Ana arı veya yumurta görüldü mü?', help: 'Yumurta görmek anayı görmek kadar iyidir (son 3 gün ana vardı).', opts: [
       ['anaYumurta', 'Ana + yumurta'], ['yumurta', 'Yumurta var (ana görülmedi)'], ['ana', 'Ana var, yumurta yok'], ['larva', 'Yalnız larva / kapalı yavru'], ['hicbiri', 'Ne ana ne yumurta']] },
-    yavru: { id: 'yavru', icon: '🥚', q: 'Yavru düzeni', help: 'Yavrulu çerçevenin ortasına bakın.', opts: [
+    yavru: { id: 'yavru', icon: '🥚', q: 'Yavru düzeni', help: 'Yavrulu çerçevenin ortasına bak.', opts: [
       ['duzenli', 'Düzenli, dolu'], ['biraz', 'Biraz boşluklu'], ['daginik', 'Dağınık (çok boşluk)'], ['yok', 'Yavru yok']] },
     kapali: { id: 'kapali', icon: '🟫', q: 'Kapalı yavru kapakları', help: 'Kapakların rengi ve şekli.', opts: [
       ['iyi', 'Düzgün, hafif kubbeli'], ['birkac', 'Birkaç delikli / çökük'], ['cok', 'Çok sayıda delikli / çökük']] },
-    cerceve: { id: 'cerceve', icon: '🖼', q: 'Arı ile kaplı çerçeve sayısı', help: 'Her iki yüzü çoğunlukla arıyla kaplı çerçeveleri sayın.', stepper: true },
+    cerceve: { id: 'cerceve', icon: '🖼', q: 'Arı ile kaplı çerçeve sayısı', help: 'Her iki yüzü çoğunlukla arıyla kaplı çerçeveleri say.', stepper: true },
     /* Bal ve oğul memesi: tam çerçeve sayısı (Az/Çok yok) — büyük +/− ve sesle sayı */
-    stok: { id: 'stok', icon: '🍯', q: 'Ballı çerçeve sayısı', help: 'Balla dolu (çoğu kapalı) çerçeveleri tek tek sayın.', count: { max: 30, label: 'Ballı çerçeve', unit: 'çerçeve' } },
-    ogul: { id: 'ogul', icon: '🐝', q: 'Oğul memeli çerçeve sayısı', help: 'Alt kenarında oğul memesi olan çerçeveleri sayın. Yoksa 0.', count: { max: 20, label: 'Oğul memeli çerçeve', unit: 'çerçeve', zero: 'Yok (0)' } },
-    meme: { id: 'meme', icon: '🏺', q: 'Başka ana memesi var mı?', help: 'Petek ortasında (sessiz değiştirme) veya genç larvadan acil meme.', opts: [
+    stok: { id: 'stok', icon: '🍯', q: 'Ballı çerçeve sayısı', help: 'Balla dolu (çoğu kapalı) çerçeveleri tek tek say.', count: { max: 30, label: 'Ballı çerçeve', unit: 'çerçeve' } },
+    ogul: { id: 'ogul', icon: '🐝', q: 'Oğul yüksüklü çerçeve sayısı', help: 'Alt kenarında oğul yüksüğü olan çerçeveleri say. Yoksa 0.', count: { max: 20, label: 'Oğul yüksüklü çerçeve', unit: 'çerçeve', zero: 'Yok (0)' } },
+    meme: { id: 'meme', icon: '🏺', q: 'Başka yüksük var mı?', help: 'Petek ortasında (sessiz değiştirme) veya genç larvadan acil yüksük.', opts: [
       ['yok', 'Yok'], ['kupa', 'Yalnız boş kupa (yumurta/larva yok)'], ['yenileme', '1–2 yüksük, ana var — sessiz ana değiştirme'], ['acil', 'Çok yüksük, ana yok — acil (genç larvadan)']] },
     belirti: { id: 'belirti', icon: '🔎', q: 'Yumurta / yavru belirtisi', help: 'Gözde birden çok yumurta, duvarda yumurta veya dağınık erkek yavru var mı?', opts: [
       ['yok', 'Normal (gözde tek yumurta)'], ['cokYumurta', 'Gözde birden çok yumurta / duvarda'], ['erkekYavru', 'Dağınık erkek yavru (kabarık kapak)']] },
@@ -87,7 +87,7 @@
     var parts = [];
     st.steps.forEach(function (id) {
       if (id === 'cerceve') { if (a.cerceve) parts.push(a.cerceve.bee + ' arılı' + (a.cerceve.brood != null ? ', ' + a.cerceve.brood + ' yavrulu' : '') + ' çerçeve'); return; }
-      if (S[id].count) { if (a[id] != null) parts.push((id === 'stok' ? 'Bal' : 'Oğul memesi') + ': ' + a[id] + ' çerçeve'); return; }
+      if (S[id].count) { if (a[id] != null) parts.push((id === 'stok' ? 'Bal' : 'Oğul yüksüğü') + ': ' + a[id] + ' çerçeve'); return; }
       if (a[id] != null) parts.push(S[id].q.replace(/\?$/, '').split(' (')[0] + ': ' + optLabel(id, a[id]).toLocaleLowerCase('tr'));
     });
     var notes = st.steps.map(function (id) { return st.notes[id] ? S[id].icon + ' ' + st.notes[id] : ''; }).filter(Boolean);
@@ -133,18 +133,18 @@
     var bxS = st.box || null;
     var hasSup = a.yer === 'kat' || (bxS ? (bxS.kat > 0 || bxS.ballik) : (P && P.hasSuper && P.hasSuper(h.id)));
     if (a.ana === 'hicbiri') {
-      if (a.yavru === 'yok' || a.yavru == null) t('Anasız görünüyor: ana ver veya güçlü bir kovanla birleştir', 1, 1, 'Ne ana ne yumurta, yavru yok');
+      if (a.yavru === 'yok' || a.yavru == null) t('Anasız görünüyor: ana arı ver veya kovanı birleştir', 1, 1, 'Ne ana ne yumurta, yavru yok');
       else t('Ana kontrolü: 3–4 gün sonra yumurta var mı bak (anasız olabilir)', 2, 4, 'Ana ve yumurta görülmedi');
     }
     if (a.ana === 'ana' && a.yavru === 'yok') t('Ana yumurtlamıyor: 1 hafta içinde tekrar kontrol et, gerekirse ana değiştir', 2, 7);
-    if (Number(a.ogul) > 0) t('Oğul memesi (' + a.ogul + ' çerçeve): bölme yap veya yer aç (kat / boş çerçeve)', 1, 1, a.ogul + ' çerçevede oğul memesi');
+    if (Number(a.ogul) > 0) t('Oğul yüksüğü (' + a.ogul + ' çerçeve): bölme yap veya yer aç (kat / boş çerçeve)', 1, 1, a.ogul + ' çerçevede oğul yüksüğü');
     /* k150 yüksük takvimi (Tofilski & Czekońska 2004; Winston 1980; Ramsey 2020) */
-    if (Number(a.ogul) > 0) t('Yüksük takvimi: açık yüksük ~8–9 günde kapanır, kapandıktan ~7 gün sonra ana çıkar; ilk oğuldan 4–9 gün sonra ikinci oğul riski — tekrar bak', 2, 7);
-    if (a.meme === 'acil') t('Acil yüksük: yeni ana ~16 günde çıkar; ~3 hafta sonra yumurta kontrolü', 3, 21);
-    if (a.ana === 'hicbiri' && a.yavru === 'yok' && (a.meme === 'yok' || a.meme === 'kupa') && !(Number(a.ogul) > 0)) t('Yumurta, larva ve yüksük yok: koloni kendi anasını yapamaz — ana ver veya birleştir', 1, 1);
-    if (a.belirti === 'cokYumurta') t(a.ana === 'anaYumurta' || a.ana === 'ana' ? 'Gözde çok yumurta: genç ana olabilir — 9 gün sonra kapalı işçi yavrusu var mı bak' : 'Yalancı ana arı şüphesi: 9 gün sonra yalnız erkek yavru varsa çözüm uygula', 1, 9);
-    if (a.belirti === 'erkekYavru') t(a.ana === 'anaYumurta' || a.ana === 'ana' ? 'Erkek yumurtlayan ana: ana değiştir' : 'Dağınık erkek yavru, ana yok: yalancı ana olabilir', 1, 2);
-    if (a.meme === 'yenileme') t('Sessiz ana değiştirme: memelere dokunma, 2–3 hafta sonra yumurta kontrolü', 3, 18);
+    if (Number(a.ogul) > 0) t('Oğul yüksüğü: 7 gün sonra tekrar kontrol et', 2, 7);
+    if (a.meme === 'acil') t('Acil yüksük: 3 hafta sonra yumurta kontrol et', 3, 21);
+    if (a.ana === 'hicbiri' && a.yavru === 'yok' && (a.meme === 'yok' || a.meme === 'kupa') && !(Number(a.ogul) > 0)) t('Yumurta, larva ve yüksük yok: ana arı ver veya kovanı birleştir', 1, 1);
+    if (a.belirti === 'cokYumurta') t(a.ana === 'anaYumurta' || a.ana === 'ana' ? 'Gözde çok yumurta: genç ana olabilir — 9 gün sonra kapalı işçi yavrusu var mı bak' : 'Yalancı ana arı şüphesi: 9 gün sonra kapalı yavruyu kontrol et', 1, 9);
+    if (a.belirti === 'erkekYavru') t(a.ana === 'anaYumurta' || a.ana === 'ana' ? 'Erkek yumurtlayan ana: ana arıyı değiştir' : 'Dağınık erkek yavru, ana yok: yalancı ana olabilir', 1, 2);
+    if (a.meme === 'yenileme') t('Sessiz ana değiştirme: yüksüklere dokunma, 2–3 hafta sonra yumurta kontrol et', 3, 18);
     var cap = bxS ? 10 * (bxS.body + Math.max(bxS.kat, a.yer === 'kat' ? 1 : 0)) : (hasSup ? 20 : 10);
     if (a.yer === 'dolu' || (bee != null && bee / cap >= 0.9)) t(hasSup ? 'Yer dar: ikinci kat / boş çerçeve ver' : 'Yer dar: kat at (bal katı ver)', 1, 1, 'Kovan dolu');
     else if (a.yer === 'dolmak' || (bee != null && bee / cap >= 0.8)) t(hasSup ? 'Kovan dolmak üzere: boş çerçeve hazırla' : 'Kovan dolmak üzere: kat atmaya hazırlan', 2, 5);
@@ -262,7 +262,7 @@
     };
     function voiceStart(resume) {
       need('sesle-muayene.js', 'SuperAriSesle').then(function (V) { V.start(vapi, { resume: !!resume }); })
-        .catch(function () { var b = vapi.bar(); if (b) { b.hidden = false; b.className = 'km-voice unsup'; b.textContent = 'Sesle muayene yüklenemedi; dokunarak devam edin.'; } });
+        .catch(function () { var b = vapi.bar(); if (b) { b.hidden = false; b.className = 'km-voice unsup'; b.textContent = 'Sesle muayene yüklenemedi; dokunarak devam et.'; } });
     }
     function render() {
       renderCore();
@@ -307,7 +307,7 @@
     }
     function boxEditor() {
       var b = st.box;
-      return '<div class="km-sum" style="margin-top:12px;"><h3>🏠 Kovan kutusu' + (b.known || st.boxTouched ? '' : ' <small style="font-weight:400;color:#6b5a48;">(kayıtlı değil — kontrol edin)</small>') + '</h3>' +
+      return '<div class="km-sum" style="margin-top:12px;"><h3>🏠 Kovan kutusu' + (b.known || st.boxTouched ? '' : ' <small style="font-weight:400;color:#6b5a48;">(kayıtlı değil — kontrol et)</small>') + '</h3>' +
         '<div class="km-lbl">Gövde (kuluçkalık)</div><div class="km-step sm"><button type="button" data-km-box="body" data-d="-1" aria-label="Gövde azalt">−</button><output data-km-bout="body">' + b.body + '</output><button type="button" data-km-box="body" data-d="1" aria-label="Gövde artır">+</button></div>' +
         '<div class="km-lbl">Kat</div><div class="km-step sm"><button type="button" data-km-box="kat" data-d="-1" aria-label="Kat azalt">−</button><output data-km-bout="kat">' + b.kat + '</output><button type="button" data-km-box="kat" data-d="1" aria-label="Kat artır">+</button></div>' +
         '<label class="km-task" style="border:0;justify-content:center;"><input type="checkbox" data-km-ballik' + (b.ballik ? ' checked' : '') + '><span style="flex:none;">Ballık takılı (ana ızgaralı bal katı)</span></label>' +
@@ -341,7 +341,7 @@
       if (plan && plan.feedAdv && global.SuperAriPlan.feedAdviceHtml) H += '<div class="km-sum"><h3>🍯 Besleme önerisi</h3>' + global.SuperAriPlan.feedAdviceHtml(plan.feedAdv, 'km-fa') + '</div>';
       H += '<div class="km-sum"><h3>' + (st.done ? 'Kaydedilenler' : 'Kaydedilecekler') + '</h3>' +
         (b.strength ? '<div class="km-row"><span>💪 Koloni gücü / muayene: ' + b.strength.beeFrames + ' arılı, ' + b.strength.broodFrames + ' yavrulu, ' + b.strength.honeyFrames + ' bal çerçevesi' + (b.strength.space ? ' · yer: ' + esc(optLabel('yer', b.strength.space).toLocaleLowerCase('tr')) : '') + '</span></div>' : '') +
-        (b.brood ? '<div class="km-row"><span>🥚 Yavru durumu: ' + (b.brood.eggs ? 'yumurta var' : 'yumurta yok') + ', ' + (b.brood.pattern === 'duzenli' ? 'düzenli' : 'dağınık') + (b.brood.queenCell !== 'yok' ? ' · ana memesi: ' + esc(optLabel('meme', b.brood.queenCell).toLocaleLowerCase('tr')) : '') + (b.brood.queenless ? ' · anasız' : '') + '</span></div>' : '') +
+        (b.brood ? '<div class="km-row"><span>🥚 Yavru durumu: ' + (b.brood.eggs ? 'yumurta var' : 'yumurta yok') + ', ' + (b.brood.pattern === 'duzenli' ? 'düzenli' : 'dağınık') + (b.brood.queenCell !== 'yok' ? ' · yüksük: ' + esc(optLabel('meme', b.brood.queenCell).toLocaleLowerCase('tr')) : '') + (b.brood.queenless ? ' · anasız' : '') + '</span></div>' : '') +
         (b.calm ? '<div class="km-row"><span>🐝 Sakinlik: ' + esc(optLabel('huy', String(b.calm))) + '</span></div>' : '') +
         (b.boxes ? '<div class="km-row"><span>🏠 Kovan kutusu: ' + esc(boxText(b.boxes)) + '</span></div>' : (b.superOn ? '<div class="km-row"><span>📦 Bal katı takılı olarak işaretlenir</span></div>' : '')) +
         (b.queenYear ? '<div class="km-row"><span>🎨 Ana yılı: ' + b.queenYear + '</span></div>' : '') +

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Koloni işlemleri · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-153" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-153" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-154" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-154" />
   <style>
     .ki-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;}
     .ki-tabs a{display:flex;align-items:center;justify-content:center;text-align:center;min-height:44px;padding:.35rem;border-radius:12px;border:1px solid var(--border);background:#fff;color:#5c4813;font-weight:800;font-size:.8rem;text-decoration:none;line-height:1.15;}
@@ -60,11 +60,11 @@
   <main class="wrap">
     <div id="view"></div>
   </main>
-  <script src="bk-kabuk.js?v=koloni-153"></script>
-  <script src="demo-data.js?v=koloni-153"></script>
-  <script src="koloni.js?v=koloni-153"></script>
-  <script src="kapsam.js?v=koloni-153"></script>
-  <script src="ks-sayfa.js?v=koloni-153"></script>
+  <script src="bk-kabuk.js?v=koloni-154"></script>
+  <script src="demo-data.js?v=koloni-154"></script>
+  <script src="koloni.js?v=koloni-154"></script>
+  <script src="kapsam.js?v=koloni-154"></script>
+  <script src="ks-sayfa.js?v=koloni-154"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, K = window.SuperAriKoloni;
@@ -138,7 +138,7 @@
         '</div><p class="muted" style="margin:0;font-size:.76rem;">Son koloni gücü kaydına göre. Birleştirilmeli: yaşama sınırının altı. Bölünmesi Gerekiyor: bölme döneminde arılı ve yavrulu çerçeve bölgenin güçlü düzeyinin belirgin üstünde.</p></section>';
       var html = duo + '<section class="card stack" style="margin-top:1rem;"><div class="ki-seg"><button type="button" data-sub="bolme" class="' + (sub === 'bolme' ? 'on' : '') + '">✂️ Bölme</button><button type="button" data-sub="birlestirme" class="' + (sub === 'birlestirme' ? 'on' : '') + '">🔗 Birleştirme</button></div>';
       if (sub === 'bolme') {
-        var hint = function (x) { return x.st.swarmCell ? 'oğul memesi' : (x.st.strengthClass && /güçlü/i.test(x.st.strengthClass) ? x.st.strengthClass.toLocaleLowerCase('tr') : ''); };
+        var hint = function (x) { return x.st.swarmCell ? 'oğul yüksüğü' : (x.st.strengthClass && /güçlü/i.test(x.st.strengthClass) ? x.st.strengthClass.toLocaleLowerCase('tr') : ''); };
         html += '<form class="ki-form" id="fSplit" autocomplete="off">' +
           '<label class="full">Kaynak kovan<select name="src" required>' + splitC.map(function (x) { return hiveOpt(x.h, hint(x)); }).join('') +
             hs.filter(function (h) { return !splitC.some(function (x) { return x.h.id === h.id; }); }).map(function (h) { return hiveOpt(h); }).join('') + '</select></label>' +
@@ -149,7 +149,7 @@
             '<label>Arılı çerçeve<input type="number" name="bees" min="0" max="20" inputmode="numeric" value="3"></label></div>' +
           '<div class="ki-radio" role="radiogroup" aria-label="Ana durumu">' +
             '<label><input type="radio" name="qm" value="kaynakta" checked> <span><b>Ana kaynakta kaldı</b> — yeni kovan anasız (yumurtalı çerçeveden kendi anasını yetiştirir)</span></label>' +
-            '<label><input type="radio" name="qm" value="hucre"> <span><b>Yeni kovana ana hücresi verildi</b> — çıkış ~7 gün, yumurta kontrolü ~3 hafta</span></label>' +
+            '<label><input type="radio" name="qm" value="hucre"> <span><b>Yeni kovana yüksük verildi</b> — çıkış ~7 gün, yumurta kontrolü ~3 hafta</span></label>' +
             '<label><input type="radio" name="qm" value="yeniAna"> <span><b>Yeni kovana yeni ana verildi</b> — yeni ana kaydı açılır</span></label>' +
             '<label><input type="radio" name="qm" value="anaTasindi"> <span><b>Ana yeni kovana alındı</b> — kaynak kovan anasız kalır</span></label></div>' +
           '<label hidden data-yeni>Ana doğum yılı<input type="number" name="qyear" min="2015" max="2100" value="' + new Date().getFullYear() + '"></label>' +
@@ -174,7 +174,7 @@
       html += '</section>';
       html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">' + (sub === 'bolme' ? 'Bölme adayları' : 'Birleştirme adayları') + ' (' + (sub === 'bolme' ? splitC.length : mergeC.length) + ')</h2><div class="ki-list">' +
         ((sub === 'bolme' ? splitC : mergeC).slice(0, 15).map(function (x) {
-          var why = sub === 'bolme' ? (x.st.swarmCell ? 'Oğul memesi görüldü — bölerek oğulu önleyin' : 'Güçlü koloni') : (x.st.queenless ? 'Anasız' : 'Zayıf koloni');
+          var why = sub === 'bolme' ? (x.st.swarmCell ? 'Oğul yüksüğü görüldü — bölerek oğulu önle' : 'Güçlü koloni') : (x.st.queenless ? 'Anasız' : 'Zayıf koloni');
           return '<a class="ki-row" href="kovan.html?id=' + encodeURIComponent(x.h.id) + '#btBox"><span><b>' + esc(x.h.name) + '</b><small>' + esc(why) + '</small></span><span class="d">No ' + esc(K.hiveNo(x.h)) + '</span></a>';
         }).join('') || '<p class="muted" style="margin:0;">Kayıtlara göre aday kovan yok. Koloni gücü ve yavru kayıtları girdikçe burada görünür.</p>') + '</div></section>';
       html += '<section class="card stack" style="margin-top:1rem;"><h2 class="ki-h">Son işlemler</h2><div class="ki-list">' + evRows(['bolme', 'birlestirme']) + '</div></section>';
@@ -471,7 +471,7 @@
     };
   })();
   </script>
-  <script src="nav.js?v=koloni-153"></script>
-<script src="pwa.js?v=koloni-153"></script>
+  <script src="nav.js?v=koloni-154"></script>
+<script src="pwa.js?v=koloni-154"></script>
 </body>
 </html>

@@ -64,7 +64,7 @@
     var html = '<div class="og-sheet" role="dialog" aria-modal="true" aria-label="Oğul riski ayrıntısı">' +
       '<h2>Oğul riski · ' + esc(h.name) + '<button type="button" class="og-x" data-og-close aria-label="Kapat">×</button></h2>' +
       '<div class="muted" style="font-size:13px;color:#6b5a48;">' + esc((ap ? ap.name : '') + (mode() === 'demo' ? ' · Demo' : '')) + '</div>' +
-      '<span class="og-lvl" style="background:' + a.color + '">' + esc(a.display || a.level) + (a.key === 'orta' ? ' · izlemede' : '') + '</span>' + (a.key === 'kritik' ? '<div class="og-foot" style="margin-top:6px;"><a href="bakim-akis.html?id=' + encodeURIComponent(h.id) + '&amp;apiary=' + encodeURIComponent(h.apiaryId) + '"><b>Kritik Uyarı: Kovan Sıkıştı, Oğul Riski!</b> → Hızlı muayene</a></div>' : '') +
+      '<span class="og-lvl" style="background:' + a.color + '">' + esc(a.display || a.level) + (a.key === 'orta' ? ' · izlemede' : '') + '</span>' + ((a.key === 'kritik' || a.key === 'yuksek') ? '<div class="og-foot" style="margin-top:6px;"><a href="bakim-akis.html?id=' + encodeURIComponent(h.id) + '&amp;apiary=' + encodeURIComponent(h.apiaryId) + '"><b>Kritik Uyarı: Kovan Sıkıştı, Oğul Riski!</b> → Hızlı muayene</a></div>' : '') +
       '<div class="og-sec"><h3>Kovan durumu</h3><ul class="og-why">' + li(a.details.filter(function (x) { return x.group !== 'karakter'; })) + '</ul></div>' +
       (kar.length ? '<div class="og-sec"><h3>Ana arı karakteri</h3><ul class="og-why">' + li(kar) + '</ul>' +
         '<div class="og-foot" style="margin-top:4px;">Irk, kovanın sıkışıklığı, oğul mevsimi ve ana yaşıyla birlikte oğul riskini belirler.</div></div>' : '') +

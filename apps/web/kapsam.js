@@ -145,7 +145,7 @@
       if (a.hiveId == null || !inScope[String(a.hiveId)]) return;
       var bh = out.byHive[String(a.hiveId)];
       bh.alerts.push(a);
-      if (a.severity === 'high') { bh.high++; out.critical++; }
+      if (a.severity === 'high' || a.severity === 'critical') bh.high++; if (a.severity === 'critical') out.critical++;
     });
     out.lastTxt = fmtAgo(out.last, today);
     return out;

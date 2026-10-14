@@ -285,7 +285,7 @@
       if (o.eggs === true) bits.push('yumurta var');
       else if (o.eggs === false) bits.push('yumurta yok');
       if (o.queenless) bits.push('anasız');
-      if (o.queenCell) bits.push('ana memesi');
+      if (o.queenCell) bits.push('yüksük');
       if (o.varroa) bits.push('varroa ' + o.varroa);
       o.disease.forEach(function (d) { bits.push(d); });
       o.detail = bits.join(' · ') || 'Kayıt';
@@ -703,7 +703,7 @@
     return m[3] + '.' + m[2] + '.' + m[1] + (m[4] ? ' ' + m[4] + ':' + m[5] : '');
   }
   var TYPE_TR = { muayene: 'Muayene', petek: 'Petek tarama' };
-  var SEV_TR = { high: 'Yüksek', medium: 'Orta', low: 'Düşük' };
+  var SEV_TR = { critical: 'Kritik', high: 'Yüksek', medium: 'Orta', low: 'Düşük' };
   function hiveLabel(id) {
     if (id == null || id === '') return '';
     var D = global.SuperAriDemo, h = null;

@@ -52,10 +52,10 @@
       var P = global.SuperAriPlan;
       if (winterSeason() && P && P.winterStockAll) out.stock = P.winterStockAll(hs).counts.kritik || 0;
     } catch (e) { /* ignore */ }
-    /* Uyarılar: yüksek önemli (sensör / hastalık / oğul …); anasız ayrıca sayıldığı için hariç */
+    /* k154: Ana band «kritik» = yalnız Kritik uyarılar (ana arı ötmesi, oğul anı, oğul yüksüğü) */
     try {
       (d.alerts || []).forEach(function (a) {
-        if (!a || a.severity !== 'high') return;
+        if (!a || a.severity !== 'critical') return;
         if (live() && a.demo) return;
         if (/^kra-anasiz-/.test(String(a.id))) return;
         if (a.hiveId != null && !ids[String(a.hiveId)]) return;
@@ -102,7 +102,7 @@
     var rn = opts.rain;
     if (rn && rn.days && rn.days.length) {
       var rtx = rn.days.join(', ') + ' yağmur';
-      list.push({ level: 'critical', kind: 'rain', key: 'rain|' + (ap ? ap.id : 'all') + '|' + rn.days.join('') + '|' + t, text: '🌧️ ' + rtx, full: rtx, href: 'hava-gecmis.html' + (ap ? '?apiary=' + encodeURIComponent(ap.id) : '') });
+      list.push({ level: 'rain', kind: 'rain', key: 'rain|' + (ap ? ap.id : 'all') + '|' + rn.days.join('') + '|' + t, text: '🌧️ ' + rtx, full: rtx, href: 'hava-gecmis.html' + (ap ? '?apiary=' + encodeURIComponent(ap.id) : '') });
     }
     if (inspectionSeason(ap)) {
       var od = overdueCount(sc);
@@ -111,7 +111,7 @@
       else if (best) list.push({ level: 'hava', key: 'hava|' + best.date, date: best.date, text: 'Muayene: ' + dayText(best) + ' · ' + best.reason, href: null });
     } else {
       var m = Number(t.slice(5, 7));
-      list.push({ level: 'mevsim', key: 'mevsim|' + t.slice(0, 7), text: m >= 11 || m <= 2 ? 'Kış: kovanı açmayın, dıştan kontrol edin' : 'Bölgede sezon başlamadı, kovanı açmayın', href: 'bakim-plan.html' + (ap ? '?apiary=' + encodeURIComponent(ap.id) : '') });
+      list.push({ level: 'mevsim', key: 'mevsim|' + t.slice(0, 7), text: m >= 11 || m <= 2 ? 'Kış: kovanı açma, dıştan kontrol et' : 'Bölgede sezon başlamadı, kovanı açma', href: 'bakim-plan.html' + (ap ? '?apiary=' + encodeURIComponent(ap.id) : '') });
     }
     return list;
   }

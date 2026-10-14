@@ -2334,7 +2334,7 @@
   var AYC_LABEL = { temiz: 'Temiz', suphe: 'Şüphe', dogrulandi: 'Doğrulandı' };
   var VARROA_METHOD_LABEL = { seker: 'Pudra şekeri', alkol: 'Alkol yıkama', tabla: 'Yapışkan tabla' };
   /* Ana memesi yeri: alt kenar = oğul memesi · petek ortası = sessiz ana değiştirme · acil = genç larvadan (anasız). */
-  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Alt kenar (oğul memesi)', yenileme: 'Petek ortası (sessiz ana değiştirme)', acil: 'Acil (genç larvadan, anasız)' };
+  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Alt kenar (oğul yüksüğü)', yenileme: 'Petek ortası (sessiz ana değiştirme)', acil: 'Acil (genç larvadan, anasız)' };
   var CELL_CAP_LABEL = { kapali: 'kapalı', acik: 'açık' };
   var PATTERN_LABEL = { duzenli: 'Düzenli', daginik: 'Dağınık' };
 
@@ -3238,8 +3238,10 @@
   var SWARM_LEVELS = [
     { key: 'dusuk', label: 'Düşük', tone: 'ok', color: '#1b7a3d' },
     { key: 'orta', label: 'Orta', tone: 'warn', color: '#c98a00' },
-    { key: 'kritik', label: 'Kritik', tone: 'bad', color: '#b3001b' }
+    { key: 'yuksek', label: 'Yüksek', tone: 'bad', color: '#d9480f' },
+    { key: 'kritik', label: 'Kritik', tone: 'crit', color: '#b3001b' } /* k154: yalnız bypass (oğul yüksüğü / ana arı ötmesi) */
   ];
+  function orsYuksek(k) { return k === 'yuksek' || k === 'kritik'; }
   /* Bölge profili: bakim-plan.js ile aynı anahtarlar (sicak / iliman / yayla / yuksek). */
   /* örnek arılıklar: yaklaşık rakım (m) — bakim-plan.js SEED_ALT ile aynı; Yanıkdağ Baluğundüzü ≈215 m kıyı → ılıman */
   var SEASON_SEED_ALT = { a1: 200, a2: 1500, a3: 2100, a4: 215, a5: 2100 };
@@ -3508,8 +3510,8 @@
     if (!o.dis.length && ap != null) { try { var hc = JSON.parse(localStorage.getItem('superari.hava.tahmin.v1.' + ap) || 'null'); ((hc && hc.d && hc.d.hours) || []).forEach(function (x) { var t = Date.parse(x.t); if (isFinite(t)) o.dis.push({ t: t, tempC: x.temp, rh: x.rh, mm: x.mm, pr: x.pr, kaynak: 'hava' }); }); } catch (e) { /* yok */ } }
     o.any = any; return o;
   }
-  /* KİLİTLİ 2026-10-14 (koloni-153) — kovan içi ses protokolü; kullanıcı onayı olmadan değiştirme. k146: bilimsel kaynaklı kovan ses sınıfları (varsayılan; bulut public.ses_siniflari yönetici düzenler) */
-  var SES_SINIFLARI = [{"id": "taban_gunduz", "ad": "Taban (gündüz)", "en": "Baseline (day)", "hzMin": 100, "hzMax": 300, "yapi": "Sürekli koloni uğultusu; tepe 200–270 Hz; kovanın kendi gündüz ortancası", "anlam": "Normal etkinlik — taban", "seviye": "kayit", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "taban_gece", "ad": "Taban (gece)", "en": "Baseline (night)", "hzMin": 25, "hzMax": 150, "yapi": "Sürekli, daha pes; kovanın kendi gece ortancası", "anlam": "Normal gece etkinliği — taban", "seviye": "kayit", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "anali_tepe", "ad": "Analı kovan tepesi", "en": "Queenright peak", "hzMin": 220, "hzMax": 230, "yapi": "Orta bant tepesi; ana yokken ~250 Hz’e kayabilir", "anlam": "Gösterge — sadece kayıt", "seviye": "kayit", "kaynak": "—", "zayif": true}, {"id": "yelpazeleme", "ad": "Yelpazeleme", "en": "Fanning", "hzMin": 150, "hzMax": 200, "yapi": "Sürekli; kanat vuruşu ~174 ± 20 Hz", "anlam": "Havalandırma (erkek arı değil) — sadece kayıt", "seviye": "kayit", "kaynak": "Peters J.M., Gravish N., Combes S.A. (2017). Wings as impellers: honey bees co-opt flight system to induce nest ventilation and disperse pheromones. J Exp Biol 220:2203", "zayif": false}, {"id": "tooting", "ad": "Ana arı ötmesi", "en": "Queen tooting (piping)", "hzMin": 340, "hzMax": 500, "yapi": "Arama 340–500 Hz; alarm 400–500 Hz ritmik ≥1 dk; 340–400 Hz yalnız kayıt. İlk hece 1–2 sn, sonra ~0,25 sn heceler", "anlam": "Yeni çıkan ana; oğul / ikinci oğul hazırlığı", "seviye": "kritik", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3) · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "quacking", "ad": "Vızıldama (yüksükteki ana)", "en": "Queen quacking", "hzMin": 200, "hzMax": 350, "yapi": "Hece <0,2 sn; 10 sn içinde ≥3 hece", "anlam": "Yüksükte bakire ana — ikinci oğul riski; ötmeyle 30 dk içinde → Yüksek", "seviye": "erken", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "anasizlik", "ad": "Anasızlık sesi", "en": "Queenless roar", "hzMin": 300, "hzMax": 400, "yapi": "Ritmik değil, 10 dk kesintisiz, kendi tabanı +6 dB", "anlam": "Anasızlık şüphesi — muayene et (Oğul skorunu etkilemez)", "seviye": "yuksek", "kaynak": "Ruvinga S., Hunter G., Duran O., Nebel J.-C. (2023). Identifying queenlessness in honeybee hives from audio signals using machine learning. Electronics 12(7):1627", "zayif": false}, {"id": "isci_otmesi", "ad": "İşçi ötmesi", "en": "Worker piping", "hzMin": 100, "hzMax": 250, "yapi": "~0,8 sn darbe; 100–200 → 200–250 Hz yükselir", "anlam": "Oğul kalkışa hazırlanıyor", "seviye": "yuksek", "kaynak": "Seeley T.D., Tautz J. (2001). Worker piping in honey bee swarms and its role in preparing for liftoff. J Comp Physiol A 187:667–676", "zayif": false}, {"id": "ogul_ani", "ad": "Oğul anı sesi", "en": "Swarming sound", "hzMin": 500, "hzMax": 600, "yapi": "500–600 Hz’de ani enerji artışı (taban +6 dB, ≥2 dk)", "anlam": "Oğul çıkıyor", "seviye": "kritik", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "ogul_egilim", "ad": "Oğul hazırlığı (spektrum değişimi)", "en": "Pre-swarm spectral change", "hzMin": 100, "hzMax": 300, "yapi": "Gündüz taban tepe frekansı son 24 saatte ≥20 Hz yukarı", "anlam": "Oğul eğilimi — muayene et", "seviye": "erken", "kaynak": "Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5 · Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "kovan_sagligi", "ad": "Kovan sağlığı", "en": "Hive health", "hzMin": null, "hzMax": null, "yapi": "Taban sapması ≥6 dB veya yoğun yelpazeleme (≥%40 okuma)", "anlam": "Bilgi", "seviye": "bilgi", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77 · Peters J.M., Gravish N., Combes S.A. (2017). Wings as impellers: honey bees co-opt flight system to induce nest ventilation and disperse pheromones. J Exp Biol 220:2203", "zayif": false}, {"id": "dur_sinyali", "ad": "Dur sinyali", "en": "Stop signal / brief piping", "hzMin": 350, "hzMax": 420, "yapi": "~380 Hz, ~150 ms tek darbe; <1 sn sesler ötme/anasızlık sayılmaz", "anlam": "Toplayıcı alımını durdurma — alarm değil", "seviye": "kayit", "kaynak": "Lau C.W., Nieh J.C. (2010). Honey bee stop-signal production: temporal distribution and effect of feeder crowding. Apidologie 41(1) · Nieh J.C. (1993). The stop signal of honey bees: reconsidering its message. Behav Ecol Sociobiol 33:51–56 · Pastor K.A., Seeley T.D. (2005). The brief piping signal of the honey bee: begging call or stop signal? Ethology 111:775–784", "zayif": false}, {"id": "ciftlesmis_ana", "ad": "Çiftleşmiş ana ötmesi", "en": "Mated queen piping", "hzMin": 330, "hzMax": 430, "yapi": "Ötmeye benzer, daha pes", "anlam": "Oğul alarmı değil", "seviye": "kayit", "kaynak": "Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": true}, {"id": "titresim", "ad": "Titreşim sinyali", "en": "Shaking signal (DVAV)", "hzMin": null, "hzMax": null, "yapi": "Petek titreşimi, 1–2 sn; mikrofonla zayıf", "anlam": "İş bölümünü yeniden düzenleme", "seviye": "kayit", "kaynak": "Nieh J.C. (1998). The honey bee shaking signal: function and design of a modulatory communication signal. Behav Ecol Sociobiol 42:23–36", "zayif": false}, {"id": "sallanma_dansi", "ad": "Sallanma dansı sesi", "en": "Waggle dance sound", "hzMin": 200, "hzMax": 300, "yapi": "Düz koşuda ~200 Hz civarı darbeler", "anlam": "Aktif toplayıcılık", "seviye": "kayit", "kaynak": "Wenner A.M. (1962). Sound production during the waggle dance of the honey bee. Animal Behaviour 10:79–95 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": false}, {"id": "tislama", "ad": "Tıslama (savunma)", "en": "Hissing", "hzMin": 500, "hzMax": 16000, "yapi": "Geniş bant (A. m. cypria’da ~6 kHz)", "anlam": "Tehdit tepkisi", "seviye": "kayit", "kaynak": "Wehmann H.-N., Gustav D., Kirkerud N.H., Galizia C.G. (2015). The sound and the fury — bees hiss when expecting danger. PLoS ONE 10(3):e0118708 · Papachristoforou A. ve ark. (2008). High frequency sounds produced by Cyprian honeybees Apis mellifera cypria when confronting their predator, the Oriental hornet Vespa orientalis. Apidologie 39(4)", "zayif": false}, {"id": "stres_varroa", "ad": "Hastalık / stres sesi (varroa)", "en": "Stress / varroa", "hzMin": null, "hzMax": null, "yapi": "Akustik parmak izi farkı (sınırlı veri)", "anlam": "Varroa / stres şüphesi", "seviye": "kayit", "kaynak": "Qandour A., Ahmad I., Habibi D., Leppard M. (2014). Remote beehive monitoring using acoustic signals. Acoustics Australia 42(3):204–209", "zayif": true}, {"id": "kumelenme", "ad": "Kış kümelenmesi titremesi", "en": "Shivering thermogenesis", "hzMin": null, "hzMax": null, "yapi": "Kanat oynatmadan kas titremesi", "anlam": "Kışta ısı üretimi", "seviye": "kayit", "kaynak": "Stabentheiner A., Pressl H., Papst T., Hrassnigg N., Crailsheim K. (2003). Endothermic heat production in honeybee winter clusters. J Exp Biol 206:353–358", "zayif": true}, {"id": "yagma", "ad": "Yağma sesi", "en": "Robbing", "hzMin": null, "hzMax": null, "yapi": "Girişte düzensiz yüksek aktivite", "anlam": "Yağma şüphesi", "seviye": "kayit", "kaynak": "—", "zayif": true}];
+  /* KİLİTLİ 2026-10-14 (koloni-154) — kovan içi ses protokolü; kullanıcı onayı olmadan değiştirme. k146: bilimsel kaynaklı kovan ses sınıfları (varsayılan; bulut public.ses_siniflari yönetici düzenler) */
+  var SES_SINIFLARI = [{"id": "taban_gunduz", "ad": "Taban (gündüz)", "en": "Baseline (day)", "hzMin": 100, "hzMax": 300, "yapi": "Sürekli koloni uğultusu; tepe 200–270 Hz; kovanın kendi gündüz ortancası", "anlam": "Normal etkinlik — taban", "seviye": "kayit", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "taban_gece", "ad": "Taban (gece)", "en": "Baseline (night)", "hzMin": 25, "hzMax": 150, "yapi": "Sürekli, daha pes; kovanın kendi gece ortancası", "anlam": "Normal gece etkinliği — taban", "seviye": "kayit", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "anali_tepe", "ad": "Analı kovan tepesi", "en": "Queenright peak", "hzMin": 220, "hzMax": 230, "yapi": "Orta bant tepesi; ana yokken ~250 Hz’e kayabilir", "anlam": "Gösterge — sadece kayıt", "seviye": "kayit", "kaynak": "—", "zayif": true}, {"id": "yelpazeleme", "ad": "Yelpazeleme", "en": "Fanning", "hzMin": 150, "hzMax": 200, "yapi": "Sürekli; kanat vuruşu ~174 ± 20 Hz", "anlam": "Havalandırma (erkek arı değil) — sadece kayıt", "seviye": "kayit", "kaynak": "Peters J.M., Gravish N., Combes S.A. (2017). Wings as impellers: honey bees co-opt flight system to induce nest ventilation and disperse pheromones. J Exp Biol 220:2203", "zayif": false}, {"id": "tooting", "ad": "Ana arı ötmesi", "en": "Queen tooting (piping)", "hzMin": 340, "hzMax": 500, "yapi": "Arama 340–500 Hz; alarm 400–500 Hz ritmik ≥1 dk; 340–400 Hz yalnız kayıt. İlk hece 1–2 sn, sonra ~0,25 sn heceler", "anlam": "Yeni çıkan ana; oğul / ikinci oğul hazırlığı", "seviye": "kritik", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3) · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "quacking", "ad": "Vızıldama (yüksükteki ana)", "en": "Queen quacking", "hzMin": 200, "hzMax": 350, "yapi": "Hece <0,2 sn; 10 sn içinde ≥3 hece", "anlam": "Yüksükte bakire ana — ikinci oğul riski; ötmeyle 30 dk içinde → Yüksek", "seviye": "erken", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "anasizlik", "ad": "Anasızlık sesi", "en": "Queenless roar", "hzMin": 300, "hzMax": 400, "yapi": "Ritmik değil, 10 dk kesintisiz, kendi tabanı +6 dB", "anlam": "Anasızlık şüphesi — muayene et (Oğul skorunu etkilemez)", "seviye": "ayri", "kaynak": "Ruvinga S., Hunter G., Duran O., Nebel J.-C. (2023). Identifying queenlessness in honeybee hives from audio signals using machine learning. Electronics 12(7):1627", "zayif": false}, {"id": "isci_otmesi", "ad": "İşçi ötmesi", "en": "Worker piping", "hzMin": 100, "hzMax": 250, "yapi": "~0,8 sn darbe; 100–200 → 200–250 Hz yükselir", "anlam": "Oğul kalkışa hazırlanıyor", "seviye": "yuksek", "kaynak": "Seeley T.D., Tautz J. (2001). Worker piping in honey bee swarms and its role in preparing for liftoff. J Comp Physiol A 187:667–676", "zayif": false}, {"id": "ogul_ani", "ad": "Oğul anı sesi", "en": "Swarming sound", "hzMin": 500, "hzMax": 600, "yapi": "500–600 Hz’de ani enerji artışı (taban +6 dB, ≥2 dk)", "anlam": "Oğul çıkıyor", "seviye": "kritik", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "ogul_egilim", "ad": "Oğul hazırlığı (spektrum değişimi)", "en": "Pre-swarm spectral change", "hzMin": 100, "hzMax": 300, "yapi": "Gündüz taban tepe frekansı son 24 saatte ≥20 Hz yukarı", "anlam": "Oğul eğilimi — muayene et", "seviye": "erken", "kaynak": "Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5 · Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "kovan_sagligi", "ad": "Kovan sağlığı", "en": "Hive health", "hzMin": null, "hzMax": null, "yapi": "Taban sapması ≥6 dB veya yoğun yelpazeleme (≥%40 okuma)", "anlam": "Bilgi", "seviye": "bilgi", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77 · Peters J.M., Gravish N., Combes S.A. (2017). Wings as impellers: honey bees co-opt flight system to induce nest ventilation and disperse pheromones. J Exp Biol 220:2203", "zayif": false}, {"id": "dur_sinyali", "ad": "Dur sinyali", "en": "Stop signal / brief piping", "hzMin": 350, "hzMax": 420, "yapi": "~380 Hz, ~150 ms tek darbe; <1 sn sesler ötme/anasızlık sayılmaz", "anlam": "Toplayıcı alımını durdurma — alarm değil", "seviye": "kayit", "kaynak": "Lau C.W., Nieh J.C. (2010). Honey bee stop-signal production: temporal distribution and effect of feeder crowding. Apidologie 41(1) · Nieh J.C. (1993). The stop signal of honey bees: reconsidering its message. Behav Ecol Sociobiol 33:51–56 · Pastor K.A., Seeley T.D. (2005). The brief piping signal of the honey bee: begging call or stop signal? Ethology 111:775–784", "zayif": false}, {"id": "ciftlesmis_ana", "ad": "Çiftleşmiş ana ötmesi", "en": "Mated queen piping", "hzMin": 330, "hzMax": 430, "yapi": "Ötmeye benzer, daha pes", "anlam": "Oğul alarmı değil", "seviye": "kayit", "kaynak": "Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": true}, {"id": "titresim", "ad": "Titreşim sinyali", "en": "Shaking signal (DVAV)", "hzMin": null, "hzMax": null, "yapi": "Petek titreşimi, 1–2 sn; mikrofonla zayıf", "anlam": "İş bölümünü yeniden düzenleme", "seviye": "kayit", "kaynak": "Nieh J.C. (1998). The honey bee shaking signal: function and design of a modulatory communication signal. Behav Ecol Sociobiol 42:23–36", "zayif": false}, {"id": "sallanma_dansi", "ad": "Sallanma dansı sesi", "en": "Waggle dance sound", "hzMin": 200, "hzMax": 300, "yapi": "Düz koşuda ~200 Hz civarı darbeler", "anlam": "Aktif toplayıcılık", "seviye": "kayit", "kaynak": "Wenner A.M. (1962). Sound production during the waggle dance of the honey bee. Animal Behaviour 10:79–95 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": false}, {"id": "tislama", "ad": "Tıslama (savunma)", "en": "Hissing", "hzMin": 500, "hzMax": 16000, "yapi": "Geniş bant (A. m. cypria’da ~6 kHz)", "anlam": "Tehdit tepkisi", "seviye": "kayit", "kaynak": "Wehmann H.-N., Gustav D., Kirkerud N.H., Galizia C.G. (2015). The sound and the fury — bees hiss when expecting danger. PLoS ONE 10(3):e0118708 · Papachristoforou A. ve ark. (2008). High frequency sounds produced by Cyprian honeybees Apis mellifera cypria when confronting their predator, the Oriental hornet Vespa orientalis. Apidologie 39(4)", "zayif": false}, {"id": "stres_varroa", "ad": "Hastalık / stres sesi (varroa)", "en": "Stress / varroa", "hzMin": null, "hzMax": null, "yapi": "Akustik parmak izi farkı (sınırlı veri)", "anlam": "Varroa / stres şüphesi", "seviye": "kayit", "kaynak": "Qandour A., Ahmad I., Habibi D., Leppard M. (2014). Remote beehive monitoring using acoustic signals. Acoustics Australia 42(3):204–209", "zayif": true}, {"id": "kumelenme", "ad": "Kış kümelenmesi titremesi", "en": "Shivering thermogenesis", "hzMin": null, "hzMax": null, "yapi": "Kanat oynatmadan kas titremesi", "anlam": "Kışta ısı üretimi", "seviye": "kayit", "kaynak": "Stabentheiner A., Pressl H., Papst T., Hrassnigg N., Crailsheim K. (2003). Endothermic heat production in honeybee winter clusters. J Exp Biol 206:353–358", "zayif": true}, {"id": "yagma", "ad": "Yağma sesi", "en": "Robbing", "hzMin": null, "hzMax": null, "yapi": "Girişte düzensiz yüksek aktivite", "anlam": "Yağma şüphesi", "seviye": "kayit", "kaynak": "—", "zayif": true}];
   /* k146: <darbeMaxMs süreli darbe (ör. dur sinyali ~380–400 Hz, 100–150 ms) ötme/anasızlık sayılmaz. sureMs yoksa süre bilinmez → darbe değil. */
   function kisaDarbe(x, T) { var d = Number(x.sureMs); return isFinite(d) && d > 0 && d < (T.darbeMaxMs || 1000) && x.sinif !== 'quacking'; }
   /** k146: vızıldama (quacking) ve anasızlık sesi. Oğul skorunu DEĞİŞTİRMEZ; r.quack / r.quackYuksek / r.anasizSes + notlar. */
@@ -3529,7 +3531,7 @@
     /* Ötme zamanı (piping okumaları) — penceredeki birliktelik için */
     L.forEach(function (x) { var hz = Number(x.hz); if (isFinite(hz) && hz >= T.pipingHzMin && hz <= T.pipingHzMax && (x.ritmik === true || x.rhythmic === true) && !kisaDarbe(x, T)) r.pipingAt = x.t; });
     if (r.quack && r.pipingAt != null && Math.abs(r.quackAt - r.pipingAt) <= T.quackPencereDk * 60000) r.quackYuksek = true;
-    if (r.quack) r.notes.push(r.quackYuksek ? 'Sensör (Yüksek): ötme ve vızıldama birlikte — yüksükte bakire ana olabilir, ikinci oğul riski' : 'Sensör (erken uyarı): Yüksükte bakire ana olabilir — ikinci oğul riski');
+    if (r.quack) r.notes.push(r.quackYuksek ? 'Sensör: ötme ve vızıldama birlikte — yeni ana rekabeti' : 'Sensör: yüksükte bakire ana olabilir — ikinci oğul riski');
     /* k148: kovanın kendi gece/gündüz ortancası (sabit dB yok) */
     function gunduz(x) { var h = new Date(x.t).getHours(); return h >= T.gunduzSaatBas && h < T.gunduzSaatSon; }
     function lvl(x) { var l = Number(x.dbRel != null ? x.dbRel : x.level); return isFinite(l) ? l : null; }
@@ -3582,20 +3584,20 @@
         prev = x;
       });
     });
-    if (r.piping) r.notes.push('Sensör: sürekli ana arı sesi (piping) — oğul hazırlığı');
+    if (r.piping) r.notes.push('Sensör: ana arı ötmesi — oğul hazırlığı');
     sesKurallari(S, T, r);
     /* (2) Isı / nem */
     var I = S.isi_nem || [];
     if (I.length) {
       var lastT = I[I.length - 1], runStart = null, maxRun = 0, p0 = null;
       I.forEach(function (x) { var hi = Number(x.tempC) > T.tempHigh; if (hi && (runStart == null || (p0 && x.t - p0.t > 2 * H))) runStart = x.t; if (!hi) runStart = null; if (hi && runStart != null) maxRun = Math.max(maxRun, x.t - runStart); p0 = x; });
-      if (maxRun >= T.tempHighSaat * H) { r.sikArti += T.tempHighArti; r.notes.push('Sensör: kuluçka ısısı ' + T.tempHigh + ' °C üstünde ' + Math.floor(maxRun / H) + ' saat'); }
+      if (maxRun >= T.tempHighSaat * H) { r.sikArti += T.tempHighArti; }
       var lt = Number(lastT.tempC);
       if (lt >= T.riseMin && lt <= T.riseMax) {
         var mn = Infinity; I.forEach(function (x) { if (x.t >= lastT.t - T.riseSaat * H && x.t < lastT.t) mn = Math.min(mn, Number(x.tempC)); });
-        if (isFinite(mn) && lt - mn >= T.riseDelta) { r.sikArti += T.riseArti; r.notes.push('Sensör: ısı aniden ' + lt + ' °C’ye çıktı'); }
+        if (isFinite(mn) && lt - mn >= T.riseDelta) { r.sikArti += T.riseArti; }
       }
-      var rh = Number(lastT.rh); if (isFinite(rh) && rh > T.nemHigh) { r.sikArti += T.nemArti; r.notes.push('Sensör: nem %' + rh); }
+      var rh = Number(lastT.rh); if (isFinite(rh) && rh > T.nemHigh) { r.sikArti += T.nemArti; }
     }
     /* Arı sayısı (IR) → kapasite oranı */
     var capBees = (capFrames || 10) * T.ariCerceve, Ir = S.ir || [], bees = null, beeTrendUp = false;
@@ -3613,13 +3615,13 @@
       if (ow) dayGain = (Number(lw.kg) - Number(ow.kg)) / Math.max(1, (lw.t - ow.t) / (24 * H));
     }
     /* Sert kilo artışı + arı yoğunluğu zirvede → Sıkışıklık dolu (100). Isı/nem tek başına alarm vermez, yalnız stres eki. */
-    if (dayGain != null && dayGain >= T.kiloHizli && ratio != null && ratio >= T.ariZirveOran) { r.sikDolu = true; r.notes.push('Sensör: sert kilo artışı ve arı yoğunluğu zirvede — kovan dolu'); }
+    if (dayGain != null && dayGain >= T.kiloHizli && ratio != null && ratio >= T.ariZirveOran) { r.sikDolu = true; }
     else if (dayGain != null && (dayGain >= T.kiloHizli || (Math.abs(dayGain) <= T.kiloPlato && ratio != null && ratio >= T.ariYuksekOran))) {
-      r.sikArti += T.kiloArti; r.notes.push(dayGain >= T.kiloHizli ? 'Sensör: hızlı kilo artışı (' + (Math.round(dayGain * 10) / 10) + ' kg/gün)' : 'Sensör: kilo platoda, arı sayısı yüksek');
+      r.sikArti += T.kiloArti;
     }
-    if (beeTrendUp && ratio != null && ratio >= T.ariTrendOran) { r.sikArti += T.ariTrendArti; r.notes.push('Sensör: arı sayısı artıyor, kapasiteye yakın'); }
+    if (beeTrendUp && ratio != null && ratio >= T.ariTrendOran) { r.sikArti += T.ariTrendArti; }
     /* (3) Canlı nektar akımı */
-    if (dayGain != null && dayGain >= T.nektarKg) { r.nektar = true; r.notes.push('Sensör: canlı nektar akımı (+' + (Math.round(dayGain * 10) / 10) + ' kg/gün)'); }
+    if (dayGain != null && dayGain >= T.nektarKg) { r.nektar = true; r.notes.push('Sensör: canlı nektar akımı'); }
     /* k150 KİLİTLİ Sıkışıklık Puanı: her kat 0–1; Puan = Σ(kat×w)/Σ(w bağlı sensörler)×100. IR/Ses/Nem = kovanın kendi ortanca tabanından sapma (0–1 kırpılır). */
     var sub = {}, kutu = Math.max(1, Math.round((capFrames || 10) / 10));
     function c01(v) { return Math.max(0, Math.min(1, v)); }
@@ -3708,6 +3710,7 @@
   }
   function fmtTrShort(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? Number(m[3]) + ' ' + AY_KISA[Number(m[2]) - 1] : ''; }
   function swarmAssess(h, ctx) {
+    var sesPiping = false, hucreVar = false;
     ctx = ctx || {};
     if (!h) return null;
     var id = Number(h.id);
@@ -3776,7 +3779,7 @@
     else { R('ana', 'Ana arı yaşlı (' + age + ' yaş)', 'up'); }
     var dk = Number(h.deltaKg) || 0;
     if (inSeason && dk >= 1.5) { R('tarti', 'Hızlı ağırlık artışı (bal akımı, yer dolmakta)', 'up'); }
-    else if (inSeason && dk <= -2) { R('tarti', 'Ani ağırlık düşüşü — oğul çıkmış olabilir, kontrol edin', 'up'); }
+    else if (inSeason && dk <= -2) { R('tarti', 'Ani ağırlık düşüşü — oğul çıkmış olabilir, kontrol et', 'up'); }
     var swD = h.lastSwarmDate && /^\d{4}-\d{2}-\d{2}$/.test(String(h.lastSwarmDate)) ? String(h.lastSwarmDate) : '';
     var today0 = ctx.date || todayLocal();
     /* Bu mevsim oğul verdiyse (son 120 gün): koloni ana memesinden yeni ana yetiştirir, tekrar oğul riski düşüktür. */
@@ -3802,14 +3805,14 @@
     var nTxt = function (w) { return (cellN ? cellN + ' ' : '') + (st.cellCapped ? CELL_CAP_LABEL[st.cellCapped] + ' ' : '') + w; };
     var quietCells = false, manyCells = false;
     if (cell) {
-      why.splice(1, 0, { key: 'meme', text: 'Alt kenarda ' + nTxt('ana memesi (oğul memesi)') + cd, dir: 'up', group: 'durum' });
+      why.splice(1, 0, { key: 'meme', text: 'Alt kenarda ' + nTxt('oğul yüksüğü') + cd, dir: 'up', group: 'durum' });
     } else if (st && st.supersedureCell) {
       if (cellN != null && cellN > 3) {
         manyCells = true;
-        why.splice(1, 0, { key: 'meme', text: 'Petek ortasında çok sayıda ana memesi (' + cellN + ') — oğul hazırlığı olabilir' + cd, dir: 'up', group: 'durum' });
+        why.splice(1, 0, { key: 'meme', text: 'Petek ortasında çok sayıda yüksük (' + cellN + ') — oğul hazırlığı olabilir' + cd, dir: 'up', group: 'durum' });
       } else {
         quietCells = true;
-        why.splice(1, 0, { key: 'meme', text: 'Sessiz ana değiştirme: petek ortasında ' + nTxt('ana memesi') + cd, dir: 'down', group: 'durum' });
+        why.splice(1, 0, { key: 'meme', text: 'Sessiz ana değiştirme: petek ortasında ' + nTxt('yüksük') + cd, dir: 'down', group: 'durum' });
       }
     }
     var capQ = false, capS = false;
@@ -3818,7 +3821,7 @@
       capQ = true;
       why = why.filter(function (x) { return ['ana', 'egilim', 'kirpik'].indexOf(x.key) === -1; }); /* ana yok: ana yaşı/eğilimi anlamsız */
       why.splice(1, 0, st.emergencyCell
-        ? { key: 'acil', text: 'Acil ana memesi (genç larvadan' + (cellN ? ', ' + cellN + ' meme' : '') + ') — koloni anasız, yeni ana yetiştiriyor' + cd, dir: 'down', group: 'durum' }
+        ? { key: 'acil', text: 'Acil yüksük (genç larvadan' + (cellN ? ', ' + cellN + ' yüksük' : '') + ') — koloni anasız, yeni ana yetiştiriyor' + cd, dir: 'down', group: 'durum' }
         : { key: 'anasiz', text: 'Koloni anasız — oğul vermez', dir: 'down', group: 'durum' });
     }
     if (recentSwarm) {
@@ -3845,6 +3848,7 @@
     /* k131 sensörlü mod: sensör verisi yoksa yukarıdaki cihazsız mod aynen geçerli. */
     var sensorlu = false, S = hiveSens(id, ctx.now || Date.now());
     if (S.any) {
+      hucreVar = anyCell;
       var Tp = Object.assign({}, OGUL_SKOR.sensor, { pipingDk: (gen.key && OGUL_SKOR.piping[gen.key]) || ORS_SENSOR.pipingDk }), so = sensorOrs(S, capTot, Tp), noFrame = fullF == null && !(sr && (sr.space === 'dolu' || sr.space === 'dolmak'));
       if (so.sikSensor != null) { sik = so.sikSensor; sensorlu = true; } /* k149: ağırlıklı sensörlü Sıkışıklık */
       else {
@@ -3853,7 +3857,7 @@
         if (so.sikDolu) { sik = 100; sensorlu = true; }
       }
       if (so.nektar && mev < 100) { mev = 100; sensorlu = true; }
-      if (so.piping) { anyCell = true; sensorlu = true; }
+      if (so.piping) { anyCell = true; sensorlu = true; sesPiping = true; }
       so.notes.forEach(function (t) { R('sensor', t, 'up'); });
     }
     var ors = { genetik: gen.g, sikisiklik: Math.round(sik * 10) / 10, mevsim: mev, anaYasi: anaP, bypass: anyCell, sensorlu: sensorlu };
@@ -3861,40 +3865,40 @@
     if (capQ) s = Math.min(s, 5);
     if (capS) s = Math.min(s, 15);
     s = Math.round(Math.max(0, Math.min(100, s)) * 10) / 10;
-    var lv = swarmLevelOf(s);
+    var lv = anyCell && s >= 70 ? SWARM_LEVELS[3] : swarmLevelOf(s);
     if (!queenless) R('irk', 'Ana arı karakteri: ' + (breedTxt || 'ırk bilinmiyor') + ' — oğul eğilimi ' + genetikWord(gen), gen.g >= 70 ? 'up' : (gen.g < 35 ? 'down' : 'info'), 'karakter');
     /* Öneriler (nedene göre). */
     var recs = [];
     function A(id, title, detail, extra) { var r = { id: id, title: title, detail: detail }; if (extra) for (var k in extra) r[k] = extra[k]; recs.push(r); }
-    var elevated = lv.key === 'orta' || lv.key === 'kritik';
+    var elevated = lv.key !== 'dusuk';
     if (queenless && st && st.emergencyCell) {
-      A('anasiz', 'Anasız akışı: memelere dokunma', 'Acil memelerden ana ~1 haftada çıkar, çiftleşme ~2 hafta sürer; ~3 hafta sonra yumurta kontrolü yapın. Meme tutmazsa ana verin veya birleştirin.');
+      A('anasiz', 'Anasız akışı: yüksüklere dokunma', 'Acil yüksükten ana ~1 haftada çıkar, çiftleşme ~2 hafta sürer; 3 hafta sonra yumurta kontrol et. Tutmazsa ana arı ver veya kovanı birleştir.');
     } else if (queenless) {
-      A('anasiz', 'Ana arı ver veya birleştir', 'Anasız koloni oğul vermez ama zayıflar; ana verin, ana memesi verin ya da birleştirin.');
+      A('anasiz', 'Ana arı ver veya kovanı birleştir', 'Anasız koloni oğul vermez ama zayıflar; ana arı ver, yüksük ver ya da kovanı birleştir.');
     } else if (quietCells) {
-      A('dokunma', 'Memelere dokunma, izle', 'Petek ortasındaki 1–3 meme koloninin anasını sessizce yenilediğini gösterir; memeleri kırmayın, 3 hafta sonra yumurta kontrolü yapın.');
-      if (inSeason && lv.key === 'kritik' && (space || strength === 'güçlü')) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
+      A('dokunma', 'Yüksüklere dokunma, izle', 'Petek ortasındaki 1–3 yüksük koloninin anasını sessizce yenilediğini gösterir; yüksüklere dokunma, 3 hafta sonra yumurta kontrol et.');
+      if (inSeason && orsYuksek(lv.key) && (space || strength === 'güçlü')) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
     } else if (cell || (inSeason && elevated)) {
-      if (cell) A('meme', capped ? 'Ana memelerini kır veya bölmede kullan' : 'Ana memelerini kontrol et / kır', capped
-        ? 'Alt kenarda kapalı oğul memesi: oğul birkaç gün içinde çıkabilir. Memeleri kırın ya da koloniyi bölüp memeyi bölmede kullanın.'
-        : 'Açık oğul memeleri: 5–7 gün içinde kapanır. Kırın ya da bölme yapın; yer açın.');
-      if (cell && !(strength === 'güçlü')) A('bolme', 'Bölme yap', 'Oğul memesi olan koloniyi bölün; memeli çerçeveyi bölmeye verin.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
+      if (cell) A('meme', capped ? 'Yüksükleri bölmede kullan' : 'Yüksükleri kontrol et', capped
+        ? 'Kapalı oğul yüksüğü: oğul birkaç gün içinde çıkabilir. Koloniyi böl, yüksüklü çerçeveyi bölmede kullan.'
+        : 'Açık oğul yüksüğü: 7 gün sonra tekrar kontrol et. Bölme yap veya yer aç.');
+      if (cell && !(strength === 'güçlü')) A('bolme', 'Bölme yap', 'Oğul yüksüğü olan koloniyi böl; yüksüklü çerçeveyi bölmeye ver.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
       if (space || strength === 'güçlü') A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir; oğul hazırlığını çoğu zaman durdurur.');
-      if (strength === 'güçlü') A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yapın.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
-      if (space || strength === 'güçlü') A('cerceve', 'Boş çerçeve / temel petek ver', 'Kuluçka alanına 1–2 temel petek koyun; ana yumurtlayacak yer bulur.');
-      if (!cell) A('meme', 'Ana memelerini kontrol et', '7–10 günde bir çerçeve altlarına ve kenarlarına bakın.');
+      if (strength === 'güçlü') A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yap.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
+      if (space || strength === 'güçlü') A('cerceve', 'Boş çerçeve / temel petek ver', 'Kuluçka alanına 1–2 temel petek koy; ana yumurtlayacak yer bulur.');
+      if (!cell) A('meme', 'Yüksükleri kontrol et', '7–10 günde bir çerçeve altlarına ve kenarlarına bak.');
       if (age != null && age >= 2) A('ana', 'Ana arıyı yenile', 'Genç ana oğul eğilimini azaltır.');
-      if (season.profile === 'sicak' || strength === 'güçlü') A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını açın, sıcak saatlerde gölge sağlayın.');
+      if (season.profile === 'sicak' || strength === 'güçlü') A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını aç, sıcak saatlerde gölge sağla.');
       /* Kanat kırpma: yalnız çiftleşmiş ve yumurtlayan, henüz kırpılmamış ana. */
       var laying = !(st && st.queenCellSince) && ((st && st.brood && st.brood.eggs === true) || (age != null && age >= 1));
-      if (lv.key === 'kritik' && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; ana memesi kontrolü, kat atma veya bölme ile birlikte yapın.');
+      if (orsYuksek(lv.key) && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; yüksük kontrolü, kat atma veya bölme ile birlikte yap.');
     } else {
-      if (manyCells) A('meme', 'Ana memelerini kontrol et', 'Memelerin yerine bakın: alt kenardaysa oğul, petek ortasındaysa sessiz ana değiştirmedir.');
+      if (manyCells) A('meme', 'Yüksükleri kontrol et', 'Yüksüklerin yerine bak: alt kenardaysa oğul, petek ortasındaysa sessiz ana değiştirmedir.');
       if (age != null && age >= 3) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
-      A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol edin.' : 'Oğul mevsimi dışında; olağan bakımla devam edin.');
+      A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol et.' : 'Oğul mevsimi dışında; olağan bakımla devam et.');
     }
     var seasonNote = why[0].text;
-    return { score: s, sensorlu: sensorlu, display: lv.label + ' ' + Math.round(s) + (sensorlu ? ' · sensörlü' : ''), ors: ors, genetik: gen, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
+    return { score: s, piping: sesPiping, hucre: hucreVar || (anyCell && !sesPiping), sensorlu: sensorlu, display: lv.label + ' ' + Math.round(s) + (sensorlu ? ' · sensörlü' : ''), ors: ors, genetik: gen, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
       season: season, seasonNote: seasonNote, reasons: why.slice(1).map(function (x) { return x.text; }), details: why, recs: recs };
   }
   /** Kovan listesine hesaplanan oğul riskini (swarmRisk) tembel olarak bağlar. */
@@ -3920,9 +3924,13 @@
     var ctx = { date: todayLocal() };
     loadHives().forEach(function (h) {
       var a = swarmAssess(h, ctx);
-      if (a && a.key === 'kritik') {
-        out.push({ id: 'ogul-' + h.id, title: 'Kritik Uyarı: Kovan Sıkıştı, Oğul Riski!', type: 'ogul', hiveId: h.id, score: a.score,
-          apiaryId: h.apiaryId, severity: 'high', auto: true, href: 'bakim-akis.html?id=' + encodeURIComponent(h.id) + '&apiary=' + encodeURIComponent(h.apiaryId), hrefLabel: 'Hızlı muayene' });
+      if (a && a.piping && !a.hucre) return; /* ötme: ses uyarısı (ALARM_KRITIK_PIP_01) */
+      if (a && orsYuksek(a.key)) {
+        var kr = a.key === 'kritik';
+        out.push({ id: 'ogul-' + h.id, code: kr ? 'ALARM_KRITIK_CELL_01' : 'ALARM_YUKSEK_SCORE_01', title: kr ? '🚨 KRİTİK: Oğul Yüksüğü Var' : '⚠️ YÜKSEK: Sıkışıklık ve Oğul Riski',
+          body: kr ? 'Son muayenede oğul yüksüğü görüldü. Oğul hazırlığı başladı.' : 'Oğul Risk Skoru yüksek seviyede. Kovan içi veriler oğul hazırlığına işaret ediyor.',
+          action: kr ? 'Kovanı muayene et; bölme yap veya yer aç.' : 'Kovanı muayene et, kat atma veya çerçeve çekme işlemlerini uygula.', type: 'ogul', hiveId: h.id, score: a.score,
+          apiaryId: h.apiaryId, severity: kr ? 'critical' : 'high', auto: true, href: 'bakim-akis.html?id=' + encodeURIComponent(h.id) + '&apiary=' + encodeURIComponent(h.apiaryId), hrefLabel: 'Hızlı muayene' });
       }
     });
     return out;
@@ -3976,41 +3984,53 @@
       var st = colonyStatus(h.id, all);
       if (st.queenCellSince) {
         var qc = addDays(st.queenCellSince, 21);
-        tasksOut.push({ id: 'kr-anahucre-' + h.id, title: 'Ana hücresi verildi — ' + h.name + ': yumurta kontrolü (hücre ' + fmtTr(st.queenCellSince) + ', ana çıkışı ~7 gün, çiftleşme ~2 hafta)', hiveId: h.id, priority: 3, auto: true, due: qc, createdAt: new Date().toISOString() });
+        tasksOut.push({ id: 'kr-anahucre-' + h.id, title: 'Yüksük verildi — ' + h.name + ': yumurta kontrol et (yüksük ' + fmtTr(st.queenCellSince) + ', ana çıkışı ~7 gün, çiftleşme ~2 hafta)', hiveId: h.id, priority: 3, auto: true, due: qc, createdAt: new Date().toISOString() });
       }
       var nm = h.name;
       var apName = aps[h.apiaryId] ? aps[h.apiaryId].name : '';
       if (st.queenless) {
         tasksOut.push({ id: 'kr-anasiz-' + h.id, title: st.emergencyCell
-            ? 'Acil ana memesi (anasız) — ' + nm + ': memelere dokunma, ~3 hafta sonra yumurta kontrolü; olmazsa ana ver veya birleştir'
-            : 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, due: st.brood ? st.brood.date : '', createdAt: nowIso });
-        alertsOut.push({ id: 'kra-anasiz-' + h.id, title: 'Anasız koloni — ' + nm, type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
+            ? 'Acil yüksük (anasız) — ' + nm + ': yüksüklere dokunma, 3 hafta sonra yumurta kontrol et; olmazsa ana arı ver veya kovanı birleştir'
+            : 'Anasız koloni — ' + nm + ': ana arı ver veya kovanı birleştir', hiveId: h.id, priority: 1, auto: true, due: st.brood ? st.brood.date : '', createdAt: nowIso });
       }
-      /* k150 muayene: yalancı ana (Page & Erickson 1988) / erkek yumurtlayan ana */
-      if (st.sign === 'cokYumurta' && !st.queenSeen) alertsOut.push({ id: 'kra-yalanci-' + h.id, title: 'Yalancı ana arı şüphesi — 9 gün sonra kapalı yavruyu kontrol et (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
-      if (st.sign === 'erkekYavru' && st.queenSeen) alertsOut.push({ id: 'kra-erkekana-' + h.id, title: 'Erkek yumurtlayan ana şüphesi — ana değiştir (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'medium', auto: true });
-      if (st.sign === 'erkekYavru' && !st.queenSeen) alertsOut.push({ id: 'kra-yalanci-' + h.id, title: 'Dağınık erkek yavru, ana görülmedi — yalancı ana olabilir (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
-      /* k146: ses kuralları — ayrı uyarılar (Oğul skorunu artırmaz) */
+      /* k154 yalancı ana / erkek yumurtlayan ana (ayrı id'ler) */
+      if (st.sign === 'cokYumurta' && !st.queenSeen) alertsOut.push({ id: 'kra-yalanci-yumurta-' + h.id, title: 'Yalancı ana arı şüphesi (' + nm + ')', body: 'Gözlerde birden çok yumurta var, ana görülmedi.', action: '9 gün sonra kapalı yavruyu kontrol et.', type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
+      if (st.sign === 'erkekYavru' && !st.queenSeen) alertsOut.push({ id: 'kra-yalanci-erkek-' + h.id, title: 'Yalancı ana arı şüphesi (' + nm + ')', body: 'Dağınık erkek yavru var, ana görülmedi.', action: '9 gün sonra kapalı yavruyu kontrol et.', type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
+      if (st.sign === 'erkekYavru' && st.queenSeen) alertsOut.push({ id: 'kra-erkekana-' + h.id, title: 'Erkek yumurtlayan ana şüphesi (' + nm + ')', body: 'Ana var ama yalnız erkek yavru görülüyor.', action: 'Ana arıyı değiştir.', type: 'koloni', hiveId: h.id, severity: 'medium', auto: true });
+      /* k154 ses uyarıları (şablon) + anasızlık tek uyarı (kanıt arttıkça seviye yükselir) */
+      var so6 = null;
       try {
         var SS = hiveSens(h.id, Date.now());
-        if (SS.any && (SS.ses.length || SS.titresim.length)) {
-          var so6 = sensorOrs(SS, 10, Object.assign({}, OGUL_SKOR.sensor));
-          if (so6.quack) alertsOut.push({ id: 'kra-ses-quack-' + h.id, title: (so6.quackYuksek ? 'Ötme + vızıldama: yüksükte bakire ana olabilir — ikinci oğul riski (' : 'Yüksükte bakire ana olabilir — ikinci oğul riski (') + nm + ')', type: 'ses', hiveId: h.id, severity: so6.quackYuksek ? 'high' : 'low', auto: true });
-          if (so6.isciOtme) alertsOut.push({ id: 'kra-ses-isci-' + h.id, title: 'İşçi ötmesi: oğul kalkışa hazırlanıyor olabilir (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'high', auto: true });
-          if (so6.ogulAni) alertsOut.push({ id: 'kra-ses-ogulani-' + h.id, title: 'Oğul anı sesi — kovanı kontrol et (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'high', auto: true });
-          if (so6.ogulCikti) alertsOut.push({ id: 'kra-ses-cikti-' + h.id, title: 'Oğul çıkmış olabilir — kontrol et (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'low', auto: true });
-          if (so6.anasizSes && st.brood && st.eggs === false) alertsOut.push({ id: 'kra-ses-anasiz2-' + h.id, title: 'Anasızlık güçlü (ses + yumurta yok) — ' + (st.emergencyCell ? 'acil yüksüklere dokunma' : 'ana ver veya birleştir') + ' (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'high', auto: true });
-          if (so6.ogulEgilim) alertsOut.push({ id: 'kra-ses-egilim-' + h.id, title: 'Oğul eğilimi — muayene et (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'low', auto: true });
-          if (so6.saglikBilgi) alertsOut.push({ id: 'kra-ses-saglik-' + h.id, title: 'Kovan sağlığı (bilgi): ' + so6.saglikNot + ' (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'low', auto: true });
-          if (so6.anasizSes) alertsOut.push({ id: 'kra-ses-anasiz-' + h.id, title: 'Anasızlık şüphesi — muayene et (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'medium', auto: true });
-        }
-      } catch (eSes) { /* sensör yok */ }
+        if (SS.any && (SS.ses.length || SS.titresim.length)) so6 = sensorOrs(SS, 10, Object.assign({}, OGUL_SKOR.sensor));
+      } catch (eSes) { so6 = null; }
+      function AL(id, code, sev, title, body, action) { alertsOut.push({ id: id + h.id, code: code, title: title, body: body, action: action, type: 'ses', hiveId: h.id, severity: sev, auto: true }); }
+      if (so6) {
+        var swP = false; try { swP = !!swarmAssess(h).piping; } catch (eP) { swP = false; }
+        if (so6.piping || swP) AL('kra-ses-pip-', 'ALARM_KRITIK_PIP_01', 'critical', '🚨 KRİTİK: Ana Arı Ötüyor! (' + nm + ')', 'Kovanda 1 dakika boyunca ritmik ana arı ötmesi tespit edildi. İlk oğul çıkışı çok yakın!', 'Kovanı hemen aç, yüksükleri kontrol et ve oğul önlemi al.');
+        if (so6.ogulAni) AL('kra-ses-ogulani-', 'ALARM_KRITIK_SW_01', 'critical', '🚨 ACİL: Oğul Çıkıyor! (' + nm + ')', 'Kovanda oğul çıkışına özgü ses tespit edildi. Arılar kovanı terk ediyor!', 'Arılığa git ve oğul salkımını yakalamak için hazırlık yap.');
+        if (so6.isciOtme) AL('kra-ses-isci-', 'ALARM_YUKSEK_WORK_01', 'high', '⚡ Önemli: Oğul Çıkışına Yaklaşılıyor (' + nm + ')', 'İşçi arı ötmesinde sert artış tespit edildi. Oğul yaklaşık 1 saat içinde kovandan havalanabilir!', 'Kovan girişini ve uçuş tahtasını gözlemle.');
+        if (so6.quack && so6.quackYuksek) AL('kra-ses-quack-', 'ALARM_YUKSEK_COMB_01', 'high', '⚠️ YÜKSEK: Yeni Ana Rekabeti (' + nm + ')', 'Son 30 dakika içinde hem ötme hem de yüksük içi vızıldama sesleri duyuldu. Oğul çıkışı çok yakın!', 'Kovanı muayene et ve yeni çıkacak ana arıların durumunu kontrol et.');
+        else if (so6.quack) AL('kra-ses-quack-', 'ALARM_ORTA_QUACK_01', 'medium', '👑 Erken Uyarı: Yüksükte Bakire Ana (' + nm + ')', 'Kovanda yüksük içi vızıldama sesi tespit edildi. İçeride bakire ana var, ikinci oğul riski!', 'Kovanı muayene et ve yeni doğacak ana arıların durumunu kontrol et.');
+        if (so6.ogulEgilim) AL('kra-ses-egilim-', 'ALARM_ORTA_TREND_01', 'medium', '🔍 Erken Uyarı: Oğul Eğilimi (' + nm + ')', 'Kovanın sesinde son günlerde oğul eğilimine işaret eden bir değişim var.', 'Kovanı takibe al, kontrollerde yüksük başlangıçlarını incele.');
+        if (so6.ogulCikti) AL('kra-ses-cikti-', 'ALARM_BILGI_SWOUT_01', 'low', 'Oğul çıkmış olabilir (' + nm + ')', 'Oğul sesinden sonra kovanın uğultusu belirgin azaldı.', 'Kovanı ve çevresini kontrol et.');
+        if (so6.saglikBilgi) AL('kra-ses-saglik-', 'ALARM_BILGI_HEALTH_01', 'low', 'Kovan sağlığı (' + nm + ')', 'Kovanın sesi kendi normalinden belirgin şekilde farklı.', 'Bir sonraki muayenede kovanı kontrol et.');
+      }
+      var qSes = !!(so6 && so6.anasizSes), qMua = !!st.queenless, qYum = !!(st.brood && st.eggs === false);
+      if (qSes || qMua) {
+        var nK = (qSes ? 1 : 0) + (qMua ? 1 : 0) + (qYum && !qMua ? 1 : 0);
+        alertsOut.push({ id: 'kra-anasiz-' + h.id, code: 'ALARM_AYRI_QUEENLESS_01', type: qSes ? 'ses' : 'koloni', hiveId: h.id, auto: true,
+          severity: nK >= 2 || qMua ? 'high' : 'medium',
+          title: (qSes ? '💔 UYARI: Anasızlık Şüphesi' : '💔 UYARI: Anasız Koloni') + ' (' + nm + ')',
+          body: [qSes ? 'Kovanda 10 dakika boyunca normalden belirgin şekilde yüksek, düzensiz bir uğultu var.' : '', qMua ? 'Son muayenede ana ve yumurta görülmedi.' : (qYum ? 'Son muayenede yumurta görülmedi.' : '')].filter(Boolean).join(' '),
+          action: st.emergencyCell ? 'Acil yüksüklere dokunma; 3 hafta sonra yumurta kontrol et.' : 'Kovanı muayene et. Ana arı kaybı varsa yeni ana arı ver veya kovanı birleştir.' });
+      }
+
       if (st.chilled) {
         tasksOut.push({ id: 'kr-usumus-' + h.id, title: 'Birleştir veya çerçeve azalt — ' + nm + ' (zayıf koloni, üşümüş yavru)', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
         alertsOut.push({ id: 'kra-usumus-' + h.id, title: 'Üşümüş yavru — zayıf koloni (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'medium', auto: true });
       }
       if (st.swarmCell) {
-        tasksOut.push({ id: 'kr-ogulhucre-' + h.id, title: 'Oğul memesi görüldü' + (st.cellCapped === 'kapali' ? ' (kapalı)' : '') + ' — ' + nm + ': bölme veya meme kırma, yer açma', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
+        tasksOut.push({ id: 'kr-ogulhucre-' + h.id, title: 'Oğul yüksüğü görüldü' + (st.cellCapped === 'kapali' ? ' (kapalı)' : '') + ' — ' + nm + ': bölme yap veya yer aç', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
       }
       if (st.afb === 'dogrulandi') {
         tasksOut.push({ id: 'kr-ayc-komsu-' + h.id, title: 'AYÇ doğrulandı (' + nm + ') — ' + (apName || 'arılıktaki') + ' diğer kovanları kontrol et', hiveId: h.id, priority: 1, auto: true, createdAt: nowIso });
@@ -4023,7 +4043,7 @@
       st.diseases.forEach(function (d) {
         if (d.key === 'ayc') return;
         if (d.level === 'yüksek' || d.level === 'kritik' || d.level === 'orta') {
-          alertsOut.push({ id: 'kra-' + d.key + '-' + h.id, title: d.label + ' (' + d.text + ') — ' + nm, type: 'hastalık', hiveId: h.id, severity: d.level === 'orta' ? 'medium' : 'high', auto: true });
+          alertsOut.push({ id: 'kra-' + d.key + '-' + h.id, title: d.label + ' — ' + nm, type: 'hastalık', hiveId: h.id, severity: d.level === 'orta' ? 'medium' : 'high', auto: true });
         }
         if (d.key === 'varroa' && d.level === 'yüksek') {
           tasksOut.push({ id: 'kr-varroa-' + h.id, title: 'Varroa yüksek — ' + nm + ': mücadele planla', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
@@ -4737,7 +4757,7 @@
     nh.splitFrom = src.id; nh.createdBy = 'bolme';
     var sc = cloneObj(src);
     var frTxt = [brood ? brood + ' yavrulu' : '', honey ? honey + ' ballı' : '', bees ? bees + ' arılı' : ''].filter(Boolean).join(', ') + ' çerçeve';
-    var qTxt = { kaynakta: 'ana kaynakta kaldı, yeni kovan anasız', hucre: 'yeni kovana ana hücresi verildi', yeniAna: 'yeni kovana yeni ana verildi', anaTasindi: 'ana yeni kovana alındı, kaynak anasız' }[mode];
+    var qTxt = { kaynakta: 'ana kaynakta kaldı, yeni kovan anasız', hucre: 'yeni kovana yüksük verildi', yeniAna: 'yeni kovana yeni ana verildi', anaTasindi: 'ana yeni kovana alındı, kaynak anasız' }[mode];
     var srcQ = src.currentQueenId ? queenById(src.currentQueenId, queens) : null;
     if (mode === 'kaynakta') { setQueenless(nh, null); nh.pendingMother = { date: date, origin: 'bolme', queenId: srcQ ? srcQ.id : '', breed: (srcQ && srcQ.breed) || src.breed || '', fromHiveId: src.id }; }
     else if (mode === 'hucre') setQueenless(nh, date);
@@ -4747,7 +4767,7 @@
       nh.queenHistory[nh.queenHistory.length - 1].label = 'Bölme: yeni ana verildi';
     } else {
       var q = src.currentQueenId ? queenById(src.currentQueenId, queens) : null;
-      if (!q) throw new Error('Kaynak kovanın ana kaydı yok; «Ana kaynakta» veya «Ana hücresi» seçin');
+      if (!q) throw new Error('Kaynak kovanın ana kaydı yok; «Ana kaynakta» veya «Yüksük» seç');
       closePlacement(q, src.id, date, 'Bölmede yeni kovana alındı');
       pushQueenHist(sc, { date: date, oldQueenId: q.id, oldYear: q.year, oldBreed: q.breed, label: 'Bölme: ana yeni kovana alındı (' + name + ')' });
       setQueenless(sc, null);
@@ -5283,7 +5303,7 @@
     }
     var evId = opsId('ev');
     var tx = outcome === 'kayip' ? 'Oğul verdi — kaçtı (kayıp)' : 'Oğul verdi — yakalandı, ' + nName + ' kovanına konuldu';
-    pushEvent(sc, { id: evId, date: date, type: 'ogul', text: tx + '; kovan ana memesinden yeni ana yetiştiriyor', otherHiveId: nh ? nh.id : undefined });
+    pushEvent(sc, { id: evId, date: date, type: 'ogul', text: tx + '; kovan yüksükten yeni ana yetiştiriyor', otherHiveId: nh ? nh.id : undefined });
     if (nh) pushEvent(nh, { id: evId, date: date, type: 'ogul', text: 'Oğul kondu (' + src.name + ' kovanından' + (q ? ', ana ' + q.id : '') + ')', otherHiveId: src.id });
     var out = list.map(function (h) { return h.id === src.id ? normalizeHive(sc) : (nh && target === 'mevcut' && h.id === nh.id ? normalizeHive(nh) : h); });
     if (target === 'yeni') {
@@ -5651,10 +5671,10 @@
       var a = swarmAssess(h, ctx);
       if (!a || a.season.phase === 'disi') return;
       if (a.key === 'orta') {
-        out.push({ id: 'kr-ogul-izle-' + h.id, title: 'Oğul izleme — ' + h.name + ': ana hücresi ve yer darlığı kontrolü (7–10 günde bir)', hiveId: h.id, apiaryId: h.apiaryId,
+        out.push({ id: 'kr-ogul-izle-' + h.id, title: 'Oğul izleme — ' + h.name + ': yüksük ve yer darlığı kontrolü (7–10 günde bir)', hiveId: h.id, apiaryId: h.apiaryId,
           priority: 2, auto: true, kind: 'ogul', due: addDays(ctx.date, 7), sig: 'o-orta-' + ctx.date.slice(0, 4) });
-      } else if (a.key === 'kritik') {
-        out.push({ id: 'kr-ogul-kontrol-' + h.id, title: 'Oğul kontrolü — ' + h.name + ': ana hücrelerini kontrol et, yer aç / bal katı ver veya böl', hiveId: h.id, apiaryId: h.apiaryId,
+      } else if (orsYuksek(a.key)) {
+        out.push({ id: 'kr-ogul-kontrol-' + h.id, title: 'Oğul kontrolü — ' + h.name + ': yüksükleri kontrol et, yer aç / bal katı ver veya böl', hiveId: h.id, apiaryId: h.apiaryId,
           priority: 1, auto: true, kind: 'ogul', due: ctx.date, sig: 'o-yuksek-' + ctx.date.slice(0, 4) });
       }
     });

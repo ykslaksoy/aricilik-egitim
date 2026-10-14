@@ -152,7 +152,7 @@
   /* ---- Muayene bulgularından otomatik görevler (saf; node testi) ----
    * c: { ans, brood, notes, bee, cap, sk, kat, body, queenPlan:{key,age,ideal,label,tone}, winter:{key,kg,target}, feedTask }
    * Döner: { add: [{ tag, title, pri, days, detail }], resolve: [tag] } — resolve: bu muayenede sorun görülmedi → açık otomatik görev kapanır. */
-  var FIND_DUP = { ana: /anasiz|ana ver|yumurta kontrol|ana kontrol|yumurtlam/, meme: /ana memesi|sessiz ana/, ogul: /ogul memesi|bolme yap/, hastalik: /hastalik/,
+  var FIND_DUP = { ana: /anasiz|ana ver|yumurta kontrol|ana kontrol|yumurtlam/, meme: /ana memesi|yuksuk|sessiz ana/, ogul: /ogul memesi|ogul yuksugu|bolme yap/, hastalik: /hastalik/,
     zayif: /zayif koloni|birlestir/, yagma: /yagma|ucus deligini daralt/, olu: /\bolu\b|surunen|zehirlen/, anayas: /ana ariyi degistir|ana ariyi yenile|ana degis|ana yenile|ana ari yilini/,
     kislik: /kislik/, yer: /yer dar|kat at|kat ekle|bos cerceve|dolmak uzere|bal katini al/, guve: /guve/ };
   function findings(c) {
@@ -164,11 +164,11 @@
     else if (a.ana === 'hicbiri') t('ana', 'Ana kontrolü: 3–4 gün sonra yumurta var mı bak', 2, 4, 'Ana ve yumurta görülmedi, yavru var');
     else if (a.ana === 'ana' && a.yavru === 'yok') t('ana', 'Ana yumurtlamıyor: 1 hafta sonra yumurta kontrolü', 2, 7, 'Ana var, yavru yok');
     else if (a.ana === 'anaYumurta' || a.ana === 'yumurta') res.push('ana');
-    if (a.meme === 'acil') t('meme', 'Acil ana memesi: memelere dokunma, 3 hafta sonra yumurta kontrolü', 1, 21, 'Genç larvadan acil meme (anasız kalmış olabilir)');
-    else if (a.meme === 'yenileme') t('meme', 'Sessiz ana değiştirme: memelere dokunma, 2–3 hafta sonra yumurta kontrolü', 3, 18, 'Petek ortasında ana memesi');
+    if (a.meme === 'acil') t('meme', 'Acil yüksük: yüksüklere dokunma, 3 hafta sonra yumurta kontrol et', 1, 21, 'Genç larvadan acil meme (anasız kalmış olabilir)');
+    else if (a.meme === 'yenileme') t('meme', 'Sessiz ana değiştirme: yüksüklere dokunma, 2–3 hafta sonra yumurta kontrol et', 3, 18, 'Petek ortasında yüksük');
     else if (a.meme === 'yok') res.push('meme');
     var og = a.ogul != null ? Number(a.ogul) : null;
-    if (og > 0 || a.meme === 'ogul') t('ogul', 'Oğul memesi' + (og > 0 ? ' (' + og + ' çerçeve)' : '') + ': bölme yap veya yer aç — oğul riski', 1, 0, 'Oğul memesi görüldü');
+    if (og > 0 || a.meme === 'ogul') t('ogul', 'Oğul yüksüğü' + (og > 0 ? ' (' + og + ' çerçeve)' : '') + ': bölme yap veya yer aç — oğul riski', 1, 0, 'Oğul yüksüğü görüldü');
     else if (og === 0) res.push('ogul');
     if (a.hastalik === 'var' || a.kapali === 'cok') t('hastalik', 'Hastalık belirtisi: fotoğrafla tahmin yap, gerekirse numune gönder', 1, 0, a.kapali === 'cok' ? 'Çok sayıda delikli / çökük kapak' : 'Muayenede belirti işaretlendi');
     else if (a.hastalik === 'yok') res.push('hastalik');
@@ -665,7 +665,7 @@
       } else if (growing && (a.yer === 'dolmak' || ratio >= 0.75)) {
         var frameWhy = (exp && exp.why) || boxWhy;
         steps.push({ key: 'cerceve', icon: '🖼', title: 'Çerçeve ekle', kind: 'amount', unit: 'cerceve', rec: 2, inc: 1, min: 1, max: 10, presets: [{ id: 'az', v: 1 }, { id: 'uygun', v: 2 }, { id: 'cok', v: 3 }],
-          fmt: function (x) { return x + ' boş çerçeve / temel petek verin'; }, sub: function () { return 'Kovan dolmak üzere; kuluçkalığın kenarına'; }, sayV: function (x) { return x + ' boş çerçeve verin'; },
+          fmt: function (x) { return x + ' boş çerçeve / temel petek ver'; }, sub: function () { return 'Kovan dolmak üzere; kuluçkalığın kenarına'; }, sayV: function (x) { return x + ' boş çerçeve verin'; },
           why: frameWhy,
           save: function (res, step) { var u = []; addEvent(h, 'bakim', res.v + ' boş çerçeve verildi' + changed(res), res, step, u); pushExpandTasks('cerceve', u); return { text: res.v + ' boş çerçeve verildi', say: res.v + ' boş çerçeve', undo: u }; } });
       } else if ((sk === 'sonbahar' || sk === 'kis') && box.kat > 0 && bee <= 10 * box.body) {
@@ -684,17 +684,17 @@
 
     /* 4) Ana arı */
     var AM = {
-      anaVer: { text: 'Ana verildi (hazır ana / kapalı meme)', task: 'Ana kabul kontrolü: kafesi aç, yumurta var mı bak', days: 7, pri: 1 },
+      anaVer: { text: 'Ana verildi (hazır ana / kapalı yüksük)', task: 'Ana kabul kontrolü: kafesi aç, yumurta var mı bak', days: 7, pri: 1 },
       birlestir: { text: 'Güçlü kovanla birleştirilecek', task: 'Anasız kovanı güçlü kovanla birleştir (gazete yöntemi)', days: 0, pri: 1 },
-      yumurtaCer: { text: 'Yumurtalı çerçeve verildi', task: 'Ana memesi var mı bak (test çerçevesi)', days: 5, pri: 1 },
+      yumurtaCer: { text: 'Yumurtalı çerçeve verildi', task: 'Yüksük var mı bak (test çerçevesi)', days: 5, pri: 1 },
       kontrol: { text: '3–4 gün sonra yumurta kontrolü', task: 'Ana kontrolü: yumurta var mı bak', days: 4, pri: 2 },
       kontrol7: { text: '1 hafta sonra yumurta kontrolü', task: 'Ana yumurtluyor mu: yumurta kontrolü', days: 7, pri: 2 },
       degistir: { text: 'Ana değişimi planlandı', task: 'Ana değiştir', days: 14, pri: 2 },
       izle: { text: 'Ana izlemede' },
-      bolme: { text: 'Bölme yapıldı (memeli çerçeveyle)', task: 'Bölmede ana çıktı mı: yumurta kontrolü', days: 21, pri: 2 },
-      yer: { text: 'Oğul önlemi: yer açıldı', task: 'Oğul memesi tekrar kontrol', days: 7, pri: 1 },
-      kir: { text: 'Oğul memeleri kırıldı', task: 'Oğul memesi tekrar kontrol', days: 7, pri: 1 },
-      bekle: { text: 'Memelere dokunulmadı', task: 'Yeni ana yumurtluyor mu: yumurta kontrolü', days: 21, pri: 2 }
+      bolme: { text: 'Bölme yapıldı (yüksüklü çerçeveyle)', task: 'Bölmede ana çıktı mı: yumurta kontrolü', days: 21, pri: 2 },
+      yer: { text: 'Oğul önlemi: yer açıldı', task: 'Oğul yüksüğünü tekrar kontrol et', days: 7, pri: 1 },
+      kir: { text: 'Oğul yüksükleri kaldırıldı', task: 'Oğul yüksüğünü tekrar kontrol et', days: 7, pri: 1 },
+      bekle: { text: 'Yüksüklere dokunulmadı', task: 'Yeni ana yumurtluyor mu: yumurta kontrolü', days: 21, pri: 2 }
     };
     var anaStep = null;
     function ana(recId, recLabel, why, say, opts) {
@@ -705,24 +705,24 @@
     if (queenless) {
       var weak = (bee != null && bee <= 4) || sk === 'sonbahar' || sk === 'kis';
       var recA = weak ? 'birlestir' : 'anaVer';
-      var o = [{ id: 'anaVer', label: 'Ana verdim (hazır ana / kapalı meme)', say: ['ana verdim', 'ana ver'] }, { id: 'birlestir', label: 'Güçlü kovanla birleştireceğim', say: ['birlestir', 'birlestirecegim'] }];
+      var o = [{ id: 'anaVer', label: 'Ana verdim (hazır ana / kapalı yüksük)', say: ['ana verdim', 'ana ver'] }, { id: 'birlestir', label: 'Güçlü kovanla birleştireceğim', say: ['birlestir', 'birlestirecegim'] }];
       if (growing) o.push({ id: 'yumurtaCer', label: 'Yumurtalı çerçeve verdim', say: ['yumurtali'] });
-      ana(recA, weak ? 'Güçlü bir kovanla birleştirin (anasız, zayıf)' : 'Ana verin (hazır ana veya kapalı ana memesi)', 'Ne ana ne yumurta, yavru yok',
-        'Kovan anasız görünüyor. Önerim: ' + (weak ? 'güçlü bir kovanla birleştirin.' : 'ana verin.') + ' Tamam deyin ya da başka seçeneği söyleyin.', o.filter(function (x) { return x.id !== recA; }));
+      ana(recA, weak ? 'Kovanı birleştir (anasız, zayıf)' : 'Ana arı ver (hazır ana veya kapalı yüksük)', 'Ne ana ne yumurta, yavru yok',
+        'Kovan anasız görünüyor. Önerim: ' + (weak ? 'kovanı birleştir.' : 'ana arı ver.') + ' Tamam de ya da başka seçeneği söyle.', o.filter(function (x) { return x.id !== recA; }));
     } else if (a.ana === 'hicbiri') {
-      ana('kontrol', '3–4 gün sonra yumurta kontrolü yapın', 'Ana ve yumurta görülmedi, yavru var', 'Ana ve yumurta görülmedi. Önerim: üç dört gün sonra yumurta kontrolü. Tamam deyin.',
+      ana('kontrol', '3–4 gün sonra yumurta kontrol et', 'Ana ve yumurta görülmedi, yavru var', 'Ana ve yumurta görülmedi. Önerim: üç dört gün sonra yumurta kontrol et. Tamam de.',
         [{ id: 'yumurtaCer', label: 'Test çerçevesi verdim (yumurtalı)', say: ['test', 'yumurtali'] }]);
     } else if (Number(a.ogul) > 0 || a.meme === 'ogul') {
-      ana(growing ? 'bolme' : 'kir', growing ? 'Bölme yapın (memeli çerçeveyle)' : 'Oğul memelerini kırın', (Number(a.ogul) > 0 ? a.ogul + ' çerçevede' : 'Alt kenarda') + ' oğul memesi', 'Oğul memesi var. Önerim: ' + (growing ? 'bölme yapın.' : 'memeleri kırın.') + ' Tamam deyin ya da yer açtım deyin.',
-        [{ id: 'yer', label: 'Yer açtım (kat / boş çerçeve)', say: ['yer'] }, growing ? { id: 'kir', label: 'Memeleri kırdım', say: ['kirdim', 'kir'] } : { id: 'bolme', label: 'Bölme yaptım', say: ['bolme'] }]);
+      ana(growing ? 'bolme' : 'yer', growing ? 'Bölme yap (yüksüklü çerçeveyle)' : 'Yer aç (kat / boş çerçeve)', (Number(a.ogul) > 0 ? a.ogul + ' çerçevede' : 'Alt kenarda') + ' oğul yüksüğü', 'Oğul yüksüğü var. Önerim: ' + (growing ? 'bölme yap.' : 'yer aç.') + ' Tamam de ya da başka seçeneği söyle.',
+        [growing ? { id: 'yer', label: 'Yer açtım (kat / boş çerçeve)', say: ['yer'] } : { id: 'bolme', label: 'Bölme yaptım', say: ['bolme'] }]);
     } else if (a.meme === 'acil') {
-      ana('bekle', 'Memelere dokunmayın; 3 hafta sonra yumurta kontrolü', 'Acil ana memesi (genç larvadan)', 'Acil ana memesi var. Önerim: memelere dokunmayın, üç hafta sonra yumurta kontrolü. Tamam deyin.',
+      ana('bekle', 'Yüksüklere dokunma; 3 hafta sonra yumurta kontrol et', 'Acil yüksük (genç larvadan)', 'Acil yüksük var. Önerim: yüksüklere dokunma, üç hafta sonra yumurta kontrol et. Tamam de.',
         [{ id: 'anaVer', label: 'Ana verdim', say: ['ana verdim', 'ana ver'] }]);
     } else if (a.ana === 'ana' && a.yavru === 'yok') {
-      ana('kontrol7', '1 hafta sonra yumurta kontrolü yapın', 'Ana var, yavru yok', 'Ana var ama yavru yok. Önerim: bir hafta sonra yumurta kontrolü. Tamam deyin.',
+      ana('kontrol7', '1 hafta sonra yumurta kontrol et', 'Ana var, yavru yok', 'Ana var ama yavru yok. Önerim: bir hafta sonra yumurta kontrol et. Tamam de.',
         [{ id: 'degistir', label: 'Anayı değiştireceğim', say: ['degistir'] }]);
     } else if (a.huy === '1') {
-      ana('degistir', 'Ana değişimini planlayın (çok sinirli)', 'Muayenede çok sinirli', 'Koloni çok sinirli. Önerim: ana değişimini planlayın. Tamam ya da izle deyin.',
+      ana('degistir', 'Ana değişimini planla (çok sinirli)', 'Muayenede çok sinirli', 'Koloni çok sinirli. Önerim: ana değişimini planla. Tamam ya da izle de.',
         [{ id: 'izle', label: 'Şimdilik izleyeceğim', say: ['izle'] }]);
     }
     /* 4b) Ana arı yaşı (ırka göre değişim yaşı; kayıt yoksa elle giriş) — acil ana durumu yoksa */

@@ -15,7 +15,7 @@ assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['iran+karadeniz'
 /* Birim: (Kafkas×Karniyol)×Muğla, %100 dolu, mevsimde, ana 2+ yaş = 92,5 */
 assert.strictEqual(C.orsCompute({genetik:G('(Kafkas × Karniyol) × Muğla'),sikisiklik:100,mevsim:100,anaYasi:100}),92.5);
 assert.strictEqual(C.orsCompute({bypass:true,genetik:5,sikisiklik:0,mevsim:50,anaYasi:20}),100);
-assert.strictEqual(C.swarmLevelOf(34.9).label,'Düşük');assert.strictEqual(C.swarmLevelOf(35).label,'Orta');assert.strictEqual(C.swarmLevelOf(69.9).label,'Orta');assert.strictEqual(C.swarmLevelOf(70).label,'Kritik');
+assert.strictEqual(C.swarmLevelOf(34.9).label,'Düşük');assert.strictEqual(C.swarmLevelOf(35).label,'Orta');assert.strictEqual(C.swarmLevelOf(69.9).label,'Orta');assert.strictEqual(C.swarmLevelOf(70).label,'Yüksek');
 /* ctx.date düzeltmesi: tarih (string veya {date}) mevsimi değiştirir */
 const h={id:9001,apiaryId:'a1',breed:'Kafkas',queenYear:2024};
 const a1=C.swarm(h,'2026-04-01'),a2=C.swarm(h,{date:'2026-10-13'});
