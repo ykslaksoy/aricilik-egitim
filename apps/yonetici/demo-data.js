@@ -3384,14 +3384,21 @@
     nemHigh: 75, nemArti: 10,
     kiloHizli: 1.5, kiloPlato: 0.3, ariYuksekOran: 0.8, kiloArti: 15,
     ariTrendOran: 0.9, ariTrendArti: 15, ariCerceve: 2500, ariZirveOran: 0.9,
-    nektarKg: 1 };
+    nektarKg: 1,
+    /* k146: ana arı vızıldama (quacking) + anasızlık sesi + yanlış alarm filtresi */
+    quackHzMin: 200, quackHzMax: 350, quackHeceMinMs: 100, quackHeceMaxMs: 200, quackHeceSay: 3, quackPencereDk: 30,
+    anasizHzMin: 300, anasizHzMax: 400, anasizDk: 10, anasizArtisDb: 6,
+    darbeMaxMs: 1000 };
   var ORS_SENSOR_ADLAR = { pipingHzMin: 'Piping alt frekans (Hz)', pipingHzMax: 'Piping üst frekans (Hz)', pipingDk: 'Piping süresi — bilinmeyen ırk (dk; ırk satırlarında ayrı)', pipingAraSn: 'Kesinti sayılmayan en uzun ara (sn)',
     tempHigh: 'Kuluçka ısısı eşiği (°C)', tempHighSaat: 'Eşik üstü en az süre (saat)', tempHighArti: '→ Sıkışıklık artışı',
     riseMin: 'Ani yükseliş alt (°C)', riseMax: 'Ani yükseliş üst (°C)', riseDelta: 'Ani yükseliş en az fark (°C)', riseSaat: 'Ani yükseliş penceresi (saat)', riseArti: '→ Sıkışıklık artışı',
     nemHigh: 'Nem eşiği (%)', nemArti: '→ Sıkışıklık artışı',
     kiloHizli: 'Hızlı kilo artışı (kg/gün)', kiloPlato: 'Plato: günlük değişim en çok (kg)', ariYuksekOran: 'Plato için arı sayısı / kapasite', kiloArti: '→ Sıkışıklık artışı',
     ariTrendOran: 'Arı sayısı kapasiteye yakın (oran)', ariTrendArti: '→ Sıkışıklık artışı', ariCerceve: 'Çerçeve başına arı (kapasite hesabı)', ariZirveOran: 'Sert kilo artışı + arı yoğunluğu zirve (oran) → Sıkışıklık 100',
-    nektarKg: 'Canlı nektar akımı: günlük artış en az (kg)' };
+    nektarKg: 'Canlı nektar akımı: günlük artış en az (kg)',
+    quackHzMin: 'Vızıldama (quacking) alt frekans (Hz)', quackHzMax: 'Vızıldama üst frekans (Hz)', quackHeceMinMs: 'Vızıldama hecesi en kısa (ms)', quackHeceMaxMs: 'Vızıldama hecesi en uzun (ms)', quackHeceSay: 'Peş peşe en az hece', quackPencereDk: 'Ötme + vızıldama birlikte penceresi (dk) → Yüksek',
+    anasizHzMin: 'Anasızlık sesi alt frekans (Hz)', anasizHzMax: 'Anasızlık sesi üst frekans (Hz)', anasizDk: 'Anasızlık sesi kesintisiz süre (dk)', anasizArtisDb: 'Kovan taban seviyesine göre artış (dB, göreli)',
+    darbeMaxMs: 'Darbe filtresi: bundan kısa sesler ötme/anasızlık sayılmaz (ms)' };
   function pipingDefaults() { var o = {}; Object.keys(GENETIK_SAF).concat(Object.keys(GENETIK_MELEZ)).forEach(function (k) { o[k] = ORS_SENSOR.pipingDk; }); return o; }
   function ogulSkorDefaults() { return { donem: {}, piping: pipingDefaults(), sensor: Object.assign({}, ORS_SENSOR), weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
   /** Geçerli ayar = varsayılan + (geçerliyse) yönetici kaydı. Ağırlık toplamı 1 değilse ağırlıklar varsayılan kalır. */
@@ -3446,6 +3453,41 @@
     Object.keys(SENS_KEYS).forEach(function (tip) { o[tip] = sensList(tip).filter(function (x) { return Number(x.hiveId) === Number(hid) && x.t >= from && x.t <= nowMs + 600000; }); if (o[tip].length) any = true; });
     o.any = any; return o;
   }
+  /* k146: bilimsel kaynaklı kovan ses sınıfları (varsayılan; bulut public.ses_siniflari yönetici düzenler) */
+  var SES_SINIFLARI = [{"id": "tooting", "ad": "Ana arı ötmesi", "en": "Queen tooting (piping)", "hzMin": 400, "hzMax": 500, "yapi": "İlk hece >1 sn (frekans yükselişli), ardından ~0,25 sn heceler", "anlam": "Yeni çıkan ana; oğul / ikinci oğul hazırlığı", "seviye": "kritik", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3) · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "quacking", "ad": "Vızıldama (yüksükteki ana)", "en": "Queen quacking", "hzMin": 200, "hzMax": 350, "yapi": "Kısa kesik heceler (<0,2 sn), sabit frekans, peş peşe (~3/sn)", "anlam": "Yüksükte bakire ana; ötmeye yanıt — ikinci oğul riski", "seviye": "erken", "kaynak": "Michelsen A., Kirchner W.H., Andersen B.B., Lindauer M. (1986). The tooting and quacking vibration signals of honeybee queens: a quantitative analysis. J Comp Physiol A 158:605–611 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3) · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5", "zayif": false}, {"id": "anasizlik", "ad": "Anasızlık sesi", "en": "Queenless roar", "hzMin": 300, "hzMax": 400, "yapi": "Normal vızıltıdan keskin, sürekli; kovanın taban seviyesine göre artış", "anlam": "Ana kaybı şüphesi — muayene", "seviye": "yuksek", "kaynak": "Ruvinga S., Hunter G., Duran O., Nebel J.-C. (2023). Identifying queenlessness in honeybee hives from audio signals using machine learning. Electronics 12(7):1627", "zayif": false}, {"id": "dur_sinyali", "ad": "Dur sinyali", "en": "Stop signal / brief piping", "hzMin": 380, "hzMax": 400, "yapi": "~150 ms tek darbe, baş vuruşuyla", "anlam": "Dans/toplayıcı alımını durdurma (olumsuz geri besleme) — alarm değil", "seviye": "kayit", "kaynak": "Nieh J.C. (1993). The stop signal of honey bees: reconsidering its message. Behav Ecol Sociobiol 33:51–56 · Pastor K.A., Seeley T.D. (2005). The brief piping signal of the honey bee: begging call or stop signal? Ethology 111:775–784 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": false}, {"id": "titresim", "ad": "Titreşim sinyali", "en": "Shaking signal (DVAV)", "hzMin": null, "hzMax": null, "yapi": "Gövdeyi alıcı arıya bastırarak 1–2 sn sallama (alt-tabaka titreşimi; mikrofonla zayıf)", "anlam": "İş bölümünü yeniden düzenleme (ör. toplayıcılığı hızlandırma)", "seviye": "kayit", "kaynak": "Nieh J.C. (1998). The honey bee shaking signal: function and design of a modulatory communication signal. Behav Ecol Sociobiol 42:23–36", "zayif": false}, {"id": "sallanma_dansi", "ad": "Sallanma dansı sesi", "en": "Waggle dance sound", "hzMin": 200, "hzMax": 300, "yapi": "Düz koşu boyunca kısa ses darbeleri (~200 Hz civarı)", "anlam": "Besin kaynağı yön/uzaklık iletişimi — aktif toplayıcılık", "seviye": "bilgi", "kaynak": "Wenner A.M. (1962). Sound production during the waggle dance of the honey bee. Animal Behaviour 10:79–95 · Kirchner W.H. (1993). Acoustical communication in honeybees. Apidologie 24(3)", "zayif": false}, {"id": "isci_otmesi", "ad": "İşçi ötmesi (oğul kalkışı öncesi)", "en": "Worker piping", "hzMin": 100, "hzMax": 250, "yapi": "~0,8 sn darbe, temel frekans 100–200 → 200–250 Hz yükselir; kalkıştan ~1 saat önce artar", "anlam": "Oğul kümesi kalkışa hazırlanıyor", "seviye": "yuksek", "kaynak": "Seeley T.D., Tautz J. (2001). Worker piping in honey bee swarms and its role in preparing for liftoff. J Comp Physiol A 187:667–676", "zayif": false}, {"id": "ogul_oncesi", "ad": "Oğul öncesi uğultu değişimi", "en": "Pre-swarm spectral change", "hzMin": null, "hzMax": null, "yapi": "Günler/haftalar içinde titreşim spektrumunda değişim (makine öğrenmesiyle)", "anlam": "Oğul hazırlığı (30 güne kadar önceden)", "seviye": "erken", "kaynak": "Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Scientific Reports 10, doi:10.1038/s41598-020-66115-5 · Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "ogul_ani", "ad": "Oğul anı sesi", "en": "Swarming sound", "hzMin": null, "hzMax": null, "yapi": "Ses enerjisinde ani artış ve frekans kayması", "anlam": "Oğul çıkıyor / çıktı", "seviye": "kritik", "kaynak": "Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Computers and Electronics in Agriculture 64:72–77", "zayif": false}, {"id": "tislama", "ad": "Tıslama (savunma)", "en": "Hissing", "hzMin": 500, "hzMax": 16000, "yapi": "Geniş bantlı kısa tıslama (A. m. cypria’da baskın ~6 kHz)", "anlam": "Tehdit / rahatsızlık tepkisi", "seviye": "bilgi", "kaynak": "Wehmann H.-N., Gustav D., Kirkerud N.H., Galizia C.G. (2015). The sound and the fury — bees hiss when expecting danger. PLoS ONE 10(3):e0118708 · Papachristoforou A. ve ark. (2008). High frequency sounds produced by Cyprian honeybees Apis mellifera cypria when confronting their predator, the Oriental hornet Vespa orientalis. Apidologie 39(4)", "zayif": false}, {"id": "yelpazeleme", "ad": "Yelpazeleme", "en": "Fanning", "hzMin": null, "hzMax": null, "yapi": "Girişte sürekli kanat çırpma uğultusu", "anlam": "Havalandırma / nem atma", "seviye": "kayit", "kaynak": "—", "zayif": true}, {"id": "stres_varroa", "ad": "Hastalık / stres sesi (varroa)", "en": "Stress / varroa spectral change", "hzMin": null, "hzMax": null, "yapi": "Akustik parmak izi farkı (sınırlı veri)", "anlam": "Varroa / stres şüphesi", "seviye": "kayit", "kaynak": "Qandour A., Ahmad I., Habibi D., Leppard M. (2014). Remote beehive monitoring using acoustic signals. Acoustics Australia 42(3):204–209", "zayif": true}, {"id": "kumelenme", "ad": "Kış kümelenmesi titremesi", "en": "Shivering thermogenesis", "hzMin": null, "hzMax": null, "yapi": "Kanat oynatmadan uçuş kası titremesi (ses imzası belirsiz)", "anlam": "Kışta ısı üretimi", "seviye": "kayit", "kaynak": "Stabentheiner A., Pressl H., Papst T., Hrassnigg N., Crailsheim K. (2003). Endothermic heat production in honeybee winter clusters. J Exp Biol 206:353–358", "zayif": true}, {"id": "yagma", "ad": "Yağma sesi", "en": "Robbing", "hzMin": null, "hzMax": null, "yapi": "Girişte düzensiz, yüksek aktivite", "anlam": "Yağma şüphesi", "seviye": "kayit", "kaynak": "—", "zayif": true}, {"id": "erkek_ucusu", "ad": "Erkek arı uçuşu", "en": "Drone flight", "hzMin": 150, "hzMax": 190, "yapi": "Daha pes, sürekli uğultu", "anlam": "Erkek arı uçuşu (anasızlık/ötme sayılmaz)", "seviye": "kayit", "kaynak": "—", "zayif": true}, {"id": "isci_vizilti", "ad": "Normal işçi vızıltısı", "en": "Worker buzz", "hzMin": 200, "hzMax": 250, "yapi": "Sürekli uğultu; uçuşta kanat vuruşu ~230 Hz", "anlam": "Normal etkinlik — taban seviye (ötme/vızıldama sayılmaz)", "seviye": "kayit", "kaynak": "Altshuler D.L., Dickson W.B., Vance J.T., Roberts S.P., Dickinson M.H. (2005). Short-amplitude high-frequency wing strokes determine the aerodynamics of honeybee flight. PNAS (2005)", "zayif": false}];
+  /* k146: <darbeMaxMs süreli darbe (ör. dur sinyali ~380–400 Hz, 100–150 ms) ötme/anasızlık sayılmaz. sureMs yoksa süre bilinmez → darbe değil. */
+  function kisaDarbe(x, T) { var d = Number(x.sureMs); return isFinite(d) && d > 0 && d < (T.darbeMaxMs || 1000) && x.sinif !== 'quacking'; }
+  /** k146: vızıldama (quacking) ve anasızlık sesi. Oğul skorunu DEĞİŞTİRMEZ; r.quack / r.quackYuksek / r.anasizSes + notlar. */
+  function sesKurallari(S, T, r) {
+    var L = (S.ses || []).concat(S.titresim || []).sort(function (a, b) { return a.t - b.t; });
+    r.quack = false; r.quackYuksek = false; r.anasizSes = false; r.quackAt = null; r.pipingAt = null;
+    if (!L.length) return;
+    /* Vızıldama: quackHz aralığında, hece süresi quackHeceMin–MaxMs, 10 sn içinde en az quackHeceSay hece. İşçi 200–250 Hz SÜREKLİ ses hece değildir (süre uzun). */
+    var run = [];
+    L.forEach(function (x) {
+      var hz = Number(x.hz), d = Number(x.sureMs);
+      var hece = x.sinif === 'quacking' || (isFinite(hz) && hz >= T.quackHzMin && hz <= T.quackHzMax && isFinite(d) && d >= T.quackHeceMinMs && d <= T.quackHeceMaxMs);
+      if (!hece) { run = []; return; }
+      run = run.filter(function (y) { return x.t - y.t <= 10000; }); run.push(x);
+      if (run.length >= T.quackHeceSay) { r.quack = true; r.quackAt = x.t; }
+    });
+    /* Ötme zamanı (piping okumaları) — penceredeki birliktelik için */
+    L.forEach(function (x) { var hz = Number(x.hz); if (isFinite(hz) && hz >= T.pipingHzMin && hz <= T.pipingHzMax && (x.ritmik === true || x.rhythmic === true) && !kisaDarbe(x, T)) r.pipingAt = x.t; });
+    if (r.quack && r.pipingAt != null && Math.abs(r.quackAt - r.pipingAt) <= T.quackPencereDk * 60000) r.quackYuksek = true;
+    if (r.quack) r.notes.push(r.quackYuksek ? 'Sensör (Yüksek): ötme ve vızıldama birlikte — yüksükte bakire ana olabilir, ikinci oğul riski' : 'Sensör (erken uyarı): Yüksükte bakire ana olabilir — ikinci oğul riski');
+    /* Anasızlık sesi: anasizHz aralığında, ritmik değil, darbe değil, anasizDk kesintisiz; göreli seviye kovanın kendi tabanının (medyan) anasizArtisDb üstünde. Mutlak dB kullanılmaz. */
+    var lv = L.map(function (x) { return Number(x.dbRel != null ? x.dbRel : x.level); }).filter(isFinite).sort(function (a, b) { return a - b; });
+    var taban = lv.length ? lv[Math.floor(lv.length / 2)] : null, st0 = null, prev = null;
+    L.forEach(function (x) {
+      var hz = Number(x.hz), l = Number(x.dbRel != null ? x.dbRel : x.level);
+      var on = isFinite(hz) && hz >= T.anasizHzMin && hz <= T.anasizHzMax && x.ritmik !== true && !kisaDarbe(x, T) && taban != null && isFinite(l) && l - taban >= T.anasizArtisDb;
+      if (x.sinif === 'anasizlik') on = true;
+      if (on && (st0 == null || (prev && x.t - prev.t > T.pipingAraSn * 1000))) st0 = x.t;
+      if (!on) st0 = null;
+      if (on && st0 != null && x.t - st0 >= T.anasizDk * 60000) r.anasizSes = true;
+      prev = x;
+    });
+  }
   /** Sensör katkısı: { piping, sikArti, sikTahmin, nektar, notes[] }. T = eşikler. */
   function sensorOrs(S, capFrames, T) {
     var r = { piping: false, sikArti: 0, sikTahmin: null, nektar: false, notes: [] }, H = 3600000;
@@ -3454,7 +3496,7 @@
       if (r.piping || !L || !L.length) return;
       var st0 = null, prev = null;
       L.forEach(function (x) {
-        var hz = Number(x.hz), on = isFinite(hz) && hz >= T.pipingHzMin && hz <= T.pipingHzMax && (x.ritmik === true || x.rhythmic === true);
+        var hz = Number(x.hz), on = isFinite(hz) && hz >= T.pipingHzMin && hz <= T.pipingHzMax && (x.ritmik === true || x.rhythmic === true) && !kisaDarbe(x, T);
         if (on && (st0 == null || (prev && x.t - prev.t > T.pipingAraSn * 1000))) st0 = x.t;
         if (!on) st0 = null;
         if (on && st0 != null && x.t - st0 >= T.pipingDk * 60000) r.piping = true;
@@ -3462,6 +3504,7 @@
       });
     });
     if (r.piping) r.notes.push('Sensör: sürekli ana arı sesi (piping) — oğul hazırlığı');
+    sesKurallari(S, T, r);
     /* (2) Isı / nem */
     var I = S.isi_nem || [];
     if (I.length) {
@@ -3824,6 +3867,15 @@
             : 'Anasız koloni — ' + nm + ': ana arı ver veya birleştir', hiveId: h.id, priority: 1, auto: true, due: st.brood ? st.brood.date : '', createdAt: nowIso });
         alertsOut.push({ id: 'kra-anasiz-' + h.id, title: 'Anasız koloni — ' + nm, type: 'koloni', hiveId: h.id, severity: 'high', auto: true });
       }
+      /* k146: ses kuralları — ayrı uyarılar (Oğul skorunu artırmaz) */
+      try {
+        var SS = hiveSens(h.id, Date.now());
+        if (SS.any && (SS.ses.length || SS.titresim.length)) {
+          var so6 = sensorOrs(SS, 10, Object.assign({}, OGUL_SKOR.sensor));
+          if (so6.quack) alertsOut.push({ id: 'kra-ses-quack-' + h.id, title: (so6.quackYuksek ? 'Ötme + vızıldama: yüksükte bakire ana olabilir — ikinci oğul riski (' : 'Yüksükte bakire ana olabilir — ikinci oğul riski (') + nm + ')', type: 'ses', hiveId: h.id, severity: so6.quackYuksek ? 'high' : 'low', auto: true });
+          if (so6.anasizSes) alertsOut.push({ id: 'kra-ses-anasiz-' + h.id, title: 'Anasızlık şüphesi — muayene et (' + nm + ')', type: 'ses', hiveId: h.id, severity: 'medium', auto: true });
+        }
+      } catch (eSes) { /* sensör yok */ }
       if (st.chilled) {
         tasksOut.push({ id: 'kr-usumus-' + h.id, title: 'Birleştir veya çerçeve azalt — ' + nm + ' (zayıf koloni, üşümüş yavru)', hiveId: h.id, priority: 2, auto: true, createdAt: nowIso });
         alertsOut.push({ id: 'kra-usumus-' + h.id, title: 'Üşümüş yavru — zayıf koloni (' + nm + ')', type: 'koloni', hiveId: h.id, severity: 'medium', auto: true });
@@ -5659,7 +5711,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, genetikScore: genetikScore, orsCompute: orsCompute, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

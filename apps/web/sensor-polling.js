@@ -3,6 +3,15 @@
  * Canlıda gerçek cihazlar entegrasyonla push eder; zamanlayıcı aralıkta prune + demo okuma üretir.
  */
 (function (global) {
+  /* k146: etiketli ses olayını buluta (public.ses_olaylari) yaz — oturum yoksa yalnız yerelde kalır. */
+  function sesOlayGonder(row) {
+    try {
+      var B = (typeof window !== 'undefined') && window.SuperAriBulut; if (!B || !B.session || !B.client || row.hiveId == null) return;
+      B.session().then(function (s) { if (!s) return; return B.client().then(function (c) {
+        return c.from('ses_olaylari').insert({ hive_id: String(row.hiveId), device_id: row.deviceId || null, at: new Date(row.at).toISOString(), sinif: row.sinif, guven: row.guven != null ? row.guven : null, hz_tepe: row.hz != null ? row.hz : null, sure_ms: row.sureMs != null ? row.sureMs : null, db_goreli: row.dbRel != null ? row.dbRel : null });
+      }); }).catch(function () {});
+    } catch (e) { /* yerel */ }
+  }
   'use strict';
 
   var CONFIG_KEY = 'superari.sensor.polling.v1';
@@ -255,7 +264,7 @@
     if (dup) return null;
     var row = {
       deviceId: rec.deviceId != null ? String(rec.deviceId) : undefined,
-      at: String(rec.at).slice(0, 16),
+      at: String(rec.at).slice(0, (tip === 'ses' || tip === 'titresim') ? 19 : 16), /* k146: ses hecelerinde saniye gerekir */
       type: tip
     };
     if (rec.hiveId != null) row.hiveId = Number(rec.hiveId);
@@ -268,6 +277,11 @@
     if (tip === 'ses' && rec.level != null) row.level = Math.round(Number(rec.level) * 10) / 10;
     if ((tip === 'ses' || tip === 'titresim') && rec.hz != null && isFinite(Number(rec.hz))) row.hz = Math.round(Number(rec.hz)); /* k131: baskın frekans (piping 400–500 Hz) */
     if ((tip === 'ses' || tip === 'titresim') && rec.ritmik != null) row.ritmik = rec.ritmik === true; /* ritmik desen (piping) */
+    /* k146: ses olayı etiketleri — süre (ms), kovan tabanına göre göreli dB, sınıf, güven */
+    if ((tip === 'ses' || tip === 'titresim') && rec.sureMs != null && isFinite(Number(rec.sureMs))) row.sureMs = Math.round(Number(rec.sureMs));
+    if ((tip === 'ses' || tip === 'titresim') && rec.dbRel != null && isFinite(Number(rec.dbRel))) row.dbRel = Math.round(Number(rec.dbRel) * 10) / 10;
+    if ((tip === 'ses' || tip === 'titresim') && rec.sinif) row.sinif = String(rec.sinif).slice(0, 40);
+    if ((tip === 'ses' || tip === 'titresim') && rec.guven != null && isFinite(Number(rec.guven))) row.guven = Math.max(0, Math.min(1, Number(rec.guven)));
     if (tip === 'titresim' && rec.level != null) row.level = Math.round(Number(rec.level) * 10) / 10;
     if (tip === 'ir' && rec.count != null) row.count = Math.round(Number(rec.count));
     if (tip === 'pil') {
@@ -276,6 +290,7 @@
     }
     if (rec.demo) row.demo = true;
     list.push(row);
+    if ((tip === 'ses' || tip === 'titresim') && row.sinif && !row.demo) sesOlayGonder(row); /* k146 */
     list = pruneList(list, tip);
     writeStore(tip, list);
     try {
