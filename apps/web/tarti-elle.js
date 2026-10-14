@@ -93,7 +93,7 @@
   function add(o) {
     o = o || {};
     var kg = parseKg(o.kg);
-    if (!(kg > 0 && kg < 400)) throw new Error('Geçerli bir ağırlık girin (kg)');
+    if (!(kg > 0 && kg < 400)) throw new Error('Geçerli bir ağırlık gir (kg)');
     var at = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(o.at || '')) ? String(o.at).slice(0, 16) : nowLocal();
     var src = o.source === 'otomatik' ? 'otomatik' : (o.source === 'talep' ? 'talep' : (o.source === 'bakim-revize' ? 'bakim-revize' : 'elle'));
     var r = { id: 'tw' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), hiveId: Number(o.hiveId), at: at, date: at.slice(0, 10), kg: kg, source: src };
@@ -218,14 +218,14 @@
           pilHint = SH.deviceBatteryOfflineHint(a.device.hiveId, 'tarti');
         }
       } catch (eP) { pilHint = ''; }
-      return '<section class="te-auto" data-te-auto>' + head + '<p class="te-auto-n">Cihaz kayıtlı ama henüz ağırlık verisi gelmedi. Elle tartım girin.'
+      return '<section class="te-auto" data-te-auto>' + head + '<p class="te-auto-n">Cihaz kayıtlı ama henüz ağırlık verisi gelmedi. Elle tartım gir.'
         + (pilHint ? ' ' + esc(pilHint) : '') + '</p></section>';
     }
     var tr = a.d7 == null ? '7 gün: veri az' : '7 gün: ' + (a.d7 > 0 ? '+' : (a.d7 < 0 ? '−' : '')) + num(Math.abs(a.d7)) + ' kg';
     return '<section class="te-auto' + (ok ? '' : ' warn') + '" data-te-auto>' + head +
       '<div class="te-auto-v"><span class="te-auto-kg">' + num(a.kg) + ' kg</span><span class="te-auto-at">' + esc(fmtAt(a.at)) + ' · ' + esc(agoTxt(a.at)) + '</span></div>' +
       '<div class="te-auto-tr"><span>' + esc(tr) + '</span>' + sparkSvg(a.pts) + '</div>' +
-      (a.status === 'arizali' ? '<p class="te-auto-n">Cihaz arızalı: bu değer güvenilir değil. Elle tartım girin.</p>'
+      (a.status === 'arizali' ? '<p class="te-auto-n">Cihaz arızalı: bu değer güvenilir değil. Elle tartım gir.</p>'
         : '<button type="button" class="te-btn ok" data-te-auto-save>✓ Bu değeri kaydet' + (ok ? '' : ' (son okuma)') + '</button>' + (ok ? '' : (function () {
           var pilHint = '';
           try {
