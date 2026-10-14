@@ -19,5 +19,5 @@ assert.strictEqual(C.swarmLevelOf(34.9).label,'Düşük');assert.strictEqual(C.s
 /* ctx.date düzeltmesi: tarih (string veya {date}) mevsimi değiştirir */
 const h={id:9001,apiaryId:'a1',breed:'Kafkas',queenYear:2024};
 const a1=C.swarm(h,'2026-04-01'),a2=C.swarm(h,{date:'2026-10-13'});
-assert.strictEqual(a1.ors.mevsim,100);assert.strictEqual(a2.ors.mevsim,50);assert.ok(a1.score>a2.score);
+assert.strictEqual(a1.ors.mevsim,100);assert.strictEqual(a2.ors.mevsim,15);assert.ok(a1.score>a2.score);
 console.log('k129 ok');

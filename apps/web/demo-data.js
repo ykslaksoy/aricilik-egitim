@@ -3658,7 +3658,7 @@
     return r;
   }
   /** ORS saf hesap: bypass → 100; aksi ağırlıklı toplam (0–100, 0,1 hassasiyet). */
-  function orsCompute(o) { if (o.bypass) return 100; var W = OGUL_SKOR.weights; var v = o.genetik * W.genetik + Math.min(100, o.sikisiklik) * W.sikisiklik + o.mevsim * W.mevsim + o.anaYasi * W.anaYasi; return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; }
+  function orsCompute(o) { if (o.bypass) return 100; var W = OGUL_SKOR.weights; var v = o.genetik * W.genetik + Math.min(100, o.sikisiklik) * W.sikisiklik + o.mevsim * W.mevsim; if (o.anaYasi == null) v = v / Math.max(1e-9, 1 - W.anaYasi); else v += o.anaYasi * W.anaYasi; /* k153: ana yaşı bilinmiyorsa ağırlığı orantılı dağıtılır */ return Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; }
   function genetikWord(gen) {
     if (!gen.known) return gen.missing ? 'bilinmiyor (melez verisi yok)' : 'bilinmiyor';
     var g = gen.g; return g <= 5 ? 'çok çok az' : g <= 15 ? 'çok az' : g <= 35 ? 'az' : g <= 45 ? 'az–orta (nesle göre değişir)' : g <= 55 ? 'orta' : g <= 65 ? 'orta–yüksek' : g <= 75 ? 'yüksek' : g <= 90 ? 'çok yüksek' : 'çok çok yüksek';
@@ -3837,8 +3837,8 @@
     var capTot = capF || 10, fullF = null;
     if (sr) { var ff = (Number(sr.broodFrames) || 0) + (Number(sr.honeyFrames) || 0) + (Number(sr.pollenFrames) || 0); fullF = Math.max(bees || 0, ff) || null; }
     var sik = fullF != null ? Math.min(100, fullF / capTot * 100) : (sr && sr.space === 'dolu' ? 100 : (sr && sr.space === 'dolmak' ? 75 : 50));
-    var mev = season.phase === 'zirve' ? 100 : 50;
-    var anaP = age == null ? 60 : (age <= 0 ? 20 : (age === 1 ? 60 : 100));
+    var mev = season.phase === 'zirve' ? 100 : (season.phase === 'kenar' ? 60 : 15); /* k153: zirve 100 · kenar 60 · dışı 15 (nektar akımı → 100 aşağıda) */
+    var anaP = age == null ? null : (age <= 0 ? 20 : (age === 1 ? 60 : 100)); /* k153: bilinmiyorsa bileşen çıkarılır */
     /* k150 (Winston 1987; Fell & Morse 1984): yalnız oğul yüksüğü bypass; sessiz değiştirme (1–2 yüksük, ana var) ve boş kupa skoru artırmaz */
     var anyCell = !!(st && st.swarmCell);
     if (st && st.supersedureCell) R('yenileme', 'Sessiz ana değiştirme yüksüğü — oğul işareti değil', 'info');
