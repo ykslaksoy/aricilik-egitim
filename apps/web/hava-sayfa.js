@@ -25,9 +25,9 @@
   function rainy(d) { return (d.mm || 0) >= 1 || (d.pr || 0) >= 60; }
   /* Arı uçuşu: ≥15° max, rüzgar ≤20 km/s, yağış yok/az → uygun; ≥12°, ≤30 km/s, olasılık <70 → kısmen */
   function flight(d) {
-    if (d.hi == null) return 'no';
+    if (d.hi == null || rainy(d)) return 'no'; /* yağmurlu gün asla uygun/kısmen değil */
     if (d.hi >= 15 && (d.wind || 0) <= 20 && (d.mm || 0) < 1 && (d.pr || 0) < 50) return 'ok';
-    if (d.hi >= 12 && (d.wind || 0) <= 30 && (d.pr || 0) < 70) return 'part';
+    if (d.hi >= 12 && (d.wind || 0) <= 30 && (d.mm || 0) < 1 && (d.pr || 0) < 70) return 'part';
     return 'no';
   }
   var FL = { ok: 'Uçuş uygun', part: 'Kısmen', no: 'Uygun değil' };
