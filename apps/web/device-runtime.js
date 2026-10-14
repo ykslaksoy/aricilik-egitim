@@ -38,8 +38,8 @@
     kamera_merkez: 'Arılık kamerası',
     kamera_kovan: 'Kovan kamerası',
     role_hub: 'Wireless röle / hub',
-    aku_kovan: 'Kovan aküsü / paneli',
-    aku_merkez: 'Merkezi akü / panel',
+    aku_kovan: 'Kovan bataryası',
+    aku_merkez: 'Gateway bataryası',
     dis_isi_nem: 'Merkezi ısı / nem'
   };
 

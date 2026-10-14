@@ -119,8 +119,8 @@
                 <option value="kamera_arilik">Arılık kamerası</option>
                 <option value="kamera_kovan">Kovan kamerası (isteğe bağlı)</option>
                 <option value="role_hub">Wireless röle / hub</option>
-                <option value="aku_kovan">Kovan aküsü / paneli (batarya %, şarj)</option>
-                <option value="aku_merkez">Merkezi akü / güneş paneli (batarya %, şarj)</option>
+                <option value="aku_kovan">Kovan bataryası (%, şarj)</option>
+                <option value="aku_merkez">Gateway bataryası (%, şarj)</option>
                 <option value="dis_isi_nem">Merkezi ısı / nem (dış ortam)</option>
               </select>
             </label>
@@ -272,10 +272,10 @@
       </details>
     </section>
   </div>
-  <script src="bal-agirlik.js?v=koloni-157"></script>
-  <script src="demo-data.js?v=koloni-157"></script>
-  <script src="device-runtime.js?v=koloni-157"></script>
-  <script src="sensor-polling.js?v=koloni-157"></script>
+  <script src="bal-agirlik.js?v=koloni-158"></script>
+  <script src="demo-data.js?v=koloni-158"></script>
+  <script src="device-runtime.js?v=koloni-158"></script>
+  <script src="sensor-polling.js?v=koloni-158"></script>
   <script>
   (function () {
     var B = window.SuperAriBalAgirlik, mount = document.getElementById('bal-agirlik-mount');
@@ -447,8 +447,8 @@
         kamera_merkez: 'Arılık kamerası',
         kamera_kovan: 'Kovan kamerası',
         role_hub: 'Wireless röle / hub',
-    aku_kovan: 'Kovan aküsü / paneli',
-    aku_merkez: 'Merkezi akü / panel',
+    aku_kovan: 'Kovan bataryası',
+    aku_merkez: 'Gateway bataryası',
     dis_isi_nem: 'Merkezi ısı / nem'
       };
       var formWrap = document.getElementById('cihaz-form-wrap');
@@ -722,9 +722,9 @@
       window.addEventListener('hashchange', maybeOpenDanger);
     })();
   </script>
-<script src="harita-offline.js?v=koloni-157"></script>
+<script src="harita-offline.js?v=koloni-158"></script>
 <script>try { SuperAriOfflineMap.renderSettings(document.getElementById('harita-list')); } catch (e) {}</script>
-<script src="sesle-muayene.js?v=koloni-157"></script>
+<script src="sesle-muayene.js?v=koloni-158"></script>
 <script>
   /* Ayarlar › Ses seçimi: cihazdaki tr sesler, ▶ dinle, seçim + hız (sesle-muayene.js ile aynı anahtarlar) */
   (function () {
@@ -770,11 +770,11 @@
     try { speechSynthesis.addEventListener('voiceschanged', draw); } catch (e) {}
   })();
 </script>
-<script src="nav.js?v=koloni-157"></script>
-<script src="pwa.js?v=koloni-157"></script>
-<script src="bulut.js?v=koloni-157"></script>
-<script src="esikler.js?v=koloni-157"></script>
-<script src="ayarlar-arilik-ozet.js?v=koloni-157"></script>
+<script src="nav.js?v=koloni-158"></script>
+<script src="pwa.js?v=koloni-158"></script>
+<script src="bulut.js?v=koloni-158"></script>
+<script src="esikler.js?v=koloni-158"></script>
+<script src="ayarlar-arilik-ozet.js?v=koloni-158"></script>
 <script>
   (function () {
     var B = window.SuperAriBulut, el = document.getElementById('bulut-status');
