@@ -1,0 +1,4 @@
+-- koloni-152: Sıkışıklık dış ortam düzeltmesi (uzman tahmini)
+insert into public.kural_kaynaklari (id,grup,sira,ad,degerler,seviye,aciklama,kaynak,durum) values
+('sik_dis_ortam','oğul skoru',13,'Dış ortam düzeltmesi','Dış veri: gateway dis_isi_nem, yoksa arılık hava tahmini (o saat). Yağmur (≥1 mm veya ≥%60, bittikten sonra 3 sa) → Nem katı ×0; dış nem ≥%85 → Nem katı ×0,5; dış ≥35 °C → Isı katı ×0,5; yağmur sırasında (≥1 mm veya ≥%60) IR hesaptan çıkarılır, ağırlığı orantılı dağılır','—','İç nem/ısı artışı ve uçuş düşüşü hava kaynaklı olabilir, sıkışıklık sayılmaz. Tüm eşikler ayarlanabilir (Eşikler / Oğul skorları).','Ferrari S. ve ark. (2008). Computers and Electronics in Agriculture 64:72–77 (nem dış koşuldan güçlü etkilenir — nitel); eşikler kaynaksız','uzman tahmini')
+on conflict (id) do update set degerler=excluded.degerler, aciklama=excluded.aciklama, kaynak=excluded.kaynak, durum=excluded.durum, updated_at=now();
