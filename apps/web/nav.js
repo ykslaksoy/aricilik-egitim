@@ -936,7 +936,7 @@
   setTimeout(refitShell, 1200);
 })(window);
 /* k137: iPhone Safari — çerçevenin alt kenarı görünür alanın (araç çubuğunun hemen üstü) en altına iner.
-   Yükseklik visualViewport'tan (--sa-vvh); yoksa 100dvh. Çerçeve dışı arka plan koyu (beyaz boşluk kalmaz). */
+   Yükseklik innerHeight'tan (--sa-vvh); yoksa 100dvh. Çerçeve dışı arka plan koyu (beyaz boşluk kalmaz). */
 (function (g) {
   if (g.__saVvh) return; g.__saVvh = 1;
   var d = document, st = d.createElement('style');
@@ -947,13 +947,75 @@
   var raf = 0;
   function set() {
     raf = 0;
-    var vv = g.visualViewport, h = vv ? vv.height + (vv.offsetTop || 0) : g.innerHeight;
+    var h = g.innerHeight; /* iOS: araç çubuğu hariç görünür alan; klavye/yakınlaştırmada değişmez */
     if (h > 0) d.documentElement.style.setProperty('--sa-vvh', Math.round(h) + 'px');
     var ph = d.querySelector('.phone'); if (ph) { var t = parseFloat(getComputedStyle(ph).top); if (isFinite(t)) d.documentElement.style.setProperty('--sa-top', t + 'px'); }
   }
   function q() { if (!raf) raf = (g.requestAnimationFrame || setTimeout)(set); }
   set();
   g.addEventListener('resize', q); g.addEventListener('orientationchange', function () { setTimeout(set, 250); }); g.addEventListener('pageshow', q);
-  if (g.visualViewport) { g.visualViewport.addEventListener('resize', q); g.visualViewport.addEventListener('scroll', q); }
   d.addEventListener('DOMContentLoaded', set); setTimeout(set, 400);
+})(window);
+
+/* k137: çerçeve içi ince kaydırma imleci — kaydırmada/dokunmada görünür, ~1,5 sn sonra solar; sürüklenince içerik kayar (iOS dahil). */
+(function (g) {
+  if (g.__saScrollThumb) return; g.__saScrollThumb = 1;
+  var d = document, bar, thumb, el = null, hideT = 0, drag = null;
+  function scroller() {
+    var c = [d.querySelector('.phone > .screen'), d.querySelector('.phone'), d.querySelector('.ana-phone'), d.scrollingElement || d.documentElement];
+    for (var i = 0; i < c.length; i++) { var x = c[i]; if (!x) continue; var cs = getComputedStyle(x); if (x.scrollHeight - x.clientHeight > 4 && (x === (d.scrollingElement || d.documentElement) || /auto|scroll/.test(cs.overflowY))) return x; }
+    return null;
+  }
+  function frame() { var f = d.querySelector('.phone') || d.querySelector('.ana-phone'); return f ? f.getBoundingClientRect() : { top: 0, bottom: g.innerHeight, right: g.innerWidth }; }
+  function build() {
+    if (bar) return;
+    var st = d.createElement('style');
+    st.textContent = '#saThumbBar{position:fixed;width:14px;z-index:2147483000;pointer-events:none;opacity:0;transition:opacity .35s;touch-action:none}' +
+      '#saThumbBar.on{opacity:1}#saThumbBar>i{position:absolute;right:3px;width:4px;border-radius:4px;background:rgba(60,40,20,.45);pointer-events:auto;touch-action:none;transition:width .15s}' +
+      '#saThumbBar.drag>i,#saThumbBar>i:active{width:7px;background:rgba(60,40,20,.65)}' +
+      '#saThumbBar>i:before{content:"";position:absolute;left:-14px;right:-6px;top:-10px;bottom:-10px}';
+    d.head.appendChild(st);
+    bar = d.createElement('div'); bar.id = 'saThumbBar'; bar.setAttribute('aria-hidden', 'true'); thumb = d.createElement('i'); bar.appendChild(thumb); d.body.appendChild(bar);
+    thumb.addEventListener('pointerdown', function (e) { if (!el) return; e.preventDefault(); e.stopPropagation(); drag = { y: e.clientY, top: el.scrollTop }; bar.classList.add('drag'); try { thumb.setPointerCapture(e.pointerId); } catch (x) {} show(); });
+    thumb.addEventListener('pointermove', function (e) { if (!drag || !el) return; e.preventDefault(); var r = metrics(); if (!r) return; el.scrollTop = drag.top + (e.clientY - drag.y) * (el.scrollHeight - el.clientHeight) / Math.max(1, r.track - r.th); });
+    function end() { drag = null; bar.classList.remove('drag'); later(); }
+    thumb.addEventListener('pointerup', end); thumb.addEventListener('pointercancel', end);
+    thumb.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+  }
+  function metrics() {
+    if (!el) return null; var f = frame(), isDoc = el === (d.scrollingElement || d.documentElement);
+    var r = isDoc ? { top: Math.max(0, f.top), bottom: Math.min(g.innerHeight, f.bottom) } : el.getBoundingClientRect();
+    var top = Math.max(r.top, f.top) + 8, bot = Math.min(r.bottom, f.bottom, g.innerHeight) - 8; var track = bot - top; if (track < 40) return null;
+    var th = Math.max(36, track * el.clientHeight / el.scrollHeight), max = el.scrollHeight - el.clientHeight;
+    return { top: top, track: track, th: th, y: top + (max > 0 ? (track - th) * el.scrollTop / max : 0), right: Math.min(f.right, g.innerWidth) };
+  }
+  function paint() { var m = metrics(); if (!m) { bar.classList.remove('on'); return false; } bar.style.top = m.top + 'px'; bar.style.height = m.track + 'px'; bar.style.left = (m.right - 14) + 'px'; thumb.style.top = (m.y - m.top) + 'px'; thumb.style.height = m.th + 'px'; return true; }
+  function later() { clearTimeout(hideT); hideT = setTimeout(function () { if (!drag) bar.classList.remove('on'); }, 1500); }
+  function show() { build(); el = scroller(); if (!el) return; if (paint()) { bar.classList.add('on'); later(); } }
+  d.addEventListener('scroll', function () { show(); }, true);
+  d.addEventListener('touchstart', function () { show(); }, { passive: true, capture: true });
+  d.addEventListener('wheel', function () { show(); }, { passive: true, capture: true });
+  g.addEventListener('resize', function () { if (bar && bar.classList.contains('on')) paint(); });
+})(window);
+/* k137: Tarayıcıda iPhone 12 çerçevesi = yüklü uygulama (PWA) simülasyonu: üstte iOS durum çubuğu, altta nav + home indicator.
+   Gerçek yüklü açılışta (standalone) çerçeve yok: tam ekran, sistem durum çubuğu ve home indicator iOS'un. */
+(function (g) {
+  if (g.__saPwaSim) return; g.__saPwaSim = 1;
+  var d = document, sa = (g.matchMedia && g.matchMedia('(display-mode: standalone)').matches) || g.navigator.standalone === true;
+  if (sa) d.documentElement.classList.add('sa-standalone');
+  var F = 'html.sa-phone-mobile:not(.sa-standalone) body.sa-phone-mobile .phone';
+  var S = 'html.sa-phone-mobile.sa-standalone body.sa-phone-mobile .phone';
+  var st = d.createElement('style');
+  st.textContent =
+    F + '>.status-bar{display:flex!important;position:sticky!important;top:0!important;z-index:80!important;min-height:36px!important;padding-top:8px!important;padding-bottom:4px!important;background:inherit}' +
+    F + '>nav.tabbar{padding-bottom:26px!important}' +
+    F + '>nav.tabbar:after{content:"";position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:#111;opacity:.85;pointer-events:none}' +
+    F + '>.home-indicator{display:none!important}' +
+    S + '.phone{top:0!important;left:0!important;right:0!important;bottom:0!important;height:100%!important;border-radius:0!important;box-shadow:none!important;clip-path:none!important}' +
+    S + '>.status-bar,' + S + '>.phone-notch,' + S + '>.home-indicator{display:none!important}' +
+    S + '>.screen{padding-top:env(safe-area-inset-top,0px)!important}' +
+    S + '>nav.tabbar{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important}' +
+    S + '>nav.tabbar:after{display:none!important}' +
+    'html.sa-phone-mobile.sa-standalone,html.sa-phone-mobile.sa-standalone body{background:#f7f8fa!important}';
+  (d.head || d.documentElement).appendChild(st);
 })(window);
