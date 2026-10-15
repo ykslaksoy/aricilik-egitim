@@ -1,4 +1,4 @@
-/* SüperArı · Taşınma / rota motoru (koloni-164) → window.SuperAriRota
+/* SüperArı · Taşınma / rota motoru (koloni-165) → window.SuperAriRota
  * Taşınma planının ana motoru. Sabit puan yok:
  *  rota_puan(ilçe) = 100 × [wH·(H/Hmax) + wT·(T/Tmax)] / (wH+wT varolanlar)
  *   H = o ilçedeki arılıkların kovan başına yıllık ortalama hasatı, T = günlük net tartı artışının kayan ortalamasının (rotaPencere gün) en iyi değeri.

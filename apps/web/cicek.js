@@ -1,4 +1,4 @@
-/* SüperArı · Çiçeklenme takvimi (koloni-164).
+/* SüperArı · Çiçeklenme takvimi (koloni-165).
  * Veri: TAGEM 2022 il/ilçe çiçeklenme dönemi (yalnız 6 il yerelde: cicek-veri.js) + Supabase cicek_takvimi (ilçe bazlı sorgu).
  * Kaynak bilgisi yalnız yönetici panelinde gösterilir. Eksik il → "Veri yok" + panel isteği takvim_eksik: <il>. */
 (function (global) {

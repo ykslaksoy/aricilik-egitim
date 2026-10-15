@@ -1,4 +1,4 @@
-/* SüperArı · Arılık çevresi (koloni-164 EK8) → window.SuperAriCevre
+/* SüperArı · Arılık çevresi (koloni-165 EK8) → window.SuperAriCevre
  * Yalnız Supabase arilik_cevre tablosundan okur (admin yazar; OSM + ESA WorldCover betiği). Uygulamada yalnız kısa uyarı: mesafe/kaynak gösterilmez. */
 (function (global) {
   'use strict';

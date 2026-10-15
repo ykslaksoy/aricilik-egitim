@@ -1,4 +1,4 @@
-/* koloni-164: rol/yetki kuralları — yetki.js varsayılanları, Ayarlar rozet, Sahip-yalnız anahtarlar, RLS migration */
+/* koloni-165: rol/yetki kuralları — yetki.js varsayılanları, Ayarlar rozet, Sahip-yalnız anahtarlar, RLS migration */
 const assert = require('assert'), fs = require('fs'), path = require('path'), vm = require('vm');
 const W = path.join(__dirname, '..');
 function yuk(store, search) {
@@ -20,4 +20,8 @@ assert.ok(/var sahip = !window.SuperAriYetki \|\| SuperAriYetki.rol\(\) === 'own
 assert.ok(/Sahipliği devret/.test(ay) && /onayKart\(/.test(ay));
 const sql = fs.readFileSync(path.join(W, '..', '..', 'supabase', 'migrations', '20261015080000_ekip_yetki.sql'), 'utf8');
 assert.ok(/Yetkileri yalnız Sahip değiştirir/.test(sql) && /as restrictive for select/.test(sql) && /En az bir Sahip kalmalı/.test(sql) && /sa_uye_gunluk/.test(sql));
+assert.ok(/signInWithPassword/.test(ay) && /Sahipliği devredersen Sahip yetkilerini kaybedip Arıcı olursun/.test(ay), 'çift onay + şifre');
+assert.ok(/id="btnDavet" disabled/.test(ay) && /Daveti kabul edince açılır/.test(ay));
+const sq2 = fs.readFileSync(path.join(W, '..', '..', 'supabase', 'migrations', '20261015100000_davet_yetki.sql'), 'utf8');
+assert.ok(/check \(not mali_gorur and not gorev_atar and not duzenler\)/.test(sq2));
 console.log('k164-yetki ok');

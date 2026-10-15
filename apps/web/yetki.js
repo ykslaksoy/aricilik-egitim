@@ -1,4 +1,4 @@
-/* koloni-164: rol + üye yetkileri (mali / görev / düzen). Kaynak: bulut ekip (sa_apiary_team) → önbellek; önizleme ?rol=bakici&mali=0 */
+/* koloni-165: rol + üye yetkileri (mali / görev / düzen). Kaynak: bulut ekip (sa_apiary_team) → önbellek; önizleme ?rol=bakici&mali=0 */
 (function (global) {
   'use strict';
   var KEY = 'superari.yetki.v1';
