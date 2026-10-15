@@ -70,7 +70,7 @@
         Ana yaşı: 0–1 → 20, 1–2 → 60, 2+ → 100 · Anasız ≤ 5, son 120 günde oğul ≤ 15 · &lt;35 Düşük, 35–69 Orta, ≥70 Kritik.
         Değerler buluta (Supabase) kaydedilir; kayıt yoksa koddaki varsayılanlar geçerlidir. <span id="osStat"></span></p>
       <form id="osForm" class="os-f" autocomplete="off"></form>
-      <div class="os-acts"><button type="button" class="btn" id="osSave">Kaydet…</button> <button type="button" class="btn secondary" id="osReset">Varsayılanları yükle</button></div>
+      <div class="os-acts"><button type="button" class="btn" id="osSave">Güncelle / Yayınla…</button> <button type="button" class="btn secondary" id="osReset">Varsayılanları yükle</button></div>
     </section>
     <section class="card fe" aria-labelledby="ieH">
       <h2 id="ieH">Oğul verisi eksik melezler</h2>
@@ -107,7 +107,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('panel.js?v=yon-2').then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-161').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}); }
           }).then(function () { return true; });
         });
       });

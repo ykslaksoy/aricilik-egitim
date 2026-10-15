@@ -83,15 +83,79 @@
       var uygun = x ? !x.bitti : !!(dn && dn.aktif); return uygun ? { ap: a, p: rotaPuan(a.il, a.ilce) } : null;
     }).filter(Boolean).sort(function (x, y) { return (y.p.puan == null ? -1 : y.p.puan) - (x.p.puan == null ? -1 : x.p.puan); });
     if (kayitli.length) { var k = kayitli[0]; return { durum: 'kayitli', hedef: { apiaryId: k.ap.id, ad: k.ap.name, il: k.ap.il, ilce: k.ap.ilce }, puan: k.p.puan, puanMetin: k.p.metin,
-      metin: ap.name + ' arılığında artış durdu. ' + k.ap.name + ' arılığını kontrol et, taşınmayı planla.' }; }
+      metin: ap.name + ': artış durdu. ' + k.ap.name + ' yerini kontrol et, taşınmayı planla.' }; }
     var mevcut = {}; all.forEach(function (a) { mevcut[n(a.il) + '|' + n(a.ilce)] = 1; });
     var dis = (C() ? C().adaylar(ay) : []).filter(function (x) { return !mevcut[n(x.il) + '|' + n(x.ilce)]; })
       .map(function (x) { return { x: x, p: rotaPuan(x.il, x.ilce), r: C().bul(x.il, x.ilce) }; })
       .filter(function (o) { return o.r.some(function (r) { return r.dogrulandi !== false; }); });
     if (!dis.length) return { durum: 'veri_yok', metin: 'Veri yok' };
-    var hd = dis[0].x;
-    return { durum: 'harici', hedef: { il: hd.il, ilce: hd.ilce }, puan: null, puanMetin: 'Henüz kayıt yok',
-      metin: ap.name + ' arılığında artış durdu. Kayıtlı arılıklarında uygun yer yok; ' + hd.ilce + ' (' + hd.il + ') şu an çiçeklenme döneminde. Yeri kontrol et, taşınmayı planla.' };
+    /* EK9: resmi bal ormanı (bal_ormanlari) — su ve alan uygun olanlar öne; doluluk bilinmez, "boş/uygun" denmez */
+    var BO = (global.SuperAriCevre && global.SuperAriCevre.balOrmanlari) ? global.SuperAriCevre.balOrmanlari() : [];
+    var adayBO = filtreRota(dis.map(function (o) { var b = BO.filter(function (z) { return n(z.il) === n(o.x.il) && n(z.ilce) === n(o.x.ilce); })[0];
+      return { il: o.x.il, ilce: o.x.ilce, bo: b || null, guven: b ? 0.8 : 0.6, su_m: b ? b.su_kaynagi_mesafe_metre : null, alan: b ? b.toplama_alani_guvenli : null }; }));
+    if (!adayBO.length) return { durum: 'veri_yok', metin: 'Veri yok' };
+    var hd = adayBO[0], ad = hd.bo ? hd.ilce + ' – ' + hd.bo.ad + (hd.bo.kovan_kapasitesi ? ', kapasite ' + hd.bo.kovan_kapasitesi + ' kovan' : '') : hd.ilce + ' (' + hd.il + ')';
+    return { durum: 'harici', hedef: { il: hd.il, ilce: hd.ilce, balOrmani: hd.bo ? hd.bo.ad : null }, puan: null, puanMetin: 'Henüz kayıt yok', guven: hd.guven, notlar: hd.notlar,
+      metin: ap.name + ': artış durdu. Kayıtlı arılıklarında uygun yer yok; ' + ad + ' şu an çiçeklenme döneminde. Yeri kontrol et, taşınmayı planla.' + (hd.notlar && hd.notlar.length ? ' ' + hd.notlar.filter(function (t) { return !/Veri yok/.test(t); }).join('. ') : '') };
   }
-  global.SuperAriRota = { rakim: rakim, rakimHazir: rakimHazir, esikOgren: esikOgren, rotaPuan: rotaPuan, artisBitti: artisBitti, yonlendir: yonlendir, _kayan: kayan };
+
+  /* ---- k161 EK9: su riski + toplama alanı + rota filtresi (saf fonksiyonlar) ---- */
+  /** Kademeli su riski: ≤suGuvenliM → 0; arası doğrusal; >suRiskliM → 1. Mesafe yoksa null. */
+  function suRiski(m, th) {
+    th = th || T(); var a = th.suGuvenliM || 500, b = th.suRiskliM || 1500;
+    if (m == null || !isFinite(m)) return { risk: null, metin: 'Veri yok' };
+    var r = m <= a ? 0 : (m >= b ? 1 : (m - a) / (b - a));
+    return { risk: Math.round(r * 100) / 100, metin: m <= a ? '' : (m > b ? 'Su kaynağı çok uzak, sulak koymadan taşıma' : 'Su kaynağı uzak, sulak koy') };
+  }
+  /** Üç durumlu: oran yoksa null; doğal örtü ≥ eşik ve aktif ilaçlama notu yoksa true, değilse false. */
+  function toplamaAlaniGuvenli(oranlar, aktifIlaclama, th) {
+    th = th || T();
+    if (!oranlar || typeof oranlar !== 'object') return null;
+    var o = ['agac', 'calilik', 'cayir'].map(function (k) { return Number(oranlar[k]); });
+    if (o.some(function (x) { return !isFinite(x); })) return null;
+    if (aktifIlaclama) return false;
+    return o[0] + o[1] + o[2] >= (th.alanDogalOran == null ? 0.5 : th.alanDogalOran);
+  }
+  /** adaylar: [{ il, ilce, ad?, guven(0–1), su_m, alan(true|false|null) }] → uygunlar güvene göre sıralı. alan=false düşer. */
+  function filtreRota(adaylar, th) {
+    th = th || T(); var w = th.suRiskAgirlik == null ? 0.6 : th.suRiskAgirlik, vy = th.veriYokCarpan == null ? 0.8 : th.veriYokCarpan;
+    var uzak = th.suUzakMod === 'cikar' ? 'cikar' : 'alta', bM = th.suRiskliM || 1500;
+    return (adaylar || []).filter(function (x) { return x && x.alan !== false && !(uzak === 'cikar' && x.su_m != null && x.su_m > bM); }).map(function (x) {
+      var sr = suRiski(x.su_m, th), g = x.guven == null ? 0.5 : x.guven, notlar = [];
+      if (sr.risk == null) { g *= vy; notlar.push('Su: Veri yok'); } else { g *= (1 - w * sr.risk); if (sr.metin) notlar.push(sr.metin); }
+      if (x.alan == null) { g *= vy; notlar.push('Toplama alanı: Veri yok'); }
+      return Object.assign({}, x, { guven: Math.round(g * 100) / 100, suRisk: sr.risk, notlar: notlar, altta: x.su_m != null && x.su_m > bM });
+    }).sort(function (a, b) { return (a.altta - b.altta) || (b.guven - a.guven); });
+  }
+
+  /* ---- k161 EK11: arılık koşulları yeniden değerlendirme → ALARM_ARILIK_KOSUL_01 (sessiz kural uygulanmaz) ---- */
+  var KOSUL = 'superari.arilik.kosul.v1';
+  /** kosul: { su_m, alan(true|false|null), floraAktif(true|false|null), ilaclama(bool) }. Döner: { durum, acik:[nedenler], uyari|null, kapanan:[...] } */
+  function kosulDegerlendir(apId, kosul, th) {
+    th = th || T(); kosul = kosul || {};
+    var su = suRiski(kosul.su_m, th), neden = {};
+    if (su.risk != null && su.risk > 0) neden.su = su.risk > 0.999 ? 'cok_uzak' : 'uzak';
+    if (kosul.floraAktif === false) neden.flora = 1;
+    if (kosul.alan === false && kosul.ilaclama) neden.alan = 1;
+    var veriYok = su.risk == null && kosul.floraAktif == null && kosul.alan == null;
+    var all = rj(KOSUL, {}), eski = all[apId] || { acik: {} }, yeniAcik = {}, uyNeden = [];
+    Object.keys(neden).forEach(function (k) { var v = String(neden[k]); yeniAcik[k] = v; if (eski.acik[k] !== v) uyNeden.push(k); });
+    var kapanan = Object.keys(eski.acik).filter(function (k) { return !yeniAcik[k]; });
+    all[apId] = { acik: yeniAcik, at: new Date().toISOString() }; wj(KOSUL, all);
+    if (veriYok) return { durum: 'veri_yok', metin: 'Veri yok', acik: [], uyari: null, kapanan: kapanan };
+    var uy = null;
+    if (uyNeden.length) {
+      var aks = [];
+      if (uyNeden.indexOf('su') >= 0) aks.push('Sulak koy.');
+      if (uyNeden.indexOf('flora') >= 0) aks.push('Besleme planla.');
+      if (uyNeden.indexOf('alan') >= 0) aks.push('Kovan girişlerini kapat, taşınmayı planla.');
+      var oneri = null;
+      if (uyNeden.indexOf('flora') >= 0 || uyNeden.indexOf('alan') >= 0) { try { oneri = yonlendir(apId); } catch (e) { oneri = null; } if (oneri && !oneri.hedef) oneri = null; }
+      uy = { kod: 'ALARM_ARILIK_KOSUL_01', apiaryId: apId, baslik: 'Arılık koşulları değişti', metin: 'Bu arılığın koşulları değişti. Kontrol et.', aksiyon: aks.join(' '), nedenler: uyNeden,
+        onay: oneri ? { soru: oneri.metin + ' Onaylıyor musun?', hedef: oneri.hedef, tip: 'tasinma' } : null };
+    }
+    var K = global.SuperAriKritik; if (K) { if (uy) K.ac({ kod: uy.kod, anahtar: apId, apiaryId: apId, aksiyon: uy.aksiyon, onay: uy.onay }); else if (kapanan.length && !Object.keys(yeniAcik).length) K.iyilesti('ALARM_ARILIK_KOSUL_01', apId); }
+    return { durum: 'tamam', acik: Object.keys(yeniAcik), uyari: uy, kapanan: kapanan };
+  }
+  global.SuperAriRota = { rakim: rakim, rakimHazir: rakimHazir, esikOgren: esikOgren, rotaPuan: rotaPuan, artisBitti: artisBitti, yonlendir: yonlendir, _kayan: kayan, suRiski: suRiski, toplamaAlaniGuvenli: toplamaAlaniGuvenli, filtreRota: filtreRota, kosulDegerlendir: kosulDegerlendir };
 })(typeof window !== 'undefined' ? window : globalThis);

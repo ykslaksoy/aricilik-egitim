@@ -14,7 +14,7 @@
   function inp(name, v, step, max) { return '<input name="' + name + '" type="number" inputmode="decimal" min="0" max="' + max + '" step="' + step + '" value="' + v + '">'; }
   function paint(o) {
     pg = o.piping || {};
-    var A = C.GENETIK_ADLAR, h = '<fieldset><legend>Ağırlıklar (toplam 1)</legend>' + Object.keys(WL).map(function (k) { return '<label><span>' + WL[k] + '</span>' + inp('w.' + k, o.weights[k], '0.01', 1) + '</label>'; }).join('') + '</fieldset>';
+    var A = C.GENETIK_ADLAR, h = '<fieldset><legend>Ağırlıklar (toplam 1)</legend>' + Object.keys(WL).map(function (k) { return '<label><span>' + WL[k] + '</span>' + inp('w.' + k, o.weights[k], '0.01', 1) + '</label>'; }).join('') + '</fieldset>' + ebAlan(o);
     h += '<fieldset><legend>Saf hatlar — Genetik</legend>' + Object.keys(o.saf).map(function (k) { return row(A[k] || k, 'saf.' + k, o.saf[k], k); }).join('') + '</fieldset>';
     var iki = Object.keys(o.melez).filter(function (k) { return k.split('+').length === 2; }), uc = Object.keys(o.melez).filter(function (k) { return k.split('+').length > 2; });
     h += '<fieldset><legend>İkili melezler — Genetik</legend>' + iki.map(function (k) { return row(A[k] || k, 'melez.' + k, o.melez[k], k); }).join('') +
@@ -22,7 +22,7 @@
     h += '<fieldset><legend>Üçlü melezler — Genetik</legend>' + uc.map(function (k) { return row(A[k] || k, 'melez.' + k, o.melez[k], k); }).join('') + '</fieldset>';
     var SA = C.ORS_SENSOR_ADLAR || {};
     h += '<fieldset><legend>Sensörlü mod — eşikler</legend><p class="fe-sub" style="margin:.2rem 0;">Kovanda sensör verisi varsa: piping (Hz aralığı + ritmik desen + kesintisiz süre, üçü birden) → 100; ısı / nem tek başına alarm vermez, yalnız Sıkışıklığa stres eki; sert kilo artışı + arı yoğunluğu zirvede → Sıkışıklık 100; günlük kilo artışı nektar eşiğini geçerse Mevsim 100. Sensör yoksa formül aynen kalır.</p>' +
-      Object.keys(o.sensor || {}).map(function (k) { return '<label><span>' + (SA[k] || k) + '</span>' + inp('sensor.' + k, o.sensor[k], 'any', 100000) + '</label>'; }).join('') + '</fieldset>';
+      Object.keys(o.sensor || {}).map(function (k) { if (k === 'suUzakMod') return '<label><span>Su çok uzaksa (uzman tahmini)</span><select name="sensor.suUzakMod"><option value="alta"' + (o.sensor[k] !== 'cikar' ? ' selected' : '') + '>En alta indir</option><option value="cikar"' + (o.sensor[k] === 'cikar' ? ' selected' : '') + '>Listeden çıkar</option></select></label>'; return '<label><span>' + (SA[k] || k) + '</span>' + inp('sensor.' + k, o.sensor[k], 'any', 100000) + '</label>'; }).join('') + '</fieldset>';
     h += '<fieldset><legend>Taşınma / rota motoru — formül</legend><p class="fe-sub" style="margin:.2rem 0;">' +
       'rota_puan(ilçe) = 100 × [wH·(H / Hmax) + wT·(T / Tmax)] ÷ (var olan bileşenlerin ağırlık toplamı). H: o ilçedeki arılıkların kovan başına yıllık ortalama hasatı (kg). ' +
       'T: günlük net tartı artışının kayan ortalamasının (pencere = rotaPencere gün) en yüksek değeri. Hmax/Tmax: kullanıcının kayıtlı ilçeleri arasındaki en yüksek değer. Geçmiş yoksa puan üretilmez ("Henüz kayıt yok"). ' +
@@ -55,11 +55,13 @@
       if (!/^\d\d-\d\d$/.test(f) || !/^\d\d-\d\d$/.test(t) || f > t) { bad.push(row.querySelector('[name=dn-from]')); return; }
       o.donem[row.getAttribute('data-ap')] = { from: f, to: t, isCustomPeriod: true };
     });
-    [].forEach.call(document.querySelectorAll('#osForm input:not([type=date])'), function (el) {
+    [].forEach.call(document.querySelectorAll('#osForm input:not([type=date]):not([type=checkbox])'), function (el) {
       var v = Number(String(el.value).replace(',', '.')), n = el.name.split('.'), mx = n[0] === 'w' ? 1 : (n[0] === 'sensor' ? 100000 : (n[0] === 'piping' ? 600 : 100));
       if (!isFinite(v) || v < 0 || v > mx || el.value === '') bad.push(el);
       if (n[0] === 'w') o.weights[n[1]] = v; else if (n.length === 2) o[n[0]][n[1]] = v; else o[n[0]] = v;
     });
+    o.ekipBildirim = [].map.call(document.querySelectorAll('#osForm input[name=eb]:checked'), function (x) { return x.value; });
+    var sm = document.querySelector('#osForm select[name="sensor.suUzakMod"]'); if (sm) o.sensor.suUzakMod = sm.value;
     return { o: o, bad: bad };
   }
   document.getElementById('osForm').addEventListener('input', function (e) {
@@ -82,13 +84,37 @@
     if (Math.abs(sum - 1) > 0.001) { stat('<b>Ağırlıkların toplamı 1 olmalı</b> (şu an ' + Math.round(sum * 1000) / 1000 + ').'); return; }
     var nChg = document.querySelectorAll('#osForm input.chg').length;
     if (JSON.stringify(C.ogulSkorMerge(r.o)) === base) { stat('Değişiklik yok.'); return; }
-    if (!window.confirm('Oğul skoru ayarları buluta kaydedilsin mi?\n' + nChg + ' alan değişti. Tüm kullanıcıların oğul riski bu değerlerle hesaplanır.')) { stat('Kaydedilmedi.'); return; }
+    if (!window.confirm('Taslak yayınlansın mı?\n' + nChg + ' alan değişti. Yeni ayar sürümü tüm uygulamalarda sessizce uygulanır (ORS, Sıkışıklık, rota, batarya, Varroa yeniden hesaplanır).')) { stat('Kaydedilmedi.'); return; }
     stat('Kaydediliyor…');
-    B.client().then(function (c) { return c.rpc('sa_ogul_skor_kaydet', { p_data: r.o }); }).then(function (res) {
+    B.client().then(function (c) { return c.rpc('sa_ayar_yayinla', { p_data: r.o, p_not: nChg + ' alan' }); }).then(function (res) {
       if (res.error) { var m = String(res.error.message || '') + ' ' + String(res.error.code || ''); stat(/PGRST202|42883|does not exist|schema cache/i.test(m) ? 'Veritabanı güncellemesi gerekli (' + MIG + ').' : 'Kaydedilemedi: ' + (res.error.message || 'hata')); return; }
-      C.ogulSkorSet(r.o, { at: res.data }); cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur);
-      stat('Kaydedildi (' + new Date(res.data).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }) + ').');
+      C.ogulSkorSet(r.o, { at: new Date().toISOString() }); cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur);
+      stat('Yayınlandı · sürüm ' + res.data + '.'); surumGoster();
     }).catch(function () { stat('Kaydedilemedi (bağlantı yok olabilir).'); });
+  });
+  /* k161 EK12: ekibe bildirim gidecek uyarılar (ilk oluşum + kapatma) */
+  function ebAlan(o) {
+    var K = window.SuperAriKritik, AD = (K && K.AD) || {}, sec = o.ekipBildirim || [];
+    return '<fieldset><legend>Ekip bildirimi gönderilen uyarılar</legend><p class="fe-sub">İşaretli uyarıların ilk oluşumu ve “[Kişi] kontrol etti, kapattı” bildirimi tüm ekibe gider. Diğerlerinde yalnız kartta “Kapatan: kişi, saat” yazar. Oğul riski orta: yalnız Düşük→Orta ilk geçişte, kovan başına günde en çok bir.</p>' +
+      Object.keys(AD).map(function (k) { return '<label style="display:block;"><input type="checkbox" name="eb" value="' + esc(k) + '"' + (sec.indexOf(k) >= 0 ? ' checked' : '') + '> ' + esc(AD[k][0]) + '</label>'; }).join('') + '</fieldset>';
+  }
+  /* k161 EK10: son yayın + sürüm geçmişi + geri alma */
+  function surumGoster() {
+    var el = document.getElementById('osSurum'); if (!el) { el = document.createElement('div'); el.id = 'osSurum'; el.className = 'fe-sub'; var bt = document.getElementById('osSave'); bt.parentNode.parentNode.insertBefore(el, bt.parentNode.nextSibling); }
+    B.client().then(function (c) { return c.from('ayar_surumleri').select('surum,at,yayinlayan_eposta,not_,fark,geri_alinan').order('surum', { ascending: false }).limit(10); }).then(function (r) {
+      var L = (r && r.data) || []; if (!L.length) { el.textContent = 'Henüz yayın yok.'; return; }
+      var f = function (t) { return new Date(t).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }); };
+      el.innerHTML = '<p><b>Son yayın: ' + esc(f(L[0].at)) + ' · sürüm ' + L[0].surum + '</b></p><details><summary>Değişiklik günlüğü</summary>' + L.map(function (x, i) {
+        return '<div style="margin:.3rem 0;">#' + x.surum + ' · ' + esc(f(x.at)) + ' · ' + esc(x.yayinlayan_eposta || '') + ' · ' + esc(x.not_ || '') + (x.fark ? ' · değişen: ' + esc(Object.keys(x.fark).join(', ') || '—') : '') +
+          (i > 0 ? ' <button type="button" class="btn secondary" data-geri="' + x.surum + '">Bu sürüme geri al</button>' : '') + '</div>';
+      }).join('') + '</details>';
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-geri]'); if (!b) return;
+    var v = Number(b.getAttribute('data-geri'));
+    if (!window.confirm('Sürüm ' + v + ' değerleri yeni sürüm olarak yayınlansın mı?')) return;
+    B.client().then(function (c) { return c.rpc('sa_ayar_geri_al', { p_surum: v }); }).then(function (r) { if (r.error) { stat('Geri alınamadı.'); return; } C.ogulSkorSync && C.ogulSkorSync(); stat('Geri alındı · sürüm ' + r.data + '.'); surumGoster(); });
   });
   /* Yalnız yöneticiye göster: oturum + sa_is_admin() */
   B.loadConfig().then(function (cfg) {
@@ -97,7 +123,7 @@
       if (!s) return;
       return B.client().then(function (c) { return c.rpc('sa_is_admin'); }).then(function (r) {
         if (r.error || r.data !== true) return;
-        sec.hidden = false; paint(cur);
+        sec.hidden = false; paint(cur); surumGoster();
         return C.ogulSkorSync().then(function (ch) { if (ch) { cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur); } stat(ch ? 'Buluttaki son kayıt yüklendi.' : ''); });
       });
     });

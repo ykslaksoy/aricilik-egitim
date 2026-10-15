@@ -127,7 +127,7 @@
 <script src="bk-kabuk.js?v=koloni-161"></script>
 <script src="demo-data.js?v=koloni-161"></script>
 <script src="device-runtime.js?v=koloni-161"></script>
-<script src="cicek-veri.js?v=koloni-161"></script><script src="cicek.js?v=koloni-161"></script><script src="plan-planlayici.js?v=koloni-161"></script><script src="rota-motoru.js?v=koloni-161"></script>
+<script src="cicek-veri.js?v=koloni-161"></script><script src="cicek.js?v=koloni-161"></script><script src="plan-planlayici.js?v=koloni-161"></script><script src="rota-motoru.js?v=koloni-161"></script><script src="cevre.js?v=koloni-161"></script><script src="saglik-takvimi.js?v=koloni-161"></script>
 <script src="sensor-polling.js?v=koloni-161"></script>
 <script src="tarti-bakim-delta.js?v=koloni-161"></script>
 <script src="tarti-elle.js?v=koloni-161"></script>
@@ -444,8 +444,9 @@
       sec.insertBefore(okH, sec.firstChild.nextSibling);
     }
     var body = document.getElementById('deviceBody');
-    var focusDev = deviceFocusId ? list.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0]
-      : (deviceFocusId ? all.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0] : null);
+    deviceFocusId = deviceFocusId || new URLSearchParams(location.search).get('device') || ''; /* k161: ks düzeninde de cihaz ayrıntısı */
+    var focusDev = deviceFocusId ? (list.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0]
+      || devices.filter(function (d) { return String(d.id) === String(deviceFocusId); })[0] || null) : null;
     body.innerHTML = (focusDev ? deviceDetailPanel(focusDev) : '') + (list.length ? list.map(renderDevice).join('')
       : '<p class="dev-empty">' + (tSel ? tSel.l + ' cihazı bu kapsamda bağlı değil. ' : 'Bu kapsamda cihaz bağlı değil. ') + 'Tak–çalıştır: donanım bağlanınca otomatik listelenir; elle ekleme gerekmez.</p>');
     if (tSel && tSel.k === 'tarti') {

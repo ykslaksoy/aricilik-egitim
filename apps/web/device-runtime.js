@@ -16,7 +16,8 @@
   var DISCOVERED_KEY = 'superari.discovered';
   var DEFAULT_BATTERY_LOW_PCT = 20;
   /** Demo modda pil simülasyonu (oturum içi; DEMO_SEED dosyası değişmez). */
-  var demoBatteryPatch = {};
+  var DEMO_PIL_SS = 'superari.demo.pil.v1';
+  var demoBatteryPatch = (function () { try { return JSON.parse(global.sessionStorage.getItem(DEMO_PIL_SS) || '{}') || {}; } catch (e) { return {}; } })(); /* k161: oturum boyunca yenilemede korunur */
 
   var STATUS = {
     yok: 'yok',
@@ -340,6 +341,7 @@
     Object.keys(patch).forEach(function (k) { if (patch[k] === undefined) delete patch[k]; });
     if (isDemo()) {
       demoBatteryPatch[String(deviceId)] = Object.assign({}, demoBatteryPatch[String(deviceId)] || {}, patch);
+      try { global.sessionStorage.setItem(DEMO_PIL_SS, JSON.stringify(demoBatteryPatch)); } catch (e) { /* ignore */ }
       try {
         global.dispatchEvent(new CustomEvent('superari:device-battery', { detail: { deviceId: deviceId, patch: patch } }));
       } catch (e) { /* ignore */ }
