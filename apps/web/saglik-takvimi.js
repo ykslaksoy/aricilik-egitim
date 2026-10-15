@@ -1,4 +1,4 @@
-/* SüperArı · Sağlık takvimi (koloni-162, EK9) → window.SuperAriSaglikTakvimi
+/* SüperArı · Sağlık takvimi (koloni-163, EK9) → window.SuperAriSaglikTakvimi
  * Sıkışıklık ve ORS'den bağımsız Varroa uyarıları + varroa sayım kaydı + ilaçlama ajandası (yalnız not; alarmları etkilemez)
  * + sezon verisi biriktirme (arka planda; arayüzde gösterilmez). Eşikler ORS_SENSOR (panel, uzman tahmini). */
 (function (global) {

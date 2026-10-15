@@ -47,11 +47,35 @@
   <div class="rol-seg" role="group" aria-label="Rolüm" id="rolSeg"><button type="button" data-rol="owner">Sahip</button><button type="button" data-rol="arici">Arıcı</button><button type="button" data-rol="bakici">Bakıcı</button></div>
   <div class="ak" id="ak"></div>
 </main>
+<div id="kalici" hidden>
+<div id="k-pil" style="display:grid;gap:.5rem;">
+<p class="sub" style="margin:0;">Kovan bataryası ve Gateway bataryası cihazları için geçerli.</p>
+          <p class="hint-inline" style="margin:0">Cihaz kartlarında «Düşük pil» rozeti bu eşiğin altında gösterilir (varsayılan %20).</p>
+          <label>Arılık (boş = tüm arılıklar için genel)
+            <select id="battery-low-apiary">
+              <option value="">Genel (tüm arılıklar)</option>
+            </select>
+          </label>
+          <label>Eşik (%)
+            <input type="number" id="battery-low-pct" min="5" max="50" step="1" value="20" inputmode="numeric">
+          </label>
+          <button class="btn secondary" type="button" id="btn-battery-low-save">Eşiği kaydet</button>
+</div>
+        <div id="ses-box" style="display:grid;gap:.5rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
+          <strong style="font-size:.95rem;">🔊 Ses seçimi (sesli mod)</strong>
+          <p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Sesli muayenede ve öneri kartlarında okunacak Türkçe ses. ▶ ile dinleyin, beğendiğinizi seçin. Ses bu cihazda saklanır (her telefonun sesleri farklıdır).</p>
+          <div id="ses-list" style="display:grid;gap:.4rem;min-width:0;"></div>
+          <div style="display:grid;gap:.3rem;"><span style="font-size:.85rem;font-weight:700;">Konuşma hızı</span>
+            <div id="ses-hiz" role="group" aria-label="Konuşma hızı" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;"></div></div>
+        </div>
+</div>
 <div class="toast" id="toast" role="status">Kaydedildi</div>
-<script src="demo-data.js?v=koloni-162"></script>
-<script src="device-runtime.js?v=koloni-162"></script>
-<script src="nav.js?v=koloni-162"></script>
-<script src="bulut.js?v=koloni-162"></script>
+<script src="demo-data.js?v=koloni-163"></script>
+<script src="device-runtime.js?v=koloni-163"></script>
+<script src="nav.js?v=koloni-163"></script>
+<script src="bulut.js?v=koloni-163"></script>
+<script src="sensor-polling.js?v=koloni-163"></script>
+<script src="sesle-muayene.js?v=koloni-163"></script>
 <script>
 (function () {
   'use strict';
@@ -87,24 +111,34 @@
     { id: 'arilik', ic: '🏡', t: 'Arılıklar', d: function () { return aps.length + ' arılık'; }, b: function () { return aps.map(function (a) { return '<div class="sat"><label>' + esc(a.name) + '</label><a class="btn ikincil" href="arilik.html?id=' + encodeURIComponent(a.id) + '">Aç</a></div>'; }).join('') + '<div class="sat"><label>Yeni arılık</label><a class="btn" href="ariliklar.html">Ekle</a></div>'; } },
     { id: 'bildirim', ic: '🔔', t: 'Bildirimler', d: function () { return A.bildirim ? 'Açık' : 'Kapalı'; }, b: function () { return '<div class="sat"><label>Bildirimler</label>' + sw('bildirim') + '</div><div class="sat"><label>Kritik ses alarmları</label>' + sw('kritikSes') + '</div><div class="sat"><label>Günlük özet</label>' + sw('gunluk') + '</div>'; } },
     { id: 'ses', ic: '🎙️', t: 'Ses ve sesli muayene', d: function () { return A.sesliMuayene ? 'Sesli muayene açık' : 'Kapalı'; }, b: function () { return '<div class="sat"><label>Sesli muayene</label>' + sw('sesliMuayene') + '</div><div class="sat"><label>Sesli geri bildirim</label>' + sw('sesGeri') + '</div>'; } },
+    { id: 'ses-secimi', ic: '🔊', t: 'Ses seçimi', d: function () { var S = window.SuperAriSesle, av = S && S.activeVoice ? S.activeVoice() : null; return av ? 'Kullanılan: ' + av.nick : 'Sesli muayene sesi ve hızı'; }, kalici: 'ses-box' },
+    { id: 'pil', ic: '🔋', t: 'Düşük pil uyarısı', d: function () { var P = window.SuperAriSensorPolling; return P && P.getBatteryLowPct ? 'Eşik %' + P.getBatteryLowPct(null) : 'Eşik'; }, kalici: 'k-pil' },
     { id: 'birim', ic: '📏', t: 'Birimler ve dil', d: function () { return (A.birim === 'kg' ? 'Kilogram' : 'Gram') + ' · Türkçe'; }, b: function () { return '<div class="sat"><label>Ağırlık</label>' + sec('birim', [['kg', 'Kilogram'], ['g', 'Gram']]) + '</div><div class="sat"><label>Tarih</label>' + sec('tarih', [['gg.aa.yyyy', '15.10.2026'], ['gg ay', '15 Eki']]) + '</div><div class="sat"><label>Dil</label>' + sec('dil', [['tr', 'Türkçe']]) + '</div>'; } },
     { id: 'cihaz', ic: '📡', t: 'Cihazlar', d: function () { return 'Kovan ve gateway cihazları'; }, b: function () { return '<div class="sat"><label>Cihazları yönet</label><a class="btn" href="cihazlar.html">Cihazlar</a></div>'; } },
-    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-162'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-162</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
+    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-163'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-163</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
   ];
   var HM = { 'calisma-modu': 'calisma-modu', cihaz: 'cihaz', bulut: 'hesap', hesap: 'hesap', 'arilik-ayarlari': 'arilik', 'arilik-ozet': 'arilik', ekip: 'ekip', bildirim: 'bildirim', ses: 'ses' };
   var acik = q.get('konu') || HM[location.hash.slice(1)] || null;
   function ciz() {
-    var el = document.getElementById('ak');
-    el.innerHTML = KONU.map(function (k) { var a = acik === k.id; return '<div class="ak-i' + (a ? ' acik' : '') + '" data-id="' + k.id + '"><button type="button" class="ak-h" aria-expanded="' + a + '"><span class="ak-ic">' + k.ic + '</span><span class="ak-t"><b>' + k.t + '</b><span>' + esc(k.d()) + '</span></span><span class="ak-ok">›</span></button><div class="ak-b"' + (a ? '' : ' hidden') + '>' + (a ? k.b() : '') + '</div></div>'; }).join('');
+    var el = document.getElementById('ak'), kc = document.getElementById('kalici');
+    KONU.forEach(function (k) { if (k.kalici) { var n = document.getElementById(k.kalici); if (n && n.parentNode !== kc) kc.appendChild(n); } });
+    el.innerHTML = KONU.map(function (k) { var a = acik === k.id; return '<div class="ak-i' + (a ? ' acik' : '') + '" data-id="' + k.id + '"><button type="button" class="ak-h" aria-expanded="' + a + '"><span class="ak-ic">' + k.ic + '</span><span class="ak-t"><b>' + k.t + '</b><span>' + esc(k.d()) + '</span></span><span class="ak-ok">›</span></button><div class="ak-b"' + (a ? '' : ' hidden') + '>' + (a && !k.kalici ? k.b() : '') + '</div></div>'; }).join('');
+    KONU.forEach(function (k) { if (k.kalici && acik === k.id) { var n = document.getElementById(k.kalici), b = el.querySelector('.ak-i[data-id="' + k.id + '"] .ak-b'); if (n && b) b.appendChild(n); } });
     [].forEach.call(document.querySelectorAll('#rolSeg button'), function (b) { b.classList.toggle('on', b.getAttribute('data-rol') === A.rol); });
   }
   /* Tek konu açık; açılırken tıklanan başlığın ekrandaki yeri sabit (yukarıdaki konu kapanınca kayma telafisi) */
+  /* geçici boşluk: kullanıcı aşağı kaydırıp boşluk görünmez olunca aynı karede kaldırılır (içerik yerinde kalır) */
+  var bosluk = 0;
+  window.addEventListener('scroll', function () { if (bosluk && window.scrollY >= bosluk) { var b = bosluk; bosluk = 0; document.getElementById('ak').style.marginTop = ''; window.scrollBy(0, -b); } }, { passive: true });
   document.getElementById('ak').addEventListener('click', function (e) {
     var h = e.target.closest('.ak-h'); if (!h) return;
     var id = h.parentNode.getAttribute('data-id'), y0 = h.getBoundingClientRect().top;
     var wr = document.querySelector('.wrap'); wr.style.minHeight = (wr.offsetHeight) + 'px'; /* çökme yok: kaydırma telafisi sınırlanmasın */
     acik = acik === id ? null : id; ciz();
     var h2 = document.querySelector('.ak-i[data-id="' + id + '"] .ak-h'), dy = h2.getBoundingClientRect().top - y0; if (dy) window.scrollBy(0, dy);
+    /* kaydırma yetmediyse (sayfa başı) kalan farkı listenin üstüne geçici boşlukla kapat → başlık 0 px */
+    var ak = document.getElementById('ak'), r = h2.getBoundingClientRect().top - y0;
+    if (r < -0.5) { bosluk += -r; ak.style.marginTop = ''; var mb = parseFloat(getComputedStyle(ak.previousElementSibling).marginBottom) || 0; ak.style.marginTop = (mb + bosluk) + 'px'; /* kenar boşluğu çakışması */ }
     /* fazla boşluğu, görünür alanın altında kalan kısmı kadar bırak */
     var need = window.scrollY + window.innerHeight; wr.style.minHeight = Math.max(need, 0) + 'px';
   });
@@ -138,6 +172,87 @@
     return aps[0] && B.team(aps[0].id).then(function (t) { ekip = { uyeler: (t.members || []).map(function (m) { return { id: m.user_id, ad: m.name || m.email, email: m.email, role: m.role === 'owner' ? 'owner' : (m.role === 'bakici' || m.role === 'izleyici' ? 'bakici' : 'arici') }; }), davetler: (t.invites || []).map(function (d) { return { email: d.email, role: d.role === 'bakici' || d.role === 'izleyici' ? 'bakici' : 'arici' }; }) }; }).catch(function () { ekip = null; });
   }).then(ciz).catch(function () { /* çevrimdışı */ });
 })();
+</script>
+<script>
+    (function () {
+      var P = window.SuperAriSensorPolling;
+      var D = window.SuperAriDemo;
+      var apEl = document.getElementById('battery-low-apiary');
+      var pctEl = document.getElementById('battery-low-pct');
+      var btn = document.getElementById('btn-battery-low-save');
+      if (!P || !pctEl || !btn) return;
+      function fillApiaries() {
+        if (!apEl || !D || !D.loadApiaries) return;
+        var cur = apEl.value;
+        apEl.innerHTML = '<option value="">Genel (tüm arılıklar)</option>' + (D.loadApiaries() || []).map(function (a) {
+          return '<option value="' + String(a.id).replace(/"/g, '&quot;') + '">' + (a.name || a.place || a.id) + '</option>';
+        }).join('');
+        if (cur) apEl.value = cur;
+      }
+      function paint() {
+        var ap = apEl ? apEl.value : '';
+        var v = P.getBatteryLowPct(ap || null);
+        pctEl.value = String(v);
+      }
+      fillApiaries();
+      paint();
+      if (apEl) apEl.addEventListener('change', paint);
+      btn.addEventListener('click', function () {
+        var ap = apEl ? apEl.value : '';
+        var n = Number(pctEl.value);
+        if (!P.setBatteryLowPct(n, ap || null)) {
+          alert('Geçerli bir eşik girin (%5–50).');
+          return;
+        }
+        paint();
+        alert(ap ? 'Arılık pil eşiği kaydedildi.' : 'Genel pil eşiği kaydedildi.');
+      });
+    })();
+</script>
+<script>
+  /* Ayarlar › Ses seçimi: cihazdaki tr sesler, ▶ dinle, seçim + hız (sesle-muayene.js ile aynı anahtarlar) */
+  (function () {
+    var S = window.SuperAriSesle, box = document.getElementById('ses-box');
+    if (!box) return;
+    if (!S || !window.speechSynthesis) { document.getElementById('ses-list').innerHTML = '<p class="muted" style="margin:0;font-size:.85rem;">Bu tarayıcı sesli okumayı desteklemiyor.</p>'; return; }
+    function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    var BTN = 'min-height:48px;border-radius:12px;border:1.5px solid #d8c4a4;background:#fff;font:inherit;font-size:.92rem;font-weight:700;color:#2a1a0e;cursor:pointer;';
+    function draw() {
+      /* kaynak bağımsız seçenekler (şimdilik cihaz sesleri; aile başına tek: Geliştirilmiş varsa o) */
+      var opts = S.voiceOptions(), saved = S.savedVoiceId(), best = opts[0], cur = saved ? S.currentOption(opts) : null;
+      var found = !!(cur && opts.indexOf(cur) >= 0);
+      var rows = '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:stretch;"><button type="button" data-ses-sel="" aria-pressed="' + !found + '" style="' + BTN + 'text-align:left;padding:.45rem .7rem;' + (!found ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (!found ? '✓ ' : '') + 'Otomatik' + (best ? '<small style="display:block;font-weight:600;color:#7a6048;">önerilen: ' + esc(best.nick) + '</small>' : '') + '</button>' +
+        '<button type="button" data-ses-play="auto" style="' + BTN + 'padding:0 .8rem;color:#1c5fa8;">▶ Dinle</button></div>';
+      rows += opts.map(function (o, i) {
+        var on = found && o === cur, tags = S.optionTags(o, best);
+        return '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:stretch;"><button type="button" data-ses-sel="' + i + '" aria-pressed="' + on + '" style="' + BTN + 'text-align:left;padding:.45rem .7rem;min-width:0;overflow-wrap:anywhere;' + (on ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (on ? '✓ ' : '') + esc(o.nick) +
+          (tags ? '<small style="display:block;font-weight:600;color:#7a6048;">' + esc(tags) + '</small>' : '') + '</button><button type="button" data-ses-play="' + i + '" style="' + BTN + 'padding:0 .8rem;color:#1c5fa8;">▶ Dinle</button></div>';
+      }).join('');
+      var PATH = S.ENH_PATH || 'Ayarlar › Erişilebilirlik › Sözlü İçerik › Sesler › Türkçe';
+      /* Konuşmada gerçekten kullanılan ses (her konuşmada yeniden çözülür: seçilen ailenin Premium > Gelişmiş > standart sürümü) */
+      var av = S.activeVoice ? S.activeVoice() : null;
+      if (!opts.length) rows += '<p class="muted" style="margin:0;font-size:.82rem;">Cihazda Türkçe ses bulunamadı; tarayıcının varsayılan sesi kullanılır. iPhone: ' + esc(PATH) + '’den Cem / Yelda (Gelişmiş) indirin.</p>';
+      else if (av && av.enhanced) rows += '<p id="ses-kullanilan" style="margin:0;font-size:.85rem;line-height:1.4;color:#2b8a3e;background:#ebfbee;border-radius:10px;padding:.45rem .6rem;font-weight:700;">✓ Kullanılan: ' + esc(av.nick) + ' — ' + esc(av.name) + '</p>';
+      else if (av && av.apple) rows += '<p id="ses-kullanilan" style="margin:0;font-size:.85rem;line-height:1.4;color:#8a4b00;background:#fff4e6;border-radius:10px;padding:.45rem .6rem;font-weight:700;">Kullanılan: ' + esc(av.nick) + ' — ' + esc(av.name) + ' (standart) · Gelişmiş sürüm yüklü değil.<span style="display:block;font-weight:600;margin-top:2px;">iPhone: ' + esc(PATH) + ' › ' + esc(av.family === 'cem' ? 'Cem' : (av.family === 'yelda' ? 'Yelda' : 'ses')) + ' › Gelişmiş sürümü indirin, sonra uygulamayı yeniden açın.</span></p>';
+      else if (av) rows += '<p id="ses-kullanilan" style="margin:0;font-size:.85rem;line-height:1.4;color:#5c4632;font-weight:700;">Kullanılan: ' + esc(av.nick) + ' — ' + esc(av.name) + '</p>';
+      if (opts.length && (!av || !av.apple || av.enhanced) && S.needEnhNote()) rows += '<p style="margin:0;font-size:.82rem;line-height:1.4;color:#1c4f80;background:#e7f5ff;border-radius:10px;padding:.45rem .6rem;">ℹ️ ' + esc(S.ENH_NOTE) + '</p>';
+      document.getElementById('ses-list').innerHTML = rows;
+      var rk = S.rateKey();
+      document.getElementById('ses-hiz').innerHTML = [['yavas', 'Yavaş'], ['normal', 'Normal'], ['hizli', 'Hızlı']].map(function (x) {
+        return '<button type="button" data-ses-hiz="' + x[0] + '" aria-pressed="' + (rk === x[0]) + '" style="' + BTN + (rk === x[0] ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (rk === x[0] ? '✓ ' : '') + x[1] + '</button>';
+      }).join('');
+      box._opts = opts;
+    }
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null; if (!b) return;
+      var opts = box._opts || [];
+      if (b.hasAttribute('data-ses-sel')) { var i = b.getAttribute('data-ses-sel'), o = i === '' ? null : opts[Number(i)]; S.setVoice(o ? o.id : ''); try { localStorage.setItem('superari.sesleSesSoruldu.v1', new Date().toISOString().slice(0, 10)); } catch (e2) {} draw(); S.speak(S.DEMO, { voice: o || opts[0] || null, noGate: true }); return; }
+      if (b.hasAttribute('data-ses-play')) { var p = b.getAttribute('data-ses-play'); S.speak(S.DEMO, { voice: p === 'auto' ? (opts[0] || null) : opts[Number(p)], noGate: true }); return; }
+      if (b.hasAttribute('data-ses-hiz')) { S.setRate(b.getAttribute('data-ses-hiz')); draw(); S.speak(S.DEMO, { noGate: true }); }
+    });
+    draw();
+    try { speechSynthesis.addEventListener('voiceschanged', draw); } catch (e) {}
+  })();
 </script>
 </body>
 </html>
