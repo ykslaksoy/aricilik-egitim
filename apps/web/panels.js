@@ -11,7 +11,7 @@
   var DEFAULT_ADMIN_KEY = 'koloni-admin';
   var HOME = {
     arici: 'ana.html',
-    yonetici: 'yonetici.html',
+    yonetici: 'ana.html',
     bakici: 'bakici.html'
   };
   var LABELS = {

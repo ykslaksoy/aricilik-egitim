@@ -18,29 +18,34 @@
   function donem(q, ay) {
     q = q || {}; ay = ay || (new Date().getMonth() + 1);
     var L = bul(q.il, q.ilce).filter(function (r) { return r.ay1 && r.ay2; });
-    if (!L.length) { if (q.il && !iller()[norm(q.il)]) eksik(q.il); else if (q.il) sorgula(q.il, q.ilce); return { durum: 'veri_yok', metin: 'Veri yok' }; }
+    if (!L.length) { if (q.il && !iller()[norm(q.il)]) { eksik(q.il); sorgula(q.il, ''); } else if (q.il) sorgula(q.il, q.ilce); return { durum: 'veri_yok', metin: 'Veri yok' }; }
     var a1 = Math.min.apply(null, L.map(function (r) { return r.ay1; })), a2 = Math.max.apply(null, L.map(function (r) { return r.ay2; }));
     var aktif = L.some(function (r) { return ayIc(ay, r.ay1, r.ay2); });
     var bas = ((a1 - ay) + 12) % 12;
     return { durum: 'var', il: L[0].il, ilce: L[0].ilce, ay1: a1, ay2: a2, aktif: aktif, ayaKalan: aktif ? 0 : bas, dogrulandi: L.every(function (r) { return r.dogrulandi !== false; }),
       bitki: L.map(function (r) { return r.baskin_flora || r.nektar || ''; }).filter(Boolean).join(', ') };
   }
-  function client() { var B = global.SuperAriBulut; try { return B && B.client ? B.client() : null; } catch (e) { return null; } }
+  /* k175: B.client() Promise döner (eskiden doğrudan .from çağrılıyordu → istekler hiç yazılmıyordu) */
+  function client() { var B = global.SuperAriBulut; try { return B && B.client ? Promise.resolve(B.client()).catch(function () { return null; }) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } }
   var bekleyen = {};
   function sorgula(il, ilce) {
-    var c = client(), k = norm(il) + '|' + norm(ilce); if (!c || bekleyen[k]) return; bekleyen[k] = 1;
+    var k = norm(il) + '|' + norm(ilce); if (bekleyen[k]) return; bekleyen[k] = 1;
+    client().then(function (c) { if (!c) { delete bekleyen[k]; return; }
     var q = c.from('cicek_takvimi').select('il,ilce,ay1,ay2,nektar,polen,baskin_flora,resmi_ay_araligi,dogrulandi').eq('il', il);
     if (ilce) q = q.eq('ilce', ilce);
-    q.then(function (r) { if (r && r.data && r.data.length) { var C = rj(CACHE, []).concat(r.data); wj(CACHE, C.slice(-500)); try { global.dispatchEvent(new Event('superari-cicek')); } catch (e) { /* */ } } });
+    q.then(function (r) { if (r && r.data && r.data.length) { var C = rj(CACHE, []).concat(r.data); wj(CACHE, C.slice(-500)); try { global.dispatchEvent(new Event('superari-cicek')); } catch (e) { /* */ } } else { setTimeout(function () { delete bekleyen[k]; }, 15 * 60000); } }); });
   }
   function eksik(il) {
-    var L = rj(ISTEK, []), k = norm(il); if (L.indexOf(k) >= 0) return; L.push(k); wj(ISTEK, L);
-    var c = client(); if (c) try { c.from('takvim_eksik').insert({ il: String(il).trim(), istek: 'takvim_eksik: ' + String(il).trim() }).then(function () {}); } catch (e) { /* */ }
+    /* k175: sunucuda il başına tek kayıt (sa_takvim_iste); cihazda da il başına bir kez gönderilir. Hazırlanınca sorgula() önbelleğe alır → kendiliğinden görünür. */
+    var L = rj(ISTEK, []), k = norm(il); if (!k || L.indexOf(k) >= 0) return; L.push(k); wj(ISTEK, L);
+    client().then(function (c) { if (!c) { wj(ISTEK, rj(ISTEK, []).filter(function (x) { return x !== k; })); return; }
+      return c.rpc('sa_takvim_iste', { p_il: String(il).trim() }).then(function (r) { if (r && r.error) wj(ISTEK, rj(ISTEK, []).filter(function (x) { return x !== k; })); });
+    }).catch(function () { /* */ });
   }
   function adaylar(ay) {
     ay = ay || (new Date().getMonth() + 1); var o = {};
     rows().forEach(function (r) { if (r.ay1 && ayIc(ay, r.ay1, r.ay2)) o[norm(r.il) + '|' + norm(r.ilce)] = { il: r.il, ilce: r.ilce }; });
     return Object.keys(o).map(function (k) { return o[k]; });
   }
-  global.SuperAriCicek = { donem: donem, bul: bul, adaylar: adaylar, eksik: eksik, eksikler: function () { return rj(ISTEK, []); }, ayIc: ayIc };
+  global.SuperAriCicek = { secildi: function (il) { if (il && !iller()[norm(il)]) { eksik(il); sorgula(il, ''); } }, donem: donem, bul: bul, adaylar: adaylar, eksik: eksik, eksikler: function () { return rj(ISTEK, []); }, ayIc: ayIc };
 })(typeof window !== 'undefined' ? window : globalThis);

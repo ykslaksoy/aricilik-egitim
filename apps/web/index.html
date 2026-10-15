@@ -13,7 +13,6 @@
           var s = String(tip).toLowerCase()
             .replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g')
             .replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c');
-          if (/yonetici|admin/.test(s)) { location.replace('yonetici.html'); return; }
           if (/bakici|isci|worker|caretaker/.test(s)) { location.replace('bakici.html'); return; }
           location.replace('ana.html');
           return;
@@ -34,6 +33,6 @@
     </div>
     <div class="card"><a class="btn" href="giris.html">Giriş sayfasına git</a></div>
   </main>
-<script src="pwa.js?v=koloni-174"></script>
+<script src="pwa.js?v=koloni-175"></script>
 </body>
 </html>

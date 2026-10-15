@@ -18,7 +18,7 @@
   })();
   var CFG_KEY = 'superari.bulut.config.v1';
   var STATE_KEY = 'superari.bulut.state.v1';
-  var AUTH_KEY = 'sb-superari-auth-token';
+  var AUTH_KEY = global.SA_AUTH_KEY || 'sb-superari-auth-token';
   var LS = {
     apiaries: 'superari.ariliklar.v1', hives: 'superari.kovanlar.v1', queens: 'superari.anaArilar.v1',
     records: 'superari.koloniKayit.v1', harvest: 'superari.hasat.v2', ops: 'superari.koloniIslem.v1',
@@ -202,7 +202,7 @@
   function resetPassword(email) {
     var em = normEmail(email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return Promise.reject(new Error('Önce e-posta adresinizi yazın'));
-    return client().then(function (c) { return c.auth.resetPasswordForEmail(em, { redirectTo: 'https://superari.vercel.app/yeni-sifre.html' }); })
+    return client().then(function (c) { return c.auth.resetPasswordForEmail(em, { redirectTo: global.location.origin + '/yeni-sifre.html' }); })
       .then(function (r) { if (r.error) throw r.error; return true; });
   }
   /** Oturum açıkken şifre belirle/değiştir (bağlantıyla giren kullanıcı için de). */
@@ -1184,6 +1184,16 @@
       return client().then(function (c) { return c.rpc('sa_set_member_role', { aid: u, uid: userId, new_role: normRole(role) }); });
     }).then(function (r) { if (r.error) throw (needsMigration(r.error) ? migErr() : r.error); return true; });
   }
+  /** k164: üye yetkisi (yalnız Sahip; RLS/RPC zorunlu) — ad: 'mali' | 'gorev' | 'duzen' */
+  function setMemberPerm(localApiaryId, userId, ad, val) {
+    return apUuidOf(localApiaryId).then(function (u) { return client().then(function (c) { return c.rpc('sa_uye_yetki', { aid: u, uid: userId, ad: ad, deger: !!val }); }); })
+      .then(function (r) { if (r.error) throw r.error; return true; });
+  }
+  /** k164: sahipliği devret (eski Sahip Arıcı olur; en az bir Sahip kalır) */
+  function transferOwner(localApiaryId, userId) {
+    return apUuidOf(localApiaryId).then(function (u) { return client().then(function (c) { return c.rpc('sa_sahiplik_devret', { aid: u, uid: userId }); }); })
+      .then(function (r) { if (r.error) throw r.error; return true; });
+  }
   /** Bu kullanıcının yerel arılıktaki rolü ('owner' | 'yardimci' | 'izleyici' | null) — son eşitlemeden. */
   function roleOf(localApiaryId) {
     var st = readJ(STATE_KEY, null); if (!st || !st.links || !st.roles) return null;
@@ -1252,7 +1262,7 @@
     invite: invite,
     inviteLink: inviteLink,
     acceptInviteToken: acceptInviteToken,
-    setMemberRole: setMemberRole,
+    setMemberRole: setMemberRole, setMemberPerm: setMemberPerm, transferOwner: transferOwner,
     roleOf: roleOf,
     ROLES: ROLES,
     cancelInvite: cancelInvite,

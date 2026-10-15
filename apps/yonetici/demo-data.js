@@ -3680,7 +3680,7 @@
     var sapma = l24 != null && lOnce != null ? l24 - lOnce : null;
     var yel = L.filter(function (x) { var hz = Number(x.hz); return x.sinif === 'yelpazeleme' || (isFinite(hz) && hz >= T.yelpazeHzMin && hz <= T.yelpazeHzMax); }).length / L.length;
     r.saglikBilgi = (sapma != null && Math.abs(sapma) >= T.tabanSapmaDb) || yel >= T.yelpazeOran;
-    r.saglikNot = r.saglikBilgi ? ((sapma != null && Math.abs(sapma) >= T.tabanSapmaDb ? 'taban ' + (sapma > 0 ? '+' : '') + Math.round(sapma) + ' dB' : '') + (yel >= T.yelpazeOran ? (sapma != null && Math.abs(sapma) >= T.tabanSapmaDb ? ' · ' : '') + 'yoğun yelpazeleme (%' + Math.round(yel * 100) + ')' : '')) : '';
+    r.saglikNot = r.saglikBilgi ? 'Kovanın ses ve iklim dengesi normalden saptı' : ''; /* EK13: metinde birim yok */
   }
   /** Sensör katkısı: { piping, sikArti, sikTahmin, nektar, notes[] }. T = eşikler. */
   function sensorOrs(S, capFrames, T) {
@@ -4041,6 +4041,10 @@
     loadHives().forEach(function (h) {
       var a = swarmAssess(h, ctx);
       if (a && a.piping && !a.hucre) return; /* ötme: ses uyarısı (ALARM_KRITIK_PIP_01) */
+      /* EK12: ORS seviye izleme → ors_70 / ors_orta (ekip bildirimi) */
+      try { var gO = typeof window !== 'undefined' ? window : globalThis; if (a && gO.SuperAriKritik) gO.SuperAriKritik.orsGozle(h.id, a.key, a.score, h.apiaryId); } catch (eO) { /* */ }
+      /* EK13: muayenede yüksük → yalnız ALARM_MANUEL_YUKSUK_01 (aynı olayda ALARM_KRITIK_CELL_01 çıkmaz) */
+      if (a && a.key === 'kritik' && a.hucre) return;
       if (a && orsYuksek(a.key)) {
         var kr = a.key === 'kritik';
         out.push({ id: 'ogul-' + h.id, code: kr ? 'ALARM_KRITIK_CELL_01' : 'ALARM_YUKSEK_SCORE_01', title: kr ? '🚨 KRİTİK: Oğul Yüksüğü Var' : '⚠️ YÜKSEK: Sıkışıklık ve Oğul Riski',
@@ -4136,7 +4140,8 @@
       var aniK = false; try { var gK2 = typeof window !== 'undefined' ? window : globalThis, TL = sensList('tarti').filter(function (x) { return Number(x.hiveId) === Number(h.id); }).map(function (x) { return { t: x.t, kg: Number(x.kg != null ? x.kg : x.deger) }; }); aniK = !!(gK2.SuperAriKritik && gK2.SuperAriKritik.aniKayip(TL)); } catch (eAK) { aniK = false; }
       if ((so6 && so6.ogulCikti) || aniK) alertsOut.push(sablonUyari('ALARM_YUKSEK_CIKIS_01', h, nm, so6 && so6.ogulCikti ? 'ses' : 'tarti'));
       /* EK13: muayenede aktif oğul yüksüğü */
-      if (st.swarmCell) alertsOut.push(sablonUyari('ALARM_MANUEL_YUKSUK_01', h, nm, 'koloni'));
+      var aY = null; try { aY = swarmAssess(h); } catch (eY) { aY = null; }
+      if (st.swarmCell || (aY && aY.key === 'kritik' && aY.hucre)) { var yk = sablonUyari('ALARM_MANUEL_YUKSUK_01', h, nm, 'koloni'); yk.apiaryId = h.apiaryId; yk.href = 'bakim-akis.html?id=' + encodeURIComponent(h.id) + '&apiary=' + encodeURIComponent(h.apiaryId); yk.hrefLabel = 'Hızlı muayene'; alertsOut.push(yk); }
       var qSes = !!(so6 && so6.anasizSes), qMua = !!st.queenless, qYum = !!(st.brood && st.eggs === false);
       if (qSes || qMua) {
         var nK = (qSes ? 1 : 0) + (qMua ? 1 : 0) + (qYum && !qMua ? 1 : 0);

@@ -18,7 +18,7 @@
   })();
   var CFG_KEY = 'superari.bulut.config.v1';
   var STATE_KEY = 'superari.bulut.state.v1';
-  var AUTH_KEY = 'sb-superari-auth-token';
+  var AUTH_KEY = global.SA_AUTH_KEY || 'sb-superari-auth-token';
   var LS = {
     apiaries: 'superari.ariliklar.v1', hives: 'superari.kovanlar.v1', queens: 'superari.anaArilar.v1',
     records: 'superari.koloniKayit.v1', harvest: 'superari.hasat.v2', ops: 'superari.koloniIslem.v1',

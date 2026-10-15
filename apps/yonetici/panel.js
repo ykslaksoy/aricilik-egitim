@@ -30,9 +30,15 @@
       'Yönlendirme: artış bitince önce kullanıcının kayıtlı arılıkları (artışı süren / ayı çiçeklenme aralığında), yoksa güncel ayı resmi aralıkta olan harici ilçe önerilir; karar onay kartıyla. Rakım: arılık koordinatından Open-Meteo Elevation API. ' +
       'Çiçeklenme takvimi kaynağı: Cınbırtoğlu (haz.), İl ve İlçelere Göre Çiçeklenme Dönemi, TAGEM Ordu Arıcılık Araştırma Enstitüsü, 2022 (AAEM/51). Ağırlıklar ve eşikler uzman tahminidir (Sensörlü mod — eşikler bölümünde ayarlanır).</p>' +
       '<p class="fe-sub" id="takvimEksik" style="margin:.2rem 0;">Takvim istekleri yükleniyor…</p></fieldset>';
-    setTimeout(function () { var el = document.getElementById('takvimEksik'), B = window.SuperAriBulut, c = B && B.client && B.client(); if (!el) return; if (!c) { el.textContent = 'Takvim istekleri: bulut yok.'; return; }
-      c.from('takvim_eksik').select('il,created_at').order('created_at', { ascending: false }).limit(50).then(function (r) { var L = (r && r.data) || [], o = {}; L.forEach(function (x) { o[x.il] = (o[x.il] || 0) + 1; });
-        var k = Object.keys(o); el.textContent = k.length ? 'Eksik takvim istekleri: ' + k.map(function (i) { return 'takvim_eksik: ' + i + ' (' + o[i] + ')'; }).join(' · ') : 'Eksik takvim isteği yok.'; }); }, 0);
+    /* k175: talep edilen iller ve durumları (bekliyor / hazırlandı / kaynak bekleniyor); kaynak yalnız burada */
+    setTimeout(function () { var el = document.getElementById('takvimEksik'), B = window.SuperAriBulut; if (!el) return; if (!B || !B.client) { el.textContent = 'Takvim istekleri: bulut yok.'; return; }
+      var DL = { bekliyor: 'bekliyor', hazirlandi: 'hazırlandı', kaynak_yok: 'kaynak bekleniyor' };
+      Promise.resolve(B.client()).then(function (c) { return c.rpc('sa_takvim_talepleri'); }).then(function (r) {
+        if (r.error) { el.textContent = 'Takvim istekleri alınamadı: ' + (/42501|Yalnız yönetici/.test(r.error.message || '') ? 'yönetici değil.' : (r.error.message || 'hata')); return; }
+        var L = r.data || []; if (!L.length) { el.textContent = 'Talep edilen il yok. (Takvimi olan iller: uygulama verisi + Supabase cicek_takvimi)'; return; }
+        el.innerHTML = '<b>Talep edilen iller</b><table class="fe-tbl"><tr><th>İl</th><th>Durum</th><th>İstek</th><th>Son istek</th><th>Not / kaynak</th></tr>' + L.map(function (x) {
+          return '<tr><td>' + esc(x.il) + '</td><td><b>' + esc(DL[x.durum] || x.durum) + '</b></td><td>' + esc(x.istek_sayisi) + '</td><td>' + esc(new Date(x.son_istek).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' })) + '</td><td><small>' + esc(x.kaynak_not || '') + (x.kaynak ? ' · ' + esc(x.kaynak) : '') + '</small></td></tr>'; }).join('') + '</table>';
+      }).catch(function () { el.textContent = 'Takvim istekleri alınamadı (bulut kapalı ya da oturum yok).'; }); }, 0);
     var aps = []; try { aps = (D.loadApiaries ? D.loadApiaries() : []) || []; } catch (e) { aps = []; }
     var yr = new Date().getFullYear(), dn = o.donem || {};
     h += '<fieldset><legend>Arılık oğul dönemleri</legend><p class="fe-sub" style="margin:.2rem 0;">Otomatik dönem bölge profilinden (rakım / il) hesaplanır. Tarih aralığı seçilirse ORS Mevsim bu dönemi kullanır (her yıl aynı gün/ay).</p>' +

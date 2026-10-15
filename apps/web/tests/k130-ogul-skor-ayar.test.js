@@ -10,7 +10,7 @@ assert.strictEqual(C.genetikScore('Kafkas').g,10);assert.strictEqual(C.genetikSc
 assert.strictEqual(C.orsCompute({genetik:100,sikisiklik:0,mevsim:0,anaYasi:0}),50);
 const bad=C.ogulSkorMerge({weights:{genetik:0.9,sikisiklik:0.9,mevsim:0,anaYasi:0},saf:{kafkas:500}});
 assert.strictEqual(bad.weights.genetik,0.3);assert.strictEqual(bad.weights.mevsim,0.15);assert.strictEqual(bad.weights.anaYasi,0.15);assert.strictEqual(bad.saf.kafkas,5,'invalid ignored → defaults');
-const y=fs.readFileSync(path.join(W,'yonetici.html'),'utf8');
+const y=require('./_yonetici.js');
 assert.ok(/id="osSec"[^>]*hidden/.test(y)&&/rpc\('sa_is_admin'\)/.test(y)&&/window\.confirm\(/.test(y)&&/sa_ogul_skor_kaydet/.test(y));
 const sql=fs.readFileSync(path.join(R,'supabase/migrations/20261013190000_ogul_skor_ayar.sql'),'utf8');
 assert.ok(/enable row level security/.test(sql)&&/sa_is_admin\(\)/.test(sql)&&/revoke all on function public\.sa_ogul_skor_kaydet\(jsonb\) from anon/.test(sql)&&!/grant (insert|update|delete)/.test(sql));

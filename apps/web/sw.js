@@ -224,8 +224,7 @@ const SHELL = [
   "/vercel.json",
   "/yandex-config.js",
   "/yandex-map.js",
-  "/yedek.js",
-  "/yonetici.html"
+  "/yedek.js"
 ];
 const NET_TIMEOUT_MS = 6000;
 /* Çevrimdışı harita (harita-offline.js indirir): OpenFreeMap vektör + EOX uydu karoları, MapLibre. Sürümden bağımsız, silinmez. */

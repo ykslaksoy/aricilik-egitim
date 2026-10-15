@@ -21,5 +21,5 @@ assert.ok(kk.irk.indexOf('melez verisi yok') >= 0, 'no-data hybrid is not averag
 assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['iran+karadeniz'], 'missing hybrid reported for admin');
 const ua = fs.readFileSync(path.join(root, 'uyarilar.html'), 'utf8');
 assert.ok(!ua.includes('yalnız küçük bir etkidir') && !ua.includes('ana arının ırkına'), 'k154: formül notu uygulamada yok');
-assert.ok(fs.readFileSync(path.join(root, 'yonetici.html'), 'utf8').includes('superari.irk.ogulVeriEksik.v1'), 'admin lists missing hybrids');
+assert.ok(require('./_yonetici.js').includes('superari.irk.ogulVeriEksik.v1'), 'admin lists missing hybrids');
 console.log('k125 ok');

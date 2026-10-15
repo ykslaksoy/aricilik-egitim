@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SüperArı Yönetici</title>
   <meta name="robots" content="noindex,nofollow" />
+  <script>/* Ayrı oturum: uygulama oturumuyla paylaşılmaz. /yonetici/ altında da göreli yollar çalışsın. */window.SA_AUTH_KEY='sb-superari-yonetici-auth';if(/^\/yonetici(\/|$)/.test(location.pathname))document.write('<base href="/yonetici/">');</script>
   <link rel="stylesheet" href="panels.css" />
   <style>
     .fe { margin-top: 1rem; }
@@ -112,7 +113,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-174').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-174');}).then(function(){return load('panel6.js?v=koloni-174');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-175').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-175');}).then(function(){return load('panel6.js?v=koloni-175');}); }
           }).then(function () { return true; });
         });
       });

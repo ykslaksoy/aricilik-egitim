@@ -10,6 +10,18 @@
       "destination": "/apps/web/ana.html"
     },
     {
+      "source": "/yonetici",
+      "destination": "/apps/yonetici/index.html"
+    },
+    {
+      "source": "/yonetici/",
+      "destination": "/apps/yonetici/index.html"
+    },
+    {
+      "source": "/yonetici/:path+",
+      "destination": "/apps/yonetici/:path+"
+    },
+    {
       "source": "/:path*",
       "destination": "/apps/web/:path*"
     }
@@ -67,6 +79,40 @@
           "value": "no-cache, no-store, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/yonetici/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/yonetici",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ],
   "crons": [
@@ -77,6 +123,18 @@
     {
       "path": "/api/push-cron?run=aksam",
       "schedule": "0 16 * * *"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/yonetici.html",
+      "destination": "/yonetici/",
+      "permanent": false
+    },
+    {
+      "source": "/apps/yonetici/:path*",
+      "destination": "/yonetici/:path*",
+      "permanent": false
     }
   ]
 }

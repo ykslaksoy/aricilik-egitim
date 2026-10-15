@@ -98,7 +98,7 @@ function load(iso) {
   assert.ok(/TQ\.noteMissing\(rq\.combined\.lines/.test(html));
   assert.ok(/function onHash\(\) \{[^}]*missOnly = false/.test(html), 'görünüm değişince filtre sıfırlanır');
   /* yönetici sayfası + Uyarılar'a eklenmedi + migration */
-  const yon = fs.readFileSync(W + 'yonetici.html', 'utf8');
+  const yon = require('./_yonetici.js');
   assert.ok(/Fiyatı bulunamayan kalemler/.test(yon) && /sa_fiyat_eksik_list/.test(yon) && /superari\.stok\.fiyatsiz\.v1/.test(yon));
   assert.ok(!/fiyatsiz|fiyat_eksik/.test(fs.readFileSync(W + 'uyarilar.html', 'utf8')));
   const sql = fs.readFileSync(path.join(W, '..', '..', 'supabase', 'migrations', '20261003230000_fiyat_eksik.sql'), 'utf8');

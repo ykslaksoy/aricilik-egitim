@@ -39,5 +39,5 @@ C=load({'superari.sensor.ses.v1':JSON.stringify(ses),'superari.ogul.skor.v1':JSO
 assert.ok(C.swarm(h,{date:'2026-10-13',now:NOW}).score<100,'Kafkas 5 dk');
 assert.strictEqual(C.swarm({...h,breed:'Bilinmez'},{date:'2026-10-13',now:NOW}).score,100,'unknown → 1 dk');
 assert.strictEqual(C.ogulSkorDefaults().piping['anadolu+kafkas+karniyol'],1);assert.strictEqual(C.ORS_SENSOR.pipingDk,1);assert.strictEqual(C.ORS_SENSOR.pipingHzMin,400);assert.strictEqual(C.ORS_SENSOR.pipingHzMax,500);
-assert.ok(/piping süresi \(dk\)/.test(fs.readFileSync(path.join(W,'yonetici.html'),'utf8')));
+assert.ok(/piping süresi \(dk\)/.test(require('./_yonetici.js')));
 console.log('k131 ok');
