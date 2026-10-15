@@ -1,4 +1,4 @@
-/* koloni-166: rol/yetki kuralları — yetki.js varsayılanları, Ayarlar rozet, Sahip-yalnız anahtarlar, RLS migration */
+/* koloni-167: rol/yetki kuralları — yetki.js varsayılanları, Ayarlar rozet, Sahip-yalnız anahtarlar, RLS migration */
 const assert = require('assert'), fs = require('fs'), path = require('path'), vm = require('vm');
 const W = path.join(__dirname, '..');
 function yuk(store, search) {

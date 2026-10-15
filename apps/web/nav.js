@@ -36,7 +36,17 @@
     }
     /** Yerinde yeniden çizim: fn() öncesi konum/yükseklik saklanır, sonra geri yüklenir. */
     var kept = null;
-    function keep(fn) { var y = getY(), h = height(), prev = kept; kept = { y: y, h: h }; try { return fn(); } finally { kept = prev; settle(y, h, 400); } }
+    /* k167: tutulacak yükseklik en az (konum + ekran) — yeni içerik kısa olsa da iOS kaydırmayı sıkıştırmaz */
+    function keep(fn) { var y = getY(), h = Math.max(height(), y + (global.innerHeight || 0)), prev = kept; kept = { y: y, h: h }; try { return fn(); } finally { kept = prev; settle(y, h, 400); izle(y, h); } }
+    /* k167: geç gelen (async) çizimler içeriği sonradan kısaltsa da kullanıcı dokunana kadar yükseklik + konum korunur */
+    var ro = null;
+    function izle(y, h) {
+      if (!global.ResizeObserver) return; if (ro) ro.disconnect();
+      var host = document.querySelector('.phone') || document.body; if (!host) return;
+      var bitti = Date.now() + 8000;
+      ro = new global.ResizeObserver(function () { if (touched || Date.now() > bitti) { ro.disconnect(); return; } holdHeight(h); if (Math.abs(getY() - y) > 1) setY(y); });
+      ro.observe(host);
+    }
     /** Yeniden yükleme: konum saklanır, yeni sayfa açılınca geri yüklenir. */
     function reload() {
       try { /* k160: yeniden çizim içerikten önce boşaltıp sayfayı kısalttıysa konum 0'a düşmüş olur — keep() öncesi değer esas */
@@ -69,8 +79,8 @@
       var t = e.target && e.target.closest ? e.target.closest(GUARD) : null;
       if (!t || t.hasAttribute('data-scroll-ok')) return;
       if (t.tagName === 'A' && /^#./.test(t.getAttribute('href') || '')) return;
-      var y = getY(), h = height();
-      setTimeout(function () { settle(y, h, 500); }, 0);
+      var y = getY(), h = Math.max(height(), y + (global.innerHeight || 0)); /* k167: içerik kısalsa da konum sıkışmaz */
+      setTimeout(function () { settle(y, h, 500); izle(y, h); }, 0);
     }, true);
     function boot() { restore(); fixLabels(); setTimeout(fixLabels, 800); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
@@ -151,8 +161,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-166'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-166'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-167'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-167'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -178,11 +188,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-166').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-167').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-166').catch(function () {});
+      return loadScript('koloni.js?v=koloni-167').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -926,7 +936,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-166').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-167').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -1095,7 +1105,7 @@
   (d.head || d.documentElement).appendChild(st);
 })(window);
 
-/* koloni-166: telefon maketi sayfayla birlikte kayar; ekran içi sabit (durum çubuğu altında başlar) */
+/* koloni-167: telefon maketi sayfayla birlikte kayar; ekran içi sabit (durum çubuğu altında başlar) */
 (function(){
   if (typeof document === 'undefined') return;
   var F = 'html.sa-phone-mobile:not(.sa-standalone) body.sa-phone-mobile';
@@ -1128,7 +1138,7 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 
-/* koloni-166: iPhone 12 ekranı — alt kestirme çubuğu ekranın dibinde sabit (home indicator üstünde); yalnız .screen kayar, çubuk kaydırmada oynamaz */
+/* koloni-167: iPhone 12 ekranı — alt kestirme çubuğu ekranın dibinde sabit (home indicator üstünde); yalnız .screen kayar, çubuk kaydırmada oynamaz */
 (function(){
   if (typeof document === 'undefined') return;
   var P = 'html.sa-iphone12 body.sa-iphone12 .phone.phone';
@@ -1141,7 +1151,7 @@
   (document.head || document.documentElement).appendChild(st);
 })();
 
-/* koloni-166: telefonda (Safari) çerçeve içi kaydırma yok — ekran içerik boyunca uzar, yalnız sayfa kayar, tüm telefon onunla hareket eder;
+/* koloni-167: telefonda (Safari) çerçeve içi kaydırma yok — ekran içerik boyunca uzar, yalnız sayfa kayar, tüm telefon onunla hareket eder;
    alt kestirme çubuğu sayfaya göre sticky: görünür alanın dibinde kalır, en sonda çerçevenin altına oturur (araç çubuğu değişse de kaybolmaz) */
 (function(){
   if (typeof document === 'undefined') return;
@@ -1158,7 +1168,7 @@
 /* k161 EK11/12: kritik kartlar + yeniden hesap modülleri her sayfada (yoksa yükle) */
 (function () {
   if (typeof document === 'undefined') return;
-  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-166'; s.async = false; document.head.appendChild(s); }
+  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-167'; s.async = false; document.head.appendChild(s); }
   function go() { yukle('yetki.js', 'SuperAriYetki'); yukle('kritik-alarm.js', 'SuperAriKritik'); yukle('cevre.js', 'SuperAriCevre'); yukle('yeniden-hesap.js', 'SuperAriYenidenHesap'); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();

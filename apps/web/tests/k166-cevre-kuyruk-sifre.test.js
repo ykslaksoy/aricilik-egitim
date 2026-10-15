@@ -1,4 +1,4 @@
-/* koloni-166: çevre kuyruğu (sayfa açılışında dış sorgu yok), bal ormanı üst sınırı yok + üstel bekleme, şifre gözü/tekrar kontrolü, Hesap düzeni */
+/* koloni-167: çevre kuyruğu (sayfa açılışında dış sorgu yok), bal ormanı üst sınırı yok + üstel bekleme, şifre gözü/tekrar kontrolü, Hesap düzeni */
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const W = path.join(__dirname, '..'), R = path.join(W, '..', '..');
 const rd = (p) => fs.readFileSync(path.join(W, p), 'utf8');

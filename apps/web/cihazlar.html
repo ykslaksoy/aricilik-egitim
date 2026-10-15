@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-166" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-166" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-166" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-167" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-167" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-167" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -124,16 +124,16 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-166"></script>
-<script src="demo-data.js?v=koloni-166"></script>
-<script src="device-runtime.js?v=koloni-166"></script>
-<script src="cicek-veri.js?v=koloni-166"></script><script src="cicek.js?v=koloni-166"></script><script src="plan-planlayici.js?v=koloni-166"></script><script src="rota-motoru.js?v=koloni-166"></script><script src="cevre.js?v=koloni-166"></script><script src="saglik-takvimi.js?v=koloni-166"></script>
-<script src="sensor-polling.js?v=koloni-166"></script>
-<script src="tarti-bakim-delta.js?v=koloni-166"></script>
-<script src="tarti-elle.js?v=koloni-166"></script>
-<script src="tarti-rotasyon.js?v=koloni-166"></script>
-<script src="kapsam.js?v=koloni-166"></script>
-<script src="ks-sayfa.js?v=koloni-166"></script>
+<script src="bk-kabuk.js?v=koloni-167"></script>
+<script src="demo-data.js?v=koloni-167"></script>
+<script src="device-runtime.js?v=koloni-167"></script>
+<script src="cicek-veri.js?v=koloni-167"></script><script src="cicek.js?v=koloni-167"></script><script src="plan-planlayici.js?v=koloni-167"></script><script src="rota-motoru.js?v=koloni-167"></script><script src="cevre.js?v=koloni-167"></script><script src="saglik-takvimi.js?v=koloni-167"></script>
+<script src="sensor-polling.js?v=koloni-167"></script>
+<script src="tarti-bakim-delta.js?v=koloni-167"></script>
+<script src="tarti-elle.js?v=koloni-167"></script>
+<script src="tarti-rotasyon.js?v=koloni-167"></script>
+<script src="kapsam.js?v=koloni-167"></script>
+<script src="ks-sayfa.js?v=koloni-167"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -331,7 +331,7 @@
 
   /* ---- Bakım düzeni (k88): Kapsam kartı (arılık + Bağlı / Bağlı değil / Düşük pil / Son veri) → cihaz türü döşemeleri → seçili türün listesi.
      Uydurma veri yok: cihaz yoksa «Yok · bağlı değil»; canlıda yalnız kayıtlı / keşfedilen cihazlar. ---- */
-  function ksLayout() {
+  function ksLayout(again) {
     document.body.classList.add('sa-tile-select');
     var TYPES = [
       { k: 'tarti', l: 'Tartı', tips: ['tarti'], svg: '<path d="M12 6.2v11.4M8.6 17.8h6.8M6.4 8.8h11.2"/><path d="M6.4 8.8 4.6 12.6a1.9 1.9 0 0 0 3.6 0zM17.6 8.8l-1.8 3.8a1.9 1.9 0 0 0 3.6 0z"/>' },
@@ -352,7 +352,8 @@
     function okSon(tip) { var l = okList(tip, 60), o = { isi: null, nem: null, ts: null }; l.forEach(function (x) { if (o.isi == null && x.isi != null) { o.isi = x.isi; o.ts = o.ts || x.ts; } if (o.nem == null && x.nem != null) { o.nem = x.nem; o.ts = o.ts || x.ts; } }); return o.isi == null && o.nem == null ? null : o; }
     function okNum(v) { return String(v).replace('.', ','); }
     function okFmt(o) { return [o.isi != null ? okNum(o.isi) + '°' : '', o.nem != null ? '%' + okNum(o.nem) : ''].filter(Boolean).join(' · '); }
-    var all = devices.filter(function (d) { return !scopeAp || String(d.apiaryId) === String(scopeAp); });
+    var allFor = function (sc) { var a = sc == null ? scopeAp : (sc === 'all' ? '' : String(sc)); return devices.filter(function (d) { return !a || String(d.apiaryId) === String(a); }); };
+    var all = allFor(null);
     var tipSel = params.get('tip') || '';
     if (tipSel === 'ses_titresim') tipSel = 'ses';
     var typeOf = function (d) { var t = String(d.tip || ''); return TYPES.filter(function (x) { return x.tips.indexOf(t) >= 0; })[0] || (Dev.isCamera && d.kind === 'kamera' ? TYPES.filter(function (x) { return x.k === 'kamera_merkez'; })[0] : null); };
@@ -364,11 +365,16 @@
     };
     var href = function (tip) { var q = new URLSearchParams(location.search); if (tip) q.set('tip', tip); else q.delete('tip'); return 'cihazlar.html?' + q.toString() + '#devList'; };
     var ICON = '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="9" width="18" height="15" rx="3" fill="#cfd8e3" stroke="#6b7a8c" stroke-width="1.2"/><circle cx="16" cy="16.5" r="3.4" fill="#fff" stroke="#2f9e44" stroke-width="1.8"/><path d="M11 9V6.5M21 9V6.5" stroke="#6b7a8c" stroke-width="1.6" stroke-linecap="round"/></svg>';
-    P.init({
+    if (!again) P.init({
       title: 'Cihazlar', icon: ICON,
       topEnd: '<a class="ks-end ks-end-chip" href="#devList" title="Bağlantı durumu" aria-label="Bağlantı durumu — cihaz listesi">Bağlantı</a>',
-      stats: function () {
-        var s0 = sum(all);
+      redraw: function (sc) { /* k167: arılık değişince sayfa yenilenmez — yerinde çizim, kayma 0 */
+        if (sc === 'all' || !sc) params.delete('apiary'); else params.set('apiary', String(sc));
+        try { history.replaceState(history.state, '', location.pathname + '?' + params.toString() + location.hash); } catch (e) { /* */ }
+        ksLayout(true);
+      },
+      stats: function (hs, sc) {
+        var all = allFor(sc), s0 = sum(all);
         return [
           { k: 'muayene', v: s0.n, l: 'Cihaz', href: href('') }, /* k114: 5. sütun (Muayene gibi 5 kalem) */
           { k: 'kovan', v: s0.on, l: 'Bağlı', href: href('') },
@@ -377,8 +383,8 @@
           { k: 'saat', v: s0.last == null ? '—' : relAgo(s0.last).replace(' önce', ''), l: 'Son veri', href: href('') }
         ];
       },
-      note: function () {
-        var s0 = sum(all), bad = all.filter(function (d) { return d.status === 'arizali'; }), off = all.filter(function (d) { return d.status === 'kopuk'; });
+      note: function (hs, sc) {
+        var all = allFor(sc), s0 = sum(all), bad = all.filter(function (d) { return d.status === 'arizali'; }), off = all.filter(function (d) { return d.status === 'kopuk'; });
         if (!all.length) return { t: workMode === 'live' ? 'Bu kapsamda bağlı cihaz yok · takılınca otomatik görünür' : 'Bu arılıkta örnek cihaz yok', b: 'Liste', href: '#devList', k: 'bos' };
         if (bad.length) return { t: '⚠ ' + bad.length + ' cihaz arızalı · ' + bad.slice(0, 2).map(function (d) { return (d.hiveName || d.typeLabel) + ' ' + d.typeLabel.toLocaleLowerCase('tr'); }).join(', '), b: 'Göster', href: href(typeOf(bad[0]) ? typeOf(bad[0]).k : ''), k: 'ariza' };
         if (off.length) return { t: '📡 ' + off.length + ' cihaz bağlı değil (kopuk)', b: 'Göster', href: href(typeOf(off[0]) ? typeOf(off[0]).k : ''), k: 'kopuk' };
@@ -388,6 +394,7 @@
     /* eski başlık / görünüm seçimi gizli (kapsam kartı yerini aldı) */
     ['modeSwitch', 'workModeBanner'].forEach(function (id) { var e = document.getElementById(id); if (e) { e.hidden = true; e.style.display = 'none'; } });
     var host = document.getElementById('ksScope');
+    if (again) { ['ksTiles', 'okumaListe'].forEach(function (id) { var e = document.getElementById(id); if (e) e.remove(); }); }
     var grid = document.createElement('div'); grid.className = 'grid ana-hive-grid'; grid.id = 'ksTiles'; grid.setAttribute('aria-label', 'Cihaz türleri');
     grid.innerHTML = TYPES.map(function (t) {
       var l = all.filter(function (d) { var x = typeOf(d); return x && x.k === t.k; }), s0 = sum(l);
@@ -462,7 +469,7 @@
     }
     if (tSel) body.insertAdjacentHTML('beforeend', '<a class="ks-btn dev-clear" href="' + href('') + '">Tüm cihaz türleri</a>');
     if (Poll && Poll.bindPollSelects) Poll.bindPollSelects(body);
-    var sp = document.getElementById('summary'); if (sp) sp.parentNode.insertBefore(sec.querySelector('h2'), sp);
+    var sp = document.getElementById('summary'); if (sp && !again) sp.parentNode.insertBefore(sec.querySelector('h2'), sp);
     grid.parentNode.insertBefore(sec, grid.nextSibling);
     document.getElementById('pageNote').textContent = workMode === 'demo' ? 'Demo: sabit örnek cihaz paketi · kullanıcı kayıtları karışmaz' : 'Canlı: yalnızca gerçek / keşfedilen cihazlar';
   }
@@ -589,8 +596,8 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-166"></script>
-<script src="nav.js?v=koloni-166"></script>
-<script src="pwa.js?v=koloni-166"></script>
+<script src="ses-siniflari.js?v=koloni-167"></script>
+<script src="nav.js?v=koloni-167"></script>
+<script src="pwa.js?v=koloni-167"></script>
 </body>
 </html>

@@ -61,6 +61,8 @@
       }).join('');
       host.parentNode.insertBefore(tools, host.nextSibling);
     }
+    /* k167: yerinde çizim — içerik kısalırsa iOS kaydırmayı sıkıştırıp ekranı oynatır; yükseklik en az (konum + ekran) kadar tutulur, konum korunur */
+    function yerinde(fn) { if (global.SuperAriScroll && global.SuperAriScroll.keep) return global.SuperAriScroll.keep(fn); return fn(); }
     var init0 = o.initial || scopeNow();
     var navChips = o.navChips;
     var navInCard = o.navInCard !== false;
@@ -73,9 +75,9 @@
       onChange: function (scope, hs, sum) {
         /* kapsam değişti → sayfa o arılıkla yeniden açılır (sayfanın kendi süzgeci ?apiary= ile çalışır) */
         /* k161: sayfa yerinde çizebiliyorsa (o.redraw) yenileme yok — boş ekran / kayma olmaz */
-        if (scope !== init0 && o.redraw) { init0 = scope; o.redraw(scope, hs, sum); if (o.onChange) o.onChange(scope, hs, sum); return; }
+        if (scope !== init0 && o.redraw) { init0 = scope; yerinde(function () { o.redraw(scope, hs, sum); if (o.onChange) o.onChange(scope, hs, sum); }); return; }
         if (scope !== init0 && o.reload !== false) { if (global.SuperAriScroll) global.SuperAriScroll.reload(); else global.location.reload(); return; }
-        if (o.onChange) o.onChange(scope, hs, sum);
+        if (o.onChange) yerinde(function () { o.onChange(scope, hs, sum); });
       }
     });
     if (o.redraw) global.addEventListener('superari-ayar-guncel', function () { var sc = init0; if (global.SuperAriScroll) global.SuperAriScroll.keep(function () { o.redraw(sc); }); else o.redraw(sc); });
