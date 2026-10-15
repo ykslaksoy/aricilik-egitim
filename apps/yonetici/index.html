@@ -78,7 +78,7 @@
       <ol class="fe-list" id="ieList"></ol>
     </section>
     <section class="card fe" aria-labelledby="ipH">
-      <h2 id="ipH">Irk / ekotip notları (puansız · uzman tahmini)</h2>
+      <h2 id="ipH">Irk / melez ayrıntı kartları (tahmini puanlar)</h2>
       <p class="fe-sub">Yayımlanmış 0–100 puanı olmayan ırk/ekotipler: onaylı uzman tahmini varsa işaretli gösterilir, yoksa Genetik «Veri yok». Kaynaklar yalnız burada.</p>
       <ol class="fe-list" id="ipList"></ol>
     </section>
@@ -112,7 +112,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-170').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-170');}).then(function(){return load('panel6.js?v=koloni-170');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-171').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-171');}).then(function(){return load('panel6.js?v=koloni-171');}); }
           }).then(function () { return true; });
         });
       });

@@ -5,11 +5,11 @@ const w={localStorage:ls,addEventListener(){},removeEventListener(){},dispatchEv
 vm.runInContext(fs.readFileSync(path.join(__dirname,'..','demo-data.js'),'utf8'),w);
 const C=w.SuperAriDemo.colony,G=b=>C.genetikScore(b).g;
 const LOCK={'Kafkas':5,'Buckfast':15,'Efe arısı':25,'Karadeniz':35,'İtalyan':55,'Muğla':55,'Anadolu':75,'Trakya':75,'Karniyol':75,'İran':75,'Yığılca':90,'Hatay':100,'Suriye':100,
- 'Kafkas × Karadeniz':35,'Buckfast × İtalyan':45,'Buckfast × Kafkas':45,'Kafkas × Anadolu':55,'Kafkas × Karniyol':55,'Karniyol × Kafkas':55,'Karniyol × Muğla':75,'Anadolu × Karniyol':75,'Anadolu × Muğla':75,'İtalyan × Karniyol':65,
+ 'Kafkas × Karadeniz':35,'Buckfast × İtalyan':45,'Buckfast × Kafkas':45,'Kafkas × Anadolu':55,'Kafkas × Karniyol':55,'Karniyol × Kafkas':55,'Karniyol × Muğla':75,'Anadolu × Karniyol':75,'Anadolu × Muğla':75,'İtalyan × Karniyol':65,'Kafkas × Muğla':35,'Muğla × Kafkas':35,'Karadeniz × Muğla':55,'Karadeniz × Anadolu':65,
  '(Kafkas × Karadeniz) × Muğla':55,'(Buckfast × İtalyan) × Muğla':55,'(Kafkas × Karniyol) × Muğla':75,'(Kafkas × Anadolu) × Muğla':75,'(Kafkas × Anadolu) × Karniyol':90,'(Karniyol × İtalyan) × Anadolu':90};
 Object.keys(LOCK).forEach(b=>assert.strictEqual(G(b),LOCK[b],'KİLİT: '+b));
 assert.strictEqual(JSON.stringify(C.GENETIK_SAF),'{"kafkas":5,"buckfast":15,"efe":25,"karadeniz":35,"italyan":55,"mugla":55,"anadolu":75,"trakya":75,"karniyol":75,"iran":75,"yigilca":90,"hatay":100}');
-assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length,13);
+assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length,16);
 const u=C.genetikScore('Karadeniz × İran');assert.strictEqual(u.g,null);assert.ok(u.missing&&u.veriYok); /* k160: tabloda yok → Veri yok */
 assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['iran+karadeniz'],'unknown cross flagged');
 /* Birim: (Kafkas×Karniyol)×Muğla, %100 dolu, mevsimde, ana 2+ yaş = 92,5 */

@@ -3337,7 +3337,11 @@
     'anadolu+kafkas+mugla': { v: 5, src: 'kullanıcı (arıcı deneyimi)' },
     'anadolu+kafkas+karniyol': { v: 6, src: 'kullanıcı (arıcı deneyimi)' },
     'anadolu+italyan+karniyol': { v: 6, src: 'kullanıcı (arıcı deneyimi)' },
-    'buckfast+italyan+mugla': { v: 4, src: 'kullanıcı (arıcı deneyimi)' }
+    'buckfast+italyan+mugla': { v: 4, src: 'kullanıcı (arıcı deneyimi)' },
+    /* k171: ayrıntı ve kaynak yalnız yönetici panelinde */
+    'kafkas+mugla': { v: 3, src: 'kaynağa dayalı tahmin', tahmin: true },
+    'karadeniz+mugla': { v: 4, src: 'uzman tahmini', tahmin: true },
+    'anadolu+karadeniz': { v: 4.5, label: 'orta–yüksek', src: 'uzman tahmini', tahmin: true }
   };
   /* Buckfast ikili melezleri: az–orta (3,5), nesle göre değişir. */
   var BUCKFAST_CROSS = { v: 3.5, label: 'az–orta (nesle göre değişir)', src: 'kullanıcı (arıcı deneyimi)' };
@@ -3383,6 +3387,8 @@
   var GENETIK_SAF = { kafkas: 5, buckfast: 15, efe: 25, karadeniz: 35, italyan: 55, mugla: 55, anadolu: 75, trakya: 75, karniyol: 75, iran: 75, yigilca: 90, hatay: 100 };
   var GENETIK_MELEZ = {
     'kafkas+karadeniz': 35, 'anadolu+kafkas': 55, 'kafkas+karniyol': 55, 'karniyol+mugla': 75, 'anadolu+karniyol': 75, 'anadolu+mugla': 75, 'italyan+karniyol': 65,
+    /* k171: kullanıcı onaylı — kafkas+mugla kaynağa dayalı tahmin; karadeniz melezleri uzman tahmini (kaynak yalnız yönetici) */
+    'kafkas+mugla': 35, 'karadeniz+mugla': 55, 'anadolu+karadeniz': 65,
     'kafkas+karadeniz+mugla': 55, 'buckfast+italyan+mugla': 55, 'kafkas+karniyol+mugla': 75, 'anadolu+kafkas+mugla': 75, 'anadolu+kafkas+karniyol': 90, 'anadolu+italyan+karniyol': 90
   };
   var GENETIK_BUCKFAST_IKILI = 45, GENETIK_BILINMEYEN = 55;
@@ -3800,7 +3806,7 @@
     else {
       var key = found.map(function (x) { return x.key; }).sort().join('+');
       var hy = HYBRID_SWARM[key] || (found.length === 2 && key.indexOf('buckfast') >= 0 ? BUCKFAST_CROSS : null);
-      if (hy) { v = hy.v; src = hy.src; hlabel = hy.label || ''; }
+      if (hy) { v = hy.v; src = hy.tahmin ? '' : hy.src; hlabel = hy.label || ''; }
       else {
         return { f: 1.0, shift: 0, note: 'melez: oğul verisi yok', level: '', v: null, label: '', hybrid: true, missing: true };
       }
@@ -3811,7 +3817,7 @@
       f: Math.round((1 + d * 0.12) * 100) / 100, /* çarpan 0,64 … 1,36 */
       shift: Math.round(d * 6), /* ±18 puan */
       level: BREED_LEVEL_KEYS[Math.round(v)] || (v === 3.5 ? 'dusuk' : ''), label: hlabel || BREED_SWARM_LABELS[v],
-      note: 'oğul eğilimi ' + (hlabel || BREED_SWARM_LABELS[v]) + (hybrid ? (src === 'kullanıcı (arıcı deneyimi)' ? ' (melez, arıcı deneyimi)' : ' (melez, yayına göre)') : '')
+      note: 'oğul eğilimi ' + (hlabel || BREED_SWARM_LABELS[v]) + (hybrid ? (!src ? ' (melez)' : src === 'kullanıcı (arıcı deneyimi)' ? ' (melez, arıcı deneyimi)' : ' (melez, yayına göre)') : '')
     };
   }
   function swarmLevelOf(score) {

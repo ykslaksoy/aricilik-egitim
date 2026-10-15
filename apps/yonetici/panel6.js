@@ -1,4 +1,4 @@
-/* koloni-170: Yönetici · Yapılacaklar (tablo yapilacaklar; RLS yalnız admin) */
+/* koloni-171: Yönetici · Yapılacaklar (tablo yapilacaklar; RLS yalnız admin) */
 (function () {
   'use strict';
   var B = window.SuperAriBulut, host = document.getElementById('panel'); if (!B || !host) return;
@@ -38,11 +38,32 @@
   yukle();
 })();
 
-/* k168: puansız ırk/ekotipler (ör. Efe arısı) — kaynaklar yalnız yönetici panelinde. */
+/* k171: ırk/melez ayrıntı kartları (Efe + 3 melez) — kaynak, gerekçe ve rakamlar YALNIZ yönetici panelinde; uygulamada yalnız puan. */
 (function () {
   var L = document.getElementById('ipList'), D = window.SuperAriDemo; if (!L) return;
-  var list = (D && D.colony && D.colony.IRK_PUANSIZ) || [];
+  var C = (D && D.colony) || {}, S = C.GENETIK_SAF || {}, M = C.GENETIK_MELEZ || {};
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function lnk(k) { return esc(k).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
-  L.innerHTML = list.length ? list.map(function (x) { return '<li><b>' + esc(x.ad) + '</b> — <i>' + esc(x.tur) + '</i><br>' + (x.genetik != null ? 'Genetik: <b>' + esc(x.genetik) + '</b> · Oğul ölçeği: <b>' + esc(x.olcek) + '</b> (<b>' + esc(x.durum) + '</b>)' : 'Genetik: <b>Veri yok</b> · Oğul ölçeği: <b>Veri yok</b>') + ' · FOB: <b>Veri yok</b>' + (x.dil ? '<br>Dil uzunluğu: ' + esc(x.dil) : '') + '<br><small>' + esc(x.ozet) + '</small><ul>' + x.kaynak.map(function (k) { return '<li><small>' + lnk(k) + '</small></li>'; }).join('') + '</ul></li>'; }).join('') : '<li>Kayıt yok.</li>';
+  var RG = 'https://www.resmigazete.gov.tr/eskiler/2019/05/20190516-14-1.pdf', TG = 'https://www.tarimorman.gov.tr/TAGEM/Haber/478/Gokceada-Ve-Efe-Arisi-Ekotipleri-Tescil-Edildi',
+    YU = 'https://dergipark.org.tr/tr/pub/anadolu/article/1782244', UL = 'https://dergipark.org.tr/tr/download/article-file/143543';
+  var K = [
+    { ad: 'Efe arısı (saf ekotip)', puan: S.efe, olcek: '2–3 (2,5)', etiket: 'uzman tahmini', eb: null,
+      gerekce: 'Kaynakta sayısal oğul puanı yok; «oğul eğilimi düşük / çok düşük» → Buckfast (15) ile Karadeniz (35) arası, orta değer 25. Anadolu (75) uygulanmadı: oğul eğilimi seleksiyonla azaltıldı.',
+      kaynak: ['Resmî Gazete 16.05.2019 sa. 30776 EK-1 — ' + RG + ' · «Oğul eğilimi düşüktür» · «Orta derecede uysaldır» · kuluçka performansı yüksek, ilkbaharda gelişme hızı çok yüksek · kışlama iyi · Nosemaya dayanıklı · yağmacılık çok düşük · dil uzunluğu 6,05 ± 0,21 mm',
+        'TAGEM 20.05.2019 — ' + TG + ' · bölge arılarına göre bal verimi %25, koloni indeksi %20 yüksek (2008–2018 ıslah) · oğul verme eğilimi çok düşük',
+        'Yücel B. 2025, ANADOLU 35(2) — ' + YU + ' · Efe F1, 20 koloni, iğneleme (pin-killed) testi; hijyen–Varroa negatif korelasyon (özette yüzde yok)'] },
+    { ad: 'Kafkas × Muğla', puan: M['kafkas+mugla'], olcek: '3', etiket: 'kaynağa dayalı tahmin', eb: ['Kafkas', S.kafkas, 'Muğla', S.mugla],
+      gerekce: 'Melezin oğul eğilimi ebeveynler arasında; Kafkas analı melez Kafkas düzeyinde. Ölçek 3 (35) iki ucun ortası; uygulama ana/erkek yönünü ayırmaz.',
+      kaynak: ['Uludağ Arıcılık Dergisi 5(4), 2005 — ' + UL + ' · oğul eğilimi: Kafkas %10 · Muğla %30 · Kafkas ana × Muğla erkek %10 · Muğla ana × Kafkas erkek %20 · ana arı yüksüğü (ort.): Kafkas 6,50 ± 3,5 · Muğla 9,40 ± 2,5 · Kafkas ana × Muğla erkek 7,50 ± 1,5 · Muğla ana × Kafkas erkek 10,80 ± 2,4 · genotipler arası fark önemsiz (P>0,05)'] },
+    { ad: 'Karadeniz × Muğla', puan: M['karadeniz+mugla'], olcek: '4', etiket: 'uzman tahmini', eksik: true, eb: ['Karadeniz', S.karadeniz, 'Muğla', S.mugla],
+      gerekce: 'Karadeniz kodda Kafkas ekotipi; Kafkas × Muğla bulgusu (melez ebeveynler arası) Karadeniz tabanına (35) uygulandı; tablo örüntüsü ortalamanın bir üst basamağı → 55.', kaynak: [] },
+    { ad: 'Karadeniz × Anadolu', puan: M['anadolu+karadeniz'], olcek: '4–5 (4,5)', etiket: 'uzman tahmini', eksik: true, eb: ['Karadeniz', S.karadeniz, 'Anadolu', S.anadolu],
+      gerekce: 'En yakın tablo karşılığı Kafkas × Anadolu = 55; Karadeniz Kafkas’tan bir basamak yüksek (35 > 5) → 65.', kaynak: [] }
+  ];
+  L.innerHTML = K.map(function (x) {
+    var eb = x.eb ? '<br>Ebeveynler: ' + esc(x.eb[0]) + ' ' + esc(x.eb[1]) + ' · ' + esc(x.eb[2]) + ' ' + esc(x.eb[3]) + ' · ortalama ' + esc((x.eb[1] + x.eb[3]) / 2) : '';
+    var ks = x.eksik ? '<p><span class="fe-badge" style="background:#fde68a;color:#78350f;padding:1px 6px;border-radius:8px">Veri eksik</span> <small>Sayısal çalışma bulunamadı; aranan kaynaklar: TAGEM, Muğla AAE, DergiPark.</small></p>'
+      : '<ul>' + x.kaynak.map(function (k) { return '<li><small>' + lnk(k) + '</small></li>'; }).join('') + '</ul>';
+    return '<li><b>' + esc(x.ad) + '</b> — Genetik <b>' + esc(x.puan == null ? 'Veri yok' : x.puan) + '</b> · oğul ölçeği <b>' + esc(x.olcek) + '</b> · <i>' + esc(x.etiket) + '</i>' + eb + '<br><small>Gerekçe: ' + esc(x.gerekce) + '</small>' + ks + '</li>';
+  }).join('');
 })();
