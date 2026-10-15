@@ -9,6 +9,9 @@
   body { background:#f6efe2; margin:0; font-family:-apple-system,system-ui,sans-serif; color:#2b2116; overflow-anchor:none; }
   .wrap { max-width:560px; margin:0 auto; padding:56px 14px 110px; }
   h1 { font-size:1.35rem; margin:0 0 4px; } .sub { color:#7a6650; font-size:.9rem; margin:0 0 14px; }
+  .rol-roz { display:inline-block; margin:0 0 14px; padding:6px 12px; border-radius:999px; background:#fff6df; border:1.5px solid #e2cd8c; color:#5c4a2a; font-weight:700; font-size:.92rem; }
+  .yt { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px 10px; padding:6px 0 2px 0; font-size:.88rem; color:#5c4a2a; }
+  .uye-k { border-bottom:1px dashed #eadfbf; padding:8px 0; }
   .rol-seg { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0 0 14px; }
   .rol-seg button { font:inherit; font-weight:800; padding:10px 6px; border-radius:12px; border:1.5px solid #d8c48a; background:#fff; color:#5c4a2a; }
   .rol-seg button.on { background:linear-gradient(180deg,#fff6df,#f5e6b8); border-color:#c9a84a; }
@@ -59,7 +62,7 @@
   <h1>Ayarlar</h1>
   <p class="sub">Arıcının kendi seçtiği ayarlar. Değişiklik anında kaydedilir.</p>
   <div id="onayUyari" class="uyari" hidden>E-postanı onayla. Gelen kutundaki bağlantıya dokun. <button type="button" class="btn ikincil" id="btnTekrar" style="margin-left:6px;">Tekrar gönder</button></div>
-  <div class="rol-seg" role="group" aria-label="Rolüm" id="rolSeg"><button type="button" data-rol="owner">Sahip</button><button type="button" data-rol="arici">Arıcı</button><button type="button" data-rol="bakici">Bakıcı</button></div>
+  <div class="rol-roz" id="rolRoz" aria-label="Rolün">Rolün: <b id="rolAd">Sahip</b></div>
   <div class="ak" id="ak"></div>
 </main>
 <div id="kalici" hidden>
@@ -87,6 +90,7 @@
 <div class="toast" id="toast" role="status">Kaydedildi</div>
 <script src="demo-data.js?v=koloni-164"></script>
 <script src="device-runtime.js?v=koloni-164"></script>
+<script src="yetki.js?v=koloni-164"></script>
 <script src="nav.js?v=koloni-164"></script>
 <script src="bulut.js?v=koloni-164"></script>
 <script src="sensor-polling.js?v=koloni-164"></script>
@@ -98,6 +102,15 @@
   function rj() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
   var A = Object.assign({ bildirim: true, kritikSes: true, gunluk: true, sesliMuayene: true, sesGeri: true, birim: 'kg', dil: 'tr', tarih: 'gg.aa.yyyy', rol: 'owner' }, rj());
   function kaydet(k, v) { A[k] = v; localStorage.setItem(KEY, JSON.stringify(A)); var t = document.getElementById('toast'); t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(function () { t.classList.remove('on'); }, 1400); ciz(); }
+  function kaydetToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(function () { t.classList.remove('on'); t.textContent = 'Kaydedildi'; }, 1800); }
+  /* onay kartı (kalıcı işlemler) */
+  function onayKart(bas, metin, evet, fn) {
+    var o = document.createElement('div'); o.className = 'onay-kart'; o.setAttribute('role', 'dialog');
+    o.style.cssText = 'position:fixed;inset:0;background:rgba(40,30,10,.45);display:flex;align-items:flex-end;justify-content:center;z-index:200;';
+    o.innerHTML = '<div style="background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;width:100%;max-width:520px;"><h3 style="margin:0 0 6px;">' + bas + '</h3><p style="margin:0 0 14px;color:#5c4a2a;">' + metin + '</p><div style="display:flex;gap:8px;justify-content:flex-end;"><button type="button" class="btn ikincil" data-h="0">Vazgeç</button><button type="button" class="btn" data-h="1">' + evet + '</button></div></div>';
+    o.addEventListener('click', function (e) { var b = e.target.closest('[data-h]'); if (!b && e.target !== o) return; o.remove(); if (b && b.getAttribute('data-h') === '1') fn(); });
+    document.body.appendChild(o);
+  }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function sw(k) { return '<label class="sw"><input type="checkbox" data-k="' + k + '"' + (A[k] ? ' checked' : '') + '><span></span></label>'; }
   function sec(k, ops) { return '<select data-k="' + k + '">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + (A[k] === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; }
@@ -106,14 +119,19 @@
   var R = { owner: 'Sahip', arici: 'Arıcı', bakici: 'Bakıcı' };
   function ekipHtml() {
     if (!ekip) return '<p class="sub">Ekip için giriş yap.</p><a class="btn ikincil" href="hesap.html">Giriş yap</a>';
-    var sahip = A.rol === 'owner';
+    var sahip = !window.SuperAriYetki || SuperAriYetki.rol() === 'owner';
     return (ekip.ornek ? '<p><span class="onz">Önizleme örneği</span></p>' : '') +
       '<div>' + ekip.uyeler.map(function (u) {
-        return '<div class="uye"><div class="ad"><b>' + esc(u.ad || u.email) + '</b><small>' + esc(u.email) + '</small></div>' +
-          (sahip && u.role !== 'owner' ? '<select data-uye="' + esc(u.id) + '"><option value="arici"' + (u.role === 'arici' ? ' selected' : '') + '>Arıcı</option><option value="bakici"' + (u.role === 'bakici' ? ' selected' : '') + '>Bakıcı</option></select> <button type="button" class="btn ikincil" data-cikar="' + esc(u.id) + '" aria-label="Üyeyi çıkar">Çıkar</button>' : '<span class="rozet">' + R[u.role] + '</span>') + '</div>';
+        var head = '<div class="uye"><div class="ad"><b>' + esc(u.ad || u.email) + '</b><small>' + esc(u.email) + '</small></div>' +
+          (sahip && u.role !== 'owner' ? '<select data-uye="' + esc(u.id) + '" aria-label="Rol"><option value="arici"' + (u.role === 'arici' ? ' selected' : '') + '>Arıcı</option><option value="bakici"' + (u.role === 'bakici' ? ' selected' : '') + '>Bakıcı</option></select>' : '<span class="roz">' + R[u.role] + '</span>') + '</div>';
+        if (u.role === 'owner') return '<div class="uye-k">' + head + '</div>';
+        var V = (window.SuperAriYetki && SuperAriYetki.VARS[u.role]) || {};
+        var yt = function (k, ad) { var on = typeof u[k] === 'boolean' ? u[k] : V[k]; return '<div class="yt"><span>' + ad + '</span>' + (sahip ? '<label class="sw"><input type="checkbox" data-yetki="' + k + '" data-uid="' + esc(u.id) + '"' + (on ? ' checked' : '') + '><span></span></label>' : '<b>' + (on ? 'Açık' : 'Kapalı') + '</b>') + '</div>'; };
+        return '<div class="uye-k">' + head + yt('mali', 'Mali verileri görebilsin') + yt('gorev', 'Görev atayabilsin') + yt('duzen', 'Arılık/kovan düzenleyebilsin') +
+          (sahip ? '<div class="yt"><span></span><span style="display:flex;gap:6px;"><button type="button" class="btn ikincil" data-devret="' + esc(u.id) + '">Sahipliği devret</button><button type="button" class="btn ikincil" data-cikar="' + esc(u.id) + '" aria-label="Üyeyi çıkar">Çıkar</button></span></div>' : '') + '</div>';
       }).join('') + ekip.davetler.map(function (d) { return '<div class="uye"><div class="ad"><b>' + esc(d.email) + '</b><small>Davet bekliyor · ' + R[d.role] + '</small></div></div>'; }).join('') + '</div>' +
       (sahip ? '<div class="sat serbest"><input type="email" id="davetEp" placeholder="E-posta" style="flex:1;min-width:150px;"> ' + '<select id="davetRol"><option value="arici">Arıcı</option><option value="bakici">Bakıcı</option></select> <button type="button" class="btn" id="btnDavet">Davet et</button></div>' : '') +
-      '<p class="sub" style="margin-top:8px;">Arıcı: muayene, besleme, hasat, tartı ve taşınma kaydı girer, arılık ayarlarını düzenler. Bakıcı: görür; kendisine atanan görevi, gözlemi ve besleme kaydını girer.</p>';
+      '<p class="sub" style="margin-top:8px;">Arıcı: muayene, besleme, hasat, tartı ve taşınma kaydı girer, arılık ayarlarını düzenler. Bakıcı: görür; kendisine atanan görevi, gözlemi ve besleme kaydını girer. Yetkileri yalnızca Sahip değiştirir.</p>';
   }
   var KONU = [
     { id: 'hesap', ic: '👤', t: 'Hesap ve üyelik', d: function () { return hesap.email ? hesap.email + (hesap.onayli === false ? ' · onay bekliyor' : '') : 'Giriş yapılmadı'; },
@@ -142,7 +160,7 @@
     KONU.forEach(function (k) { if (k.kalici) { var n = document.getElementById(k.kalici); if (n && n.parentNode !== kc) kc.appendChild(n); } });
     el.innerHTML = KONU.map(function (k) { var a = acik === k.id; return '<div class="ak-i' + (a ? ' acik' : '') + '" data-id="' + k.id + '"><button type="button" class="ak-h" aria-expanded="' + a + '"><span class="ak-ic">' + k.ic + '</span><span class="ak-t"><b>' + k.t + '</b><span>' + esc(k.d()) + '</span></span><span class="ak-ok">›</span></button><div class="ak-b"' + (a ? '' : ' hidden') + '>' + (a && !k.kalici ? k.b() : '') + '</div></div>'; }).join('');
     KONU.forEach(function (k) { if (k.kalici && acik === k.id) { var n = document.getElementById(k.kalici), b = el.querySelector('.ak-i[data-id="' + k.id + '"] .ak-b'); if (n && b) b.appendChild(n); } });
-    [].forEach.call(document.querySelectorAll('#rolSeg button'), function (b) { b.classList.toggle('on', b.getAttribute('data-rol') === A.rol); });
+    var Y = window.SuperAriYetki; document.getElementById('rolAd').textContent = Y ? Y.rolAd() : 'Sahip';
   }
   /* Tek konu açık; açılırken tıklanan başlığın ekrandaki yeri sabit (yukarıdaki konu kapanınca kayma telafisi) */
 
@@ -167,11 +185,18 @@
   document.addEventListener('change', function (e) {
     var t = e.target, k = t.getAttribute('data-k');
     if (k) { kaydet(k, t.type === 'checkbox' ? t.checked : t.value); return; }
+    var yk = t.getAttribute('data-yetki'); if (yk && ekip) { var yu = t.getAttribute('data-uid'), val = t.checked;
+      var set = function () { ekip.uyeler.forEach(function (x) { if (x.id === yu) x[yk] = val; }); kaydetToast('Kaydedildi'); };
+      if (ekip.ornek || !window.SuperAriBulut) set(); else SuperAriBulut.setMemberPerm(aps[0] && aps[0].id, yu, yk, val).then(set, function (er) { t.checked = !val; kaydetToast('Değiştirilemedi: ' + ((er && er.message) || 'hata')); });
+      return; }
     var u = t.getAttribute('data-uye'); if (u && ekip) { if (!ekip.ornek && window.SuperAriBulut) SuperAriBulut.setMemberRole(aps[0] && aps[0].id, u, t.value); ekip.uyeler.forEach(function (x) { if (x.id === u) x.role = t.value; }); kaydet('_', Date.now()); }
   });
   document.addEventListener('click', function (e) {
     var md = e.target.closest('[data-mod]'); if (md && window.SuperAriDevices) { SuperAriDevices.setMode(md.getAttribute('data-mod')); if (SuperAriDevices.syncDemoBanner) SuperAriDevices.syncDemoBanner(); kaydet('_', Date.now()); return; }
-    var r = e.target.closest('#rolSeg button'); if (r) { kaydet('rol', r.getAttribute('data-rol')); return; }
+    var dv = e.target.closest('[data-devret]'); if (dv && ekip) { var hid = dv.getAttribute('data-devret'), hu = ekip.uyeler.filter(function (x) { return x.id === hid; })[0]; onayKart('Sahipliği devret', (hu ? esc(hu.ad || hu.email) : 'Üye') + ' Sahip olacak, sen Arıcı olacaksın. Arılıkta her zaman en az bir Sahip kalır.', 'Devret', function () {
+      var bitir = function () { ekip.uyeler.forEach(function (x) { if (x.id === hid) x.role = 'owner'; else if (x.role === 'owner') x.role = 'arici'; }); try { var o = JSON.parse(localStorage.getItem('superari.yetki.v1') || '{}'); o.rol = 'arici'; localStorage.setItem('superari.yetki.v1', JSON.stringify(o)); } catch (er) {} kaydetToast('Sahiplik devredildi'); ciz(); };
+      if (ekip.ornek || !window.SuperAriBulut) bitir(); else SuperAriBulut.transferOwner(aps[0] && aps[0].id, hid).then(bitir, function (er) { kaydetToast('Devredilemedi: ' + ((er && er.message) || 'hata')); });
+    }); return; }
     var c = e.target.closest('[data-cikar]'); if (c && ekip && confirm('Üye ekipten çıkarılsın mı?')) { var id = c.getAttribute('data-cikar'); if (!ekip.ornek) SuperAriBulut.removeMember(aps[0] && aps[0].id, id); ekip.uyeler = ekip.uyeler.filter(function (x) { return x.id !== id; }); ciz(); return; }
     if (e.target.id === 'btnDavet') { var ep = document.getElementById('davetEp').value, rl = document.getElementById('davetRol').value; (ekip.ornek ? Promise.resolve() : SuperAriBulut.invite(aps[0] && aps[0].id, ep, rl)).then(function () { ekip.davetler.push({ email: ep, role: rl }); kaydet('_', Date.now()); }).catch(function (er) { alert(er.message); }); }
     if (e.target.id === 'btnSifreAc') { sifreAcik = true; sifreMesaj = ''; ciz(); var m0 = document.querySelector('#sifreForm input'); if (m0) m0.focus({ preventScroll: true }); return; }
@@ -198,7 +223,7 @@
   B.client().then(function (c) { return c.auth.getUser(); }).then(function (u) {
     var us = u && u.data && u.data.user; if (!us) return;
     hesap = { email: us.email, onayli: !!us.email_confirmed_at }; document.getElementById('onayUyari').hidden = hesap.onayli;
-    return aps[0] && B.team(aps[0].id).then(function (t) { ekip = { uyeler: (t.members || []).map(function (m) { return { id: m.user_id, ad: m.name || m.email, email: m.email, role: m.role === 'owner' ? 'owner' : (m.role === 'bakici' || m.role === 'izleyici' ? 'bakici' : 'arici') }; }), davetler: (t.invites || []).map(function (d) { return { email: d.email, role: d.role === 'bakici' || d.role === 'izleyici' ? 'bakici' : 'arici' }; }) }; }).catch(function () { ekip = null; });
+    return aps[0] && B.team(aps[0].id).then(function (t) { ekip = { uyeler: (t.members || []).map(function (m) { return { id: m.user_id, ad: m.name || m.email, email: m.email, role: m.role === 'owner' ? 'owner' : (m.role === 'bakici' || m.role === 'izleyici' ? 'bakici' : 'arici'), mali: m.mali, gorev: m.gorev, duzen: m.duzen }; }), davetler: (t.invites || []).map(function (d) { return { email: d.email, role: d.role === 'bakici' || d.role === 'izleyici' ? 'bakici' : 'arici' }; }) }; }).catch(function () { ekip = null; });
   }).then(ciz).catch(function () { /* çevrimdışı */ });
 })();
 </script>

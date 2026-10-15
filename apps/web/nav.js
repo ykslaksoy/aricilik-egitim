@@ -1159,6 +1159,6 @@
 (function () {
   if (typeof document === 'undefined') return;
   function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-164'; s.async = false; document.head.appendChild(s); }
-  function go() { yukle('kritik-alarm.js', 'SuperAriKritik'); yukle('cevre.js', 'SuperAriCevre'); yukle('yeniden-hesap.js', 'SuperAriYenidenHesap'); }
+  function go() { yukle('yetki.js', 'SuperAriYetki'); yukle('kritik-alarm.js', 'SuperAriKritik'); yukle('cevre.js', 'SuperAriCevre'); yukle('yeniden-hesap.js', 'SuperAriYenidenHesap'); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();
