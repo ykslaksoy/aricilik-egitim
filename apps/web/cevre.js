@@ -1,4 +1,4 @@
-/* SüperArı · Arılık çevresi (koloni-165 EK8) → window.SuperAriCevre
+/* SüperArı · Arılık çevresi (koloni-166 EK8) → window.SuperAriCevre
  * Yalnız Supabase arilik_cevre tablosundan okur (admin yazar; OSM + ESA WorldCover betiği). Uygulamada yalnız kısa uyarı: mesafe/kaynak gösterilmez. */
 (function (global) {
   'use strict';
@@ -10,7 +10,7 @@
   var bek = false;
   function cek() {
     var B = global.SuperAriBulut; if (bek || !B || !B.client) return Promise.resolve(false); bek = true;
-    return B.client().then(function (c) { return c.from('arilik_cevre').select('arilik_id,su_kaynagi_mesafe_metre,su_kaynagi_turu,ortu,toplama_alani_guvenli,hesaplandi'); })
+    return B.client().then(function (c) { return c.from('arilik_cevre').select('arilik_id,rakim_m,su_kaynagi_mesafe_metre,su_kaynagi_turu,ortu,toplama_alani_guvenli,hesaplandi'); })
       .then(function (r) { bek = false; if (!r || r.error || !r.data) return false; var o = {}; r.data.forEach(function (x) { o[x.arilik_id] = x; }); wj(CACHE, o); try { global.dispatchEvent(new Event('superari-cevre')); } catch (e) { /* */ } return true; })
       .catch(function () { bek = false; return false; });
   }
@@ -27,7 +27,13 @@
   }
   var BO_KEY = 'superari.balorman.v1';
   function balOrmanlari() { return rj(BO_KEY, []); }
-  function cekBO() { var B = global.SuperAriBulut; if (!B || !B.client) return; B.client().then(function (c) { return c.from('bal_ormanlari').select('id,ad,il,ilce,lat,lon,kovan_kapasitesi,su_kaynagi_mesafe_metre,toplama_alani_guvenli'); }).then(function (r) { if (r && !r.error && r.data) wj(BO_KEY, r.data); }).catch(function () {}); }
-  if (global.setTimeout) global.setTimeout(function () { cek(); cekBO(); }, 2000);
+  /* k166: üst sınır yok — 1000'lik sayfalarla tablo ne içeriyorsa hepsi */
+  function cekBO() { var B = global.SuperAriBulut; if (!B || !B.client) return Promise.resolve(true); var tum = [], SY = 1000;
+    return B.client().then(function (c) { function sayfa(i) { return c.from('bal_ormanlari').select('id,ad,il,ilce,lat,lon,kovan_kapasitesi,su_kaynagi_mesafe_metre,toplama_alani_guvenli').order('id').range(i, i + SY - 1).then(function (r) {
+      if (!r || r.error || !r.data) return false; tum = tum.concat(r.data); if (r.data.length === SY) return sayfa(i + SY); wj(BO_KEY, tum); return true; }); } return sayfa(0); }); }
+  /* k166: kayıtlı sonucu oku; hata/zaman aşımında 'Veri yok' kalır, arka planda üstel bekleme (5 sn → 10 → 20 … en çok 10 dk) ile yeniden dene. Uygulama beklemez. */
+  function zamanli(p, ms) { return Promise.race([p, new Promise(function (_, rej) { global.setTimeout(function () { rej(new Error('zaman aşımı')); }, ms); })]); }
+  function yeniden(fn, ad) { var n = 0; (function dene() { zamanli(Promise.resolve().then(fn), 15000).then(function (ok) { if (ok === false) throw new Error('yok'); }).catch(function () { n++; var b = Math.min(600000, 5000 * Math.pow(2, n - 1)); global['__saGeri_' + ad] = b; global.setTimeout(dene, b); }); })(); }
+  if (global.setTimeout) global.setTimeout(function () { yeniden(cek, 'cevre'); yeniden(cekBO, 'bo'); }, 2000);
   global.SuperAriCevre = { cek: cek, satir: satir, uyarilar: uyarilar, balOrmanlari: balOrmanlari };
 })(typeof window !== 'undefined' ? window : globalThis);

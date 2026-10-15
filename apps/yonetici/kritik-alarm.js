@@ -1,4 +1,4 @@
-/* SüperArı · Sabit kritik kartlar + ekip bildirimleri (koloni-165 EK11 ek 2/3, EK12) → window.SuperAriKritik
+/* SüperArı · Sabit kritik kartlar + ekip bildirimleri (koloni-166 EK11 ek 2/3, EK12) → window.SuperAriKritik
  * Kritik ses alarmları (oğul anı, ana arı ötmesi, vakvaklama) ve ALARM_ARILIK_KOSUL_01 ana uyarı panelinin en üstünde sabit.
  * Yalnız "Tamam" ile kapanır; kapatan kişi + saat kartta/geçmişte. Süre, kaydırma ya da koşulun düzelmesi kapatmaz
  * (düzelirse metin "Durum düzeldi"). Kart eklenip kalkınca ekran kaymaz. Metinlerde Hz yok.

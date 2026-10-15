@@ -35,6 +35,13 @@
   .sat > b { justify-self:end; width:auto; }
   .sat > b { text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
   .sat > .tam { grid-column:1 / -1; }
+  .sat > label { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:.9rem; letter-spacing:-.1px; }
+  .sat { column-gap:6px; }
+  .sat > .btn, .sat > a.btn { white-space:nowrap; height:38px; min-height:38px !important; padding:0 8px !important; }
+  .sat { min-height:56px; box-sizing:border-box; }
+  .sat.eposta { row-gap:2px; }
+  .sat.eposta > b.tam { width:auto !important; max-width:100%; justify-self:start; text-align:left; white-space:normal; overflow-wrap:anywhere; font-size:.86rem; font-weight:600; color:#5c4a2a; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   .sat > label { overflow-wrap:anywhere; }
   .sat.serbest { display:flex; flex-wrap:wrap; }
   .sat:last-child { border-bottom:0; }
@@ -92,13 +99,13 @@
         </div>
 </div>
 <div class="toast" id="toast" role="status">Kaydedildi</div>
-<script src="demo-data.js?v=koloni-165"></script>
-<script src="device-runtime.js?v=koloni-165"></script>
-<script src="yetki.js?v=koloni-165"></script>
-<script src="nav.js?v=koloni-165"></script>
-<script src="bulut.js?v=koloni-165"></script>
-<script src="sensor-polling.js?v=koloni-165"></script>
-<script src="sesle-muayene.js?v=koloni-165"></script>
+<script src="demo-data.js?v=koloni-166"></script>
+<script src="device-runtime.js?v=koloni-166"></script>
+<script src="yetki.js?v=koloni-166"></script>
+<script src="nav.js?v=koloni-166"></script>
+<script src="bulut.js?v=koloni-166"></script>
+<script src="sensor-polling.js?v=koloni-166"></script>
+<script src="sesle-muayene.js?v=koloni-166"></script>
 <script>
 (function () {
   'use strict';
@@ -106,7 +113,7 @@
   function rj() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
   var A = Object.assign({ bildirim: true, kritikSes: true, gunluk: true, sesliMuayene: true, sesGeri: true, birim: 'kg', dil: 'tr', tarih: 'gg.aa.yyyy', rol: 'owner' }, rj());
   function kaydet(k, v) { A[k] = v; localStorage.setItem(KEY, JSON.stringify(A)); var t = document.getElementById('toast'); t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(function () { t.classList.remove('on'); }, 1400); ciz(); }
-  function kaydetToast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(function () { t.classList.remove('on'); t.textContent = 'Kaydedildi'; }, 1800); }
+  function kaydetToast(m, ms) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(function () { t.classList.remove('on'); t.textContent = 'Kaydedildi'; }, ms || 1800); }
   /* onay kartı (kalıcı işlemler) */
   function onayKart(bas, metin, evet, fn, tehlike) {
     var o = document.createElement('div'); o.className = 'onay-kart'; o.setAttribute('role', 'dialog');
@@ -141,10 +148,10 @@
   }
   var KONU = [
     { id: 'hesap', ic: '👤', t: 'Hesap ve üyelik', d: function () { return hesap.email ? hesap.email + (hesap.onayli === false ? ' · onay bekliyor' : '') : 'Giriş yapılmadı'; },
-      b: function () { return hesap.email ? '<div class="sat"><label>E-posta</label><b>' + esc(hesap.email) + '</b></div>' +
+      b: function () { return hesap.email ? '<div class="sat eposta"><label>E-posta</label><b class="tam">' + esc(hesap.email) + '</b></div>' +
         (sifreAcik ? '<form id="sifreForm" class="sf"><label>Mevcut şifre<input type="password" name="m" autocomplete="current-password" required></label><label>Yeni şifre<input type="password" name="y" minlength="8" autocomplete="new-password" required></label><label>Yeni şifre (tekrar)<input type="password" name="y2" minlength="8" autocomplete="new-password" required></label><span class="sub" id="sifreDurum" role="status" style="margin:0;min-height:1.4em;">' + esc(sifreMesaj || 'En az 8 karakter.') + '</span><div class="sf-b"><button type="button" class="btn ikincil" id="btnSifreVazgec">Vazgeç</button><button class="btn">Kaydet</button></div></form>'
-          : '<div class="sat"><label>Şifre</label><button type="button" class="btn ikincil" id="btnSifreAc">Şifreyi değiştir</button></div>' + (sifreMesaj ? '<p class="sub" role="status" style="margin:0 0 6px;">' + esc(sifreMesaj) + '</p>' : '')) +
-        '<div class="sat"><label>Şifreni mi unuttun?</label><button type="button" class="btn ikincil" id="btnSifirla">Şifre sıfırlama e-postası gönder</button><span class="sub tam" id="sifirlaDurum" role="status" style="margin:0;min-height:2.8em;line-height:1.4em;"></span></div>' +
+          : '<div class="sat"><label>Şifre</label><button type="button" class="btn ikincil" id="btnSifreAc">Değiştir</button></div>' + (sifreMesaj ? '<p class="sub" role="status" style="margin:0 0 6px;">' + esc(sifreMesaj) + '</p>' : '')) +
+        '<div class="sat"><label>Şifreni mi unuttun?</label><button type="button" class="btn ikincil" id="btnSifirla">Bağlantı gönder</button><span class="sr" id="sifirlaDurum" role="status"></span></div>' +
         '<div class="sat"><label>Oturum</label><button type="button" class="btn ikincil" id="btnCikis">Çıkış yap</button></div>'
         : '<div class="sat"><label>Giriş yap ya da üye ol</label><a class="btn" href="hesap.html">Giriş</a></div><div class="sat"><label>Şifreni mi unuttun?</label><a class="btn ikincil" href="hesap.html?unuttum=1">Şifremi unuttum</a></div>'; } },
     { id: 'ekip', ic: '👥', t: 'Ekip', d: function () { return ekip ? ekip.uyeler.length + ' üye' + (ekip.davetler.length ? ' · ' + ekip.davetler.length + ' davet' : '') : 'Giriş gerekli'; }, b: ekipHtml },
@@ -156,7 +163,7 @@
     { id: 'pil', ic: '🔋', t: 'Düşük pil uyarısı', d: function () { var P = window.SuperAriSensorPolling; return P && P.getBatteryLowPct ? 'Eşik %' + P.getBatteryLowPct(null) : 'Eşik'; }, kalici: 'k-pil' },
     { id: 'birim', ic: '📏', t: 'Birimler ve dil', d: function () { return (A.birim === 'kg' ? 'Kilogram' : 'Gram') + ' · Türkçe'; }, b: function () { return '<div class="sat"><label>Ağırlık</label>' + sec('birim', [['kg', 'Kilogram'], ['g', 'Gram']]) + '</div><div class="sat"><label>Tarih</label>' + sec('tarih', [['gg.aa.yyyy', '15.10.2026'], ['gg ay', '15 Eki']]) + '</div><div class="sat"><label>Dil</label>' + sec('dil', [['tr', 'Türkçe']]) + '</div>'; } },
     { id: 'cihaz', ic: '📡', t: 'Cihazlar', d: function () { return 'Kovan ve gateway cihazları'; }, b: function () { return '<div class="sat"><label>Cihazları yönet</label><a class="btn" href="cihazlar.html">Cihazlar</a></div>'; } },
-    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-165'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-165</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
+    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-166'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-166</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
   ];
   var HM = { 'calisma-modu': 'calisma-modu', cihaz: 'cihaz', bulut: 'hesap', hesap: 'hesap', 'arilik-ayarlari': 'arilik', 'arilik-ozet': 'arilik', ekip: 'ekip', bildirim: 'bildirim', ses: 'ses' };
   var sifreAcik = false, sifreMesaj = '';
@@ -218,7 +225,7 @@
     if (e.target.id === 'btnDavet') { var ep = document.getElementById('davetEp').value, rl = document.getElementById('davetRol').value; (ekip.ornek ? Promise.resolve() : SuperAriBulut.invite(aps[0] && aps[0].id, ep, rl)).then(function () { ekip.davetler.push({ email: ep, role: rl }); kaydet('_', Date.now()); }).catch(function (er) { alert(er.message); }); }
     if (e.target.id === 'btnSifreAc') { sifreAcik = true; sifreMesaj = ''; ciz(); var m0 = document.querySelector('#sifreForm input'); if (m0) m0.focus({ preventScroll: true }); return; }
     if (e.target.id === 'btnSifreVazgec') { sifreAcik = false; sifreMesaj = ''; ciz(); return; }
-    if (e.target.id === 'btnSifirla') { var sd = document.getElementById('sifirlaDurum'), bt = e.target; bt.disabled = true; sd.textContent = 'Gönderiliyor…';
+    if (e.target.id === 'btnSifirla') { var sd0 = document.getElementById('sifirlaDurum'), bt = e.target, sd = { set textContent(v) { sd0.textContent = v; kaydetToast(v, 4000); } }; bt.disabled = true; sd.textContent = 'Gönderiliyor…';
       (ORNEK ? Promise.resolve(true) : SuperAriBulut.resetPassword(hesap.email)).then(function () { sd.textContent = 'E-posta gönderildi, gelen kutunu kontrol et.'; })
         .catch(function (er) { var m = String((er && er.message) || ''); sd.textContent = /rate|limit|seconds|too many/i.test(m) ? 'Çok sık denedin. Biraz bekleyip tekrar dene.' : (/network|fetch/i.test(m) ? 'Bağlantı yok. İnterneti kontrol et.' : 'Gönderilemedi. Tekrar dene.'); })
         .then(function () { bt.disabled = false; }); return; }
@@ -327,5 +334,6 @@
     (function () { var n = 0, iv = setInterval(function () { n++; var had = (box._opts || []).length; draw(); if (n >= 12 || (had && had === (box._opts || []).length)) clearInterval(iv); }, 250); })();
   })();
 </script>
+<script src="sifre-goz.js?v=koloni-166"></script>
 </body>
 </html>

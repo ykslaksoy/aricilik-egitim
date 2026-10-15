@@ -1,4 +1,4 @@
-/* SüperArı · Taşınma / rota motoru (koloni-165) → window.SuperAriRota
+/* SüperArı · Taşınma / rota motoru (koloni-166) → window.SuperAriRota
  * Taşınma planının ana motoru. Sabit puan yok:
  *  rota_puan(ilçe) = 100 × [wH·(H/Hmax) + wT·(T/Tmax)] / (wH+wT varolanlar)
  *   H = o ilçedeki arılıkların kovan başına yıllık ortalama hasatı, T = günlük net tartı artışının kayan ortalamasının (rotaPencere gün) en iyi değeri.
@@ -17,15 +17,12 @@
   function n(s) { return String(s || '').trim().toLocaleLowerCase('tr'); }
   function aps() { var d = D(); try { return (d && d.loadApiaries ? d.loadApiaries() : []) || []; } catch (e) { return []; } }
 
+  /* k166: rakım sayfa açılışında sorgulanmaz; sunucu kuyruğu (cevre_kuyruk → arilik_cevre.rakim_m) yazar, burada yalnız kayıt okunur */
   function rakim(ap) {
     if (!ap || !isFinite(ap.lat) || !isFinite(ap.lon)) return Promise.resolve(null);
-    var k = Number(ap.lat).toFixed(4) + ',' + Number(ap.lon).toFixed(4), c = rj(RAKIM, {});
-    if (c[k] != null) return Promise.resolve(c[k]);
-    if (typeof global.fetch !== 'function') return Promise.resolve(null);
-    return global.fetch('https://api.open-meteo.com/v1/elevation?latitude=' + ap.lat + '&longitude=' + ap.lon)
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (j) { var e = j && j.elevation && j.elevation[0]; if (!isFinite(e)) return null; c = rj(RAKIM, {}); c[k] = Math.round(e); wj(RAKIM, c); return c[k]; })
-      .catch(function () { return null; });
+    var C = global.SuperAriCevre, s = C && C.satir ? C.satir(ap) : null;
+    if (s && isFinite(s.rakim_m) && s.rakim_m != null) { var c = rj(RAKIM, {}); c[Number(ap.lat).toFixed(4) + ',' + Number(ap.lon).toFixed(4)] = s.rakim_m; wj(RAKIM, c); return Promise.resolve(s.rakim_m); }
+    var h = rakimHazir(ap); return Promise.resolve(h == null ? null : h);
   }
   function rakimHazir(ap) { if (!ap) return null; var c = rj(RAKIM, {}); return c[Number(ap.lat).toFixed(4) + ',' + Number(ap.lon).toFixed(4)]; }
 
