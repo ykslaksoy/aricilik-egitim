@@ -4,7 +4,8 @@
 // Hata/5xx/zaman aşımı: deneme++, sonraki = şimdi + 2^deneme dk (en çok 24 saat). Uygulama yalnız kayıtlı sonucu okur.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"]; // ana + yedek
+// overpass-api.de bulut IP'lerine 406 dönüyor (k180 canlı deneme) → ana private.coffee, yedek kumi.systems
+const OVERPASS = ["https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]; // ana + yedek
 const UA = "SuperAri/1.0 (aricilik; superari.vercel.app)";
 const BAKANLIK = "https://aricilikharitasi.tarimorman.gov.tr";
 
@@ -23,32 +24,45 @@ function mesafe(a: number, b: number, c: number, d: number) {
 // Etiketler daraltıldı (çeşme/sulak alan çıkarıldı); rota riski 1500 m'de doyar → 2000 m yeter. [timeout:25], 2 sunucu (ana + yedek).
 export const YARICAP = 2000, ONBELLEK_GUN = 30, SUNUCU_MS = 30_000;
 export function hucre(lat: number, lon: number) { const la = Math.round(lat * 100) / 100, lo = Math.round(lon * 100) / 100; return { anahtar: la.toFixed(2) + "_" + lo.toFixed(2), lat: la, lon: lo }; }
+export function kutu(lat: number, lon: number, r: number) { const dla = r / 111_320, dlo = r / (111_320 * Math.cos(lat * Math.PI / 180)); const f = (x: number) => Math.round(x * 1e5) / 1e5; return [f(lat - dla), f(lon - dlo), f(lat + dla), f(lon + dlo)]; }
+// Yollar (dere/kanal/göl kıyısı) kutuya kırpılmış geometriyle gelir: mesafe en yakın kenara (merkeze değil).
 export function suSorgu(lat: number, lon: number, r = YARICAP + 800) {
   const a = `(around:${r},${lat},${lon})`;
-  return `[out:json][timeout:25];(way${a}[waterway~"^(river|stream|canal)$"];way${a}[natural=water];node${a}[natural=spring];node${a}[amenity=drinking_water];node${a}[man_made=water_well];);out tags center qt 300;`;
+  return `[out:json][timeout:25];(way${a}[waterway~"^(river|stream|canal)$"];way${a}[natural=water];node${a}[natural=spring];node${a}[amenity=drinking_water];node${a}[man_made=water_well];);out tags geom(${kutu(lat, lon, r).join(",")}) qt 300;`;
 }
-export type Nokta = { la: number; lo: number; tur: string; ad: string | null };
+export type Nokta = { g: number[][]; tur: string; ad: string | null };
+const f5 = (x: number) => Math.round(x * 1e5) / 1e5;
 export function noktalar(j: any): Nokta[] {
   const L: Nokta[] = [];
-  for (const e of j?.elements || []) { const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon; if (la == null || lo == null) continue; const t = e.tags || {};
-    L.push({ la: Math.round(la * 1e5) / 1e5, lo: Math.round(lo * 1e5) / 1e5, tur: t.waterway || t.natural || t.amenity || t.man_made || "su", ad: t.name || null }); }
+  for (const e of j?.elements || []) { const t = e.tags || {};
+    const g: number[][] = e.type === "node" ? (e.lat != null ? [[f5(e.lat), f5(e.lon)]] : []) : (e.geometry || []).filter((p: any) => p && p.lat != null).map((p: any) => [f5(p.lat), f5(p.lon)]);
+    if (!g.length) continue;
+    L.push({ g, tur: t.waterway || t.natural || t.amenity || t.man_made || "su", ad: t.name || null }); }
   return L;
+}
+// Nokta–parça mesafesi (yerel düzlem; 3 km'de hata ihmal edilir)
+function parca(lat: number, lon: number, a: number[], b: number[]) {
+  const k = 111_320, c = Math.cos(lat * Math.PI / 180), ax = (a[1] - lon) * k * c, ay = (a[0] - lat) * k, bx = (b[1] - lon) * k * c, by = (b[0] - lat) * k;
+  const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L2)) : 0;
+  return Math.hypot(ax + u * dx, ay + u * dy);
 }
 export function enYakin(lat: number, lon: number, L: Nokta[]) {
   let best: { m: number; tur: string; ad: string | null } | null = null;
-  for (const p of L) { const m = Math.round(mesafe(lat, lon, p.la, p.lo)); if (m <= YARICAP && (!best || m < best.m)) best = { m, tur: p.tur, ad: p.ad }; }
+  for (const p of L) { const g = p.g || []; let d = Infinity;
+    if (g.length === 1) d = mesafe(lat, lon, g[0][0], g[0][1]); else for (let i = 0; i + 1 < g.length; i++) d = Math.min(d, parca(lat, lon, g[i], g[i + 1]));
+    const m = Math.round(d); if (m <= YARICAP && (!best || m < best.m)) best = { m, tur: p.tur, ad: p.ad }; }
   return best; // null = YARICAP içinde su yok (gerçek sonuç)
 }
-// Sunucular yoğunken hızlı 5xx döner: 2 tur (ana → yedek → ana → yedek), aralarda kısa bekleme; toplam süre TOPLAM_MS ile sınırlı.
+// Sunucular yoğunken hızlı 5xx döner: en çok 6 tur (ana → yedek → ana → yedek), aralarda kısa bekleme; toplam süre TOPLAM_MS ile sınırlı.
 export const TOPLAM_MS = 60_000;
 export async function overpass(q: string, fetcher: F = zf, bekle = (ms: number) => new Promise((r) => setTimeout(r, ms))) {
   const bitis = Date.now() + TOPLAM_MS, iz: string[] = [];
   const ad = (u: string) => new URL(u).hostname.replace(/^overpass[.-]/, "");
-  for (let tur = 0; tur < 2; tur++) for (const u of OVERPASS) {
+  for (let tur = 0; tur < 6; tur++) for (const u of OVERPASS) {
     const kalan = bitis - Date.now(); if (kalan < 3000) break;
     try {
       const r = await fetcher(u, { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } }, Math.min(SUNUCU_MS, kalan));
-      if (!r.ok) { iz.push(ad(u) + " " + r.status); await bekle(1500); continue; }
+      if (!r.ok) { iz.push(ad(u) + " " + r.status); await bekle(Math.min(6000, 2000 * (tur + 1))); continue; }
       const j = await r.json(); if (j?.remark && /runtime error|timed out/i.test(String(j.remark))) { iz.push(ad(u) + " zaman aşımı"); continue; }
       return j;
     } catch (e) { iz.push(ad(u) + " " + ((e as Error)?.name === "AbortError" ? "zaman aşımı" : String((e as Error)?.message || e).slice(0, 60))); }
@@ -58,7 +72,7 @@ export async function overpass(q: string, fetcher: F = zf, bekle = (ms: number) 
 async function su(db: any, lat: number, lon: number) {
   const h = hucre(lat, lon), sinir = new Date(Date.now() - ONBELLEK_GUN * 86400_000).toISOString();
   const { data: c } = await db.from("su_onbellek").select("noktalar").eq("anahtar", h.anahtar).gte("hesaplandi", sinir).maybeSingle();
-  if (c && Array.isArray(c.noktalar)) return { s: enYakin(lat, lon, c.noktalar), onbellek: true };
+  if (c && Array.isArray(c.noktalar) && c.noktalar.every((p: any) => Array.isArray(p?.g))) return { s: enYakin(lat, lon, c.noktalar), onbellek: true };
   const L = noktalar(await overpass(suSorgu(h.lat, h.lon)));
   await db.from("su_onbellek").upsert({ anahtar: h.anahtar, lat: h.lat, lon: h.lon, yaricap_m: YARICAP + 800, noktalar: L, hesaplandi: new Date().toISOString() });
   return { s: enYakin(lat, lon, L), onbellek: false };

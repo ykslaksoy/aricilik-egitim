@@ -2,7 +2,7 @@
 const assert=require('assert'),fs=require('fs'),path=require('path'),vm=require('vm');
 const R=path.join(__dirname,'../../..'),f=fs.readFileSync(R+'/supabase/functions/cevre-isle/index.ts','utf8');
 assert.match(f,/\[out:json\]\[timeout:25\]/);assert.ok(!/fountain|wetland/.test(f),'etiket daraltıldı');
-assert.match(f,/YARICAP = 2000/);assert.match(f,/ONBELLEK_GUN = 30/);assert.match(f,/toFixed\(2\)/);assert.match(f,/from\("su_onbellek"\)\.select/);
+assert.match(f,/YARICAP = 2000/);assert.match(f,/out tags geom\(/,'kenara mesafe, kutuya kırpılmış geometri');assert.ok(!/out center/.test(f));assert.match(f,/ONBELLEK_GUN = 30/);assert.match(f,/toFixed\(2\)/);assert.match(f,/from\("su_onbellek"\)\.select/);
 assert.ok(f.indexOf('from("su_onbellek").select')<f.indexOf('await overpass(suSorgu'),'önce önbellek');
 assert.match(f,/new AbortController\(\)/);assert.strictEqual((f.match(/OVERPASS = \[([^\]]*)\]/)[1].match(/https:/g)||[]).length,2);
 assert.ok(!/3001/.test(f));assert.match(f,/su_kaynagi_mesafe_metre: null/);
