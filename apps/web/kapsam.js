@@ -413,6 +413,8 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); unpin(); }
       });
     })();
+    /* k161 EK10: yeni ayar sürümü → yerinde yeniden hesap (yenileme yok, konum korunur) */
+    global.addEventListener('superari-ayar-guncel', function () { if (global.SuperAriScroll) global.SuperAriScroll.keep(render); else render(); });
     var syncBakimNav = bindNavChips(host, navChipList && navChipList.length ? function () { return scope; } : null);
     function render() {
       loadAps(); scope = valid(scope);

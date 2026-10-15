@@ -78,6 +78,7 @@
         if (o.onChange) o.onChange(scope, hs, sum);
       }
     });
+    if (o.redraw) global.addEventListener('superari-ayar-guncel', function () { var sc = init0; if (global.SuperAriScroll) global.SuperAriScroll.keep(function () { o.redraw(sc); }); else o.redraw(sc); });
     return ctl;
   }
   global.SuperAriKsSayfa = { ensureScope: ensureScope, init: init, scope: scopeNow, esc: esc };
