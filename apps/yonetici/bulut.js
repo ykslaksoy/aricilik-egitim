@@ -202,7 +202,7 @@
   function resetPassword(email) {
     var em = normEmail(email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return Promise.reject(new Error('Önce e-posta adresinizi yazın'));
-    return client().then(function (c) { return c.auth.resetPasswordForEmail(em, { redirectTo: redirectUrl() + '?sifre=yeni' }); })
+    return client().then(function (c) { return c.auth.resetPasswordForEmail(em, { redirectTo: 'https://superari.vercel.app/yeni-sifre.html' }); })
       .then(function (r) { if (r.error) throw r.error; return true; });
   }
   /** Oturum açıkken şifre belirle/değiştir (bağlantıyla giren kullanıcı için de). */
@@ -210,6 +210,22 @@
     try { checkPw(pw); } catch (e) { return Promise.reject(e); }
     return client().then(function (c) { return c.auth.updateUser({ password: String(pw) }); })
       .then(function (r) { if (r.error) throw r.error; return true; });
+  }
+  /** k161 EK7: kendi şifresini değiştir — mevcut şifre doğrulanır, yeni en az 8 karakter (başkasının şifresi değiştirilemez). */
+  function changePassword(current, yeni, yeni2) {
+    if (String(yeni || '').length < 8) return Promise.reject(new Error('Yeni şifre en az 8 karakter olmalı.'));
+    if (yeni !== yeni2) return Promise.reject(new Error('Yeni şifreler aynı değil.'));
+    var c;
+    return client().then(function (cc) { c = cc; return c.auth.getUser(); }).then(function (u) {
+      var em = u && u.data && u.data.user && u.data.user.email; if (!em) throw new Error('Önce giriş yap.');
+      return c.auth.signInWithPassword({ email: em, password: String(current || '') });
+    }).then(function (r) { if (r.error) throw new Error('Mevcut şifre yanlış.'); return c.auth.updateUser({ password: String(yeni) }); })
+      .then(function (r) { if (r.error) throw r.error; return true; });
+  }
+  /** k161 EK6: onay e-postasını tekrar gönder */
+  function resendConfirm(email) {
+    var em = normEmail(email);
+    return client().then(function (c) { return c.auth.resend({ type: 'signup', email: em, options: { emailRedirectTo: 'https://superari.vercel.app/hesap.html' } }); }).then(function (r) { if (r.error) throw r.error; return true; });
   }
   function verifyCode(email, code) {
     return client().then(function (c) {
@@ -1113,8 +1129,9 @@
       return { members: r[0].data || [], invites: inv };
     });
   }
-  var ROLES = { owner: 'Sahip', yardimci: 'Yardımcı', uye: 'Yardımcı', izleyici: 'İzleyici' };
-  function normRole(r) { return r === 'izleyici' ? 'izleyici' : 'yardimci'; }
+  /* k161 EK7: Sahip · Arıcı · Bakıcı (eski adlar DB tetikleyicisiyle eşlenir) */
+  var ROLES = { owner: 'Sahip', arici: 'Arıcı', bakici: 'Bakıcı', yardimci: 'Arıcı', uye: 'Arıcı', izleyici: 'Bakıcı' };
+  function normRole(r) { return r === 'bakici' || r === 'izleyici' ? 'bakici' : 'arici'; }
   function needsMigration(err) {
     var m = String((err && (err.message || err.details)) || err || '');
     return /role_check|violates check|column .*token|token.*does not exist|expires_at|sa_accept_invite_token|sa_set_member_role|Could not find the function|schema cache/i.test(m);
@@ -1222,7 +1239,7 @@
     signInPassword: signInPassword,
     signUpPassword: signUpPassword,
     resetPassword: resetPassword,
-    setPassword: setPassword,
+    setPassword: setPassword, changePassword: changePassword, resendConfirm: resendConfirm,
     verifyCode: verifyCode,
     signInGoogle: signInGoogle,
     signOut: signOut,

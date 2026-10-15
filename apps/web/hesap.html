@@ -413,6 +413,7 @@
         else msg($('pwMsg'), 'Onay e-postası gönderildi: ' + v.em + '. Bağlantıya dokunun, sonra e-posta ve şifrenizle giriş yapın.', 'ok');
       }).catch(function (err) { msg($('pwMsg'), errText(err), 'err'); });
     });
+    if (new URLSearchParams(location.search).get('unuttum') === '1') setTimeout(function () { var em = document.querySelector('input[type=email]'); if (em) em.focus(); var fb = $('btnForgot'); if (fb) fb.scrollIntoView({ block: 'center' }); }, 300);
     $('btnForgot').addEventListener('click', function () {
       var em = $('pwForm').elements.email.value.trim();
       msg($('pwMsg'), 'Gönderiliyor…');

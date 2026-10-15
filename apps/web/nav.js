@@ -1155,3 +1155,10 @@
   var st = document.createElement('style'); st.id = 'saK145'; st.textContent = css;
   (document.head || document.documentElement).appendChild(st);
 })();
+/* k161 EK11/12: kritik kartlar + yeniden hesap modülleri her sayfada (yoksa yükle) */
+(function () {
+  if (typeof document === 'undefined') return;
+  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-161'; s.async = false; document.head.appendChild(s); }
+  function go() { yukle('kritik-alarm.js', 'SuperAriKritik'); yukle('cevre.js', 'SuperAriCevre'); yukle('yeniden-hesap.js', 'SuperAriYenidenHesap'); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+})();

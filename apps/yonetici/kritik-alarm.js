@@ -99,6 +99,9 @@
     if (L.length < 2) return null; var son = L[L.length - 1], pen = L.filter(function (x) { return son.t - x.t <= sa * 3600000; });
     var mx = Math.max.apply(null, pen.map(function (x) { return x.kg; })); return mx - son.kg >= kg;
   }
+  /** EK12: ORS seviye izleme (önceki seviye cihazda) */
+  var ORSS = 'superari.ors.seviye.v1';
+  function orsGozle(hiveId, key, puan, apiaryId) { var M = rj(ORSS, {}), e = M[hiveId] || null; M[hiveId] = key; wj(ORSS, M); if (puan != null && puan < 70) iyilesti('ors_70', String(hiveId)); return orsDegisim(hiveId, e, key, puan, apiaryId); }
   function liste() { return rj(KEY, []).filter(function (x) { return !x.kapandi && x.sabit; }).sort(function (a, b) { return (SABIT[a.kod] - SABIT[b.kod]) || (a.at < b.at ? 1 : -1); }); }
   function tumu() { return rj(KEY, []); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -124,6 +127,6 @@
     global.addEventListener('superari-kritik', function () { ciz(el); });
     global.addEventListener('storage', function (e) { if (e.key === KEY) ciz(el); });
   }
-  global.SuperAriKritik = { ac: ac, iyilesti: iyilesti, tamam: tamam, liste: liste, tumu: tumu, gecmis: gecmis, sesten: sesten, orsDegisim: orsDegisim, aniKayip: aniKayip,
+  global.SuperAriKritik = { ac: ac, iyilesti: iyilesti, tamam: tamam, liste: liste, tumu: tumu, gecmis: gecmis, sesten: sesten, orsDegisim: orsDegisim, orsGozle: orsGozle, gecmisEkle: gecmiseYaz, aniKayip: aniKayip,
     kapatanMetni: kapatanMetni, ekibeGider: ekibeGider, ekipListesi: ekipListesi, ciz: ciz, bagla: bagla, AD: AD, SABIT: SABIT, _kuyruk: function () { return rj(GIDEN, []); } };
 })(typeof window !== 'undefined' ? window : globalThis);

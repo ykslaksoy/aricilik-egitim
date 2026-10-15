@@ -61,6 +61,8 @@
     var r = { durum: 'tamam', pct: Math.round(last.p), tuketimGun: Math.round(rate * 100) / 100, kalanGun: isFinite(kalan) ? Math.floor(kalan) : null, kalmaGun: kalma, aralikMs: ms, oneriMs: oneri, severity: sev };
     if (oneri) r.soru = 'Pil %' + r.pct + ', mevcut sıklıkla ' + r.kalanGun + ' gün yeter. Arılıkta ' + kalma + ' gün kalacaksın. ' + cap(ARALIK_AD[ms] || 'mevcut sıklık') + ' yerine ' + ARALIK_AD[oneri] + ' ölçüm öneriyorum. Onaylıyor musun?';
     else if (kalma != null && r.kalanGun != null && r.kalanGun < kalma) r.not = 'Pil %' + r.pct + ', ' + r.kalanGun + ' gün yeter; en seyrek ölçümle de arılıkta kalma süresine yetmiyor — pili şarj et veya değiştir.';
+    /* EK12: batarya ≤ 7 gün → ekip bildirimi (yalnız gerçek geçmişte, test girdisinde değil) */
+    if (!opts.gecmis && device && global.SuperAriKritik) { if (r.kalanGun != null && r.kalanGun <= (th.batYuksekGun || 7)) global.SuperAriKritik.ac({ kod: 'batarya_7', anahtar: device.id, apiaryId: device.apiaryId, metin: (device.name || 'Cihaz') + ': batarya bir hafta içinde bitebilir. Değiştirmeyi planla.' }); else global.SuperAriKritik.iyilesti('batarya_7', device.id); }
     return r;
   }
   function cap(s) { return s.charAt(0).toLocaleUpperCase('tr') + s.slice(1); }
@@ -124,7 +126,7 @@
     }
     return { durum: 'uygun', metin: '' };
   }
-  function tasinmaOnayla(apiaryId, tarih) { return konSet(apiaryId, { ayrilis: String(tarih).slice(0, 10), oneriOnay: new Date().toISOString() }); }
+  function tasinmaOnayla(apiaryId, tarih) { var r = konSet(apiaryId, { ayrilis: String(tarih).slice(0, 10), oneriOnay: new Date().toISOString() }); try { global.dispatchEvent(new CustomEvent('superari-tasindi', { detail: { apiaryId: apiaryId } })); } catch (e) { /* */ } return r; }
 
   global.SuperAriPlan2 = { konGet: konGet, konSet: konSet, kalmaBitis: kalmaBitis, bataryaPlan: bataryaPlan, aralikOnayla: aralikOnayla, komutlar: komutlar, netArtis: netArtis, tasinmaOneri: tasinmaOneri, tasinmaOnayla: tasinmaOnayla, ARALIK_AD: ARALIK_AD, pilGecmis: pilGecmis };
 })(typeof window !== 'undefined' ? window : globalThis);

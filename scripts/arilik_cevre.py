@@ -16,7 +16,7 @@ def segd(lat,lon,a,b):
 TUR={'river':'dere','stream':'dere','canal':'kanal','water':'göl/gölet','spring':'kaynak','drinking_water':'çeşme','water_well':'kuyu','fountain':'çeşme','wetland':'sulak alan'}
 def overpass(lat,lon):
     q=f'[out:json][timeout:60];(way["waterway"~"^(river|stream|canal)$"](around:3000,{lat},{lon});way["natural"="water"](around:3000,{lat},{lon});relation["natural"="water"](around:3000,{lat},{lon});node["natural"="spring"](around:3000,{lat},{lon});node["amenity"~"^(drinking_water|fountain)$"](around:3000,{lat},{lon});node["man_made"="water_well"](around:3000,{lat},{lon});way["natural"="wetland"](around:3000,{lat},{lon}););out geom;'
-    for u in ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']:
+    for u in ['https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass-api.de/api/interpreter']:
         try:
             r=urllib.request.Request(u,data=urllib.parse.urlencode({'data':q}).encode(),headers={'User-Agent':'SuperAri/1.0 (superari.vercel.app)'})
             return json.load(urllib.request.urlopen(r,timeout=90))['elements']
@@ -59,4 +59,4 @@ def main():
             su_veri=els is not None,ortu=oc,kaynak='OpenStreetMap katkıcıları (ODbL), Overpass API; ESA WorldCover 10 m 2021 v200 (CC BY 4.0, Zanaga vd. 2022)'))
         print(ap['id'],out[-1]['su_kaynagi_mesafe_metre'],out[-1]['su_kaynagi_turu'],oc,file=sys.stderr);time.sleep(2)
     json.dump(out,open(sys.argv[2],'w'),ensure_ascii=False,indent=1)
-main()
+if __name__ == "__main__": main()
