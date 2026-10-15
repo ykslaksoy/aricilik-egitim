@@ -48,4 +48,7 @@
     return Object.keys(o).map(function (k) { return o[k]; });
   }
   global.SuperAriCicek = { secildi: function (il) { if (il && !iller()[norm(il)]) { eksik(il); sorgula(il, ''); } }, donem: donem, bul: bul, adaylar: adaylar, eksik: eksik, eksikler: function () { return rj(ISTEK, []); }, ayIc: ayIc };
+  /* k175: arılıklar açılınca / il seçilince (updateApiary/addApiary il yazınca) takvimi olmayan il → tek talep */
+  function tara() { try { var D = global.SuperAriDemo; ((D && D.loadApiaries ? D.loadApiaries() : []) || []).forEach(function (a) { if (a && a.il) global.SuperAriCicek.secildi(a.il); }); } catch (e) { /* */ } }
+  try { global.addEventListener('superari-apiaries', tara); setTimeout(tara, 1500); } catch (e) { /* */ }
 })(typeof window !== 'undefined' ? window : globalThis);

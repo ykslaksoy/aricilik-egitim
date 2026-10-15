@@ -4372,6 +4372,8 @@
   };
 
   function addApiary(input) {
+    /* k175: il yazılınca çiçek takvimi talebi (takvimi olmayan il → tek kayıt) */
+    try { var gC = typeof window !== 'undefined' ? window : globalThis; if (input && input.il && gC.SuperAriCicek && gC.SuperAriCicek.secildi) setTimeout(function () { gC.SuperAriCicek.secildi(input.il); }, 0); } catch (eC) { /* */ }
     var list = loadApiaries();
     /* Ensure hives store is initialized / reconciled before we append. */
     var hives = loadHives();
@@ -4415,6 +4417,8 @@
 
   /** Patch fields on an existing apiary (e.g. map-picked lat/lon). */
   function updateApiary(id, patch) {
+    /* k175: il yazılınca çiçek takvimi talebi (takvimi olmayan il → tek kayıt) */
+    try { var gC = typeof window !== 'undefined' ? window : globalThis; if (patch && patch.il && gC.SuperAriCicek && gC.SuperAriCicek.secildi) setTimeout(function () { gC.SuperAriCicek.secildi(patch.il); }, 0); } catch (eC) { /* */ }
     loadHives();
     var list = loadApiaries();
     var key = String(id);
