@@ -3311,6 +3311,7 @@
   var BREED_SWARM_SCALE = [
     { key: 'kafkas', v: 1, m: ['kafkas'] },
     { key: 'buckfast', v: 2, m: ['buckfast'] },
+    { key: 'efe', v: 2.5, lbl: 'çok az–az', m: ['efe arısı', 'efe arisi', 'efe'] }, /* k170: uzman tahmini (kaynak yalnız yönetici) */
     { key: 'karadeniz', v: 3, m: ['karadeniz'] },
     { key: 'italyan', v: 4, m: ['italyan'] },
     { key: 'mugla', v: 4, m: ['muğla', 'mugla'] },
@@ -3379,7 +3380,7 @@
   }
   /* k129: ORS Genetik puanı (0–100). KİLİTLİ — kullanıcı onayladı; onaysız değiştirmeyin (tests/k129-genetik-kilit.test.js).
      Anahtar: ırk anahtarları alfabetik, «+» ile. Üçlü: (ana hattı) × erkek arı. Bilinmeyen melez → 55 + yöneticiye. */
-  var GENETIK_SAF = { kafkas: 5, buckfast: 15, karadeniz: 35, italyan: 55, mugla: 55, anadolu: 75, trakya: 75, karniyol: 75, iran: 75, yigilca: 90, hatay: 100 };
+  var GENETIK_SAF = { kafkas: 5, buckfast: 15, efe: 25, karadeniz: 35, italyan: 55, mugla: 55, anadolu: 75, trakya: 75, karniyol: 75, iran: 75, yigilca: 90, hatay: 100 };
   var GENETIK_MELEZ = {
     'kafkas+karadeniz': 35, 'anadolu+kafkas': 55, 'kafkas+karniyol': 55, 'karniyol+mugla': 75, 'anadolu+karniyol': 75, 'anadolu+mugla': 75, 'italyan+karniyol': 65,
     'kafkas+karadeniz+mugla': 55, 'buckfast+italyan+mugla': 55, 'kafkas+karniyol+mugla': 75, 'anadolu+kafkas+mugla': 75, 'anadolu+kafkas+karniyol': 90, 'anadolu+italyan+karniyol': 90
@@ -3387,13 +3388,14 @@
   var GENETIK_BUCKFAST_IKILI = 45, GENETIK_BILINMEYEN = 55;
   /* k168: tescilli ama sayısal puanı yayımlanmamış ırk/ekotipler — puan uydurulmaz, Genetik «Veri yok» (ağırlık dağıtılır). Kaynak yalnız yönetici panelinde. */
   var IRK_PUANSIZ = [
-    { key: 'efe', m: ['efe'], ad: 'Efe arısı', tur: 'Apis mellifera anatoliaca — Ege/Batı Anadolu ekotipi (eski adı Batı Ege arısı)',
-      ozet: 'Tescil: 16.05.2019 Resmî Gazete 30776 (Ege Tarımsal Araştırma Enstitüsü). Yayılış: Ege, Akdeniz, Marmara, Orta Anadolu. Islahla bölge arılarına göre koloni indeksi %20, bal verimi %25 yüksek; çamdan bal toplama eğilimi yüksek, hırçın değil, hastalıklara dayanıklı, oğul verme eğilimi çok düşük, kışlatma yüksek, ilkbahar gelişimi hızlı (nitel; 0–100 Genetik / oğul ölçeği puanı yayımlanmamış).',
-      kaynak: ['T.C. Tarım ve Orman Bakanlığı TAGEM, «Gökçeada ve Efe Arısı Ekotipleri Tescil Edildi», 20.05.2019 — https://www.tarimorman.gov.tr/TAGEM/Haber/478/Gokceada-Ve-Efe-Arisi-Ekotipleri-Tescil-Edildi',
+    { key: 'efe', m: ['efe'], ad: 'Efe arısı', genetik: 25, olcek: '2–3', durum: 'uzman tahmini', dil: '6,05 ± 0,21 mm (Resmî Gazete 16.05.2019 sa. 30776 EK-1)', tur: 'Apis mellifera anatoliaca — Ege/Batı Anadolu ekotipi (eski adı Batı Ege arısı)',
+      ozet: 'Tescil: 16.05.2019 Resmî Gazete 30776 (Ege Tarımsal Araştırma Enstitüsü). Yayılış: Ege, Akdeniz, Marmara, Orta Anadolu. Islahla bölge arılarına göre koloni indeksi %20, bal verimi %25 yüksek; çamdan bal toplama eğilimi yüksek, hırçın değil, hastalıklara dayanıklı, oğul verme eğilimi çok düşük, kışlatma yüksek, ilkbahar gelişimi hızlı (nitel). Genetik 25 / oğul ölçeği 2–3: uzman tahmini (kaynakta sayısal oğul puanı yok; «oğul eğilimi düşük/çok düşük» → Buckfast 15 ile Karadeniz 35 arası).',
+      kaynak: ['Resmî Gazete 16.05.2019 sayı 30776 EK-1 (dil uzunluğu 6,05 ± 0,21 mm; «Oğul eğilimi düşüktür»; «Orta derecede uysaldır») — https://www.resmigazete.gov.tr/eskiler/2019/05/20190516-14-1.pdf',
+        'T.C. Tarım ve Orman Bakanlığı TAGEM, «Gökçeada ve Efe Arısı Ekotipleri Tescil Edildi», 20.05.2019 — https://www.tarimorman.gov.tr/TAGEM/Haber/478/Gokceada-Ve-Efe-Arisi-Ekotipleri-Tescil-Edildi',
         'Resmî Gazete 16.05.2019 sayı 30776, Evcil Hayvan Genetik Kaynakları Tescil Komitesi Kararı',
         'Resmî Gazete 14.10.2020, Tebliğ No 2020/22 (Efe Arısı Ekotipi Ek-60)'] }
   ];
-  function irkPuansiz(b) { b = String(b || '').toLocaleLowerCase('tr'); return IRK_PUANSIZ.filter(function (x) { return x.m.some(function (w) { return new RegExp('(^|[^a-zçğıöşü])' + w + '([^a-zçğıöşü]|$)').test(b); }); }); }
+  function irkPuansiz(b) { b = String(b || '').toLocaleLowerCase('tr'); return IRK_PUANSIZ.filter(function (x) { return x.genetik == null; }).filter(function (x) { return x.m.some(function (w) { return new RegExp('(^|[^a-zçğıöşü])' + w + '([^a-zçğıöşü]|$)').test(b); }); }); }
   var ORS_WEIGHTS = { genetik: 0.30, sikisiklik: 0.40, mevsim: 0.15, anaYasi: 0.15 };
   /* k130: yönetici ayarları (Supabase public.ogul_skor_ayar, id 1) — cihaz önbelleği; yoksa yukarıdaki varsayılanlar. */
   var OGUL_SKOR_KEY = 'superari.ogul.skor.v1';
@@ -3794,7 +3796,7 @@
     });
     if (!found.length) return { f: 1.0, shift: 0, note: '', level: '', v: null, label: '' };
     var v = null, src = '', hlabel = '', hybrid = found.length > 1;
-    if (!hybrid) v = found[0].v;
+    if (!hybrid) { v = found[0].v; hlabel = found[0].lbl || ''; }
     else {
       var key = found.map(function (x) { return x.key; }).sort().join('+');
       var hy = HYBRID_SWARM[key] || (found.length === 2 && key.indexOf('buckfast') >= 0 ? BUCKFAST_CROSS : null);
