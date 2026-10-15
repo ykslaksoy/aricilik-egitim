@@ -112,7 +112,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-173').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-173');}).then(function(){return load('panel6.js?v=koloni-173');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-174').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-174');}).then(function(){return load('panel6.js?v=koloni-174');}); }
           }).then(function () { return true; });
         });
       });

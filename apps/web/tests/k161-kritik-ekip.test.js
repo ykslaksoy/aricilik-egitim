@@ -6,15 +6,17 @@ w.window=w;vm.createContext(w);w.Event=function(t){this.type=t};
 vm.runInContext(fs.readFileSync(__dirname+'/../kritik-alarm.js','utf8'),w);
 const K=w.SuperAriKritik;
 // sabit kart: piping, tekrar yok, düzelince kapanmaz
-K.sesten(5,{piping:true,quack:true,ogulAni:true},'ap1');K.sesten(5,{piping:true},'ap1');
-let L=K.liste();assert.strictEqual(L.length,3);assert.deepStrictEqual(L.map(x=>x.kod).join(),'ogul_ani,piping,quacking');
-K.sesten(5,{},'ap1');L=K.liste();assert.strictEqual(L.length,3);assert.ok(L.every(x=>x.iyilesti&&/düzeldi/.test(x.metin)));
+/* k174: sabit kritik «Ana Arılar Ötmesi (Piping)» kartı yalnız Tooting+Quacking birlikte; tek başına Tooting/Quacking sabit kart açmaz */
+K.sesten(6,{piping:true},'ap1');K.sesten(6,{quack:true},'ap1');assert.strictEqual(K.liste().length,0);
+K.sesten(5,{piping:true,quack:true,quackYuksek:true,ogulAni:true},'ap1');K.sesten(5,{piping:true,quack:true,quackYuksek:true},'ap1');
+let L=K.liste();assert.strictEqual(L.length,2);assert.deepStrictEqual(L.map(x=>x.kod).join(),'ogul_ani,piping');
+K.sesten(5,{},'ap1');L=K.liste();assert.strictEqual(L.length,2);assert.ok(L.every(x=>x.iyilesti&&/düzeldi/.test(x.metin)));
 assert.ok(L.every(x=>!/Hz/.test(x.metin+x.baslik)));
 // ilk oluşum ekibe (3), tekrar değil
-assert.strictEqual(K._kuyruk().filter(x=>x.olay==='olustu').length,3);
+assert.strictEqual(K._kuyruk().filter(x=>x.olay==='olustu').length,2);
 // Tamam: kapatan kaydı + ekip bildirimi
 const v=K.tamam(L[1].id,'Ayşe');assert.strictEqual(v.kapandi.kim,'Ayşe');assert.ok(/^Kapatan: Ayşe, /.test(K.kapatanMetni(v)));
-assert.strictEqual(K.liste().length,2);const q=K._kuyruk().filter(x=>x.olay==='kapatildi');assert.strictEqual(q.length,1);assert.strictEqual(q[0].metin,'Ayşe kontrol etti, kapattı');
+assert.strictEqual(K.liste().length,1);const q=K._kuyruk().filter(x=>x.olay==='kapatildi');assert.strictEqual(q.length,1);assert.strictEqual(q[0].metin,'Ayşe kontrol etti, kapattı');
 assert.ok(K.gecmis().some(x=>x.olay==='tamam'&&x.kim==='Ayşe'));
 // listede olmayan uyarı: ekibe gitmez ama kapatan kaydı tutulur
 const b=K.ac({kod:'batarya_7',anahtar:'d1'});const n0=K._kuyruk().length;K.tamam(b.id,'Ali');assert.strictEqual(K._kuyruk().length,n0);assert.ok(K.gecmis().some(x=>x.kim==='Ali'&&x.ekibe===false));

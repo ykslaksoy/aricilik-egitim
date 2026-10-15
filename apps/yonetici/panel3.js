@@ -5,7 +5,7 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var SEV = [['kritik', 'Kritik'], ['yuksek', 'Yüksek'], ['ayri', 'Ayrı uyarı'], ['erken', 'Erken uyarı'], ['bilgi', 'Bilgi'], ['kayit', 'Sadece kayıt']];
   var s = document.createElement('section'); s.className = 'card fe'; s.id = 's-ses';
-  s.innerHTML = '<h2>Ses sınıfları</h2><p class="fe-sub">Kovan ses sınıfları (kaynaklı). Frekans, seviye ve etkinlik buradan düzenlenir; ötme / Vakvaklama (Quacking) / anasızlık eşikleri «Oğul skorları → Sensörlü mod» bölümündedir. <span id="sesStat"></span></p><div class="bd"><p class="fe-empty">Yükleniyor…</p></div>';
+  s.innerHTML = '<h2>Ses sınıfları</h2><p class="fe-sub">Kovan ses sınıfları (kaynaklı). Frekans, seviye ve etkinlik buradan düzenlenir; Ana Arılar Ötmesi (Piping) · Çıkmış Ana Ötmesi (Tooting) / Vakvaklama (Quacking) / Anasızlık Uğultusu (Queenless Roar) eşikleri «Oğul skorları → Sensörlü mod» bölümündedir. <span id="sesStat"></span></p><div class="bd"><p class="fe-empty">Yükleniyor…</p></div>';
   host.appendChild(s);
   var nav = host.querySelector('nav.nav'); if (nav) nav.insertAdjacentHTML('beforeend', '<a class="chip" href="#s-ses">Ses sınıfları</a>');
   var bd = s.querySelector('.bd'), C;

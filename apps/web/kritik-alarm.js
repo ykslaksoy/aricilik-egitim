@@ -1,5 +1,5 @@
 /* SüperArı · Sabit kritik kartlar + ekip bildirimleri (koloni-168 EK11 ek 2/3, EK12) → window.SuperAriKritik
- * Kritik ses alarmları (oğul anı, Ana Arı Ötmesi (Piping), Vakvaklama (Quacking)) ve ALARM_ARILIK_KOSUL_01 ana uyarı panelinin en üstünde sabit.
+ * Kritik ses alarmları (oğul anı, Ana Arılar Ötmesi (Piping), Vakvaklama (Quacking)) ve ALARM_ARILIK_KOSUL_01 ana uyarı panelinin en üstünde sabit.
  * Yalnız "Tamam" ile kapanır; kapatan kişi + saat kartta/geçmişte. Süre, kaydırma ya da koşulun düzelmesi kapatmaz
  * (düzelirse metin "Durum düzeldi"). Kart eklenip kalkınca ekran kaymaz. Metinlerde Hz yok.
  * EK12: listedeki uyarıların İLK oluşumu ve "[Kişi] kontrol etti, kapattı" olayı tüm ekibe (Supabase ekip_bildirim).
@@ -10,7 +10,7 @@
   var SABIT = { ogul_ani: 0, piping: 1, quacking: 2, ALARM_ARILIK_KOSUL_01: 3 };
   var AD = {
     ogul_ani: ['Oğul Anı Sesi (Swarming)', 'Kovanda Oğul Anı Sesi (Swarming) algılandı. Hemen kovanı kontrol et.'],
-    piping: ['Ana Arı Ötmesi (Piping)', 'Ana Arı Ötmesi (Piping) algılandı. Oğul hazırlığı olabilir, kovanı kontrol et.'],
+    piping: ['Ana Arılar Ötmesi (Piping)', 'Çıkmış Ana Ötmesi (Tooting) ve Vakvaklama (Quacking) birlikte duyuldu. Art oğul çok yakın, kovanı hemen kontrol et.'],
     quacking: ['Vakvaklama (Quacking)', 'Yüksükte bakire ana sesi algılandı. İkinci oğul riski, kovanı kontrol et.'],
     ALARM_ARILIK_KOSUL_01: ['Arılık koşulları değişti', 'Bu arılığın koşulları değişti. Kontrol et.'],
     ogul_yuksugu: ['Muayenede oğul yüksüğü', 'Muayenede oğul yüksüğü görüldü. Oğul önlemini planla.'],
@@ -79,7 +79,7 @@
   /** Ses kuralı sonucu → kritik kartlar. so: sensorOrs çıktısı ({ piping, quack, ogulAni, isciOtme }) */
   function sesten(hiveId, so, apiaryId) {
     if (!so) return; var h = String(hiveId);
-    [['ogul_ani', so.ogulAni], ['piping', so.piping], ['quacking', so.quack], ['isci_otme_artis', so.isciOtme]].forEach(function (p) {
+    [['ogul_ani', so.ogulAni], ['piping', !!(so.quack && so.quackYuksek)], ['quacking', false], ['isci_otme_artis', so.isciOtme]] /* k174: sabit kritik kart yalnız Tooting+Quacking birlikte; tek başına Tooting/Quacking alt seviye uyarı */.forEach(function (p) {
       if (p[1]) ac({ kod: p[0], anahtar: h, hiveId: hiveId, apiaryId: apiaryId }); else iyilesti(p[0], h);
     });
   }

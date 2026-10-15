@@ -9,8 +9,8 @@ const C=load();
 assert.strictEqual(C.SWARM_LEVELS.map(l=>l.key).join(','),'dusuk,orta,yuksek,kritik');
 assert.strictEqual(C.swarmLevelOf(34.9).label,'Düşük');assert.strictEqual(C.swarmLevelOf(35).label,'Orta');assert.strictEqual(C.swarmLevelOf(70).label,'Yüksek');assert.strictEqual(C.swarmLevelOf(100).label,'Yüksek');
 /* 2) şablonlar */
-['ALARM_KRITIK_PIP_01','ALARM_KRITIK_SW_01','ALARM_YUKSEK_SCORE_01','ALARM_YUKSEK_WORK_01','ALARM_YUKSEK_COMB_01','ALARM_ORTA_TREND_01','ALARM_ORTA_QUACK_01','ALARM_AYRI_QUEENLESS_01'].forEach(c=>assert.ok(dd.includes("'"+c+"'"),c));
-assert.ok(dd.includes("'🚨 KRİTİK: Ana Arı Ötüyor!")&&dd.includes("'🚨 ACİL: Oğul Çıkıyor!")&&dd.includes("'💔 UYARI: Anasızlık Şüphesi'"));
+['ALARM_KRITIK_PIP_01','ALARM_KRITIK_SW_01','ALARM_YUKSEK_SCORE_01','ALARM_YUKSEK_WORK_01','ALARM_YUKSEK_TOOT_01','ALARM_ORTA_TREND_01','ALARM_ORTA_QUACK_01','ALARM_AYRI_QUEENLESS_01'].forEach(c=>assert.ok(dd.includes("'"+c+"'"),c));
+assert.ok(dd.includes("'🚨 KRİTİK: Ana Arılar Ötmesi (Piping) (")&&dd.includes("'🚨 ACİL: Oğul Çıkıyor!")&&dd.includes("'💔 UYARI: Anasızlık Şüphesi'"));
 assert.ok(/'kra-ses-pip-', 'ALARM_KRITIK_PIP_01', 'critical'/.test(dd)&&/'kra-ses-ogulani-', 'ALARM_KRITIK_SW_01', 'critical'/.test(dd)&&/ALARM_YUKSEK_WORK_01', 'high'/.test(dd)&&/ALARM_ORTA_QUACK_01', 'medium'/.test(dd));
 /* 3) tekrarlar */
 assert.ok(!dd.includes('kra-ses-anasiz2-')&&!dd.includes("'kra-ses-anasiz-'"));
