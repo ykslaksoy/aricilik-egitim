@@ -1,825 +1,143 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ayarlar · SüperArı</title>
-  <link rel="stylesheet" href="panels.css" />
-  <style>
-    .mode-seg {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    }
-    .mode-seg-btn {
-      font: inherit; font-weight: 800; font-size: 14px;
-      padding: 12px 10px; border-radius: 12px; cursor: pointer;
-      border: 1.5px solid #d8c48a; background: #fff; color: #5c4a2a;
-    }
-    .mode-seg-btn.active {
-      background: linear-gradient(180deg, #fff6df 0%, #f5e6b8 100%);
-      border-color: #c9a84a; color: #3d2e12;
-      box-shadow: 0 1px 0 rgba(0,0,0,.04);
-    }
-    .arilik-ayarlari details {
-      border: 1px solid #e8c4bc; border-radius: 12px; background: #fdf8f6;
-      padding: 0;
-    }
-    .arilik-ayarlari summary {
-      cursor: pointer; list-style: none; padding: 12px 14px;
-      font-size: 13px; font-weight: 750; color: #6a3a2a;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .arilik-ayarlari summary::-webkit-details-marker { display: none; }
-    .arilik-ayarlari summary::after {
-      content: ' ›'; font-weight: 800; opacity: .55;
-    }
-    .arilik-ayarlari details[open] summary::after { content: ' ˅'; }
-    .arilik-ayarlari .danger-wrap {
-      padding: 0 12px 12px; display: grid; gap: 8px;
-    }
-    .arilik-ayarlari .danger-hint {
-      margin: 0; font-size: 11px; font-weight: 600; color: #8a6a5a; line-height: 1.4;
-    }
-    .arilik-ayarlari .apiary-del-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 10px;
-      padding: 10px 11px; border-radius: 10px; background: #fff;
-      border: 1px solid #ecd5ce;
-    }
-    .arilik-ayarlari .apiary-del-meta {
-      font-size: 13px; font-weight: 700; color: #3a2a22; line-height: 1.3;
-    }
-    .arilik-ayarlari .apiary-del-meta span {
-      display: block; font-size: 11px; font-weight: 600; color: #8a7358; margin-top: 2px;
-    }
-    .arilik-ayarlari .btn-del-apiary {
-      flex: 0 0 auto; padding: 8px 12px; border-radius: 10px;
-      border: 1px solid #e8c4bc; background: #fdf3f0; color: #8a3b2a;
-      font: inherit; font-size: 12px; font-weight: 750; cursor: pointer;
-    }
-    .arilik-ayarlari .btn-del-apiary:active { background: #f8e6e0; }
-    .arilik-ayarlari .empty-del {
-      margin: 0; font-size: 12px; font-weight: 650; color: #8a7358;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Ayarlar · SüperArı</title>
+<link rel="stylesheet" href="panels.css" />
+<style>
+  body { background:#f6efe2; margin:0; font-family:-apple-system,system-ui,sans-serif; color:#2b2116; overflow-anchor:none; }
+  .wrap { max-width:560px; margin:0 auto; padding:56px 14px 110px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; } .sub { color:#7a6650; font-size:.9rem; margin:0 0 14px; }
+  .rol-seg { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0 0 14px; }
+  .rol-seg button { font:inherit; font-weight:800; padding:10px 6px; border-radius:12px; border:1.5px solid #d8c48a; background:#fff; color:#5c4a2a; }
+  .rol-seg button.on { background:linear-gradient(180deg,#fff6df,#f5e6b8); border-color:#c9a84a; }
+  .ak { background:#fff; border-radius:16px; box-shadow:0 1px 3px rgba(60,40,10,.08); overflow:hidden; }
+  .ak-i + .ak-i { border-top:1px solid #efe4cf; }
+  .ak-h { display:flex; align-items:center; gap:12px; width:100%; min-height:58px; padding:10px 14px; border:0; background:none; font:inherit; text-align:left; cursor:pointer; color:inherit; }
+  .ak-ic { width:34px; height:34px; border-radius:10px; background:#fbf1d9; display:grid; place-items:center; font-size:18px; flex:none; }
+  .ak-t { flex:1; min-width:0; } .ak-t b { display:block; font-size:1rem; } .ak-t span { display:block; font-size:.82rem; color:#7a6650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ak-ok { color:#b39a6a; font-size:18px; transition:transform .15s; } .ak-i.acik .ak-ok { transform:rotate(90deg); }
+  .ak-b { padding:4px 14px 14px 60px; } .ak-b[hidden] { display:none; }
+  .sat { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px dashed #efe4cf; }
+  .sat:last-child { border-bottom:0; }
+  .sat label { flex:1; } select, input[type=text], input[type=email], input[type=password] { font:inherit; padding:8px 10px; border:1.5px solid #e1d3b5; border-radius:10px; background:#fffdf8; max-width:100%; }
+  .btn { font:inherit; font-weight:800; padding:9px 14px; border-radius:12px; border:0; background:#c98a12; color:#fff; cursor:pointer; }
+  .btn.ikincil { background:#fff; color:#5c4a2a; border:1.5px solid #d8c48a; }
+  .uyari { background:#fff4d6; border:1.5px solid #e8c25a; border-radius:12px; padding:10px 12px; margin:0 0 12px; font-weight:600; }
+  .uye { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed #efe4cf; } .uye:last-child { border-bottom:0; }
+  .uye { flex-wrap:wrap; } .uye .ad { flex:1 1 200px; min-width:0; } .uye .ad small { display:block; color:#7a6650; }
+  .rozet { font-size:.75rem; font-weight:800; padding:2px 8px; border-radius:99px; background:#f1e6c9; }
+  .kapat { position:fixed; top:calc(env(safe-area-inset-top, 0px) + 10px); right:10px; z-index:50; width:44px; height:44px; border-radius:50%; border:1.5px solid #e1d3b5; background:#fff; color:#5c4a2a; font-size:20px; font-weight:800; line-height:1; display:grid; place-items:center; cursor:pointer; box-shadow:0 1px 3px rgba(60,40,10,.12); padding:0; }
+  .toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#2b2116; color:#fff; padding:8px 16px; border-radius:99px; font-weight:700; pointer-events:none; opacity:0; transition:opacity .2s; }
+  .toast.on { opacity:1; }
+  .onz { font-size:.75rem; font-weight:800; color:#8a5a00; background:#fff0c2; border-radius:8px; padding:2px 8px; margin-left:6px; }
+  .sw { position:relative; width:46px; height:28px; flex:none; } .sw input { opacity:0; width:0; height:0; }
+  .sw span { position:absolute; inset:0; background:#d9cdb4; border-radius:99px; transition:.15s; } .sw span:before { content:""; position:absolute; width:22px; height:22px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; }
+  .sw input:checked + span { background:#3c8d4a; } .sw input:checked + span:before { transform:translateX(18px); }
+</style>
 </head>
-<body class="auth-body" data-tabbar="fixed">
-  <div class="auth-phone">
-    <div class="hardal-rail" aria-hidden="true"></div>
-    <div class="nav">
-      <a class="chip" href="ana.html" id="nav-ana">← Ana</a>
-      <a class="chip" href="arici.html">Arıcı</a>
-      <a class="chip" href="yonetici.html">Yönetici</a>
-      <a class="chip" href="bakici.html">Bakıcı</a>
-    </div>
-    <div class="brand">
-      <div class="brand-badge">🐝</div>
-      <div>
-        <h1>SüperArı</h1>
-        <p>Hesap ayarları</p>
-      </div>
-    </div>
-
-
-    <section class="auth-card" id="calisma-modu">
-      <div class="settings-head">
-        <div>
-          <h2>Çalışma modu</h2>
-          <p class="sub">Demo örnek veri; Canlı tak–çalıştır.</p>
-        </div>
-      </div>
-      <div class="stack" id="mode-panel">
-        <div class="mode-seg" role="group" aria-label="Çalışma modu">
-          <button type="button" class="mode-seg-btn" id="btn-mode-demo" data-mode="demo">Demo</button>
-          <button type="button" class="mode-seg-btn" id="btn-mode-live" data-mode="live">Canlı</button>
-        </div>
-        <p class="hint-inline" id="mode-help">Demo: örnek veri. Canlı: tak–çalıştır; yoksa Yok, kopunca Kopuk, bozuksa Arızalı.</p>
-        <div id="mode-toast" class="form-alert" hidden></div>
-      </div>
-    </section>
-
-    <section class="auth-card" id="cihaz">
-      <div class="settings-head">
-        <div>
-          <h2>Cihazlar</h2>
-          <p class="sub">Tak–çalıştır; elle kayıt nadirdir.</p>
-        </div>
-        <a class="chip" href="cihazlar.html" style="text-decoration:none">Cihazlar</a>
-      </div>
-      <div class="stack" id="cihaz-panel">
-        <button class="btn secondary" type="button" id="btn-cihaz-ekle">Elle kayıt (nadir / test)</button>
-        <div id="cihaz-form-wrap" hidden>
-          <form class="stack" id="cihaz-form">
-            <label>Cihaz tipi
-              <select id="cihaz-tip" name="tip" required>
-                <option value="tarti">Tartı</option>
-                <option value="isi_nem">Sıcaklık/Nem</option>
-                <option value="ir">IR</option>
-                <option value="ses">Ses (mikrofon)</option>
-                <option value="titresim">Titreşim (ivmeölçer)</option>
-                <option value="gateway">Gateway (Wi‑Fi / hücresel)</option>
-                <option value="kamera_arilik">Arılık kamerası</option>
-                <option value="kamera_kovan">Kovan kamerası (isteğe bağlı)</option>
-                <option value="role_hub">Wireless röle / hub</option>
-                <option value="aku_kovan">Kovan bataryası (%, şarj)</option>
-                <option value="aku_merkez">Gateway bataryası (%, şarj)</option>
-                <option value="dis_isi_nem">Merkezi ısı / nem (dış ortam)</option>
-              </select>
-            </label>
-            <label id="cihaz-hedef-label">Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
-              <select id="cihaz-kovan" name="hiveId">
-                <option value="">— Seçilmedi —</option>
-              </select>
-            </label>
-            <p class="hint-inline" id="cihaz-kamera-hint" hidden>Arılık kamerası arılığa; kovan kamerası isteğe bağlıdır — olmadan da sistem çalışır.</p>
-            <button class="btn" type="submit">Kaydet (elle)</button>
-            <button class="btn secondary" type="button" id="btn-cihaz-iptal">İptal</button>
-          </form>
-        </div>
-        <div id="cihaz-toast" class="form-alert" hidden></div>
-        <div id="cihaz-list" class="stack" style="gap:.5rem"></div>
-        <p class="hint-inline">Asıl yol: cihazlar otomatik tanınır. Elle kayıt yalnızca test / nadir durumlar içindir. · <a href="cihazlar.html">Cihazlar listesi</a></p>
-        <div class="stack" id="battery-low-panel" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid #e8dcc6">
-          <h3 style="margin:0;font-size:1rem">Düşük pil uyarısı</h3>
-          <p class="hint-inline" style="margin:0">Cihaz kartlarında «Düşük pil» rozeti bu eşiğin altında gösterilir (varsayılan %20).</p>
-          <label>Arılık (boş = tüm arılıklar için genel)
-            <select id="battery-low-apiary">
-              <option value="">Genel (tüm arılıklar)</option>
-            </select>
-          </label>
-          <label>Eşik (%)
-            <input type="number" id="battery-low-pct" min="5" max="50" step="1" value="20" inputmode="numeric">
-          </label>
-          <button class="btn secondary" type="button" id="btn-battery-low-save">Eşiği kaydet</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="auth-card" id="bulut">
-      <div class="settings-head">
-        <div>
-          <h2>Hesap ve bulut</h2>
-          <p class="sub" id="bulut-status">Denetleniyor…</p>
-        </div>
-      </div>
-      <a class="btn secondary" href="hesap.html" id="lnk-hesap" style="text-decoration:none;text-align:center;">☁️ Hesap ve bulut</a>
-      <a class="btn secondary" href="sartlar.html?geri=ayarlar.html" id="lnk-sartlar" style="text-decoration:none;text-align:center;margin-top:.5rem;">🔒 Kullanım şartları ve KVKK</a>
-    </section>
-
-    <section class="auth-card" id="araclar">
-      <div class="settings-head">
-        <div>
-          <h2>Araçlar</h2>
-          <p class="sub">Malzeme stoku, çevrimdışı kullanım ve uygulama ayarları.</p>
-        </div>
-      </div>
-      <div class="stack" id="araclar-panel">
-        <a class="btn secondary" href="stok.html" id="lnk-stok" style="text-decoration:none;text-align:center;">📦 Malzeme stoku <span id="stok-az" class="muted" style="font-weight:600"></span></a>
-        <div id="bal-agirlik-mount"></div>
-        <div id="pwa-box" style="display:grid;gap:.45rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
-          <strong style="font-size:.95rem;">📲 Uygulama ve çevrimdışı kullanım</strong>
-          <p class="muted" id="pwa-status" style="margin:0;font-size:.85rem;line-height:1.4;"></p>
-          <button class="btn" type="button" id="btn-pwa-install" hidden>📲 Ana ekrana ekle</button>
-          <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Uygulama bir kez internetle açıldıktan sonra internet olmadan da açılır; kayıtlar bu cihaza yazılır. Hava durumu ve sesle yazma için internet gerekir; harita için bölgenizi aşağıdan telefona indirin.</p>
-        </div>
-        <div id="harita-box" style="display:grid;gap:.45rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
-          <strong style="font-size:.95rem;">🗺 Haritaları telefona indir</strong>
-          <p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Arılıklarınızın bulunduğu bölgenin uydu ve yol haritasını indirin; dağda, köyde internet yokken de harita, arılık ve öneri pinleri görünür.</p>
-          <div id="harita-list" style="display:grid;gap:.4rem;min-width:0;"></div>
-        </div>
-        <div id="notif-box" style="display:grid;gap:.45rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
-          <strong style="font-size:.95rem;">🔔 Görev bildirimleri</strong>
-          <p class="muted" id="notif-status" style="margin:0;font-size:.85rem;line-height:1.4;"></p>
-          <div style="display:flex;flex-wrap:wrap;gap:.45rem;">
-            <button class="btn" type="button" id="btn-notif-on">🔔 Bildirimleri aç</button>
-            <button class="btn secondary" type="button" id="btn-notif-off" hidden>Bildirimleri kapat</button>
-            <button class="btn secondary" type="button" id="btn-notif-test" hidden>Deneme bildirimi</button>
-          </div>
-          <p class="muted" style="margin:0;font-size:.78rem;line-height:1.4;">Önemli: Sunucu olmadığı için bildirimler yalnız uygulama açıldığında ve açıkken (yaklaşık 30 dakikada bir) denetlenir; uygulama kapalıyken bildirim gelmez. iPhone / iPad'de bildirim için uygulamayı önce ana ekrana ekleyin (iOS 16.4+) ve oradan açın.</p>
-        </div>
-        <div id="ses-box" style="display:grid;gap:.5rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
-          <strong style="font-size:.95rem;">🔊 Ses seçimi (sesli mod)</strong>
-          <p class="muted" style="margin:0;font-size:.82rem;line-height:1.4;">Sesli muayenede ve öneri kartlarında okunacak Türkçe ses. ▶ ile dinleyin, beğendiğinizi seçin. Ses bu cihazda saklanır (her telefonun sesleri farklıdır).</p>
-          <div id="ses-list" style="display:grid;gap:.4rem;min-width:0;"></div>
-          <div style="display:grid;gap:.3rem;"><span style="font-size:.85rem;font-weight:700;">Konuşma hızı</span>
-            <div id="ses-hiz" role="group" aria-label="Konuşma hızı" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="auth-card" id="arilik-ozet">
-      <div class="settings-head"><div><h2>Arılık özeti</h2><p class="sub">Ekip, cihazlar, güvenlik, harita ve sezon — bu cihazdaki kayıtlardan, internetsiz de çalışır.</p></div></div>
-      <div class="stack">
-        <h3 style="margin:0;font-size:1rem">👥 Ekip ve görev atama</h3><div id="oz-ekip" class="stack" style="gap:.4rem"></div>
-        <h3 style="margin:.5rem 0 0;font-size:1rem">📡 Cihaz sağlığı</h3><div id="oz-cihaz"></div>
-        <h3 style="margin:.5rem 0 0;font-size:1rem">🚨 İzinsiz taşınma / açılma</h3><div id="oz-izinsiz"></div>
-        <h3 style="margin:.5rem 0 0;font-size:1rem">🗺 Arılık haritası</h3><div id="oz-harita"></div>
-        <h3 style="margin:.5rem 0 0;font-size:1rem">📊 Sezon sonu raporu</h3><div id="oz-sezon"></div>
-      </div>
-    </section>
-
-    <section class="auth-card">
-      <div class="settings-head">
-        <div>
-          <h2>Hesap ayarları</h2>
-          <p class="sub" id="account-summary">Profil bilgilerinizi güncelleyin.</p>
-        </div>
-        <span class="verified-badge wait" id="verify-badge">Doğrulanmadı</span>
-      </div>
-
-      <form class="stack" id="ayarlar-form">
-        <label>Arıcılık adı
-          <input id="aricilik-adi" name="aricilikAdi" placeholder="Örn. Hardal Arıcılık" />
-        </label>
-        <label>Ad soyadı
-          <input id="account-name" name="name" autocomplete="name" placeholder="Adınız Soyadınız" />
-        </label>
-        <label>Bildirim e-postası
-          <input type="email" id="notif-email" name="notifEmail" placeholder="ornek@mail.com" />
-        </label>
-        <label>Telefon <span class="muted" style="font-weight:500">(isteğe bağlı)</span>
-          <input type="tel" id="account-phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="05xx xxx xx xx" />
-        </label>
-        <label>Dil
-          <input value="Türkçe" readonly />
-        </label>
-        <label>Hesap tipi
-          <select id="hesap-tipi" name="hesapTipi">
-            <option value="arici">Arıcı</option>
-            <option value="yonetici">Yönetici</option>
-            <option value="bakici">Bakıcı</option>
-          </select>
-        </label>
-        <p class="hint-inline" id="hesap-hint">
-          Uygulama seçilen hesaba göre açılır. Demo: Yönetici seçilebilir; gerçek kimlik doğrulama sonra kilitleyecek.
-        </p>
-        <button class="btn" type="submit">Kaydet</button>
-        <a class="btn secondary" href="giris.html" id="btn-logout">Çıkış yap</a>
-      </form>
-    </section>
-
-    <section class="auth-card arilik-ayarlari" id="arilik-ayarlari">
-      <div class="settings-head">
-        <div>
-          <h2>Arılık ayarları</h2>
-          <p class="sub">Nadir kullanılan işlemler — arılık silme burada.</p>
-        </div>
-      </div>
-      <details id="arilik-danger-details">
-        <summary>Gelişmiş · arılık silme</summary>
-        <div class="danger-wrap">
-          <p class="danger-hint">Arılık ve kovanlar silinir. Masraflar Giderler’de kalır. Bu işlem geri alınamaz — onay + yönetici anahtarı ister.</p>
-          <div id="arilik-delete-list" class="stack" style="gap:.5rem"></div>
-        </div>
-      </details>
-    </section>
-  </div>
-  <script src="bal-agirlik.js?v=koloni-161"></script>
-  <script src="demo-data.js?v=koloni-161"></script>
-  <script src="device-runtime.js?v=koloni-161"></script>
-  <script src="sensor-polling.js?v=koloni-161"></script>
-  <script>
-  (function () {
-    var B = window.SuperAriBalAgirlik, mount = document.getElementById('bal-agirlik-mount');
-    if (B && mount) {
-      mount.innerHTML = B.settingsPanelHtml();
-      B.wireSettingsPanel(document);
-    }
-  })();
-  </script>
-  <script>
-  (function () {
-    try {
-      var S = window.SuperAriDemo && window.SuperAriDemo.stock;
-      if (!S) return;
-      var low = S.list().filter(function (x) { return x.low; }).length;
-      var el = document.getElementById('stok-az');
-      if (el && low) el.textContent = '· ' + low + ' kalem azaldı';
-    } catch (e) { /* ignore */ }
-  })();
-  </script>
-  <script src="panels.js"></script>
-  <script>
-    (function () {
-      var H = window.SuperAriHesap;
-      if (!H) return;
-      var sel = document.getElementById('hesap-tipi');
-      var navAna = document.getElementById('nav-ana');
-      var notif = document.getElementById('notif-email');
-      var arilik = document.getElementById('aricilik-adi');
-      var nameEl = document.getElementById('account-name');
-      var phoneEl = document.getElementById('account-phone');
-      var badge = document.getElementById('verify-badge');
-      var summary = document.getElementById('account-summary');
-      var form = document.getElementById('ayarlar-form');
-      var logout = document.getElementById('btn-logout');
-
-      function refresh() {
-        var current = H.get();
-        sel.value = current;
-        if (navAna) navAna.href = H.homeFor(current);
-        var acc = H.getAccount() || {};
-        if (notif) notif.value = acc.notifEmail || acc.email || '';
-        if (arilik) arilik.value = acc.aricilikAdi || '';
-        if (nameEl) nameEl.value = acc.name || '';
-        if (phoneEl) phoneEl.value = acc.phone || '';
-        if (badge) {
-          if (acc.verified) {
-            badge.textContent = '✓ Doğrulandı';
-            badge.className = 'verified-badge';
-          } else {
-            badge.textContent = 'Doğrulanmadı';
-            badge.className = 'verified-badge wait';
-          }
-        }
-        if (summary) {
-          var parts = [];
-          if (acc.name) parts.push(acc.name);
-          if (acc.email) parts.push(acc.email);
-          summary.textContent = parts.length
-            ? parts.join(' · ')
-            : 'Profil bilgilerinizi güncelleyin.';
-        }
-      }
-
-      refresh();
-
-      sel.addEventListener('change', function () {
-        var next = H.normalize(sel.value);
-        var prev = H.get();
-        if (next === 'yonetici' && prev !== 'yonetici') {
-          var ok = window.confirm(
-            'Yönetici hesabı tüm yönetim ekranlarını (Kullanıcılar vb.) açar.\n\n' +
-            'Demo amaçlıdır — gerçek kimlik doğrulama sonra bunu kilitleyecek.\n\nDevam edilsin mi?'
-          );
-          if (!ok) {
-            sel.value = prev;
-            return;
-          }
-        }
-        H.set(next);
-        if (navAna) navAna.href = H.homeFor(next);
-        var home = H.homeFor(next);
-        var label = H.labelFor(next);
-        var reopen = window.confirm(
-          'Hesap tipi «' + label + '» olarak kaydedildi.\n\n' +
-          'Eşleşen ana sayfayı şimdi açmak ister misiniz?\n(' + home + ')'
-        );
-        if (reopen) H.goHome(next);
-      });
-
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        H.updateAccount({
-          name: (nameEl && nameEl.value) || '',
-          phone: (phoneEl && phoneEl.value) || '',
-          notifEmail: (notif && notif.value) || '',
-          aricilikAdi: (arilik && arilik.value) || '',
-          hesapTipi: sel.value
-        });
-        refresh();
-        try {
-          var tip = document.createElement('p');
-          tip.className = 'form-alert';
-          tip.textContent = 'Ayarlar kaydedildi.';
-          tip.setAttribute('data-form-error', '1');
-          var old = form.querySelector('[data-form-error]');
-          if (old) old.remove();
-          form.insertBefore(tip, form.firstChild);
-          setTimeout(function () { if (tip.parentNode) tip.remove(); }, 2200);
-        } catch (err) { /* ignore */ }
-      });
-
-      if (logout) {
-        logout.addEventListener('click', function () {
-          H.logout();
-        });
-      }
-    })();
-  </script>
-
-
-  <script>
-    (function () {
-      var Dev = window.SuperAriDevices;
-      if (!Dev) return;
-      var btnDemo = document.getElementById('btn-mode-demo');
-      var btnLive = document.getElementById('btn-mode-live');
-      var toastEl = document.getElementById('mode-toast');
-      function showToast(msg) {
-        if (!toastEl) return;
-        toastEl.hidden = false;
-        toastEl.textContent = msg;
-        clearTimeout(showToast._t);
-        showToast._t = setTimeout(function () {
-          toastEl.hidden = true;
-          toastEl.textContent = '';
-        }, 2600);
-      }
-      function paint() {
-        var m = Dev.getMode();
-        if (btnDemo) btnDemo.classList.toggle('active', m === 'demo');
-        if (btnLive) btnLive.classList.toggle('active', m === 'live');
-      }
-      function set(mode) {
-        Dev.setMode(mode);
-        paint();
-        if (Dev.syncDemoBanner) Dev.syncDemoBanner();
-        showToast(mode === 'live'
-          ? 'Canlı mod: tak–çalıştır; yoksa Yok.'
-          : 'Demo mod: sabit örnek veri (kullanıcı kayıtları karışmaz).');
-      }
-      paint();
-      if (btnDemo) btnDemo.addEventListener('click', function () { set('demo'); });
-      if (btnLive) btnLive.addEventListener('click', function () { set('live'); });
-    })();
-  </script>
-  <script>
-    (function () {
-      var KEY = 'superari.devices';
-      var tipLabels = {
-        tarti: 'Tartı',
-        isi_nem: 'Sıcaklık/Nem',
-        ir: 'IR',
-        ses: 'Ses (mikrofon)',
-        titresim: 'Titreşim (ivmeölçer)',
-        ses_titresim: 'Ses (mikrofon)',
-        gateway: 'Gateway (Wi‑Fi / hücresel)',
-        kamera_arilik: 'Arılık kamerası',
-        kamera_merkez: 'Arılık kamerası',
-        kamera_kovan: 'Kovan kamerası',
-        role_hub: 'Wireless röle / hub',
-    aku_kovan: 'Kovan bataryası',
-    aku_merkez: 'Gateway bataryası',
-    dis_isi_nem: 'Merkezi ısı / nem'
-      };
-      var formWrap = document.getElementById('cihaz-form-wrap');
-      var form = document.getElementById('cihaz-form');
-      var btnAdd = document.getElementById('btn-cihaz-ekle');
-      var btnCancel = document.getElementById('btn-cihaz-iptal');
-      var tipEl = document.getElementById('cihaz-tip');
-      var hiveEl = document.getElementById('cihaz-kovan');
-      var listEl = document.getElementById('cihaz-list');
-      var toastEl = document.getElementById('cihaz-toast');
-      var D = window.SuperAriDemo;
-
-      function loadDevices() {
-        try {
-          var raw = localStorage.getItem(KEY);
-          var arr = raw ? JSON.parse(raw) : [];
-          return Array.isArray(arr) ? arr : [];
-        } catch (e) { return []; }
-      }
-      function saveDevices(arr) {
-        try { localStorage.setItem(KEY, JSON.stringify(arr)); } catch (e) { /* ignore */ }
-      }
-      function showToast(msg) {
-        if (!toastEl) return;
-        toastEl.hidden = false;
-        toastEl.textContent = msg;
-        clearTimeout(showToast._t);
-        showToast._t = setTimeout(function () {
-          toastEl.hidden = true;
-          toastEl.textContent = '';
-        }, 2800);
-      }
-      function hiveName(id) {
-        if (!id || !D || !D.hiveById) return '';
-        var h = D.hiveById(id);
-        return h ? (h.name || ('Kovan ' + id)) : ('Kovan ' + id);
-      }
-      function renderList() {
-        if (!listEl) return;
-        var list = loadDevices();
-        var DevR = window.SuperAriDevices;
-        var modeNote = (DevR && DevR.isDemo && DevR.isDemo())
-          ? '<p class="muted" style="margin:0 0 .4rem">Elle kayıt Canlı moda aittir; Demo listesi ayrıdır.</p>'
-          : '';
-        if (!list.length) {
-          listEl.innerHTML = modeNote + '<p class="muted" style="margin:0">Elle kayıt yok · asıl yol otomatik tanıma.</p>';
-          return;
-        }
-        listEl.innerHTML = modeNote + list.map(function (d) {
-          var tip = tipLabels[d.tip] || d.tip || 'Cihaz';
-          var where = '';
-          if (d.apiaryId) where = ' · ' + apiaryName(d.apiaryId);
-          else if (d.hiveId) where = ' · ' + hiveName(d.hiveId);
-          return '<div class="note" style="margin:0">' +
-            '<strong>' + tip + '</strong>' + where +
-            (d.at ? (' · ' + new Date(d.at).toLocaleString('tr-TR')) : '') +
-            '</div>';
-        }).join('');
-      }
-      function apiaryName(id) {
-        if (!id || !D || !D.apiaryById) return '';
-        var a = D.apiaryById(id);
-        return a ? (a.place || a.name || id) : String(id);
-      }
-      function isApiaryTip(tip) {
-        return tip === 'kamera_arilik' || tip === 'kamera_merkez' ||
-          tip === 'gateway' || tip === 'role_hub' || tip === 'aku_merkez' || tip === 'dis_isi_nem';
-      }
-      var hedefLabel = document.getElementById('cihaz-hedef-label');
-      var kameraHint = document.getElementById('cihaz-kamera-hint');
-      function fillTargetOptions() {
-        if (!hiveEl || !D) return;
-        var tip = (tipEl && tipEl.value) || 'tarti';
-        var opts = '<option value="">— Seçilmedi —</option>';
-        if (isApiaryTip(tip) && D.loadApiaries) {
-          if (hedefLabel) hedefLabel.innerHTML = 'Arılık <span class="muted" style="font-weight:500">(isteğe bağlı)</span>';
-          if (kameraHint) kameraHint.hidden = (tip !== 'kamera_arilik' && tip !== 'kamera_merkez');
-          D.loadApiaries().forEach(function (a) {
-            opts += '<option value="' + a.id + '">' + (a.place || a.name || a.id) + '</option>';
-          });
-        } else {
-          if (hedefLabel) hedefLabel.innerHTML = 'Kovan <span class="muted" style="font-weight:500">(isteğe bağlı)</span>';
-          if (kameraHint) kameraHint.hidden = tip !== 'kamera_kovan';
-          if (D.loadHives) {
-            D.loadHives().forEach(function (h) {
-              opts += '<option value="' + h.id + '">' + (h.name || ('Kovan ' + h.id)) + '</option>';
-            });
-          }
-        }
-        hiveEl.innerHTML = opts;
-      }
-      function openForm() {
-        if (formWrap) formWrap.hidden = false;
-        if (btnAdd) btnAdd.hidden = true;
-        fillTargetOptions();
-      }
-      function closeForm() {
-        if (formWrap) formWrap.hidden = true;
-        if (btnAdd) btnAdd.hidden = false;
-        if (form) form.reset();
-        fillTargetOptions();
-      }
-
-      fillTargetOptions();
-      renderList();
-
-      if (tipEl) tipEl.addEventListener('change', fillTargetOptions);
-      if (btnAdd) btnAdd.addEventListener('click', openForm);
-      if (btnCancel) btnCancel.addEventListener('click', closeForm);
-      if (form) {
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          var tip = (tipEl && tipEl.value) || 'tarti';
-          var raw = hiveEl && hiveEl.value ? hiveEl.value : '';
-          var list = loadDevices();
-          var row = { id: 'dev-' + Date.now(), tip: tip, at: new Date().toISOString() };
-          if (isApiaryTip(tip)) {
-            row.apiaryId = raw || null;
-            row.hiveId = null;
-          } else {
-            row.hiveId = raw ? Number(raw) : null;
-            row.apiaryId = null;
-          }
-          list.unshift(row);
-          saveDevices(list.slice(0, 50));
-          renderList();
-          closeForm();
-          showToast('Elle kayıt kaydedildi (nadir / test)');
-        });
-      }
-
-      /* Deep link: #cihaz or ?focus=cihaz */
-      function maybeFocus() {
-        var params = new URLSearchParams(location.search);
-        var focus = (params.get('focus') || '').toLowerCase();
-        var hash = (location.hash || '').replace(/^#/, '').toLowerCase();
-        if (focus === 'cihaz' || hash === 'cihaz') {
-          var sec = document.getElementById('cihaz');
-          if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          openForm();
-        }
-      }
-      maybeFocus();
-      window.addEventListener('hashchange', maybeFocus);
-    })();
-  </script>
-  <script>
-    (function () {
-      var P = window.SuperAriSensorPolling;
-      var D = window.SuperAriDemo;
-      var apEl = document.getElementById('battery-low-apiary');
-      var pctEl = document.getElementById('battery-low-pct');
-      var btn = document.getElementById('btn-battery-low-save');
-      if (!P || !pctEl || !btn) return;
-      function fillApiaries() {
-        if (!apEl || !D || !D.loadApiaries) return;
-        var cur = apEl.value;
-        apEl.innerHTML = '<option value="">Genel (tüm arılıklar)</option>' + (D.loadApiaries() || []).map(function (a) {
-          return '<option value="' + String(a.id).replace(/"/g, '&quot;') + '">' + (a.name || a.place || a.id) + '</option>';
-        }).join('');
-        if (cur) apEl.value = cur;
-      }
-      function paint() {
-        var ap = apEl ? apEl.value : '';
-        var v = P.getBatteryLowPct(ap || null);
-        pctEl.value = String(v);
-      }
-      fillApiaries();
-      paint();
-      if (apEl) apEl.addEventListener('change', paint);
-      btn.addEventListener('click', function () {
-        var ap = apEl ? apEl.value : '';
-        var n = Number(pctEl.value);
-        if (!P.setBatteryLowPct(n, ap || null)) {
-          alert('Geçerli bir eşik girin (%5–50).');
-          return;
-        }
-        paint();
-        alert(ap ? 'Arılık pil eşiği kaydedildi.' : 'Genel pil eşiği kaydedildi.');
-      });
-    })();
-  </script>
-  <script>
-    (function () {
-      var D = window.SuperAriDemo;
-      var listEl = document.getElementById('arilik-delete-list');
-      if (!D || !listEl) return;
-
-      function escapeHtml(s) {
-        return String(s)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;');
-      }
-
-      function labelOf(a) {
-        if (a.place && a.place !== '—') return a.place + ' · ' + (a.name || '');
-        return a.name || 'Arılık';
-      }
-
-      function render() {
-        var list = D.loadApiaries ? D.loadApiaries() : (D.apiaries || []);
-        if (!list.length) {
-          listEl.innerHTML = '<p class="empty-del">Silinecek arılık yok.</p>';
-          return;
-        }
-        listEl.innerHTML = list.map(function (a) {
-          var n = a.hiveCount != null ? a.hiveCount : (D.hivesForApiary ? D.hivesForApiary(a.id).length : 0);
-          return (
-            '<div class="apiary-del-row" data-id="' + escapeHtml(String(a.id)) + '">' +
-              '<div class="apiary-del-meta">' + escapeHtml(labelOf(a)) +
-                '<span>' + escapeHtml(String(n)) + ' kovan · ' + escapeHtml(String(a.id)) + '</span>' +
-              '</div>' +
-              '<button type="button" class="btn-del-apiary" data-id="' + escapeHtml(String(a.id)) + '">Sil</button>' +
-            '</div>'
-          );
-        }).join('');
-        listEl.querySelectorAll('.btn-del-apiary').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-            var id = btn.getAttribute('data-id');
-            var apiary = D.apiaryById ? D.apiaryById(id) : null;
-            if (!apiary && D.loadApiaries) {
-              apiary = (D.loadApiaries() || []).filter(function (x) { return String(x.id) === String(id); })[0];
-            }
-            if (!apiary) {
-              alert('Arılık bulunamadı.');
-              return;
-            }
-            var ok = window.confirm(
-              'Arılık ve kovanlar silinsin. Masraflar Giderler’de kalır.\n\n«' + labelOf(apiary) + '»'
-            );
-            if (!ok) return;
-            var H = window.SuperAriHesap;
-            if (!H || typeof H.promptAdminPassword !== 'function') {
-              alert('Yönetici doğrulaması yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
-              return;
-            }
-            var authed = H.promptAdminPassword({
-              message:
-                'Arılık silmek için yönetici anahtarı / şifre:\n(«' +
-                labelOf(apiary) +
-                '»)'
-            });
-            if (!authed) return;
-            if (typeof D.removeApiary !== 'function') {
-              alert('Silme desteklenmiyor. Sayfayı yenileyip tekrar deneyin.');
-              return;
-            }
-            D.removeApiary(apiary.id);
-            render();
-          });
-        });
-      }
-
-      render();
-
-      /* Deep link: #arilik-ayarlari opens the buried details */
-      function maybeOpenDanger() {
-        var hash = (location.hash || '').replace(/^#/, '').toLowerCase();
-        var params = new URLSearchParams(location.search);
-        var focus = (params.get('focus') || '').toLowerCase();
-        if (hash === 'arilik-ayarlari' || focus === 'arilik-ayarlari') {
-          var sec = document.getElementById('arilik-ayarlari');
-          var det = document.getElementById('arilik-danger-details');
-          if (det) det.open = true;
-          if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-      maybeOpenDanger();
-      window.addEventListener('hashchange', maybeOpenDanger);
-    })();
-  </script>
-<script src="harita-offline.js?v=koloni-161"></script>
-<script>try { SuperAriOfflineMap.renderSettings(document.getElementById('harita-list')); } catch (e) {}</script>
-<script src="sesle-muayene.js?v=koloni-161"></script>
+<body>
+<!-- id="saBack": nav.js otomatik Geri eklemez -->
+<button type="button" class="kapat" id="saBack" aria-label="Kapat" onclick="if (history.length > 1 && document.referrer) { history.back(); } else { location.href = 'ana.html'; }">✕</button>
+<main class="wrap">
+  <h1>Ayarlar</h1>
+  <p class="sub">Arıcının kendi seçtiği ayarlar. Değişiklik anında kaydedilir.</p>
+  <div id="onayUyari" class="uyari" hidden>E-postanı onayla. Gelen kutundaki bağlantıya dokun. <button type="button" class="btn ikincil" id="btnTekrar" style="margin-left:6px;">Tekrar gönder</button></div>
+  <div class="rol-seg" role="group" aria-label="Rolüm" id="rolSeg"><button type="button" data-rol="owner">Sahip</button><button type="button" data-rol="arici">Arıcı</button><button type="button" data-rol="bakici">Bakıcı</button></div>
+  <div class="ak" id="ak"></div>
+</main>
+<div class="toast" id="toast" role="status">Kaydedildi</div>
+<script src="demo-data.js?v=koloni-162"></script>
+<script src="device-runtime.js?v=koloni-162"></script>
+<script src="nav.js?v=koloni-162"></script>
+<script src="bulut.js?v=koloni-162"></script>
 <script>
-  /* Ayarlar › Ses seçimi: cihazdaki tr sesler, ▶ dinle, seçim + hız (sesle-muayene.js ile aynı anahtarlar) */
-  (function () {
-    var S = window.SuperAriSesle, box = document.getElementById('ses-box');
-    if (!box) return;
-    if (!S || !window.speechSynthesis) { document.getElementById('ses-list').innerHTML = '<p class="muted" style="margin:0;font-size:.85rem;">Bu tarayıcı sesli okumayı desteklemiyor.</p>'; return; }
-    function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-    var BTN = 'min-height:48px;border-radius:12px;border:1.5px solid #d8c4a4;background:#fff;font:inherit;font-size:.92rem;font-weight:700;color:#2a1a0e;cursor:pointer;';
-    function draw() {
-      /* kaynak bağımsız seçenekler (şimdilik cihaz sesleri; aile başına tek: Geliştirilmiş varsa o) */
-      var opts = S.voiceOptions(), saved = S.savedVoiceId(), best = opts[0], cur = saved ? S.currentOption(opts) : null;
-      var found = !!(cur && opts.indexOf(cur) >= 0);
-      var rows = '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:stretch;"><button type="button" data-ses-sel="" aria-pressed="' + !found + '" style="' + BTN + 'text-align:left;padding:.45rem .7rem;' + (!found ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (!found ? '✓ ' : '') + 'Otomatik' + (best ? '<small style="display:block;font-weight:600;color:#7a6048;">önerilen: ' + esc(best.nick) + '</small>' : '') + '</button>' +
-        '<button type="button" data-ses-play="auto" style="' + BTN + 'padding:0 .8rem;color:#1c5fa8;">▶ Dinle</button></div>';
-      rows += opts.map(function (o, i) {
-        var on = found && o === cur, tags = S.optionTags(o, best);
-        return '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.4rem;align-items:stretch;"><button type="button" data-ses-sel="' + i + '" aria-pressed="' + on + '" style="' + BTN + 'text-align:left;padding:.45rem .7rem;min-width:0;overflow-wrap:anywhere;' + (on ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (on ? '✓ ' : '') + esc(o.nick) +
-          (tags ? '<small style="display:block;font-weight:600;color:#7a6048;">' + esc(tags) + '</small>' : '') + '</button><button type="button" data-ses-play="' + i + '" style="' + BTN + 'padding:0 .8rem;color:#1c5fa8;">▶ Dinle</button></div>';
-      }).join('');
-      var PATH = S.ENH_PATH || 'Ayarlar › Erişilebilirlik › Sözlü İçerik › Sesler › Türkçe';
-      /* Konuşmada gerçekten kullanılan ses (her konuşmada yeniden çözülür: seçilen ailenin Premium > Gelişmiş > standart sürümü) */
-      var av = S.activeVoice ? S.activeVoice() : null;
-      if (!opts.length) rows += '<p class="muted" style="margin:0;font-size:.82rem;">Cihazda Türkçe ses bulunamadı; tarayıcının varsayılan sesi kullanılır. iPhone: ' + esc(PATH) + '’den Cem / Yelda (Gelişmiş) indirin.</p>';
-      else if (av && av.enhanced) rows += '<p id="ses-kullanilan" style="margin:0;font-size:.85rem;line-height:1.4;color:#2b8a3e;background:#ebfbee;border-radius:10px;padding:.45rem .6rem;font-weight:700;">✓ Kullanılan: ' + esc(av.nick) + ' — ' + esc(av.name) + '</p>';
-      else if (av && av.apple) rows += '<p id="ses-kullanilan" style="margin:0;font-size:.85rem;line-height:1.4;color:#8a4b00;background:#fff4e6;border-radius:10px;padding:.45rem .6rem;font-weight:700;">Kullanılan: ' + esc(av.nick) + ' — ' + esc(av.name) + ' (standart) · Gelişmiş sürüm yüklü değil.<span style="display:block;font-weight:600;margin-top:2px;">iPhone: ' + esc(PATH) + ' › ' + esc(av.family === 'cem' ? 'Cem' : (av.family === 'yelda' ? 'Yelda' : 'ses')) + ' › Gelişmiş sürümü indirin, sonra uygulamayı yeniden açın.</span></p>';
-      else if (av) rows += '<p id="ses-kullanilan" style="margin:0;font-size:.85rem;line-height:1.4;color:#5c4632;font-weight:700;">Kullanılan: ' + esc(av.nick) + ' — ' + esc(av.name) + '</p>';
-      if (opts.length && (!av || !av.apple || av.enhanced) && S.needEnhNote()) rows += '<p style="margin:0;font-size:.82rem;line-height:1.4;color:#1c4f80;background:#e7f5ff;border-radius:10px;padding:.45rem .6rem;">ℹ️ ' + esc(S.ENH_NOTE) + '</p>';
-      document.getElementById('ses-list').innerHTML = rows;
-      var rk = S.rateKey();
-      document.getElementById('ses-hiz').innerHTML = [['yavas', 'Yavaş'], ['normal', 'Normal'], ['hizli', 'Hızlı']].map(function (x) {
-        return '<button type="button" data-ses-hiz="' + x[0] + '" aria-pressed="' + (rk === x[0]) + '" style="' + BTN + (rk === x[0] ? 'border-color:#e56f1c;background:#fff1de;' : '') + '">' + (rk === x[0] ? '✓ ' : '') + x[1] + '</button>';
-      }).join('');
-      box._opts = opts;
-    }
-    box.addEventListener('click', function (e) {
-      var b = e.target.closest ? e.target.closest('button') : null; if (!b) return;
-      var opts = box._opts || [];
-      if (b.hasAttribute('data-ses-sel')) { var i = b.getAttribute('data-ses-sel'), o = i === '' ? null : opts[Number(i)]; S.setVoice(o ? o.id : ''); try { localStorage.setItem('superari.sesleSesSoruldu.v1', new Date().toISOString().slice(0, 10)); } catch (e2) {} draw(); S.speak(S.DEMO, { voice: o || opts[0] || null, noGate: true }); return; }
-      if (b.hasAttribute('data-ses-play')) { var p = b.getAttribute('data-ses-play'); S.speak(S.DEMO, { voice: p === 'auto' ? (opts[0] || null) : opts[Number(p)], noGate: true }); return; }
-      if (b.hasAttribute('data-ses-hiz')) { S.setRate(b.getAttribute('data-ses-hiz')); draw(); S.speak(S.DEMO, { noGate: true }); }
-    });
-    draw();
-    try { speechSynthesis.addEventListener('voiceschanged', draw); } catch (e) {}
-  })();
-</script>
-<script src="nav.js?v=koloni-161"></script>
-<script src="pwa.js?v=koloni-161"></script>
-<script src="bulut.js?v=koloni-161"></script>
-<script src="esikler.js?v=koloni-161"></script>
-<script src="ayarlar-arilik-ozet.js?v=koloni-161"></script>
-<script>
-  (function () {
-    var B = window.SuperAriBulut, el = document.getElementById('bulut-status');
-    if (!B || !el) return;
-    B.status().then(function (s) {
-      if (!s.enabled) { el.textContent = 'Bulut henüz bağlı değil. Kayıtlar yalnız bu cihazda saklanıyor.'; return; }
-      if (!s.loggedIn) { el.textContent = 'Bulut hazır · yedekleme ve ekip paylaşımı için giriş yapın.'; return; }
-      var ls = s.lastSync ? new Date(s.lastSync).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'henüz yok';
-      el.textContent = 'Giriş yapıldı: ' + (s.email || '') + (s.live ? ' · son eşitleme ' + ls : ' · Demo modda eşitleme durur') + (s.pending ? ' · ' + s.pending + ' değişiklik bekliyor' : '') + (s.lastError ? ' · eşitleme hatası (ayrıntı: Hesap ve bulut)' : '');
-    }).catch(function () { el.textContent = 'Bulut henüz bağlı değil. Kayıtlar yalnız bu cihazda saklanıyor.'; });
-  })();
-</script>
-<script>
-  (function () {
-    var P = window.SuperAriPWA;
-    var st = document.getElementById('pwa-status'), btn = document.getElementById('btn-pwa-install');
-    if (!P || !st) return;
-    function render() {
-      var on = 'serviceWorker' in navigator && window.isSecureContext !== false;
-      st.textContent = (on ? '' : 'Bu tarayıcı çevrimdışı kullanımı desteklemiyor. ') + P.installHelpText();
-      btn.hidden = !P.canPrompt() || P.isStandalone();
-    }
-    btn.addEventListener('click', function () { P.install().then(render); });
-    P.onChange(render);
-    render();
-    var ns = document.getElementById('notif-status'), on = document.getElementById('btn-notif-on'), off = document.getElementById('btn-notif-off'), test = document.getElementById('btn-notif-test');
-    function renderN() {
-      var en = P.notifEnabled(), perm = P.notifPermission();
-      ns.textContent = P.notifHelpText();
-      on.hidden = en || perm === 'unsupported' || perm === 'denied';
-      off.hidden = !en;
-      test.hidden = !en;
-    }
-    on.addEventListener('click', function () {
-      P.enableNotif().then(function (perm) {
-        if (perm === 'granted') P.toast('Bildirimler açıldı');
-        else if (perm === 'denied') P.toast('Bildirim izni verilmedi');
-        renderN();
-      });
-    });
-    off.addEventListener('click', function () { P.disableNotif(); P.toast('Bildirimler kapatıldı'); renderN(); });
-    test.addEventListener('click', function () { P.testNotif().then(function (ok) { if (!ok) P.toast('Bildirim gösterilemedi'); }); });
-    P.onChange(renderN);
-    renderN();
-  })();
+(function () {
+  'use strict';
+  var KEY = 'superari.ayar.kullanici.v1', q = new URLSearchParams(location.search), ORNEK = q.get('onizleme') === '1';
+  function rj() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
+  var A = Object.assign({ bildirim: true, kritikSes: true, gunluk: true, sesliMuayene: true, sesGeri: true, birim: 'kg', dil: 'tr', tarih: 'gg.aa.yyyy', rol: 'owner' }, rj());
+  function kaydet(k, v) { A[k] = v; localStorage.setItem(KEY, JSON.stringify(A)); var t = document.getElementById('toast'); t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(function () { t.classList.remove('on'); }, 1400); ciz(); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function sw(k) { return '<label class="sw"><input type="checkbox" data-k="' + k + '"' + (A[k] ? ' checked' : '') + '><span></span></label>'; }
+  function sec(k, ops) { return '<select data-k="' + k + '">' + ops.map(function (o) { return '<option value="' + o[0] + '"' + (A[k] === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'; }
+  var D = window.SuperAriDemo, aps = []; try { aps = D.loadApiaries(); } catch (e) { aps = []; }
+  var hesap = { email: null, onayli: null }, ekip = null;
+  var R = { owner: 'Sahip', arici: 'Arıcı', bakici: 'Bakıcı' };
+  function ekipHtml() {
+    if (!ekip) return '<p class="sub">Ekip için giriş yap.</p><a class="btn ikincil" href="hesap.html">Giriş yap</a>';
+    var sahip = A.rol === 'owner';
+    return (ekip.ornek ? '<p><span class="onz">Önizleme örneği</span></p>' : '') +
+      '<div>' + ekip.uyeler.map(function (u) {
+        return '<div class="uye"><div class="ad"><b>' + esc(u.ad || u.email) + '</b><small>' + esc(u.email) + '</small></div>' +
+          (sahip && u.role !== 'owner' ? '<select data-uye="' + esc(u.id) + '"><option value="arici"' + (u.role === 'arici' ? ' selected' : '') + '>Arıcı</option><option value="bakici"' + (u.role === 'bakici' ? ' selected' : '') + '>Bakıcı</option></select> <button type="button" class="btn ikincil" data-cikar="' + esc(u.id) + '" aria-label="Üyeyi çıkar">Çıkar</button>' : '<span class="rozet">' + R[u.role] + '</span>') + '</div>';
+      }).join('') + ekip.davetler.map(function (d) { return '<div class="uye"><div class="ad"><b>' + esc(d.email) + '</b><small>Davet bekliyor · ' + R[d.role] + '</small></div></div>'; }).join('') + '</div>' +
+      (sahip ? '<div class="sat" style="flex-wrap:wrap;"><input type="email" id="davetEp" placeholder="E-posta" style="flex:1;min-width:150px;"> ' + '<select id="davetRol"><option value="arici">Arıcı</option><option value="bakici">Bakıcı</option></select> <button type="button" class="btn" id="btnDavet">Davet et</button></div>' : '') +
+      '<p class="sub" style="margin-top:8px;">Arıcı: muayene, besleme, hasat, tartı ve taşınma kaydı girer, arılık ayarlarını düzenler. Bakıcı: görür; kendisine atanan görevi, gözlemi ve besleme kaydını girer.</p>';
+  }
+  var KONU = [
+    { id: 'hesap', ic: '👤', t: 'Hesap ve üyelik', d: function () { return hesap.email ? hesap.email + (hesap.onayli === false ? ' · onay bekliyor' : '') : 'Giriş yapılmadı'; },
+      b: function () { return hesap.email ? '<div class="sat"><label>E-posta</label><b>' + esc(hesap.email) + '</b></div>' +
+        '<form id="sifreForm"><div class="sat"><label>Mevcut şifre</label><input type="password" name="m" autocomplete="current-password" required></div><div class="sat"><label>Yeni şifre</label><input type="password" name="y" minlength="8" autocomplete="new-password" required></div><div class="sat"><label>Yeni şifre (tekrar)</label><input type="password" name="y2" minlength="8" autocomplete="new-password" required></div><div class="sat"><span class="sub" id="sifreDurum" style="margin:0;">En az 8 karakter.</span><button class="btn">Şifreyi değiştir</button></div></form>' +
+        '<div class="sat"><label>Oturum</label><button type="button" class="btn ikincil" id="btnCikis">Çıkış yap</button></div>'
+        : '<div class="sat"><label>Giriş yap ya da üye ol</label><a class="btn" href="hesap.html">Giriş</a></div><div class="sat"><label>Şifreni mi unuttun?</label><a class="btn ikincil" href="hesap.html?unuttum=1">Şifremi unuttum</a></div>'; } },
+    { id: 'ekip', ic: '👥', t: 'Ekip', d: function () { return ekip ? ekip.uyeler.length + ' üye' + (ekip.davetler.length ? ' · ' + ekip.davetler.length + ' davet' : '') : 'Giriş gerekli'; }, b: ekipHtml },
+    { id: 'calisma-modu', ic: '🔀', t: 'Çalışma modu', d: function () { var Dv = window.SuperAriDevices; return Dv && Dv.getMode() === 'live' ? 'Canlı' : 'Demo'; }, b: function () { var m = window.SuperAriDevices ? SuperAriDevices.getMode() : 'demo'; return '<div class="rol-seg" style="grid-template-columns:1fr 1fr;margin:6px 0;"><button type="button" data-mod="demo"' + (m === 'demo' ? ' class="on"' : '') + '>Demo</button><button type="button" data-mod="live"' + (m === 'live' ? ' class="on"' : '') + '>Canlı</button></div><p class="sub" style="margin:0;">Demo: örnek veri. Canlı: bağlı cihazlar; cihaz yoksa “Yok”.</p>'; } },
+    { id: 'arilik', ic: '🏡', t: 'Arılıklar', d: function () { return aps.length + ' arılık'; }, b: function () { return aps.map(function (a) { return '<div class="sat"><label>' + esc(a.name) + '</label><a class="btn ikincil" href="arilik.html?id=' + encodeURIComponent(a.id) + '">Aç</a></div>'; }).join('') + '<div class="sat"><label>Yeni arılık</label><a class="btn" href="ariliklar.html">Ekle</a></div>'; } },
+    { id: 'bildirim', ic: '🔔', t: 'Bildirimler', d: function () { return A.bildirim ? 'Açık' : 'Kapalı'; }, b: function () { return '<div class="sat"><label>Bildirimler</label>' + sw('bildirim') + '</div><div class="sat"><label>Kritik ses alarmları</label>' + sw('kritikSes') + '</div><div class="sat"><label>Günlük özet</label>' + sw('gunluk') + '</div>'; } },
+    { id: 'ses', ic: '🎙️', t: 'Ses ve sesli muayene', d: function () { return A.sesliMuayene ? 'Sesli muayene açık' : 'Kapalı'; }, b: function () { return '<div class="sat"><label>Sesli muayene</label>' + sw('sesliMuayene') + '</div><div class="sat"><label>Sesli geri bildirim</label>' + sw('sesGeri') + '</div>'; } },
+    { id: 'birim', ic: '📏', t: 'Birimler ve dil', d: function () { return (A.birim === 'kg' ? 'Kilogram' : 'Gram') + ' · Türkçe'; }, b: function () { return '<div class="sat"><label>Ağırlık</label>' + sec('birim', [['kg', 'Kilogram'], ['g', 'Gram']]) + '</div><div class="sat"><label>Tarih</label>' + sec('tarih', [['gg.aa.yyyy', '15.10.2026'], ['gg ay', '15 Eki']]) + '</div><div class="sat"><label>Dil</label>' + sec('dil', [['tr', 'Türkçe']]) + '</div>'; } },
+    { id: 'cihaz', ic: '📡', t: 'Cihazlar', d: function () { return 'Kovan ve gateway cihazları'; }, b: function () { return '<div class="sat"><label>Cihazları yönet</label><a class="btn" href="cihazlar.html">Cihazlar</a></div>'; } },
+    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-162'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-162</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
+  ];
+  var HM = { 'calisma-modu': 'calisma-modu', cihaz: 'cihaz', bulut: 'hesap', hesap: 'hesap', 'arilik-ayarlari': 'arilik', 'arilik-ozet': 'arilik', ekip: 'ekip', bildirim: 'bildirim', ses: 'ses' };
+  var acik = q.get('konu') || HM[location.hash.slice(1)] || null;
+  function ciz() {
+    var el = document.getElementById('ak');
+    el.innerHTML = KONU.map(function (k) { var a = acik === k.id; return '<div class="ak-i' + (a ? ' acik' : '') + '" data-id="' + k.id + '"><button type="button" class="ak-h" aria-expanded="' + a + '"><span class="ak-ic">' + k.ic + '</span><span class="ak-t"><b>' + k.t + '</b><span>' + esc(k.d()) + '</span></span><span class="ak-ok">›</span></button><div class="ak-b"' + (a ? '' : ' hidden') + '>' + (a ? k.b() : '') + '</div></div>'; }).join('');
+    [].forEach.call(document.querySelectorAll('#rolSeg button'), function (b) { b.classList.toggle('on', b.getAttribute('data-rol') === A.rol); });
+  }
+  /* Tek konu açık; açılırken tıklanan başlığın ekrandaki yeri sabit (yukarıdaki konu kapanınca kayma telafisi) */
+  document.getElementById('ak').addEventListener('click', function (e) {
+    var h = e.target.closest('.ak-h'); if (!h) return;
+    var id = h.parentNode.getAttribute('data-id'), y0 = h.getBoundingClientRect().top;
+    var wr = document.querySelector('.wrap'); wr.style.minHeight = (wr.offsetHeight) + 'px'; /* çökme yok: kaydırma telafisi sınırlanmasın */
+    acik = acik === id ? null : id; ciz();
+    var h2 = document.querySelector('.ak-i[data-id="' + id + '"] .ak-h'), dy = h2.getBoundingClientRect().top - y0; if (dy) window.scrollBy(0, dy);
+    /* fazla boşluğu, görünür alanın altında kalan kısmı kadar bırak */
+    var need = window.scrollY + window.innerHeight; wr.style.minHeight = Math.max(need, 0) + 'px';
+  });
+  document.addEventListener('change', function (e) {
+    var t = e.target, k = t.getAttribute('data-k');
+    if (k) { kaydet(k, t.type === 'checkbox' ? t.checked : t.value); return; }
+    var u = t.getAttribute('data-uye'); if (u && ekip) { if (!ekip.ornek && window.SuperAriBulut) SuperAriBulut.setMemberRole(aps[0] && aps[0].id, u, t.value); ekip.uyeler.forEach(function (x) { if (x.id === u) x.role = t.value; }); kaydet('_', Date.now()); }
+  });
+  document.addEventListener('click', function (e) {
+    var md = e.target.closest('[data-mod]'); if (md && window.SuperAriDevices) { SuperAriDevices.setMode(md.getAttribute('data-mod')); if (SuperAriDevices.syncDemoBanner) SuperAriDevices.syncDemoBanner(); kaydet('_', Date.now()); return; }
+    var r = e.target.closest('#rolSeg button'); if (r) { kaydet('rol', r.getAttribute('data-rol')); return; }
+    var c = e.target.closest('[data-cikar]'); if (c && ekip && confirm('Üye ekipten çıkarılsın mı?')) { var id = c.getAttribute('data-cikar'); if (!ekip.ornek) SuperAriBulut.removeMember(aps[0] && aps[0].id, id); ekip.uyeler = ekip.uyeler.filter(function (x) { return x.id !== id; }); ciz(); return; }
+    if (e.target.id === 'btnDavet') { var ep = document.getElementById('davetEp').value, rl = document.getElementById('davetRol').value; (ekip.ornek ? Promise.resolve() : SuperAriBulut.invite(aps[0] && aps[0].id, ep, rl)).then(function () { ekip.davetler.push({ email: ep, role: rl }); kaydet('_', Date.now()); }).catch(function (er) { alert(er.message); }); }
+    if (e.target.id === 'btnCikis') SuperAriBulut.signOut().then(function () { location.href = 'hesap.html'; });
+    if (e.target.id === 'btnTekrar') SuperAriBulut.resendConfirm(hesap.email).then(function () { e.target.textContent = 'Gönderildi'; }).catch(function () { e.target.textContent = 'Gönderilemedi'; });
+  });
+  document.addEventListener('submit', function (e) {
+    if (e.target.id !== 'sifreForm') return; e.preventDefault(); var f = e.target, d = document.getElementById('sifreDurum');
+    SuperAriBulut.changePassword(f.m.value, f.y.value, f.y2.value).then(function () { d.textContent = 'Şifre değişti.'; f.reset(); }).catch(function (er) { d.textContent = er.message || 'Değiştirilemedi.'; });
+  });
+  function ornek() {
+    hesap = { email: 'yuksel@ornek.com', onayli: false };
+    ekip = { ornek: true, uyeler: [{ id: 'u1', ad: 'Yüksel Aksoy', email: 'yuksel@ornek.com', role: 'owner' }, { id: 'u2', ad: 'Mehmet', email: 'mehmet@ornek.com', role: 'arici' }, { id: 'u3', ad: 'Ayşe', email: 'ayse@ornek.com', role: 'bakici' }], davetler: [{ email: 'ali@ornek.com', role: 'bakici' }] };
+  }
+  ciz();
+  if (ORNEK) { ornek(); document.getElementById('onayUyari').hidden = false; ciz(); return; }
+  var B = window.SuperAriBulut; if (!B) return;
+  B.client().then(function (c) { return c.auth.getUser(); }).then(function (u) {
+    var us = u && u.data && u.data.user; if (!us) return;
+    hesap = { email: us.email, onayli: !!us.email_confirmed_at }; document.getElementById('onayUyari').hidden = hesap.onayli;
+    return aps[0] && B.team(aps[0].id).then(function (t) { ekip = { uyeler: (t.members || []).map(function (m) { return { id: m.user_id, ad: m.name || m.email, email: m.email, role: m.role === 'owner' ? 'owner' : (m.role === 'bakici' || m.role === 'izleyici' ? 'bakici' : 'arici') }; }), davetler: (t.invites || []).map(function (d) { return { email: d.email, role: d.role === 'bakici' || d.role === 'izleyici' ? 'bakici' : 'arici' }; }) }; }).catch(function () { ekip = null; });
+  }).then(ciz).catch(function () { /* çevrimdışı */ });
+})();
 </script>
 </body>
 </html>

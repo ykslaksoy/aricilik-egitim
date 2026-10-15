@@ -73,6 +73,6 @@ assert.deepStrictEqual(S.uniqueTrVoices([yC, yE, yP, cC]).map((v) => v.name).sor
   assert.strictEqual(spoken[1].voice.voiceURI, yE.voiceURI);
 }
 /* Ayarlar «Kullanılan:» satırı */
-const ay = fs.readFileSync(path.join(__dirname, '..', 'ayarlar.html'), 'utf8');
+const ay = fs.readFileSync(path.join(__dirname, '..', 'ayarlar-eski.html'), 'utf8');
 assert.ok(/Kullanılan: /.test(ay) && /activeVoice/.test(ay) && /Gelişmiş sürüm yüklü değil/.test(ay));
 console.log('k94-ses-gelismis ok');
