@@ -50,6 +50,7 @@
     { ms: 900000, label: '15 dk' },
     { ms: 1800000, label: '30 dk' },
     { ms: 3600000, label: '1 saat' },
+    { ms: 7200000, label: '2 saat' }, /* k160: batarya planlayıcı önerisi */
     { ms: 14400000, label: '4 saat' },
     { ms: 43200000, label: '12 saat' },
     { ms: 86400000, label: '24 saat' }
@@ -310,7 +311,7 @@
 
   function isDue(device, nowMs) {
     if (!device || POLLABLE_TIPS.indexOf(device.tip) < 0) return false;
-    if (device.status !== 'bagli') return false;
+    if (device.status !== 'bagli' && device.status !== 'yok') return false; /* k160: kayıtlı ama henüz okuma yok → yine sorgulanır */
     var c = getConfig();
     var last = c.lastPoll[String(device.id)] || 0;
     var iv = resolveIntervalMs(device);
@@ -338,7 +339,7 @@
 
   function isBatteryDue(device, nowMs, piggyback) {
     if (!deviceHasBattery(device)) return false;
-    if (device.status !== 'bagli' && !piggyback) return false;
+    if (device.status !== 'bagli' && device.status !== 'yok' && !piggyback) return false;
     var c = getConfig();
     var last = c.lastPollBattery[String(device.id)] || 0;
     if (piggyback) return true;

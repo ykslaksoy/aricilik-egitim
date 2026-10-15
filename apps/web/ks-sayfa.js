@@ -72,6 +72,8 @@
       stats: o.stats, note: o.note, noAll: !!o.noAll, topEnd: o.topEnd, topExtra: o.topExtra, weatherEnd: o.weatherEnd,
       onChange: function (scope, hs, sum) {
         /* kapsam değişti → sayfa o arılıkla yeniden açılır (sayfanın kendi süzgeci ?apiary= ile çalışır) */
+        /* k161: sayfa yerinde çizebiliyorsa (o.redraw) yenileme yok — boş ekran / kayma olmaz */
+        if (scope !== init0 && o.redraw) { init0 = scope; o.redraw(scope, hs, sum); if (o.onChange) o.onChange(scope, hs, sum); return; }
         if (scope !== init0 && o.reload !== false) { if (global.SuperAriScroll) global.SuperAriScroll.reload(); else global.location.reload(); return; }
         if (o.onChange) o.onChange(scope, hs, sum);
       }

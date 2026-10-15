@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-160" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-160" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-160" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-161" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-161" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-161" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -124,15 +124,16 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-160"></script>
-<script src="demo-data.js?v=koloni-160"></script>
-<script src="device-runtime.js?v=koloni-160"></script>
-<script src="sensor-polling.js?v=koloni-160"></script>
-<script src="tarti-bakim-delta.js?v=koloni-160"></script>
-<script src="tarti-elle.js?v=koloni-160"></script>
-<script src="tarti-rotasyon.js?v=koloni-160"></script>
-<script src="kapsam.js?v=koloni-160"></script>
-<script src="ks-sayfa.js?v=koloni-160"></script>
+<script src="bk-kabuk.js?v=koloni-161"></script>
+<script src="demo-data.js?v=koloni-161"></script>
+<script src="device-runtime.js?v=koloni-161"></script>
+<script src="cicek-veri.js?v=koloni-161"></script><script src="cicek.js?v=koloni-161"></script><script src="plan-planlayici.js?v=koloni-161"></script><script src="rota-motoru.js?v=koloni-161"></script>
+<script src="sensor-polling.js?v=koloni-161"></script>
+<script src="tarti-bakim-delta.js?v=koloni-161"></script>
+<script src="tarti-elle.js?v=koloni-161"></script>
+<script src="tarti-rotasyon.js?v=koloni-161"></script>
+<script src="kapsam.js?v=koloni-161"></script>
+<script src="ks-sayfa.js?v=koloni-161"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -248,6 +249,25 @@
     return rows.map(function (x) { return { at: x.at, pct: Number(x.batteryPct) }; });
   }
 
+  /* k160: batarya planlayıcı — tüketim, kalan gün, arılıkta kalma; öneri yalnız onayla uygulanır */
+  function planHtml(d) {
+    var P2 = window.SuperAriPlan2; if (!P2 || !d || d.tip === 'gateway' && !d.batteryAt) return '';
+    var bp = P2.bataryaPlan(d), k = P2.konGet(d.apiaryId), h = '<div class="bp-plan" style="margin-top:10px;padding:10px;border:1px solid #eadfbe;border-radius:12px;background:#fffdf5;">';
+    if (bp.durum !== 'tamam') return h + '<b>Pil planı</b><p class="meta" style="margin:4px 0 0;">' + esc(bp.metin) + '</p></div>';
+    h += '<b>Pil planı</b><p style="margin:4px 0 0;font-size:14px;">Tüketim ≈ %' + String(bp.tuketimGun).replace('.', ',') + '/gün · mevcut sıklıkla <b>' + (bp.kalanGun == null ? '—' : bp.kalanGun + ' gün') + '</b> yeter' + (bp.kalmaGun != null ? ' · arılıkta ' + bp.kalmaGun + ' gün kalacaksın' : ' · arılıkta kalma bitişi girilmedi') + '</p>';
+    var cmd = P2.komutlar().filter(function (c) { return c.deviceId === d.id; })[0];
+    if (cmd) h += '<p class="meta" style="margin:4px 0 0;">Onaylanan ölçüm: ' + esc(P2.ARALIK_AD[cmd.aralikMs] || '') + ' · ' + (cmd.durum === 'beklemede' ? 'gateway yok, beklemede' : 'gateway’e gönderildi') + '</p>';
+    if (bp.soru) h += '<div class="bp-card" style="margin-top:8px;padding:10px;border-radius:10px;background:#fff3bf;"><p style="margin:0 0 8px;font-weight:700;">' + esc(bp.soru) + '</p><button type="button" class="ks-btn" data-bp-ok="' + esc(d.id) + '" data-bp-ms="' + bp.oneriMs + '">Onayla</button> <button type="button" class="ks-btn" data-bp-no>Şimdilik hayır</button></div>';
+    else if (bp.not) h += '<p style="margin:6px 0 0;color:#c92a2a;font-weight:700;">' + esc(bp.not) + '</p>';
+    return h + '</div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-bp-ok],[data-bp-no]'); if (!b) return;
+    var card = b.closest('.bp-card');
+    if (b.hasAttribute('data-bp-no')) { if (card) card.innerHTML = '<p class="meta" style="margin:0;">Ölçüm sıklığı değiştirilmedi.</p>'; return; }
+    var dv = devices.filter(function (x) { return String(x.id) === b.getAttribute('data-bp-ok'); })[0];
+    if (dv && window.SuperAriPlan2) { var c = SuperAriPlan2.aralikOnayla(dv, Number(b.getAttribute('data-bp-ms'))); if (card) card.innerHTML = '<p style="margin:0;font-weight:700;">✓ Ölçüm ' + esc(SuperAriPlan2.ARALIK_AD[c.aralikMs]) + ' · ' + (c.durum === 'beklemede' ? 'gateway yok, komut beklemede' : 'gateway’e gönderildi') + '</p>'; }
+  });
   function deviceDetailPanel(d) {
     if (!d) return '';
     var pct = batteryPctOf(d);
@@ -259,7 +279,7 @@
       '<h2 class="section-label" style="margin-top:0">Pil durumu · ' + esc(d.hiveName || d.typeLabel || 'Cihaz') + '</h2>' +
       '<p style="margin:0;font-size:15px;font-weight:800">' + batteryChipHtml(d) + v + '</p>' +
       '<p class="meta" style="margin:6px 0 0">' + esc(at) + (hist.length >= 2 ? ' · trend (son ' + hist.length + ' okuma)' : '') + '</p>' +
-      pilSparkSvg(hist) +
+      pilSparkSvg(hist) + planHtml(d) +
       '<p style="margin:10px 0 0"><a class="ks-btn" href="' + esc(listBackHref()) + '">← Listeye dön</a></p>' +
     '</section>';
   }
@@ -386,11 +406,12 @@
         if (!s0.n) s0 = sum(akuL);
       } else
       if (!s0.n) { badgeText = 'Yok'; badgeCls = 'gray'; }
+      else if (l.every(function (d) { return d.status === 'yok'; })) { badgeText = 'Veri yok'; badgeCls = 'gray'; } /* k160: kayıtlı ama gerçek okuma yok */
       else if (s0.off) {
         badgeText = s0.on + ' / ' + s0.n + ' bağlı';
         badgeCls = l.some(function (d) { return d.status === 'arizali'; }) ? 'red' : 'orange';
       } else { badgeText = s0.n + ' bağlı'; badgeCls = 'green'; }
-      var sub = !s0.n ? 'bağlı değil' : [s0.off ? s0.off + ' bağlı değil' : '', s0.low ? s0.low + ' düşük pil' : ''].filter(Boolean).join(' · ') || ('son veri ' + relAgo(s0.last));
+      var sub = !s0.n ? 'bağlı değil' : l.every(function (d) { return d.status === 'yok'; }) ? 'veri yok' : [s0.off ? s0.off + ' bağlı değil' : '', s0.low ? s0.low + ' düşük pil' : ''].filter(Boolean).join(' · ') || ('son veri ' + relAgo(s0.last));
       return KS.anaModuleTile({
         href: href(tipSel === t.k ? '' : t.k),
         label: t.l,
@@ -567,8 +588,8 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-160"></script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="ses-siniflari.js?v=koloni-161"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

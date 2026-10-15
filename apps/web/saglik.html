@@ -60,8 +60,8 @@
     color: #c92a2a;
   }
 </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-160" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-160" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-161" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-161" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -82,14 +82,14 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-160"></script>
-<script src="demo-data.js?v=koloni-160"></script>
-<script src="sensor-health.js?v=koloni-160"></script>
-<script src="saglik-canli.js?v=koloni-160"></script>
-<script src="ilac-katalog.js?v=koloni-160"></script>
-<script src="bakim-plan.js?v=koloni-160"></script>
-<script src="kapsam.js?v=koloni-160"></script>
-  <script src="ks-sayfa.js?v=koloni-160"></script>
+<script src="bk-kabuk.js?v=koloni-161"></script>
+<script src="demo-data.js?v=koloni-161"></script>
+<script src="sensor-health.js?v=koloni-161"></script>
+<script src="saglik-canli.js?v=koloni-161"></script>
+<script src="ilac-katalog.js?v=koloni-161"></script>
+<script src="bakim-plan.js?v=koloni-161"></script>
+<script src="kapsam.js?v=koloni-161"></script>
+  <script src="ks-sayfa.js?v=koloni-161"></script>
   <script>SuperAriKsSayfa.ensureScope({});</script>
 <script>
 (function () {
@@ -97,7 +97,8 @@
   var D = window.SuperAriDemo;
   if (!H || !D) return;
   /* kapsam (Bakım ile ortak arılık seçimi): ?apiary= */
-  var ap0 = new URLSearchParams(location.search).get('apiary') || '';
+  /* k161: arılık değişince yerinde çizim */
+  function drawSaglik(ap0) {
   var hs0 = (D.loadHives ? D.loadHives() : []).filter(function (h) { return !ap0 || String(h.apiaryId) === String(ap0); });
   var all = H.evaluateAll(hs0);
 
@@ -145,6 +146,9 @@
         '<div class="note">' + esc(NOTES[b.key]) + '</div>' +
       '</div></a>';
   }).join('');
+  }
+  drawSaglik(new URLSearchParams(location.search).get('apiary') || '');
+  window.__saSaglikScope = function (sc) { drawSaglik(sc === 'all' ? '' : String(sc)); };
 })();
 </script>
 <script>
@@ -163,6 +167,7 @@
 (function () {
   var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, KS = window.SuperAriKapsam; if (!D || !P || !KS) return;
   P.init({
+    redraw: function (sc) { if (window.__saSaglikScope) window.__saSaglikScope(sc); },
     title: 'Sağlık',
     topEnd: '<a class="ks-end ks-end-chip" href="saglik-detay.html" title="Sağlık detay" aria-label="Sağlık detay bandları">Detay</a>',
     icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27s-10-6.2-10-13.4A5.6 5.6 0 0 1 16 10a5.6 5.6 0 0 1 10 3.6C26 20.8 16 27 16 27z" fill="#ffc9c9" stroke="#e03131" stroke-width="1.4"/><path d="M9 17h4l2-3 3 6 2-3h3" fill="none" stroke="#c92a2a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -199,7 +204,7 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

@@ -1000,22 +1000,22 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-160"></script>
-<script src="sensor-health.js?v=koloni-160"></script>
-<script src="saglik-canli.js?v=koloni-160"></script>
-<script src="koloni.js?v=koloni-160"></script>
-<script src="ilac-katalog.js?v=koloni-160"></script>
-<script src="bakim-plan.js?v=koloni-160"></script>
-<script src="kovan-strateji.js?v=koloni-160"></script>
-<script src="mic-session.js?v=koloni-160"></script>
-<script src="kolay-muayene.js?v=koloni-160"></script>
-<script src="tarti-muayene-sync.js?v=koloni-160"></script>
-<script src="tarti-bakim-delta.js?v=koloni-160"></script>
-<script src="tarti-elle.js?v=koloni-160"></script>
-<script src="sensor-polling.js?v=koloni-160"></script>
-<script src="tarti-rotasyon.js?v=koloni-160"></script>
-<script src="bakim-akis.js?v=koloni-160"></script>
-<script src="kapsam.js?v=koloni-160"></script>
+<script src="demo-data.js?v=koloni-161"></script>
+<script src="sensor-health.js?v=koloni-161"></script>
+<script src="saglik-canli.js?v=koloni-161"></script>
+<script src="koloni.js?v=koloni-161"></script>
+<script src="ilac-katalog.js?v=koloni-161"></script>
+<script src="bakim-plan.js?v=koloni-161"></script>
+<script src="kovan-strateji.js?v=koloni-161"></script>
+<script src="mic-session.js?v=koloni-161"></script>
+<script src="kolay-muayene.js?v=koloni-161"></script>
+<script src="tarti-muayene-sync.js?v=koloni-161"></script>
+<script src="tarti-bakim-delta.js?v=koloni-161"></script>
+<script src="tarti-elle.js?v=koloni-161"></script>
+<script src="sensor-polling.js?v=koloni-161"></script>
+<script src="tarti-rotasyon.js?v=koloni-161"></script>
+<script src="bakim-akis.js?v=koloni-161"></script>
+<script src="kapsam.js?v=koloni-161"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, A = window.SuperAriBakimAkis, KS = window.SuperAriKapsam;
@@ -1068,10 +1068,10 @@
     stats: function (hs, scope, s) {
       return [
         { k: 'kovan', v: s.hives, l: 'Kovan', href: 'kovanlar.html' + (scope !== 'all' ? '?mode=apiary&apiary=' + encodeURIComponent(scope) : '') },
-        { k: 'muayene', v: s.hives ? s.overdue : '—', l: 'Geciken muayene', href: kolHref('guc'), tone: s.overdue ? 'hot' : '' },
+        { k: 'muayene', v: s.hives ? s.overdue : '—', l: 'Geciken muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: s.overdue ? 'hot' : '' },
         { k: 'hafta', v: s.week, l: 'Bu hafta', href: kolHref('guc'), tone: s.week ? 'gold' : '' },
         { k: 'uyari', v: s.critical, l: 'Kritik uyarı', href: 'uyarilar.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: s.critical ? 'hot' : '' },
-        { k: 'saat', v: s.lastTxt, l: 'Son muayene', href: kolHref('guc') }
+        { k: 'saat', v: s.lastTxt, l: 'Son muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '') }
       ];
     },
     note: function () { return null; },
@@ -1104,7 +1104,7 @@
   if (hh0) setTimeout(function () { start(hh0.id); }, 150);
 })();
 </script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

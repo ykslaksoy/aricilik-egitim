@@ -40,8 +40,8 @@
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
   </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-160" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-160" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-161" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-161" />
 </head>
 <body>
   <main class="wrap">
@@ -72,14 +72,14 @@
       <div class="ql" id="bgLinks"></div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-160"></script>
-  <script src="demo-data.js?v=koloni-160"></script>
-  <script src="task-group.js?v=koloni-160"></script>
-  <script src="rapor-store.js?v=koloni-160"></script>
+  <script src="bk-kabuk.js?v=koloni-161"></script>
+  <script src="demo-data.js?v=koloni-161"></script>
+  <script src="task-group.js?v=koloni-161"></script>
+  <script src="rapor-store.js?v=koloni-161"></script>
   <script src="hava-kayit.js"></script>
-  <script src="koloni.js?v=koloni-160"></script>
-  <script src="kapsam.js?v=koloni-160"></script>
-  <script src="ks-sayfa.js?v=koloni-160"></script>
+  <script src="koloni.js?v=koloni-161"></script>
+  <script src="kapsam.js?v=koloni-161"></script>
+  <script src="ks-sayfa.js?v=koloni-161"></script>
   <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
   (function () {
@@ -244,6 +244,7 @@
       if (e.target.closest('#bgQuick')) K.openQuickRecord({ apiaryId: apiaryId, onSaved: render });
     });
     window.addEventListener('superari-records-changed', render);
+    window.__saBugunScope = function (s) { allMode = s === 'all'; apiaryId = allMode ? '' : String(s); if (!allMode) { try { K.setLastApiary(apiaryId); } catch (e) { /* */ } sel.value = apiaryId; } render(); loadWx(); };
     render();
     loadWx();
   })();
@@ -254,6 +255,7 @@
   /* Bakım düzeni: arılık seçimi Kapsam kartına taşındı (eski seçim kutusu gizli) */
   var lb = document.getElementById('bgApiary'); if (lb && lb.parentNode) lb.parentNode.style.display = 'none';
   P.init({
+    redraw: function (s) { if (window.__saBugunScope) window.__saBugunScope(s); },
     title: 'Bugün',
     topEnd: '<a class="ks-end ks-end-chip" href="uyarilar.html" title="Uyarılar" aria-label="Uyarılar listesi">Uyarı</a>', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="7" width="22" height="20" rx="3" fill="#fff" stroke="#9aa8b8"/><rect x="5" y="7" width="22" height="6" rx="3" fill="#f7b731"/><path d="M11 4.5v5M21 4.5v5" stroke="#8a6030" stroke-width="2" stroke-linecap="round"/><path d="M11 19l3 3 6-6" fill="none" stroke="#2f9e44" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     stats: function (hs, scope, sm) {
@@ -289,7 +291,7 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

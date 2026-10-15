@@ -10,7 +10,7 @@ const LOCK={'Kafkas':5,'Buckfast':15,'Karadeniz':35,'İtalyan':55,'Muğla':55,'A
 Object.keys(LOCK).forEach(b=>assert.strictEqual(G(b),LOCK[b],'KİLİT: '+b));
 assert.strictEqual(JSON.stringify(C.GENETIK_SAF),'{"kafkas":5,"buckfast":15,"karadeniz":35,"italyan":55,"mugla":55,"anadolu":75,"trakya":75,"karniyol":75,"iran":75,"yigilca":90,"hatay":100}');
 assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length,13);
-const u=C.genetikScore('Karadeniz × İran');assert.strictEqual(u.g,55);assert.ok(u.missing);
+const u=C.genetikScore('Karadeniz × İran');assert.strictEqual(u.g,null);assert.ok(u.missing&&u.veriYok); /* k160: tabloda yok → Veri yok */
 assert.ok(JSON.parse(st['superari.irk.ogulVeriEksik.v1']).items['iran+karadeniz'],'unknown cross flagged');
 /* Birim: (Kafkas×Karniyol)×Muğla, %100 dolu, mevsimde, ana 2+ yaş = 92,5 */
 assert.strictEqual(C.orsCompute({genetik:G('(Kafkas × Karniyol) × Muğla'),sikisiklik:100,mevsim:100,anaYasi:100}),92.5);

@@ -17,8 +17,8 @@
   .chk input{width:18px !important;height:18px;flex:0 0 auto;margin-top:1px;}
   .demo-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:4px;}
 </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-160" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-160" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-161" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-161" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -45,6 +45,14 @@
             <input type="text" id="gKm" inputmode="decimal" placeholder="ör. 120" />
           </label>
         </div>
+        <div class="pair">
+          <label>Planlanan varış
+            <input type="date" id="gVaris" required />
+          </label>
+          <label>Planlanan ayrılış
+            <input type="date" id="gAyrilis" required />
+          </label>
+        </div>
         <label>Sebep
           <select id="gReason"></select>
         </label>
@@ -60,6 +68,10 @@
         <p class="form-msg" id="gMsg" aria-live="polite"></p>
       </form>
     </section>
+    <section class="card-block" id="planCard">
+      <h2>Konaklama planı</h2>
+      <div id="planList"></div>
+    </section>
     <section class="card-block">
       <h2 id="histTitle">Göç geçmişi</h2>
       <div id="histList"></div>
@@ -72,10 +84,12 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-160"></script>
-<script src="demo-data.js?v=koloni-160"></script>
-<script src="kapsam.js?v=koloni-160"></script>
-  <script src="ks-sayfa.js?v=koloni-160"></script>
+<script src="bk-kabuk.js?v=koloni-161"></script>
+<script src="demo-data.js?v=koloni-161"></script>
+<script src="sensor-polling.js?v=koloni-161"></script>
+<script src="cicek-veri.js?v=koloni-161"></script><script src="cicek.js?v=koloni-161"></script><script src="plan-planlayici.js?v=koloni-161"></script><script src="rota-motoru.js?v=koloni-161"></script>
+<script src="kapsam.js?v=koloni-161"></script>
+  <script src="ks-sayfa.js?v=koloni-161"></script>
   <script>SuperAriKsSayfa.ensureScope({});</script>
   <script>
 (function () {
@@ -140,9 +154,15 @@
   $('gocForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var ids = Array.prototype.map.call($('hvList').querySelectorAll('input:checked'), function (i) { return Number(i.value); });
+    /* k160: planlanan varış + ayrılış zorunlu */
+    var vV = $('gVaris').value, vA = $('gAyrilis').value;
+    if (!vV || !vA) { msg('Planlanan varış ve ayrılış tarihini gir.', true); return; }
+    if (vA <= vV) { msg('Ayrılış tarihi varıştan sonra olmalı.', true); return; }
     try {
       var rec = G.add({ fromApiaryId: $('gFrom').value, toApiaryId: $('gTo').value, date: $('gDate').value, hiveIds: ids,
         reason: $('gReason').value, km: $('gKm').value.trim(), note: $('gNote').value, tasks: $('gTasks').checked });
+      if (window.SuperAriPlan2) SuperAriPlan2.konSet($('gTo').value, { varis: vV, ayrilis: vA });
+      renderPlan();
       msg(rec.hiveIds.length + ' kovan ' + rec.toName + ' arılığına taşındı.' + ($('gTasks').checked ? ' Kontrol görevleri eklendi.' : ''));
       $('gNote').value = ''; $('gKm').value = '';
       fillSelects(); fillHives(); kmHint(); renderHist();
@@ -153,13 +173,48 @@
     if (!confirm('Göç kaydı silinsin mi? Kovanlar geri taşınmaz; gerekirse ters yönde yeni göç kaydı girin.')) return;
     G.remove(b.getAttribute('data-del')); renderHist();
   });
-  window.addEventListener('superari-cloud-pulled', function () { fillSelects(); fillHives(); renderHist(); });
+  /* k160: konaklama planı — arılık başına varış/ayrılış (düzenlenebilir) + nektar değerlendirmesi önerisi (onaylı) */
+  function renderPlan() {
+    var P2 = window.SuperAriPlan2, el = $('planList'); if (!P2 || !el) return;
+    var aps = D.loadApiaries ? D.loadApiaries() : [];
+    el.innerHTML = aps.map(function (a) {
+      var k = P2.konGet(a.id) || {}, o = P2.tasinmaOneri(a.id), card = '';
+      if (o.durum === 'erken' || o.durum === 'ertele') card = '<div class="tp-card" style="margin-top:6px;padding:8px 10px;border-radius:10px;background:#fff3bf;"><b>' + esc(o.metin) + '</b><div class="meta" style="margin:2px 0 6px;">Tahmin güveni: %' + Math.round(o.guven * 100) + '</div><button type="button" class="btn" data-tp-ok="' + esc(a.id) + '" data-tp-date="' + esc(o.tarih) + '">Onayla</button> <button type="button" class="btn" data-tp-no>Hayır</button></div>';
+      var R = window.SuperAriRota, ext = '';
+      if (R) {
+        var rk = R.rakimHazir(a); if (rk == null) R.rakim(a).then(function (v) { if (v != null) renderPlan(); });
+        var rp = R.rotaPuan(a.il, a.ilce);
+        ext = '<div class="meta" style="margin-top:2px;">' + (rk != null ? 'Rakım ' + rk + ' m · ' : '') + 'Rota puanı: ' + (rp.puan == null ? esc(rp.metin) : rp.puan + '/100') + '</div>';
+        if (!card && o.durum !== 'erken') { var y = R.yonlendir(a.id); if (y.durum === 'kayitli' || y.durum === 'harici') card = '<div class="tp-card" style="margin-top:6px;padding:8px 10px;border-radius:10px;background:#fff3bf;"><b>' + esc(y.metin) + '</b><div style="margin-top:6px;"><button type="button" class="btn" data-tp-git="1">Planla</button> <button type="button" class="btn" data-tp-no>Hayır</button></div></div>'; }
+      }
+      if (card) card = ext + card; else card = ext;
+      if (o.durum === 'veri_yok' && k.ayrilis) card += '<div class="meta" style="margin-top:4px;">Nektar değerlendirmesi: Veri yok</div>';
+      return '<div class="tp-row" style="padding:8px 0;border-top:1px solid #f0e6c8;"><b>' + esc(a.name) + '</b><div class="pair" style="margin-top:4px;"><label>Varış <input type="date" data-tp-v="' + esc(a.id) + '" value="' + esc(k.varis || '') + '"></label><label>Arılıkta kalma bitişi <input type="date" data-tp-a="' + esc(a.id) + '" value="' + esc(k.ayrilis || '') + '"></label></div>' + card + '</div>';
+    }).join('');
+  }
+  function esc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  $('planList').addEventListener('change', function (e) {
+    var t = e.target, P2 = window.SuperAriPlan2; if (!P2) return;
+    if (t.hasAttribute('data-tp-v')) P2.konSet(t.getAttribute('data-tp-v'), { varis: t.value });
+    if (t.hasAttribute('data-tp-a')) P2.konSet(t.getAttribute('data-tp-a'), { ayrilis: t.value });
+    renderPlan();
+  });
+  $('planList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tp-ok],[data-tp-no],[data-tp-git]'); if (!b) return;
+    if (b.hasAttribute('data-tp-git')) { var f = $('gocForm'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'start' }); return; }
+    if (b.hasAttribute('data-tp-no')) { b.closest('.tp-card').innerHTML = '<span class="meta">Plan değişmedi.</span>'; return; }
+    SuperAriPlan2.tasinmaOnayla(b.getAttribute('data-tp-ok'), b.getAttribute('data-tp-date')); renderPlan();
+  });
+  renderPlan();
+  window.__saGocScope = function (sc) { apFilter = sc === 'all' ? '' : String(sc); if (apFilter) $('gFrom').value = apFilter; fillSelects(); fillHives(); kmHint(); renderHist(); };
+  window.addEventListener('superari-cloud-pulled', function () { fillSelects(); fillHives(); renderHist(); renderPlan(); });
 })();
 </script>
 <script>
 (function () {
   var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, G = D && D.goc; if (!D || !P || !G) return;
   P.init({
+    redraw: function (sc) { if (window.__saGocScope) window.__saGocScope(sc); },
     title: 'Göç',
     topEnd: '<a class="ks-end ks-end-chip" href="#gocForm" title="Yeni göç formu" aria-label="Yeni göç formu">Yeni</a>', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="10" width="17" height="12" rx="2" fill="#e8c48e" stroke="#8a6030"/><path d="M20 14h5l4 4v4h-9z" fill="#f7b731" stroke="#b8860b"/><circle cx="9" cy="24" r="2.6" fill="#495057"/><circle cx="24" cy="24" r="2.6" fill="#495057"/></svg>',
     stats: function (hs, scope, sm) {
@@ -185,7 +240,7 @@
 window.SuperAriQuickTitle = 'Kayıt · Göç';
 window.SuperAriQuickActions = function () { return [{ ic: '🚚', t: 'Yeni göç kaydı', d: 'Nereden · nereye · kovanlar', run: window.SuperAriNav.focusEl('#gocForm') }]; };
 </script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

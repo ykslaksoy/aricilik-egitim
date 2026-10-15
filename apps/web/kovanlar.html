@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-160" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-160" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-160" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-161" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-161" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-161" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -53,25 +53,25 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-160"></script>
-  <script src="bal-agirlik.js?v=koloni-160"></script>
-  <script src="demo-data.js?v=koloni-160"></script>
-  <script src="rapor-store.js?v=koloni-160"></script>
-  <script src="sensor-health.js?v=koloni-160"></script>
-<script src="saglik-canli.js?v=koloni-160"></script>
-  <script src="koloni.js?v=koloni-160"></script>
-  <script src="koloni-ek.js?v=koloni-160"></script>
-  <script src="ilac-katalog.js?v=koloni-160"></script>
-  <script src="bakim-plan.js?v=koloni-160"></script>
-  <script src="irk-tahmin.js?v=koloni-160"></script>
-  <script src="kovan-ara.js?v=koloni-160"></script>
+  <script src="bk-kabuk.js?v=koloni-161"></script>
+  <script src="bal-agirlik.js?v=koloni-161"></script>
+  <script src="demo-data.js?v=koloni-161"></script>
+  <script src="rapor-store.js?v=koloni-161"></script>
+  <script src="sensor-health.js?v=koloni-161"></script>
+<script src="saglik-canli.js?v=koloni-161"></script>
+  <script src="koloni.js?v=koloni-161"></script>
+  <script src="koloni-ek.js?v=koloni-161"></script>
+  <script src="ilac-katalog.js?v=koloni-161"></script>
+  <script src="bakim-plan.js?v=koloni-161"></script>
+  <script src="irk-tahmin.js?v=koloni-161"></script>
+  <script src="kovan-ara.js?v=koloni-161"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-160"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-160"></script>
-  <script src="tarti-elle.js?v=koloni-160"></script>
-  <script src="sensor-polling.js?v=koloni-160"></script>
-  <script src="tarti-rotasyon.js?v=koloni-160"></script>
-  <script src="kapsam.js?v=koloni-160"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-161"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-161"></script>
+  <script src="tarti-elle.js?v=koloni-161"></script>
+  <script src="sensor-polling.js?v=koloni-161"></script>
+  <script src="tarti-rotasyon.js?v=koloni-161"></script>
+  <script src="kapsam.js?v=koloni-161"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -403,7 +403,7 @@
               { k: 'sorun', v: bad, l: 'Kontrol / Müdahale', href: 'saglik.html', tone: bad ? 'hot' : '' },
               { k: 'muayene', v: sm.hives ? sm.overdue : '—', l: 'Geciken muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: sm.overdue ? 'hot' : '' },
               { k: 'uyari', v: sm.critical, l: 'Kritik uyarı', href: 'uyarilar.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: sm.critical ? 'hot' : '' },
-              { k: 'saat', v: sm.lastTxt, l: 'Son muayene', href: 'kovanlar.html?view=koloni&topic=guc' + kolQ }
+              { k: 'saat', v: sm.lastTxt, l: 'Son muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : '') }
             ];
           },
           note: function (hs, scope, sm) {
@@ -507,6 +507,7 @@
             return { t: '🧬 Irk: ' + br + (cs && cs.requeen ? ' · ' + cs.requeen + ' ana yenilenmeli' : ''), b: 'Hat ve Genetik', href: topicHref('irk'), k: 'irk' };
           },
           onChange: function (scope) {
+            if (view === 'koloni' && window.__saKoloniScope) { window.__saKoloniScope(scope); return; }
             if (view === 'tarti' && window.__saDrawTarti) { apiaryFilter = scope === 'all' ? '' : scope; mode = scope === 'all' ? 'all' : 'apiary'; params = new URLSearchParams(location.search); window.__saDrawTarti(); return; }
             if (scope !== initV) { if (window.SuperAriScroll) SuperAriScroll.reload(); else location.reload(); }
           }
@@ -847,6 +848,14 @@
           }).join('') || '<p class="muted">Kovan bulunamadı.</p>';
         };
         renderKoloni();
+        /* k161: arılık değişince Koloni de yerinde çizilir (yenileme yok) */
+        window.__saKoloniScope = function (sc) {
+          hasMode = true; effectiveMode = mode = sc === 'all' ? 'all' : 'apiary'; apiaryFilter = sc === 'all' ? '' : String(sc);
+          var allH = D.loadHives().filter(function (h) { return h.colonyState !== 'sonuk'; });
+          scopeHives = apiaryFilter ? allH.filter(function (h) { return String(h.apiaryId) === apiaryFilter; }) : allH;
+          filterApiary = apiaryFilter ? D.apiaryById(apiaryFilter) : null; apName = filterApiary ? (filterApiary.name || filterApiary.place) : '';
+          renderKoloni();
+        };
         if (!recTopic) bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
         noteEl.textContent = topic === 'irk'
           ? 'Üstteki kutular süzgeçtir (Hatsız = ırk girilmemiş ya da yalnız tahmini). Kovana dokunup Saf Hat, 2\'li Melez (A × B) veya 3\'lü Melez (A × B × C) seçin; damızlık hat / kaynak adı ve anne ana (kayıtlı bir ana veya dış kaynak) yazılabilir. Kayıt kovandaki mevcut ana arıya yazılır; arılık ırkı kovanların çoğunluk ırkıdır.'
@@ -940,7 +949,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

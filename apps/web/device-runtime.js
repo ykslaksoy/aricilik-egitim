@@ -216,7 +216,7 @@
   function isLive() { return getMode() === 'live'; }
 
   function statusLabel(s) {
-    var map = { yok: 'Yok', bagli: 'Bağlı', kopuk: 'Kopuk', arizali: 'Arızalı' };
+    var map = { yok: 'Veri yok', bagli: 'Bağlı', kopuk: 'Kopuk', arizali: 'Arızalı' };
     return map[s] || map.yok;
   }
 
@@ -300,6 +300,9 @@
 
   function isBatteryLow(device) {
     if (!device) return false;
+    if (!device.batteryAt && device.source !== 'demo' && device.batteryPct == null) return false;
+    /* k160: tahmine dayalı — kalan gün ≤ eşik (Orta/Yüksek, panelde). Hesaplanıyorsa yalnız gerçek okunan yüzde eşiği. */
+    try { var P2 = global.SuperAriPlan2; if (P2 && P2.bataryaPlan) { var bp = P2.bataryaPlan(device); if (bp.durum === 'tamam') return !!bp.severity; if (bp.durum === 'veri_yok') return false; } } catch (eP) { /* ignore */ }
     if (device.batteryLow === true) return true;
     var pct = device.batteryPct != null ? device.batteryPct : device.battery;
     if (pct == null) return false;
@@ -383,11 +386,14 @@
     if (!raw) return null;
     var tip = raw.tip || raw.type || '';
     var names = resolveLiveNames(raw);
-    var status = raw.status || STATUS.bagli;
+    /* k160: gerçek okuma (zaman damgası) yoksa «Bağlı» denmez — durum «yok» (Veri yok) */
+    var hasReading = raw.lastMins != null || !!raw.at || !!raw.batteryAt || !!raw.lastAt;
+    var status = raw.status || (hasReading ? STATUS.bagli : STATUS.yok);
     if (status !== STATUS.bagli && status !== STATUS.kopuk &&
         status !== STATUS.arizali && status !== STATUS.yok) {
-      status = STATUS.bagli;
+      status = hasReading ? STATUS.bagli : STATUS.yok;
     }
+    if (status === STATUS.bagli && !hasReading) status = STATUS.yok;
     var kind = isCameraTip(tip) ? 'kamera' : 'paket';
     var out = {
       id: raw.id || (source + '-' + tip + '-' + (names.hiveId || names.apiaryId || 'x')),
@@ -404,11 +410,14 @@
       channels: raw.channels || [tipLabel(tip)],
       at: raw.at || null
     };
-    return attachBatteryFields(out, raw, out.apiaryId);
+    /* k160: pil yalnız gerçek okumadan (batteryAt) — tarihsiz pil değeri gösterilmez */
+    return attachBatteryFields(out, raw.batteryAt || raw.at ? raw : Object.assign({}, raw, { battery: null, batteryPct: null }), out.apiaryId);
   }
 
   function normalizeDemo(raw) {
-    var merged = mergeDemoBattery(raw);
+    /* k160: örnek pakette uydurma durum/pil yok — gerçek okuma gelmediği için «Veri yok», pil boş, düşük pil uyarısı üretilmez */
+    var merged = mergeDemoBattery(Object.assign({}, raw, { status: STATUS.yok, lastMins: null, battery: null, batteryPct: null, batteryV: null, batteryAt: null }));
+    if (merged.batteryAt || merged.batteryPct != null) merged.status = STATUS.bagli; /* gerçek okuma (sorgu/okuma kaydı) geldiyse */
     var tip = merged.tip || '';
     var kind = isCameraTip(tip) ? 'kamera' : 'paket';
     var out = {

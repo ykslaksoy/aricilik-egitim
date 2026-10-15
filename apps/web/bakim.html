@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-160 durumu; tests/layout-lock.test.js korur) -->
+<!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-161 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
@@ -990,12 +990,12 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-160"></script>
-<script src="rapor-store.js?v=koloni-160"></script>
-<script src="koloni.js?v=koloni-160"></script>
-<script src="ilac-katalog.js?v=koloni-160"></script>
-<script src="bakim-plan.js?v=koloni-160"></script>
-<script src="ekipman-store.js?v=koloni-160"></script>
+<script src="demo-data.js?v=koloni-161"></script>
+<script src="rapor-store.js?v=koloni-161"></script>
+<script src="koloni.js?v=koloni-161"></script>
+<script src="ilac-katalog.js?v=koloni-161"></script>
+<script src="bakim-plan.js?v=koloni-161"></script>
+<script src="ekipman-store.js?v=koloni-161"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, P = window.SuperAriPlan, E = window.SuperAriEkipman;
@@ -1142,7 +1142,7 @@
     var planCnt = (M.planN || 0) + (M.planW || 0);
     var stats = [
       { k: 'kovan', v: M.hives || 0, l: 'Kovan', href: 'kovanlar.html' + (scope !== 'all' ? '?mode=apiary&apiary=' + encodeURIComponent(scope) : ''), tone: '' },
-      { k: 'muayene', v: M.none ? '—' : (M.noInsp || 0), l: 'Geciken muayene', href: kolHref('guc'), tone: M.noInsp ? 'hot' : '' },
+      { k: 'muayene', v: M.none ? '—' : (M.noInsp || 0), l: 'Geciken muayene', href: 'bakim-akis.html' + (scope !== 'all' ? '?apiary=' + encodeURIComponent(scope) : ''), tone: M.noInsp ? 'hot' : '' },
       { k: 'stok', v: !wc || M.none ? '—' : (wc.kritik || 0), l: 'Kritik stok', href: bes, tone: wc && wc.kritik ? 'hot' : '' },
       { k: 'gorev', v: M.tasks || 0, l: 'Açık görev', href: 'gorevler.html', tone: '' },
       { k: 'plan', v: planCnt, l: 'Bu hafta bakım', href: 'bakim-plan.html' + apQ(), tone: M.planN ? 'hot' : (planCnt ? 'gold' : '') }
@@ -1212,7 +1212,7 @@
   render();
 })();
 </script>
-<script src="nav.js?v=koloni-160"></script>
-<script src="pwa.js?v=koloni-160"></script>
+<script src="nav.js?v=koloni-161"></script>
+<script src="pwa.js?v=koloni-161"></script>
 </body>
 </html>

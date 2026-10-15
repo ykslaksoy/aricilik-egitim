@@ -23,6 +23,16 @@
     var SA = C.ORS_SENSOR_ADLAR || {};
     h += '<fieldset><legend>Sensörlü mod — eşikler</legend><p class="fe-sub" style="margin:.2rem 0;">Kovanda sensör verisi varsa: piping (Hz aralığı + ritmik desen + kesintisiz süre, üçü birden) → 100; ısı / nem tek başına alarm vermez, yalnız Sıkışıklığa stres eki; sert kilo artışı + arı yoğunluğu zirvede → Sıkışıklık 100; günlük kilo artışı nektar eşiğini geçerse Mevsim 100. Sensör yoksa formül aynen kalır.</p>' +
       Object.keys(o.sensor || {}).map(function (k) { return '<label><span>' + (SA[k] || k) + '</span>' + inp('sensor.' + k, o.sensor[k], 'any', 100000) + '</label>'; }).join('') + '</fieldset>';
+    h += '<fieldset><legend>Taşınma / rota motoru — formül</legend><p class="fe-sub" style="margin:.2rem 0;">' +
+      'rota_puan(ilçe) = 100 × [wH·(H / Hmax) + wT·(T / Tmax)] ÷ (var olan bileşenlerin ağırlık toplamı). H: o ilçedeki arılıkların kovan başına yıllık ortalama hasatı (kg). ' +
+      'T: günlük net tartı artışının kayan ortalamasının (pencere = rotaPencere gün) en yüksek değeri. Hmax/Tmax: kullanıcının kayıtlı ilçeleri arasındaki en yüksek değer. Geçmiş yoksa puan üretilmez ("Henüz kayıt yok"). ' +
+      'Gün eşikleri: en az rotaMinGun günlük tartı kaydı varsa pozitif kayan ortalamaların 20. yüzdeliğinin ¼\'ü "artış bitti" eşiği, eşik altı serilerin medyan uzunluğu (2–7) gün eşiği olur; kayıt yetersizse yalnız resmi ay aralığı kullanılır. ' +
+      'Yönlendirme: artış bitince önce kullanıcının kayıtlı arılıkları (artışı süren / ayı çiçeklenme aralığında), yoksa güncel ayı resmi aralıkta olan harici ilçe önerilir; karar onay kartıyla. Rakım: arılık koordinatından Open-Meteo Elevation API. ' +
+      'Çiçeklenme takvimi kaynağı: Cınbırtoğlu (haz.), İl ve İlçelere Göre Çiçeklenme Dönemi, TAGEM Ordu Arıcılık Araştırma Enstitüsü, 2022 (AAEM/51). Ağırlıklar ve eşikler uzman tahminidir (Sensörlü mod — eşikler bölümünde ayarlanır).</p>' +
+      '<p class="fe-sub" id="takvimEksik" style="margin:.2rem 0;">Takvim istekleri yükleniyor…</p></fieldset>';
+    setTimeout(function () { var el = document.getElementById('takvimEksik'), B = window.SuperAriBulut, c = B && B.client && B.client(); if (!el) return; if (!c) { el.textContent = 'Takvim istekleri: bulut yok.'; return; }
+      c.from('takvim_eksik').select('il,created_at').order('created_at', { ascending: false }).limit(50).then(function (r) { var L = (r && r.data) || [], o = {}; L.forEach(function (x) { o[x.il] = (o[x.il] || 0) + 1; });
+        var k = Object.keys(o); el.textContent = k.length ? 'Eksik takvim istekleri: ' + k.map(function (i) { return 'takvim_eksik: ' + i + ' (' + o[i] + ')'; }).join(' · ') : 'Eksik takvim isteği yok.'; }); }, 0);
     var aps = []; try { aps = (D.loadApiaries ? D.loadApiaries() : []) || []; } catch (e) { aps = []; }
     var yr = new Date().getFullYear(), dn = o.donem || {};
     h += '<fieldset><legend>Arılık oğul dönemleri</legend><p class="fe-sub" style="margin:.2rem 0;">Otomatik dönem bölge profilinden (rakım / il) hesaplanır. Tarih aralığı seçilirse ORS Mevsim bu dönemi kullanır (her yıl aynı gün/ay).</p>' +
