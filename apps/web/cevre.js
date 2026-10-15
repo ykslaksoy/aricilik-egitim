@@ -23,7 +23,9 @@
     var ilac = S && S.aktifIlaclama ? S.aktifIlaclama(ap.id) : false;
     var g = R && R.toplamaAlaniGuvenli ? R.toplamaAlaniGuvenli(s.ortu, ilac) : s.toplama_alani_guvenli;
     if (g === false) L.push({ k: 'alan', metin: ilac ? 'Yakında ilaçlama var, kovan girişlerini kapat' : 'Toplama alanı zayıf, besleme planla' });
-    return { veriYok: false, liste: L, su_m: s.su_kaynagi_mesafe_metre, alan: g == null ? null : g };
+    /* k180: sorgu sonuç vermediyse (mesafe yok) uydurma yok → «Veri yok» */
+    var suYok = s.su_kaynagi_mesafe_metre == null || !isFinite(s.su_kaynagi_mesafe_metre);
+    return { veriYok: false, suVeriYok: suYok, liste: L, su_m: suYok ? null : s.su_kaynagi_mesafe_metre, alan: g == null ? null : g };
   }
   var BO_KEY = 'superari.balorman.v1';
   function balOrmanlari() { return rj(BO_KEY, []); }
