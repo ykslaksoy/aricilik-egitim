@@ -7,7 +7,7 @@ label{display:block;font-weight:700;margin:12px 0 4px}input{width:100%;box-sizin
 <div class="k"><h1 style="font-size:1.3rem;margin:0 0 6px">Yeni şifre belirle</h1><p style="color:#7a6650;margin:0">E-postadaki bağlantıyla geldin. Yeni şifreni iki kez yaz.</p>
 <form id="f"><label>Yeni şifre</label><input type="password" name="y" minlength="8" autocomplete="new-password" required><label>Yeni şifre (tekrar)</label><input type="password" name="y2" minlength="8" autocomplete="new-password" required>
 <button class="btn">Şifreyi kaydet</button><div id="d" role="status"></div></form></div>
-<script src="bulut.js?v=koloni-178"></script>
+<script src="bulut.js?v=koloni-179"></script>
 <script>
 document.getElementById('f').addEventListener('submit', function (e) {
   e.preventDefault(); var f = e.target, d = document.getElementById('d');
@@ -20,5 +20,5 @@ document.getElementById('f').addEventListener('submit', function (e) {
     .then(function () { d.textContent = 'Şifren güncellendi. Giriş sayfasına yönlendiriliyorsun…'; setTimeout(function () { location.href = 'ayarlar.html'; }, 1500); })
     .catch(function (er) { d.textContent = /session|oturum|auth/i.test(String(er && er.message)) ? 'Bağlantının süresi dolmuş. Yeniden «Şifremi unuttum» de.' : 'Kaydedilemedi: ' + (er.message || ''); });
 });
-</script><script src="sifre-goz.js?v=koloni-178"></script>
+</script><script src="sifre-goz.js?v=koloni-179"></script>
 </body></html>

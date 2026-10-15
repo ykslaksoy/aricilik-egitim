@@ -1,4 +1,4 @@
-/* koloni-178: Yönetici · Yapılacaklar (tablo yapilacaklar; RLS yalnız admin) */
+/* koloni-179: Yönetici · Yapılacaklar (tablo yapilacaklar; RLS yalnız admin) */
 (function () {
   'use strict';
   var B = window.SuperAriBulut, host = document.getElementById('panel'); if (!B || !host) return;
