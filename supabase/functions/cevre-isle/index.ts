@@ -28,16 +28,20 @@ export function kutu(lat: number, lon: number, r: number) { const dla = r / 111_
 // Yollar (dere/kanal/göl kıyısı) kutuya kırpılmış geometriyle gelir: mesafe en yakın kenara (merkeze değil).
 export function suSorgu(lat: number, lon: number, r = YARICAP + 800) {
   const a = `(around:${r},${lat},${lon})`;
-  return `[out:json][timeout:25];(way${a}[waterway~"^(river|stream|canal)$"];way${a}[natural=water];node${a}[natural=spring];node${a}[amenity=drinking_water];node${a}[man_made=water_well];);out tags geom(${kutu(lat, lon, r).join(",")}) qt 300;`;
+  // k184: deniz kıyısı (natural=coastline) + büyük göl/baraj multipolygon ilişkileri (relation natural=water); üyelerin geometrisi kenar olarak sayılır
+  return `[out:json][timeout:25];(way${a}[waterway~"^(river|stream|canal)$"];way${a}[natural=water];way${a}[natural=coastline];relation${a}[natural=water][type=multipolygon];node${a}[natural=spring];node${a}[amenity=drinking_water];node${a}[man_made=water_well];);out tags geom(${kutu(lat, lon, r).join(",")}) qt 300;`;
 }
 export type Nokta = { g: number[][]; tur: string; ad: string | null };
 const f5 = (x: number) => Math.round(x * 1e5) / 1e5;
 export function noktalar(j: any): Nokta[] {
   const L: Nokta[] = [];
   for (const e of j?.elements || []) { const t = e.tags || {};
-    const g: number[][] = e.type === "node" ? (e.lat != null ? [[f5(e.lat), f5(e.lon)]] : []) : (e.geometry || []).filter((p: any) => p && p.lat != null).map((p: any) => [f5(p.lat), f5(p.lon)]);
+    const tur = t.waterway || t.natural || t.amenity || t.man_made || "su", ad = t.name || null;
+    const yol = (geo: any[]) => (geo || []).filter((p: any) => p && p.lat != null).map((p: any) => [f5(p.lat), f5(p.lon)]);
+    if (e.type === "relation") { for (const m of e.members || []) { const g = yol(m.geometry); if (g.length) L.push({ g, tur, ad }); } continue; } // k184: göl/baraj kenarı
+    const g: number[][] = e.type === "node" ? (e.lat != null ? [[f5(e.lat), f5(e.lon)]] : []) : yol(e.geometry);
     if (!g.length) continue;
-    L.push({ g, tur: t.waterway || t.natural || t.amenity || t.man_made || "su", ad: t.name || null }); }
+    L.push({ g, tur, ad }); }
   return L;
 }
 // Nokta–parça mesafesi (yerel düzlem; 3 km'de hata ihmal edilir)

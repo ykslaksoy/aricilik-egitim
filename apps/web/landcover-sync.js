@@ -1,5 +1,5 @@
 /**
- * SüperArı — örtü + su. 800 m uydurma ezilir; Yanıkdağ 240 m.
+ * SüperArı — örtü + su. 800 m uydurma ezilir (k184: sabit Yanıkdağ değeri kaldırıldı; sunucu değeri arilik_cevre'den okunur).
  */
 (function (global) {
   var BAR_ID = 'landcoverSyncBar';
@@ -11,7 +11,6 @@
   ];
   var WATER_SCAN_M = [300, 800, 1500];
   var DUMMY_WATER_M = 800;
-  var YANIK_FALLBACK_M = 240;
   var running = false;
   var logLines = [];
   var barOpen = false;
@@ -106,7 +105,7 @@
   }
   function interpretOne(apiary, waterHit) {
     var metres = waterHit && waterHit.metres != null ? Math.round(waterHit.metres) : (apiary && apiary.waterDistanceM != null ? Number(apiary.waterDistanceM) : null);
-    if (isDummyDist(metres)) metres = isYanikdag(apiary) ? YANIK_FALLBACK_M : null;
+    if (isDummyDist(metres)) metres = null;
     var waterLine = metres != null && isFinite(metres) ? ('Su kaynağı bulundu · ' + metres + ' m') : 'Su kaynağı bulunamadı';
     return {
       name: (apiary && (apiary.name || apiary.etiket)) || 'Arılık',
@@ -230,16 +229,9 @@
     if (!isFinite(lat) || !isFinite(lon)) return Promise.resolve(null);
     if (onStep) onStep({ message: 'Su kaynağı taranıyor', pct: 20 });
     return findNearestWater(lat, lon).then(function (hit) {
-      if (!hit && isYanikdag(apiary)) {
-        hit = { metres: YANIK_FALLBACK_M, lat: lat, lon: lon, tags: { waterway: 'stream' }, seasonal: false };
-      }
       if (hit) {
         saveWater(apiary, hit);
         if (onStep) onStep({ message: 'Su kaynağı bulundu · ' + Math.round(hit.metres) + ' m', pct: 100 });
-      } else if (isDummyDist(apiary.waterDistanceM) && isYanikdag(apiary)) {
-        writeWater(apiary, YANIK_FALLBACK_M, 'Dere', 'dere');
-        hit = { metres: YANIK_FALLBACK_M };
-        if (onStep) onStep({ message: 'Su kaynağı bulundu · 240 m', pct: 100 });
       } else if (onStep) onStep({ message: 'Su kaynağı bulunamadı', pct: 100 });
       lastInsights = [interpretOne(apiary, hit)];
       return { water: hit };
@@ -249,9 +241,6 @@
     if (running) return Promise.resolve({ skipped: true });
     running = true;
     var list = apiaries().filter(function (a) { return a && isFinite(Number(a.lat)); });
-    list.forEach(function (a) {
-      if (isDummyDist(a.waterDistanceM) && isYanikdag(a)) writeWater(a, YANIK_FALLBACK_M, 'Dere', 'dere');
-    });
     setBar(true, 8, 'Tarama', 'Su kaynağı taranıyor');
     var i = 0;
     function next() {
@@ -270,9 +259,6 @@
   function start() {
     ensureBar();
     var list = apiaries();
-    list.forEach(function (a) {
-      if (isDummyDist(a.waterDistanceM) && isYanikdag(a)) writeWater(a, YANIK_FALLBACK_M, 'Dere', 'dere');
-    });
     setBar(true, 1, 'Tarama', 'Su kaynağı taranıyor');
     setTimeout(function () { refreshAll(); }, 200);
   }

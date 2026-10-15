@@ -45,7 +45,7 @@
   yukle();
   /* ---- Arılık çevresi (EK8) ---- */
   var c2 = document.createElement('section'); c2.className = 'card fe'; c2.id = 's-cevre';
-  c2.innerHTML = '<h2>Arılık çevresi</h2><p class="fe-sub">3 km içinde en yakın su kaynağı (OpenStreetMap, Overpass) ve arazi örtüsü oranları (ESA WorldCover 2021). Uygulamada yalnız kısa uyarı görünür; mesafe gösterilmez. Su eşikleri (≤500 m güvenli, 1500 m üstü çok uzak) <b>uzman tahmini</b>, Oğul skorları › sensör bölümünden ayarlanır. Yenileme betiği: <code>scripts/arilik_cevre.py</code>.</p><div class="bd">Yükleniyor…</div><button type="button" class="btn secondary" id="cvYenile">Yenile</button>';
+  c2.innerHTML = '<h2>Arılık çevresi</h2><p class="fe-sub">3 km içinde en yakın su kaynağı (OpenStreetMap, Overpass) ve arazi örtüsü oranları (ESA WorldCover 2021). Uygulamada yalnız kısa uyarı görünür; mesafe gösterilmez. Su eşikleri (≤500 m güvenli, 1500 m üstü çok uzak) <b>uzman tahmini</b>, Oğul skorları › sensör bölümünden ayarlanır. Su sorgusu (k184): dere/kanal, göl/baraj (çokgen ilişkileri dahil), deniz kıyısı, kaynak/çeşme/kuyu; mesafe en yakın kenara. Yenileme betiği: <code>scripts/arilik_cevre.py</code>.</p><p class="fe-sub" id="cvForaj"><b>Foraj yarıçapı: uzman tahmini</b> — 3,6 km\'den başlar, 1,5–4 km arasında tutulur; yerleşim yoğunluğu girdisi gerçek ölçüm değil (kaynak aranıyor, Yapılacaklar\'da).</p><div class="bd">Yükleniyor…</div><button type="button" class="btn secondary" id="cvYenile">Yenile</button>';
   host.appendChild(c2); if (nav) nav.insertAdjacentHTML('beforeend', '<a class="chip" href="#s-cevre">Arılık çevresi</a>');
   function cevre() {
     var b2 = c2.querySelector('.bd');

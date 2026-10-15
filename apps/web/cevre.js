@@ -7,11 +7,18 @@
   function wj(k, v) { try { global.localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* */ } }
   function anahtar(ap) { return ap ? String(ap.cloudId || ap.id) : ''; }
   function satir(ap) { var c = rj(CACHE, {}); return c[anahtar(ap)] || c[String(ap && ap.id)] || null; }
+  /** k184: { arilik_id → satır } + yerel kimlik (local_id) → aynı bulut satırı */
+  function cache(rows, aps) { var o = {}; (rows || []).forEach(function (x) { o[x.arilik_id] = x; });
+    (aps || []).forEach(function (a) { if (a && a.local_id && o[String(a.id)]) o[String(a.local_id)] = o[String(a.id)]; }); return o; }
+  /** k184: sunucu su mesafesi (m) ya da null */
+  function suM(ap) { var s = ap ? satir(ap) : null, m = s && s.su_kaynagi_mesafe_metre; return m != null && isFinite(m) ? Math.round(Number(m)) : null; }
   var bek = false;
   function cek() {
     var B = global.SuperAriBulut; if (bek || !B || !B.client) return Promise.resolve(false); bek = true;
-    return B.client().then(function (c) { return c.from('arilik_cevre').select('arilik_id,rakim_m,su_kaynagi_mesafe_metre,su_kaynagi_turu,ortu,toplama_alani_guvenli,hesaplandi'); })
-      .then(function (r) { bek = false; if (!r || r.error || !r.data) return false; var o = {}; r.data.forEach(function (x) { o[x.arilik_id] = x; }); wj(CACHE, o); try { global.dispatchEvent(new Event('superari-cevre')); } catch (e) { /* */ } return true; })
+    /* k184: tek kayıt = bulut kimliği (apiaries.id). Uygulama yerel kimlik (a1…) kullanıyorsa local_id eşlemesiyle aynı satır okunur. */
+    return B.client().then(function (c) { return Promise.all([c.from('arilik_cevre').select('arilik_id,rakim_m,su_kaynagi_mesafe_metre,su_kaynagi_turu,ortu,toplama_alani_guvenli,hesaplandi'),
+        c.from('apiaries').select('id,local_id').then(function (x) { return x; }, function () { return null; })]); })
+      .then(function (rr) { var r = rr && rr[0], ap = rr && rr[1]; bek = false; if (!r || r.error || !r.data) return false; var o = cache(r.data, ap && !ap.error ? ap.data : null); wj(CACHE, o); try { global.dispatchEvent(new Event('superari-cevre')); } catch (e) { /* */ } return true; })
       .catch(function () { bek = false; return false; });
   }
   /** Kısa uyarılar: [{ k:'su'|'alan', metin }] ya da { veriYok:true } */
@@ -37,5 +44,5 @@
   function zamanli(p, ms) { return Promise.race([p, new Promise(function (_, rej) { global.setTimeout(function () { rej(new Error('zaman aşımı')); }, ms); })]); }
   function yeniden(fn, ad) { var n = 0; (function dene() { zamanli(Promise.resolve().then(fn), 15000).then(function (ok) { if (ok === false) throw new Error('yok'); }).catch(function () { n++; var b = Math.min(600000, 5000 * Math.pow(2, n - 1)); global['__saGeri_' + ad] = b; global.setTimeout(dene, b); }); })(); }
   if (global.setTimeout) global.setTimeout(function () { yeniden(cek, 'cevre'); yeniden(cekBO, 'bo'); }, 2000);
-  global.SuperAriCevre = { cek: cek, satir: satir, uyarilar: uyarilar, balOrmanlari: balOrmanlari };
+  global.SuperAriCevre = { cek: cek, cache: cache, suM: suM, satir: satir, uyarilar: uyarilar, balOrmanlari: balOrmanlari };
 })(typeof window !== 'undefined' ? window : globalThis);

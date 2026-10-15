@@ -430,7 +430,30 @@
     return haversineMetres(alat, alon, wlat, wlon);
   }
 
+  /** k184: sunucunun hesapladığı su mesafesi (arilik_cevre, OSM en yakın kenar) ya da null. */
+  function serverWaterM(apiary) {
+    try { var C = global.SuperAriCevre; return C && C.suM ? C.suM(apiary) : null; } catch (e) { return null; }
+  }
+  /** k184: kullanıcı onaylamadıysa yerel/eski su mesafesi (ör. Yanıkdağ 240 m) sunucu değeriyle ezilir; onaylı elle değer korunur. */
+  function applyServerWater(list) {
+    var changed = false;
+    var out = (list || []).map(function (a) {
+      if (!a || (a.waterSourceConfirmedAt != null && String(a.waterSourceConfirmedAt).trim())) return a;
+      var m = serverWaterM(a);
+      if (m == null || parseWaterDistanceM(a.waterDistanceM) === m && !a.waterSourceId) return a;
+      changed = true;
+      var c = Object.assign({}, a);
+      c.waterDistanceM = m;
+      delete c.waterSourceId; /* otomatik konan eski su iğnesi (arılık koordinatında) mesafeyi bozmasın */
+      return c;
+    });
+    return { list: out, changed: changed };
+  }
+
   function effectiveWaterDistanceM(apiary, catalogItem) {
+    var confirmed = apiary && apiary.waterSourceConfirmedAt != null && String(apiary.waterSourceConfirmedAt).trim();
+    var srv = confirmed ? null : serverWaterM(apiary);
+    if (srv != null) return { metres: srv, source: 'sunucu' };
     var item = catalogItem || (apiary && apiary.waterSourceId ? waterCatalogById(apiary.waterSourceId) : null);
     /* Harita mesafesi varsa her zaman onu kullan — elle/uydurma değer skor/hedef balı şişirmesin. */
     var auto = computedWaterDistanceM(apiary, item);
@@ -2005,7 +2028,9 @@
           var ded = liveM ? { list: ens.list, changed: false } : dedupeYanikBalugApiaries(ens.list);
           var adminMig = migratePlaceAdmin(ded.list);
           var waterDist = refreshWaterDistancesFromMap(adminMig.list);
-          var out = waterDist.list;
+          var srvW = applyServerWater(waterDist.list);
+          var out = srvW.list;
+          if (srvW.changed) waterDist.changed = true;
           if (rest.changed || mig.changed || coordMig.changed || ens.changed || ded.changed || adminMig.changed || waterDist.changed) {
             try {
               var outS = JSON.stringify(out);
@@ -6127,6 +6152,8 @@
       clearApiaryWaterLink: clearApiaryWaterLink,
       computedWaterDistanceM: computedWaterDistanceM,
       effectiveWaterDistanceM: effectiveWaterDistanceM,
+      serverWaterM: serverWaterM,
+      applyServerWater: applyServerWater,
       formatPlaceSubtitle: formatPlaceSubtitle,
       refreshWaterDistancesFromMap: refreshWaterDistancesFromMap,
       yandexMapsUrl: yandexMapsUrl,

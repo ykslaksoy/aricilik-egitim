@@ -1,4 +1,4 @@
-/* koloni-183: Arılık konumu yalnız açık «Konumu düzenle» modunda değişir; kayıttan önce onay. */
+/* koloni-184: Arılık konumu yalnız açık «Konumu düzenle» modunda değişir; kayıttan önce onay. */
 (function (global) {
   'use strict';
   function fmt(p) {
