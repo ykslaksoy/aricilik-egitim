@@ -185,6 +185,7 @@
     '.kol-actions .btn{padding:.75rem;white-space:normal;line-height:1.2;font-size:.9rem;}' +
     '.kol-toast{position:fixed;left:50%;bottom:1.2rem;transform:translateX(-50%);background:#2b2410;color:#fff;padding:.55rem .9rem;border-radius:999px;font-size:.85rem;font-weight:700;z-index:950;}' +
     '.kol-line{font-size:.8rem;color:var(--muted,#6b7280);line-height:1.35;overflow-wrap:anywhere;}' +
+    '.kol-line .kol-nw{white-space:nowrap;}' +
     '.kol-line a{color:#2b6cb0;text-decoration:underline;}' +
     '.kol-bulk-btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;margin-top:.6rem;padding:.7rem .8rem;border-radius:12px;border:1.5px solid #e0c56a;background:linear-gradient(180deg,#fff6df 0%,#fff3bf 100%);color:#5c4813;font:inherit;font-size:.9rem;font-weight:800;cursor:pointer;}' +
     '.kol-checks{grid-column:1 / -1;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fff;max-height:34vh;overflow:auto;padding:.3rem .5rem;}' +
@@ -333,12 +334,18 @@
     var c = C(); if (!c) return '';
     var s = c.summary(hives);
     if (!s.total) return '';
-    var br = s.breeds.map(function (b) { return b.breed + ' ' + b.count; }).join(' · ');
+    /* koloni-183: her parça (özellikle «Cins: Kafkas × Karadeniz 35») bölünmez; satır yalnız «·» ayraçlarından kırılır. */
+    function nw(t) { return '<span class="kol-nw">' + t + '</span>'; }
+    var brParts = s.breeds.map(function (b) { return esc(b.breed + ' ' + b.count); });
+    var parts = [];
+    parts.push(nw('🐝 Cins: ' + (brParts[0] || '—')));
+    for (var i = 1; i < brParts.length; i++) parts.push(nw(brParts[i]));
+    parts.push(nw('Ort. ana yaşı ' + (s.avgQueenAge != null ? String(s.avgQueenAge).replace('.', ',') : '—')));
+    parts.push(nw('Yenilenecek ana ' + s.requeen));
+    if (s.unknown) parts.push(nw('Bilinmeyen ' + s.unknown));
     var href = 'kovanlar.html?view=koloni&mode=apiary&apiary=' + encodeURIComponent(apiaryId || '');
-    return '<div class="kol-line">🐝 Cins: ' + esc(br) +
-      ' · Ort. ana yaşı ' + (s.avgQueenAge != null ? String(s.avgQueenAge).replace('.', ',') : '—') +
-      ' · Yenilenecek ana ' + s.requeen + (s.unknown ? ' · Bilinmeyen ' + s.unknown : '') +
-      (apiaryId ? ' · <a href="' + href + '" onclick="event.stopPropagation();">Koloni</a>' : '') + '</div>';
+    if (apiaryId) parts.push('<a href="' + href + '" onclick="event.stopPropagation();">Koloni</a>');
+    return '<div class="kol-line">' + parts.join(' · ') + '</div>';
   }
 
   /* rozet: koloni gücü «Güçlü · 64» (güç kaydı yoksa eski örnek skor) */

@@ -97,6 +97,7 @@ const SHELL = [
   "/ayarlar.html",
   "/ayarlar-arilik-ozet.js",
   "/esikler.js",
+  "/konum-onay.js",
   "/agac.js",
   "/bakici.html",
   "/bakim-akis.html",

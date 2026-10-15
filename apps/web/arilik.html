@@ -703,14 +703,15 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
-<script src="harita-offline.js?v=koloni-182"></script>
+<script src="harita-offline.js?v=koloni-183"></script>
 <script src="yandex-map.js"></script>
-<script src="demo-data.js?v=koloni-182"></script>
-<script src="sensor-polling.js?v=koloni-182"></script>
-<script src="cicek-veri.js?v=koloni-182"></script><script src="cicek.js?v=koloni-182"></script><script src="plan-planlayici.js?v=koloni-182"></script><script src="rota-motoru.js?v=koloni-182"></script><script src="cevre.js?v=koloni-182"></script><script src="saglik-takvimi.js?v=koloni-182"></script>
-<script src="rapor-store.js?v=koloni-182"></script>
-<script src="koloni.js?v=koloni-182"></script>
-<script src="forage-analysis.js?v=koloni-182"></script>
+<script src="konum-onay.js?v=koloni-183"></script>
+<script src="demo-data.js?v=koloni-183"></script>
+<script src="sensor-polling.js?v=koloni-183"></script>
+<script src="cicek-veri.js?v=koloni-183"></script><script src="cicek.js?v=koloni-183"></script><script src="plan-planlayici.js?v=koloni-183"></script><script src="rota-motoru.js?v=koloni-183"></script><script src="cevre.js?v=koloni-183"></script><script src="saglik-takvimi.js?v=koloni-183"></script>
+<script src="rapor-store.js?v=koloni-183"></script>
+<script src="koloni.js?v=koloni-183"></script>
+<script src="forage-analysis.js?v=koloni-183"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
@@ -1777,7 +1778,7 @@
         { label: 'Yandex’te aç', action: 'yandex' },
         { label: 'Diğer haritalarda aç', action: 'other' },
         { label: 'Haritada ortala', action: 'center' },
-        { label: 'Konumu değiştir', action: 'pick' }
+        { label: 'Konumu düzenle', action: 'pick' }
       ]
     );
     locSheetList.querySelectorAll('.sheet-item').forEach(function (btn) {
@@ -3098,8 +3099,8 @@
           }
           return;
         }
-        /* Any tap places/moves pin, enters pick mode, shows Save — no menu-only zoom. */
-        if (!pickMode) startPickMode();
+        /* koloni-183: dokunma/sürükleme yalnız haritayı gezdirir; pin yalnız «Konumu düzenle» modunda taşınır. */
+        if (!(window.SuperAriKonumOnay ? SuperAriKonumOnay.tapMovesPin({ editMode: pickMode }) : pickMode)) return;
         var z = ctrl.getZoom();
         if (z < 14) ctrl.setView(la, lo, Math.min(16, z + 2));
         placeDetailMarker(la, lo, pendingSearchName);
@@ -3227,7 +3228,7 @@
             )
           : '<div class="map-coords-line" id="pickCoords">Konum seçilmedi</div>') +
         '<div class="map-tool-row is-on" id="mapEditTools">' +
-          '<button type="button" class="map-btn ghost" id="btnPickLoc">Arılık konumu güncelle</button>' +
+          '<button type="button" class="map-btn ghost" id="btnPickLoc">Konumu düzenle</button>' +
           '<button type="button" class="map-btn ghost" id="btnUpdateWaterLoc">Su konumunu güncelle</button>' +
         '</div>' +
         '<div class="map-actions">' +
@@ -3351,7 +3352,7 @@
       btnPlanDone.addEventListener('click', function () {
         var plan = loadMovePlan(apiary.id);
         if (!plan || !G) return;
-        if (!confirm('Taşıma tamamlandı sayılacak; konum güncellenir ve gider yazılır.')) return;
+        if (!confirm('Taşıma tamamlandı sayılacak; konum güncellenir ve gider yazılır.\n\n' + (window.SuperAriKonumOnay ? SuperAriKonumOnay.message(hasCoords(apiary) ? { lat: apiary.lat, lon: apiary.lon } : null, { lat: plan.lat, lon: plan.lon }) : ''))) return;
         var patch = { lat: Number(plan.lat), lon: Number(plan.lon) };
         if (plan.place) patch.place = plan.place;
         forageManual = false;
@@ -3446,6 +3447,22 @@
         var c = Y && detailPlacemark ? Y.placemarkCoords(detailPlacemark) : null;
         if (!c) {
           alert('Önce ara veya haritaya dokunarak konum seçin.');
+          return;
+        }
+        /* koloni-183: kayıttan önce onay (eski/yeni koordinat); İptal → eski konuma dön. */
+        var oldP = hasCoords(apiary) ? { lat: Number(apiary.lat), lon: Number(apiary.lon) } : null;
+        if (oldP && window.SuperAriKonumOnay && SuperAriKonumOnay.samePoint(oldP, c)) {
+          pickMode = false;
+          render();
+          return;
+        }
+        var okSave = window.SuperAriKonumOnay
+          ? SuperAriKonumOnay.confirmChange(oldP, c)
+          : confirm('Konum değişsin mi?');
+        if (!okSave) {
+          pickMode = false;
+          pendingSearchName = '';
+          render();
           return;
         }
         /* Konum kaydı: su resync + reverse il·ilçe·köy (seed admin korunur). */
@@ -3716,7 +3733,7 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="nav.js?v=koloni-182"></script>
-<script src="pwa.js?v=koloni-182"></script>
+<script src="nav.js?v=koloni-183"></script>
+<script src="pwa.js?v=koloni-183"></script>
 </body>
 </html>
