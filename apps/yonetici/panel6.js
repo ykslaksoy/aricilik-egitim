@@ -1,4 +1,4 @@
-/* koloni-167: Yönetici · Yapılacaklar (tablo yapilacaklar; RLS yalnız admin) */
+/* koloni-168: Yönetici · Yapılacaklar (tablo yapilacaklar; RLS yalnız admin) */
 (function () {
   'use strict';
   var B = window.SuperAriBulut, host = document.getElementById('panel'); if (!B || !host) return;
@@ -30,4 +30,13 @@
     B.client().then(function (c) { return c.from('yapilacaklar').insert({ baslik: b, aciklama: f.a.value.trim() }); }).then(function (r) { if (r.error) { alert('Eklenemedi'); return; } f.reset(); yukle(); });
   });
   yukle();
+})();
+
+/* k168: puansız ırk/ekotipler (ör. Efe arısı) — kaynaklar yalnız yönetici panelinde. */
+(function () {
+  var L = document.getElementById('ipList'), D = window.SuperAriDemo; if (!L) return;
+  var list = (D && D.colony && D.colony.IRK_PUANSIZ) || [];
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function lnk(k) { return esc(k).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
+  L.innerHTML = list.length ? list.map(function (x) { return '<li><b>' + esc(x.ad) + '</b> — <i>' + esc(x.tur) + '</i><br>Genetik: <b>Veri yok</b> · Oğul ölçeği: <b>Veri yok</b> · FOB: <b>Veri yok</b><br><small>' + esc(x.ozet) + '</small><ul>' + x.kaynak.map(function (k) { return '<li><small>' + lnk(k) + '</small></li>'; }).join('') + '</ul></li>'; }).join('') : '<li>Kayıt yok.</li>';
 })();

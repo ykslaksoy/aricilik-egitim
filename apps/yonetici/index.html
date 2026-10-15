@@ -77,6 +77,11 @@
       <p class="fe-sub" id="ieSub">Oğul riskinde ırk ölçeği tabloda olmayan melezler: bu kovanlarda ırk hesaba katılmaz. Yayın bulununca <code>demo-data.js › HYBRID_SWARM</code>’a eklenmeli. <span id="ieCloud"></span></p>
       <ol class="fe-list" id="ieList"></ol>
     </section>
+    <section class="card fe" aria-labelledby="ipH">
+      <h2 id="ipH">Puansız ırk / ekotipler</h2>
+      <p class="fe-sub">Tescilli ama 0–100 Genetik / oğul ölçeğinde yayımlanmış puanı olmayanlar: Genetik «Veri yok» (ağırlık dağıtılır), puan uydurulmaz. Kaynaklar yalnız burada.</p>
+      <ol class="fe-list" id="ipList"></ol>
+    </section>
     </div>
   </main>
 <script>/* Ana uygulamayla aynı adreste açılırsa (superari.vercel.app/apps/yonetici) kullanıcının yerel verisine dokunma */window.SA_YON_AYRI=!/^superari\.vercel\.app$/.test(location.hostname);if(window.SA_YON_AYRI){try{localStorage.setItem('superari.workMode','live');}catch(e){}}</script>
@@ -107,7 +112,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-167').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-167');}).then(function(){return load('panel6.js?v=koloni-167');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-168').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-168');}).then(function(){return load('panel6.js?v=koloni-168');}); }
           }).then(function () { return true; });
         });
       });

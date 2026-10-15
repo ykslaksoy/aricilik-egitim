@@ -99,13 +99,13 @@
         </div>
 </div>
 <div class="toast" id="toast" role="status">Kaydedildi</div>
-<script src="demo-data.js?v=koloni-167"></script>
-<script src="device-runtime.js?v=koloni-167"></script>
-<script src="yetki.js?v=koloni-167"></script>
-<script src="nav.js?v=koloni-167"></script>
-<script src="bulut.js?v=koloni-167"></script>
-<script src="sensor-polling.js?v=koloni-167"></script>
-<script src="sesle-muayene.js?v=koloni-167"></script>
+<script src="demo-data.js?v=koloni-168"></script>
+<script src="device-runtime.js?v=koloni-168"></script>
+<script src="yetki.js?v=koloni-168"></script>
+<script src="nav.js?v=koloni-168"></script>
+<script src="bulut.js?v=koloni-168"></script>
+<script src="sensor-polling.js?v=koloni-168"></script>
+<script src="sesle-muayene.js?v=koloni-168"></script>
 <script>
 (function () {
   'use strict';
@@ -163,7 +163,7 @@
     { id: 'pil', ic: '🔋', t: 'Düşük pil uyarısı', d: function () { var P = window.SuperAriSensorPolling; return P && P.getBatteryLowPct ? 'Eşik %' + P.getBatteryLowPct(null) : 'Eşik'; }, kalici: 'k-pil' },
     { id: 'birim', ic: '📏', t: 'Birimler ve dil', d: function () { return (A.birim === 'kg' ? 'Kilogram' : 'Gram') + ' · Türkçe'; }, b: function () { return '<div class="sat"><label>Ağırlık</label>' + sec('birim', [['kg', 'Kilogram'], ['g', 'Gram']]) + '</div><div class="sat"><label>Tarih</label>' + sec('tarih', [['gg.aa.yyyy', '15.10.2026'], ['gg ay', '15 Eki']]) + '</div><div class="sat"><label>Dil</label>' + sec('dil', [['tr', 'Türkçe']]) + '</div>'; } },
     { id: 'cihaz', ic: '📡', t: 'Cihazlar', d: function () { return 'Kovan ve gateway cihazları'; }, b: function () { return '<div class="sat"><label>Cihazları yönet</label><a class="btn" href="cihazlar.html">Cihazlar</a></div>'; } },
-    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-167'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-167</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
+    { id: 'hakkinda', ic: 'ℹ️', t: 'Hakkında', d: function () { return 'SüperArı · koloni-168'; }, b: function () { return '<div class="sat"><label>Sürüm</label><b>koloni-168</b></div><div class="sat"><label>Kullanım şartları</label><a class="btn ikincil" href="sartlar.html">Aç</a></div>'; } }
   ];
   var HM = { 'calisma-modu': 'calisma-modu', cihaz: 'cihaz', bulut: 'hesap', hesap: 'hesap', 'arilik-ayarlari': 'arilik', 'arilik-ozet': 'arilik', ekip: 'ekip', bildirim: 'bildirim', ses: 'ses' };
   var sifreAcik = false, sifreMesaj = '';
@@ -334,6 +334,6 @@
     (function () { var n = 0, iv = setInterval(function () { n++; var had = (box._opts || []).length; draw(); if (n >= 12 || (had && had === (box._opts || []).length)) clearInterval(iv); }, 250); })();
   })();
 </script>
-<script src="sifre-goz.js?v=koloni-167"></script>
+<script src="sifre-goz.js?v=koloni-168"></script>
 </body>
 </html>
