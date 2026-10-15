@@ -204,6 +204,8 @@
    *  (sonradan Geliştirilmiş indirildiyse o; kayıtlı compact voiceURI sabitlenmez). Aile yoksa en kaliteli tr ses; hiç yoksa null. */
   function bestTrVoice(list, savedId) {
     var u = uniqueTrVoices(list);
+    /* k164: kayıtlı ses voiceURI ile cihazda birebir varsa TAM o ses (kullanıcı standart/Geliştirilmiş sürümü kendisi seçer) */
+    if (savedId) { var ex = sortTrVoices(list).filter(function (v) { return v.voiceURI === savedId; })[0]; if (ex) return ex; }
     if (savedId) { var f = familyOfId(savedId, list), b = f ? bestOfFamily(list, f) : null; if (b) return b; }
     return u[0] || null;
   }
@@ -259,9 +261,11 @@
      source 'device' = cihaz sesi (speechSynthesis). İleride 'mp3' (hazır kayıt) / bulut kaynakları aynı modelle eklenir. */
   function deviceOptions(list) {
     var raw = list || [];
-    return uniqueTrVoices(raw).map(function (v) {
-      var nk = voiceNick(v, raw), r = voiceRank(v);
-      return { id: voiceKey(v), source: 'device', nick: nk.nick, g: nk.g, siri: nk.siri, enh: isEnhanced(v), natural: r >= 55 && /natural|neural/i.test(String(v.name)), rank: r, ref: v };
+    /* k164: tr ile başlayan TÜM sesler ayrı satır (Cem, Cem (Geliştirilmiş), Yelda, Yelda (Geliştirilmiş)…), voiceURI ile ayırt edilir */
+    return sortTrVoices(raw).map(function (v) {
+      var nk = voiceNick(v, raw), r = voiceRank(v), nm = String(v.name || v.voiceURI || '').trim();
+      var ad = /enhanced|premium/i.test(String(v.voiceURI || '')) && !/\(/.test(nm) ? nm + ' (Geliştirilmiş)' : nm;
+      return { id: voiceKey(v), ad: ad, source: 'device', nick: nk.nick, g: nk.g, siri: nk.siri, enh: isEnhanced(v), natural: r >= 55 && /natural|neural/i.test(String(v.name)), rank: r, ref: v };
     });
   }
   function optionTags(o, best) { return [o.siri ? 'Siri' : '', o.g, o.enh ? 'Geliştirilmiş' : '', o.natural ? 'doğal' : '', o.source !== 'device' && o.sourceLabel ? o.sourceLabel : '', best && o.id === best.id ? 'önerilen' : ''].filter(Boolean).join(' · '); }
@@ -318,7 +322,7 @@
   function currentOption(opts) {
     var l = opts || voiceOptions(), id = savedVoiceId(); if (!l.length) return null;
     if (id) {
-      for (var i = 0; i < l.length; i++) if (l[i].id === id && l[i].source !== 'device') return l[i];
+      for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; /* k164: birebir kayıtlı ses */
       var all = trVoices(), f = familyOfId(id, all), v = f ? bestOfFamily(all, f) : null;
       if (v) {
         for (var j = 0; j < l.length; j++) if (l[j].source === 'device' && l[j].ref && voiceFamily(l[j].ref) === f) return l[j]; /* liste zaten aile başına en iyi sürümü taşır; konuşmada resolveDevice yeniden çözer */
@@ -336,7 +340,8 @@
   }
   /** Seçenek → konuşma anındaki güncel ses nesnesi (iOS: getVoices() her çağrıda yeni nesne verebilir; eski nesne yok sayılabilir). */
   function resolveDevice(opt) {
-    var all = trVoices(), f = opt && opt.ref ? voiceFamily(opt.ref) : '';
+    var all0 = trVoices(), exact = opt && opt.id ? all0.filter(function (v) { return voiceKey(v) === opt.id; })[0] : null; if (exact) return exact;
+    var all = all0, f = opt && opt.ref ? voiceFamily(opt.ref) : '';
     return (f && bestOfFamily(all, f)) || (opt && opt.ref) || null;
   }
   /** Hazır kayıt (MP3) kaynağı iskeleti — örnek: addVoiceSource('mp3', mp3Source({ label: 'Hazır kayıt', voices: [{ id: 'sinan', nick: 'Sinan', g: 'erkek', rank: 300,
@@ -468,7 +473,8 @@
       timer = setTimeout(end, Math.min(25000, 2000 + clean.length * 90 + (extra || 0))); /* onend gelmezse */
     }
     /* iOS: Geliştirilmiş sesler listeye geç düşebilir — seçili ailenin Geliştirilmiş sürümü henüz yoksa oturumda bir kez kısa bekle, sonra yeniden çöz */
-    if (trVoices().length && !enhWaited && o.voice && !isEnhanced(o.voice) && /com\.apple|yelda|\bcem\b/i.test(String(o.voice.voiceURI || '') + ' ' + String(o.voice.name || ''))) {
+    var secili = !!(o.voice && ((opt && opt.id === voiceKey(o.voice)) || savedVoiceId() === voiceKey(o.voice))); /* k164: kullanıcının seçtiği ses yükseltilmez */
+    if (!secili && trVoices().length && !enhWaited && o.voice && !isEnhanced(o.voice) && /com\.apple|yelda|\bcem\b/i.test(String(o.voice.voiceURI || '') + ' ' + String(o.voice.name || ''))) {
       enhWaited = true;
       var fam0 = voiceFamily(o.voice), doneE = false;
       var goE = function () { if (doneE) return; doneE = true; try { syn.removeEventListener('voiceschanged', goE); } catch (e) { /* ignore */ } var b = bestOfFamily(trVoices(), fam0); if (b) o = Object.assign({}, o, { voice: b }); go(0); };

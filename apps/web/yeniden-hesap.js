@@ -1,4 +1,4 @@
-/* SüperArı · Yeniden hesap + değişikliğe özel bildirim (koloni-163 EK10 ek, EK11 ek, EK12) → window.SuperAriYenidenHesap
+/* SüperArı · Yeniden hesap + değişikliğe özel bildirim (koloni-164 EK10 ek, EK11 ek, EK12) → window.SuperAriYenidenHesap
  * Ayar sürümü değişince ya da taşınmadan sonra: arılık koşulları yeniden değerlendirilir; uyarı listesi önceki imzayla karşılaştırılır.
  * Genel "yeni ayarlar" bildirimi YOK. Yalnız arıcının gördüğü bir şey değiştiyse o değişikliğin kısa bildirimi + uyarı geçmişi. Birim yok. */
 (function (global) {

@@ -193,12 +193,12 @@
       </ul>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-163"></script>
-  <script src="bulut.js?v=koloni-163"></script>
-  <script src="push.js?v=koloni-163"></script>
-  <script src="sartlar.js?v=koloni-163"></script>
-  <script src="foto.js?v=koloni-163"></script>
-  <script src="yedek.js?v=koloni-163"></script>
+  <script src="demo-data.js?v=koloni-164"></script>
+  <script src="bulut.js?v=koloni-164"></script>
+  <script src="push.js?v=koloni-164"></script>
+  <script src="sartlar.js?v=koloni-164"></script>
+  <script src="foto.js?v=koloni-164"></script>
+  <script src="yedek.js?v=koloni-164"></script>
   <script>
   (function () {
     var B = window.SuperAriBulut, D = window.SuperAriDemo;
@@ -413,6 +413,8 @@
         else msg($('pwMsg'), 'Onay e-postası gönderildi: ' + v.em + '. Bağlantıya dokunun, sonra e-posta ve şifrenizle giriş yapın.', 'ok');
       }).catch(function (err) { msg($('pwMsg'), errText(err), 'err'); });
     });
+    /* k164: oturum açıkken «Şifremi unuttum» → Ayarlar › Hesap'taki sıfırlama düğmesi */
+    if (new URLSearchParams(location.search).get('unuttum') === '1' && window.SuperAriBulut && SuperAriBulut.session) SuperAriBulut.session().then(function (ss) { if (ss) location.replace('ayarlar.html?konu=hesap#sifirla'); });
     if (new URLSearchParams(location.search).get('unuttum') === '1') setTimeout(function () { var em = document.querySelector('input[type=email]'); if (em) em.focus(); var fb = $('btnForgot'); if (fb) fb.scrollIntoView({ block: 'center' }); }, 300);
     $('btnForgot').addEventListener('click', function () {
       var em = $('pwForm').elements.email.value.trim();
@@ -689,7 +691,7 @@
     }).catch(function () { render(); });
   })();
   </script>
-  <script src="nav.js?v=koloni-163"></script>
-<script src="pwa.js?v=koloni-163"></script>
+  <script src="nav.js?v=koloni-164"></script>
+<script src="pwa.js?v=koloni-164"></script>
 </body>
 </html>

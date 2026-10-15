@@ -1,4 +1,4 @@
-/* koloni-163: Ayarlar › Arılık özeti — Ekip ve görev atama, Cihaz sağlığı, İzinsiz taşınma/açılma, Arılık haritası, Sezon sonu raporu.
+/* koloni-164: Ayarlar › Arılık özeti — Ekip ve görev atama, Cihaz sağlığı, İzinsiz taşınma/açılma, Arılık haritası, Sezon sonu raporu.
    Yalnız cihazdaki kayıtlarla çalışır (çevrimdışı); ekip listesi bulut açıksa çekilir ve önbelleğe yazılır. Sensörsüz kullanılabilir. */
 (function () {
   'use strict';

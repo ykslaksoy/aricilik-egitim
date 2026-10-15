@@ -47,7 +47,8 @@
     (function () {
       var H = window.SuperAriHesap;
       var M = window.Membership;
-      if (M && M.me) {
+      var UNUT = /[?&]unuttum=1/.test(location.search);
+      if (M && M.me && !UNUT) {
         M.me().then(function (me) {
           if (me && me.ok) {
             window.location.href = me.panel || (H ? H.homeFor('arici') : 'ana.html');
@@ -62,6 +63,6 @@
       }
     })();
   </script>
-<script src="pwa.js?v=koloni-163"></script>
+<script src="pwa.js?v=koloni-164"></script>
 </body>
 </html>

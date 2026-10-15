@@ -13,20 +13,24 @@ const cC = V('Cem', 'com.apple.voice.compact.tr-TR.Cem');
 const cE = V('Cem (Gelişmiş)', 'com.apple.voice.enhanced.tr-TR.Cem');
 const en = V('Samantha', 'com.apple.voice.premium.en-US.Samantha', { lang: 'en-US' });
 
-/* kayıtlı compact Yelda → aynı ailenin Gelişmiş sürümü (Cem'e kaymaz) */
-assert.strictEqual(S.bestTrVoice([yC, yE, cC, cE, en], yC.voiceURI).name, 'Yelda (Gelişmiş)');
+/* k164: kayıtlı ses cihazda birebir varsa TAM o ses (kullanıcı standart sürümü seçebilir) */
+assert.strictEqual(S.bestTrVoice([yC, yE, cC, cE, en], yC.voiceURI).name, 'Yelda');
+assert.strictEqual(S.bestTrVoice([yC, yE, cC, cE, en], yE.voiceURI).name, 'Yelda (Gelişmiş)');
 /* kayıtlı compact kimlik listede yoksa bile aile korunur */
 assert.strictEqual(S.bestTrVoice([yE, cE], yC.voiceURI).name, 'Yelda (Gelişmiş)');
-assert.strictEqual(S.bestTrVoice([cC, cE, yC], 'com.apple.voice.compact.tr-TR.Cem').name, 'Cem (Gelişmiş)');
+assert.strictEqual(S.bestTrVoice([cC, cE, yC], 'com.apple.voice.compact.tr-TR.Cem').name, 'Cem');
+assert.strictEqual(S.bestTrVoice([cE, yC], 'com.apple.voice.compact.tr-TR.Cem').name, 'Cem (Gelişmiş)', 'kayıtlı ses yoksa aile');
 /* Premium > Gelişmiş > compact */
-assert.strictEqual(S.bestTrVoice([yC, yE, yP], yC.voiceURI).name, 'Yelda (Premium)');
+assert.strictEqual(S.bestTrVoice([yC, yE, yP]).name, 'Yelda (Premium)');
 assert.deepStrictEqual([yC, yE, yP].map(S.voiceTier), [0, 2, 3]);
 /* yerelleştirilmiş ekler + voiceURI'de işaret olmayan ad */
-assert.strictEqual(S.bestTrVoice([V('Yelda', 'Yelda'), V('Yelda (Geliştirilmiş)', 'Yelda (Geliştirilmiş)')], 'Yelda').name, 'Yelda (Geliştirilmiş)');
+assert.strictEqual(S.bestTrVoice([V('Yelda', 'Yelda'), V('Yelda (Geliştirilmiş)', 'Yelda (Geliştirilmiş)')], 'Yelda').name, 'Yelda');
+assert.strictEqual(S.bestTrVoice([V('Yelda (Geliştirilmiş)', 'Yelda (Geliştirilmiş)')], 'Yelda').name, 'Yelda (Geliştirilmiş)');
 assert.strictEqual(S.bestTrVoice([V('Yelda', 'Yelda'), V('Yelda (Enhanced)', 'x.enhanced.y')], 'Petek').name, 'Yelda (Enhanced)', 'Petek = Yelda ailesi');
 assert.strictEqual(S.voiceFamily(V('Yelda (İyileştirilmiş)', 'abc')), 'yelda', 'bilinmeyen yerel ek de aileyi bozmaz');
 /* eski iOS ttsbundle biçimi */
-assert.strictEqual(S.bestTrVoice([V('Yelda', 'com.apple.ttsbundle.Yelda-compact'), V('Yelda (Gelişmiş)', 'com.apple.ttsbundle.Yelda-premium')], 'com.apple.ttsbundle.Yelda-compact').voiceURI, 'com.apple.ttsbundle.Yelda-premium');
+assert.strictEqual(S.bestTrVoice([V('Yelda', 'com.apple.ttsbundle.Yelda-compact'), V('Yelda (Gelişmiş)', 'com.apple.ttsbundle.Yelda-premium')], 'com.apple.ttsbundle.Yelda-compact').voiceURI, 'com.apple.ttsbundle.Yelda-compact');
+assert.strictEqual(S.bestTrVoice([V('Yelda (Gelişmiş)', 'com.apple.ttsbundle.Yelda-premium')], 'com.apple.ttsbundle.Yelda-compact').voiceURI, 'com.apple.ttsbundle.Yelda-premium');
 /* yalnız tr seslerinden */
 assert.strictEqual(S.bestTrVoice([en, yC]).name, 'Yelda');
 /* liste: aile başına tek, en iyi sürüm */
@@ -57,18 +61,19 @@ assert.deepStrictEqual(S.uniqueTrVoices([yC, yE, yP, cC]).map((v) => v.name).sor
   assert.strictEqual(SS.activeVoice().name, 'Yelda', 'Gelişmiş yüklü değilken standart');
   assert.ok(!SS.activeVoice().enhanced && SS.activeVoice().apple);
   assert.ok(/Sözlü İçerik › Sesler › Türkçe/.test(SS.ENH_NOTE), 'iPhone yükleme yolu');
-  /* kullanıcı Gelişmiş Yelda'yı indirdi: voiceschanged sonrası aynı kayıtla Gelişmiş seçilir */
+  /* k164: kullanıcı Gelişmiş Yelda'yı indirdi; kayıtlı seçim standart Yelda ise o korunur (Gelişmiş ayrı satırda seçilebilir) */
   voices = [yC, yE, cC, cE];
   (listeners.voiceschanged || []).forEach((f) => f());
   const av = SS.activeVoice();
-  assert.strictEqual(av.name, 'Yelda (Gelişmiş)'); assert.strictEqual(av.nick, 'Petek'); assert.ok(av.enhanced);
+  assert.strictEqual(av.name, 'Yelda'); assert.strictEqual(av.nick, 'Petek'); assert.ok(!av.enhanced);
+  assert.ok(SS.voiceOptions().some((o) => o.id === yE.voiceURI && /Gelişmiş/.test(o.ad)), 'Gelişmiş ayrı satır');
   { const opts = SS.voiceOptions(); const cur = SS.currentOption(opts); assert.ok(opts.indexOf(cur) >= 0 && cur.nick === 'Petek', 'Ayarlar: seçili satır Petek (yeni getVoices nesnelerinde de)'); }
   SS.speak('Kovan 12', { noGate: true });
   assert.strictEqual(spoken.length, 1);
-  assert.strictEqual(spoken[0].voice.voiceURI, yE.voiceURI, 'konuşma Gelişmiş Yelda ile');
+  assert.strictEqual(spoken[0].voice.voiceURI, yC.voiceURI, 'konuşma seçili Yelda ile');
   assert.strictEqual(spoken[0].lang, 'tr-TR');
-  /* eski (bayat) seçenek nesnesiyle konuşma da yeniden çözülür */
-  const stale = { source: 'device', id: yC.voiceURI, ref: Object.assign({}, yC) };
+  /* bayat seçenek nesnesi: güncel getVoices nesnesine voiceURI ile birebir çözülür */
+  const stale = { source: 'device', id: yE.voiceURI, ref: Object.assign({}, yE) };
   SS.speak('Kovan 13', { voice: stale, noGate: true });
   assert.strictEqual(spoken[1].voice.voiceURI, yE.voiceURI);
 }
