@@ -1,5 +1,5 @@
 /* SüperArı · Sabit kritik kartlar + ekip bildirimleri (koloni-168 EK11 ek 2/3, EK12) → window.SuperAriKritik
- * Kritik ses alarmları (oğul anı, ana arı ötmesi, vakvaklama) ve ALARM_ARILIK_KOSUL_01 ana uyarı panelinin en üstünde sabit.
+ * Kritik ses alarmları (oğul anı, Ana Arı Ötmesi (Piping), Vakvaklama (Quacking)) ve ALARM_ARILIK_KOSUL_01 ana uyarı panelinin en üstünde sabit.
  * Yalnız "Tamam" ile kapanır; kapatan kişi + saat kartta/geçmişte. Süre, kaydırma ya da koşulun düzelmesi kapatmaz
  * (düzelirse metin "Durum düzeldi"). Kart eklenip kalkınca ekran kaymaz. Metinlerde Hz yok.
  * EK12: listedeki uyarıların İLK oluşumu ve "[Kişi] kontrol etti, kapattı" olayı tüm ekibe (Supabase ekip_bildirim).
@@ -9,14 +9,14 @@
   var KEY = 'superari.kritik.v1', GECMIS = 'superari.uyari.gecmis.v1', ORSK = 'superari.ors.orta.v1', GIDEN = 'superari.ekip.bildirim.kuyruk.v1';
   var SABIT = { ogul_ani: 0, piping: 1, quacking: 2, ALARM_ARILIK_KOSUL_01: 3 };
   var AD = {
-    ogul_ani: ['Oğul anı', 'Kovanda oğul anı sesi algılandı. Hemen kovanı kontrol et.'],
-    piping: ['Ana arı ötmesi', 'Ana arı ötmesi algılandı. Oğul hazırlığı olabilir, kovanı kontrol et.'],
-    quacking: ['Vakvaklama', 'Yüksükte bakire ana sesi algılandı. İkinci oğul riski, kovanı kontrol et.'],
+    ogul_ani: ['Oğul Anı Sesi (Swarming)', 'Kovanda Oğul Anı Sesi (Swarming) algılandı. Hemen kovanı kontrol et.'],
+    piping: ['Ana Arı Ötmesi (Piping)', 'Ana Arı Ötmesi (Piping) algılandı. Oğul hazırlığı olabilir, kovanı kontrol et.'],
+    quacking: ['Vakvaklama (Quacking)', 'Yüksükte bakire ana sesi algılandı. İkinci oğul riski, kovanı kontrol et.'],
     ALARM_ARILIK_KOSUL_01: ['Arılık koşulları değişti', 'Bu arılığın koşulları değişti. Kontrol et.'],
     ogul_yuksugu: ['Muayenede oğul yüksüğü', 'Muayenede oğul yüksüğü görüldü. Oğul önlemini planla.'],
     ogul_cikmis: ['Oğul çıkmış olabilir', 'Kovandan oğul çıkmış olabilir. Kovanı kontrol et.'],
     ors_70: ['Oğul riski yüksek', 'Oğul riski yüksek. Kovanı kontrol et.'],
-    isci_otme_artis: ['İşçi ötmesi arttı', 'İşçi ötmesi birden arttı. Oğul kalkışa hazırlanıyor olabilir, kontrol et.'],
+    isci_otme_artis: ['İşçi Arı Ötmesi (Worker Piping) arttı', 'İşçi Arı Ötmesi (Worker Piping) birden arttı. Oğul kalkışa hazırlanıyor olabilir, kontrol et.'],
     onerilen_risk: ['Önerilen arılıkta risk arttı', 'Önerdiğimiz arılıkta risk arttı. Kontrol et.'],
     batarya_7: ['Batarya azalıyor', 'Batarya bir hafta içinde bitebilir. Değiştirmeyi planla.'],
     ani_kayip: ['Ani ağırlık kaybı', 'Kovan birden ağırlık kaybetti. Yağma ya da hırsızlık olabilir, kontrol et.'],

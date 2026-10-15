@@ -52,7 +52,7 @@
       var P = global.SuperAriPlan;
       if (winterSeason() && P && P.winterStockAll) out.stock = P.winterStockAll(hs).counts.kritik || 0;
     } catch (e) { /* ignore */ }
-    /* k154: Ana band «kritik» = yalnız Kritik uyarılar (ana arı ötmesi, oğul anı, oğul yüksüğü) */
+    /* k154: Ana band «kritik» = yalnız Kritik uyarılar (Ana Arı Ötmesi (Piping), oğul anı, oğul yüksüğü) */
     try {
       (d.alerts || []).forEach(function (a) {
         if (!a || a.severity !== 'critical') return;
