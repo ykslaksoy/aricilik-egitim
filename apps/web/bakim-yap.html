@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr" class="sa-duz">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-195">
+<link rel="stylesheet" href="sa-early.css?v=koloni-197">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bakım yap · SüperArı</title>
@@ -45,19 +45,24 @@
       </div>
     </section>
   </main>
-  <script src="demo-data.js?v=koloni-195"></script>
-  <script src="ilac-katalog.js?v=koloni-195"></script>
-  <script src="bakim-plan.js?v=koloni-195"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-195"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-195"></script>
-  <script src="tarti-elle.js?v=koloni-195"></script>
-  <script src="kovan-ara.js?v=koloni-195"></script>
+  <script src="demo-data.js?v=koloni-197"></script>
+  <script src="ilac-katalog.js?v=koloni-197"></script>
+  <script src="bakim-plan.js?v=koloni-197"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-197"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-197"></script>
+  <script src="tarti-elle.js?v=koloni-197"></script>
+  <script src="kovan-ara.js?v=koloni-197"></script>
   <script>
   (function () {
     var D = window.SuperAriDemo, P = window.SuperAriPlan;
     if (!D || !P) return;
     var q = new URLSearchParams(location.search);
     var h = D.hiveById(q.get('id'));
+    /* QR okut: kovan seçili olmasa da çalışır (kamera izni yoksa kovan-ara.js Türkçe uyarı gösterir) */
+    document.getElementById('byQr').addEventListener('click', function () {
+      if (!window.SuperAriKovanAra) { alert('QR okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.'); return; }
+      window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: function (x) { location.href = 'bakim-yap.html?id=' + encodeURIComponent(x.id) + '&apiary=' + encodeURIComponent(x.apiaryId) + '&km=1'; } });
+    });
     if (!h) { document.getElementById('byName').textContent = 'Kovan bulunamadı'; document.getElementById('byNext').style.display = 'none'; return; }
     var ap = q.get('apiary') || String(h.apiaryId);
     var a = D.apiaryById(h.apiaryId);
@@ -87,12 +92,9 @@
       var nx = P.tourNext(ap, h.id);
       if (nx) go(nx); else location.href = listHref;
     });
-    document.getElementById('byQr').addEventListener('click', function () {
-      if (window.SuperAriKovanAra) window.SuperAriKovanAra.openScanner(D.loadHives(), { onHive: function (x) { go(x, true); } });
-    });
   })();
   </script>
-  <script src="nav.js?v=koloni-195"></script>
-  <script src="pwa.js?v=koloni-195"></script>
+  <script src="nav.js?v=koloni-197"></script>
+  <script src="pwa.js?v=koloni-197"></script>
 </body>
 </html>

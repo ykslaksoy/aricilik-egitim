@@ -155,9 +155,40 @@ function analyzeFrameQuality(video, canvas) {
   return { brightness, blur, motion: 0.15, framing, variance };
 }
 
+/* Kamera izni: yoksa/reddedildiyse açık Türkçe uyarı döndürür (null = sorun yok) */
+function cameraErrorText(e) {
+  const n = e && e.name;
+  if (n === "NotAllowedError" || n === "SecurityError" || n === "PermissionDeniedError")
+    return "Kamera izni verilmedi. Petek taraması için kamera gerekir. Tarayıcı ayarlarından bu site için kamera iznini açın (iPhone: Ayarlar › Safari › Kamera › İzin Ver), sonra tekrar deneyin.";
+  if (n === "NotFoundError" || n === "OverconstrainedError") return "Bu cihazda kullanılabilir kamera bulunamadı.";
+  if (n === "NotReadableError") return "Kamera başka bir uygulama tarafından kullanılıyor. Diğer uygulamayı kapatıp tekrar deneyin.";
+  return "Kamera açılamadı. Sayfanın HTTPS ile açıldığından ve kamera izninin verildiğinden emin olun.";
+}
+async function ensureCamera() {
+  if (state.stream) return null;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || window.isSecureContext === false)
+    return "Bu tarayıcıda kamera kullanılamıyor. Sayfayı Safari veya Chrome ile HTTPS üzerinden açın.";
+  try {
+    if (navigator.permissions && navigator.permissions.query) {
+      const st = await navigator.permissions.query({ name: "camera" }).catch(() => null);
+      if (st && st.state === "denied") return cameraErrorText({ name: "NotAllowedError" });
+    }
+    const p = navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true,
+    });
+    const to = new Promise((_, rej) => setTimeout(() => rej({ name: "Timeout" }), 20000));
+    state.stream = await Promise.race([p, to]);
+    return null;
+  } catch (e) {
+    if (e && e.name === "Timeout") return "Kamera izni yanıtlanmadı. İzin penceresinde «İzin Ver»e dokunup tekrar deneyin.";
+    return cameraErrorText(e);
+  }
+}
+
 async function startCamera() {
   try {
-    state.stream = await navigator.mediaDevices.getUserMedia({
+    if (!state.stream) state.stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: true,
     });
@@ -166,7 +197,7 @@ async function startCamera() {
     el("scan-status").textContent = "Kamera hazır — çekime başlayın";
     setupAudioMeter();
   } catch (e) {
-    el("scan-status").textContent = "Kamera yok — Demo doldur veya HTTPS kullanın";
+    el("scan-status").textContent = cameraErrorText(e);
   }
 }
 
@@ -197,7 +228,7 @@ async function api(path, opts = {}) {
     ...opts,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || data.error || res.statusText);
+  if (!res.ok) throw new Error(data.message || data.error || (res.status === 404 ? "Petek tarama sunucusu bu sürümde yok (HTTP 404). Tarama şimdilik başlatılamıyor." : "Sunucu hatası (HTTP " + res.status + ")."));
   return data;
 }
 
@@ -206,6 +237,11 @@ async function startSession() {
   state.hiveId = Number(el("hive-id").value) || 1;
   const tareKg = Number(el("tare-kg").value);
   const weightKg = Number(el("weight-kg").value);
+  const btn = el("btn-start-session");
+  if (btn) { btn.disabled = true; btn.dataset.lbl = btn.dataset.lbl || btn.textContent; btn.textContent = "Kamera kontrol ediliyor…"; }
+  const camErr = await ensureCamera();
+  if (btn) { btn.disabled = false; btn.textContent = btn.dataset.lbl; }
+  if (camErr) { showError("step1-error", camErr); return; }
   try {
     const data = await api(`/api/hives/${state.hiveId}/petek-tarama/session`, {
       method: "POST",

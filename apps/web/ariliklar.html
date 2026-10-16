@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-195">
+<link rel="stylesheet" href="sa-early.css?v=koloni-197">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Arılıklar</title>
@@ -398,13 +398,13 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
-<script src="harita-offline.js?v=koloni-195"></script>
+<script src="harita-offline.js?v=koloni-197"></script>
 <script src="yandex-map.js"></script>
-<script src="konum-onay.js?v=koloni-195"></script>
-<script src="demo-data.js?v=koloni-195"></script>
-<script src="rapor-store.js?v=koloni-195"></script>
-<script src="koloni.js?v=koloni-195"></script>
-<script src="forage-analysis.js?v=koloni-195"></script>
+<script src="konum-onay.js?v=koloni-197"></script>
+<script src="demo-data.js?v=koloni-197"></script>
+<script src="rapor-store.js?v=koloni-197"></script>
+<script src="koloni.js?v=koloni-197"></script>
+<script src="forage-analysis.js?v=koloni-197"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script>
 (function () {
@@ -457,8 +457,10 @@
   }
 
   function radiusKm() {
-    if (!F) return 3;
-    return F.clampRadius(radiusInput ? radiusInput.value : 3);
+    var v = radiusInput ? radiusInput.value : 3;
+    /* foraj modülü CDN'den geç yüklenir; hazır değilse yerel sınırlama */
+    if (!F || typeof F.clampRadius !== 'function') { var n = Number(v); return isFinite(n) && n > 0 ? Math.min(10, Math.max(0.5, n)) : 3; }
+    return F.clampRadius(v);
   }
 
   function syncRadiusLabel() {
@@ -1121,7 +1123,7 @@ window.SuperAriQuickActions = function () {
   return [{ ic: '📍', t: 'Arılık ekle', d: 'Ad · konum · kovan sayısı', run: function () { var b = document.getElementById('fabAdd'); if (b) b.click(); } }];
 };
 </script>
-<script src="nav.js?v=koloni-195"></script>
-<script src="pwa.js?v=koloni-195"></script>
+<script src="nav.js?v=koloni-197"></script>
+<script src="pwa.js?v=koloni-197"></script>
 </body>
 </html>

@@ -23,5 +23,5 @@ const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');const t=d.match(/id:
 assert.ok(!/°c|groh|kleinhenz|hz|db/i.test(t));assert.ok(/priority: shR && shR.kuluckaKritik \? 1 : 3/.test(t));
 assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
 const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261016060000_k194_kulucka_hedef.sql'),'utf8');['34.5','34 °C','Groh','Kleinhenz','Uzman tahmini'].forEach(x=>assert.ok(m.includes(x),x));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-195');
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-197');
 console.log('k194-kulucka-hedef ok');
