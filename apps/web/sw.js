@@ -186,6 +186,7 @@ const SHELL = [
   "/petek-tarama.html",
   "/petek-tarama.js",
   "/push.js",
+  "/ozellik.js",
   "/pwa.js",
   "/qr-etiket.html",
   "/rapor-bal.html",

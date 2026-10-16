@@ -54,6 +54,7 @@
   }
   /** Bildirimleri aç: izin + abonelik + sunucuya kaydet. */
   function enable() {
+    if (global.SuperAriOzellik && !global.SuperAriOzellik.acik('bildirim')) { global.SuperAriOzellik.yakinda('bildirim'); return Promise.reject(new Error('Bildirimler yakında.')); }
     if (!supported()) return Promise.reject(new Error(isIOS() && !standalone() ? 'iPhone’da önce uygulamayı ana ekrana ekleyin, sonra ana ekrandan açın.' : 'Bu tarayıcı arka plan bildirimini desteklemiyor.'));
     if (!live()) return Promise.reject(new Error('Arka plan bildirimleri yalnız Canlı modda çalışır (demo veriler için bildirim gönderilmez).'));
     return token().then(function (t) {

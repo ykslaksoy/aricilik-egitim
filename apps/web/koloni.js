@@ -334,7 +334,7 @@
     var c = C(); if (!c) return '';
     var s = c.summary(hives);
     if (!s.total) return '';
-    /* koloni-184: her parça (özellikle «Cins: Kafkas × Karadeniz 35») bölünmez; satır yalnız «·» ayraçlarından kırılır. */
+    /* koloni-186: her parça (özellikle «Cins: Kafkas × Karadeniz 35») bölünmez; satır yalnız «·» ayraçlarından kırılır. */
     function nw(t) { return '<span class="kol-nw">' + t + '</span>'; }
     var brParts = s.breeds.map(function (b) { return esc(b.breed + ' ' + b.count); });
     var parts = [];

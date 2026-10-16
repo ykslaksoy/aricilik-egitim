@@ -176,6 +176,7 @@
   function notifEnabled() { return !!readJson(NOTIF_KEY, {}).on && notifPermission() === 'granted'; }
   function setNotif(on) { var s = readJson(NOTIF_KEY, {}); s.on = !!on; writeJson(NOTIF_KEY, s); emit(); }
   function enableNotif() {
+    if (global.SuperAriOzellik && !global.SuperAriOzellik.acik('bildirim')) { global.SuperAriOzellik.yakinda('bildirim'); return Promise.resolve('kapali'); }
     if (!notifSupported()) return Promise.resolve('unsupported');
     var ask = global.Notification.permission === 'granted' ? Promise.resolve('granted')
       : new Promise(function (res) {
@@ -333,6 +334,13 @@
   function onLoad() { register(); startNotifLoop(); liveHealthBoot(); bulutBoot(); sensorPollBoot(); }
   if (doc.readyState === 'complete') onLoad();
   else global.addEventListener('load', onLoad);
+
+  /* k186 · özellik bayrakları — her sayfada (bkz. ozellik.js) */
+  (function () {
+    if (global.SuperAriOzellik) return;
+    var s = doc.createElement('script'); s.src = 'ozellik.js?v=' + encodeURIComponent(VERSION);
+    (doc.head || doc.documentElement).appendChild(s);
+  })();
 
   /* k102 · iPhone 12 kabuğu — sayfada .phone yoksa bk-kabuk + nav.js */
   (function () {

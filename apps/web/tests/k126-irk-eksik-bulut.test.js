@@ -12,5 +12,5 @@ const yon=require('./_yonetici.js');
 assert.ok(/sa_irk_ogul_eksik_list/.test(yon)&&/superari\.irk\.ogulVeriEksik\.v1/.test(yon));
 const og=fs.readFileSync(path.join(W,'ogul.js'),'utf8');
 assert.ok(!/Karakter yalnız eğilimi/.test(og)&&/oğul riskini belirler/.test(og));
-assert.ok(/koloni-184/.test(fs.readFileSync(path.join(W,'uyarilar.html'),'utf8')));
+assert.ok(/koloni-186/.test(fs.readFileSync(path.join(W,'uyarilar.html'),'utf8')));
 console.log('k126 ok');
