@@ -407,6 +407,9 @@ self.addEventListener("push", (e) => {
     requireInteraction: !!d.urgent,
     lang: "tr",
     data: { url: d.url || "/gorevler.html" }
+  }).then(() => {
+    /* teslim günlüğü: bildirim cihazda gösterildi */
+    if (d.lid) return fetch("/api/push-subscribe?ack=1", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lid: d.lid }) }).catch(() => null);
   }));
 });
 self.addEventListener("pushsubscriptionchange", (e) => {

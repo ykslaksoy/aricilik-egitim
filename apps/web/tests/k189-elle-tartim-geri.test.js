@@ -22,5 +22,5 @@ test('k189: Geri ilk çizimden kart içinde — yer tutucu satır, üstte beliri
   assert.match(n, /pendingBack = btn; return;/);
   assert.match(n, /else if \(!done\) backFallback\(\);/);
   assert.match(n, /body\.sa-has-act-row #bkScope\{height:auto!important;flex-basis:auto!important;flex-grow:0!important;/);
-  assert.strictEqual(JSON.parse(r('version.json')).version, 'koloni-192');
+  assert.strictEqual(JSON.parse(r('version.json')).version, 'koloni-193');
 });

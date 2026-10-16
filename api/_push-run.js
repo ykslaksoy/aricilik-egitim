@@ -22,7 +22,10 @@ async function userData(c, uid, today) {
 
 async function runForUser(db, c, uid, today, dry, onlyCats) {
   const data = await userData(c, uid, today);
-  const all = R.items(data, today).filter((x) => !onlyCats || onlyCats.indexOf(x.cat) >= 0);
+  const KAT_OF = { task: 'gorev', withdrawal: 'gorev', egg: 'gorev', queen: 'gorev', health: 'saglik', swarm: 'ogul', sensor: 'sensor' };
+  let kapali = [];
+  try { const t = await db.query('select kapali from public.push_tercih where user_id = $1', [uid]); kapali = t.rows[0] ? t.rows[0].kapali : []; } catch (e) { kapali = []; }
+  const all = R.items(data, today).filter((x) => (!onlyCats || onlyCats.indexOf(x.cat) >= 0) && kapali.indexOf(KAT_OF[x.cat] || 'gorev') < 0);
   let fresh = all;
   if (all.length) {
     const keys = all.map((x) => x.key);

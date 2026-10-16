@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-192">
+<link rel="stylesheet" href="sa-early.css?v=koloni-193">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Arılıklar</title>
@@ -398,13 +398,13 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
-<script src="harita-offline.js?v=koloni-192"></script>
+<script src="harita-offline.js?v=koloni-193"></script>
 <script src="yandex-map.js"></script>
-<script src="konum-onay.js?v=koloni-192"></script>
-<script src="demo-data.js?v=koloni-192"></script>
-<script src="rapor-store.js?v=koloni-192"></script>
-<script src="koloni.js?v=koloni-192"></script>
-<script src="forage-analysis.js?v=koloni-192"></script>
+<script src="konum-onay.js?v=koloni-193"></script>
+<script src="demo-data.js?v=koloni-193"></script>
+<script src="rapor-store.js?v=koloni-193"></script>
+<script src="koloni.js?v=koloni-193"></script>
+<script src="forage-analysis.js?v=koloni-193"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script>
 (function () {
@@ -1059,7 +1059,7 @@
       refreshMap();
       return;
     }
-    /* koloni-192: yeni arılıkta pin serbest, ama kayıt onaylı. */
+    /* koloni-193: yeni arılıkta pin serbest, ama kayıt onaylı. */
     if (window.SuperAriKonumOnay && !SuperAriKonumOnay.confirmChange(null, { lat: lat, lon: lon })) {
       return;
     }
@@ -1121,7 +1121,7 @@ window.SuperAriQuickActions = function () {
   return [{ ic: '📍', t: 'Arılık ekle', d: 'Ad · konum · kovan sayısı', run: function () { var b = document.getElementById('fabAdd'); if (b) b.click(); } }];
 };
 </script>
-<script src="nav.js?v=koloni-192"></script>
-<script src="pwa.js?v=koloni-192"></script>
+<script src="nav.js?v=koloni-193"></script>
+<script src="pwa.js?v=koloni-193"></script>
 </body>
 </html>

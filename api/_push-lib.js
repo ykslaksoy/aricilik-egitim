@@ -61,7 +61,27 @@ create table if not exists public.push_log (
   primary key (user_id, dedupe_key)
 );
 alter table public.push_log enable row level security;
+create table if not exists public.push_teslim (
+  id uuid primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  kategori text, baslik text, cihaz text,
+  durum text not null default 'gonderildi',
+  hata text,
+  created_at timestamptz not null default now(),
+  teslim_at timestamptz
+);
+create index if not exists push_teslim_zaman_idx on public.push_teslim (created_at desc);
+alter table public.push_teslim enable row level security;
+create table if not exists public.push_tercih (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  kapali text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+alter table public.push_tercih enable row level security;
 do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'push_teslim' and policyname = 'push_teslim_okur') then
+    create policy push_teslim_okur on public.push_teslim for select to authenticated using (user_id = auth.uid() or public.sa_is_admin());
+  end if;
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'push_subscriptions' and policyname = 'push_subscriptions_own') then
     create policy push_subscriptions_own on public.push_subscriptions for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
   end if;
@@ -98,16 +118,34 @@ function vapidReady() {
   webpush.setVapidDetails(c.vapidSubject.indexOf('mailto:') === 0 || /^https?:/.test(c.vapidSubject) ? c.vapidSubject : 'mailto:' + c.vapidSubject, c.vapidPublic, c.vapidPrivate);
   return true;
 }
+function cihazAdi(ua, ep) {
+  ua = String(ua || '');
+  const t = /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Tarayıcı';
+  let h = ''; try { h = new URL(ep).hostname.split('.').slice(-2).join('.'); } catch (e) { /* ignore */ }
+  return t + (h ? ' · ' + h : '');
+}
+/* Teslim günlüğü: her abonelik için bir satır (gonderildi → cihaz SW «aldım» derse teslim_edildi; hata → basarisiz). */
+async function logRow(db, id, userId, kat, title, cihaz, durum, hata) {
+  try {
+    await db.query('insert into public.push_teslim (id, user_id, kategori, baslik, cihaz, durum, hata) values ($1,$2,$3,$4,$5,$6,$7)',
+      [id, userId, kat || null, String(title || '').slice(0, 120), cihaz, durum, hata ? String(hata).slice(0, 200) : null]);
+  } catch (e) { /* günlük hatası gönderimi bozmaz */ }
+}
 /** Kullanıcının tüm aboneliklerine gönder; 404/410 dönen (süresi dolmuş) abonelik silinir. */
 async function sendToUser(db, userId, payload) {
-  const subs = (await db.query('select endpoint, keys from public.push_subscriptions where user_id = $1', [userId])).rows;
+  const subs = (await db.query('select endpoint, keys, ua from public.push_subscriptions where user_id = $1', [userId])).rows;
   let ok = 0, gone = 0, fail = 0;
+  const kat = payload.cat || (payload.tag ? String(payload.tag).replace(/^superari-/, '') : null);
+  if (!subs.length) await logRow(db, require('crypto').randomUUID(), userId, kat, payload.title, null, 'basarisiz', 'kayıtlı cihaz yok');
   for (const s of subs) {
+    const lid = require('crypto').randomUUID(), cihaz = cihazAdi(s.ua, s.endpoint);
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload), { TTL: 60 * 60 * 20, urgency: 'normal', topic: payload.tag ? String(payload.tag).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) : undefined });
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(Object.assign({}, payload, { lid })), { TTL: 60 * 60 * 20, urgency: 'normal', topic: payload.tag ? String(payload.tag).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) : undefined });
       ok++; await db.query('update public.push_subscriptions set last_ok_at = now(), fail_count = 0 where endpoint = $1', [s.endpoint]);
+      await logRow(db, lid, userId, kat, payload.title, cihaz, 'gonderildi', null);
     } catch (e) {
       const sc = e && e.statusCode;
+      await logRow(db, lid, userId, kat, payload.title, cihaz, 'basarisiz', (sc ? 'HTTP ' + sc + ' ' : '') + (sc === 404 || sc === 410 ? 'abonelik süresi dolmuş, silindi' : String(e && e.body || e && e.message || '').slice(0, 120)));
       if (sc === 404 || sc === 410) { gone++; await db.query('delete from public.push_subscriptions where endpoint = $1', [s.endpoint]); }
       else { fail++; await db.query('update public.push_subscriptions set fail_count = fail_count + 1 where endpoint = $1', [s.endpoint]); }
     }
