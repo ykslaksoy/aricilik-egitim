@@ -4,10 +4,10 @@
   var B = window.SuperAriBulut, K = window.SuperAriDegisiklik, host = document.getElementById('panel'); if (!host || !K) return;
   var nav = host.querySelector('nav.nav');
   var s = document.createElement('section'); s.className = 'card fe'; s.id = 's-degisiklik';
-  s.innerHTML = '<h2>Değişiklik kaydı</h2><p class="fe-sub">Arılık, kovan, ekip/rol, cihaz devre dışı ve yönetici ayarı (eşik, kural aç/kapa) değişiklikleri. Kim, rol, ne zaman (TSİ), önce → sonra, kapsam.</p>'
+  s.innerHTML = '<h2>Değişiklik kaydı</h2><p class="fe-sub">Arılık, kovan, kayıtlar (muayene, tartım, tedavi, besleme, hasat…), görev, stok, ana arı, fotoğraf, ekip/rol, cihaz devre dışı ve yönetici ayarı (eşik, kural aç/kapa) değişiklikleri. Kim, rol, ne zaman (TSİ), önce → sonra, kapsam.</p>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.4rem;margin:.3rem 0 .5rem">'
-    + '<select data-f="tablo"><option value="">Tüm türler</option><option value="ayar">Yönetici ayarı</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option></select>'
-    + '<select data-f="islem"><option value="">Tüm işlemler</option><option value="ekle">Eklendi</option><option value="guncelle">Değiştirildi</option><option value="sil">Silindi</option><option value="geri_al">Geri alındı</option></select>'
+    + '<select data-f="tablo"><option value="">Tüm türler</option><option value="ayar">Yönetici ayarı</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="queens">Ana arı</option><option value="records">Kayıt (muayene, tartım, tedavi…)</option><option value="tasks">Görev</option><option value="stock_items">Stok</option><option value="photos">Fotoğraf</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option></select>'
+    + '<select data-f="islem"><option value="">Tüm işlemler</option><option value="ekle">Eklendi</option><option value="guncelle">Değiştirildi</option><option value="sil">Silindi</option><option value="geri_al">Geri alındı</option><option value="geri_yukle">Yedekten geri yüklendi</option></select>'
     + '<input data-f="kim" type="search" placeholder="E-posta"><input data-f="kapsam" type="search" placeholder="Arılık / kovan"></div>'
     + '<div class="bd" style="min-height:14rem;max-height:70vh;overflow:auto">Yükleniyor…</div><p class="fe-meta" data-dk-stat style="min-height:1.2em"></p>';
   host.appendChild(s); if (nav) nav.insertAdjacentHTML('beforeend', '<a class="chip" href="#s-degisiklik">Değişiklik kaydı</a>');

@@ -1,0 +1,21 @@
+/* koloni-223: tarihli yedek + geri yükleme — önizleme metni, izinler, migration kapsamı. */
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const W=path.join(__dirname,'..'),r=f=>fs.readFileSync(path.join(W,f),'utf8');
+require(path.join(W,'yedekler.js'));const Y=globalThis.SuperAriYedekBulut;
+const rows=[{tablo:'hives',key:'h1',durum:'eklenecek',yedekte:{name:'Kovan 5'}},{tablo:'records',key:'r1',durum:'silinecek',simdi:{kind:'colony_event',record_date:'2026-10-16',data:{type:'elle_tarti'}}}];
+const h=Y.onizleme(rows,{geri:true});
+assert.ok(/1 geri gelecek, 0 değişecek, 1 silinecek/.test(h)&&/Tartım · 16\.10\.2026/.test(h)&&/data-yd-key="r1"/.test(h));
+assert.ok(!/data-yd-tablo/.test(Y.onizleme(rows,{geri:false})),'izinsiz geri yükleme düğmesi yok');
+assert.ok(/fark yok/.test(Y.onizleme([],{})));
+assert.ok(/Kovan: Kovan 5/.test(Y.kapsamMetni('hives','h1',rows))&&/tüm hesap \(2/.test(Y.kapsamMetni(null,null,rows)));
+assert.ok(/03:00 \(TSİ\)/.test(Y.yedekListe([])));
+assert.strictEqual(r('yedekler.js'),r('../yonetici/yedekler.js'));
+assert.strictEqual(r('degisiklik-kaydi.js'),r('../yonetici/degisiklik-kaydi.js'));
+const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261017100000_k223_yedek.sql'),'utf8');
+for(const t of ['queens','records','tasks','stock_items','photos'])assert.ok(m.includes("'"+t+"'"),t);
+assert.ok(/sa_yedek_izin\(y\.hesap_id, 'geri'\)/.test(m)&&/sa_yedek_izin\(hesap_id, 'kayit'\)/.test(m)&&/'0 0 \* \* \*'/.test(m)&&/gunluk_gun int not null default 90/.test(m));
+assert.ok(/updated_at', now\(\)/.test(m),'sa_touch eski tarihi reddeder → now()');
+assert.ok(r('ayarlar.html').includes('yedekler.html')&&r('bulut.js').includes('SYNC_KEYS: LS'));
+assert.ok(r('../yonetici/index.html').includes('panel13.js'));
+assert.equal(JSON.parse(r('version.json')).version,'koloni-223');
+console.log('k223 ok');

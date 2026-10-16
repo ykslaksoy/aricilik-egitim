@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr" class="sa-duz">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-222">
+<link rel="stylesheet" href="sa-early.css?v=koloni-223">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Değişiklik kaydı · SüperArı</title>
@@ -22,18 +22,18 @@
 <button type="button" class="kapat" id="saBack" aria-label="Kapat" onclick="if (history.length > 1 && document.referrer) { history.back(); } else { location.href = 'ayarlar.html'; }">✕</button>
 <main class="wrap">
   <h1>Değişiklik kaydı</h1>
-  <p class="sub">Arılık, kovan, ekip ve cihaz değişiklikleri: kim, ne zaman, önce → sonra. «Geri al» yalnızca Sahip ve Sahibin izin verdiği kişilerde görünür.</p>
+  <p class="sub">Arılık, kovan, muayene, tartım, tedavi, besleme, hasat, görev, stok, ana arı, fotoğraf, ekip ve cihaz değişiklikleri: kim, ne zaman, önce → sonra. «Geri al» yalnızca Sahip ve Sahibin izin verdiği kişilerde görünür.</p>
   <div class="fil">
-    <select id="fTablo" aria-label="Tür"><option value="">Tümü</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option></select>
+    <select id="fTablo" aria-label="Tür"><option value="">Tümü</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="queens">Ana arı</option><option value="records">Kayıt (muayene, tartım, tedavi…)</option><option value="tasks">Görev</option><option value="stock_items">Stok</option><option value="photos">Fotoğraf</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option></select>
     <select id="fGun" aria-label="Dönem"><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="365">Son 1 yıl</option></select>
   </div>
   <div class="kart" id="liste"><p class="mk-vy">Yükleniyor…</p></div>
   <p id="stat" role="status"></p>
 </main>
-<script src="demo-data.js?v=koloni-222"></script>
-<script src="yetki.js?v=koloni-222"></script>
-<script src="bulut.js?v=koloni-222"></script>
-<script src="degisiklik-kaydi.js?v=koloni-222"></script>
+<script src="demo-data.js?v=koloni-223"></script>
+<script src="yetki.js?v=koloni-223"></script>
+<script src="bulut.js?v=koloni-223"></script>
+<script src="degisiklik-kaydi.js?v=koloni-223"></script>
 <script>
 (function () {
   'use strict';

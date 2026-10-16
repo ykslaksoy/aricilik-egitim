@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr" class="sa-duz">
+<head>
+<link rel="stylesheet" href="sa-early.css?v=koloni-223">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Yedekler ve geri alma · SüperArı</title>
+<link rel="stylesheet" href="panels.css" />
+<style>
+  body { background:#f6efe2; margin:0; font-family:-apple-system,system-ui,sans-serif; color:#2b2116; overflow-anchor:none; }
+  .wrap { max-width:560px; margin:0 auto; padding:56px 14px 110px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; } h2 { font-size:1.05rem; margin:0 0 6px; } .sub { color:#7a6650; font-size:.9rem; margin:0 0 12px; }
+  .kart { background:#fff; border:1px solid #ead9b3; border-radius:14px; padding:10px 14px; margin:0 0 12px; }
+  .mk-vy { color:#7a6650; } .stat { min-height:1.3em; font-size:.85rem; color:#5c4a2a; margin:6px 0 0; }
+  .yd-d { display:inline-block; font-size:.72rem; border-radius:8px; padding:1px 7px; margin-right:4px; }
+  .yd-eklenecek { background:#e3f4e1; color:#1f5d1a; } .yd-degisecek { background:#fdf0cf; color:#7a5300; } .yd-silinecek { background:#fbe1dd; color:#8a2416; }
+  .dk-et { font-size:.78rem; color:#7a6650; background:#f3ead6; border-radius:8px; padding:2px 8px; white-space:nowrap; }
+  .uyari-y { background:#fff6e0; border:1px solid #f0d58a; border-radius:10px; padding:8px 10px; font-size:.88rem; margin:6px 0 0; }
+  #yListe { min-height:9rem; max-height:44vh; overflow:auto; } #onz { min-height:8rem; }
+  .kapat { position:fixed; top:10px; right:12px; z-index:50; width:40px; height:40px; border-radius:50%; border:1px solid #e2cd8c; background:#fff; font-size:1.1rem; }
+</style>
+</head>
+<body>
+<button type="button" class="kapat" id="saBack" aria-label="Kapat" onclick="if (history.length > 1 && document.referrer) { history.back(); } else { location.href = 'ayarlar.html'; }">✕</button>
+<main class="wrap">
+  <h1>Yedekler ve geri alma</h1>
+  <p class="sub">Hesabının her günkü hâli saklanır. İstediğin tarihe tüm hesabı ya da tek bir bölümü/kaydı döndürebilirsin. Önce ne değişeceğini görürsün; geri yükleme de kayda yazılır ve geri alınabilir.</p>
+  <section class="kart" id="kEs">
+    <h2>Telefondaki veriler</h2>
+    <p id="esDurum" class="mk-vy" style="margin:0;min-height:2.6em">Denetleniyor…</p>
+    <div id="yerel" class="uyari-y" hidden></div>
+    <button type="button" class="btn" id="btnYedekle" style="margin-top:8px;min-height:44px">Şimdi eşitle ve yedekle</button>
+    <p class="stat" id="esStat" role="status"></p>
+  </section>
+  <section class="kart">
+    <h2>Saklama</h2>
+    <p id="saklama" class="mk-vy" style="margin:0;min-height:2.6em">Her gece 03:00 (TSİ) otomatik yedek alınır.</p>
+  </section>
+  <section class="kart">
+    <h2>Tarihli yedekler</h2>
+    <div id="yListe"><p class="mk-vy">Yükleniyor…</p></div>
+  </section>
+  <section class="kart" id="kOnz">
+    <h2 id="onzBas">Önizleme</h2>
+    <div id="onz"><p class="mk-vy">Bir yedeğin yanındaki «Önizle»ye dokun; o tarihe dönersen neyin değişeceği burada görünür.</p></div>
+    <button type="button" class="btn" id="btnTum" style="margin-top:8px;min-height:44px" hidden>Tüm hesabı bu tarihe döndür</button>
+    <p class="stat" id="onzStat" role="status"></p>
+  </section>
+  <section class="kart">
+    <h2>Geri yüklemeler</h2>
+    <div id="ykListe" style="min-height:3rem"><p class="mk-vy">Yükleniyor…</p></div>
+  </section>
+</main>
+<script src="demo-data.js?v=koloni-223"></script>
+<script src="yetki.js?v=koloni-223"></script>
+<script src="bulut.js?v=koloni-223"></script>
+<script src="yedek.js?v=koloni-223"></script>
+<script src="yedekler.js?v=koloni-223"></script>
+<script>
+(function () {
+  'use strict';
+  var Y = window.SuperAriYedekBulut, B = window.SuperAriBulut, $ = function (i) { return document.getElementById(i); };
+  var ORNEK = new URLSearchParams(location.search).get('onizleme') === '1', CL = null, ME = null, HESAP = null, GERI = false, SEC = null, FARK = [];
+  function st(id, t) { $(id).textContent = t || ''; }
+  function ornekListe() {
+    var n = Date.now(), D = 864e5, iso = function (k) { return new Date(n - k * D).toISOString(); }, gun = function (k) { return iso(k).slice(0, 10); };
+    var oz = { apiaries: 3, hives: 42, queens: 40, records: 318, tasks: 12, stock_items: 9, photos: 27 };
+    return [{ id: 9, tarih: gun(0), tur: 'gunluk', at: iso(0), ozet: oz }, { id: 8, tarih: gun(1), tur: 'gunluk', at: iso(1), ozet: Object.assign({}, oz, { records: 311 }) },
+      { id: 7, tarih: gun(2), tur: 'elle', at: iso(2), ozet: Object.assign({}, oz, { records: 305, hives: 41 }) }, { id: 6, tarih: gun(3), tur: 'gunluk', at: iso(3), ozet: Object.assign({}, oz, { records: 301, hives: 41 }) }];
+  }
+  function ornekFark() {
+    return [{ tablo: 'hives', key: 'h1', durum: 'eklenecek', yedekte: { name: 'Kovan 17' } }, { tablo: 'hives', key: 'h2', durum: 'degisecek', simdi: { name: 'Kovan 7' }, yedekte: { name: 'Kovan 7' } },
+      { tablo: 'records', key: 'r1', durum: 'silinecek', simdi: { kind: 'strength', record_date: '2026-10-16' } }, { tablo: 'records', key: 'r2', durum: 'degisecek', simdi: { kind: 'colony_event', record_date: '2026-10-15', data: { type: 'elle_tarti' } }, yedekte: { kind: 'colony_event', record_date: '2026-10-15', data: { type: 'elle_tarti' } } },
+      { tablo: 'records', key: 'r3', durum: 'eklenecek', yedekte: { kind: 'disease', record_date: '2026-10-14' } }, { tablo: 'tasks', key: 't1', durum: 'silinecek', simdi: { due: '2026-10-20', data: { title: 'Şurup ver' } } },
+      { tablo: 'stock_items', key: 's1', durum: 'degisecek', simdi: { name: 'Şeker' }, yedekte: { name: 'Şeker' } }];
+  }
+  function esDurum() {
+    var s = B && B.localStatus ? B.localStatus() : null, yer = Y.yalnizYerel();
+    if (ORNEK) { s = { pending: 2, lastSync: new Date(Date.now() - 6e5).toISOString() }; yer = ['Cihazlar / sensörler', 'Ayar: bildirim']; }
+    $('esDurum').textContent = !s ? 'Bulut bağlantısı yok.' : (s.pending ? s.pending + ' değişiklik henüz buluta gönderilmedi — yedeğe girmesi için eşitle. ' : 'Telefondaki tüm kayıtlar buluta eşitlendi. ') + (s.lastSync ? 'Son eşitleme: ' + Y.tf(s.lastSync) : '');
+    var el = $('yerel'); el.hidden = !yer.length;
+    if (yer.length) el.innerHTML = '<b>Yalnız bu telefonda duran veriler (buluta ve yedeğe girmez):</b> ' + yer.map(Y.esc).join(', ') + '. Bunları korumak için Ayarlar › Cihaz yedeği (dosya) kullan.';
+  }
+  function saklama() {
+    var yaz = function (a) { $('saklama').textContent = 'Her gece 03:00 (TSİ) otomatik yedek alınır. Son ' + a.gunluk_gun + ' günün yedeği günlük, ayın 1\'indeki yedek ' + a.aylik_ay + ' ay saklanır (süre uzman tahmini; yönetici değiştirir).'; };
+    if (ORNEK || !CL) return yaz({ gunluk_gun: 90, aylik_ay: 24 });
+    CL.from('sa_yedek_ayar').select('*').eq('id', 1).maybeSingle().then(function (r) { yaz((r && r.data) || { gunluk_gun: 90, aylik_ay: 24 }); });
+  }
+  function listeYukle() {
+    if (ORNEK) { $('yListe').innerHTML = Y.yedekListe(ornekListe()); $('ykListe').innerHTML = Y.yuklemeListe([{ id: 3, yedek_tarih: ornekListe()[2].tarih, at: new Date(Date.now() - 36e5).toISOString(), email: 'yuksel@ornek.com', kapsam: 'Kovan: Kovan 12', adet: 1 }], true); return Promise.resolve(); }
+    return Y.liste(CL, null).then(function (rows) {
+      if (!HESAP && rows.length) HESAP = rows[0].hesap_id;
+      $('yListe').innerHTML = rows.length || (window.SuperAriYedek && (!window.SuperAriYetki || SuperAriYetki.rol() === 'owner')) ? Y.yedekListe(rows) : '<p class="mk-vy">Yedekleri görme iznin yok. İzni Sahip Ayarlar › Ekip’ten «Değişiklik kaydını görebilsin» ile verir.</p>';
+      return Y.yuklemeler(CL, HESAP).then(function (g) { $('ykListe').innerHTML = Y.yuklemeListe(g, GERI); });
+    }).catch(function (e) { $('yListe').innerHTML = '<p class="mk-vy">Veri yok — yüklenemedi (' + Y.esc((e && e.message) || 'bağlantı') + ').</p>'; });
+  }
+  function onizle(id) {
+    SEC = id; var y = null; $('onz').innerHTML = '<p class="mk-vy">Fark hesaplanıyor…</p>'; $('btnTum').hidden = true; st('onzStat', '');
+    var row = document.querySelector('[data-yd="' + id + '"]'); var bas = row ? row.closest('li').querySelector('b').textContent : '';
+    $('onzBas').textContent = 'Önizleme · ' + bas + ' yedeği';
+    (ORNEK ? Promise.resolve(ornekFark()) : Y.fark(CL, id)).then(function (rows) {
+      FARK = rows; $('onz').innerHTML = Y.onizleme(rows, { geri: GERI }); $('btnTum').hidden = !GERI || !rows.length;
+      if (!GERI) st('onzStat', 'Geri yükleme yalnız Sahip ve Sahibin «Değişiklikleri geri alabilsin» izni verdiği kişilerde.');
+    }).catch(function (e) { $('onz').innerHTML = '<p class="mk-vy">Önizleme yapılamadı (' + Y.esc((e && e.message) || 'bağlantı') + ').</p>'; });
+  }
+  function yukle(t, k) {
+    if (SEC == null) return;
+    var ne = Y.kapsamMetni(t, k, FARK), bas = $('onzBas').textContent.replace('Önizleme · ', '');
+    if (!confirm(bas + ' — ' + ne + ' bu tarihteki hâline döndürülsün mü?\n\nÖnce şimdiki hâl ayrıca yedeklenir. Geri yükleme değişiklik kaydına yazılır ve «Geri yüklemeler»den geri alınabilir.')) return;
+    if (ORNEK) { st('onzStat', 'Önizlemede geri yükleme yapılmaz.'); return; }
+    st('onzStat', 'Önce telefon eşitleniyor…');
+    Promise.resolve(B.sync ? B.sync().catch(function () {}) : null).then(function () { st('onzStat', 'Geri yükleniyor…'); return Y.geriYukle(CL, SEC, t, k); }).then(function (r) {
+      st('onzStat', 'Tamam: ' + r.adet + ' değişiklik geri yüklendi (#' + r.yukleme_id + '). Telefon güncelleniyor…');
+      if (B.sync) B.sync().catch(function () {}); listeYukle(); onizle(SEC);
+    }).catch(function (e) { st('onzStat', 'Geri yüklenemedi: ' + ((e && e.message) || 'bağlantı')); });
+  }
+  $('yListe').addEventListener('click', function (e) { var b = e.target.closest('[data-yd]'); if (b) onizle(b.getAttribute('data-yd')); });
+  $('onz').addEventListener('click', function (e) { var b = e.target.closest('[data-yd-tablo]'); if (!b) return; e.preventDefault(); e.stopPropagation(); yukle(b.getAttribute('data-yd-tablo'), b.getAttribute('data-yd-key')); });
+  $('btnTum').addEventListener('click', function () { yukle(null, null); });
+  $('ykListe').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-yk-geri]'); if (!b) return; var id = b.getAttribute('data-yk-geri');
+    if (!confirm('#' + id + ' numaralı geri yükleme geri alınsın mı? Geri yüklemeden önceki hâle dönülür; bu da kayda yazılır.')) return;
+    if (ORNEK) { st('onzStat', 'Önizlemede geri alma yapılmaz.'); return; }
+    b.disabled = true;
+    Y.yuklemeGeriAl(CL, id).then(function (n) { st('onzStat', 'Geri alındı: ' + n + ' değişiklik eski hâline döndü.'); if (B.sync) B.sync().catch(function () {}); listeYukle(); })
+      .catch(function (er) { b.disabled = false; st('onzStat', 'Geri alınamadı: ' + ((er && er.message) || 'bağlantı')); });
+  });
+  $('btnYedekle').addEventListener('click', function () {
+    if (ORNEK) { st('esStat', 'Önizlemede yedek alınmaz.'); return; }
+    if (!CL || !HESAP) { st('esStat', 'Yedek almak için giriş yap.'); return; }
+    var b = this; b.disabled = true; st('esStat', 'Telefon eşitleniyor…');
+    Promise.resolve(B.sync ? B.sync() : null).then(function () {
+      var s = B.localStatus ? B.localStatus() : null;
+      st('esStat', s && s.pending ? 'Bazı değişiklikler gönderilemedi (' + s.pending + '); onlar bu yedeğe girmez. Yedekleniyor…' : 'Yedekleniyor…');
+      return Y.simdiYedekle(CL, HESAP);
+    }).then(function () { b.disabled = false; st('esStat', 'Yedek alındı (' + Y.tf(new Date().toISOString()) + ').'); esDurum(); listeYukle(); })
+      .catch(function (e) { b.disabled = false; st('esStat', 'Yedek alınamadı: ' + ((e && e.message) || 'bağlantı')); });
+  });
+  esDurum(); window.addEventListener('superari-cloud-status', esDurum);
+  if (ORNEK) { GERI = true; saklama(); listeYukle(); return; }
+  if (!B) { $('yListe').innerHTML = '<p class="mk-vy">Veri yok — bulut bağlantısı yok.</p>'; return; }
+  B.client().then(function (c) { CL = c; return c.auth.getUser(); }).then(function (u) {
+    if (!u || !u.data || !u.data.user) { $('yListe').innerHTML = '<p class="mk-vy">Yedekleri görmek için giriş yap.</p><a class="btn ikincil" href="hesap.html">Giriş yap</a>'; $('ykListe').innerHTML = ''; return; }
+    ME = u.data.user.id; saklama();
+    var r = window.SuperAriYetki ? SuperAriYetki.rol() : 'owner'; if (r === 'owner') HESAP = ME;
+    return listeYukle().then(function () {
+      if (!HESAP) return;
+      if (HESAP === ME) { GERI = true; return listeYukle(); }
+      return CL.rpc('sa_yedek_izin', { p_hesap: HESAP, ad: 'geri' }).then(function (y) { GERI = !y.error && y.data === true; return listeYukle(); });
+    });
+  }).catch(function (e) { $('yListe').innerHTML = '<p class="mk-vy">Veri yok — yüklenemedi (' + Y.esc((e && e.message) || 'bağlantı') + ').</p>'; });
+})();
+</script>
+</body>
+</html>

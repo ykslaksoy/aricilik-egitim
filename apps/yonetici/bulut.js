@@ -1256,7 +1256,7 @@
     handleRedirect: handleRedirect,
     signInWithLink: signInWithLink,
     status: status,
-    sync: sync,
+    sync: sync, SYNC_KEYS: LS,
     linkApiaries: linkApiaries,
     team: team,
     invite: invite,
