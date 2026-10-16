@@ -1,0 +1,16 @@
+/* k190: iPhone ilk çizimden son kabuk ölçüsü (kayma yok) — nav.js sonradan aynı değerleri verir */
+@media (hover:none) and (pointer:coarse) and (max-width:500px){
+  html body{padding-top:0!important;}
+  html body .phone{margin-top:16px!important;}
+  .phone>.status-bar,body .status-bar{height:36px!important;min-height:36px!important;box-sizing:border-box!important;}
+  body.bk-kabuk .phone>.status-bar{display:flex!important;}
+  .phone>.screen{padding-top:2px!important;}
+}
+/* k190: kabuğu bk-kabuk.js kuran sayfalarda çerçevesiz ilk çizim gösterilmez */
+html:not(.bk-kabuk-html) body > main.wrap{visibility:hidden;}
+/* k190: bk-kabuk sayfalarında (Kovanlar vb.) çerçevesiz ara çizim gizli; nav.js telefon sınıfını verince görünür (1.5 sn emniyet) */
+@media (hover:none) and (pointer:coarse) and (max-width:500px){
+  html:not(.sa-phone-mobile):not(.sa-shell-framed) body.bk-kabuk > .phone,
+  html:not(.sa-phone-mobile):not(.sa-shell-framed) body.bk-kabuk #saPhoneStage > .phone{visibility:hidden;animation:saEarlyReveal 0s linear 1.5s forwards;}
+}
+@keyframes saEarlyReveal{to{visibility:visible;}}

@@ -13,7 +13,7 @@ assert.ok(pwa.includes('(doc.body || doc.documentElement)'), 'pwa boot append us
 assert.ok(!/\(body \|\| doc\.documentElement\)/.test(pwa), 'pwa must not reference bare body');
 assert.ok(bk.includes('auth-phone'), 'bk wraps auth');
 assert.ok(bk.includes('sa-auto-wrap'), 'bk generic wrap');
-assert.ok(boot.includes("var v = 'koloni-189'"), 'boot default cache tag koloni-189');
+assert.ok(boot.includes("var v = 'koloni-190'"), 'boot default cache tag koloni-190');
 assert.ok(nav.includes('saPhoneStage'), 'stage wrapper');
 assert.ok(nav.includes('overflow:visible!important'), 'unified scroll screen');
 console.log('k102-iphone12-boot ok');
