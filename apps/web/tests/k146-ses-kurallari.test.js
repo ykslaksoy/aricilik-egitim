@@ -12,8 +12,8 @@ assert.strictEqual(run(toot).piping,true);
 assert.strictEqual(run([0,30,60,75].map(s=>({t:N+s*1000,hz:420,ritmik:true,sureMs:120}))).piping,false);
 /* vızıldama tek başına → erken uyarı, skor bypass yok */
 const q=[0,300,600,900].map(ms=>({t:N+ms,hz:280,sureMs:150}));
-let r=run(q);assert.strictEqual(r.quack,true);assert.strictEqual(r.quackYuksek,false);assert.strictEqual(r.piping,false);
-assert.ok(r.notes.some(t=>/yüksükte bakire ana olabilir — ikinci oğul riski/.test(t)));
+let r=run(q);assert.strictEqual(r.quack,false);assert.strictEqual(r.quackSirasiz,true); /* k227 Ramsey 2020: öncesinde tooting yoksa quacking yok */ assert.strictEqual(r.quackYuksek,false);assert.strictEqual(r.piping,false);
+assert.ok(!r.notes.some(t=>/yüksükte bakire ana olabilir — ikinci oğul riski/.test(t)));
 /* ötme + vızıldama 30 dk içinde → Yüksek */
 r=run(toot.concat(q.map(x=>Object.assign({},x,{t:x.t+20*M}))));assert.strictEqual(r.quackYuksek,true);
 r=run(toot.concat(q.map(x=>Object.assign({},x,{t:x.t+45*M}))));assert.strictEqual(r.quackYuksek,false);

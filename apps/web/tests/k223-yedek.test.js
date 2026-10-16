@@ -1,4 +1,4 @@
-/* koloni-226: tarihli yedek + geri yükleme — önizleme metni, izinler, migration kapsamı. */
+/* koloni-227: tarihli yedek + geri yükleme — önizleme metni, izinler, migration kapsamı. */
 const assert=require('assert'),fs=require('fs'),path=require('path');
 const W=path.join(__dirname,'..'),r=f=>fs.readFileSync(path.join(W,f),'utf8');
 require(path.join(W,'yedekler.js'));const Y=globalThis.SuperAriYedekBulut;
@@ -17,5 +17,5 @@ assert.ok(/sa_yedek_izin\(y\.hesap_id, 'geri'\)/.test(m)&&/sa_yedek_izin\(hesap_
 assert.ok(/updated_at', now\(\)/.test(m),'sa_touch eski tarihi reddeder → now()');
 assert.ok(r('ayarlar.html').includes('yedekler.html')&&r('bulut.js').includes('SYNC_KEYS: LS'));
 assert.ok(r('../yonetici/index.html').includes('panel13.js'));
-assert.equal(JSON.parse(r('version.json')).version,'koloni-226');
+assert.equal(JSON.parse(r('version.json')).version,'koloni-227');
 console.log('k223 ok');

@@ -38,7 +38,7 @@
       ['w', 'Genel', 'Günlük kayıp ≥ geçmişin katı ' + UT, 's', 'genelKayipKat'],
       ['w', 'Genel', 'En az günlük kayıp (kg) ' + UT, 's', 'genelKayipMinKg'],
       ['i', 'Nektar', 'Günlük artış en az (kg)', 's', 'nektarKg']] },
-    { t: 'Ses', kk: ['sesOgulAni','sesPiping','sesQuack','sesAnasiz','sesIsciOtme','sesOgulEgilim','sesSaglik','sesVarroa'], src: 'Frekans bantları: Kural kaynakları → Ses sınıfları (KİLİTLİ, burada yalnız okunur) · Oğul anı 500–600 Hz, +6 dB, 2 dk: uzman tahmini — hakemli kaynak yok (Ferrari 2008 bant kaymasını gösterir, dB/süre eşiği vermez); kaynak aranıyor, Yapılacaklar\'da', r: [
+    { t: 'Ses', kk: ['sesOgulAni','sesPiping','sesQuack','sesAnasiz','sesIsciOtme','sesOgulEgilim','sesSaglik','sesVarroa'], src: 'Frekans bantları: Kural kaynakları → Ses sınıfları (KİLİTLİ, burada yalnız okunur) · Oğul anı 500–600 Hz, +6 dB, 2 dk: uzman tahmini — hakemli kaynak bulunamadı (Ferrari 2008 bant kaymasını gösterir, dB/süre eşiği vermez → aşağıdaki «Oğul öncesi» kuralı); Yapılacaklar\'da', r: [
       ['a', 'Oğul anı', 'Alt (Hz) ' + UT, 'L', 'ogulAniHzMin'],
       ['a', 'Oğul anı', 'Üst (Hz) ' + UT, 'L', 'ogulAniHzMax'],
       ['a', 'Oğul anı', 'Tabana göre artış (dB) ' + UT, 'L', 'ogulAniArtisDb'],
@@ -51,6 +51,37 @@
       ['w', 'Sağlık', 'Taban sapması → Uyarı (dB) ' + UT, 's', 'saglikUyariDb'],
       ['c', 'Sağlık', 'Taban sapması → Kritik (dB) ' + UT, 's', 'saglikKritikDb'],
       ['i', 'Varroa', 'Bant sapması (dB) ' + UT, 's', 'varroaSapmaDb']] },
+    { t: 'Ses: Oğul öncesi (ses + sıcaklık)', kk: ['sesOgulOnce'], src: 'Ferrari S., Silva M., Guarino M., Berckmans D. (2008). Monitoring of swarming sounds in bee hives for early detection of the swarming period. Comput. Electron. Agric. 64:72–77, doi:10.1016/j.compag.2008.05.010 · ~110 Hz güç artışı, baskın frekans ~300 Hz\'e kayar, sıcaklık 33→35 °C, oğul sonrası ~32 °C · dB, bant genişliği ve süre kaynakta yok → uzman tahmini (Yapılacaklar\'da)', not: 'Mevcut oğul kurallarıyla ortak kontrol: oğul anı / eğilim / işçi ötmesiyle birlikte görülürse seviye yükselir; oğul sesinden sonra sıcaklık düşerse «oğul çıkmış olabilir».', r: [
+      ['w', '110 Hz', 'Bant alt (Hz) ' + UT, 's', 'ogulOn110HzMin'],
+      ['w', '110 Hz', 'Bant üst (Hz) ' + UT, 's', 'ogulOn110HzMax'],
+      ['w', '110 Hz', 'Güç artışı (dB) ' + UT, 's', 'ogulOn110ArtisDb'],
+      ['w', 'Baskın', 'Hedef frekans (Hz) · Ferrari 2008', 's', 'ogulOnBaskinHz'],
+      ['w', 'Baskın', 'Tolerans (Hz) ' + UT, 's', 'ogulOnBaskinTolHz'],
+      ['w', 'Sıcaklık', 'Başlangıç (°C) · Ferrari 2008', 's', 'ogulOnSicakAltC'],
+      ['w', 'Sıcaklık', 'Yükselen (°C) · Ferrari 2008', 's', 'ogulOnSicakUstC'],
+      ['i', 'Sıcaklık', 'Oğul sonrası düşüş (°C) · Ferrari 2008', 's', 'ogulOnSicakDusC'],
+      ['w', 'Süre', 'Karşılaştırma penceresi (saat) ' + UT, 's', 'ogulOnSaat']] },
+    { t: 'Ses: Ana arı ötme sırası', kk: ['sesOtmeSira'], src: 'Ramsey M.-T., Bencsik M., Newton M.I., Reyes M., Pioz M., Crauser D., Delso N.S., Le Conte Y. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Sci. Rep. 10:9798, doi:10.1038/s41598-020-66115-5 · tooting her zaman quacking\'den önce; ilk oğuldan sonra 4–7 gün ötme olmaması normal', not: 'Öncesinde tooting yoksa quacking uyarısı verilmez (yanlış sınıflama). Oğuldan sonra bu süre içinde ötme yoksa ses kaynaklı anasızlık uyarısı susturulur.', r: [
+      ['i', 'Ötmesiz', 'Normal süre alt (gün) · Ramsey 2020', 's', 'otmeSessizGunMin'],
+      ['i', 'Ötmesiz', 'Normal süre üst (gün) · Ramsey 2020', 's', 'otmeSessizGunMax'],
+      ['w', 'Sıra', 'Quacking öncesi tooting arama penceresi (saat) ' + UT, 's', 'otmeSiraSaat']] },
+    { t: 'Ses: Rahatsız edilme (gece/gündüz)', kk: ['sesRahatsiz'], src: 'Ramsey M., Bencsik M., Newton M.I. (2017). Long-term trends in the honeybee \'whooping signal\' revealed by automated detection. PLoS One 12(2):e0171162, doi:10.1371/journal.pone.0171162 · dur sinyali darbeleri en çok gece; darbe/sarsıntı sonrası ani artış · Hz ve eşikler uzman tahmini (Yapılacaklar\'da)', not: 'Taban kovanın kendi gece/gündüz düzeninden (aynı dilim, önceki 24 saat) hesaplanır.', r: [
+      ['w', 'Dur sinyali', 'Alt (Hz) ' + UT, 's', 'dursunHzMin'],
+      ['w', 'Dur sinyali', 'Üst (Hz) ' + UT, 's', 'dursunHzMax'],
+      ['w', 'Dur sinyali', 'En kısa darbe (ms) ' + UT, 's', 'dursunMinMs'],
+      ['w', 'Dur sinyali', 'En uzun darbe (ms) ' + UT, 's', 'dursunMaxMs'],
+      ['w', 'Pencere', 'Darbe sonrası (dk) ' + UT, 's', 'dursunPencereDk'],
+      ['w', 'Artış', 'Tabanın katı ' + UT, 's', 'dursunKat'],
+      ['w', 'Artış', 'En az sinyal sayısı ' + UT, 's', 'dursunMinSay']] },
+    { t: 'Ses: Eşek arısı tıslaması', kk: ['sesEsekArisi'], src: 'Papachristoforou A., Sueur J., Rortais A., Angelopoulos S., Thrasyvoulou A., Arnold G. (2008). High frequency sounds produced by Cyprian honeybees Apis mellifera cypria when confronting their predator, the Oriental hornet Vespa orientalis. Apidologie 39:468–474, doi:10.1051/apido:2008027 · temel ~499±67 Hz, baskın ~5,9±1,4 kHz, tıslama ~0,62 sn', not: 'Kaynaktaki arı alt türü: A. m. cypria (Kıbrıs) — Türkiye ırklarında doğrulanmadı. Mikrofon örneklemesi en düşük değerin altındaysa kullanıcıya «Veri yok / mikrofon desteklemiyor» gösterilir.', r: [
+      ['c', 'Tıslama', 'Baskın alt (Hz) · Papachristoforou 2008', 's', 'esekHzMin'],
+      ['c', 'Tıslama', 'Baskın üst (Hz) · Papachristoforou 2008', 's', 'esekHzMax'],
+      ['i', 'Tıslama', 'Temel frekans (Hz, bilgi) · Papachristoforou 2008', 's', 'esekTemelHz'],
+      ['c', 'Tıslama', 'Süre (ms) · Papachristoforou 2008', 's', 'esekSureMs'],
+      ['c', 'Tıslama', 'Süre toleransı (ms) ' + UT, 's', 'esekSureTolMs'],
+      ['c', 'Tıslama', 'Pencerede en az ' + UT, 's', 'esekMinSay'],
+      ['c', 'Tıslama', 'Pencere (dk) ' + UT, 's', 'esekPencereDk'],
+      ['i', 'Mikrofon', 'En düşük örnekleme (Hz)', 's', 'esekMinOrneklemeHz']] },
     { t: 'Uçuş havası (arı cinsi)', kk: ['ucus'], src: 'Irka özgü hakemli uçuş eşiği bulunamadı → tümü uzman tahmini · Genel A. mellifera: Burrill & Dietz 1981, Apidologie 12:319 (9 °C altında uçuş yok); Vicens & Bosch 2000, Environ. Entomol. 29:413 (etkinlik 12–14 °C); rüzgar: Karbassioon ve ark. 2023, Oecologia 201:689, doi:10.1007/s00442-023-05332-x (~9 km/sa üstü azalır); yağmurda uçuş yok: Riessberger & Crailsheim 1997, Apidologie 28:411', not: 'Hava › Uçuşa uygun günler, Bal sezonu ve Nektar listeleri bu değerleri kullanır. Arılığın cinsi kovanlarındaki en sık ırktan alınır. Melez (ör. Kafkas × Karadeniz): ebeveyn gruplarının daha ihtiyatlı değeri (yüksek sıcaklık, düşük rüzgar ve yağış). Tanınmayan ırk (Muğla, Anadolu…): Genel.', r: [
       ['ok', 'Kafkas', 'Uygun: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasUygunC'],
       ['w', 'Kafkas', 'Kısmen: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasKismenC'],
@@ -124,7 +155,7 @@
   function kkSet(id, kapali) { var L = kkList().filter(function (x) { return x !== id; }); if (kapali) L.push(id); if (KSEC === 'g') KK.g = L; else { var p = KSEC.split('|'), m = p[0] === 'u' ? KK.u : KK.a, key = p.slice(1).join('|'); if (L.length) m[key] = L; else delete m[key]; } }
   function kkRow(id) { var kap = kkList().indexOf(id) >= 0, gk = KSEC !== 'g' && KK.g.indexOf(id) >= 0; return '<div class="kk" data-kkr="' + id + '"><span>' + esc(KAD[id] || id) + (gk ? ' <small class="off">(genelde kapalı)</small>' : '') + '</span><label><input type="checkbox" data-kk="' + id + '"' + (kap ? '' : ' checked') + '><span class="' + (kap ? 'off' : '') + '">' + (kap ? 'Kapalı' : 'Açık') + '</span></label></div>'; }
   /* koloni-220: toplu aç/kapa — grup ve tümü, seçili kapsam için */
-  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa']], ['Titreşim', ['titresim']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']]];
+  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']]];
   function kkTum() { return KG.reduce(function (a, g) { return a.concat(g[1]); }, []); }
   function kkGrpRow(i) { var g = KG[i], L = kkList(), ac = g[1].filter(function (x) { return L.indexOf(x) < 0; }).length; return '<div class="kk kkg" data-kkg="' + i + '"><span><b>' + esc(g[0]) + '</b> <small class="' + (ac < g[1].length ? 'off' : '') + '">' + ac + '/' + g[1].length + ' açık</small></span><span class="kkb"><button type="button" class="btn" data-kkga="' + i + '|1">Aç</button><button type="button" class="btn" data-kkga="' + i + '|0">Kapat</button></span></div>'; }
   function kkTop() { return '<div class="kks"><button type="button" class="btn" data-kkall="1">Tümünü aç</button><button type="button" class="btn" data-kkall="0">Tümünü kapat</button></div>' + KG.map(function (_, i) { return kkGrpRow(i); }).join(''); }
