@@ -42,7 +42,7 @@
     (dl.time || []).forEach(function (t, i) {
       out.days.push({ date: t, hi: num(dl.temperature_2m_max[i]), lo: num(dl.temperature_2m_min[i]), mm: num((dl.precipitation_sum || [])[i]) || 0,
         pr: num((dl.precipitation_probability_max || [])[i]) || 0, wind: num((dl.wind_speed_10m_max || [])[i]), gust: num((dl.wind_gusts_10m_max || [])[i]),
-        dir: num((dl.wind_direction_10m_dominant || [])[i]), rh: num((dl.relative_humidity_2m_mean || [])[i]), code: (dl.weather_code || [])[i] });
+        dir: num((dl.wind_direction_10m_dominant || [])[i]), rh: num((dl.relative_humidity_2m_mean || [])[i]), rhMin: num((dl.relative_humidity_2m_min || [])[i]), rhMax: num((dl.relative_humidity_2m_max || [])[i]), code: (dl.weather_code || [])[i] });
     });
     var h = j.hourly || {}, now = Date.now();
     (h.time || []).forEach(function (t, i) {
@@ -56,7 +56,7 @@
     var key = CACHE + a.id;
     try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return Promise.resolve(c.d); } catch (e) { /* ignore */ }
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + a.lat + '&longitude=' + a.lon +
-      '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,relative_humidity_2m_mean,weather_code' +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,relative_humidity_2m_mean,relative_humidity_2m_min,relative_humidity_2m_max,weather_code' +
       '&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,weather_code' +
       '&timezone=auto&forecast_days=10';
     return fetch(url).then(function (r) { if (!r.ok) throw new Error('hava_' + r.status); return r.json(); }).then(function (j) {
@@ -153,11 +153,12 @@
       { k: 'r', v: d.length ? String(rainD.length) : '—', l: 'Yağmurlu gün', href: '#isgunu' },
       { k: 'f', v: d.length ? String(okD.length) : '—', l: 'Uçuşa uygun gün', href: '#ucus' },
       { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#don' },
-      /* k208: dış nem — yalnız bilgi (Open-Meteo relative_humidity_2m); uyarı yok, kovan nem kurallarına bağlı değil */
-      (function () { var rh = h0 && h0.rh != null ? h0.rh : (t0.rh != null ? t0.rh : null); return { k: 'h', v: rh != null ? '%' + Math.round(rh) : 'Veri yok', l: 'Dış nem', info: true, none: rh == null }; })()
+      /* k208/k209: dış nem — yalnız bilgi (Open-Meteo bugünkü ortalama bağıl nem; alt satır en düşük–en yüksek); uyarı yok, kovan nem kurallarına bağlı değil */
+      (function () { var m = t0.rh, ok = m != null && isFinite(m), mm = t0.rhMin != null && t0.rhMax != null && isFinite(t0.rhMin) && isFinite(t0.rhMax);
+        return { k: 'h', v: ok ? Math.round(m) + '%' : 'Veri yok', l: 'Nem', sub: ok && mm ? Math.round(t0.rhMin) + '–' + Math.round(t0.rhMax) + '%' : '', info: true, none: !ok }; })()
     ];
     $('bkStats').innerHTML = stats.map(function (x) {
-      if (x.info) return '<span class="bk-stat bk-stat-info' + (x.none ? ' none' : '') + '" data-stat="' + x.k + '" title="Dış ortam bağıl nemi (bilgi)">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></span>';
+      if (x.info) return '<span class="bk-stat bk-stat-info' + (x.none ? ' none' : '') + '" data-stat="' + x.k + '" title="Dış ortam bağıl nemi (bilgi)">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + (x.sub ? '<br><span class="sub">' + esc(x.sub) + '</span>' : '') + '</span></span>';
       return '<a class="bk-stat" data-stat="' + x.k + '" href="' + x.href + '">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
     }).join('');
     var note;
