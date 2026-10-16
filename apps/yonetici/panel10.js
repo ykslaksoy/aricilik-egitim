@@ -25,7 +25,10 @@
       ['i', 'Kireç', 'Kesintisiz süre (saat) ' + UT, 's', 'kirecSaat'],
       ['i', 'Dönem', 'İlk ay (1–12) ' + UT, 's', 'kuluckaAyBas'],
       ['i', 'Dönem', 'Son ay (1–12) ' + UT, 's', 'kuluckaAySon']] },
-    { t: 'Nem', src: 'Kireç desteği: Flores 1996 (nem tek başına tetiklemez)', not: 'Nem için tek başına uyarı kuralı yok.', vy: 1, r: [
+    { t: 'Nem', src: 'Alt: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Üst: kovan için doğrulanmış eşik yok; Flores 1996 %87 bağıl nemde kireç artışı (destekleyici) · değerler uzman tahmini', not: 'Aralık dışında kalırsa uyarı. Alt: «yavru (yumurta) büzüşme riski»; üst: «normal aralığın üstünde». Kireç kuralı ayrı.', r: [
+      ['ok', 'Normal', 'Alt sınır (%) ' + UT, 's', 'nemNormalAlt'],
+      ['ok', 'Normal', 'Üst sınır (%) ' + UT, 's', 'nemNormalUst'],
+      ['w', 'Uyarı', '{s:nemNormalAlt}–{s:nemNormalUst} % dışında kesintisiz (saat) ' + UT, 's', 'nemDisiSaat'],
       ['i', 'Kireç', 'Destekleyici nem (%) ' + UT, 's', 'kirecNemYuksek'],
       ['i', 'Skor', 'Oğul skoru Sıkışıklık girdisi (%)', 's', 'nemHigh']] },
     { t: 'Ağırlık (tartı)', src: 'Kaynak yok · tümü uzman tahmini', r: [
@@ -46,15 +49,32 @@
       ['w', 'Sağlık', 'Taban sapması → Uyarı (dB) ' + UT, 's', 'saglikUyariDb'],
       ['c', 'Sağlık', 'Taban sapması → Kritik (dB) ' + UT, 's', 'saglikKritikDb'],
       ['i', 'Varroa', 'Bant sapması (dB) ' + UT, 's', 'varroaSapmaDb']] },
-    { t: 'Titreşim', src: '—', vy: 1, r: [] },
-    { t: 'IR (giriş sayacı)', src: '—', not: 'Yalnız oğul skoru girdisi, uyarı yok.', vy: 1, r: [['i', 'Skor', 'Tabandan artış oranı (0,5 = %50)', 's', 'irSapmaOran']] },
+    { t: 'Titreşim', src: 'Kaynak yok · uzman tahmini', not: 'Olağandışı hareket: hırsızlık / kapak açıldı alarmı için hazırlık.', r: [
+      ['w', 'Olağandışı', '7 gün tabanının katı ' + UT, 's', 'titresimKat'],
+      ['w', 'Süre', 'Kesintisiz (dk) ' + UT, 's', 'titresimDk']] },
+    { t: 'IR (giriş sayacı)', src: 'Oğul: Struye 1994, Apidologie 25:384, doi:10.1051/apido:19940405 (destekleyici) · değerler uzman tahmini', not: 'Giriş/çıkış ayrı sayan sayaç gerekir; yoksa «Veri yok».', r: [
+      ['a', 'Oğul', 'Net çıkış en az (arı) ' + UT, 's', 'irOgulNetCikis'],
+      ['a', 'Pencere', 'Süre (dk) ' + UT, 's', 'irOgulDk'],
+      ['c', 'Yağma', 'Giriş/çıkış oranı en az ' + UT, 's', 'irYagmaOran'],
+      ['c', 'Süre', 'Gündüz kesintisiz (dk) ' + UT, 's', 'irYagmaDk'],
+      ['w', 'Trafik', '7 gün aynı saat ortalamasının oranından az ' + UT, 's', 'irTrafikOran'],
+      ['w', 'Süre', 'Üst üste gün ' + UT, 's', 'irTrafikGun'],
+      ['i', 'Skor', 'Oğul skoru: tabandan artış oranı', 's', 'irSapmaOran']] },
     { t: 'Pil', src: 'Kaynak yok · kalan gün eşikleri uzman tahmini', not: 'Aynı değerler Cihazlar → Pil düşüklüğü kartında (tek kaynak).', r: PIL() }
   ];
   function PIL() { return [['w', 'Düşük pil', 'Bu yüzde ve altı (%)', 'e', 'uyari.dusukPilYuzde'], ['w', 'Orta', 'Kalan gün ≤ ' + UT, 's', 'batOrtaGun'], ['c', 'Yüksek', 'Kalan gün ≤ ' + UT, 's', 'batYuksekGun']]; }
   var CIHAZ = [
     { t: 'Pil düşüklüğü', src: 'Ölçüm kuralları → Pil ile aynı değerler (tek kaynak)', r: PIL(), son: 'Şu an düşük pil' },
-    { t: 'Veri gelmiyor / sessiz', not: 'Durum «Veri yok»: cihaz kayıtlı ama okuma gelmiyor. Kaç saat sessizlikte uyarılacağı tanımlı değil (Yapılacaklar).', vy: 1, r: [], son: 'Liste' },
-    { t: 'Bağlantı koptu / arızalı', not: 'Durumlar: Bağlı · Kopuk · Arızalı. Ne kadar sürerse uyarılacağı tanımlı değil (Yapılacaklar).', vy: 1, r: [], son: 'Liste' }
+    { t: 'Veri gelmiyor / sessiz', src: 'Kaynak yok · uzman tahmini', not: 'Sarı: en büyüğü (kaçırılan okuma × ölçüm aralığı, en az dakika). Bildirim cihaz başına günde en çok bir. Hiç okuma gelmemiş cihaz «Veri yok» kalır.', r: [
+      ['w', 'Sarı', 'Kaçırılan okuma ' + UT, 's', 'sessizOkuma'],
+      ['w', 'Sarı', 'En az (dk) ' + UT, 's', 'sessizMinDk'],
+      ['c', 'Kırmızı', 'Veri yok (dk) ' + UT, 's', 'sessizKirmiziDk']], son: 'Liste' },
+    { t: 'Bağlantı koptu / arızalı', src: 'Kaynak yok · uzman tahmini', not: 'Gateway kopuksa arılık için tek uyarı. Arızalı: imkânsız değer (nem %0–100 dışı dahil), aynı değer ya da sıçrama.', r: [
+      ['c', 'Koptu', 'Veri yok (saat) ' + UT, 's', 'kopukSaat'],
+      ['c', 'Arızalı', 'Sıcaklık eksi şunun altı (°C; 40 = −40) ' + UT, 's', 'arizaAltEksiC'],
+      ['c', 'Arızalı', 'Sıcaklık bunun üstü (°C) ' + UT, 's', 'arizaUstC'],
+      ['c', 'Arızalı', 'Aynı değer kesintisiz (saat) ' + UT, 's', 'arizaAyniSaat'],
+      ['c', 'Arızalı', 'İki okuma arası sıçrama (°C) ' + UT, 's', 'arizaSicramaC']], son: 'Liste' }
   ];
   var css = document.createElement('style');
   css.textContent = '.mk .mc{border:1px solid #ead9b3;border-radius:14px;padding:.6rem;margin-top:.6rem;background:#fff}.mk h3{margin:0 0 .3rem;font-size:1rem}' +

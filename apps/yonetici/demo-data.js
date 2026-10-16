@@ -3463,7 +3463,13 @@
     kirecIsiC: 30, kirecSaat: 24, kirecAyBas: 3, kirecAySon: 8, kirecNemYuksek: 80, hatirlatmaGun: 7,
     genelKayipKat: 2, genelKayipMinKg: 0.5, genelNufusUyariOran: 0.2, genelNufusKritikOran: 0.3, genelAyBas: 11, genelAySon: 5,
     /* k192: Kuluçka sıcaklığı — bant 33–36 °C (Kleinhenz ve ark. 2003, doi:10.1242/jeb.00680); süre/oynaklık/dönem uzman tahmini; yalnız kuluçkalıktaki sensör */
-    kuluckaHedefC: 34.5, kuluckaUyariAltC: 34, kuluckaUyariUstC: 35, kuluckaAltC: 33, kuluckaUstC: 36, kuluckaSaat: 6, kuluckaOynaklikC: 2, kuluckaOynaklikSaat: 24, kuluckaAyBas: 3, kuluckaAySon: 8, kuluckaAcilC: 30, kuluckaAcilSaat: 6 };
+    kuluckaHedefC: 34.5, kuluckaUyariAltC: 34, kuluckaUyariUstC: 35, kuluckaAltC: 33, kuluckaUstC: 36, kuluckaSaat: 6, kuluckaOynaklikC: 2, kuluckaOynaklikSaat: 24, kuluckaAyBas: 3, kuluckaAySon: 8, kuluckaAcilC: 30, kuluckaAcilSaat: 6,
+    /* koloni-199: eksik eşikler — tümü uzman tahmini (kullanıcı onayı 2026-10-17) */
+    nemNormalAlt: 50, nemNormalUst: 85, nemDisiSaat: 24,
+    irOgulNetCikis: 5000, irOgulDk: 30, irYagmaOran: 2, irYagmaDk: 30, irTrafikOran: 0.3, irTrafikGun: 2,
+    titresimKat: 3, titresimDk: 15,
+    sessizOkuma: 3, sessizMinDk: 60, sessizKirmiziDk: 180, kopukSaat: 24,
+    arizaAltEksiC: 40, arizaUstC: 85, arizaAyniSaat: 6, arizaSicramaC: 10 };
   var ORS_SENSOR_ADLAR = { aniKayipKg: 'Ani ağırlık kaybı: eşik (kg, uzman tahmini)', aniKayipSaat: 'Ani ağırlık kaybı: süre (saat, uzman tahmini)', suGuvenliM: 'Su: bu mesafeye kadar risk yok, m (uzman tahmini; literatürde ~500 m önerisi geçer)', suRiskliM: 'Su: bu mesafeden sonra yüksek risk, m (uzman tahmini)', suRiskAgirlik: 'Su riski rota güvenini en çok bu oranda düşürür (0–1, uzman tahmini)', veriYokCarpan: 'Su/alan verisi yoksa güven çarpanı (uzman tahmini)', alanDogalOran: 'Toplama alanı: ağaçlık+çalılık+çayır en az oranı (0–1, uzman tahmini)', varroaSayimGun: 'Varroa: son sayımdan bu yana gün → hatırlatma (uzman tahmini)', kulucka0Rakim: 'Kuluçka başlangıcı: bu rakımın altı Şubat (uzman tahmini)', kulucka1Rakim: 'Kuluçka başlangıcı: bu rakımın üstü Nisan, arası Mart (uzman tahmini)', rotaHasatAg: 'Rota puanı: geçmiş hasat ağırlığı (0–1, uzman tahmini)', rotaTartiAg: 'Rota puanı: tartı artış ağırlığı (0–1, uzman tahmini)', rotaPencere: 'Rota: kayan ortalama penceresi, gün (uzman tahmini)', rotaMinGun: 'Rota: eşik öğrenmek için en az kayıtlı gün (uzman tahmini)', batOrtaGun: 'Batarya: kalan gün ≤ → Orta uyarı (uzman tahmini)', batYuksekGun: 'Batarya: kalan gün ≤ → Yüksek uyarı (uzman tahmini)', batTabanOran: 'Batarya: taban tüketim payı (0–1, uzman tahmini)', batIlkGun: 'Batarya: ilk hesap için gün', batIlkDusus: 'Batarya: ilk hesap için en az düşüş (puan)', tasNegGun: 'Taşınma: üst üste net artış ≤ eşik gün sayısı (uzman tahmini)', tasNetEsikKg: 'Taşınma: günlük net artış eşiği (kg/gün)', tasErkenGun: 'Taşınma: en erken uyarı (ayrılıştan gün önce)', tasHazirlikGun: 'Taşınma: hazırlık görevi (ayrılıştan gün önce)', pipingHzMin: 'Ana Arılar Ötmesi (Piping) alt frekans (Hz)', pipingHzMax: 'Ana Arılar Ötmesi (Piping) üst frekans (Hz)', pipingDk: 'Ana Arılar Ötmesi (Piping) süresi — bilinmeyen ırk (dk; ırk satırlarında ayrı)', pipingAraSn: 'Kesinti sayılmayan en uzun ara (sn)',
     tempHigh: 'Kuluçka ısısı eşiği (°C)', tempHighSaat: 'Eşik üstü en az süre (saat)', tempHighArti: '→ Sıkışıklık artışı',
     riseMin: 'Ani yükseliş alt (°C)', riseMax: 'Ani yükseliş üst (°C)', riseDelta: 'Ani yükseliş en az fark (°C)', riseSaat: 'Ani yükseliş penceresi (saat)', riseArti: '→ Sıkışıklık artışı',
@@ -3486,7 +3492,12 @@
     varroaHzMin: 'Varroa hatırlatması: bant (Hz; kaynak Yıldız & Karabağ 2026)', varroaSapmaDb: 'Varroa hatırlatması: bant taban sapması (dB, uzman tahmini)', varroaGun: 'Varroa hatırlatması: en sık (gün)',
     kirecIsiC: 'Kireç riski: kuluçka ısısı bunun altında (°C; Flores ve ark. 1996)', kirecSaat: 'Kireç riski: kesintisiz süre (saat, uzman tahmini)', kirecAyBas: 'Kireç riski: kuluçka dönemi ilk ay (1–12, uzman tahmini)', kirecAySon: 'Kireç riski: kuluçka dönemi son ay (1–12, uzman tahmini)', kirecNemYuksek: 'Kireç riski: destekleyici nem (%; tek başına tetiklemez, uzman tahmini)', hatirlatmaGun: 'Kireç / genel kontrol hatırlatması: en sık (gün)',
     genelKayipKat: 'Genel kontrol: günlük ağırlık kaybı kendi geçmişinin bu katı (uzman tahmini)', genelKayipMinKg: 'Genel kontrol: en az günlük kayıp (kg, uzman tahmini)', genelNufusUyariOran: 'Genel kontrol: nüfus düşüşü → uyarı (0,2 = %20, uzman tahmini)', genelNufusKritikOran: 'Genel kontrol: nüfus düşüşü → kritik (0,3 = %30, uzman tahmini)', genelAyBas: 'Genel kontrol: kış–ilkbahar ilk ay (1–12, uzman tahmini)', genelAySon: 'Genel kontrol: kış–ilkbahar son ay (1–12, uzman tahmini)',
-    kuluckaHedefC: 'Kuluçka sıcaklığı: hedef (°C; Groh ve ark. 2004: 34,5 °C)', kuluckaUyariAltC: 'Kuluçka sıcaklığı: uyarı — bunun altı (°C, uzman tahmini; Groh ve ark. 2004 etkiyi 33,5 °C’de gösterdi, 34 °C daha ihtiyatlı seçim)', kuluckaUyariUstC: 'Kuluçka sıcaklığı: uyarı — bu değer ve üstü (°C; Groh ve ark. 2004: 35 °C’de etki)', kuluckaAltC: 'Kuluçka sıcaklığı: kritik — bunun altı (°C; Kleinhenz ve ark. 2003: 33–36 °C)', kuluckaUstC: 'Kuluçka sıcaklığı: kritik — bunun üstü (°C; Kleinhenz ve ark. 2003)', kuluckaSaat: 'Kuluçka sıcaklığı: uyarı/kritik için kesintisiz süre (saat, uzman tahmini)', kuluckaOynaklikC: 'Kuluçka sıcaklığı: pencere içinde en yüksek − en düşük farkı (°C, uzman tahmini)', kuluckaOynaklikSaat: 'Kuluçka sıcaklığı: oynaklık penceresi (saat, uzman tahmini)', kuluckaAyBas: 'Kuluçka sıcaklığı: dönem ilk ay (1–12, uzman tahmini)', kuluckaAySon: 'Kuluçka sıcaklığı: dönem son ay (1–12, uzman tahmini)', kuluckaAcilC: 'Kuluçka sıcaklığı: ACİL — bu değer ve altı, kireç hastalığı riski (°C; Flores ve ark. 1996, Apidologie 27:185, doi:10.1051/apido:19960401 — kapalı yavruda 30 °C’de mumyalaşma 35 °C’ye göre belirgin yüksek)', kuluckaAcilSaat: 'Kuluçka sıcaklığı: ACİL için kesintisiz süre (saat, uzman tahmini)' };
+    kuluckaHedefC: 'Kuluçka sıcaklığı: hedef (°C; Groh ve ark. 2004: 34,5 °C)', kuluckaUyariAltC: 'Kuluçka sıcaklığı: uyarı — bunun altı (°C, uzman tahmini; Groh ve ark. 2004 etkiyi 33,5 °C’de gösterdi, 34 °C daha ihtiyatlı seçim)', kuluckaUyariUstC: 'Kuluçka sıcaklığı: uyarı — bu değer ve üstü (°C; Groh ve ark. 2004: 35 °C’de etki)', kuluckaAltC: 'Kuluçka sıcaklığı: kritik — bunun altı (°C; Kleinhenz ve ark. 2003: 33–36 °C)', kuluckaUstC: 'Kuluçka sıcaklığı: kritik — bunun üstü (°C; Kleinhenz ve ark. 2003)', kuluckaSaat: 'Kuluçka sıcaklığı: uyarı/kritik için kesintisiz süre (saat, uzman tahmini)', kuluckaOynaklikC: 'Kuluçka sıcaklığı: pencere içinde en yüksek − en düşük farkı (°C, uzman tahmini)', kuluckaOynaklikSaat: 'Kuluçka sıcaklığı: oynaklık penceresi (saat, uzman tahmini)', kuluckaAyBas: 'Kuluçka sıcaklığı: dönem ilk ay (1–12, uzman tahmini)', kuluckaAySon: 'Kuluçka sıcaklığı: dönem son ay (1–12, uzman tahmini)', kuluckaAcilC: 'Kuluçka sıcaklığı: ACİL — bu değer ve altı, kireç hastalığı riski (°C; Flores ve ark. 1996, Apidologie 27:185, doi:10.1051/apido:19960401 — kapalı yavruda 30 °C’de mumyalaşma 35 °C’ye göre belirgin yüksek)', kuluckaAcilSaat: 'Kuluçka sıcaklığı: ACİL için kesintisiz süre (saat, uzman tahmini)',
+    nemNormalAlt: 'Nem normal aralık: alt (%; uzman tahmini — destekleyici: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104, %50 altında yumurta açılmadı)', nemNormalUst: 'Nem normal aralık: üst (%; uzman tahmini — destekleyici: Flores 1996 %87 bağıl nemde kireç artışı; kovan için doğrulanmış eşik yok)', nemDisiSaat: 'Nem aralık dışı kesintisiz süre (saat, uzman tahmini)',
+    irOgulNetCikis: 'IR oğul: net çıkış en az (arı, uzman tahmini — destekleyici: Struye 1994, Apidologie 25:384, doi:10.1051/apido:19940405)', irOgulDk: 'IR oğul: pencere (dk, uzman tahmini)', irYagmaOran: 'IR yağma: giriş/çıkış oranı en az (uzman tahmini)', irYagmaDk: 'IR yağma: kesintisiz süre, gündüz (dk, uzman tahmini)', irTrafikOran: 'IR trafik düşüşü: 7 gün aynı saat ortalamasının bu oranından az (0,3 = %30, uzman tahmini)', irTrafikGun: 'IR trafik düşüşü: üst üste gün (uzman tahmini)',
+    titresimKat: 'Titreşim olağandışı hareket: 7 gün tabanının katı (uzman tahmini)', titresimDk: 'Titreşim olağandışı hareket: kesintisiz süre (dk, uzman tahmini)',
+    sessizOkuma: 'Veri gelmiyor: kaçırılan okuma sayısı (uzman tahmini)', sessizMinDk: 'Veri gelmiyor: sarı için en az (dk, uzman tahmini)', sessizKirmiziDk: 'Veri gelmiyor: kırmızı (dk, uzman tahmini)', kopukSaat: 'Bağlantı koptu: veri yok (saat, uzman tahmini)',
+    arizaAltEksiC: 'Arızalı: sıcaklık bunun eksisinin altı (°C; 40 = −40 °C, uzman tahmini)', arizaUstC: 'Arızalı: sıcaklık bunun üstü (°C, uzman tahmini)', arizaAyniSaat: 'Arızalı: aynı değer kesintisiz (saat, uzman tahmini)', arizaSicramaC: 'Arızalı: iki okuma arası sıçrama (°C, uzman tahmini)' };
   function pipingDefaults() { var o = {}; Object.keys(GENETIK_SAF).concat(Object.keys(GENETIK_MELEZ)).forEach(function (k) { o[k] = ORS_SENSOR.pipingDk; }); return o; }
   /* k161 EK13: kullanıcı onaylı bildirim şablonları */
   var KovanBildirimSablonlari = {
@@ -3710,6 +3721,8 @@
       var son2 = I[I.length - 1].t, P = I.filter(function (x) { return x.t >= son2 - T.kuluckaOynaklikSaat * H; });
       if (P.length >= 6 && son2 - P[0].t >= 0.8 * T.kuluckaOynaklikSaat * H) { var vs = P.map(function (x) { return Number(x.tempC); }); if (Math.max.apply(null, vs) - Math.min.apply(null, vs) >= T.kuluckaOynaklikC) r.kuluckaOynak = true; }
     }
+    /* koloni-199: nem normal aralık (nemNormalAlt–nemNormalUst) dışında kesintisiz nemDisiSaat → nemDisi; IR oğul/yağma/trafik; titreşim olağandışı hareket. Tümü uzman tahmini; teşhis değil. */
+    yeniKurallar(S, T, r, nowMs);
     if (ayIcinde(ay, T.genelAyBas, T.genelAySon)) {
       var W = (S.tarti || []).filter(function (x) { return isFinite(Number(x.kg)); });
       function kgAt(t) { var b = null; W.forEach(function (x) { if (x.t <= t) b = x; }); return b && t - b.t <= 3 * H ? Number(b.kg) : null; }
@@ -3730,6 +3743,58 @@
       }
     }
     return r;
+  }
+  /** koloni-199: Nem aralığı, IR (oğul, yağma, trafik düşüşü), titreşim. Okumalar arası > 2 saat boşluk seriyi keser. */
+  function yeniKurallar(S, T, r, nowMs) {
+    var H = 3600000, M = 60000, D = 24 * H;
+    r.nemDisi = false; r.nemYon = null; r.irOgul = false; r.irYagma = false; r.irTrafik = false; r.titresimOlagan = false;
+    function seri(L, f, ms) { var b = null, p = null, yon = null, out = null; L.forEach(function (x) { var y = f(x); if (!y || (p && x.t - p.t > 2 * H) || y !== yon) b = y ? x.t : null; yon = y; if (y && b != null && x.t - b >= ms) out = y; p = x; }); return out; }
+    var N = (S.isi_nem || []).filter(function (x) { return x.rh != null && isFinite(Number(x.rh)); });
+    if (N.length) { var ny = seri(N, function (x) { var v = Number(x.rh); return v < T.nemNormalAlt ? 'dusuk' : v > T.nemNormalUst ? 'yuksek' : null; }, T.nemDisiSaat * H); if (ny) { r.nemDisi = true; r.nemYon = ny; } }
+    function gir(x) { var v = x.giren != null ? x.giren : x['in']; return v != null && isFinite(Number(v)) ? Number(v) : null; }
+    function cik(x) { var v = x.cikan != null ? x.cikan : x.out; return v != null && isFinite(Number(v)) ? Number(v) : null; }
+    var IR = (S.ir || []).filter(function (x) { return gir(x) != null && cik(x) != null; });
+    if (IR.length) {
+      for (var i = 0; i < IR.length && !r.irOgul; i++) { var net = 0; for (var j = i; j < IR.length && IR[j].t - IR[i].t <= T.irOgulDk * M; j++) net += cik(IR[j]) - gir(IR[j]); if (net >= T.irOgulNetCikis) r.irOgul = true; }
+      var gb = T.gunduzSaatBas != null ? T.gunduzSaatBas : 7, gs = T.gunduzSaatSon != null ? T.gunduzSaatSon : 19;
+      if (seri(IR, function (x) { var hh = new Date(x.t).getHours(), o = cik(x); return hh >= gb && hh < gs && (o > 0 ? gir(x) / o >= T.irYagmaOran : gir(x) > 0) ? 'y' : null; }, T.irYagmaDk * M)) r.irYagma = true;
+    }
+    var TR = (S.ir || []).map(function (x) { var g = gir(x), c = cik(x), v = g != null && c != null ? g + c : (x.count != null && isFinite(Number(x.count)) ? Number(x.count) : null); return v == null ? null : { t: x.t, v: v }; }).filter(Boolean);
+    if (TR.length) {
+      var g0 = new Date(nowMs); g0.setHours(0, 0, 0, 0); var g0t = g0.getTime(), son = new Date(TR[TR.length - 1].t).getHours() + 1, n = Math.max(1, Number(T.irTrafikGun) || 2), dus = 0, top = 0;
+      var gunTop = function (k) { var a = g0t - k * D, sum = 0, any = false; TR.forEach(function (x) { if (x.t >= a && x.t < a + D && new Date(x.t).getHours() < son) { sum += x.v; any = true; } }); return any ? sum : null; };
+      var taban = []; for (var k = n; k < n + 7; k++) { var v = gunTop(k); if (v != null) taban.push(v); }
+      if (taban.length >= 3) { var ort = taban.reduce(function (a, b) { return a + b; }, 0) / taban.length; for (var q = 0; q < n; q++) { var b = gunTop(q); if (b != null) { top++; if (b < ort * T.irTrafikOran) dus++; } } if (ort > 0 && top === n && dus === n) r.irTrafik = true; }
+    }
+    var V = (S.titresim || []).map(function (x) { var v = x.rms != null ? x.rms : x.deger; return v != null && isFinite(Number(v)) ? { t: x.t, v: Number(v) } : null; }).filter(Boolean);
+    if (V.length >= 10) {
+      var sonT = V[V.length - 1].t, eski = V.filter(function (x) { return x.t < sonT - T.titresimDk * M; }).map(function (x) { return x.v; }).sort(function (a, b) { return a - b; });
+      if (eski.length >= 6) { var md = eski[Math.floor(eski.length / 2)]; if (md > 0 && seri(V, function (x) { return x.v >= md * T.titresimKat ? 'y' : null; }, T.titresimDk * M)) r.titresimOlagan = true; }
+    }
+    return r;
+  }
+  /** koloni-199: Cihaz sağlığı. Dönen [{ id, tip, hiveId, apiaryId, durum: 'sari'|'kirmizi'|'kopuk'|'arizali', neden }]. Gateway kopuksa aynı arılığın cihazları için ayrı uyarı yok. */
+  function cihazSaglik(devices, T, nowMs, okumaF) {
+    var out = [], gwKopuk = {}, H = 3600000;
+    (devices || []).forEach(function (d) { if (d && d.tip === 'gateway' && d.lastMins != null && d.lastMins >= T.kopukSaat * 60) { gwKopuk[String(d.apiaryId)] = 1; out.push({ id: d.id, tip: d.tip, hiveId: null, apiaryId: d.apiaryId, durum: 'kopuk', neden: 'gateway' }); } });
+    (devices || []).forEach(function (d) {
+      if (!d || d.tip === 'gateway' || d.source === 'demo') return;
+      var L = okumaF ? (okumaF(d) || []) : [];
+      if (d.tip === 'isi_nem' && L.length) {
+        var ariza = null, p = null;
+        L.forEach(function (x) { var c = Number(x.tempC), h = x.rh != null ? Number(x.rh) : null; if (isFinite(c) && (c < -T.arizaAltEksiC || c > T.arizaUstC)) ariza = 'imkansiz'; if (h != null && isFinite(h) && (h < 0 || h > 100)) ariza = 'imkansiz'; if (p && isFinite(c) && isFinite(Number(p.tempC)) && Math.abs(c - Number(p.tempC)) > T.arizaSicramaC) ariza = ariza || 'sicrama'; p = x; });
+        var sonT = L[L.length - 1].t, P = L.filter(function (x) { return x.t >= sonT - T.arizaAyniSaat * H; });
+        if (!ariza && P.length >= 3 && sonT - P[0].t >= 0.9 * T.arizaAyniSaat * H && P.every(function (x) { return x.tempC === P[0].tempC && x.rh === P[0].rh; })) ariza = 'ayni';
+        if (ariza) { out.push({ id: d.id, tip: d.tip, hiveId: d.hiveId, apiaryId: d.apiaryId, durum: 'arizali', neden: ariza }); return; }
+      }
+      if (d.status === 'arizali') { out.push({ id: d.id, tip: d.tip, hiveId: d.hiveId, apiaryId: d.apiaryId, durum: 'arizali', neden: 'cihaz' }); return; }
+      if (d.lastMins == null) return; /* hiç okuma yok → «Veri yok», uyarı değil */
+      if (gwKopuk[String(d.apiaryId)]) return;
+      var ar = Number(d.aralikMs) > 0 ? Number(d.aralikMs) / 60000 : 0, sari = Math.max(T.sessizOkuma * ar, T.sessizMinDk);
+      var durum = d.lastMins >= T.kopukSaat * 60 ? 'kopuk' : d.lastMins >= T.sessizKirmiziDk ? 'kirmizi' : d.lastMins >= sari ? 'sari' : null;
+      if (durum) out.push({ id: d.id, tip: d.tip, hiveId: d.hiveId, apiaryId: d.apiaryId, durum: durum, neden: 'sessiz' });
+    });
+    return out;
   }
   function hiveSens(hid, nowMs) {
     var from = nowMs - 7 * 24 * 3600000, o = {}, any = false, ap = null; /* k151: kovan tabanı için son 7 gün */
@@ -4331,6 +4396,17 @@
       if (kuA) tasksOut.push({ id: 'kr-kulucka-' + h.id, title: (shR && shR.kulucka ? (shR.kuluckaAcil ? 'ACİL: Kuluçka bölümü çok soğudu, kireç hastalığı riski var. Kovanı hemen kontrol edin' : shR.kuluckaKritik ? (shR.kuluckaYon === 'dusuk' ? 'Kuluçka bölümü uzun süredir çok soğuk, kovanı hemen kontrol edin' : 'Kuluçka bölümü uzun süredir çok sıcak, kovanı hemen kontrol edin') : (shR.kuluckaYon === 'dusuk' ? 'Kuluçka bölümü uzun süredir normalden soğuk, kovanı kontrol edin' : 'Kuluçka bölümü uzun süredir normalden sıcak, kovanı kontrol edin')) : 'Kuluçka bölümünün sıcaklığı dengesiz, kovanı kontrol edin') + ' — ' + nm, hiveId: h.id, priority: shR && shR.kuluckaKritik ? 1 : 3, seviye: shR && shR.kuluckaAcil ? 'acil' : (shR && shR.kuluckaKritik ? 'kritik' : 'uyari'), auto: true, sig: kuA, createdAt: nowIso });
       /* k195: ACİL → sabit kırmızı kart (yalnız Tamam ile kapanır); düzelince «Durum düzeldi» */
       try { var KRk = global.SuperAriKritik; if (KRk) { if (shR && shR.kuluckaAcil) KRk.ac({ kod: 'kulucka_acil', anahtar: String(h.id), hiveId: h.id, apiaryId: h.apiaryId }); else KRk.iyilesti('kulucka_acil', String(h.id)); } } catch (eKa) { /* */ }
+      /* koloni-199: nem aralığı, IR, titreşim — sade metin, eşik/kaynak yok */
+      var nmA = haftalikHatirlatma('nem_disi', h.id, !!(shR && shR.nemDisi), today0, hgun);
+      if (nmA) tasksOut.push({ id: 'kr-nem-' + h.id, title: (shR.nemYon === 'dusuk' ? 'Kovan içi nem uzun süredir düşük, yavru (yumurta) büzüşme riski var. Kovanı kontrol edin' : 'Kovan içi nem uzun süredir normal aralığın üstünde') + ' — ' + nm, hiveId: h.id, priority: 3, auto: true, sig: nmA, createdAt: nowIso });
+      var ioA = haftalikHatirlatma('ir_ogul', h.id, !!(shR && shR.irOgul), today0, 1);
+      if (ioA) tasksOut.push({ id: 'kr-ir-ogul-' + h.id, title: 'Girişte çok sayıda arı çıktı, oğul vermiş olabilir. Kovanı hemen kontrol edin — ' + nm, hiveId: h.id, priority: 1, auto: true, sig: ioA, createdAt: nowIso });
+      var iyA = haftalikHatirlatma('ir_yagma', h.id, !!(shR && shR.irYagma), today0, 1);
+      if (iyA) tasksOut.push({ id: 'kr-ir-yagma-' + h.id, title: 'Girişte yağma belirtisi olabilir, giriş daraltmayı değerlendirin — ' + nm, hiveId: h.id, priority: 2, auto: true, sig: iyA, createdAt: nowIso });
+      var itA = haftalikHatirlatma('ir_trafik', h.id, !!(shR && shR.irTrafik), today0, hgun);
+      if (itA) tasksOut.push({ id: 'kr-ir-trafik-' + h.id, title: 'Giriş trafiği son günlerde çok azaldı, kovanı kontrol edin — ' + nm, hiveId: h.id, priority: 2, auto: true, sig: itA, createdAt: nowIso });
+      var tvA = haftalikHatirlatma('titresim', h.id, !!(shR && shR.titresimOlagan), today0, 1);
+      if (tvA) tasksOut.push({ id: 'kr-titresim-' + h.id, title: 'Kovanda olağandışı hareket algılandı, kovanı kontrol edin — ' + nm, hiveId: h.id, priority: 2, auto: true, sig: tvA, createdAt: nowIso });
       var gkA = haftalikHatirlatma('genel', h.id, !!(shR && shR.genel), today0, hgun);
       if (gkA) tasksOut.push({ id: 'kr-genel-kontrol-' + h.id, title: 'Genel koloni kontrolü ve fiziksel muayene yapılması önerilir — ' + nm, hiveId: h.id, priority: 3, auto: true, sig: gkA, createdAt: nowIso });
       /* k182: nüfus düşüşü — %20 uyarı (öncelik 3), %30 kritik (öncelik 1); aynı haftalık anahtar, kritik öncelikli */
@@ -4363,6 +4439,16 @@
         alertsOut.push({ id: 'kra-bekleme-' + h.id, title: 'İlaç bekleme süresi — ' + nm + ': ' + (w ? w[3] + '.' + w[2] + '.' + w[1] : st.withdrawalUntil) + ' tarihine kadar hasat yapma', type: 'hastalık', hiveId: h.id, severity: 'low', auto: true });
       }
     });
+    /* koloni-199: cihaz sağlığı — sarı/kırmızı/kopuk/arızalı; cihaz başına günde en çok bir görev */
+    try {
+      var DVc = global.SuperAriDevices, tdC = todayLocal(), Tc = Object.assign({}, OGUL_SKOR.sensor);
+      if (DVc && DVc.listDevices) cihazSaglik(DVc.listDevices(), Tc, Date.now(), function (d) { return d.tip === 'isi_nem' && d.hiveId != null ? sensList('isi_nem').filter(function (x) { return Number(x.hiveId) === Number(d.hiveId) && x.t >= Date.now() - 2 * 86400000; }) : []; }).forEach(function (c) {
+        var an = haftalikHatirlatma('cihaz_' + c.durum, String(c.id), true, tdC, 1); if (!an) return;
+        var hv = c.hiveId != null ? hives[Number(c.hiveId)] : null, ad = (DVc.tipLabel ? DVc.tipLabel(c.tip) : c.tip) + (hv ? ' · ' + hv.name : '');
+        var ttl = c.neden === 'gateway' ? 'Gateway bağlantısı koptu, arılıktaki cihazlardan veri gelmiyor' : c.durum === 'arizali' ? 'Cihaz arızalı olabilir, okumalar mantıksız' : c.durum === 'kopuk' ? 'Cihaz bağlantısı koptu' : c.durum === 'kirmizi' ? 'Cihazdan uzun süredir veri gelmiyor' : 'Cihazdan veri gelmiyor';
+        tasksOut.push({ id: 'kr-cihaz-' + c.durum + '-' + c.id, title: ttl + ' — ' + ad, hiveId: c.hiveId, priority: c.durum === 'sari' ? 3 : 2, auto: true, sig: an, createdAt: nowIso });
+      });
+    } catch (eCs) { /* */ }
     return { tasks: tasksOut, alerts: alertsOut };
   }
 
@@ -6144,7 +6230,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },
