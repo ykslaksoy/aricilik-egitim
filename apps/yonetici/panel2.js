@@ -63,8 +63,8 @@
   }
 
   /* 2) Eşikler */
-  var ESIK_DEF = { koloniGucu: { zayifMaxCerceve: 4, ortaMaxCerceve: 7 }, bolmeMinCerceve: 9, uyari: { varroaYuzde: 3, dusukPilYuzde: 20, gunlukKiloDususKg: 1, kovanIciMinC: 10, kovanIciMaxC: 38, nemMaxYuzde: 80 } };
-  var ESIK_AD = { 'koloniGucu.zayifMaxCerceve': 'Zayıf: en çok dolu çerçeve', 'koloniGucu.ortaMaxCerceve': 'Orta: en çok dolu çerçeve (üstü güçlü)', bolmeMinCerceve: 'Bölme eşiği: en az dolu çerçeve', 'uyari.varroaYuzde': 'Varroa uyarı (%)', 'uyari.dusukPilYuzde': 'Düşük pil (%)', 'uyari.gunlukKiloDususKg': 'Günlük kilo düşüşü (kg)', 'uyari.kovanIciMinC': 'Kovan içi en düşük (°C)', 'uyari.kovanIciMaxC': 'Kovan içi en yüksek (°C)', 'uyari.nemMaxYuzde': 'Nem üst sınırı (%)' };
+  var ESIK_DEF = { koloniGucu: { zayifMaxCerceve: 4, ortaMaxCerceve: 7 }, bolmeMinCerceve: 9, uyari: { varroaYuzde: 3, dusukPilYuzde: 20, gunlukKiloDususKg: 1, kovanIciMinC: 10, kovanIciMaxC: 38 } };
+  var ESIK_AD = { 'koloniGucu.zayifMaxCerceve': 'Zayıf: en çok dolu çerçeve', 'koloniGucu.ortaMaxCerceve': 'Orta: en çok dolu çerçeve (üstü güçlü)', bolmeMinCerceve: 'Bölme eşiği: en az dolu çerçeve', 'uyari.varroaYuzde': 'Varroa uyarı (%)', 'uyari.dusukPilYuzde': 'Düşük pil (%)', 'uyari.gunlukKiloDususKg': 'Günlük kilo düşüşü (kg)', 'uyari.kovanIciMinC': 'Kovan içi en düşük (°C)', 'uyari.kovanIciMaxC': 'Kovan içi en yüksek (°C)',  };
   var esik = sec('s-esik', 'Eşikler', 'Koloni gücü bantları, bölme eşiği ve uyarı sınırları. Uygulama bu değerleri okur ve cihazda önbelleğe alır (çevrimdışı son değer geçerli).');
   function getP(o, k) { return k.split('.').reduce(function (a, x) { return a && a[x]; }, o); }
   function setP(o, k, v) { var p = k.split('.'), t = o; for (var i = 0; i < p.length - 1; i++) t = t[p[i]] = t[p[i]] || {}; t[p[p.length - 1]] = v; }

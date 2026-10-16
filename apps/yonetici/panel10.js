@@ -4,7 +4,7 @@
   'use strict';
   var B = window.SuperAriBulut, D = window.SuperAriDemo, host = document.getElementById('panel'); if (!B || !host || !D || !D.colony) return;
   var C = D.colony, nav = host.querySelector('nav.nav');
-  var ESIK_DEF = { koloniGucu: { zayifMaxCerceve: 4, ortaMaxCerceve: 7 }, bolmeMinCerceve: 9, uyari: { varroaYuzde: 3, dusukPilYuzde: 20, gunlukKiloDususKg: 1, kovanIciMinC: 10, kovanIciMaxC: 38, nemMaxYuzde: 80 } };
+  var ESIK_DEF = { koloniGucu: { zayifMaxCerceve: 4, ortaMaxCerceve: 7 }, bolmeMinCerceve: 9, uyari: { varroaYuzde: 3, dusukPilYuzde: 20, gunlukKiloDususKg: 1, kovanIciMinC: 10, kovanIciMaxC: 38 } };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var UT = '<span class="mk-ut">uzman tahmini</span>', KY = '<span class="mk-ut">kaynak yok</span>';
   var VY = '<p class="mk-vy">Veri yok – eşik tanımlı değil</p>';
@@ -31,8 +31,7 @@
       ['i', 'Nötr', 'Normal üst sınır; bunun üstü (%) ' + UT, 's', 'nemNormalUst'],
       ['w', 'Süre', 'Tüm nem kademeleri kesintisiz (saat) ' + UT, 's', 'nemDisiSaat'],
       ['c', 'Kireç riski', 'Bunun üstü (%) · Liang 2000, Flores 1996', 's', 'nemKirecUst'],
-      ['i', 'Kireç', 'Destekleyici nem (%) ' + UT, 's', 'kirecNemYuksek'],
-      ['i', 'Skor', 'Oğul skoru Sıkışıklık girdisi (%)', 's', 'nemHigh']] },
+      ['i', 'Bağlı', 'Oğul skoru Sıkışıklık nem eki = normal üst sınır; kireç destek nemi = kireç eşiği', null, '']] },
     { t: 'Ağırlık (tartı)', src: 'Kaynak yok · tümü uzman tahmini', r: [
       ['c', 'Ani kayıp', 'Eşik (kg) ' + UT, 's', 'aniKayipKg'],
       ['c', 'Süre', 'Bu süre içinde (saat) ' + UT, 's', 'aniKayipSaat'],
@@ -98,6 +97,7 @@
   /* koloni-198: etikette {s:anahtar} / {e:anahtar} → ayardaki değer; kutu değişince canlı güncellenir */
   function lbl(t) { return t.replace(/\{([se]):([\w.]+)\}/g, function (_, src, k) { var v = val(src, k); return '<b data-lbl="' + src + '|' + esc(k) + '">' + (v == null ? '—' : esc(fmt(v))) + '</b>'; }); }
   function rowH(x) {
+    if (x[3] == null) return '<div class="rw"><span class="tr ' + x[0] + '">' + esc(x[1]) + '</span><span style="grid-column:2/4">' + lbl(x[2]) + '</span></div>';
     var src = x[3], k = x[4], v = val(src === 'L' ? 's' : src, k), ctl;
     if (v == null) ctl = '<output>—</output>';
     else if (src === 'L') ctl = '<output title="KİLİTLİ">' + esc(fmt(v)) + '</output>';
