@@ -1,0 +1,5 @@
+-- koloni-200: nem normal aralık 70–85 % (kullanıcı seçimi, uzman tahmini), süre 24 sa aynı.
+update public.ogul_skor_ayar set data = jsonb_set(jsonb_set(coalesce(data,'{}'::jsonb), '{sensor,nemNormalAlt}', '70'::jsonb, true), '{sensor,nemNormalUst}', '85'::jsonb, true), updated_at = now() where id = 1;
+insert into public.ayar_surumleri (data, fark, not_, yayinlayan_eposta)
+select o.data, jsonb_build_object('sensor.nemNormalAlt', jsonb_build_object('sonra', 70), 'sensor.nemNormalUst', jsonb_build_object('sonra', 85)), 'koloni-200: nem normal aralık 70–85 %', 'migration' from public.ogul_skor_ayar o where o.id = 1;
+update public.yapilacaklar set baslik = 'Nem normal aralık %70–85, aralık dışı 24 sa (uzman tahmini)', aciklama = 'Kullanıcı seçimi 70–85 % (koloni-200; önceki 50–85). İlgili: Doull 1976 doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) — 70 için kaynak yok. Üst: kovan için doğrulanmış eşik yok (Flores 1996 %87 kireç artışı). Süre kaynaksız.', guncelleme = now() where id = 47;
