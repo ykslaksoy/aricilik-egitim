@@ -153,12 +153,15 @@
       { k: 'r', v: d.length ? String(rainD.length) : '—', l: 'Yağmurlu gün', href: '#isgunu' },
       { k: 'f', v: d.length ? String(okD.length) : '—', l: 'Uçuşa uygun gün', href: '#ucus' },
       { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#don' },
-      /* k208/k209: dış nem — yalnız bilgi (Open-Meteo bugünkü ortalama bağıl nem; alt satır en düşük–en yüksek); uyarı yok, kovan nem kurallarına bağlı değil */
-      (function () { var m = t0.rh, ok = m != null && isFinite(m), mm = t0.rhMin != null && t0.rhMax != null && isFinite(t0.rhMin) && isFinite(t0.rhMax);
-        return { k: 'h', v: ok ? Math.round(m) + '%' : 'Veri yok', l: 'Nem', sub: ok && mm ? Math.round(t0.rhMin) + '–' + Math.round(t0.rhMax) + '%' : '', info: true, none: !ok }; })()
+      /* k211: 10 günlük tahmin dış nem aralığı — yalnız bilgi (Open-Meteo günlük en düşük/en yüksek, yoksa ortalama); uyarı yok, kovan nem kurallarına bağlı değil */
+      (function () { var lo = null, hi = null;
+        d.slice(0, 10).forEach(function (x) { var a = isFinite(x.rhMin) && x.rhMin != null ? x.rhMin : x.rh, b = isFinite(x.rhMax) && x.rhMax != null ? x.rhMax : x.rh;
+          if (a != null && isFinite(a)) lo = lo == null ? a : Math.min(lo, a); if (b != null && isFinite(b)) hi = hi == null ? b : Math.max(hi, b); });
+        var ok = lo != null && hi != null;
+        return { k: 'h', v: ok ? Math.round(lo) + '–' + Math.round(hi) + '%' : 'Veri yok', l: '10 gün nem', info: true, none: !ok, rng: ok }; })()
     ];
     $('bkStats').innerHTML = stats.map(function (x) {
-      if (x.info) return '<span class="bk-stat bk-stat-info' + (x.none ? ' none' : '') + '" data-stat="' + x.k + '" title="Dış ortam bağıl nemi (bilgi)">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + (x.sub ? '<br><span class="sub">' + esc(x.sub) + '</span>' : '') + '</span></span>';
+      if (x.info) return '<span class="bk-stat bk-stat-info' + (x.none ? ' none' : '') + (x.rng ? ' rng' : '') + '" data-stat="' + x.k + '" title="Dış ortam bağıl nemi (bilgi)">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></span>';
       return '<a class="bk-stat" data-stat="' + x.k + '" href="' + x.href + '">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
     }).join('');
     var note;

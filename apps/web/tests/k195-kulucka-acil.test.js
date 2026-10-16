@@ -16,5 +16,5 @@ const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');const t=d.match(/id:
 assert.ok(/ACİL: .*kireç hastalığı riski/.test(t));assert.ok(!/°c|groh|kleinhenz|flores/i.test(t));
 const k=fs.readFileSync(path.join(W,'kritik-alarm.js'),'utf8');assert.ok(/kulucka_acil: 0/.test(k)&&!/kulucka_acil:[^\n]*(°C|Flores)/.test(k));
 assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-210');
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-211');
 console.log('k195-kulucka-acil ok');
