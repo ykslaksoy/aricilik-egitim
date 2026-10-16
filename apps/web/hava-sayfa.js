@@ -25,11 +25,13 @@
   /* k212: şerit için gün + ayın günü (tekrarlayan gün adları ayırt edilsin): «Paz 18» */
   function dayLabD(iso, i) { var d = new Date(iso + 'T12:00:00'); return i === 0 ? 'Bugün' : GUN[d.getDay()] + ' ' + d.getDate(); }
   function rainy(d) { return (d.mm || 0) >= 1 || (d.pr || 0) >= 60; }
-  /* Arı uçuşu: ≥15° max, rüzgar ≤20 km/sa, yağış yok/az → uygun; ≥12°, ≤30 km/sa, olasılık <70 → kısmen */
+  /* koloni-217: Arı uçuşu arılığın arı cinsine göre (eşikler yönetici panelinde; uzman tahmini). Yağmurlu gün asla uygun değil. */
+  function ue() { var C = D && D.colony, a = aps[idx]; try { return C.ucusEsik(C.apiaryBreed(a && a.id)); } catch (e) { return { uygunC: 15, kismenC: 12, uygunRuzgar: 20, kismenRuzgar: 30, yagisMm: 1 }; } }
   function flight(d) {
-    if (d.hi == null || rainy(d)) return 'no'; /* yağmurlu gün asla uygun/kısmen değil */
-    if (d.hi >= 15 && (d.wind || 0) <= 20 && (d.mm || 0) < 1 && (d.pr || 0) < 50) return 'ok';
-    if (d.hi >= 12 && (d.wind || 0) <= 30 && (d.mm || 0) < 1 && (d.pr || 0) < 70) return 'part';
+    var E = ue();
+    if (d.hi == null || rainy(d) || (d.mm || 0) >= E.yagisMm) return 'no';
+    if (d.hi >= E.uygunC && (d.wind || 0) <= E.uygunRuzgar && (d.pr || 0) < 50) return 'ok';
+    if (d.hi >= E.kismenC && (d.wind || 0) <= E.kismenRuzgar && (d.pr || 0) < 70) return 'part';
     return 'no';
   }
   var FL = { ok: 'Uçuş uygun', part: 'Kısmen', no: 'Uygun değil' };
@@ -232,7 +234,7 @@
             '<div class="hv-h" style="font-size:14px">Hasada uygun günler</div><div class="hv-sub">Yağmursuz, rüzgar ≤15 km/sa, en yüksek ≥18°</div>' +
             (hv.length ? hv.map(function (x) { return dayCard(x, d.indexOf(x)); }).join('') : '<div class="hv-empty">Önümüzdeki ' + d.length + ' günde hasada uygun gün görünmüyor.</div>')
           : '<div class="' + (lvl === 'zayıf' ? 'hv-warn' : 'hv-good') + '">🐝 Uçuş havası (tahmini, yalnız hava): <b>' + lvl + '</b> — ' + d.length + ' günde ' + okB + ' gün uçuşa uygun.</div>' +
-            '<div class="hv-h" style="font-size:14px">Uçuşa uygun günler</div><div class="hv-sub">Yağmursuz, uçuşa uygun hava (yalnız hava tahmini)</div>' +
+            '<div class="hv-h" style="font-size:14px">Uçuşa uygun günler</div><div class="hv-sub">Yağmursuz, uçuşa uygun hava (yalnız hava tahmini)' + (function () { var b = ue().breed; return b ? ' · ' + esc(b) + ' arısına göre' : ''; })() + '</div>' +
             (okL.length ? okL.map(function (x) { return dayCard(x, d.indexOf(x)); }).join('') : '<div class="hv-empty">Önümüzdeki ' + d.length + ' günde uçuşa uygun gün görünmüyor.</div>'));
     }
     if (name === 'nektar') {
@@ -244,7 +246,7 @@
     }
     if (name === 'karsi') return head('Geçen yılla karşılaştırma', sub + ' · aynı 10 gün, geçen yıl') + '<div id="hvKarsi"><div class="hv-empty">Geçen yılın kayıtları yükleniyor…</div></div>';
     if (name === 'saatlik') return head('Saatlik', sub + ' · önümüzdeki 36 saat') + hs.map(function (h) {
-      var hr = Number(h.t.slice(11, 13)), okH = hr >= 8 && hr <= 19 && (h.temp || 0) >= 12 && (h.wind || 0) <= 20 && (h.pr || 0) < 40;
+      var hr = Number(h.t.slice(11, 13)), okH = hr >= 8 && hr <= 19 && (h.temp || 0) >= ue().kismenC && (h.wind || 0) <= ue().uygunRuzgar && (h.pr || 0) < 40;
       return '<div class="hv-row"><span class="k">' + hrLab(h.t) + '</span><span class="v">' + ico(h.code, h.mm) + ' ' + r0(h.temp) + '° · 💧%' + Math.round(h.pr) + ' · 💨' + r0(h.wind) + ' · Nem %' + r0(h.rh) + '</span>' + (okH ? '<span title="Uçuş uygun">🐝</span>' : '') + '</div>';
     }).join('');
     return '';
