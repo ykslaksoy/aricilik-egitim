@@ -29,5 +29,5 @@ const ce=fs.readFileSync(path.join(W,'cihazlar.html'),'utf8');assert.ok(ce.inclu
 assert.ok(fs.readFileSync(path.join(W,'device-runtime.js'),'utf8').includes("row.yer = o.yer"));
 const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261016040000_k192_kulucka_sicaklik.sql'),'utf8');
 ['10.1242/jeb.00680','10.1073/pnas.0400773101','10.1073/pnas.1232346100','10.1126/science.1096340','Uzman tahmini · kaynak aranıyor'].forEach(x=>assert.ok(m.includes(x),x));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-212');
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-213');
 console.log('k192-kulucka-sicaklik ok');
