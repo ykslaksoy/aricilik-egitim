@@ -7,7 +7,7 @@
   .phone>.screen{padding-top:2px!important;}
 }
 /* k190: kabuğu bk-kabuk.js kuran sayfalarda çerçevesiz ilk çizim gösterilmez */
-html:not(.bk-kabuk-html) body > main.wrap{visibility:hidden;}
+html:not(.bk-kabuk-html):not(.sa-duz) body > main.wrap{visibility:hidden;} /* k193: kabuksuz sayfalar (Ayarlar, Hesap…) sa-duz → hep görünür */
 /* k190: bk-kabuk sayfalarında (Kovanlar vb.) çerçevesiz ara çizim gizli; nav.js telefon sınıfını verince görünür (1.5 sn emniyet) */
 @media (hover:none) and (pointer:coarse) and (max-width:500px){
   html:not(.sa-phone-mobile):not(.sa-shell-framed) body.bk-kabuk > .phone,

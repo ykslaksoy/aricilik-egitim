@@ -15,3 +15,7 @@ assert.match(lib,/push_teslim/);assert.match(lib,/'basarisiz'/);assert.match(lib
 assert.match(run,/push_tercih/);
 assert.match(rd('apps/yonetici/index.html'),/panel9\.js/);assert.match(rd('apps/yonetici/panel9.js'),/Teslim edildi/);
 console.log('k193 ok');
+/* k193: k190 kuralı kabuksuz sayfaları (Ayarlar/Hesap) gizli bırakıyordu */
+assert.match(rd('apps/web/sa-early.css'),/:not\(\.sa-duz\) body > main\.wrap\{visibility:hidden;\}/);
+['ayarlar','hesap','arici','bakici','bakim-yap','index','kurulum','qr-etiket','sartlar'].forEach(f=>assert.match(rd('apps/web/'+f+'.html'),/<html lang="tr" class="sa-duz">/,f));
+console.log('k193 sa-duz ok');
