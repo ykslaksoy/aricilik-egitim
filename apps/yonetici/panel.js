@@ -103,8 +103,11 @@
       if (res.error) { var m = String(res.error.message || '') + ' ' + String(res.error.code || ''); stat(/PGRST202|42883|does not exist|schema cache/i.test(m) ? 'Veritabanı güncellemesi gerekli (' + MIG + ').' : 'Kaydedilemedi: ' + (res.error.message || 'hata')); return; }
       C.ogulSkorSet(r.o, { at: new Date().toISOString() }); cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur);
       stat('Yayınlandı · sürüm ' + res.data + '.'); surumGoster();
+      try { window.dispatchEvent(new CustomEvent('sa-ayar-degisti', { detail: { from: 'ogul' } })); } catch (x) {}
     }).catch(function () { stat('Kaydedilemedi (bağlantı yok olabilir).'); });
   });
+  /* koloni-196: Ölçüm kuralları / Cihazlar kaydedince yenile (tek kaynak) */
+  window.addEventListener('sa-ayar-degisti', function (e) { if (e.detail && e.detail.from === 'ogul') return; cur = C.ogulSkor(); base = JSON.stringify(cur); paint(cur); });
   /* k161 EK12: ekibe bildirim gidecek uyarılar (ilk oluşum + kapatma) */
   function ebAlan(o) {
     var K = window.SuperAriKritik, AD = (K && K.AD) || {}, sec = o.ekipBildirim || [];

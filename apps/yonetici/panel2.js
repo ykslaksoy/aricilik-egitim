@@ -82,9 +82,10 @@
     var m = esik.querySelector('#esM'); if (bad) { m.textContent = 'Geçersiz değer.'; return; }
     if (o.koloniGucu.zayifMaxCerceve >= o.koloniGucu.ortaMaxCerceve) { m.textContent = 'Zayıf sınırı orta sınırından küçük olmalı.'; return; }
     if (!confirm('Eşikler tüm kullanıcılar için kaydedilsin mi?')) return;
-    q().then(function (c) { return c.rpc('sa_esikler_kaydet', { p_data: o }); }).then(function (r) { m.innerHTML = r.error ? migMsg(r.error) : 'Kaydedildi.'; if (!r.error) loadEsik(); });
+    q().then(function (c) { return c.rpc('sa_esikler_kaydet', { p_data: o }); }).then(function (r) { m.innerHTML = r.error ? migMsg(r.error) : 'Kaydedildi.'; if (!r.error) { loadEsik(); try { window.dispatchEvent(new CustomEvent('sa-ayar-degisti', { detail: { from: 'esik' } })); } catch (x) {} } });
   });
 
+  window.addEventListener('sa-ayar-degisti', function (e) { if (!e.detail || e.detail.from !== 'esik') loadEsik(); });
   /* 3) Fiyat listesi */
   var fiy = sec('s-fiy', 'Fiyat listesi', 'Referans fiyatlar: dosyadaki (data/fiyat-ref.json) değer + yönetici düzeltmesi. Düzeltme buluta kaydedilir.');
   function loadFiy() {
