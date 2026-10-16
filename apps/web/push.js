@@ -49,7 +49,7 @@
     return config().then(function (c) {
       st.serverEnabled = !!c.enabled;
       if (!st.supported) return st;
-      return reg().then(function (r) { return r && r.pushManager.getSubscription(); }).then(function (s) { st.subscribed = !!s; return st; }, function () { return st; });
+      return nav.serviceWorker.getRegistration().then(function (r) { return r && r.pushManager ? r.pushManager.getSubscription() : null; }).then(function (s) { st.subscribed = !!s; return st; }, function () { return st; }); /* durum için SW kurulumunu beklemez */
     });
   }
   function askPermission() {
