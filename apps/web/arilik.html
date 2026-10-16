@@ -703,15 +703,15 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
-<script src="harita-offline.js?v=koloni-186"></script>
+<script src="harita-offline.js?v=koloni-187"></script>
 <script src="yandex-map.js"></script>
-<script src="konum-onay.js?v=koloni-186"></script>
-<script src="demo-data.js?v=koloni-186"></script>
-<script src="sensor-polling.js?v=koloni-186"></script>
-<script src="cicek-veri.js?v=koloni-186"></script><script src="cicek.js?v=koloni-186"></script><script src="plan-planlayici.js?v=koloni-186"></script><script src="rota-motoru.js?v=koloni-186"></script><script src="cevre.js?v=koloni-186"></script><script src="saglik-takvimi.js?v=koloni-186"></script>
-<script src="rapor-store.js?v=koloni-186"></script>
-<script src="koloni.js?v=koloni-186"></script>
-<script src="forage-analysis.js?v=koloni-186"></script>
+<script src="konum-onay.js?v=koloni-187"></script>
+<script src="demo-data.js?v=koloni-187"></script>
+<script src="sensor-polling.js?v=koloni-187"></script>
+<script src="cicek-veri.js?v=koloni-187"></script><script src="cicek.js?v=koloni-187"></script><script src="plan-planlayici.js?v=koloni-187"></script><script src="rota-motoru.js?v=koloni-187"></script><script src="cevre.js?v=koloni-187"></script><script src="saglik-takvimi.js?v=koloni-187"></script>
+<script src="rapor-store.js?v=koloni-187"></script>
+<script src="koloni.js?v=koloni-187"></script>
+<script src="forage-analysis.js?v=koloni-187"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
@@ -3099,7 +3099,7 @@
           }
           return;
         }
-        /* koloni-186: dokunma/sürükleme yalnız haritayı gezdirir; pin yalnız «Konumu düzenle» modunda taşınır. */
+        /* koloni-187: dokunma/sürükleme yalnız haritayı gezdirir; pin yalnız «Konumu düzenle» modunda taşınır. */
         if (!(window.SuperAriKonumOnay ? SuperAriKonumOnay.tapMovesPin({ editMode: pickMode }) : pickMode)) return;
         var z = ctrl.getZoom();
         if (z < 14) ctrl.setView(la, lo, Math.min(16, z + 2));
@@ -3449,7 +3449,7 @@
           alert('Önce ara veya haritaya dokunarak konum seçin.');
           return;
         }
-        /* koloni-186: kayıttan önce onay (eski/yeni koordinat); İptal → eski konuma dön. */
+        /* koloni-187: kayıttan önce onay (eski/yeni koordinat); İptal → eski konuma dön. */
         var oldP = hasCoords(apiary) ? { lat: Number(apiary.lat), lon: Number(apiary.lon) } : null;
         if (oldP && window.SuperAriKonumOnay && SuperAriKonumOnay.samePoint(oldP, c)) {
           pickMode = false;
@@ -3733,7 +3733,7 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="nav.js?v=koloni-186"></script>
-<script src="pwa.js?v=koloni-186"></script>
+<script src="nav.js?v=koloni-187"></script>
+<script src="pwa.js?v=koloni-187"></script>
 </body>
 </html>

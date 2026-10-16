@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-186" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-186" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-186" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-187" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-187" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-187" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -53,25 +53,25 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-186"></script>
-  <script src="bal-agirlik.js?v=koloni-186"></script>
-  <script src="demo-data.js?v=koloni-186"></script>
-  <script src="rapor-store.js?v=koloni-186"></script>
-  <script src="sensor-health.js?v=koloni-186"></script>
-<script src="saglik-canli.js?v=koloni-186"></script>
-  <script src="koloni.js?v=koloni-186"></script>
-  <script src="koloni-ek.js?v=koloni-186"></script>
-  <script src="ilac-katalog.js?v=koloni-186"></script>
-  <script src="bakim-plan.js?v=koloni-186"></script>
-  <script src="irk-tahmin.js?v=koloni-186"></script>
-  <script src="kovan-ara.js?v=koloni-186"></script>
+  <script src="bk-kabuk.js?v=koloni-187"></script>
+  <script src="bal-agirlik.js?v=koloni-187"></script>
+  <script src="demo-data.js?v=koloni-187"></script>
+  <script src="rapor-store.js?v=koloni-187"></script>
+  <script src="sensor-health.js?v=koloni-187"></script>
+<script src="saglik-canli.js?v=koloni-187"></script>
+  <script src="koloni.js?v=koloni-187"></script>
+  <script src="koloni-ek.js?v=koloni-187"></script>
+  <script src="ilac-katalog.js?v=koloni-187"></script>
+  <script src="bakim-plan.js?v=koloni-187"></script>
+  <script src="irk-tahmin.js?v=koloni-187"></script>
+  <script src="kovan-ara.js?v=koloni-187"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-186"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-186"></script>
-  <script src="tarti-elle.js?v=koloni-186"></script>
-  <script src="sensor-polling.js?v=koloni-186"></script>
-  <script src="tarti-rotasyon.js?v=koloni-186"></script>
-  <script src="kapsam.js?v=koloni-186"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-187"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-187"></script>
+  <script src="tarti-elle.js?v=koloni-187"></script>
+  <script src="sensor-polling.js?v=koloni-187"></script>
+  <script src="tarti-rotasyon.js?v=koloni-187"></script>
+  <script src="kapsam.js?v=koloni-187"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -415,11 +415,34 @@
           },
           onChange: function (scope, hs, sm) {
             lastSum = sm;
-            var addHref = scope !== 'all' ? 'arilik.html?id=' + encodeURIComponent(scope) : 'ariliklar.html';
-            toolsEl.innerHTML = '<a class="ks-btn" id="ksAdd" href="' + addHref + '">＋ Kovan ekle <small style="font-weight:650;font-size:12px;color:#6b635a;">(' + (scope !== 'all' ? 'arılıkta kovan sayısı' : 'Arılıklar') + ')</small></a>';
+            toolsEl.innerHTML = ''; /* k187: alttaki «＋ Kovan ekle» kartı kaldırıldı; üst düğme SuperAriKovanEkle çağırır */
             if (ctlT) mountSearch();
           }
         });
+        /* k187: Kovan ekle — seçili arılığa kovan ekler (eski kart yalnız arilik.html'e gidiyordu, orada ekleme yoktu). */
+        window.SuperAriKovanEkle = function () {
+          var aps = (D.loadApiaries ? D.loadApiaries() : []) || [];
+          if (!aps.length) { location.href = 'ariliklar.html'; return false; }
+          var sc = ctlT && ctlT.scope ? ctlT.scope() : 'all', ap = null;
+          aps.forEach(function (a) { if (String(a.id) === String(sc)) ap = a; });
+          if (!ap && aps.length === 1) ap = aps[0];
+          if (!ap) {
+            var lst = aps.map(function (a, i) { return (i + 1) + ') ' + a.name; }).join('\n');
+            var pick = window.prompt('Hangi arılığa kovan eklensin?\n' + lst, '1');
+            if (pick == null) return false;
+            ap = aps[(parseInt(pick, 10) || 0) - 1];
+            if (!ap) { window.alert('Geçersiz seçim.'); return false; }
+          }
+          var cur = Math.max(0, Number(ap.hiveCount) || 0);
+          var nTxt = window.prompt(ap.name + ' · şu an ' + cur + ' kovan.\nKaç kovan eklensin?', '1');
+          if (nTxt == null) return false;
+          var n = parseInt(nTxt, 10);
+          if (!(n >= 1 && n <= 200)) { window.alert('1–200 arası bir sayı girin.'); return false; }
+          if (!window.confirm(ap.name + ': ' + cur + ' → ' + (cur + n) + ' kovan. Eklensin mi?')) return false;
+          D.updateApiary(ap.id, { hiveCount: cur + n });
+          try { window.dispatchEvent(new Event('superari-records-changed')); } catch (eR) { ctlT.render(); }
+          return true;
+        };
         mountSearch();
         window.addEventListener('superari-records-changed', function () { ctlT.render(); });
         window.addEventListener('pageshow', function (e) { if (e.persisted) ctlT.render(); });
@@ -944,12 +967,12 @@
       if (A[topic] && keys.indexOf(topic) < 0) keys.unshift(topic); else if (A[topic]) keys = [topic].concat(keys.filter(function (k) { return k !== topic; }));
       return keys.map(function (k) { return A[k]; });
     }
-    if (!view) return [{ ic: '🏠', t: 'Kovan ekle', d: ap ? 'Arılıkta kovan sayısını artırın' : 'Arılık seçip kovan ekleyin', run: N.go(ap ? 'arilik.html?id=' + encodeURIComponent(ap) : 'ariliklar.html') }];
+    if (!view) return [{ ic: '🏠', t: 'Kovan ekle', d: ap ? 'Arılıkta kovan sayısını artırın' : 'Arılık seçip kovan ekleyin', run: function () { if (window.SuperAriKovanEkle) window.SuperAriKovanEkle(); else location.href = 'ariliklar.html'; } }];
     return [];
   };
 })();
 </script>
-<script src="nav.js?v=koloni-186"></script>
-<script src="pwa.js?v=koloni-186"></script>
+<script src="nav.js?v=koloni-187"></script>
+<script src="pwa.js?v=koloni-187"></script>
 </body>
 </html>

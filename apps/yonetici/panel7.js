@@ -1,4 +1,4 @@
-/* koloni-186+: Yönetici · Otomatik Takip (tablo otomatik_takip + cevre_kuyruk özeti; RLS yalnız admin) */
+/* koloni-187+: Yönetici · Otomatik Takip (tablo otomatik_takip + cevre_kuyruk özeti; RLS yalnız admin) */
 (function () {
   'use strict';
   var B = window.SuperAriBulut, host = document.getElementById('panel'); if (!B || !host) return;

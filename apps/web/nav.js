@@ -161,8 +161,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-186'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-186'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-187'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-187'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -188,11 +188,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-186').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-187').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-186').catch(function () {});
+      return loadScript('koloni.js?v=koloni-187').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -784,7 +784,7 @@
     'bakim-akis.html': { el: '#akStart' },
     'kovanlar.html?tarti': { t: 'Elle tartım gir', quick: 'Tartım kaydı', click: '#ksElleTart' },
     'kovanlar.html?koloni': { t: 'Güç dağılımı', click: '#ksScope .ks-end-chip[aria-label^="Koloni gücü"], .ks-end-chip[aria-label^="Koloni gücü"]' },
-    'kovanlar.html': { t: 'Kovan ekle', click: '#ksAdd' },
+    'kovanlar.html': { t: 'Kovan ekle', fn: 'SuperAriKovanEkle' },
     'gorevler.html': { t: 'Görev ekle', click: '#ksGorevEkle' },
     'saglik.html': { t: 'Sağlık muayenesi başlat', href: 'bakim-akis.html' },
     'uyarilar.html?ogul': { t: 'Oğul kaydı', quick: 'Oğul durumu kaydı' },
@@ -800,6 +800,7 @@
   }
   function runAct(cfg) {
     var apQ = ''; try { var ap = localStorage.getItem('superari.bakim.scope'); if (ap && ap !== 'all') apQ = '?apiary=' + encodeURIComponent(ap); } catch (e) {}
+    if (cfg.fn && typeof window[cfg.fn] === 'function') { window[cfg.fn](); return; }
     if (cfg.quick) { var q = pageActions().filter(function (x) { return x.t === cfg.quick; })[0]; if (q) { q.run(); return; } }
     if (cfg.click) { var c = document.querySelector(cfg.click); if (c) { c.click(); return; } }
     if (cfg.scroll) { var s = document.querySelector(cfg.scroll); if (s) { s.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } }
@@ -936,7 +937,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-186').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-187').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -1168,7 +1169,7 @@
 /* k161 EK11/12: kritik kartlar + yeniden hesap modülleri her sayfada (yoksa yükle) */
 (function () {
   if (typeof document === 'undefined') return;
-  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-186'; s.async = false; document.head.appendChild(s); }
+  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-187'; s.async = false; document.head.appendChild(s); }
   function go() { yukle('yetki.js', 'SuperAriYetki'); yukle('kritik-alarm.js', 'SuperAriKritik'); yukle('cevre.js', 'SuperAriCevre'); yukle('yeniden-hesap.js', 'SuperAriYenidenHesap'); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();
