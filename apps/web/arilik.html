@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-213">
+<link rel="stylesheet" href="sa-early.css?v=koloni-214">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Arılık</title>
@@ -704,15 +704,15 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
-<script src="harita-offline.js?v=koloni-213"></script>
+<script src="harita-offline.js?v=koloni-214"></script>
 <script src="yandex-map.js"></script>
-<script src="konum-onay.js?v=koloni-213"></script>
-<script src="demo-data.js?v=koloni-213"></script>
-<script src="sensor-polling.js?v=koloni-213"></script>
-<script src="cicek-veri.js?v=koloni-213"></script><script src="cicek.js?v=koloni-213"></script><script src="plan-planlayici.js?v=koloni-213"></script><script src="rota-motoru.js?v=koloni-213"></script><script src="cevre.js?v=koloni-213"></script><script src="saglik-takvimi.js?v=koloni-213"></script>
-<script src="rapor-store.js?v=koloni-213"></script>
-<script src="koloni.js?v=koloni-213"></script>
-<script src="forage-analysis.js?v=koloni-213"></script>
+<script src="konum-onay.js?v=koloni-214"></script>
+<script src="demo-data.js?v=koloni-214"></script>
+<script src="sensor-polling.js?v=koloni-214"></script>
+<script src="cicek-veri.js?v=koloni-214"></script><script src="cicek.js?v=koloni-214"></script><script src="plan-planlayici.js?v=koloni-214"></script><script src="rota-motoru.js?v=koloni-214"></script><script src="cevre.js?v=koloni-214"></script><script src="saglik-takvimi.js?v=koloni-214"></script>
+<script src="rapor-store.js?v=koloni-214"></script>
+<script src="koloni.js?v=koloni-214"></script>
+<script src="forage-analysis.js?v=koloni-214"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script src="gider-store.js?v=orphan-detach-1"></script>
 <script>
@@ -3723,6 +3723,14 @@
 })();
 </script>
 <script>
+/* k214: Hava › Konum ile gelindiyse (#konum) harita kartına kaydır — harita kilidi aynen (pin yalnız «Konumu düzenle» modunda) */
+(function () {
+  if (location.hash !== '#konum') return;
+  var n = 0;
+  (function wait() { var m = document.querySelector('.map-card'); if (m) { m.scrollIntoView({ block: 'start' }); setTimeout(function () { m.scrollIntoView({ block: 'start' }); }, 700); return; } if (++n < 60) setTimeout(wait, 100); })();
+})();
+</script>
+<script>
 /* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
 window.SuperAriQuickTitle = 'Kayıt · Arılık';
 window.SuperAriQuickActions = function () {
@@ -3734,7 +3742,7 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="nav.js?v=koloni-213"></script>
-<script src="pwa.js?v=koloni-213"></script>
+<script src="nav.js?v=koloni-214"></script>
+<script src="pwa.js?v=koloni-214"></script>
 </body>
 </html>

@@ -94,6 +94,8 @@
       '<div class="hive-icon hive-icon-burn" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="burn-ring" cx="12" cy="12" r="10.2"/>' + BURN[key] + '</svg></div></div></div>';
   }
   function ap() { return aps[idx] || null; }
+  /* k214: Geri yanındaki «Konum» — seçili arılığın harita/konum görünümü (yalnız bakış; değişiklik yalnız orada «Konumu düzenle» + onay) */
+  window.SuperAriHavaKonum = function () { var a = ap(); location.href = a ? 'arilik.html?id=' + encodeURIComponent(a.id) + '#konum' : 'ariliklar.html'; };
   function apQ() { var a = ap(); return a ? '?apiary=' + encodeURIComponent(a.id) : ''; }
 
   function frostDays(d) { return d.filter(function (x) { return (x.lo != null && x.lo <= 2) || (x.gust || 0) >= 50 || Number(x.code) >= 95; }); }

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-213">
+<link rel="stylesheet" href="sa-early.css?v=koloni-214">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#f7b731" />
@@ -1187,14 +1187,14 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-213"></script>
-<script src="koloni.js?v=koloni-213"></script>
-<script src="ilac-katalog.js?v=koloni-213"></script>
-<script src="bakim-plan.js?v=koloni-213"></script>
-<script src="kapsam.js?v=koloni-213"></script>
-<script src="rapor-store.js?v=koloni-213"></script>
-<script src="fiyat-live.js?v=koloni-213"></script>
-<script src="stok-talep.js?v=koloni-213"></script>
+<script src="demo-data.js?v=koloni-214"></script>
+<script src="koloni.js?v=koloni-214"></script>
+<script src="ilac-katalog.js?v=koloni-214"></script>
+<script src="bakim-plan.js?v=koloni-214"></script>
+<script src="kapsam.js?v=koloni-214"></script>
+<script src="rapor-store.js?v=koloni-214"></script>
+<script src="fiyat-live.js?v=koloni-214"></script>
+<script src="stok-talep.js?v=koloni-214"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo, K = window.SuperAriKoloni, KS = window.SuperAriKapsam;
@@ -1348,7 +1348,7 @@
     if (liveTried) return Promise.resolve(false);
     liveTried = true;
     return new Promise(function (res) {
-      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-213'; sc.async = true;
+      var sc = document.createElement('script'); sc.src = 'fiyat-live.js?v=koloni-214'; sc.async = true;
       sc.onload = function () { res(!!window.SuperAriFiyatLive); };
       sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); res(false); };
       document.head.appendChild(sc);
@@ -2185,8 +2185,8 @@
   window.addEventListener('pageshow', function (e) { if (e.persisted) { needKey = ''; rerender(); } });
 })();
 </script>
-<script src="yetki.js?v=koloni-213"></script>
-<script src="nav.js?v=koloni-213"></script>
-<script src="pwa.js?v=koloni-213"></script>
+<script src="yetki.js?v=koloni-214"></script>
+<script src="nav.js?v=koloni-214"></script>
+<script src="pwa.js?v=koloni-214"></script>
 </body>
 </html>
