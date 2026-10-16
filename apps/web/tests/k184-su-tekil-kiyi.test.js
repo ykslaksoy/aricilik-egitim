@@ -27,5 +27,5 @@ assert.match(fs.readFileSync(R+'/apps/yonetici/panel5.js','utf8'),/Foraj yarıç
 assert.ok(!/Foraj yarıçapı: uzman tahmini/.test(fs.readFileSync(W+'/arilik.html','utf8')));
 const m=fs.readFileSync(R+'/supabase/migrations/20261016020000_k184_su_tekil_kiyi.sql','utf8');
 assert.match(m,/arilik_cevre_yedek/);assert.match(m,/delete from public\.su_onbellek/);assert.match(m,/'Foraj yerleşim yoğunluğu', 'Uzman tahmini · kaynak aranıyor'/);
-assert.strictEqual(JSON.parse(fs.readFileSync(W+'/version.json','utf8')).version,'koloni-214');
+assert.strictEqual(JSON.parse(fs.readFileSync(W+'/version.json','utf8')).version,'koloni-215');
 console.log('k184 ok');

@@ -147,7 +147,7 @@
       ['Bitki örtüsü', lc ? ('iyi %' + Math.round(lc.goodPct || 0) + ' · karışık %' + Math.round(lc.mixedPct || 0) + ' · zayıf %' + Math.round(lc.poorPct || 0) + (ok(lc.featureCount) ? ' · ' + lc.featureCount + ' alan' : '')) : null],
       ['14 gün en düşük sıcaklık', ok(fr.minTempC) ? (fr.minTempC + ' °C') : null],
       ['14 gün don riski', fr.label ? (fr.label + (ok(fr.frostDays) ? ' · ' + fr.frostDays + ' don günü' : '')) : null],
-      ['14 gün rüzgâr', ok(wi.maxKmh) ? ('en yüksek ' + wi.maxKmh + ' km/s' + (ok(wi.avgMaxKmh) ? ' · ort. ' + wi.avgMaxKmh + ' km/s' : '')) : null],
+      ['14 gün rüzgâr', ok(wi.maxKmh) ? ('en yüksek ' + wi.maxKmh + ' km/sa' + (ok(wi.avgMaxKmh) ? ' · ort. ' + wi.avgMaxKmh + ' km/sa' : '')) : null],
       ['14 gün yağış', ok(se.precipSum14Mm) ? (n1(se.precipSum14Mm) + ' mm') : null],
       ['Kışlama puanı', ok(wScore) ? (wScore + (wScore === wn.score && wn.label ? ' · ' + wn.label : '')) : null],
       ['Arı cinsi', majority()]

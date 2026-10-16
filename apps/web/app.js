@@ -518,7 +518,7 @@ function weatherLine(w) {
     w.camera?.present && w.camera?.hint
       ? ` · kamera: ${w.camera.hint.replace(/_/g, " ")}`
       : "";
-  return `${w.label} · ${w.tempC}°C · yağış ${w.precipMm} mm · rüzgâr ${w.windKmh} km/s${cam}`;
+  return `${w.label} · ${w.tempC}°C · yağış ${w.precipMm} mm · rüzgâr ${w.windKmh} km/sa${cam}`;
 }
 
 async function setHiveKapi(hiveId, mod, hedef) {
