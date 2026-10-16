@@ -21,9 +21,10 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') return L.send(res, 200, { enabled, publicKey: enabled ? c.vapidPublic : null });
   if (req.method !== 'POST') return L.send(res, 405, { error: 'yalniz GET/POST' });
   if (!enabled) return L.send(res, 503, { error: 'bildirim sunucusu kapali' });
-  if (req.method === 'POST' && req.url && /[?&]ack=1/.test(req.url)) {
+  const body = await L.readBody(req);
+  if (body.action === 'ack' || (req.query && req.query.ack) || /[?&]ack=1/.test(String(req.url || ''))) {
     /* SW «bildirim cihaza ulaştı» der (giriş gerekmez; yalnız bilinen, 2 gün içindeki gonderildi satırı güncellenir). */
-    const b = await L.readBody(req), id = String(b.lid || '');
+    const id = String(body.lid || '');
     if (!UUID.test(id)) return L.send(res, 400, { error: 'gecersiz' });
     const r = await L.withDb((db) => db.query("update public.push_teslim set durum = 'teslim_edildi', teslim_at = now() where id = $1 and durum = 'gonderildi' and created_at > now() - interval '2 days'", [id])).catch(() => ({ rowCount: 0 }));
     return L.send(res, 200, { ok: r.rowCount > 0 });
@@ -31,7 +32,6 @@ module.exports = async function handler(req, res) {
   const m = /^Bearer\s+(.+)$/i.exec(String(req.headers.authorization || ''));
   const user = m ? await L.userFromToken(m[1].trim()).catch(() => null) : null;
   if (!user) return L.send(res, 401, { error: 'giris gerekli' });
-  const body = await L.readBody(req);
   const action = String(body.action || 'subscribe');
   try {
     if (action === 'subscribe') {
