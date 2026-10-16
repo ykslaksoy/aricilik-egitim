@@ -1,0 +1,5 @@
+-- koloni-201: nem normal aralık 50–75 % (alt Doull 1976; üst uzman tahmini, kullanıcı seçimi), süre 24 sa aynı.
+update public.ogul_skor_ayar set data = jsonb_set(jsonb_set(coalesce(data,'{}'::jsonb), '{sensor,nemNormalAlt}', '50'::jsonb, true), '{sensor,nemNormalUst}', '75'::jsonb, true), updated_at = now() where id = 1;
+insert into public.ayar_surumleri (data, fark, not_, yayinlayan_eposta)
+select o.data, jsonb_build_object('sensor.nemNormalAlt', jsonb_build_object('once', 70, 'sonra', 50), 'sensor.nemNormalUst', jsonb_build_object('once', 85, 'sonra', 75)), 'koloni-201: nem normal aralık 50–75 %', 'migration' from public.ogul_skor_ayar o where o.id = 1;
+update public.yapilacaklar set baslik = 'Nem normal aralık %50–75, aralık dışı 24 sa (üst ve süre uzman tahmini)', aciklama = 'koloni-201 (önceki 70–85). Alt %50: Doull 1976 doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) — metin «yavru (yumurta) açılmama riski». Üst %75: uzman tahmini, kullanıcı seçimi; kovan için doğrulanmış eşik yok, metin nötr. 24 sa süre kaynaksız.', guncelleme = now() where id = 47;

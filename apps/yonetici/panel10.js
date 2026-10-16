@@ -25,8 +25,8 @@
       ['i', 'Kireç', 'Kesintisiz süre (saat) ' + UT, 's', 'kirecSaat'],
       ['i', 'Dönem', 'İlk ay (1–12) ' + UT, 's', 'kuluckaAyBas'],
       ['i', 'Dönem', 'Son ay (1–12) ' + UT, 's', 'kuluckaAySon']] },
-    { t: 'Nem', src: 'Değerler uzman tahmini (kullanıcı seçimi 70–85 %) · İlgili: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Flores 1996 %87 bağıl nemde kireç artışı · kovan için doğrulanmış eşik yok', not: 'Aralık dışında kalırsa uyarı. Alt: «yavru (yumurta) büzüşme riski»; üst: «normal aralığın üstünde». Kireç kuralı ayrı.', r: [
-      ['ok', 'Normal', 'Alt sınır (%) ' + UT, 's', 'nemNormalAlt'],
+    { t: 'Nem', src: 'Alt %50: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Üst %75: uzman tahmini (kullanıcı seçimi), kovan için doğrulanmış eşik yok · süre uzman tahmini', not: 'Aralık dışında kalırsa uyarı. Alt: «Nem çok düşük, yavru (yumurta) açılmama riski var»; üst: «Nem normal aralığın üstünde» (risk iddiası yok). Kireç kuralı ayrı.', r: [
+      ['ok', 'Normal', 'Alt sınır (%) · Doull 1976', 's', 'nemNormalAlt'],
       ['ok', 'Normal', 'Üst sınır (%) ' + UT, 's', 'nemNormalUst'],
       ['w', 'Uyarı', '{s:nemNormalAlt}–{s:nemNormalUst} % dışında kesintisiz (saat) ' + UT, 's', 'nemDisiSaat'],
       ['i', 'Kireç', 'Destekleyici nem (%) ' + UT, 's', 'kirecNemYuksek'],
