@@ -84,6 +84,28 @@ module.exports = async function handler(req, res) {
       });
       return L.send(res, 200, Object.assign({ ok: true }, r));
     }
+    if (action === 'ekip_cihaz') {
+      /* koloni-222: cihaz devre dışı / tekrar etkin → ekibe push (Sahip + üyeler, değiştiren hariç). Satırı yalnız değiştiren (kim) tetikler; push_log tekrarı önler; «sensor» kapalıysa atlanır. */
+      if (!L.vapidReady()) return L.send(res, 503, { error: 'vapid yok' });
+      const ids = (Array.isArray(body.ids) ? body.ids : [body.id]).map((x) => parseInt(x, 10)).filter((x) => x > 0).slice(0, 20);
+      if (!ids.length) return L.send(res, 400, { error: 'gecersiz' });
+      const r = await L.withDb(async (db) => {
+        const rows = (await db.query("select id, apiary_id, olay, baslik, metin from public.ekip_bildirim where id = any($1::bigint[]) and kim = $2 and kod = 'cihaz_devre_disi' and at > now() - interval '15 minutes'", [ids, user.id])).rows;
+        let sent = 0, delivered = 0;
+        for (const b of rows) {
+          const alici = (await db.query(`select distinct x.uid from (select owner_id uid from public.apiaries where id = $1 union select user_id from public.apiary_members where apiary_id = $1) x
+            left join public.push_tercih t on t.user_id = x.uid where x.uid is not null and x.uid <> $2 and not coalesce('sensor' = any(t.kapali), false)`, [b.apiary_id, user.id])).rows.map((x) => x.uid);
+          for (const uid of alici) {
+            const ins = await db.query('insert into public.push_log (user_id, dedupe_key, title) values ($1, $2, $3) on conflict do nothing returning 1', [uid, 'eb:' + b.id, String(b.baslik).slice(0, 120)]);
+            if (!ins.rowCount) continue;
+            const s = await L.sendToUser(db, uid, { title: (b.olay === 'cihaz_kapali' ? '⏸ ' : '▶ ') + b.baslik, body: b.metin, url: '/uyarilar.html', tag: 'superari-cihaz-' + b.id, cat: 'sensor' });
+            sent++; delivered += s.ok;
+          }
+        }
+        return { notifications: sent, delivered, rows: rows.length };
+      });
+      return L.send(res, 200, Object.assign({ ok: true }, r));
+    }
     if (action === 'check') {
       if (!L.vapidReady() || !c.service) return L.send(res, 503, { error: 'yapilandirma eksik' });
       const r = await L.withDb((db) => RUN.runForUser(db, c, user.id, R.istanbulToday(), false, ['health', 'swarm', 'sensor']));

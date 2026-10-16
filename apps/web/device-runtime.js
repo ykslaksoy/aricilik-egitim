@@ -511,23 +511,71 @@
   }
   /* Bulut: public.cihaz_devre_disi — yönetici paneli görür/değiştirir; uygulama açılışta yöneticinin değişikliğini alır. Bulut yoksa yerel kayıt geçerli. */
   function ddClient() { var B = global.SuperAriBulut; if (!B || !B.client) return Promise.reject(new Error('bulut-yok')); return B.client().then(function (c) { return c.auth.getUser().then(function (u) { var us = u && u.data && u.data.user; if (!us) throw new Error('oturum-yok'); return { c: c, u: us }; }); }); }
+  /* koloni-222: ekip genelinde — kayıt arılığın Sahibinin hesabında (sa_cihaz_dd_yaz: düzenleme yetkisi, Sahip her zaman). Ekip üyeleri okur; açılışta, odakta ve canlı (realtime) yenilenir. */
+  var UUIDRE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function ddBulutYaz(id, on, meta) {
     var d = null; try { d = (isDemo() ? demoList().concat(demoUserList()) : liveList()).filter(function (x) { return String(x.id) === String(id); })[0]; } catch (e) { d = null; }
     if (d && d.source === 'demo') return Promise.resolve(false);
+    var ap = d && d.apiaryId != null && UUIDRE.test(String(d.apiaryId)) ? String(d.apiaryId) : (meta && UUIDRE.test(String(meta.apiaryId || '')) ? String(meta.apiaryId) : null);
+    var hv = meta && meta.hiveId != null ? Number(meta.hiveId) : (d && d.hiveId != null ? Number(d.hiveId) : null);
     return ddClient().then(function (o) {
-      return o.c.from('cihaz_devre_disi').upsert({ user_id: o.u.id, device_id: String(id), arilik_ad: d ? d.apiaryName || null : null, kovan_id: meta.hiveId != null ? Number(meta.hiveId) : (d && d.hiveId != null ? Number(d.hiveId) : null), kovan_ad: d ? d.hiveName || null : null, tip: meta.tip || (d && d.tip) || null, cihaz_ad: d ? (d.name || d.typeLabel || null) : null, devre_disi: !!on, degistiren_email: o.u.email || null, degistiren: 'kullanici', updated_at: new Date().toISOString() }, { onConflict: 'user_id,device_id' });
+      return o.c.rpc('sa_cihaz_dd_yaz', { p_apiary: ap, p_device: String(id), p_on: !!on, p_kovan_id: hv, p_kovan_ad: d ? d.hiveName || null : null, p_tip: (meta && meta.tip) || (d && d.tip) || null, p_cihaz_ad: d ? (d.name || d.typeLabel || null) : null, p_arilik_ad: d ? d.apiaryName || null : null })
+        .then(function (r) { if (r && r.error) throw r.error; ddTazele(); return ekibePush(o, String(id)); });
     }).then(function () { return true; }).catch(function () { return false; });
   }
+  /** Değiştirenin az önce oluşan ekip bildirimlerini sunucuya ver → ekibe push (değiştiren hariç). */
+  function ekibePush(o) {
+    return o.c.from('ekip_bildirim').select('id').eq('kod', 'cihaz_devre_disi').eq('kim', o.u.id).gte('at', new Date(Date.now() - 120000).toISOString()).order('id', { ascending: false }).limit(5)
+      .then(function (r) { var ids = (r && r.data || []).map(function (x) { return x.id; }); if (!ids.length) return;
+        return o.c.auth.getSession().then(function (s) { var t = s && s.data && s.data.session && s.data.session.access_token; if (!t || !global.fetch) return;
+          return global.fetch('/api/push-subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ action: 'ekip_cihaz', ids: ids }) }); }); })
+      .catch(function () { /* push olmasa da Uyarılar kartı gelir */ });
+  }
+  var EB_SON = 'superari.ekip.cihaz.son.v1';
+  /** Ekipten gelen «cihaz devre dışı / tekrar etkin» bildirimleri → Uyarılar kartı (kendi değişikliğin hariç). */
+  function ekipBildirimOku(o) {
+    var son = null; try { son = global.localStorage.getItem(EB_SON); } catch (e) { son = null; }
+    var q = o.c.from('ekip_bildirim').select('id,apiary_id,olay,baslik,metin,hive_ref,kim,at').eq('kod', 'cihaz_devre_disi').order('id', { ascending: true }).limit(50);
+    q = son ? q.gt('id', Number(son)) : q.gte('at', new Date(Date.now() - 86400000).toISOString());
+    return q.then(function (r) {
+      var L = r && !r.error && Array.isArray(r.data) ? r.data : []; if (!L.length) return;
+      var K = global.SuperAriKritik; if (!K || !K.ac) return; /* Uyarılar kartı olmayan sayfada okunmuş sayma */
+      L.forEach(function (x) { if (x.kim !== o.u.id && K && K.ac) K.ac({ kod: 'cihaz_dd', anahtar: 'eb' + x.id, hiveId: x.hive_ref, apiaryId: x.apiary_id, baslik: x.baslik, metin: x.metin, ekibeGitme: true }); });
+      try { global.localStorage.setItem(EB_SON, String(L[L.length - 1].id)); } catch (e2) { /* ignore */ }
+    }).catch(function () { /* ignore */ });
+  }
   function ddBulutOku() {
-    return ddClient().then(function (o) { return o.c.from('cihaz_devre_disi').select('device_id,kovan_id,tip,devre_disi,updated_at,degistiren').eq('user_id', o.u.id); }).then(function (r) {
+    return ddClient().then(function (o) {
+      ekipBildirimOku(o); ddCanli(o);
+      return o.c.from('cihaz_devre_disi').select('device_id,apiary_id,kovan_id,tip,devre_disi,updated_at,degistiren,degistiren_email');
+    }).then(function (r) {
       if (!r || r.error || !Array.isArray(r.data)) return false;
-      var m = disMap(), once = JSON.stringify(m);
-      r.data.forEach(function (x) { var k = String(x.device_id); if (x.devre_disi) m[k] = Object.assign({}, m[k] || {}, { at: x.updated_at, hiveId: x.kovan_id, tip: x.tip, by: x.degistiren }); else delete m[k]; });
+      var m = disMap(), once = JSON.stringify(m), son = {};
+      r.data.slice().sort(function (a, b) { return a.updated_at < b.updated_at ? -1 : 1; }).forEach(function (x) { son[String(x.device_id)] = x; });
+      Object.keys(son).forEach(function (k) { var x = son[k]; if (x.devre_disi) m[k] = Object.assign({}, m[k] || {}, { at: x.updated_at, hiveId: x.kovan_id, tip: x.tip, apiaryId: x.apiary_id, by: x.degistiren, byEmail: x.degistiren_email, bulut: true }); else delete m[k]; });
+      /* bulutta artık olmayan, daha önce buluttan gelmiş kayıt → kaldır (ekip başka telefondan açtı/sildi) */
+      Object.keys(m).forEach(function (k) { if (m[k] && m[k].bulut && !son[k]) delete m[k]; });
       if (JSON.stringify(m) !== once) { try { localStorage.setItem(DIS_KEY, JSON.stringify(m)); } catch (e) { return false; } try { global.dispatchEvent(new CustomEvent('superari-devices-changed', { detail: { bulut: true } })); } catch (e2) { /* ignore */ } }
       return true;
     }).catch(function () { return false; });
   }
-  if (global.setTimeout && global.document) global.setTimeout(ddBulutOku, 900);
+  var ddKanal = null, ddZam = 0;
+  function ddCanli(o) {
+    if (ddKanal || !o.c.channel) return;
+    try {
+      ddKanal = o.c.channel('cihaz-dd-' + o.u.id.slice(0, 8))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'cihaz_devre_disi' }, function () { ddTazele(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ekip_bildirim' }, function () { ddTazele(); })
+        .subscribe();
+    } catch (e) { ddKanal = null; }
+  }
+  function ddTazele() { if (ddZam) return; ddZam = global.setTimeout(function () { ddZam = 0; ddBulutOku(); }, 400); }
+  if (global.setTimeout && global.document) {
+    global.setTimeout(ddBulutOku, 900);
+    global.document.addEventListener('visibilitychange', function () { if (global.document.visibilityState === 'visible') ddTazele(); });
+    if (global.addEventListener) global.addEventListener('focus', ddTazele);
+    if (global.setInterval) global.setInterval(function () { if (!global.document.hidden) ddBulutOku(); }, 120000);
+  }
   /** Okuma bu kovanın bu türdeki devre dışı cihazından mı? (hesaplardan çıkarılır) */
   function okumaKapali(hiveId, tip) {
     var m = disMap(), ks = Object.keys(m); if (!ks.length || hiveId == null) return false;

@@ -40,5 +40,5 @@ test('k220: bulut tablosu + yönetici bölümü', () => {
   const y = fs.readFileSync(p.join(W, '../yonetici/panel11.js'), 'utf8');
   assert.match(y, /sa_admin_cihaz_devre_disi/); assert.match(y, /Etkinleştir/);
   assert.match(fs.readFileSync(p.join(W, '../yonetici/index.html'), 'utf8'), /panel11\.js/);
-  assert.match(fs.readFileSync(p.join(W, 'device-runtime.js'), 'utf8'), /from\('cihaz_devre_disi'\)\.upsert/);
+  assert.match(fs.readFileSync(p.join(W, 'device-runtime.js'), 'utf8'), /rpc\('sa_cihaz_dd_yaz'/);
 });

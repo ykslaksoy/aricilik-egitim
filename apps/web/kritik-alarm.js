@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
   var KEY = 'superari.kritik.v1', GECMIS = 'superari.uyari.gecmis.v1', ORSK = 'superari.ors.orta.v1', GIDEN = 'superari.ekip.bildirim.kuyruk.v1';
-  var SABIT = { kulucka_acil: 0, ogul_ani: 0, piping: 1, quacking: 2, ALARM_ARILIK_KOSUL_01: 3 };
+  var SABIT = { kulucka_acil: 0, ogul_ani: 0, piping: 1, quacking: 2, ALARM_ARILIK_KOSUL_01: 3, cihaz_dd: 4 /* k222: ekipten cihaz devre dışı / tekrar etkin */ };
   var AD = {
     kulucka_acil: ['ACİL: Kuluçka çok soğudu', 'Kuluçka bölümü uzun süredir çok soğuk. Kireç hastalığı riski var. Kovanı hemen kontrol et, gerekirse daralt ve havalandırmayı ayarla.'],
     ogul_ani: ['Oğul Anı Sesi (Swarming)', 'Kovanda Oğul Anı Sesi (Swarming) algılandı. Hemen kovanı kontrol et.'],
@@ -21,6 +21,7 @@
     onerilen_risk: ['Önerilen arılıkta risk arttı', 'Önerdiğimiz arılıkta risk arttı. Kontrol et.'],
     batarya_7: ['Batarya azalıyor', 'Batarya bir hafta içinde bitebilir. Değiştirmeyi planla.'],
     ani_kayip: ['Ani ağırlık kaybı', 'Kovan birden ağırlık kaybetti. Yağma ya da hırsızlık olabilir, kontrol et.'],
+    cihaz_dd: ['Cihaz durumu değişti', 'Ekipten biri bir cihazı devre dışı bıraktı ya da tekrar etkinleştirdi.'],
     ors_orta: ['Oğul riski orta', 'Oğul riski orta seviyeye çıktı. İzlemeye al.']
   };
   function rj(k, d) { try { var v = JSON.parse(global.localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } }
@@ -38,6 +39,7 @@
   function degisti() { try { global.dispatchEvent(new Event('superari-kritik')); } catch (e) { /* */ } }
   /** Ekip bildirimi: kuyruğa yaz + bulut (ekip_bildirim, RLS: üye yazar/okur). Dönüş: gönderilecek kayıt ya da null. */
   function ekibeBildir(olay, v) {
+    if (v.kod === 'cihaz_dd') return null;
     if (!ekibeGider(v.kod)) return null;
     var b = { kod: v.kod, olay: olay, apiary_id: v.apiaryId || null, hive_ref: v.hiveId == null ? null : String(v.hiveId), baslik: v.baslik,
       metin: olay === 'kapatildi' ? (v.kapandi.kim + ' kontrol etti, kapattı') : v.metin, kim_ad: olay === 'kapatildi' ? v.kapandi.kim : kim(), at: new Date().toISOString() };
@@ -61,7 +63,7 @@
     v = { id: 'kr' + Date.now() + Math.floor(Math.random() * 1000), key: k, kod: kod, tip: kod, sabit: SABIT[kod] != null, hiveId: o.hiveId == null ? null : o.hiveId, apiaryId: o.apiaryId || null,
       baslik: o.baslik || AD[kod][0], metin: o.metin || AD[kod][1], aksiyon: o.aksiyon || '', onay: o.onay || null, at: new Date().toISOString(), iyilesti: false, kapandi: null };
     L.push(v); wj(KEY, L);
-    var eb = ekibeBildir('olustu', v);
+    var eb = o.ekibeGitme ? null : ekibeBildir('olustu', v); /* k222: ekipten gelen bildirim geri yayınlanmaz */
     gecmiseYaz({ olay: 'acildi', id: v.id, kod: kod, baslik: v.baslik, metin: v.metin, hiveId: v.hiveId, apiaryId: v.apiaryId, at: v.at, ekibe: !!eb }); degisti(); return v;
   }
   function iyilesti(kod, anahtar) {
