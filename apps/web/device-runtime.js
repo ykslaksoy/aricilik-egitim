@@ -295,12 +295,15 @@
       ? Math.round(Number(src.batteryV) * 100) / 100 : null;
     out.batteryAt = src.batteryAt != null ? String(src.batteryAt).slice(0, 16) : null;
     var thr = getLowBatteryThreshold(apiaryId != null ? apiaryId : out.apiaryId);
-    out.batteryLow = out.batteryPct != null && out.batteryPct <= thr;
+    out.batteryLow = pilAcik(apiaryId != null ? apiaryId : out.apiaryId) && out.batteryPct != null && out.batteryPct <= thr;
     return out;
   }
 
+  /* koloni-218: Pil düşüklüğü kuralı yönetici panelinden kapatılabilir (genel / kullanıcı / arılık) */
+  function pilAcik(aid) { try { var C = global.SuperAriDemo && global.SuperAriDemo.colony; return !(C && C.kuralAcik) || C.kuralAcik('pil', aid); } catch (e) { return true; } }
+
   function isBatteryLow(device) {
-    if (!device) return false;
+    if (!device || !pilAcik(device.apiaryId)) return false;
     if (!device.batteryAt && device.source !== 'demo' && device.batteryPct == null) return false;
     /* k160: tahmine dayalı — kalan gün ≤ eşik (Orta/Yüksek, panelde). Hesaplanıyorsa yalnız gerçek okunan yüzde eşiği. */
     try { var P2 = global.SuperAriPlan2; if (P2 && P2.bataryaPlan) { var bp = P2.bataryaPlan(device); if (bp.durum === 'tamam') return !!bp.severity; if (bp.durum === 'veri_yok') return false; } } catch (eP) { /* ignore */ }

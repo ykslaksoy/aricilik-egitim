@@ -161,8 +161,8 @@
       }
     }
     var chain = Promise.resolve();
-    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-217'); });
-    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-217'); });
+    if (!global.SuperAriDemo) chain = chain.then(function () { return loadScript('demo-data.js?v=koloni-218'); });
+    if (!global.SuperAriKoloni || !global.SuperAriKoloni.openQuickRecord) chain = chain.then(function () { return loadScript('koloni.js?v=koloni-218'); });
     chain.then(go, go);
   }
   /* k94 · Bağlama duyarlı ＋ Kayıt. Sayfa window.SuperAriQuickActions = [{ ic, t, d, run }] (ya da bunu döndüren işlev)
@@ -188,11 +188,11 @@
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function emitSaved() { try { global.dispatchEvent(new Event('superari-records-changed')); } catch (e) { /* ignore */ } }
-  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-217').catch(function () {}); }
+  function ensureData() { return global.SuperAriDemo ? Promise.resolve() : loadScript('demo-data.js?v=koloni-218').catch(function () {}); }
   function ensureKoloni() {
     return ensureData().then(function () {
       if (global.SuperAriKoloni && global.SuperAriKoloni.openRecordSheet) return null;
-      return loadScript('koloni.js?v=koloni-217').catch(function () {});
+      return loadScript('koloni.js?v=koloni-218').catch(function () {});
     });
   }
   function closeSheet() { var o = document.getElementById('saQuickSheet'); if (o && o.parentNode) o.parentNode.removeChild(o); }
@@ -957,7 +957,7 @@
     try { ensureBakimEnd(); } catch (eEnd) { /* ignore */ }
     try {
       if (global.SuperAriDemo) updateBadge();
-      else loadScript('demo-data.js?v=koloni-217').then(updateBadge, updateBadge);
+      else loadScript('demo-data.js?v=koloni-218').then(updateBadge, updateBadge);
     } catch (eB) { /* rozet sonra */ }
   }
   /* Bugün sekmesi: etkin uyarı + bugün/geciken açık görev sayısı (0 ise gizli). */
@@ -1189,7 +1189,7 @@
 /* k161 EK11/12: kritik kartlar + yeniden hesap modülleri her sayfada (yoksa yükle) */
 (function () {
   if (typeof document === 'undefined') return;
-  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-217'; s.async = false; document.head.appendChild(s); }
+  function yukle(src, var_) { if (window[var_] || document.querySelector('script[src^="' + src + '"]')) return; var s = document.createElement('script'); s.src = src + '?v=koloni-218'; s.async = false; document.head.appendChild(s); }
   function go() { yukle('yetki.js', 'SuperAriYetki'); yukle('kritik-alarm.js', 'SuperAriKritik'); yukle('cevre.js', 'SuperAriCevre'); yukle('yeniden-hesap.js', 'SuperAriYenidenHesap'); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();

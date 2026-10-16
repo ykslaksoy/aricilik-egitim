@@ -26,7 +26,7 @@
   function dayLabD(iso, i) { var d = new Date(iso + 'T12:00:00'); return i === 0 ? 'Bugün' : GUN[d.getDay()] + ' ' + d.getDate(); }
   function rainy(d) { return (d.mm || 0) >= 1 || (d.pr || 0) >= 60; }
   /* koloni-217: Arı uçuşu arılığın arı cinsine göre (eşikler yönetici panelinde; uzman tahmini). Yağmurlu gün asla uygun değil. */
-  function ue() { var C = D && D.colony, a = aps[idx]; try { return C.ucusEsik(C.apiaryBreed(a && a.id)); } catch (e) { return { uygunC: 15, kismenC: 12, uygunRuzgar: 20, kismenRuzgar: 30, yagisMm: 1 }; } }
+  function ue() { var C = D && D.colony, a = aps[idx]; try { return C.ucusEsik(C.apiaryBreed(a && a.id), a && a.id); } catch (e) { return { uygunC: 15, kismenC: 12, uygunRuzgar: 20, kismenRuzgar: 30, yagisMm: 1 }; } }
   function flight(d) {
     var E = ue();
     if (d.hi == null || rainy(d) || (d.mm || 0) >= E.yagisMm) return 'no';
