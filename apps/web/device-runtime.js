@@ -476,6 +476,8 @@
     if (apiaryId == null && hiveId == null) throw new Error('Arılık seçin');
     var row = { id: 'u-' + tip + '-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), tip: tip, hiveId: hiveId, apiaryId: apiaryId, status: STATUS.yok, addedAt: new Date().toISOString(), manual: true };
     var nm = String(o.name || '').trim().slice(0, 60); if (nm) row.name = nm;
+    /* k192: sıcaklık/nem sensörünün yeri — kuluçka sıcaklığı kuralı yalnız 'kulucka' için çalışır */
+    if (tip === 'isi_nem' && (o.yer === 'kulucka' || o.yer === 'ballik')) row.yer = o.yer;
     var key = isDemo() ? DEMO_USER_KEY : DEVICES_KEY;
     var l = readJsonArray(key); l.push(row);
     if (!writeJsonArray(key, l)) throw new Error('Kaydedilemedi (depolama dolu/kapalı)');

@@ -3461,7 +3461,9 @@
     varroaHzMin: 122, varroaHzMax: 396, varroaSapmaDb: 4, varroaGun: 7,
     /* k182: Kireç riski (Flores ve ark. 1996; süre uzman tahmini) ve genel koloni kontrolü (nüfus uyarı %20 / kritik %30, uzman tahmini) — haftada en çok bir görev */
     kirecIsiC: 30, kirecSaat: 24, kirecAyBas: 3, kirecAySon: 8, kirecNemYuksek: 80, hatirlatmaGun: 7,
-    genelKayipKat: 2, genelKayipMinKg: 0.5, genelNufusUyariOran: 0.2, genelNufusKritikOran: 0.3, genelAyBas: 11, genelAySon: 5 };
+    genelKayipKat: 2, genelKayipMinKg: 0.5, genelNufusUyariOran: 0.2, genelNufusKritikOran: 0.3, genelAyBas: 11, genelAySon: 5,
+    /* k192: Kuluçka sıcaklığı — bant 33–36 °C (Kleinhenz ve ark. 2003, doi:10.1242/jeb.00680); süre/oynaklık/dönem uzman tahmini; yalnız kuluçkalıktaki sensör */
+    kuluckaAltC: 33, kuluckaUstC: 36, kuluckaSaat: 6, kuluckaOynaklikC: 2, kuluckaOynaklikSaat: 24, kuluckaAyBas: 3, kuluckaAySon: 8 };
   var ORS_SENSOR_ADLAR = { aniKayipKg: 'Ani ağırlık kaybı: eşik (kg, uzman tahmini)', aniKayipSaat: 'Ani ağırlık kaybı: süre (saat, uzman tahmini)', suGuvenliM: 'Su: bu mesafeye kadar risk yok, m (uzman tahmini; literatürde ~500 m önerisi geçer)', suRiskliM: 'Su: bu mesafeden sonra yüksek risk, m (uzman tahmini)', suRiskAgirlik: 'Su riski rota güvenini en çok bu oranda düşürür (0–1, uzman tahmini)', veriYokCarpan: 'Su/alan verisi yoksa güven çarpanı (uzman tahmini)', alanDogalOran: 'Toplama alanı: ağaçlık+çalılık+çayır en az oranı (0–1, uzman tahmini)', varroaSayimGun: 'Varroa: son sayımdan bu yana gün → hatırlatma (uzman tahmini)', kulucka0Rakim: 'Kuluçka başlangıcı: bu rakımın altı Şubat (uzman tahmini)', kulucka1Rakim: 'Kuluçka başlangıcı: bu rakımın üstü Nisan, arası Mart (uzman tahmini)', rotaHasatAg: 'Rota puanı: geçmiş hasat ağırlığı (0–1, uzman tahmini)', rotaTartiAg: 'Rota puanı: tartı artış ağırlığı (0–1, uzman tahmini)', rotaPencere: 'Rota: kayan ortalama penceresi, gün (uzman tahmini)', rotaMinGun: 'Rota: eşik öğrenmek için en az kayıtlı gün (uzman tahmini)', batOrtaGun: 'Batarya: kalan gün ≤ → Orta uyarı (uzman tahmini)', batYuksekGun: 'Batarya: kalan gün ≤ → Yüksek uyarı (uzman tahmini)', batTabanOran: 'Batarya: taban tüketim payı (0–1, uzman tahmini)', batIlkGun: 'Batarya: ilk hesap için gün', batIlkDusus: 'Batarya: ilk hesap için en az düşüş (puan)', tasNegGun: 'Taşınma: üst üste net artış ≤ eşik gün sayısı (uzman tahmini)', tasNetEsikKg: 'Taşınma: günlük net artış eşiği (kg/gün)', tasErkenGun: 'Taşınma: en erken uyarı (ayrılıştan gün önce)', tasHazirlikGun: 'Taşınma: hazırlık görevi (ayrılıştan gün önce)', pipingHzMin: 'Ana Arılar Ötmesi (Piping) alt frekans (Hz)', pipingHzMax: 'Ana Arılar Ötmesi (Piping) üst frekans (Hz)', pipingDk: 'Ana Arılar Ötmesi (Piping) süresi — bilinmeyen ırk (dk; ırk satırlarında ayrı)', pipingAraSn: 'Kesinti sayılmayan en uzun ara (sn)',
     tempHigh: 'Kuluçka ısısı eşiği (°C)', tempHighSaat: 'Eşik üstü en az süre (saat)', tempHighArti: '→ Sıkışıklık artışı',
     riseMin: 'Ani yükseliş alt (°C)', riseMax: 'Ani yükseliş üst (°C)', riseDelta: 'Ani yükseliş en az fark (°C)', riseSaat: 'Ani yükseliş penceresi (saat)', riseArti: '→ Sıkışıklık artışı',
@@ -3483,7 +3485,8 @@
     ogulKaymaHz: 'Oğul eğilimi: gündüz tepe frekansı kayması (Hz)', yelpazeHzMin: 'Yelpazeleme alt (Hz)', yelpazeHzMax: 'Yelpazeleme üst (Hz)', yelpazeOran: 'Kovan sağlığı: yelpazeleme okuma oranı (0,4 = %40, uzman tahmini)', saglikUyariDb: 'Kovan sağlığı: taban sapması → Uyarı (dB, uzman tahmini)', saglikKritikDb: 'Kovan sağlığı: taban sapması → Kritik (dB, uzman tahmini)',
     varroaHzMin: 'Varroa hatırlatması: bant (Hz; kaynak Yıldız & Karabağ 2026)', varroaSapmaDb: 'Varroa hatırlatması: bant taban sapması (dB, uzman tahmini)', varroaGun: 'Varroa hatırlatması: en sık (gün)',
     kirecIsiC: 'Kireç riski: kuluçka ısısı bunun altında (°C; Flores ve ark. 1996)', kirecSaat: 'Kireç riski: kesintisiz süre (saat, uzman tahmini)', kirecAyBas: 'Kireç riski: kuluçka dönemi ilk ay (1–12, uzman tahmini)', kirecAySon: 'Kireç riski: kuluçka dönemi son ay (1–12, uzman tahmini)', kirecNemYuksek: 'Kireç riski: destekleyici nem (%; tek başına tetiklemez, uzman tahmini)', hatirlatmaGun: 'Kireç / genel kontrol hatırlatması: en sık (gün)',
-    genelKayipKat: 'Genel kontrol: günlük ağırlık kaybı kendi geçmişinin bu katı (uzman tahmini)', genelKayipMinKg: 'Genel kontrol: en az günlük kayıp (kg, uzman tahmini)', genelNufusUyariOran: 'Genel kontrol: nüfus düşüşü → uyarı (0,2 = %20, uzman tahmini)', genelNufusKritikOran: 'Genel kontrol: nüfus düşüşü → kritik (0,3 = %30, uzman tahmini)', genelAyBas: 'Genel kontrol: kış–ilkbahar ilk ay (1–12, uzman tahmini)', genelAySon: 'Genel kontrol: kış–ilkbahar son ay (1–12, uzman tahmini)' };
+    genelKayipKat: 'Genel kontrol: günlük ağırlık kaybı kendi geçmişinin bu katı (uzman tahmini)', genelKayipMinKg: 'Genel kontrol: en az günlük kayıp (kg, uzman tahmini)', genelNufusUyariOran: 'Genel kontrol: nüfus düşüşü → uyarı (0,2 = %20, uzman tahmini)', genelNufusKritikOran: 'Genel kontrol: nüfus düşüşü → kritik (0,3 = %30, uzman tahmini)', genelAyBas: 'Genel kontrol: kış–ilkbahar ilk ay (1–12, uzman tahmini)', genelAySon: 'Genel kontrol: kış–ilkbahar son ay (1–12, uzman tahmini)',
+    kuluckaAltC: 'Kuluçka sıcaklığı: sağlıklı bant alt (°C; Kleinhenz ve ark. 2003: 33–36 °C)', kuluckaUstC: 'Kuluçka sıcaklığı: sağlıklı bant üst (°C; Kleinhenz ve ark. 2003)', kuluckaSaat: 'Kuluçka sıcaklığı: bant dışında kesintisiz süre (saat, uzman tahmini)', kuluckaOynaklikC: 'Kuluçka sıcaklığı: pencere içinde en yüksek − en düşük farkı (°C, uzman tahmini)', kuluckaOynaklikSaat: 'Kuluçka sıcaklığı: oynaklık penceresi (saat, uzman tahmini)', kuluckaAyBas: 'Kuluçka sıcaklığı: dönem ilk ay (1–12, uzman tahmini)', kuluckaAySon: 'Kuluçka sıcaklığı: dönem son ay (1–12, uzman tahmini)' };
   function pipingDefaults() { var o = {}; Object.keys(GENETIK_SAF).concat(Object.keys(GENETIK_MELEZ)).forEach(function (k) { o[k] = ORS_SENSOR.pipingDk; }); return o; }
   /* k161 EK13: kullanıcı onaylı bildirim şablonları */
   var KovanBildirimSablonlari = {
@@ -3508,6 +3511,7 @@
     /* k177: Kovan sağlığı dB eşikleri — kritik < uyarı ise ikisi de varsayılana döner */
     if (!(d.sensor.saglikKritikDb >= d.sensor.saglikUyariDb)) { d.sensor.saglikUyariDb = ORS_SENSOR.saglikUyariDb; d.sensor.saglikKritikDb = ORS_SENSOR.saglikKritikDb; }
     /* k182: Genel kontrol nüfus eşikleri — kritik < uyarı ise ikisi de varsayılana döner */
+    if (!(d.sensor.kuluckaUstC > d.sensor.kuluckaAltC)) { d.sensor.kuluckaAltC = ORS_SENSOR.kuluckaAltC; d.sensor.kuluckaUstC = ORS_SENSOR.kuluckaUstC; }
     if (!(d.sensor.genelNufusKritikOran >= d.sensor.genelNufusUyariOran)) { d.sensor.genelNufusUyariOran = ORS_SENSOR.genelNufusUyariOran; d.sensor.genelNufusKritikOran = ORS_SENSOR.genelNufusKritikOran; }
     /* k161 EK12: ekip bildirimi gönderilecek uyarı kodları (yönetici listesi) */
     if (Array.isArray(o.ekipBildirim)) d.ekipBildirim = o.ekipBildirim.filter(function (k) { return typeof k === 'string' && k.length < 60; }).slice(0, 60);
@@ -3685,6 +3689,16 @@
       I.forEach(function (x) { var lo = Number(x.tempC) < T.kirecIsiC; if (lo && (bas == null || (p && x.t - p.t > 2 * H))) bas = x.t; if (!lo) bas = null; if (lo && bas != null && x.t - bas > maks) { maks = x.t - bas; enBas = bas; } p = x; });
       if (maks >= T.kirecSaat * H) { r.kirec = true; var rh = md(I.filter(function (x) { return x.t >= enBas; }).map(function (x) { return Number(x.rh); })); r.kirecNem = rh != null && rh >= T.kirecNemYuksek; }
     }
+    /* k192: Kuluçka sıcaklığı — yalnız sensör kuluçkalıktaysa (S.kuluckaSensoru). Bant dışı kesintisiz kuluckaSaat saat → kulucka; son kuluckaOynaklikSaat saatte en yüksek−en düşük ≥ kuluckaOynaklikC → kuluckaOynak. Teşhis değil. */
+    r.kulucka = false; r.kuluckaYon = null; r.kuluckaOynak = false;
+    if (S.kuluckaSensoru && ayIcinde(ay, T.kuluckaAyBas, T.kuluckaAySon) && I.length) {
+      var kb = null, kp = null, kyon = null;
+      I.forEach(function (x) { var v = Number(x.tempC), y = v < T.kuluckaAltC ? 'dusuk' : v > T.kuluckaUstC ? 'yuksek' : null;
+        if (!y || (kp && x.t - kp.t > 2 * H) || y !== kyon) kb = y ? x.t : null; kyon = y;
+        if (y && kb != null && x.t - kb >= T.kuluckaSaat * H) { r.kulucka = true; r.kuluckaYon = y; } kp = x; });
+      var son2 = I[I.length - 1].t, P = I.filter(function (x) { return x.t >= son2 - T.kuluckaOynaklikSaat * H; });
+      if (P.length >= 6 && son2 - P[0].t >= 0.8 * T.kuluckaOynaklikSaat * H) { var vs = P.map(function (x) { return Number(x.tempC); }); if (Math.max.apply(null, vs) - Math.min.apply(null, vs) >= T.kuluckaOynaklikC) r.kuluckaOynak = true; }
+    }
     if (ayIcinde(ay, T.genelAyBas, T.genelAySon)) {
       var W = (S.tarti || []).filter(function (x) { return isFinite(Number(x.kg)); });
       function kgAt(t) { var b = null; W.forEach(function (x) { if (x.t <= t) b = x; }); return b && t - b.t <= 3 * H ? Number(b.kg) : null; }
@@ -3713,6 +3727,10 @@
     /* k152: dış ortam — öncelik gateway dış sensörü, yoksa uygulamadaki hava tahmini (arılık, saatlik) */
     o.dis = o.dis_isi_nem.slice();
     if (!o.dis.length && ap != null) { try { var hc = JSON.parse(localStorage.getItem('superari.hava.tahmin.v1.' + ap) || 'null'); ((hc && hc.d && hc.d.hours) || []).forEach(function (x) { var t = Date.parse(x.t); if (isFinite(t)) o.dis.push({ t: t, tempC: x.temp, rh: x.rh, mm: x.mm, pr: x.pr, kaynak: 'hava' }); }); } catch (e) { /* yok */ } }
+    /* k192: kuluçka sıcaklığı kuralı yalnız sensör kuluçkalıktaysa — okuma yer:'kulucka' ya da cihaz kaydında yer:'kulucka' */
+    o.kuluckaSensoru = o.isi_nem.some(function (x) { return x.yer === 'kulucka'; });
+    if (!o.kuluckaSensoru) { try { var DV = global.SuperAriDevices; o.kuluckaSensoru = !!(DV && DV.listDevices && DV.listDevices().some(function (d) { return d && d.tip === 'isi_nem' && d.yer === 'kulucka' && Number(d.hiveId) === Number(hid); })); } catch (eK) { o.kuluckaSensoru = false; } }
+    if (o.kuluckaSensoru) o.isi_nem = o.isi_nem.filter(function (x) { return !x.yer || x.yer === 'kulucka'; });
     o.any = any; return o;
   }
   /* KİLİTLİ 2026-10-14 (koloni-168) — kovan içi ses protokolü; kullanıcı onayı olmadan değiştirme. k146: bilimsel kaynaklı kovan ses sınıfları (varsayılan; bulut public.ses_siniflari yönetici düzenler) */
@@ -4297,6 +4315,9 @@
       var hgun = OGUL_SKOR.sensor.hatirlatmaGun;
       var krA = haftalikHatirlatma('kirec', h.id, !!(shR && shR.kirec), today0, hgun);
       if (krA) tasksOut.push({ id: 'kr-kirec-' + h.id, title: 'Kireç riski, kuluçka ve havalandırma kontrolü önerilir — ' + nm, hiveId: h.id, priority: 3, auto: true, sig: krA, createdAt: nowIso, not: shR && shR.kirecNem ? 'Kovan içi nem de yüksek.' : '' });
+      /* k192: Kuluçka sıcaklığı — sade metin, hastalık adı yok; en çok hatirlatmaGun günde bir */
+      var kuA = haftalikHatirlatma('kulucka', h.id, !!(shR && (shR.kulucka || shR.kuluckaOynak)), today0, hgun);
+      if (kuA) tasksOut.push({ id: 'kr-kulucka-' + h.id, title: (shR && shR.kulucka ? (shR.kuluckaYon === 'dusuk' ? 'Kuluçka bölümü uzun süredir normalden soğuk' : 'Kuluçka bölümü uzun süredir normalden sıcak') : 'Kuluçka bölümünün sıcaklığı dengesiz') + ', kovanı kontrol edin — ' + nm, hiveId: h.id, priority: 3, auto: true, sig: kuA, createdAt: nowIso });
       var gkA = haftalikHatirlatma('genel', h.id, !!(shR && shR.genel), today0, hgun);
       if (gkA) tasksOut.push({ id: 'kr-genel-kontrol-' + h.id, title: 'Genel koloni kontrolü ve fiziksel muayene yapılması önerilir — ' + nm, hiveId: h.id, priority: 3, auto: true, sig: gkA, createdAt: nowIso });
       /* k182: nüfus düşüşü — %20 uyarı (öncelik 3), %30 kritik (öncelik 1); aynı haftalık anahtar, kritik öncelikli */

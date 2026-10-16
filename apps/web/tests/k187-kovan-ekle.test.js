@@ -10,5 +10,5 @@ test('k187: alt «Kovan ekle» kartı yok, üst düğme SuperAriKovanEkle çağ�
   const n = fs.readFileSync(p.join(W, 'nav.js'), 'utf8');
   assert.match(n, /'kovanlar\.html': \{ t: 'Kovan ekle', fn: 'SuperAriKovanEkle' \}/);
   assert.match(n, /if \(cfg\.fn && typeof window\[cfg\.fn\] === 'function'\)/);
-  assert.strictEqual(JSON.parse(fs.readFileSync(p.join(W, 'version.json'), 'utf8')).version, 'koloni-191');
+  assert.strictEqual(JSON.parse(fs.readFileSync(p.join(W, 'version.json'), 'utf8')).version, 'koloni-192');
 });

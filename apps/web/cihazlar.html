@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-191">
+<link rel="stylesheet" href="sa-early.css?v=koloni-192">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-191" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-191" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-191" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-192" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-192" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-192" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -125,16 +125,16 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-191"></script>
-<script src="demo-data.js?v=koloni-191"></script>
-<script src="device-runtime.js?v=koloni-191"></script>
-<script src="cicek-veri.js?v=koloni-191"></script><script src="cicek.js?v=koloni-191"></script><script src="plan-planlayici.js?v=koloni-191"></script><script src="rota-motoru.js?v=koloni-191"></script><script src="cevre.js?v=koloni-191"></script><script src="saglik-takvimi.js?v=koloni-191"></script>
-<script src="sensor-polling.js?v=koloni-191"></script>
-<script src="tarti-bakim-delta.js?v=koloni-191"></script>
-<script src="tarti-elle.js?v=koloni-191"></script>
-<script src="tarti-rotasyon.js?v=koloni-191"></script>
-<script src="kapsam.js?v=koloni-191"></script>
-<script src="ks-sayfa.js?v=koloni-191"></script>
+<script src="bk-kabuk.js?v=koloni-192"></script>
+<script src="demo-data.js?v=koloni-192"></script>
+<script src="device-runtime.js?v=koloni-192"></script>
+<script src="cicek-veri.js?v=koloni-192"></script><script src="cicek.js?v=koloni-192"></script><script src="plan-planlayici.js?v=koloni-192"></script><script src="rota-motoru.js?v=koloni-192"></script><script src="cevre.js?v=koloni-192"></script><script src="saglik-takvimi.js?v=koloni-192"></script>
+<script src="sensor-polling.js?v=koloni-192"></script>
+<script src="tarti-bakim-delta.js?v=koloni-192"></script>
+<script src="tarti-elle.js?v=koloni-192"></script>
+<script src="tarti-rotasyon.js?v=koloni-192"></script>
+<script src="kapsam.js?v=koloni-192"></script>
+<script src="ks-sayfa.js?v=koloni-192"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -614,6 +614,7 @@ window.SuperAriCihazEkle = function () {
     '<label style="' + lab + '">Cihaz türü<select data-ce="tip" style="' + inp + '">' + TIPS.map(function (t) { return '<option value="' + t[0] + '">' + e(t[1]) + (t[2] ? ' · kovan' : ' · arılık') + '</option>'; }).join('') + '</select></label>' +
     '<label style="' + lab + '">Arılık<select data-ce="ap" style="' + inp + '">' + aps.map(function (a) { return '<option value="' + e(a.id) + '"' + (String(a.id) === ap0 ? ' selected' : '') + '>' + e(a.name) + '</option>'; }).join('') + '</select></label>' +
     '<label style="' + lab + '" data-ce-hivewrap>Kovan<select data-ce="hive" style="' + inp + '">' + hiveOpts(ap0) + '</select></label>' +
+    '<label style="' + lab + '" data-ce-yerwrap>Sensör nerede?<select data-ce="yer" style="' + inp + '"><option value="kulucka">Kuluçkalıkta (yavrulu bölüm)</option><option value="ballik">Ballıkta</option><option value="">Bilmiyorum</option></select></label>' +
     '<label style="' + lab + '">Ad / seri no (isteğe bağlı)<input data-ce="name" type="text" maxlength="60" style="' + inp + '"></label>' +
     '<p style="margin:0;font-size:13px;color:#5f6b7a;">Cihaz kaydedilir; ilk okuma gelene kadar durumu «Veri yok» görünür.</p>' +
     '<p data-ce="msg" role="status" style="margin:0;font-size:14px;font-weight:700;color:#c92a2a;"></p>' +
@@ -622,7 +623,7 @@ window.SuperAriCihazEkle = function () {
   document.body.appendChild(b);
   function q(k) { return b.querySelector('[data-ce="' + k + '"]'); }
   function needHive() { var t = q('tip').value; return TIPS.some(function (x) { return x[0] === t && x[2]; }); }
-  function sync() { b.querySelector('[data-ce-hivewrap]').style.display = needHive() ? '' : 'none'; }
+  function sync() { b.querySelector('[data-ce-hivewrap]').style.display = needHive() ? '' : 'none'; b.querySelector('[data-ce-yerwrap]').style.display = q('tip').value === 'isi_nem' ? '' : 'none'; }
   sync();
   b.addEventListener('change', function (ev) { var k = ev.target.getAttribute('data-ce'); if (k === 'ap') q('hive').innerHTML = hiveOpts(ev.target.value); if (k === 'tip') sync(); });
   b.addEventListener('click', function (ev) {
@@ -632,7 +633,7 @@ window.SuperAriCihazEkle = function () {
     if (!aps.length) { m.textContent = 'Önce bir arılık ekleyin (Ayarlar › Arılıklar)'; return; }
     if (needHive() && !q('hive').value) { m.textContent = 'Kovan seçin'; return; }
     try {
-      Dv.addDevice({ tip: q('tip').value, apiaryId: q('ap').value, hiveId: needHive() ? q('hive').value : null, name: q('name').value });
+      Dv.addDevice({ tip: q('tip').value, apiaryId: q('ap').value, hiveId: needHive() ? q('hive').value : null, name: q('name').value, yer: q('tip').value === 'isi_nem' ? q('yer').value : '' });
       b.remove(); location.reload();
     } catch (err) { m.textContent = err.message || 'Kaydedilemedi'; }
   });
@@ -646,8 +647,8 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-191"></script>
-<script src="nav.js?v=koloni-191"></script>
-<script src="pwa.js?v=koloni-191"></script>
+<script src="ses-siniflari.js?v=koloni-192"></script>
+<script src="nav.js?v=koloni-192"></script>
+<script src="pwa.js?v=koloni-192"></script>
 </body>
 </html>
