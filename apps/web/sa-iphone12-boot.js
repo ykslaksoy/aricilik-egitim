@@ -12,7 +12,7 @@
   var page = (global.location.pathname || '').split('/').pop() || 'index.html';
   if (/^ana-LOCKED|^master-78\.html$/i.test(page)) return;
 
-  var v = 'koloni-197';
+  var v = 'koloni-207';
   try {
     var cs = doc.currentScript;
     var m = cs && /[?&]v=([^&]+)/.exec(cs.src || '');

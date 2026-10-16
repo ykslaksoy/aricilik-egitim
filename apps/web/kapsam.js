@@ -165,7 +165,7 @@
 
   /** Kapsam kartı sağ kestirme (Ana'daki °C ile aynı yer/stil): tıklanınca hava raporu. */
   function weatherEndHtml() {
-    return '<a class="ks-end weather-temp" data-ks-end href="hava-raporu.html" title="Arılık hava raporu" aria-label="Hava">—°</a>';
+    return '<a class="ks-end weather-temp" data-ks-end href="hava.html" title="Hava" aria-label="Hava">—°</a>';
   }
   /** Sayfa kestirmesi + °C (Bakım düzeni). */
   function topEndWithWeather(chipHtml) {
@@ -316,7 +316,7 @@
     var el = host && host.querySelector('[data-ks-end].weather-temp');
     if (!el || el.getAttribute('data-bound')) return;
     el.setAttribute('data-bound', '1');
-    function go() { try { var ap = null; try { ap = global.localStorage.getItem(SCOPE_KEY); } catch (e) {} var q = ap && ap !== 'all' ? ('?apiary=' + encodeURIComponent(ap)) : ''; global.location.href = 'hava-raporu.html' + q; } catch (e2) { global.location.href = 'hava-raporu.html'; } }
+    function go() { try { var ap = null; try { ap = global.localStorage.getItem(SCOPE_KEY); } catch (e) {} var q = ap && ap !== 'all' ? ('?apiary=' + encodeURIComponent(ap)) : ''; global.location.href = 'hava.html' + q; } catch (e2) { global.location.href = 'hava.html'; } }
     el.addEventListener('click', function (e) { e.preventDefault(); go(); });
     /* Açık Meteo: seçili arılığın sıcaklığı (Ana ile aynı kaynak) */
     try {
