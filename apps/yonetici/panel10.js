@@ -19,7 +19,7 @@
       ['w', 'Süre', 'Uyarı/kritik kesintisiz (saat) ' + UT, 's', 'kuluckaSaat'],
       ['a', 'ACİL', 'Bu değer ve altı (°C) · kireç riski', 's', 'kuluckaAcilC'],
       ['a', 'Süre', 'ACİL kesintisiz (saat) ' + UT, 's', 'kuluckaAcilSaat'],
-      ['w', 'Oynaklık', 'En yüksek − en düşük (°C) ' + UT, 's', 'kuluckaOynaklikC'],
+      ['w', 'Oynaklık', '{s:kuluckaOynaklikSaat} saatte fark ≥ {s:kuluckaOynaklikC} °C ' + UT, 's', 'kuluckaOynaklikC'],
       ['w', 'Pencere', 'Oynaklık penceresi (saat) ' + UT, 's', 'kuluckaOynaklikSaat'],
       ['i', 'Kireç', 'Hatırlatma: bunun altı (°C)', 's', 'kirecIsiC'],
       ['i', 'Kireç', 'Kesintisiz süre (saat) ' + UT, 's', 'kirecSaat'],
@@ -73,12 +73,14 @@
   function setP(o, k, v) { var p = k.split('.'), t = o; for (var i = 0; i < p.length - 1; i++) t = t[p[i]] = t[p[i]] || {}; t[p[p.length - 1]] = v; }
   function val(src, k) { return src === 'e' ? getP(ESK, k) : SEN[k]; }
   function fmt(v) { return v == null ? '' : String(v).replace('.', ','); }
+  /* koloni-198: etikette {s:anahtar} / {e:anahtar} → ayardaki değer; kutu değişince canlı güncellenir */
+  function lbl(t) { return t.replace(/\{([se]):([\w.]+)\}/g, function (_, src, k) { var v = val(src, k); return '<b data-lbl="' + src + '|' + esc(k) + '">' + (v == null ? '—' : esc(fmt(v))) + '</b>'; }); }
   function rowH(x) {
     var src = x[3], k = x[4], v = val(src === 'L' ? 's' : src, k), ctl;
     if (v == null) ctl = '<output>—</output>';
     else if (src === 'L') ctl = '<output title="KİLİTLİ">' + esc(fmt(v)) + '</output>';
     else ctl = '<input inputmode="decimal" data-src="' + src + '" data-k="' + esc(k) + '" value="' + esc(fmt(v)) + '">';
-    return '<div class="rw"><span class="tr ' + x[0] + '">' + esc(x[1]) + '</span><span>' + x[2] + '</span>' + ctl + '<small>' + (src === 'e' ? 'app_esikler · ' : 'ogul_skor_ayar · ') + esc(k) + (src === 'L' ? ' · kilitli' : ' · tek kaynak') + '</small></div>';
+    return '<div class="rw"><span class="tr ' + x[0] + '">' + esc(x[1]) + '</span><span>' + lbl(x[2]) + '</span>' + ctl + '<small>' + (src === 'e' ? 'app_esikler · ' : 'ogul_skor_ayar · ') + esc(k) + (src === 'L' ? ' · kilitli' : ' · tek kaynak') + '</small></div>';
   }
   function cardH(c) {
     return '<div class="mc"><h3>' + esc(c.t) + '</h3>' + c.r.map(rowH).join('') + (c.vy ? VY : '') + (c.not ? '<p class="m">' + esc(c.not) + '</p>' : '') +
@@ -104,6 +106,7 @@
     var t = e.target; if (!t.closest || !t.closest('.mk') || !t.getAttribute('data-k')) return;
     [].forEach.call(host.querySelectorAll('.mk input[data-k="' + t.getAttribute('data-k') + '"][data-src="' + t.getAttribute('data-src') + '"]'), function (i) { if (i !== t) i.value = t.value; i.classList.add('chg'); });
     t.classList.add('chg');
+    [].forEach.call(host.querySelectorAll('.mk [data-lbl="' + t.getAttribute('data-src') + '|' + t.getAttribute('data-k') + '"]'), function (b) { b.textContent = t.value === '' ? '—' : t.value; });
   });
   function stat(m) { [].forEach.call(host.querySelectorAll('.mk [data-mk-stat]'), function (s) { s.innerHTML = m; }); }
   host.addEventListener('click', function (e) {
