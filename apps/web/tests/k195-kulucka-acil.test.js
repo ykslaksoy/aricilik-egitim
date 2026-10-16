@@ -1,0 +1,20 @@
+/* k195: ACİL ≤30 °C 6 sa → kireç riski, kritikten bir üst. */
+const assert=require('assert'),vm=require('vm'),fs=require('fs'),path=require('path');
+const W=path.join(__dirname,'..');
+const ls={getItem:()=>null,setItem(){},removeItem(){},key:()=>null,length:0};
+const w={localStorage:ls,addEventListener(){},removeEventListener(){},dispatchEvent(){},CustomEvent:function(){},Event:function(){},console};w.window=w;w.self=w;vm.createContext(w);
+vm.runInContext(fs.readFileSync(path.join(W,'demo-data.js'),'utf8'),w);const C=w.SuperAriDemo.colony,T=Object.assign({},C.ORS_SENSOR),H=3600000;
+assert.strictEqual(T.kuluckaAcilC,30);assert.strictEqual(T.kuluckaAcilSaat,6);assert.match(C.ORS_SENSOR_ADLAR.kuluckaAcilC,/Flores/);assert.match(C.ORS_SENSOR_ADLAR.kuluckaAcilSaat,/uzman tahmini/);
+assert.strictEqual(C.ogulSkorMerge({sensor:{kuluckaAcilC:33.5}}).sensor.kuluckaAcilC,30);
+const Y=Date.parse('2026-06-10T12:00:00');
+const seri=(v,n)=>Array.from({length:30},(_,i)=>({t:Y-(29-i)*H,tempC:i<30-n?34.5:v,rh:60}));
+const R=(I,t)=>C.saglikHatirlatmalari({isi_nem:I,tarti:[],ir:[],kuluckaSensoru:true},t||T,Y);
+let r=R(seri(30,8));assert.ok(r.kuluckaAcil&&r.kuluckaKritik&&r.kuluckaYon==='dusuk','30 °C acil');
+r=R(seri(30.1,8));assert.ok(!r.kuluckaAcil&&r.kuluckaKritik,'30,1 kritik');
+assert.ok(!R(seri(28,5)).kuluckaAcil,'6 saatten kısa');
+const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');const t=d.match(/id: 'kr-kulucka-'[^\n]*/)[0];
+assert.ok(/ACİL: .*kireç hastalığı riski/.test(t));assert.ok(!/°c|groh|kleinhenz|flores/i.test(t));
+const k=fs.readFileSync(path.join(W,'kritik-alarm.js'),'utf8');assert.ok(/kulucka_acil: 0/.test(k)&&!/kulucka_acil:[^\n]*(°C|Flores)/.test(k));
+assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-195');
+console.log('k195-kulucka-acil ok');

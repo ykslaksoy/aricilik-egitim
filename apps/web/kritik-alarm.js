@@ -7,8 +7,9 @@
 (function (global) {
   'use strict';
   var KEY = 'superari.kritik.v1', GECMIS = 'superari.uyari.gecmis.v1', ORSK = 'superari.ors.orta.v1', GIDEN = 'superari.ekip.bildirim.kuyruk.v1';
-  var SABIT = { ogul_ani: 0, piping: 1, quacking: 2, ALARM_ARILIK_KOSUL_01: 3 };
+  var SABIT = { kulucka_acil: 0, ogul_ani: 0, piping: 1, quacking: 2, ALARM_ARILIK_KOSUL_01: 3 };
   var AD = {
+    kulucka_acil: ['ACİL: Kuluçka çok soğudu', 'Kuluçka bölümü uzun süredir çok soğuk. Kireç hastalığı riski var. Kovanı hemen kontrol et, gerekirse daralt ve havalandırmayı ayarla.'],
     ogul_ani: ['Oğul Anı Sesi (Swarming)', 'Kovanda Oğul Anı Sesi (Swarming) algılandı. Hemen kovanı kontrol et.'],
     piping: ['Ana Arılar Ötmesi (Piping)', 'Çıkmış Ana Ötmesi (Tooting) ve Vakvaklama (Quacking) birlikte duyuldu. Art oğul çok yakın, kovanı hemen kontrol et.'],
     quacking: ['Vakvaklama (Quacking)', 'Yüksükte bakire ana sesi algılandı. İkinci oğul riski, kovanı kontrol et.'],

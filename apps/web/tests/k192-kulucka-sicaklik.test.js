@@ -22,12 +22,12 @@ assert.strictEqual(R(seri(i=>i%2?33.5:35.8,30),true).kuluckaOynak,true,'bant iç
 assert.strictEqual(R(seri(i=>i%2?34.2:35.6,30),true).kuluckaOynak,false);
 assert.strictEqual(R(seri(i=>i<20?34.8:32,30),true,Object.assign({},T,{kuluckaSaat:12})).kulucka,false,'panel süresi');
 const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');
-const t=d.match(/id: 'kr-kulucka-'[^\n]*/)[0];assert.ok(!/kireç|nosema|varroa|hz|db|°c|kleinhenz|flores/i.test(t));
+const t=d.match(/id: 'kr-kulucka-'[^\n]*/)[0];assert.ok(!/nosema|varroa|hz|db|°c|kleinhenz|flores/i.test(t.replace(/ACİL:[^']*'/,"")));
 assert.ok(d.includes("haftalikHatirlatma('kulucka'"));
 assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
 const ce=fs.readFileSync(path.join(W,'cihazlar.html'),'utf8');assert.ok(ce.includes('data-ce="yer"'));assert.ok(/position:fixed;inset:0/.test(ce),'form katman — sayfa kaymaz');
 assert.ok(fs.readFileSync(path.join(W,'device-runtime.js'),'utf8').includes("row.yer = o.yer"));
 const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261016040000_k192_kulucka_sicaklik.sql'),'utf8');
 ['10.1242/jeb.00680','10.1073/pnas.0400773101','10.1073/pnas.1232346100','10.1126/science.1096340','Uzman tahmini · kaynak aranıyor'].forEach(x=>assert.ok(m.includes(x),x));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-194');
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-195');
 console.log('k192-kulucka-sicaklik ok');
