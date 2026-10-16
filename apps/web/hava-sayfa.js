@@ -137,6 +137,7 @@
     t: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="8.4" y="3" width="3.2" height="10" rx="1.6" fill="#fff" stroke="#e03131" stroke-width="1"/><circle cx="10" cy="14.6" r="2.6" fill="#e03131"/></svg>',
     r: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5c2.6 3.3 4.1 5.6 4.1 7.7a4.1 4.1 0 0 1-8.2 0c0-2.1 1.5-4.4 4.1-7.7z" fill="#d0ebff" stroke="#5b8def" stroke-width="1"/></svg>',
     f: '<svg viewBox="0 0 20 20" aria-hidden="true"><ellipse cx="10" cy="11" rx="3" ry="4" fill="#f7b731" stroke="#5c3a1f" stroke-width=".9"/><path d="M7.4 9c-2.4-1.8-4.2-.8-3.8.6.4 1.2 2.2 1.2 3.8.4M12.6 9c2.4-1.8 4.2-.8 3.8.6-.4 1.2-2.2 1.2-3.8.4" fill="#e7f5ff" stroke="#9aa8b8" stroke-width=".8"/></svg>',
+    h: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.2c2.6 3.3 4.6 6 4.6 8.4A4.6 4.6 0 0 1 5.4 11.6c0-2.4 2-5.1 4.6-8.4z" fill="none" stroke="#3aa0c8" stroke-width="1.6" stroke-linejoin="round"/></svg>',
     w: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 8h9a2 2 0 1 0-2-2M3.5 12h11a2 2 0 1 1-2 2" fill="none" stroke="#5b8def" stroke-width="1.6" stroke-linecap="round"/></svg>'
   };
   function renderScope() {
@@ -151,9 +152,12 @@
       { k: 't', v: h0 ? r0(h0.temp) + '°' : (t0.hi != null ? r0(t0.hi) + '°' : '—'), l: t0.hi != null ? 'Bugün ' + r0(t0.lo) + '°/' + r0(t0.hi) + '°' : 'Sıcaklık', href: '#saatlik' },
       { k: 'r', v: d.length ? String(rainD.length) : '—', l: 'Yağmurlu gün', href: '#isgunu' },
       { k: 'f', v: d.length ? String(okD.length) : '—', l: 'Uçuşa uygun gün', href: '#ucus' },
-      { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#don' }
+      { k: 'w', v: t0.wind != null ? Math.round(t0.wind) : '—', l: 'Rüzgar km/s', href: '#don' },
+      /* k208: dış nem — yalnız bilgi (Open-Meteo relative_humidity_2m); uyarı yok, kovan nem kurallarına bağlı değil */
+      (function () { var rh = h0 && h0.rh != null ? h0.rh : (t0.rh != null ? t0.rh : null); return { k: 'h', v: rh != null ? '%' + Math.round(rh) : 'Veri yok', l: 'Dış nem', info: true, none: rh == null }; })()
     ];
     $('bkStats').innerHTML = stats.map(function (x) {
+      if (x.info) return '<span class="bk-stat bk-stat-info' + (x.none ? ' none' : '') + '" data-stat="' + x.k + '" title="Dış ortam bağıl nemi (bilgi)">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></span>';
       return '<a class="bk-stat" data-stat="' + x.k + '" href="' + x.href + '">' + ICO[x.k] + '<span class="v">' + esc(x.v) + '</span><span class="l">' + esc(x.l) + '</span></a>';
     }).join('');
     var note;
