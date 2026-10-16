@@ -25,10 +25,11 @@
       ['i', 'Kireç', 'Kesintisiz süre (saat) ' + UT, 's', 'kirecSaat'],
       ['i', 'Dönem', 'İlk ay (1–12) ' + UT, 's', 'kuluckaAyBas'],
       ['i', 'Dönem', 'Son ay (1–12) ' + UT, 's', 'kuluckaAySon']] },
-    { t: 'Nem', src: 'Alt %50: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Üst %75: uzman tahmini (kullanıcı seçimi), kovan için doğrulanmış eşik yok · süre uzman tahmini', not: 'Aralık dışında kalırsa uyarı. Alt: «Nem çok düşük, yavru (yumurta) açılmama riski var»; üst: «Nem normal aralığın üstünde» (risk iddiası yok). Kireç kuralı ayrı.', r: [
+    { t: 'Nem', src: 'Alt %50: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Üst %75: uzman tahmini (kullanıcı seçimi), kovan için doğrulanmış eşik yok · Kireç %80: Liang 2000, Ying Yong Sheng Tai Xue Bao 11:869, PubMed 11767561 (DOI yok; %80 altında spor çimlenmedi) ve Flores 1996, doi:10.1051/apido:19960401 (destekleyici) · süre uzman tahmini', not: 'Aralık dışında kalırsa uyarı. Alt: «Nem çok düşük, yavru (yumurta) açılmama riski var»; {s:nemNormalUst}–{s:nemKirecUst} %: «Nem normal aralığın üstünde» (risk iddiası yok); {s:nemKirecUst} % üstü: «Nem çok yüksek, kireç hastalığı riski var». Kireç uyarısı sıcaklık kuralıyla ortak: kovan başına 7 günde en çok bir.', r: [
       ['ok', 'Normal', 'Alt sınır (%) · Doull 1976', 's', 'nemNormalAlt'],
       ['ok', 'Normal', 'Üst sınır (%) ' + UT, 's', 'nemNormalUst'],
       ['w', 'Uyarı', '{s:nemNormalAlt}–{s:nemNormalUst} % dışında kesintisiz (saat) ' + UT, 's', 'nemDisiSaat'],
+      ['c', 'Kireç riski', 'Bunun üstü (%) · Liang 2000, Flores 1996', 's', 'nemKirecUst'],
       ['i', 'Kireç', 'Destekleyici nem (%) ' + UT, 's', 'kirecNemYuksek'],
       ['i', 'Skor', 'Oğul skoru Sıkışıklık girdisi (%)', 's', 'nemHigh']] },
     { t: 'Ağırlık (tartı)', src: 'Kaynak yok · tümü uzman tahmini', r: [
@@ -103,7 +104,7 @@
     return '<div class="rw"><span class="tr ' + x[0] + '">' + esc(x[1]) + '</span><span>' + lbl(x[2]) + '</span>' + ctl + '<small>' + (src === 'e' ? 'app_esikler · ' : 'ogul_skor_ayar · ') + esc(k) + (src === 'L' ? ' · kilitli' : ' · tek kaynak') + '</small></div>';
   }
   function cardH(c) {
-    return '<div class="mc"><h3>' + esc(c.t) + '</h3>' + c.r.map(rowH).join('') + (c.vy ? VY : '') + (c.not ? '<p class="m">' + esc(c.not) + '</p>' : '') +
+    return '<div class="mc"><h3>' + esc(c.t) + '</h3>' + c.r.map(rowH).join('') + (c.vy ? VY : '') + (c.not ? '<p class="m">' + lbl(esc(c.not)) + '</p>' : '') +
       (c.src ? '<p class="m"><b>Kaynak:</b> ' + esc(c.src) + '</p>' : '') + '<p class="m"><b>' + esc(c.son || 'Son uyarılar') + ':</b> Veri yok</p></div>';
   }
   function cihazMevcut() { return '<div class="mc"><h3>Cihaz sağlığı (mevcut)</h3><p class="m">Buluta bildirilmiş cihaz yok. Cihazlar şu an yalnız kullanıcının telefonunda kayıtlı. Ayrıntı: <a href="#s-cih">Cihaz sağlığı</a> · bildirim aboneliği: <a href="#s-bildirim">Bildirim teslimi</a>.</p></div>'; }
