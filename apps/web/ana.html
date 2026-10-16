@@ -2,7 +2,7 @@
 <!-- KİLİTLİ DÜZEN — kullanıcı onayı olmadan değiştirme (koloni-168 durumu; tests/layout-lock.test.js korur) -->
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-190">
+<link rel="stylesheet" href="sa-early.css?v=koloni-191">
   <script>
     /* Role home: yonetici/bakici visiting / or ana → their shell */
     (function () {
@@ -358,7 +358,7 @@
   }
   /* Live °C from Open-Meteo (see liveWeather) — far right of weather-top */
   .weather-temp {
-    margin-left: auto; font-size: 25px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto;
+    margin-left: auto; font-size: 25px; font-weight: 700; color: var(--text); line-height: 1; flex: 0 0 auto; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .weather-temp:focus-visible {
@@ -492,7 +492,7 @@
   }
   .forecast .day.is-rain{position:relative;background:rgba(91,141,239,.10);border-radius:8px;}
   .forecast .day.is-rain::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#5b8def;}
-  .forecast-rain{font-size:10.5px;line-height:13px;color:#4a6fb5;text-align:center;margin-top:2px;font-weight:600;}
+  .forecast-rain{font-size:10.5px;line-height:13px;height:13px;overflow:hidden;white-space:nowrap;color:#4a6fb5;text-align:center;margin-top:2px;font-weight:600;}
   .forecast {
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
     text-align: center;
@@ -504,7 +504,7 @@
   .day.is-today .day-name,
   .day.is-today .day-date { color: var(--hardal-lo, #b8860b); }
   .day-ico { width: 17px; height: 17px; margin: 0; }
-  .day-temps { font-size: 11px; font-weight: 800; color: var(--text); line-height: 1.1; white-space: nowrap; }
+  .day-temps { font-size: 11px; font-weight: 800; color: var(--text); line-height: 1.1; white-space: nowrap; align-self: stretch; text-align: center; overflow: hidden; }
   .day-temps .lo { font-weight: 600; color: #8a8278; }
   .day-hi { font-size: 10px; font-weight: 700; color: var(--text); }
   .day-lo { font-size: 9px; color: #8a8278; }
@@ -1017,6 +1017,7 @@
         <div class="day"><div class="day-name">Cmt</div><div class="day-date">12</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="8" cy="9" r="4" fill="#f7b731"/><ellipse cx="13" cy="13" rx="5" ry="3" fill="#cfd8e3"/></svg><div class="day-temps">21°<span class="lo">/9°</span></div></div>
         <div class="day is-today"><div class="day-name">Paz</div><div class="day-date">13</div><svg class="day-ico" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" fill="#f7b731"/></svg><div class="day-temps">23°<span class="lo">/11°</span></div></div>
       </div>
+      <div class="forecast-rain" id="forecastRain" aria-live="polite">&nbsp;</div>
       <div class="muayene-hint is-idle" id="muayeneHint" role="status" aria-live="polite">
         <button type="button" class="bee-toggle" id="beeToggle" aria-pressed="true" aria-label="Arıları kapat" title="Arıları aç/kapat">
           <svg class="bee-toggle-ico" viewBox="0 0 24 24" aria-hidden="true">
@@ -1061,15 +1062,15 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="demo-data.js?v=koloni-190"></script>
+<script src="demo-data.js?v=koloni-191"></script>
 <script src="device-runtime.js"></script>
-<script src="cicek-veri.js?v=koloni-190"></script><script src="cicek.js?v=koloni-190"></script><script src="plan-planlayici.js?v=koloni-190"></script><script src="rota-motoru.js?v=koloni-190"></script><script src="cevre.js?v=koloni-190"></script><script src="saglik-takvimi.js?v=koloni-190"></script>
-<script src="sensor-health.js?v=koloni-190"></script>
-<script src="saglik-canli.js?v=koloni-190"></script>
+<script src="cicek-veri.js?v=koloni-191"></script><script src="cicek.js?v=koloni-191"></script><script src="plan-planlayici.js?v=koloni-191"></script><script src="rota-motoru.js?v=koloni-191"></script><script src="cevre.js?v=koloni-191"></script><script src="saglik-takvimi.js?v=koloni-191"></script>
+<script src="sensor-health.js?v=koloni-191"></script>
+<script src="saglik-canli.js?v=koloni-191"></script>
 <script src="hava-kayit.js"></script>
-<script src="ilac-katalog.js?v=koloni-190"></script>
-<script src="bakim-plan.js?v=koloni-190"></script>
-<script src="ana-ipucu.js?v=koloni-190"></script>
+<script src="ilac-katalog.js?v=koloni-191"></script>
+<script src="bakim-plan.js?v=koloni-191"></script>
+<script src="ana-ipucu.js?v=koloni-191"></script>
 <script src="logos/hardal-bees.js"></script>
 <script>
 (function () {
@@ -1242,7 +1243,7 @@
       }
       var rs = document.getElementById('forecastRain');
       if (!rs) { rs = document.createElement('div'); rs.id = 'forecastRain'; rs.className = 'forecast-rain'; root.parentNode.insertBefore(rs, root.nextSibling); }
-      rs.textContent = nDays ? (rainLabels.length ? (rainLabels.length + ' gün yağmur') : 'Yağmur yok') : '';
+      rs.textContent = nDays ? (rainLabels.length ? (rainLabels.length + ' gün yağmur') : 'Yağmur yok') : '\u00a0';
       /* k139: yağmur → öncelikli uyarı bandı (seçili/sabit arılık) */
       var ca = currentApiary && currentApiary();
       lastRain = nDays ? { apiaryId: ca && ca.id, days: rainLabels, n: nDays } : null;
@@ -2222,7 +2223,7 @@
       '<article class="tile" data-key="' + t.key + '" data-href="' + (t.href || '') + '" role="link" tabindex="0" aria-label="' + t.label + '">' +
         hiveHTML(t.key) +
         '<div class="tile-label">' + (t.key === 'ogul' ? '<span class="cap">O</span>ğul' : t.label) + '</div>' +
-        (showBadge ? '<div class="badge ' + t.tone + '">' + badge + '</div>' : '') +
+        (showBadge ? '<div class="badge ' + t.tone + '">' + badge + '</div>' : '<div class="badge tan" aria-hidden="true" style="visibility:hidden">—</div>') +
       '</article>'
     );
   }).join('');
@@ -3224,9 +3225,9 @@
 
 })();
 </script>
-<script src="yetki.js?v=koloni-190"></script>
-<script src="nav.js?v=koloni-190"></script>
-<script src="pwa.js?v=koloni-190"></script>
-<script src="esikler.js?v=koloni-190"></script>
+<script src="yetki.js?v=koloni-191"></script>
+<script src="nav.js?v=koloni-191"></script>
+<script src="pwa.js?v=koloni-191"></script>
+<script src="esikler.js?v=koloni-191"></script>
 </body>
 </html>

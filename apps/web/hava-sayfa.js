@@ -130,7 +130,7 @@
     $('grid').innerHTML = tiles().map(function (t) {
       var show = t.badge && t.badge !== '—';
       return '<a class="tile" data-key="' + t.key + '" href="' + esc(t.href) + '" aria-label="' + esc(t.label + (show ? ', ' + t.badge : '')) + '">' + hiveHTML(t.key) +
-        '<div class="tile-label">' + esc(t.label) + '</div>' + (show ? '<div class="badge ' + t.tone + '">' + esc(t.badge) + '</div>' : '') + '</a>';
+        '<div class="tile-label">' + esc(t.label) + '</div>' + (show ? '<div class="badge ' + t.tone + '">' + esc(t.badge) + '</div>' : '<div class="badge tan" aria-hidden="true" style="visibility:hidden">—</div>') + '</a>';
     }).join('');
   }
   var ICO = {
@@ -231,8 +231,10 @@
     }).join('');
     return '';
   }
+  var hvLoading = !!ap();
   function renderTen() {
     var d = data && data.days || [];
+    if (!data && hvLoading) { var sk = ''; for (var si = 0; si < 10; si++) sk += '<div class="hv-card hv-skel" aria-hidden="true" style="height:72px;box-sizing:border-box"></div>'; return '<div class="hv-h">10 günlük tahmin</div>' + sk; }
     if (!data) return '<div class="hv-empty">' + (ap() ? 'Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.' : 'Konumu kayıtlı arılık yok — arılık ekleyince tahmin burada görünür.') + '</div>';
     var fa = feedAlert(d);
     return '<div class="hv-h">10 günlük tahmin</div>' + (fa ? '<div class="hv-warn">🍯 ' + esc(fa) + '</div>' : '') + d.map(dayCard).join('');
@@ -279,11 +281,13 @@
     if (!a) { data = null; renderAll(); return; }
     try { localStorage.setItem(SEL_KEY, JSON.stringify({ id: a.id, label: a.place || a.name, at: Date.now() })); } catch (e) { /* ignore */ }
     if (force) { try { localStorage.removeItem(CACHE + a.id); } catch (e) { /* ignore */ } }
-    fetchFc(a).then(function (d) { if (ap() !== a) return; data = d; renderAll(); });
+    hvLoading = true;
+    var done = function (d) { if (ap() !== a) return; hvLoading = false; data = d || null; renderAll(); };
+    fetchFc(a).then(done, function () { done(null); });
   }
   function renderAll() { renderGrid(); renderScope(); route(); }
   function step(k) {
-    if (!aps.length) return; idx = ((idx + k) % aps.length + aps.length) % aps.length; data = null;
+    if (!aps.length) return; idx = ((idx + k) % aps.length + aps.length) % aps.length; data = null; hvLoading = true;
     var p = pinned(); if (p) { try { localStorage.setItem(LOCK_KEY, JSON.stringify({ locked: true, id: String(ap().id) })); } catch (e) { /* ignore */ } }
     try { var u = new URLSearchParams(location.search); u.set('apiary', ap().id); history.replaceState(null, '', 'hava.html?' + u.toString() + location.hash); } catch (e) { /* ignore */ }
     renderAll(); load();
