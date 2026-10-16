@@ -3510,8 +3510,8 @@
   /** koloni-204: nem kademe sırası — kritik < erken (normal alt) < normal üst ≤ kireç */
   /** koloni-205: tek kaynak nem durumu (kullanıcıya yalnız metin). Dönen { k: 'kritik'|'erken'|'normal'|'ustunde'|'kirec', etiket, ton } ya da null. */
   function nemDurum(rh, T) { T = T || (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR; var v = Number(rh); if (rh == null || !isFinite(v)) return null;
-    if (v < T.nemKritikAlt) return { k: 'kritik', etiket: 'Çok düşük', ton: 'bad' }; if (v < T.nemNormalAlt) return { k: 'erken', etiket: 'Düşüyor', ton: 'warn' };
-    if (v > T.nemKirecUst) return { k: 'kirec', etiket: 'Çok yüksek', ton: 'bad' }; if (v > T.nemNormalUst) return { k: 'ustunde', etiket: 'Normalin üstünde', ton: 'warn' }; return { k: 'normal', etiket: 'Normal', ton: '' }; }
+    if (v < T.nemKritikAlt) return { k: 'kritik', etiket: 'Çok düşük', kisa: 'Çok düşük', ton: 'bad' }; if (v < T.nemNormalAlt) return { k: 'erken', etiket: 'Düşüyor', kisa: 'Düşük', ton: 'warn' };
+    if (v > T.nemKirecUst) return { k: 'kirec', etiket: 'Çok yüksek', kisa: 'Çok yüksek', ton: 'bad' }; if (v > T.nemNormalUst) return { k: 'ustunde', etiket: 'Normalin üstünde', kisa: 'Yüksek', ton: 'warn' }; return { k: 'normal', etiket: 'Normal', kisa: 'Normal', ton: '' }; }
   function nemSiraGecerli(o) { var k = Number(o.nemKritikAlt), a = Number(o.nemNormalAlt), u = Number(o.nemNormalUst), c = Number(o.nemKirecUst); return [k, a, u, c].every(isFinite) && k >= 0 && c <= 100 && k < a && a < u && u <= c; }
   function ogulSkorDefaults() { return { ekipBildirim: EKIP_BILDIRIM.slice(), donem: {}, piping: pipingDefaults(), sensor: Object.assign({}, ORS_SENSOR), weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
   /** Geçerli ayar = varsayılan + (geçerliyse) yönetici kaydı. Ağırlık toplamı 1 değilse ağırlıklar varsayılan kalır. */

@@ -9,9 +9,9 @@ const T2=Object.assign({},T,{nemKritikAlt:40,nemNormalAlt:45,nemNormalUst:65,nem
 assert.ok(!/\d/.test(['kritik','erken','normal','ustunde','kirec'].map(x=>JSON.stringify(C.nemDurum({kritik:30,erken:57,normal:65,ustunde:78,kirec:90}[x],T).etiket)).join('')),'etikette sayı yok');
 const m=C.ogulSkorMerge({sensor:{nemNormalUst:70,nemKirecUst:78,nemHigh:99,kirecNemYuksek:99}}).sensor;assert.strictEqual(m.nemHigh,70);assert.strictEqual(m.kirecNemYuksek,78);
 const d=r('demo-data.js');assert.ok(/rh > T\.nemNormalUst\) \{ \/\* koloni-205/.test(d)&&!/rh > T\.nemHigh/.test(d));assert.ok(/rh > T\.nemKirecUst; \/\* koloni-205/.test(d)&&!/>= T\.kirecNemYuksek/.test(d));
-const kv=r('kovan.html');assert.ok(!/humid < 50|humid > 75/.test(kv));assert.ok(/nemDurum\(humid\)/.test(kv)&&/Nem: Veri yok/.test(kv));
+const kv=r('kovan.html');assert.ok(!/humid < 50|humid > 75/.test(kv));assert.ok(/nemDurum\(humid\)/.test(kv)&&/title="Nem: Veri yok"/.test(kv));
 const y=f=>fs.readFileSync(path.join(W,'../yonetici',f),'utf8');
 assert.ok(!/nemMaxYuzde/.test(y('panel2.js')),'Eşikler: ayrı nem üst sınırı yok');assert.ok(/k === 'nemHigh' \|\| k === 'kirecNemYuksek'\) return ''/.test(y('panel.js')));
 assert.ok(!/'nemHigh'\]|'kirecNemYuksek'\]/.test(y('panel10.js')));assert.ok(/\{s:\(\\w\+\)\\\}/.test(y('panel4.js'))&&/Sağlık kuralları/.test(y('panel4.js')));
-assert.strictEqual(d,y('demo-data.js'));assert.strictEqual(JSON.parse(r('version.json')).version,'koloni-205');
+assert.strictEqual(d,y('demo-data.js'));assert.strictEqual(JSON.parse(r('version.json')).version,'koloni-206');
 console.log('k205-nem-bagla ok');
