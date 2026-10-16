@@ -1,4 +1,4 @@
-/* koloni-224: telefon yedeği — durum/uyarı, liste HTML, telefon geri yüklemesi «Geri al» düğmesi, migration izinleri, otomatik başlatma. */
+/* Telefon yedeği — durum/uyarı, liste HTML, telefon geri yüklemesi «Geri al» düğmesi, migration izinleri, otomatik başlatma. */
 const assert=require('assert'),fs=require('fs'),path=require('path');
 const W=path.join(__dirname,'..'),r=f=>fs.readFileSync(path.join(W,f),'utf8');
 const mem={};globalThis.localStorage={getItem:k=>k in mem?mem[k]:null,setItem:(k,v)=>{mem[k]=String(v)},removeItem:k=>{delete mem[k]},key:i=>Object.keys(mem)[i],get length(){return Object.keys(mem).length}};
@@ -17,10 +17,10 @@ assert.ok(/henüz telefon yedeği/.test(Y.telefonListe([])));
 const gy=[{id:3,yedek_tarih:'2026-10-16',at:'2026-10-17T00:00:00Z',kapsam:'Telefon: iPhone',adet:4,telefon_yedek_id:7,telefon_oncesi_id:8}];
 assert.ok(/data-tk-geri="3"/.test(Y.yuklemeListe(gy,'telefon'))&&/Telefonda geri alınır/.test(Y.yuklemeListe(gy,true)));
 assert.strictEqual(r('yedekler.js'),r('../yonetici/yedekler.js'));
-const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261017110000_k224_telefon_yedek.sql'),'utf8');
+const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261017130000_k226_telefon_yedek.sql'),'utf8');
 assert.ok(/'telefon-yedek', 'telefon-yedek', false/.test(m),'özel kova');
 assert.ok(/sa_yedek_izin\(hesap_id, 'kayit'\)/.test(m)&&/sa_yedek_izin\(y\.hesap_id, 'geri'\)/.test(m)&&/telefon_uyari_gun int not null default 2/.test(m));
-assert.ok(/sa_telefon_silinecek/.test(m)&&/gunluk_gun/.test(m),'saklama yönetici ayarına bağlı');
+assert.ok(/sa_telefon_silinecek/.test(m)&&/where tur <> 'oncesi'/.test(m),'saklama + ayrı öncesi yedekleri');
 assert.ok(r('bulut.js').includes("loadScript('telefon-yedek.js?v='")&&r('yedekler.html').includes('telefon-yedek.js'));
 assert.ok(r('../yonetici/panel13.js').includes('data-y-uyari')&&r('../yonetici/panel13.js').includes('sa_telefon_yedek_liste'));
-console.log('k224 ok');
+console.log('telefon-yedek ok');

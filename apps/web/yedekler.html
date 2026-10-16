@@ -32,6 +32,18 @@
     <button type="button" class="btn" id="btnYedekle" style="margin-top:8px;min-height:44px">Şimdi eşitle ve yedekle</button>
     <p class="stat" id="esStat" role="status"></p>
   </section>
+  <section class="kart" id="kTel">
+    <h2>Telefon yedekleri</h2>
+    <p class="sub" style="margin:0 0 6px">Telefondaki her şey (cihaz listesi, ayarlar, henüz gönderilmemiş kayıtlar) ve fotoğraf dosyaları her gün telefonda yedeklenip buluta gönderilir. İnternet yoksa yedek telefonda bekler, bağlanınca gönderilir.</p>
+    <p id="tyDurum" style="margin:0;min-height:2.6em">Denetleniyor…</p>
+    <div id="tyListe"><p class="mk-vy">Yükleniyor…</p></div>
+    <div id="tyOnzK" hidden style="margin-top:8px;border-top:1px solid #ead9b3;padding-top:6px">
+      <b id="tyOnzBas">Önizleme</b>
+      <div id="tyOnz"></div>
+      <button type="button" class="btn" id="btnTyYukle" style="margin-top:8px;min-height:44px;display:none">Telefonu bu tarihe döndür</button>
+    </div>
+    <p class="stat" id="tyStat" role="status"></p>
+  </section>
   <section class="kart">
     <h2>Saklama</h2>
     <p id="saklama" class="mk-vy" style="margin:0;min-height:2.6em">Her gece 03:00 (TSİ) otomatik yedek alınır.</p>
@@ -54,8 +66,10 @@
 <script src="demo-data.js?v=koloni-223"></script>
 <script src="yetki.js?v=koloni-223"></script>
 <script src="bulut.js?v=koloni-223"></script>
-<script src="yedek.js?v=koloni-223"></script>
+<script src="yedek.js?v=koloni-226"></script>
+<script src="foto.js?v=koloni-226"></script>
 <script src="yedekler.js?v=koloni-223"></script>
+<script src="telefon-yedek.js?v=koloni-226"></script>
 <script>
 (function () {
   'use strict';
@@ -79,7 +93,7 @@
     if (ORNEK) { s = { pending: 2, lastSync: new Date(Date.now() - 6e5).toISOString() }; yer = ['Cihazlar / sensörler', 'Ayar: bildirim']; }
     $('esDurum').textContent = !s ? 'Bulut bağlantısı yok.' : (s.pending ? s.pending + ' değişiklik henüz buluta gönderilmedi — yedeğe girmesi için eşitle. ' : 'Telefondaki tüm kayıtlar buluta eşitlendi. ') + (s.lastSync ? 'Son eşitleme: ' + Y.tf(s.lastSync) : '');
     var el = $('yerel'); el.hidden = !yer.length;
-    if (yer.length) el.innerHTML = '<b>Yalnız bu telefonda duran veriler (buluta ve yedeğe girmez):</b> ' + yer.map(Y.esc).join(', ') + '. Bunları korumak için Ayarlar › Cihaz yedeği (dosya) kullan.';
+    if (yer.length) el.innerHTML = '<b>Yalnız bu telefonda duran veriler:</b> ' + yer.map(Y.esc).join(', ') + '. Bunlar aşağıdaki telefon yedeğine girer.';
   }
   function saklama() {
     var yaz = function (a) { $('saklama').textContent = 'Her gece 03:00 (TSİ) otomatik yedek alınır. Son ' + a.gunluk_gun + ' günün yedeği günlük, ayın 1\'indeki yedek ' + a.aylik_ay + ' ay saklanır (süre uzman tahmini; yönetici değiştirir).'; };
@@ -91,12 +105,12 @@
     return Y.liste(CL, null).then(function (rows) {
       if (!HESAP && rows.length) HESAP = rows[0].hesap_id;
       $('yListe').innerHTML = rows.length || (window.SuperAriYedek && (!window.SuperAriYetki || SuperAriYetki.rol() === 'owner')) ? Y.yedekListe(rows) : '<p class="mk-vy">Yedekleri görme iznin yok. İzni Sahip Ayarlar › Ekip’ten «Değişiklik kaydını görebilsin» ile verir.</p>';
-      return Y.yuklemeler(CL, HESAP).then(function (g) { $('ykListe').innerHTML = Y.yuklemeListe(g, GERI); });
+      return Y.yuklemeler(CL, HESAP).then(function (g) { $('ykListe').innerHTML = Y.yuklemeListe(g, GERI ? 'telefon' : false); });
     }).catch(function (e) { $('yListe').innerHTML = '<p class="mk-vy">Veri yok — yüklenemedi (' + Y.esc((e && e.message) || 'bağlantı') + ').</p>'; });
   }
   function onizle(id) {
     SEC = id; var y = null; $('onz').innerHTML = '<p class="mk-vy">Fark hesaplanıyor…</p>'; $('btnTum').hidden = true; st('onzStat', '');
-    var row = document.querySelector('[data-yd="' + id + '"]'); var bas = row ? row.closest('li').querySelector('b').textContent : '';
+    var row = document.querySelector('[data-yd="' + id + '"]'); var bas = row ? row.closest('.yd-li').querySelector('b').textContent : '';
     $('onzBas').textContent = 'Önizleme · ' + bas + ' yedeği';
     (ORNEK ? Promise.resolve(ornekFark()) : Y.fark(CL, id)).then(function (rows) {
       FARK = rows; $('onz').innerHTML = Y.onizleme(rows, { geri: GERI }); $('btnTum').hidden = !GERI || !rows.length;
@@ -127,21 +141,76 @@
   });
   $('btnYedekle').addEventListener('click', function () {
     if (ORNEK) { st('esStat', 'Önizlemede yedek alınmaz.'); return; }
-    if (!CL || !HESAP) { st('esStat', 'Yedek almak için giriş yap.'); return; }
+    if (!CL) { st('esStat', 'Yedek almak için giriş yap.'); return; }
     var b = this; b.disabled = true; st('esStat', 'Telefon eşitleniyor…');
     Promise.resolve(B.sync ? B.sync() : null).then(function () {
       var s = B.localStatus ? B.localStatus() : null;
       st('esStat', s && s.pending ? 'Bazı değişiklikler gönderilemedi (' + s.pending + '); onlar bu yedeğe girmez. Yedekleniyor…' : 'Yedekleniyor…');
-      return Y.simdiYedekle(CL, HESAP);
-    }).then(function () { b.disabled = false; st('esStat', 'Yedek alındı (' + Y.tf(new Date().toISOString()) + ').'); esDurum(); listeYukle(); })
+      return Y.simdiYedekle(CL, HESAP).catch(function (e) { return { hata: e }; });
+    }).then(function (r) { st('esStat', 'Telefon yedeği alınıyor…'); return (TY ? TY.al('elle') : Promise.resolve({})).then(function (t) { return { s: r, t: t }; }); })
+    .then(function (x) { b.disabled = false; st('esStat', (x.s && x.s.hata ? 'Bulut yedeği alınamadı (' + ((x.s.hata && x.s.hata.message) || '') + '). ' : 'Bulut yedeği alındı. ') + (x.t && x.t.bekleyen ? 'Telefon yedeği alındı, internet gelince gönderilecek.' : 'Telefon yedeği buluta gönderildi (' + Y.tf(new Date().toISOString()) + ').')); esDurum(); tyDurum(); tyListe(); listeYukle(); })
       .catch(function (e) { b.disabled = false; st('esStat', 'Yedek alınamadı: ' + ((e && e.message) || 'bağlantı')); });
   });
+  /* ---- Telefon yedekleri ---- */
+  var TY = window.SuperAriTelefonYedek, TROWS = [], TSEC = null, UYARI = 2;
+  function tyDurum() {
+    var d = TY ? TY.durum(UYARI) : null, el = $('tyDurum');
+    if (ORNEK) d = { son: new Date(Date.now() - 5 * 36e5).toISOString(), uyari: false, uyariGun: 2 };
+    if (!d) { el.textContent = 'Telefon yedeği yüklenemedi.'; return; }
+    TY.kuyruk().then(function (q) {
+      var bek = ORNEK ? 0 : q.length;
+      el.innerHTML = (d.son ? 'Son başarılı yükleme: <b>' + Y.esc(Y.tf(d.son)) + '</b>' : '<b>Bu telefondan henüz buluta yedek gönderilmedi.</b>') + (bek ? '<br>' + bek + ' yedek telefonda bekliyor (internet gelince gönderilecek).' : '')
+        + (d.uyari ? '<br><span style="color:#8a2416">⚠ ' + d.uyariGun + ' günden uzun süredir buluta yedek gitmedi. İnternete bağlanıp «Şimdi eşitle ve yedekle»ye dokun.</span> <small>(' + d.uyariGun + ' gün uzman tahmini; yönetici değiştirir)</small>' : '')
+        + (d.hata && !ORNEK ? '<br><small>Son hata: ' + Y.esc(d.hata) + '</small>' : '');
+    });
+  }
+  function ornekTel() { var n = Date.now(), D = 864e5, iso = function (k) { return new Date(n - k * D).toISOString(); }; return [0, 1, 2, 3].map(function (k) { return { id: 20 - k, hesap_id: 'a', tarih: iso(k).slice(0, 10), tur: k === 2 ? 'elle' : 'gunluk', at: iso(k), cihaz_ad: 'iPhone', boyut: 1412000 + k * 900, fotolar: new Array(27 - k).join('x').split('x') }; }); }
+  function tyListe() {
+    if (ORNEK) { TROWS = ornekTel(); $('tyListe').innerHTML = Y.telefonListe(TROWS); if (/[?&]ty=1/.test(location.search)) tyOnizle(TROWS[1].id); return; }
+    if (!CL || !TY) { $('tyListe').innerHTML = '<p class="mk-vy">Telefon yedeklerini görmek için giriş yap.</p>'; return; }
+    TY.liste(CL, null).then(function (r) { TROWS = r; $('tyListe').innerHTML = Y.telefonListe(r); }).catch(function (e) { $('tyListe').innerHTML = '<p class="mk-vy">Veri yok — yüklenemedi (' + Y.esc((e && e.message) || 'bağlantı') + ').</p>'; });
+  }
+  function tyOnizle(id) {
+    TSEC = TROWS.filter(function (r) { return String(r.id) === String(id); })[0]; if (!TSEC) return;
+    $('tyOnzK').hidden = false; $('tyOnzBas').textContent = 'Önizleme · ' + Y.gun(TSEC.tarih) + ' telefon yedeği (' + (TSEC.cihaz_ad || 'Telefon') + ')'; $('tyOnz').innerHTML = '<p class="mk-vy">Yedek indiriliyor…</p>'; $('btnTyYukle').style.display = 'none'; st('tyStat', '');
+    var p = ORNEK ? Promise.resolve({ satirlar: [{ label: 'Cihazlar / sensörler', local: 14, backup: 12, action: 'farkli' }, { label: 'Elle tartım', local: 41, backup: 38, action: 'farkli' }, { label: 'Ayar: bildirim', local: 0, backup: 1, action: 'yeni' }], foto: 26, fotoEksik: 2 })
+      : TY.indir(CL, TSEC).then(function (b) { return TY.onizle(b); });
+    p.then(function (o) {
+      var h = o.satirlar.length ? '<p style="margin:.3rem 0">Bu tarihe dönülürse telefonda <b>' + o.satirlar.length + ' bölüm</b> yedekteki hâline döner:</p>' + o.satirlar.map(function (r) {
+        return '<div style="padding:.3rem 0;border-top:1px solid #f0e6cf;display:flex;justify-content:space-between;gap:.4rem"><span><span class="yd-d ' + (r.action === 'yeni' ? 'yd-eklenecek' : 'yd-degisecek') + '">' + (r.action === 'yeni' ? 'Geri gelecek' : 'Değişecek') + '</span> ' + Y.esc(r.label) + '</span><small>şimdi ' + r.local + ' → yedekte ' + r.backup + '</small></div>';
+      }).join('') : '<p class="mk-vy">Telefondaki veriler bu yedekle aynı.</p>';
+      h += '<p style="margin:.4rem 0 0"><small>Fotoğraf: yedekte ' + o.foto + (o.fotoEksik ? ', bu telefonda olmayan ' + o.fotoEksik + ' fotoğraf geri gelecek' : '') + '. Yedekten sonra eklenen kayıt ve fotoğraflar silinmez; yedekteki bölümler yedekteki hâline döner.</small></p>';
+      $('tyOnz').innerHTML = h; $('btnTyYukle').style.display = GERI && (o.satirlar.length || o.fotoEksik) ? '' : 'none';
+      if (!GERI) st('tyStat', 'Geri yükleme yalnız Sahip ve Sahibin «Değişiklikleri geri alabilsin» izni verdiği kişilerde.');
+    }).catch(function (e) { $('tyOnz').innerHTML = '<p class="mk-vy">Önizleme yapılamadı (' + Y.esc((e && e.message) || 'bağlantı') + ').</p>'; });
+  }
+  $('tyListe').addEventListener('click', function (e) { var b = e.target.closest('[data-ty]'); if (b) tyOnizle(b.getAttribute('data-ty')); });
+  $('btnTyYukle').addEventListener('click', function () {
+    if (!TSEC) return;
+    if (!confirm($('tyOnzBas').textContent.replace('Önizleme · ', '') + ' — bu telefondaki veriler bu tarihteki hâline döndürülsün mü?\n\nÖnce telefonun şimdiki hâli yedeklenip buluta gönderilir. İşlem değişiklik kaydına yazılır ve «Geri yüklemeler»den geri alınabilir.')) return;
+    if (ORNEK) { st('tyStat', 'Önizlemede geri yükleme yapılmaz.'); return; }
+    var b = this; b.disabled = true; st('tyStat', 'Şimdiki hâl yedekleniyor, sonra geri yükleniyor…');
+    TY.geriYukle(CL, TSEC).then(function (r) { b.disabled = false; st('tyStat', 'Tamam: ' + r.degisen + ' bölüm ve ' + r.foto + ' fotoğraf geri yüklendi (#' + r.yukleme_id + '). Sayfalar yenilenince görünür.'); tyDurum(); tyListe(); listeYukle(); })
+      .catch(function (e) { b.disabled = false; st('tyStat', 'Geri yüklenemedi: ' + ((e && e.message) || 'bağlantı')); });
+  });
+  $('ykListe').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tk-geri]'); if (!b) return; var id = b.getAttribute('data-tk-geri');
+    if (!confirm('#' + id + ' telefon geri yüklemesi geri alınsın mı? Telefon geri yüklemeden önceki hâline döner; bu da kayda yazılır.')) return;
+    if (ORNEK) { st('tyStat', 'Önizlemede geri alma yapılmaz.'); return; }
+    b.disabled = true;
+    Y.yuklemeler(CL, HESAP).then(function (L) { var gy = L.filter(function (x) { return String(x.id) === id; })[0]; return TY.liste(CL, null).then(function (rows) { return TY.geriAl(CL, gy, rows); }); })
+      .then(function () { st('tyStat', 'Geri alındı: telefon geri yüklemeden önceki hâline döndü.'); listeYukle(); })
+      .catch(function (er) { b.disabled = false; st('tyStat', 'Geri alınamadı: ' + ((er && er.message) || 'bağlantı')); });
+  });
+  window.addEventListener('superari-telefon-yedek', tyDurum);
   esDurum(); window.addEventListener('superari-cloud-status', esDurum);
-  if (ORNEK) { GERI = true; saklama(); listeYukle(); return; }
+  if (ORNEK) { GERI = true; saklama(); listeYukle(); tyDurum(); tyListe(); return; }
+  tyDurum();
   if (!B) { $('yListe').innerHTML = '<p class="mk-vy">Veri yok — bulut bağlantısı yok.</p>'; return; }
   B.client().then(function (c) { CL = c; return c.auth.getUser(); }).then(function (u) {
     if (!u || !u.data || !u.data.user) { $('yListe').innerHTML = '<p class="mk-vy">Yedekleri görmek için giriş yap.</p><a class="btn ikincil" href="hesap.html">Giriş yap</a>'; $('ykListe').innerHTML = ''; return; }
-    ME = u.data.user.id; saklama();
+    ME = u.data.user.id; saklama(); tyListe();
+    CL.from('sa_yedek_ayar').select('telefon_uyari_gun').eq('id', 1).maybeSingle().then(function (r) { if (r && r.data && r.data.telefon_uyari_gun) UYARI = r.data.telefon_uyari_gun; tyDurum(); });
     var r = window.SuperAriYetki ? SuperAriYetki.rol() : 'owner'; if (r === 'owner') HESAP = ME;
     return listeYukle().then(function () {
       if (!HESAP) return;

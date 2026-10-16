@@ -68,9 +68,20 @@
     if (!rows || !rows.length) return '<p class="mk-vy">Henüz geri yükleme yapılmadı.</p>';
     return '<div>' + rows.map(function (g2) {
       return '<div style="padding:.45rem 0;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;gap:.5rem;align-items:center"><div><b>#' + g2.id + ' · ' + esc(gun(g2.yedek_tarih)) + ' yedeğine dönüldü</b><br><small>' + esc(tf(g2.at)) + ' · ' + esc(g2.email || '—') + ' · ' + esc(kapsamAd(g2.kapsam)) + ' · ' + (g2.adet || 0) + ' değişiklik</small></div>'
-        + (g2.geri_alindi_at ? '<span class="dk-et">Geri alındı</span>' : (geri ? '<button type="button" class="btn ikincil" data-yk-geri="' + g2.id + '" style="width:auto;flex:none;min-height:34px;padding:4px 12px">Geri al</button>' : '')) + '</div>';
+        + (g2.geri_alindi_at ? '<span class="dk-et">Geri alındı</span>' : g2.telefon_yedek_id ? (geri === 'telefon' ? '<button type="button" class="btn ikincil" data-tk-geri="' + g2.id + '" style="width:auto;flex:none;min-height:34px;padding:4px 12px">Geri al</button>' : '<span class="dk-et">Telefonda geri alınır</span>') : (geri ? '<button type="button" class="btn ikincil" data-yk-geri="' + g2.id + '" style="width:auto;flex:none;min-height:34px;padding:4px 12px">Geri al</button>' : '')) + '</div>';
     }).join('') + '</div>';
   }
-  g.SuperAriYedekBulut = { TB: TB, TB1: TB1, TUR: TUR, DUR: DUR, ad: ad, ozet: ozet, gun: gun, tf: tf, esc: esc, yedekListe: yedekListe, onizleme: onizleme, kapsamMetni: kapsamMetni, yalnizYerel: yalnizYerel,
+  /* Telefon yedekleri listesi */
+  function telefonListe(rows, opt) {
+    opt = opt || {};
+    if (!rows || !rows.length) return '<p class="mk-vy">Veri yok — henüz telefon yedeği buluta gönderilmedi.</p>';
+    var by = function (n) { n = +n || 0; return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; };
+    return '<div>' + rows.map(function (y) {
+      return '<div class="yd-li" style="padding:.55rem 0;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;gap:.5rem;align-items:center"><div><b>' + esc(gun(y.tarih)) + '</b> · ' + esc(TUR[y.tur] || y.tur) + ' · ' + esc(y.cihaz_ad || 'Telefon')
+        + (opt.email && y.email ? ' · ' + esc(y.email) : '') + '<br><small>' + esc(tf(y.at)) + ' · ' + by(y.boyut) + ' · ' + ((y.fotolar || []).length) + ' fotoğraf</small></div>'
+        + (opt.sec === false ? '' : '<button type="button" class="btn ikincil" data-ty="' + y.id + '" style="width:auto;flex:none;min-height:36px;padding:4px 12px">Önizle</button>') + '</div>';
+    }).join('') + '</div>';
+  }
+  g.SuperAriYedekBulut = { telefonListe: telefonListe, TB: TB, TB1: TB1, TUR: TUR, DUR: DUR, ad: ad, ozet: ozet, gun: gun, tf: tf, esc: esc, yedekListe: yedekListe, onizleme: onizleme, kapsamMetni: kapsamMetni, yalnizYerel: yalnizYerel,
     liste: liste, fark: fark, geriYukle: geriYukle, yuklemeGeriAl: yuklemeGeriAl, simdiYedekle: simdiYedekle, yuklemeler: yuklemeler, yuklemeListe: yuklemeListe };
 })(typeof window !== 'undefined' ? window : globalThis);

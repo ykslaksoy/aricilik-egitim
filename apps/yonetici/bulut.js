@@ -1217,6 +1217,12 @@
     var timer = null;
     function soon(ms) { clearTimeout(timer); timer = setTimeout(function () { sync(); }, ms); }
     soon(1500);
+    /* Telefon yedeği — günde bir telefonda alınır, buluta (telefon-yedek) gönderilir; çevrimdışıysa kuyrukta bekler */
+    setTimeout(function () {
+      ensureFoto().then(function () { return global.SuperAriYedek ? null : loadScript('yedek.js?v=' + VERSION); })
+        .then(function () { return global.SuperAriTelefonYedek ? null : loadScript('telefon-yedek.js?v=' + VERSION); })
+        .then(function () { if (global.SuperAriTelefonYedek) global.SuperAriTelefonYedek.otomatik(); }).catch(function () { /* sonraki açılışta */ });
+    }, 20000);
     var mt = null;
     hookWrites(function () {
       clearTimeout(mt);
