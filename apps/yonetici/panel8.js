@@ -1,4 +1,4 @@
-/* koloni-188: Yönetici · Kuyruğu temizle (cevre_kuyruk; RPC yalnız admin, sayı onayı) + Özellik açma/kapama (ozellik_bayraklari) */
+/* koloni-189: Yönetici · Kuyruğu temizle (cevre_kuyruk; RPC yalnız admin, sayı onayı) + Özellik açma/kapama (ozellik_bayraklari) */
 (function () {
   'use strict';
   var B = window.SuperAriBulut, host = document.getElementById('panel'); if (!B || !host) return;

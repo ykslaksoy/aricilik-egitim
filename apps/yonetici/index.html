@@ -117,7 +117,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-182').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-182');}).then(function(){return load('panel6.js?v=koloni-182');}).then(function(){return load('panel7.js?v=ot-1');}).then(function(){return load('panel8.js?v=koloni-188');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-182').then(function(){return load('panel.js?v=yon-2');}).then(function(){return load('panel2.js?v=yon-2');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=yon-3');}).then(function(){return load('panel5.js?v=koloni-182');}).then(function(){return load('panel6.js?v=koloni-182');}).then(function(){return load('panel7.js?v=ot-1');}).then(function(){return load('panel8.js?v=koloni-189');}); }
           }).then(function () { return true; });
         });
       });

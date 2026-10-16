@@ -259,7 +259,19 @@
     '.te-rev{margin:-2px 0 8px;padding:10px 12px;border-radius:12px;background:#f1f8ff;border:1px solid #a5d8ff;font-size:13px;font-weight:700;color:#1864ab;}.te-rev button{font:inherit;font-size:13px;font-weight:800;border-radius:10px;border:1px solid #74c0fc;background:#fff;color:#1864ab;padding:6px 10px;margin-top:8px;cursor:pointer;}' +
     '.te [hidden]{display:none!important;}.te-sync{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 6px;}.te-sync span{font-size:12px;font-weight:800;padding:5px 10px;border-radius:999px;background:#e7f5ff;color:#1864ab;border:1px solid #a5d8ff;}' +
     '.te-tare{margin:-4px 0 0;font-size:13px;font-weight:700;color:#5c4813;background:#fff3bf;border:1px solid #ffe066;border-radius:10px;padding:6px 8px;}' +
-    '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:#f8f1e6;border-radius:12px;font-size:20px;cursor:pointer;width:64px;height:64px;}';
+    '.te-main{flex:1;min-width:0;}.te-main small{color:#6b5a48;}.te-sub{display:block;}.te-del{flex:none;border:0;background:#f8f1e6;border-radius:12px;font-size:20px;cursor:pointer;width:64px;height:64px;}' +
+    /* k189: Tartı sayfasının renk ve düzeni — gri zemin, beyaz Kapsam kartı (başlık + özet + [◀ Geri][▶ Kaydet]), beyaz form kartı, altın düğmeler */
+    '.te{background:#f2f3f5;max-height:94vh;padding:10px 10px calc(16px + env(safe-area-inset-bottom));color:#1f2328;}' +
+    '.te-card{background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin:0 0 8px;display:flex;flex-direction:column;gap:8px;}' +
+    '.te-hd{display:flex;align-items:center;gap:8px;min-width:0;}.te-hd h2{margin:0;font-size:18px;font-weight:800;color:#1f2328;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}.te-ic{font-size:22px;line-height:1;flex:none;}' +
+    '.te-demo{flex:none;font-size:11px;font-weight:800;color:#1864ab;background:#e7f5ff;border:1px solid #a5d8ff;border-radius:999px;padding:1px 8px;}' +
+    '.te-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;text-align:center;}.te-stats b{display:block;font-size:20px;font-weight:800;color:#1f2328;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.te-stats small{font-size:12px;color:#5f6b7a;font-weight:600;}' +
+    '.te-hint{margin:0;display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;background:#fff8e1;border:1px solid #e0c56a;font-size:13px;font-weight:650;color:#4a2f1a;}' +
+    '.te-act{display:grid;grid-template-columns:calc((100% - 10px) / 3) 1fr;column-gap:5px;}' +
+    '.te-gold{display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;width:100%;margin:0;padding:6px 10px;box-sizing:border-box;border-radius:14px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.65);color:#4a2f1a;font:inherit;font-size:16px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;white-space:nowrap;}' +
+    '.te-gold:active{transform:scale(.99);}.te-tri{width:0;height:0;border-top:9px solid transparent;border-bottom:9px solid transparent;flex:none;}.te-tri.l{border-right:14px solid #4a2f1a;}.te-tri.r{border-left:14px solid #4a2f1a;}' +
+    '.te label.f{color:#5f6b7a;font-weight:700;}.te input[type=datetime-local],.te input[type=text],.te input[type=number],.te select{border-color:#e6e8ec;background:#fff;min-height:56px;}.te .te-chk{border-color:#e6e8ec;min-height:56px;}' +
+    '.te .te-btn{background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border-color:#e0c56a;color:#4a2f1a;min-height:56px;}.te-sec{color:#1f2328;}.te-row{border-top-color:#eef0f3;}.te-link{border-color:#e6e8ec;}';
   function ensureCss() { if (document.getElementById('teCss')) return; var s = document.createElement('style'); s.id = 'teCss'; s.textContent = css; document.head.appendChild(s); }
   function close() { var b = document.getElementById('teSheet'); if (b) b.remove(); }
   /** Kapsam için son tartımlar (elle / cihaz / bakım / talep). hiveIds: number[]; opts: { limit, title, onClose } */
@@ -312,11 +324,16 @@
       '<button type="button" class="te-btn" data-te-save>Elle tartımı kaydet</button><p class="te-msg" data-te-msg role="status"></p></form>';
     /* Kovan seçiliyse: cihaz varsa önce otomatik okuma (tek dokunuşla kaydet), altında elle tartım her zaman; cihaz yoksa elle tartım önce + Cihazlar notu */
     var devQ = h ? 'cihazlar.html?apiary=' + encodeURIComponent(h.apiaryId) + '&tip=tarti#devList' : 'cihazlar.html';
-    back.innerHTML = '<div class="te" role="dialog" aria-modal="true" aria-label="Tartım"><h2>⚖ ' + (h ? esc(h.name) + ' · Tartım' : 'Elle tartım') + '<button type="button" class="te-x" data-te-close aria-label="Kapat">×</button></h2>' +
-      '<p style="margin:0 0 10px;font-size:13px;color:#6b5a48;">' + (auto ? 'Otomatik tartı okuması aşağıda; elle tartım her zaman eklenebilir.' : 'Kovanı el kantarı / baskülle tartıp yazın. Tartı cihazı bağlı olsa da elle kayıt her zaman eklenebilir.') + (isLive() ? '' : ' · Demo') + '</p>' +
-      (auto ? autoHtml(auto) + '<h3 class="te-sec">Elle tartım</h3>' : '') + formHtml +
+    /* k189: Tartı Kapsam kartı deseni — başlık + Demo, özet (son tartım · tarih · dara), not şeridi, [◀ Geri (1/3)][▶ Kaydet (2/3)] */
+    back.innerHTML = '<div class="te" role="dialog" aria-modal="true" aria-label="Tartım"><section class="te-card te-head">' +
+      '<div class="te-hd"><span class="te-ic" aria-hidden="true">⚖</span><h2>' + (h ? esc(h.name) + ' · Tartım' : 'Elle tartım') + '</h2>' + (isLive() ? '' : '<span class="te-demo">Demo</span>') + '</div>' +
+      '<div class="te-stats" data-te-stats></div>' +
+      '<p class="te-hint">' + (auto ? 'Otomatik tartı okuması aşağıda; elle tartım her zaman eklenebilir.' : 'Kovanı el kantarı / baskülle tartıp yazın. Tartı cihazı bağlı olsa da elle kayıt her zaman eklenebilir.') + '</p>' +
+      '<div class="te-act"><button type="button" class="te-gold te-geri" data-te-close aria-label="Geri"><span class="te-tri l" aria-hidden="true" data-te-close></span><span data-te-close>Geri</span></button>' +
+      '<button type="button" class="te-gold" data-te-save><span class="te-tri r" aria-hidden="true"></span><span>Kaydet</span></button></div></section>' +
+      (auto ? autoHtml(auto) + '<h3 class="te-sec">Elle tartım</h3>' : '') + '<section class="te-card">' + formHtml + '</section>' +
       (h && !auto ? '<div class="te-noscale"><span>📡 Bu kovanda tartı cihazı yok. Otomatik tartı Cihazlar sayfasından eklenebilir.</span><a class="te-link" href="' + devQ + '">Cihazlar ›</a></div>' : '') +
-      '<div data-te-list style="margin-top:10px;"></div>' +
+      '<section class="te-card" data-te-list-card><div data-te-list></div></section>' +
       (h ? '<a class="te-link" style="margin-top:10px;" href="kovan.html?id=' + encodeURIComponent(h.id) + '">🏠 Kovan detayı ›</a>' : '') + '</div>';
     document.body.appendChild(back);
     var f = back.querySelector('[data-te-form]');
@@ -360,6 +377,14 @@
     function curHive() { return h ? h.id : (f.elements.hive && f.elements.hive.value); }
     function renderList() {
       var hid = curHive(), l = hid != null && hid !== '' ? list(hid).slice(0, 6) : [];
+      var stEl = back.querySelector('[data-te-stats]');
+      if (stEl) {
+        var lx = l[0], twS = hid != null && hid !== '' ? tare(hid, f.elements.at.value) : { kg: 0 };
+        stEl.innerHTML = '<div><b>' + (lx ? num(lx.kg) + ' kg' : '—') + '</b><small>Son tartım</small></div>' +
+          '<div><b>' + (lx ? esc(fmtAt(lx.at).replace(/ \d{2}:\d{2}$/, '')) : '—') + '</b><small>Tarih</small></div>' +
+          '<div><b>' + (twS.kg > 0 ? num2(twS.kg) + ' kg' : '—') + '</b><small>Dara</small></div>';
+      }
+      var lc = back.querySelector('[data-te-list-card]'); if (lc) lc.hidden = !l.length;
       back.querySelector('[data-te-list]').innerHTML = l.length ? '<b style="font-size:14px;">Son tartımlar</b>' + l.map(function (x) { return rowHtml(x, { del: true }); }).join('') : '';
     }
     function toggleAdd() { back.querySelector('[data-te-add]').hidden = !(f.elements.kat.checked || f.elements.besleme.checked); showTare(); }
@@ -428,6 +453,7 @@
         renderList();
         if (typeof opts.onSaved === 'function') opts.onSaved(r);
       } catch (err) { m.className = 'te-msg err'; m.textContent = err.message || 'Kaydedilemedi'; }
+      try { if (e.target.closest('.te-head')) m.scrollIntoView({ block: 'nearest' }); } catch (eSc) { /* ignore */ }
     });
     if (!auto) setTimeout(function () { try { f.elements.kg.focus(); } catch (e) { /* ignore */ } }, 50);
   }

@@ -465,8 +465,31 @@
     return Object.keys(byId).map(function (k) { return byId[k]; });
   }
 
+  /* k189: elle «Cihaz ekle» — Canlı: superari.devices; Demo: ayrı anahtar (Demo kaydı Canlı'ya karışmaz). Okuma gelene kadar durum «Veri yok». */
+  var DEMO_USER_KEY = 'superari.devices.demoUser';
+  function addDevice(o) {
+    o = o || {};
+    var tip = String(o.tip || '').trim();
+    if (!tip || !/^[a-z_]{2,32}$/.test(tip)) throw new Error('Cihaz türü seçin');
+    var hiveId = o.hiveId != null && o.hiveId !== '' ? Number(o.hiveId) : null;
+    var apiaryId = o.apiaryId != null && o.apiaryId !== '' ? String(o.apiaryId) : null;
+    if (apiaryId == null && hiveId == null) throw new Error('Arılık seçin');
+    var row = { id: 'u-' + tip + '-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), tip: tip, hiveId: hiveId, apiaryId: apiaryId, status: STATUS.yok, addedAt: new Date().toISOString(), manual: true };
+    var nm = String(o.name || '').trim().slice(0, 60); if (nm) row.name = nm;
+    var key = isDemo() ? DEMO_USER_KEY : DEVICES_KEY;
+    var l = readJsonArray(key); l.push(row);
+    if (!writeJsonArray(key, l)) throw new Error('Kaydedilemedi (depolama dolu/kapalı)');
+    try { global.dispatchEvent(new CustomEvent('superari-devices-changed')); } catch (e) { /* ignore */ }
+    return row;
+  }
+  function removeUserDevice(id) {
+    [DEVICES_KEY, DEMO_USER_KEY].forEach(function (k) { var l = readJsonArray(k); var n = l.filter(function (d) { return d && d.id !== id; }); if (n.length !== l.length) writeJsonArray(k, n); });
+  }
+  function demoUserList() {
+    return readJsonArray(DEMO_USER_KEY).map(function (d) { var n = normalizeLive(d, 'user'); if (n) { n.status = STATUS.yok; n.demo = true; } return n; }).filter(Boolean);
+  }
   function listDevices() {
-    return isDemo() ? demoList() : liveList();
+    return isDemo() ? demoList().concat(demoUserList()) : liveList();
   }
 
   function cameraDevices() {
@@ -572,6 +595,9 @@
     STATUS: STATUS,
     TIP_LABELS: TIP_LABELS,
     DEMO_SEED: DEMO_SEED,
+    DEMO_USER_KEY: DEMO_USER_KEY,
+    addDevice: addDevice,
+    removeUserDevice: removeUserDevice,
     getMode: getMode,
     setMode: setMode,
     isDemo: isDemo,

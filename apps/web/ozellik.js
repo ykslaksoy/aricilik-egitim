@@ -1,4 +1,4 @@
-/* koloni-188 · Özellik bayrakları (ozellik_bayraklari; yönetici açar/kapatır, uygulama yalnız okur).
+/* koloni-189 · Özellik bayrakları (ozellik_bayraklari; yönetici açar/kapatır, uygulama yalnız okur).
  * Karar önbellekten eşzamanlı verilir (ekran zıplamaz); arka planda tazelenir, yeni değer bir sonraki açılışta geçer.
  * Kapalı modül: giriş linki «Yakında» sayfası açar; sayfaya doğrudan gelinirse sabit katman (yerleşimi kaydırmaz). */
 (function (global) {

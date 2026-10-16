@@ -356,6 +356,8 @@
     if (navChipList && navChipList.length) {
       try { global.document.body.classList.add('ks-scope-nav-in-card'); } catch (eNav) { /* ignore */ }
     }
+    /* k189: Geri satırı ilk çizimde yer tutar (nav.js sonradan doldurur, kart büyümez/kaymaz) */
+    var ACT_RES = opts.noActRow ? '' : '<div id="saActRow" class="sa-act-row" data-sa-act-res style="min-height:56px;margin-top:2px"></div>';
     var SC = opts.bk ? 'bk-stat' : 'ks-stat';
     if (opts.bk) {
       /* Bakım'daki Kapsam kartının birebir işaretlemesi (bakim.html #bkScope sınıfları; stil bakim-akis.html'e senkronlanır) */
@@ -365,7 +367,7 @@
       else if (!end) end = weatherEndHtml();
       host.innerHTML = scopeCardHeadHtml('bk', opts, navChipList, end) +
         '<div class="bk-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
-        (opts.bottom != null ? opts.bottom : '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>');
+        (opts.bottom != null ? opts.bottom : '<a class="muayene-hint is-active bk-note" data-ks-note href="#"><span class="muayene-hint-text" data-ks-nt>—</span><span class="muayene-hint-ok" data-ks-nb>Aç</span></a>') + ACT_RES;
     } else {
     host.classList.add('ks-card');
     var endK = opts.topEnd != null ? opts.topEnd : (opts.topExtra || '');
@@ -373,7 +375,7 @@
     else if (!endK) endK = weatherEndHtml();
     host.innerHTML = scopeCardHeadHtml('ks', opts, navChipList, endK) +
       '<div class="ks-stats" data-ks-stats aria-label="Kapsam özeti"></div>' +
-      '<a class="ks-note" data-ks-note href="#"><span class="ks-note-t" data-ks-nt>—</span><span class="ks-note-b" data-ks-nb>Aç</span></a>';
+      '<a class="ks-note" data-ks-note href="#"><span class="ks-note-t" data-ks-nt>—</span><span class="ks-note-b" data-ks-nb>Aç</span></a>' + ACT_RES;
     }
     function q(sel) { return host.querySelector(sel); }
     function setScope(s) {

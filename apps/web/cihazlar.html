@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-188" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-188" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-188" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-189" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-189" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-189" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -124,16 +124,16 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-188"></script>
-<script src="demo-data.js?v=koloni-188"></script>
-<script src="device-runtime.js?v=koloni-188"></script>
-<script src="cicek-veri.js?v=koloni-188"></script><script src="cicek.js?v=koloni-188"></script><script src="plan-planlayici.js?v=koloni-188"></script><script src="rota-motoru.js?v=koloni-188"></script><script src="cevre.js?v=koloni-188"></script><script src="saglik-takvimi.js?v=koloni-188"></script>
-<script src="sensor-polling.js?v=koloni-188"></script>
-<script src="tarti-bakim-delta.js?v=koloni-188"></script>
-<script src="tarti-elle.js?v=koloni-188"></script>
-<script src="tarti-rotasyon.js?v=koloni-188"></script>
-<script src="kapsam.js?v=koloni-188"></script>
-<script src="ks-sayfa.js?v=koloni-188"></script>
+<script src="bk-kabuk.js?v=koloni-189"></script>
+<script src="demo-data.js?v=koloni-189"></script>
+<script src="device-runtime.js?v=koloni-189"></script>
+<script src="cicek-veri.js?v=koloni-189"></script><script src="cicek.js?v=koloni-189"></script><script src="plan-planlayici.js?v=koloni-189"></script><script src="rota-motoru.js?v=koloni-189"></script><script src="cevre.js?v=koloni-189"></script><script src="saglik-takvimi.js?v=koloni-189"></script>
+<script src="sensor-polling.js?v=koloni-189"></script>
+<script src="tarti-bakim-delta.js?v=koloni-189"></script>
+<script src="tarti-elle.js?v=koloni-189"></script>
+<script src="tarti-rotasyon.js?v=koloni-189"></script>
+<script src="kapsam.js?v=koloni-189"></script>
+<script src="ks-sayfa.js?v=koloni-189"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -587,17 +587,66 @@
 </script>
 <script>
 /* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
+
+/* k189: «Cihaz ekle» formu — önceden yalnız bilgi notu açıyordu («Elle ekleme formu yoktur»), hiçbir şey kaydedilmiyordu. */
+window.SuperAriCihazEkle = function () {
+  var D = window.SuperAriDemo, Dv = window.SuperAriDevices;
+  if (!D || !Dv || !Dv.addDevice) { alert('Cihaz modülü yüklenemedi'); return; }
+  var TIPS = [
+    ['tarti', 'Tartı', 1], ['isi_nem', 'Sıcaklık / Nem', 1], ['ir', 'IR (giriş sayacı)', 1], ['ses', 'Ses (mikrofon)', 1], ['titresim', 'Titreşim (ivmeölçer)', 1],
+    ['kamera_kovan', 'Kovan kamerası', 1], ['aku_kovan', 'Kovan bataryası', 1],
+    ['gateway', 'Gateway', 0], ['role_hub', 'Kablosuz röle / hub', 0], ['kamera_merkez', 'Merkezi kamera', 0], ['aku_merkez', 'Gateway bataryası', 0], ['dis_isi_nem', 'Merkezi ısı / nem', 0]
+  ];
+  function e(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var aps = D.loadApiaries() || [], sc = null; try { sc = new URLSearchParams(location.search).get('apiary') || localStorage.getItem('superari.bakim.scope'); } catch (x) {}
+  var ap0 = aps.some(function (a) { return String(a.id) === String(sc); }) ? String(sc) : (aps[0] ? String(aps[0].id) : '');
+  function hiveOpts(ap) { return '<option value="">— Kovan seçin —</option>' + (D.loadHives() || []).filter(function (h) { return String(h.apiaryId) === String(ap) && h.colonyState !== 'sonuk' && h.colonyState !== 'birlestirildi'; }).map(function (h) { return '<option value="' + h.id + '">' + e(h.name) + '</option>'; }).join(''); }
+  var old = document.getElementById('ceSheet'); if (old) old.remove();
+  var b = document.createElement('div'); b.id = 'ceSheet';
+  b.style.cssText = 'position:fixed;inset:0;z-index:9200;background:rgba(30,20,10,.45);display:flex;align-items:flex-end;justify-content:center;';
+  var inp = 'font:inherit;font-size:17px;min-height:52px;padding:8px 12px;border-radius:12px;border:1px solid #e6e8ec;background:#fff;width:100%;box-sizing:border-box;';
+  var gold = 'display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;border-radius:14px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);color:#4a2f1a;font:inherit;font-size:16px;font-weight:800;cursor:pointer;width:100%;';
+  var lab = 'display:grid;gap:4px;font-size:13px;font-weight:700;color:#5f6b7a;';
+  b.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Cihaz ekle" style="background:#f2f3f5;width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:10px 10px calc(16px + env(safe-area-inset-bottom));box-sizing:border-box;">' +
+    '<section style="background:#fff;border:1px solid #e6e8ec;border-radius:14px;padding:12px;display:grid;gap:10px;">' +
+    '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:22px">📡</span><b style="font-size:18px;">Cihaz ekle</b>' + (Dv.isDemo && Dv.isDemo() ? '<span style="font-size:11px;font-weight:800;color:#1864ab;background:#e7f5ff;border:1px solid #a5d8ff;border-radius:999px;padding:1px 8px;">Demo</span>' : '') + '</div>' +
+    '<label style="' + lab + '">Cihaz türü<select data-ce="tip" style="' + inp + '">' + TIPS.map(function (t) { return '<option value="' + t[0] + '">' + e(t[1]) + (t[2] ? ' · kovan' : ' · arılık') + '</option>'; }).join('') + '</select></label>' +
+    '<label style="' + lab + '">Arılık<select data-ce="ap" style="' + inp + '">' + aps.map(function (a) { return '<option value="' + e(a.id) + '"' + (String(a.id) === ap0 ? ' selected' : '') + '>' + e(a.name) + '</option>'; }).join('') + '</select></label>' +
+    '<label style="' + lab + '" data-ce-hivewrap>Kovan<select data-ce="hive" style="' + inp + '">' + hiveOpts(ap0) + '</select></label>' +
+    '<label style="' + lab + '">Ad / seri no (isteğe bağlı)<input data-ce="name" type="text" maxlength="60" style="' + inp + '"></label>' +
+    '<p style="margin:0;font-size:13px;color:#5f6b7a;">Cihaz kaydedilir; ilk okuma gelene kadar durumu «Veri yok» görünür.</p>' +
+    '<p data-ce="msg" role="status" style="margin:0;font-size:14px;font-weight:700;color:#c92a2a;"></p>' +
+    '<div style="display:grid;grid-template-columns:calc((100% - 10px) / 3) 1fr;column-gap:5px;"><button type="button" data-ce-close style="' + gold + '">◀ Geri</button><button type="button" data-ce-save style="' + gold + '">▶ Kaydet</button></div>' +
+    '</section></div>';
+  document.body.appendChild(b);
+  function q(k) { return b.querySelector('[data-ce="' + k + '"]'); }
+  function needHive() { var t = q('tip').value; return TIPS.some(function (x) { return x[0] === t && x[2]; }); }
+  function sync() { b.querySelector('[data-ce-hivewrap]').style.display = needHive() ? '' : 'none'; }
+  sync();
+  b.addEventListener('change', function (ev) { var k = ev.target.getAttribute('data-ce'); if (k === 'ap') q('hive').innerHTML = hiveOpts(ev.target.value); if (k === 'tip') sync(); });
+  b.addEventListener('click', function (ev) {
+    if (ev.target === b || ev.target.closest('[data-ce-close]')) { b.remove(); return; }
+    if (!ev.target.closest('[data-ce-save]')) return;
+    var m = q('msg');
+    if (!aps.length) { m.textContent = 'Önce bir arılık ekleyin (Ayarlar › Arılıklar)'; return; }
+    if (needHive() && !q('hive').value) { m.textContent = 'Kovan seçin'; return; }
+    try {
+      Dv.addDevice({ tip: q('tip').value, apiaryId: q('ap').value, hiveId: needHive() ? q('hive').value : null, name: q('name').value });
+      b.remove(); location.reload();
+    } catch (err) { m.textContent = err.message || 'Kaydedilemedi'; }
+  });
+};
 window.SuperAriQuickTitle = 'Kayıt · Cihazlar';
 window.SuperAriQuickActions = function () {
   var N = window.SuperAriNav;
   return [
-    { ic: '📡', t: 'Cihaz ekle', d: 'Tartı · sıcaklık · IR · ses · titreşim · gateway', run: N.info('Cihaz ekle', 'Tak–çalıştır: cihazı gateway\'e / ağa bağlayın; bağlanınca bu listede otomatik görünür. Elle ekleme formu yoktur.', [{ ic: '⚙️', t: 'Çalışma modu (Canlı / Demo)', href: 'ayarlar.html#calisma-modu' }]) },
+    { ic: '📡', t: 'Cihaz ekle', d: 'Tartı · sıcaklık · IR · ses · titreşim · gateway · kamera · röle', run: function () { window.SuperAriCihazEkle(); } },
     { ic: '📷', t: 'Kamera ekle', d: 'Kovan / merkez kamera', run: N.go('kamera.html') }
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-188"></script>
-<script src="nav.js?v=koloni-188"></script>
-<script src="pwa.js?v=koloni-188"></script>
+<script src="ses-siniflari.js?v=koloni-189"></script>
+<script src="nav.js?v=koloni-189"></script>
+<script src="pwa.js?v=koloni-189"></script>
 </body>
 </html>
