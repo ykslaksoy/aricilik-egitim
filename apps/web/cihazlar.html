@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-219">
+<link rel="stylesheet" href="sa-early.css?v=koloni-220">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-219" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-219" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-219" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-220" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-220" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-220" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -125,16 +125,16 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-219"></script>
-<script src="demo-data.js?v=koloni-219"></script>
-<script src="device-runtime.js?v=koloni-219"></script>
-<script src="cicek-veri.js?v=koloni-219"></script><script src="cicek.js?v=koloni-219"></script><script src="plan-planlayici.js?v=koloni-219"></script><script src="rota-motoru.js?v=koloni-219"></script><script src="cevre.js?v=koloni-219"></script><script src="saglik-takvimi.js?v=koloni-219"></script>
-<script src="sensor-polling.js?v=koloni-219"></script>
-<script src="tarti-bakim-delta.js?v=koloni-219"></script>
-<script src="tarti-elle.js?v=koloni-219"></script>
-<script src="tarti-rotasyon.js?v=koloni-219"></script>
-<script src="kapsam.js?v=koloni-219"></script>
-<script src="ks-sayfa.js?v=koloni-219"></script>
+<script src="bk-kabuk.js?v=koloni-220"></script>
+<script src="demo-data.js?v=koloni-220"></script>
+<script src="device-runtime.js?v=koloni-220"></script>
+<script src="cicek-veri.js?v=koloni-220"></script><script src="cicek.js?v=koloni-220"></script><script src="plan-planlayici.js?v=koloni-220"></script><script src="rota-motoru.js?v=koloni-220"></script><script src="cevre.js?v=koloni-220"></script><script src="saglik-takvimi.js?v=koloni-220"></script>
+<script src="sensor-polling.js?v=koloni-220"></script>
+<script src="tarti-bakim-delta.js?v=koloni-220"></script>
+<script src="tarti-elle.js?v=koloni-220"></script>
+<script src="tarti-rotasyon.js?v=koloni-220"></script>
+<script src="kapsam.js?v=koloni-220"></script>
+<script src="ks-sayfa.js?v=koloni-220"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -276,7 +276,7 @@
     var hist = pilHistory(d.id, 24);
     var v = d.batteryV != null ? (' · ' + esc(d.batteryV) + ' V') : '';
     var at = d.batteryAt ? ('Son okuma: ' + esc(d.batteryAt)) : 'Henüz pil okuması yok';
-    return '<section class="pil-panel' + (low ? ' low' : '') + '" id="devDetail">' +
+    return '<section class="pil-panel' + (low ? ' low' : '') + (d.disabled ? ' dd-off' : '') + '" id="devDetail" data-dd-card="1">' + (Dev.toggleHtml ? Dev.toggleHtml(d) : '') +
       '<h2 class="section-label" style="margin-top:0">Pil durumu · ' + esc(d.hiveName || d.typeLabel || 'Cihaz') + '</h2>' +
       '<p style="margin:0;font-size:15px;font-weight:800">' + batteryChipHtml(d) + v + '</p>' +
       '<p class="meta" style="margin:6px 0 0">' + esc(at) + (hist.length >= 2 ? ' · trend (son ' + hist.length + ' okuma)' : '') + '</p>' +
@@ -316,17 +316,17 @@
     var stClass = Dev.statusTone(st);
     var title = d.hiveName || d.typeLabel || 'Cihaz';
     var href = devicePageHref(d);
-    return '<a class="row-item device-link" href="' + href + '">' +
+    return '<div class="dd-wrap' + (d.disabled ? ' dd-off' : '') + '" data-dd-card="1"><a class="row-item device-link" href="' + href + '">' +
       '<div class="left">' +
         '<div class="title">' + esc(title) + ' ' + typeTag + ' ' + batteryChipHtml(d) + '</div>' +
         '<div class="meta">' + esc(d.apiaryName) +
           ' · ' + esc(relAgo(d.lastMins)) + '</div>' +
         '<div style="margin-top:4px">' + pills +
-          '<span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
+          '<span class="status-pill ' + stClass + '" data-dd-status="1">' + esc(stLabel) + '</span></div>' +
         pollMetaHtml(d) +
       '</div>' +
-      '<div class="right"><span class="status-pill ' + stClass + '">' + esc(stLabel) + '</span></div>' +
-    '</a>';
+      '<div class="right"><span class="status-pill ' + stClass + '" data-dd-status="1">' + esc(stLabel) + '</span></div>' +
+    '</a>' + (d.hiveId != null && Dev.toggleHtml ? '<div style="padding:0 12px 8px">' + Dev.toggleHtml(d) + '</div>' : '') + '</div>';
   }
 
 
@@ -647,8 +647,8 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-219"></script>
-<script src="nav.js?v=koloni-219"></script>
-<script src="pwa.js?v=koloni-219"></script>
+<script src="ses-siniflari.js?v=koloni-220"></script>
+<script src="nav.js?v=koloni-220"></script>
+<script src="pwa.js?v=koloni-220"></script>
 </body>
 </html>

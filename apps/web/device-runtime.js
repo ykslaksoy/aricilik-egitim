@@ -217,7 +217,7 @@
   function isLive() { return getMode() === 'live'; }
 
   function statusLabel(s) {
-    var map = { yok: 'Veri yok', bagli: 'Bağlı', kopuk: 'Kopuk', arizali: 'Arızalı' };
+    var map = { yok: 'Veri yok', bagli: 'Bağlı', kopuk: 'Kopuk', arizali: 'Arızalı', devre_disi: 'Devre dışı' };
     return map[s] || map.yok;
   }
 
@@ -225,6 +225,7 @@
     if (s === STATUS.bagli) return 'status-bagli';
     if (s === STATUS.kopuk) return 'status-kopuk';
     if (s === STATUS.arizali) return 'status-arizali';
+    if (s === 'devre_disi') return 'status-yok status-devredisi';
     return 'status-yok';
   }
 
@@ -299,11 +300,11 @@
     return out;
   }
 
-  /* koloni-219: Pil düşüklüğü kuralı yönetici panelinden kapatılabilir (genel / kullanıcı / arılık) */
+  /* koloni-220: Pil düşüklüğü kuralı yönetici panelinden kapatılabilir (genel / kullanıcı / arılık) */
   function pilAcik(aid) { try { var C = global.SuperAriDemo && global.SuperAriDemo.colony; return !(C && C.kuralAcik) || C.kuralAcik('pil', aid); } catch (e) { return true; } }
 
   function isBatteryLow(device) {
-    if (!device || !pilAcik(device.apiaryId)) return false;
+    if (!device || device.disabled || isDisabled(device.id) || !pilAcik(device.apiaryId)) return false;
     if (!device.batteryAt && device.source !== 'demo' && device.batteryPct == null) return false;
     /* k160: tahmine dayalı — kalan gün ≤ eşik (Orta/Yüksek, panelde). Hesaplanıyorsa yalnız gerçek okunan yüzde eşiği. */
     try { var P2 = global.SuperAriPlan2; if (P2 && P2.bataryaPlan) { var bp = P2.bataryaPlan(device); if (bp.durum === 'tamam') return !!bp.severity; if (bp.durum === 'veri_yok') return false; } } catch (eP) { /* ignore */ }
@@ -493,8 +494,77 @@
   function demoUserList() {
     return readJsonArray(DEMO_USER_KEY).map(function (d) { var n = normalizeLive(d, 'user'); if (n) { n.status = STATUS.yok; n.demo = true; } return n; }).filter(Boolean);
   }
+  /* koloni-220: Kovan bazında cihaz «Devre dışı bırak» — kullanıcı (düzenleme yetkisi; Sahip her zaman). Devre dışı cihaz: uyarı/push/rozet/görev yok, okumaları hesaba girmez. Kayıt: localStorage (cihaz kaydıyla aynı yer). */
+  var DIS_KEY = 'superari.devices.disabled';
+  function disMap() { try { var o = JSON.parse(localStorage.getItem(DIS_KEY) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+  function isDisabled(id) { return id != null && !!disMap()[String(id)]; }
+  function canToggle() { try { var Y = global.SuperAriYetki; return !Y || Y.rol() === 'owner' || !!Y.izin('duzen'); } catch (e) { return true; } }
+  function setDisabled(id, on, meta) {
+    if (id == null) return false;
+    if (!canToggle()) throw new Error('Bu işlem için arılık düzenleme yetkisi gerekiyor');
+    var m = disMap(), k = String(id);
+    if (on) m[k] = Object.assign({ at: new Date().toISOString() }, meta || {}); else delete m[k];
+    try { localStorage.setItem(DIS_KEY, JSON.stringify(m)); } catch (e) { return false; }
+    try { global.dispatchEvent(new CustomEvent('superari-devices-changed', { detail: { id: k, disabled: !!on } })); } catch (e2) { /* ignore */ }
+    ddBulutYaz(k, !!on, m[k] || meta || {});
+    return true;
+  }
+  /* Bulut: public.cihaz_devre_disi — yönetici paneli görür/değiştirir; uygulama açılışta yöneticinin değişikliğini alır. Bulut yoksa yerel kayıt geçerli. */
+  function ddClient() { var B = global.SuperAriBulut; if (!B || !B.client) return Promise.reject(new Error('bulut-yok')); return B.client().then(function (c) { return c.auth.getUser().then(function (u) { var us = u && u.data && u.data.user; if (!us) throw new Error('oturum-yok'); return { c: c, u: us }; }); }); }
+  function ddBulutYaz(id, on, meta) {
+    var d = null; try { d = (isDemo() ? demoList().concat(demoUserList()) : liveList()).filter(function (x) { return String(x.id) === String(id); })[0]; } catch (e) { d = null; }
+    if (d && d.source === 'demo') return Promise.resolve(false);
+    return ddClient().then(function (o) {
+      return o.c.from('cihaz_devre_disi').upsert({ user_id: o.u.id, device_id: String(id), arilik_ad: d ? d.apiaryName || null : null, kovan_id: meta.hiveId != null ? Number(meta.hiveId) : (d && d.hiveId != null ? Number(d.hiveId) : null), kovan_ad: d ? d.hiveName || null : null, tip: meta.tip || (d && d.tip) || null, cihaz_ad: d ? (d.name || d.typeLabel || null) : null, devre_disi: !!on, degistiren_email: o.u.email || null, degistiren: 'kullanici', updated_at: new Date().toISOString() }, { onConflict: 'user_id,device_id' });
+    }).then(function () { return true; }).catch(function () { return false; });
+  }
+  function ddBulutOku() {
+    return ddClient().then(function (o) { return o.c.from('cihaz_devre_disi').select('device_id,kovan_id,tip,devre_disi,updated_at,degistiren').eq('user_id', o.u.id); }).then(function (r) {
+      if (!r || r.error || !Array.isArray(r.data)) return false;
+      var m = disMap(), once = JSON.stringify(m);
+      r.data.forEach(function (x) { var k = String(x.device_id); if (x.devre_disi) m[k] = Object.assign({}, m[k] || {}, { at: x.updated_at, hiveId: x.kovan_id, tip: x.tip, by: x.degistiren }); else delete m[k]; });
+      if (JSON.stringify(m) !== once) { try { localStorage.setItem(DIS_KEY, JSON.stringify(m)); } catch (e) { return false; } try { global.dispatchEvent(new CustomEvent('superari-devices-changed', { detail: { bulut: true } })); } catch (e2) { /* ignore */ } }
+      return true;
+    }).catch(function () { return false; });
+  }
+  if (global.setTimeout && global.document) global.setTimeout(ddBulutOku, 900);
+  /** Okuma bu kovanın bu türdeki devre dışı cihazından mı? (hesaplardan çıkarılır) */
+  function okumaKapali(hiveId, tip) {
+    var m = disMap(), ks = Object.keys(m); if (!ks.length || hiveId == null) return false;
+    var t = String(tip || ''); if (t === 'isi' || t === 'nem') t = 'isi_nem';
+    return ks.some(function (k) { var x = m[k] || {}; return x.hiveId != null && Number(x.hiveId) === Number(hiveId) && String(x.tip) === t; });
+  }
+  function disRaw() { try { return localStorage.getItem(DIS_KEY) || ''; } catch (e) { return ''; } }
+  function markDisabled(list) {
+    var m = disMap();
+    return list.map(function (d) { if (d && m[String(d.id)]) { d.disabled = true; d.prevStatus = d.status; d.status = 'devre_disi'; d.batteryLow = false; } return d; });
+  }
+  function toggleHtml(d) {
+    if (!d) return '';
+    var off = !!d.disabled, can = canToggle();
+    return '<div class="dd-box" data-dd-id="' + String(d.id).replace(/"/g, '') + '" data-dd-hive="' + (d.hiveId != null ? d.hiveId : '') + '" data-dd-tip="' + String(d.tip || '') + '" style="margin-top:6px;min-height:34px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<button type="button" class="ks-btn dd-btn" data-dd-toggle="1"' + (can ? '' : ' disabled title="Düzenleme yetkin yok"') + ' style="min-height:32px;padding:4px 10px;font-weight:800">' + (off ? 'Tekrar etkinleştir' : 'Devre dışı bırak') + '</button>' +
+      '<span class="dd-note meta" style="font-size:12px">' + (off ? 'Devre dışı · uyarı vermez, okumaları hesaba girmez' : (can ? '' : 'Yalnız düzenleme yetkisi olanlar')) + '</span></div>';
+  }
+  if (global.document && !global.__saDdBound) {
+    global.__saDdBound = true;
+    global.document.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-dd-toggle]') : null; if (!b) return;
+      e.preventDefault(); e.stopPropagation();
+      var box = b.closest('.dd-box'), id = box.getAttribute('data-dd-id'), off = isDisabled(id);
+      if (!off && !global.confirm('Bu cihaz devre dışı bırakılsın mı?\nUyarı, bildirim ve görev üretmez; okumaları hesaplara girmez. İstediğinde tek dokunuşla geri açabilirsin.')) return;
+      try { setDisabled(id, !off, { hiveId: box.getAttribute('data-dd-hive') === '' ? null : Number(box.getAttribute('data-dd-hive')), tip: box.getAttribute('data-dd-tip') }); } catch (er) { global.alert(er.message); return; }
+      var now = !off, card = box.closest('[data-dd-card]') || box.parentNode;
+      b.textContent = now ? 'Tekrar etkinleştir' : 'Devre dışı bırak';
+      box.querySelector('.dd-note').textContent = now ? 'Devre dışı · uyarı vermez, okumaları hesaba girmez' : 'Etkinleştirildi';
+      if (card && card.classList) card.classList.toggle('dd-off', now);
+      [].forEach.call(card.querySelectorAll('[data-dd-status]'), function (el) { if (now) { el.setAttribute('data-dd-prev', el.textContent); el.textContent = 'Devre dışı'; } else if (el.getAttribute('data-dd-prev') != null) el.textContent = el.getAttribute('data-dd-prev'); });
+    }, true);
+    try { var st = global.document.createElement('style'); st.textContent = '.dd-off{opacity:.62}.dd-off .dd-btn{opacity:1}.status-devredisi{background:#e5e7eb!important;color:#374151!important}'; (global.document.head || global.document.documentElement).appendChild(st); } catch (eS) { /* ignore */ }
+  }
+
   function listDevices() {
-    return isDemo() ? demoList().concat(demoUserList()) : liveList();
+    return markDisabled(isDemo() ? demoList().concat(demoUserList()) : liveList());
   }
 
   function cameraDevices() {
@@ -502,7 +572,7 @@
   }
 
   function summarizeList(list) {
-    var counts = { yok: 0, bagli: 0, kopuk: 0, arizali: 0, total: list.length };
+    var counts = { yok: 0, bagli: 0, kopuk: 0, arizali: 0, devre_disi: 0, total: list.length };
     list.forEach(function (d) {
       var s = d.status || STATUS.yok;
       if (counts[s] != null) counts[s] += 1;
@@ -613,7 +683,7 @@
     tipLabel: tipLabel, tipFamily: tipFamily,
     isCameraTip: isCameraTip,
     isApiaryTip: isApiaryTip,
-    listDevices: listDevices,
+    listDevices: listDevices, isDisabled: isDisabled, setDisabled: setDisabled, okumaKapali: okumaKapali, canToggle: canToggle, ddBulutOku: ddBulutOku, toggleHtml: toggleHtml, disRaw: disRaw,
     cameraDevices: cameraDevices,
     summarize: summarize,
     summarizeCameras: summarizeCameras,

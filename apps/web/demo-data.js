@@ -3519,12 +3519,12 @@
     if (/kafkas/.test(t)) g.push('Kafkas'); if (/karniyol|carni/.test(t)) g.push('Karniyol'); if (/karadeniz/.test(t)) g.push('Karadeniz'); return g.length ? g : ['Genel']; }
   function apiaryBreed(apId) { var c = {}, best = null; try { loadHives().forEach(function (h) { if (String(h.apiaryId) === String(apId) && h.breed) c[h.breed] = (c[h.breed] || 0) + 1; }); } catch (e) {}
     Object.keys(c).forEach(function (k) { if (!best || c[k] > c[best]) best = k; }); return best || plannedBreed(breedPlanKeyFor({ id: apId }), 0) || null; }
-  function ucusEsik(breed, aid) { var T = (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR, gs = kuralAcik('ucus', aid) ? ucusGruplari(breed) : ['Genel']; /* koloni-219: kural kapalı → cinse bakmaz, Genel eşik */
+  function ucusEsik(breed, aid) { var T = (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR, gs = kuralAcik('ucus', aid) ? ucusGruplari(breed) : ['Genel']; /* koloni-220: kural kapalı → cinse bakmaz, Genel eşik */
     function v(g, k) { var x = Number(T['ucus' + g + k]); return isFinite(x) ? x : ORS_SENSOR['ucus' + g + k]; }
     function agg(k, f) { return f.apply(null, gs.map(function (g) { return v(g, k); })); }
     return { breed: breed || null, gruplar: gs, uygunC: agg('UygunC', Math.max), kismenC: agg('KismenC', Math.max), uygunRuzgar: agg('UygunRuzgar', Math.min), kismenRuzgar: agg('KismenRuzgar', Math.min), yagisMm: agg('YagisMm', Math.min) }; }
   function nemSiraGecerli(o) { var k = Number(o.nemKritikAlt), a = Number(o.nemNormalAlt), u = Number(o.nemNormalUst), c = Number(o.nemKirecUst); return [k, a, u, c].every(isFinite) && k >= 0 && c <= 100 && k < a && a < u && u <= c; }
-  /* koloni-219: aç/kapa yapılabilen uyarı kuralları (yönetici paneli → Ölçüm kuralları / Cihazlar) */
+  /* koloni-220: aç/kapa yapılabilen uyarı kuralları (yönetici paneli → Ölçüm kuralları / Cihazlar) */
   var KURALLAR = [['kulucka', 'Kuluçka sıcaklığı (uyarı/kritik/oynaklık)'], ['kuluckaAcil', 'Kuluçka ACİL'], ['kirec', 'Kireç hatırlatması'], ['nem', 'Nem kademeleri'], ['agirlik', 'Ağırlık (genel kayıp)'],
     ['sesOgulAni', 'Ses: Oğul anı'], ['sesPiping', 'Ses: Piping'], ['sesQuack', 'Ses: Quacking'], ['sesAnasiz', 'Ses: Anasızlık'], ['sesIsciOtme', 'Ses: İşçi ötmesi'], ['sesOgulEgilim', 'Ses: Oğul eğilimi'], ['sesSaglik', 'Ses: Kovan sağlığı'], ['sesVarroa', 'Ses: Varroa'],
     ['titresim', 'Titreşim'], ['irOgul', 'IR: Oğul'], ['irYagma', 'IR: Yağma'], ['irTrafik', 'IR: Trafik düşüşü'], ['pil', 'Pil düşüklüğü'], ['cihazSessiz', 'Veri gelmiyor'], ['cihazKopuk', 'Bağlantı koptu'], ['cihazAriza', 'Arızalı'], ['ucus', 'Uçuş havası cinse göre (kapalıysa Genel eşik)']];
@@ -3569,7 +3569,7 @@
     if (!(d.sensor.genelNufusKritikOran >= d.sensor.genelNufusUyariOran)) { d.sensor.genelNufusUyariOran = ORS_SENSOR.genelNufusUyariOran; d.sensor.genelNufusKritikOran = ORS_SENSOR.genelNufusKritikOran; }
     /* k161 EK12: ekip bildirimi gönderilecek uyarı kodları (yönetici listesi) */
     if (Array.isArray(o.ekipBildirim)) d.ekipBildirim = o.ekipBildirim.filter(function (k) { return typeof k === 'string' && k.length < 60; }).slice(0, 60);
-    /* koloni-219: kural aç/kapa — genel liste + kullanıcı (e-posta) + arılık (ad) listeleri; yalnız bilinen kimlikler. Eşikler silinmez. Varsayılan: tümü açık. */
+    /* koloni-220: kural aç/kapa — genel liste + kullanıcı (e-posta) + arılık (ad) listeleri; yalnız bilinen kimlikler. Eşikler silinmez. Varsayılan: tümü açık. */
     if (Array.isArray(o.kuralKapali)) d.kuralKapali = o.kuralKapali.filter(function (k, i, a) { return typeof k === 'string' && KURAL_IDS.indexOf(k) >= 0 && a.indexOf(k) === i; });
     ['kuralKapaliKullanici', 'kuralKapaliArilik'].forEach(function (f) { var m = o[f]; if (!m || typeof m !== 'object' || Array.isArray(m)) return; Object.keys(m).slice(0, 2000).forEach(function (key) { var nk = kuralAnahtar(key), L = Array.isArray(m[key]) ? m[key].filter(function (x, i, a) { return KURAL_IDS.indexOf(x) >= 0 && a.indexOf(x) === i; }) : []; if (nk && L.length) d[f][nk] = L; }); });
     var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
@@ -3624,10 +3624,12 @@
   var sensCache = {};
   function sensList(tip) {
     var raw = null; try { raw = localStorage.getItem(SENS_KEYS[tip]); } catch (e) { raw = null; }
-    var c = sensCache[tip]; if (c && c.raw === raw) return c.list;
+    var DVk = global.SuperAriDevices, dk = DVk && DVk.disRaw ? DVk.disRaw() : ''; /* koloni-220: devre dışı cihaz okumaları hesaba girmez */
+    var c = sensCache[tip]; if (c && c.raw === raw && c.dk === dk) return c.list;
     var l = []; try { l = JSON.parse(raw || '[]'); } catch (e) { l = []; } if (!Array.isArray(l)) l = [];
+    if (dk && DVk.okumaKapali) l = l.filter(function (x) { return !(x && DVk.okumaKapali(x.hiveId, tip)); });
     l = l.map(function (x) { var t = Date.parse(String(x.at || '').length <= 16 ? x.at + ':00' : x.at); return isFinite(t) ? Object.assign({ t: t }, x) : null; }).filter(Boolean).sort(function (a, b) { return a.t - b.t; });
-    sensCache[tip] = { raw: raw, list: l }; return l;
+    sensCache[tip] = { raw: raw, dk: dk, list: l }; return l;
   }
   /** k151: olaya dayalı sensör girişi. JSON: { kovan_id, sensor_tipi, timestamp, deger } (ses/titresim: sinif, hz, db, sure_ms, ritmik; FFT kovan cihazında).
       Kaydeder ve YALNIZ o kovanın Sıkışıklık puanını yeniden hesaplar (zamanlayıcı yok). Dönen: { ok, kovanId, sikisiklik, etiket } */
@@ -3674,6 +3676,7 @@
     o = o || {}; var tip = o.tip || 'isi_nem', by = {};
     okumaRead(OKUMA_KEY).forEach(function (x) {
       if (x.sensor_tipi !== tip) return;
+      try { var DVo = global.SuperAriDevices; if (DVo && DVo.okumaKapali && DVo.okumaKapali(x.kovan_id, tip)) return; } catch (eO) { /* ignore */ }
       if (o.kovanId != null && Number(x.kovan_id) !== Number(o.kovanId)) return;
       if (o.apiaryId && x.arilik_id != null && String(x.arilik_id) !== String(o.apiaryId)) return;
       var k = x.ts + '|' + x.kovan_id + '|' + x.arilik_id;
@@ -3815,7 +3818,7 @@
       var sonT = V[V.length - 1].t, eski = V.filter(function (x) { return x.t < sonT - T.titresimDk * M; }).map(function (x) { return x.v; }).sort(function (a, b) { return a - b; });
       if (eski.length >= 6) { var md = eski[Math.floor(eski.length / 2)]; if (md > 0 && seri(V, function (x) { return x.v >= md * T.titresimKat ? 'y' : null; }, T.titresimDk * M)) r.titresimOlagan = true; }
     }
-    /* koloni-219: kapalı kural → bayrak yok (uyarı/rozet/push/kart yok) */
+    /* koloni-220: kapalı kural → bayrak yok (uyarı/rozet/push/kart yok) */
     var ap = S.apiaryId; if (!kuralAcik('nem', ap)) { r.nemDisi = false; r.nemYon = null; }
     if (!kuralAcik('irOgul', ap)) r.irOgul = false; if (!kuralAcik('irYagma', ap)) r.irYagma = false; if (!kuralAcik('irTrafik', ap)) r.irTrafik = false; if (!kuralAcik('titresim', ap)) r.titresimOlagan = false;
     return r;
@@ -3841,7 +3844,7 @@
       var durum = d.lastMins >= T.kopukSaat * 60 ? 'kopuk' : d.lastMins >= T.sessizKirmiziDk ? 'kirmizi' : d.lastMins >= sari ? 'sari' : null;
       if (durum) out.push({ id: d.id, tip: d.tip, hiveId: d.hiveId, apiaryId: d.apiaryId, durum: durum, neden: 'sessiz' });
     });
-    return out.filter(function (c) { return kuralAcik(c.durum === 'arizali' ? 'cihazAriza' : c.durum === 'kopuk' ? 'cihazKopuk' : 'cihazSessiz', c.apiaryId); }); /* koloni-219 */
+    return out.filter(function (c) { return kuralAcik(c.durum === 'arizali' ? 'cihazAriza' : c.durum === 'kopuk' ? 'cihazKopuk' : 'cihazSessiz', c.apiaryId); }); /* koloni-220 */
   }
   function hiveSens(hid, nowMs) {
     var from = nowMs - 7 * 24 * 3600000, o = {}, any = false, ap = null; /* k151: kovan tabanı için son 7 gün */
@@ -3876,7 +3879,7 @@
     });
     /* Ötme zamanı (piping okumaları) — penceredeki birliktelik için */
     L.forEach(function (x) { var hz = Number(x.hz); if (isFinite(hz) && hz >= T.pipingHzMin && hz <= T.pipingHzMax && (x.ritmik === true || x.rhythmic === true) && !kisaDarbe(x, T)) r.pipingAt = x.t; });
-    if (!kuralAcik('sesQuack', S.apiaryId)) r.quack = false; /* koloni-219 */
+    if (!kuralAcik('sesQuack', S.apiaryId)) r.quack = false; /* koloni-220 */
     if (r.quack && r.pipingAt != null && Math.abs(r.quackAt - r.pipingAt) <= T.quackPencereDk * 60000) r.quackYuksek = true;
     if (r.quack) r.notes.push(r.quackYuksek ? 'Sensör: Çıkmış Ana Ötmesi (Tooting) ve Vakvaklama (Quacking) birlikte — yeni ana rekabeti' : 'Sensör: yüksükte bakire ana olabilir — ikinci oğul riski');
     /* k148: kovanın kendi gece/gündüz ortancası (sabit dB yok) */
@@ -3938,7 +3941,7 @@
         prev = x;
       });
     });
-    if (!kuralAcik('sesPiping', S.apiaryId)) r.piping = false; /* koloni-219 */
+    if (!kuralAcik('sesPiping', S.apiaryId)) r.piping = false; /* koloni-220 */
     if (r.piping) r.notes.push('Sensör: Çıkmış Ana Ötmesi (Tooting) — oğul hazırlığı');
     sesKurallari(S, T, r);
     /* (2) Isı / nem */
@@ -4492,7 +4495,7 @@
     /* koloni-199: cihaz sağlığı — sarı/kırmızı/kopuk/arızalı; cihaz başına günde en çok bir görev */
     try {
       var DVc = global.SuperAriDevices, tdC = todayLocal(), Tc = Object.assign({}, OGUL_SKOR.sensor);
-      if (DVc && DVc.listDevices) cihazSaglik(DVc.listDevices(), Tc, Date.now(), function (d) { return d.tip === 'isi_nem' && d.hiveId != null ? sensList('isi_nem').filter(function (x) { return Number(x.hiveId) === Number(d.hiveId) && x.t >= Date.now() - 2 * 86400000; }) : []; }).forEach(function (c) {
+      if (DVc && DVc.listDevices) cihazSaglik(DVc.listDevices().filter(function (d) { return d && !d.disabled; }), Tc, Date.now(), function (d) { return d.tip === 'isi_nem' && d.hiveId != null ? sensList('isi_nem').filter(function (x) { return Number(x.hiveId) === Number(d.hiveId) && x.t >= Date.now() - 2 * 86400000; }) : []; }).forEach(function (c) {
         var an = haftalikHatirlatma('cihaz_' + c.durum, String(c.id), true, tdC, 1); if (!an) return;
         var hv = c.hiveId != null ? hives[Number(c.hiveId)] : null, ad = (DVc.tipLabel ? DVc.tipLabel(c.tip) : c.tip) + (hv ? ' · ' + hv.name : '');
         var ttl = c.neden === 'gateway' ? 'Gateway bağlantısı koptu, arılıktaki cihazlardan veri gelmiyor' : c.durum === 'arizali' ? 'Cihaz arızalı olabilir, okumalar mantıksız' : c.durum === 'kopuk' ? 'Cihaz bağlantısı koptu' : c.durum === 'kirmizi' ? 'Cihazdan uzun süredir veri gelmiyor' : 'Cihazdan veri gelmiyor';
