@@ -42,38 +42,96 @@
       .filter(function (x) { return isFinite(x.t) && isFinite(x.p); }).sort(function (a, b) { return a.t - b.t; });
   }
   function aralikMs(device) { var P = global.SuperAriSensorPolling; try { return P && P.resolveIntervalMs ? P.resolveIntervalMs(device) : 3600000; } catch (e) { return 3600000; } }
-  /** Model: günlük tüketim = taban + ölçüm başına × (ölçüm/gün). İlk hesap: ilk 7 gün dolunca ya da ≥2 puanlık ilk düşüşte. */
+  /* koloni-225: değerler yönetici panelinden (ORS_SENSOR, uzman tahmini); tek model SuperAriPilModel (sunucu da aynısını kullanır) */
+  function PM() { return global.SuperAriPilModel; }
+  function pilEsik() { var th = T(); try { var E = global.SuperAriEsikler && global.SuperAriEsikler.get(); if (E && E.uyari && E.uyari.dusukPilYuzde > 0) th = Object.assign({}, th, { dusukPilYuzde: E.uyari.dusukPilYuzde }); } catch (e) { /* */ } return th; }
+  function kuralAcik(aid) { try { var C = D() && D().colony; return !(C && C.kuralAcik) || C.kuralAcik('pil', aid); } catch (e) { return true; } }
+  /** Pilin yetmesi gereken hedef tarih: ayrılış → yoksa bal sezonu sonu + batSezonArtiGun → yoksa yok. */
+  function hedefTarih(apiaryId, now) {
+    var k = konGet(apiaryId); if (k && k.ayrilis) return { tarih: k.ayrilis, kaynak: 'ayrilis' };
+    var ap = D() && D().apiaryById ? D().apiaryById(apiaryId) : null, don = null;
+    try { don = ap && ap.ilce ? nektarDonemi({ il: ap.il, ilce: ap.ilce }) : null; } catch (e) { don = null; }
+    if (!don || don.durum !== 'var' || !don.ay2) return null;
+    now = now || today(); var y = now.getFullYear(), son = new Date(y, don.ay2, 0);
+    if (son < now) return null; /* sezon bitti: bilinen hedef yok */
+    var a = PM() ? PM().ayar(T()) : { batSezonArtiGun: 7 };
+    return { tarih: iso(new Date(son.getTime() + a.batSezonArtiGun * DAY)), kaynak: 'sezon' };
+  }
+  function pilGorevi(device, r, a) {
+    var d = D(), TS = d && d.taskStore; if (!TS || !TS.add || !device) return;
+    var mark = '[pil:' + device.id + ']', L = []; try { L = TS.all ? TS.all() : []; } catch (e) { L = []; }
+    var eski = L.filter(function (t) { return t && String(t.note || '').indexOf(mark) >= 0 && !t.done; });
+    var gerek = r && r.kalanGun != null && r.severity && !device.disabled && kuralAcik(device.apiaryId);
+    if (!gerek) { eski.forEach(function (t) { if (TS.remove) TS.remove(t.id); }); return; }
+    var bos = new Date(today().getTime() + r.kalanGun * DAY), due = iso(new Date(Math.max(today().getTime(), bos.getTime() - a.batGorevOnceGun * DAY)));
+    r.bosTarih = iso(bos); r.gorevTarih = due;
+    if (eski.length === 1 && eski[0].due === due) return;
+    eski.forEach(function (t) { if (TS.remove) TS.remove(t.id); });
+    try { TS.add({ title: 'Pili değiştir / şarj et — ' + (device.name || device.typeLabel || 'Cihaz') + (device.hiveName ? ' (' + device.hiveName + ')' : '') + ' · tahmini bitiş ' + trD(r.bosTarih), apiaryId: device.apiaryId, hiveId: device.hiveId, due: due, priority: r.severity === 'high' ? 1 : 2, note: mark }); } catch (e) { /* */ }
+  }
+  /** Plan: veri yoksa öneri yok; sıklık yalnız «Onayla» ile değişir (aralikOnayla). */
   function bataryaPlan(device, opts) {
-    opts = opts || {}; var th = T(), h = opts.gecmis || pilGecmis(device && device.id);
+    opts = opts || {}; var th = pilEsik(), M = PM(), a = M.ayar(th), h = opts.gecmis || pilGecmis(device && device.id);
+    if (device && device.disabled) return { durum: 'devre_disi', metin: 'Devre dışı' };
     if (!h.length) return { durum: 'veri_yok', metin: 'Veri yok' };
-    var first = h[0], last = h[h.length - 1], gun = (last.t - first.t) / DAY, dusus = first.p - last.p;
-    if (gun < (th.batIlkGun || 7) && dusus < (th.batIlkDusus || 2)) return { durum: 'hesaplaniyor', metin: 'Hesaplanıyor (veri topluyor)', pct: last.p };
-    var rate = gun > 0 ? Math.max(0, dusus) / gun : 0; /* %/gün, mevcut sıklıkla */
-    var ms = opts.aralikMs || aralikMs(device), nGun = DAY / ms, taban = rate * (th.batTabanOran != null ? th.batTabanOran : 0.3), perOlcum = nGun > 0 ? (rate - taban) / nGun : 0;
-    function kalanFor(m) { var r = taban + perOlcum * (DAY / m); return r > 0 ? last.p / r : Infinity; }
-    var kalan = kalanFor(ms), bitis = opts.kalmaBitis !== undefined ? opts.kalmaBitis : kalmaBitis(device && device.apiaryId);
-    var kalma = bitis ? daysTo(bitis, opts.now) : null, oneri = null;
-    if (kalma != null && kalma > 0 && kalan < kalma) {
-      var aday = ARALIK.filter(function (m) { return m > ms; });
-      for (var i = 0; i < aday.length; i++) if (kalanFor(aday[i]) >= kalma) { oneri = aday[i]; break; }
+    var gw = !!(device && (device.tip === 'gateway' || device.tip === 'aku_merkez'));
+    var ms = opts.aralikMs || aralikMs(device), t = M.tahmin(h, ms, th), son = h[h.length - 1];
+    var sessiz = device && device.status && device.status !== 'bagli' && son.p <= a.batBittiPct;
+    /* şarj sonrası: önceden düşürülen sıklığa geri dönmeyi öner (yalnız onayla) */
+    var cmd = device ? komutlar().filter(function (c) { return c.deviceId === device.id; })[0] : null, geri = null;
+    if (t && t.sarj && cmd && cmd.eskiMs && cmd.eskiMs !== ms && Date.parse(cmd.at) < t.sarj.t) geri = cmd.eskiMs;
+    if (t && t.hesaplaniyor) {
+      var r0 = { durum: 'hesaplaniyor', metin: 'Hesaplanıyor (veri topluyor)', pct: son.p };
+      if (geri) { r0.oneriMs = geri; r0.geri = true; r0.soru = 'Pil şarj edildi (%' + Math.round(son.p) + '). Ölçümü yine ' + ARALIK_AD[geri] + ' yapayım mı?'; }
+      if (sessiz) r0.bitmis = 'Pil bitmiş olabilir';
+      return r0;
     }
-    var sev = kalan <= (th.batYuksekGun || 7) ? 'high' : (kalan <= (th.batOrtaGun || 14) ? 'medium' : null);
-    var r = { durum: 'tamam', pct: Math.round(last.p), tuketimGun: Math.round(rate * 100) / 100, kalanGun: isFinite(kalan) ? Math.floor(kalan) : null, kalmaGun: kalma, aralikMs: ms, oneriMs: oneri, severity: sev };
-    if (oneri) r.soru = 'Pil %' + r.pct + ', mevcut sıklıkla ' + r.kalanGun + ' gün yeter. Arılıkta ' + kalma + ' gün kalacaksın. ' + cap(ARALIK_AD[ms] || 'mevcut sıklık') + ' yerine ' + ARALIK_AD[oneri] + ' ölçüm öneriyorum. Onaylıyor musun?';
-    else if (kalma != null && r.kalanGun != null && r.kalanGun < kalma) r.not = 'Pil %' + r.pct + ', ' + r.kalanGun + ' gün yeter; en seyrek ölçümle de arılıkta kalma süresine yetmiyor — pili şarj et veya değiştir.';
-    /* EK12: batarya ≤ 7 gün → ekip bildirimi (yalnız gerçek geçmişte, test girdisinde değil) */
-    if (!opts.gecmis && device && global.SuperAriKritik) { if (r.kalanGun != null && r.kalanGun <= (th.batYuksekGun || 7)) global.SuperAriKritik.ac({ kod: 'batarya_7', anahtar: device.id, apiaryId: device.apiaryId, metin: (device.name || 'Cihaz') + ': batarya bir hafta içinde bitebilir. Değiştirmeyi planla.' }); else global.SuperAriKritik.iyilesti('batarya_7', device.id); }
+    var kalan = t.kalan, hd = opts.kalmaBitis !== undefined ? (opts.kalmaBitis ? { tarih: opts.kalmaBitis, kaynak: 'ayrilis' } : null) : hedefTarih(device && device.apiaryId, opts.now);
+    var kalma = hd ? daysTo(hd.tarih, opts.now) : null, hedefGun = kalma, oneri = null;
+    if ((hedefGun == null || hedefGun <= 0) && kalan < a.batErkenGun) hedefGun = a.batErkenGun, hd = { kaynak: 'yok' };
+    if (hedefGun != null && hedefGun > 0 && kalan < hedefGun) {
+      var aday = ARALIK.filter(function (m) { return m > ms; });
+      for (var i = 0; i < aday.length; i++) if (t.kalanFor(aday[i]) >= hedefGun) { oneri = aday[i]; break; }
+      if (!oneri && aday.length) oneri = aday[aday.length - 1];
+    }
+    var acik = kuralAcik(device && device.apiaryId);
+    var sev = acik ? M.seviye(isFinite(kalan) ? kalan : null, gw, th) : null;
+    var r = { durum: 'tamam', pct: Math.round(t.pct), tuketimGun: Math.round(t.rate * 100) / 100, kalanGun: isFinite(kalan) ? Math.floor(kalan) : null, kalmaGun: kalma, hedefKaynak: hd ? hd.kaynak : null, aralikMs: ms, oneriMs: oneri, severity: sev, gateway: gw };
+    if (sessiz) r.bitmis = 'Pil bitmiş olabilir';
+    var neden = hd && hd.kaynak === 'ayrilis' ? 'Ayrılışa ' + kalma + ' gün var' : (hd && hd.kaynak === 'sezon' ? 'Bal sezonu sonuna göre ' + kalma + ' gün yetmeli' : 'Taşınma tarihi girilmedi');
+    if (geri) { r.oneriMs = geri; r.geri = true; r.soru = 'Pil şarj edildi (%' + r.pct + '). Ölçümü yine ' + ARALIK_AD[geri] + ' yapayım mı?'; }
+    else if (oneri) {
+      var yeter = Math.floor(t.kalanFor(oneri)), tam = yeter >= hedefGun;
+      r.soru = 'Pil %' + r.pct + ', mevcut sıklıkla ' + r.kalanGun + ' gün yeter. ' + neden + '. ' + cap(ARALIK_AD[ms] || 'mevcut sıklık') + ' yerine ' + ARALIK_AD[oneri] + ' ölçersem ' + (isFinite(yeter) ? yeter + ' gün' : 'yeterince') + ' yeter' + (tam ? '' : ' (yine de pili şarj etmen gerekecek)') + '. Onaylıyor musun?';
+    } else if (kalma != null && r.kalanGun != null && r.kalanGun < kalma) r.not = 'Pil %' + r.pct + ', ' + r.kalanGun + ' gün yeter; en seyrek ölçümle de yetmiyor — pili şarj et veya değiştir.';
+    if (!opts.gecmis && device) {
+      pilGorevi(device, r, a);
+      if (global.SuperAriKritik) { if (sev === 'high') global.SuperAriKritik.ac({ kod: 'batarya_7', anahtar: device.id, apiaryId: device.apiaryId, metin: (device.name || 'Cihaz') + ': pil ' + r.kalanGun + ' gün içinde bitebilir. ' + (gw ? 'Gateway durursa bütün sensörler susar. ' : '') + 'Değiştirmeyi planla.' }); else global.SuperAriKritik.iyilesti('batarya_7', device.id); }
+    }
     return r;
   }
   function cap(s) { return s.charAt(0).toLocaleUpperCase('tr') + s.slice(1); }
-  /** Onaylanan aralık: ölçüm sıklığı + gateway komut alanı (donanım yoksa «beklemede») */
-  function aralikOnayla(device, ms) {
-    var P = global.SuperAriSensorPolling; if (P && P.setDeviceInterval) P.setDeviceInterval(device.id, ms);
+  /** Onaylanan aralık: ölçüm sıklığı + gateway komut alanı (donanım yoksa «beklemede») + bulut değişiklik kaydı (cihaz_aralik) */
+  function aralikOnayla(device, ms, opts) {
+    var P = global.SuperAriSensorPolling, onceki = aralikMs(device); if (P && P.setDeviceInterval) P.setDeviceInterval(device.id, ms);
     var gw = false; try { var Dv = global.SuperAriDevices; gw = !!(Dv && Dv.listDevices().some(function (d) { return d.tip === 'gateway' && d.apiaryId === device.apiaryId && d.status === 'bagli'; })); } catch (e) { gw = false; }
     var L = rj(CMD_KEY, []); if (!Array.isArray(L)) L = [];
-    L = L.filter(function (c) { return c.deviceId !== device.id; }); L.push({ deviceId: device.id, apiaryId: device.apiaryId, komut: 'olcum_araligi', aralikMs: ms, durum: gw ? 'gonderildi' : 'beklemede', at: new Date().toISOString() });
-    wj(CMD_KEY, L); return L[L.length - 1];
+    var es = L.filter(function (c) { return c.deviceId === device.id; })[0];
+    var eskiMs = opts && opts.geri ? null : (es && es.eskiMs ? es.eskiMs : onceki);
+    L = L.filter(function (c) { return c.deviceId !== device.id; }); L.push({ deviceId: device.id, apiaryId: device.apiaryId, komut: 'olcum_araligi', aralikMs: ms, eskiMs: eskiMs, durum: gw ? 'gonderildi' : 'beklemede', at: new Date().toISOString() });
+    wj(CMD_KEY, L); aralikBulut(device, ms, onceki); return L[L.length - 1];
   }
+  var UUIDRE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function aralikBulut(device, ms, onceki) {
+    var B = global.SuperAriBulut; if (!B || !B.client || device.source === 'demo') return;
+    try { Promise.resolve(B.client()).then(function (c) { if (!c) return; return c.rpc('sa_cihaz_aralik_yaz', { p_apiary: UUIDRE.test(String(device.apiaryId || '')) ? String(device.apiaryId) : null, p_device: String(device.id), p_ms: ms, p_onceki: onceki || null, p_cihaz_ad: device.name || device.typeLabel || null, p_kovan_ad: device.hiveName || null }); }).catch(function () { /* */ }); } catch (e) { /* */ }
+  }
+  /** Bulut → yerel: geri alınan (sa_degisiklik_geri_al) veya başka telefondan onaylanan aralıklar */
+  function aralikTazele() {
+    var B = global.SuperAriBulut, P = global.SuperAriSensorPolling; if (!B || !B.client || !P || !P.setDeviceInterval) return;
+    try { Promise.resolve(B.client()).then(function (c) { if (!c) return; return c.from('cihaz_aralik').select('device_id,aralik_ms').then(function (r) { (r && r.data || []).forEach(function (x) { if (x.aralik_ms) P.setDeviceInterval(x.device_id, Number(x.aralik_ms)); }); }); }).catch(function () { /* */ }); } catch (e) { /* */ }
+  }
+  try { if (global.addEventListener) { global.addEventListener('load', function () { setTimeout(aralikTazele, 1500); }); global.addEventListener('focus', aralikTazele); } } catch (e) { /* */ }
   function komutlar() { var L = rj(CMD_KEY, []); return Array.isArray(L) ? L : []; }
 
   /* ---------- Nektar değerlendirmesi (taşınma önerisi) ---------- */
@@ -128,5 +186,5 @@
   }
   function tasinmaOnayla(apiaryId, tarih) { var r = konSet(apiaryId, { ayrilis: String(tarih).slice(0, 10), oneriOnay: new Date().toISOString() }); try { global.dispatchEvent(new CustomEvent('superari-tasindi', { detail: { apiaryId: apiaryId } })); } catch (e) { /* */ } return r; }
 
-  global.SuperAriPlan2 = { konGet: konGet, konSet: konSet, kalmaBitis: kalmaBitis, bataryaPlan: bataryaPlan, aralikOnayla: aralikOnayla, komutlar: komutlar, netArtis: netArtis, tasinmaOneri: tasinmaOneri, tasinmaOnayla: tasinmaOnayla, ARALIK_AD: ARALIK_AD, pilGecmis: pilGecmis };
+  global.SuperAriPlan2 = { konGet: konGet, konSet: konSet, kalmaBitis: kalmaBitis, bataryaPlan: bataryaPlan, aralikOnayla: aralikOnayla, komutlar: komutlar, netArtis: netArtis, tasinmaOneri: tasinmaOneri, tasinmaOnayla: tasinmaOnayla, ARALIK_AD: ARALIK_AD, pilGecmis: pilGecmis, hedefTarih: hedefTarih, aralikTazele: aralikTazele };
 })(typeof window !== 'undefined' ? window : globalThis);

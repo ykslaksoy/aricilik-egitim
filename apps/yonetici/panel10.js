@@ -83,9 +83,14 @@
       ['w', 'Trafik', '7 gün aynı saat ortalamasının oranından az ' + UT, 's', 'irTrafikOran'],
       ['w', 'Süre', 'Üst üste gün ' + UT, 's', 'irTrafikGun'],
       ['i', 'Skor', 'Oğul skoru: tabandan artış oranı', 's', 'irSapmaOran']] },
-    { t: 'Pil', kk: ['pil'], src: 'Kaynak yok · kalan gün eşikleri uzman tahmini', not: 'Aynı değerler Cihazlar → Pil düşüklüğü kartında (tek kaynak).', r: PIL() }
+    { t: 'Pil', kk: ['pil'], src: 'Kaynak yok · bütün pil değerleri uzman tahmini (cihaz üreticisine bağlı)', not: 'Aynı değerler Cihazlar → Pil düşüklüğü kartında (tek kaynak). Sıklık yalnız kullanıcı «Onayla» deyince değişir.', r: PIL() }
   ];
-  function PIL() { return [['w', 'Düşük pil', 'Bu yüzde ve altı (%)', 'e', 'uyari.dusukPilYuzde'], ['w', 'Orta', 'Kalan gün ≤ ' + UT, 's', 'batOrtaGun'], ['c', 'Yüksek', 'Kalan gün ≤ ' + UT, 's', 'batYuksekGun']]; }
+  function PIL() { return [['w', 'Düşük pil', 'Bu yüzde ve altı (%)', 'e', 'uyari.dusukPilYuzde'], ['w', 'Orta', 'Kalan gün ≤ ' + UT, 's', 'batOrtaGun'], ['c', 'Yüksek', 'Kalan gün ≤ ' + UT, 's', 'batYuksekGun'],
+    ['w', 'Gateway orta', 'Gateway pili kalan gün ≤ ' + UT, 's', 'gwOrtaGun'], ['c', 'Gateway yüksek', 'Gateway pili kalan gün ≤ ' + UT, 's', 'gwYuksekGun'],
+    ['i', 'Sıklık önerisi', 'Tarih yoksa kalan gün < ' + UT, 's', 'batErkenGun'], ['i', 'Hedef', 'Ayrılış yoksa bal sezonu sonu + gün ' + UT, 's', 'batSezonArtiGun'],
+    ['i', 'Görev', '«Pili değiştir» tahmini bitişten gün önce ' + UT, 's', 'batGorevOnceGun'], ['i', 'Şarj', 'Şarj sayılan artış (puan) ' + UT, 's', 'batSarjArtis'],
+    ['w', 'Pil bitmiş olabilir', 'Sessiz cihazda son okuma ≤ % ' + UT, 's', 'batBittiPct'],
+    ['i', 'Taban tüketim', 'Ölçümden bağımsız pay (0–1) ' + UT, 's', 'batTabanOran'], ['i', 'İlk hesap', 'Gün ' + UT, 's', 'batIlkGun'], ['i', 'İlk hesap', 'En az düşüş (puan) ' + UT, 's', 'batIlkDusus']]; }
   var CIHAZ = [
     { t: 'Pil düşüklüğü', kk: ['pil'], src: 'Ölçüm kuralları → Pil ile aynı değerler (tek kaynak)', r: PIL(), son: 'Şu an düşük pil' },
     { t: 'Veri gelmiyor / sessiz', kk: ['cihazSessiz'], src: 'Kaynak yok · uzman tahmini', not: 'Sarı: en büyüğü (kaçırılan okuma × ölçüm aralığı, en az dakika). Bildirim cihaz başına günde en çok bir. Hiç okuma gelmemiş cihaz «Veri yok» kalır.', r: [

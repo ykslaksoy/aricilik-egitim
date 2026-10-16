@@ -30,7 +30,7 @@ const aps=w.SuperAriDemo.loadApiaries();aps.forEach(a=>{if(a.id!=='a1')seri[a.id
 const y2=R.yonlendir('a1',9);assert.strictEqual(y2.durum,'harici',JSON.stringify(y2));assert.ok(w.SuperAriCicek.donem({il:y2.hedef.il,ilce:y2.hedef.ilce},9).aktif,y2.hedef.ilce);
 // teknik birim / yabancı terim yok
 [y.metin,y2.metin].forEach(m=>assert.ok(!/Hz|dB|kg\/gün|kg\/g/.test(m)));
-const goc=fs.readFileSync(path.join(W,'goc.html'),'utf8');assert.ok(goc.includes('id="gVaris" required')&&goc.includes('id="gAyrilis" required')&&!/kg\/gün|Open-Meteo|TAGEM/.test(goc));
+const goc=fs.readFileSync(path.join(W,'goc.html'),'utf8');assert.ok(goc.includes('id="gVaris" required')&&goc.includes('id="gAyrilis" />')/*k225: ayrılış istenir, boşsa bal sezonu sonu*/&&!/kg\/gün|Open-Meteo|TAGEM/.test(goc));
 const pn=fs.readFileSync(path.join(W,'../yonetici/panel.js'),'utf8');assert.ok(pn.includes('rota_puan(ilçe)')&&pn.includes('TAGEM'));
 // TAGEM 2022 değerleri (eski matris kalmadı)
 const V=JSON.parse(JSON.stringify(w.SuperAriCicekVeri.rows)),g=(i,c)=>V.filter(r=>r.il===i&&r.ilce===c).map(r=>[r.ay1,r.ay2]).map(x=>Array.from(x));

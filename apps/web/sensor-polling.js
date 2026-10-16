@@ -109,29 +109,15 @@
     return Math.max(0, Math.min(100, Math.round(x)));
   }
 
-  function getBatteryLowPct(apiaryId) {
-    var c = getConfig();
-    var ap = apiaryId != null ? String(apiaryId) : '';
-    if (ap && c.batteryLowPctByApiary[ap] != null) {
-      var v = clampBatteryPct(c.batteryLowPctByApiary[ap]);
-      if (v != null) return v;
-    }
-    var g = clampBatteryPct(c.batteryLowPct);
-    return g != null ? g : DEFAULT_BATTERY_LOW_PCT;
+  /* koloni-225: tek kaynak — yönetici panelindeki «Düşük pil» (uyari.dusukPilYuzde, uzman tahmini). Eski arılık/telefon eşikleri yok sayılır. */
+  function getBatteryLowPct() {
+    try { var E = global.SuperAriEsikler && global.SuperAriEsikler.get(); if (E && E.uyari && E.uyari.dusukPilYuzde > 0) { var v = clampBatteryPct(E.uyari.dusukPilYuzde); if (v != null) return v; } } catch (e) { /* */ }
+    return DEFAULT_BATTERY_LOW_PCT;
   }
 
-  function setBatteryLowPct(pct, apiaryId) {
-    var v = clampBatteryPct(pct);
-    if (v == null) return false;
-    var c = getConfig();
-    if (apiaryId != null && String(apiaryId)) {
-      c.batteryLowPctByApiary[String(apiaryId)] = v;
-    } else {
-      c.batteryLowPct = v;
-    }
-    saveConfig(c);
-    return true;
-  }
+  /** Eski arayüz uyumu: eşik artık yalnız yönetici panelinden değişir. */
+  function setBatteryLowPct() { return false; }
+
 
   function saveConfig(c) { writeJ(CONFIG_KEY, c || emptyConfig()); }
 
@@ -379,7 +365,15 @@
     if (!isBatteryDue(device, nowMs, !!piggyback)) return null;
     var row = null;
     if (device.source === 'demo' || !isLive()) row = simulateBattery(device);
-    else pruneTip('pil');
+    else {
+      /* koloni-225: canlı cihazın gerçek pil okumasını sakla (aynı okuma iki kez yazılmaz) */
+      var at = device.batteryAt ? String(device.batteryAt).slice(0, 16) : null, pct = device.batteryPct != null ? device.batteryPct : device.battery;
+      if (at && pct != null) {
+        var son = readStore('pil').filter(function (x) { return String(x.deviceId) === String(device.id); }).map(function (x) { return x.at; }).sort().pop();
+        if (son !== at) row = appendReading({ type: 'pil', deviceId: device.id, hiveId: device.hiveId, at: at, batteryPct: pct, batteryV: device.batteryV });
+      }
+      pruneTip('pil');
+    }
     markBatteryPolled(device.id, nowMs);
     return row;
   }

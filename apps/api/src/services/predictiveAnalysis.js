@@ -37,7 +37,7 @@ function analyzePredictive(history, reading, colony, meta = {}) {
   }
 
   const battery = reading?.battery ?? 100;
-  const pilGun = Math.round(battery * CONNECTIVITY.BATTERY_DAYS_PER_PCT);
+  const pilGun = battery > 0 ? require("./sensorAnalysis").pilKalanGun(history, reading) : null; /* koloni-225: uygulamayla aynı model */
 
   const meanWeight = seriesMean(history, "weightKg");
   const meanOut = seriesMean(history, "beeOut");
@@ -71,7 +71,7 @@ function analyzePredictive(history, reading, colony, meta = {}) {
   let ariciya = "";
   if (swarmTahminGun) ariciya += `Oğul penceresi ~${swarmTahminGun} gün. `;
   if (beslemeGun != null && beslemeGun < 14) ariciya += `Stok ~${beslemeGun} gün. `;
-  if (pilGun < 10) ariciya += `Pil ~${pilGun} gün. `;
+  if (pilGun != null && pilGun < 10) ariciya += `Pil ~${pilGun} gün. `;
   if (anomaliSkor >= 30) ariciya += "Baseline sapması var.";
   if (!ariciya) ariciya = "Tahmin: rutin izleme yeterli";
 

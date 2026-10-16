@@ -1,7 +1,7 @@
 /* koloni-221 (k223: tüm eşitlenen tablolar + yedekten geri yükleme): Değişiklik kaydı (public.sa_degisiklik) — liste + Geri al. Uygulama (Ayarlar) ve Yönetici paneli ortak. */
 (function (g) {
   'use strict';
-  var TB = { apiaries: 'Arılık', hives: 'Kovan', queens: 'Ana arı', records: 'Kayıt (muayene/tartım/tedavi/besleme/hasat…)', tasks: 'Görev', stock_items: 'Stok', photos: 'Fotoğraf', apiary_members: 'Ekip / rol', cihaz_devre_disi: 'Cihaz', ayar: 'Yönetici ayarı', sa_yedek_ayar: 'Yedek saklama süresi' };
+  var TB = { apiaries: 'Arılık', hives: 'Kovan', queens: 'Ana arı', records: 'Kayıt (muayene/tartım/tedavi/besleme/hasat…)', tasks: 'Görev', stock_items: 'Stok', photos: 'Fotoğraf', apiary_members: 'Ekip / rol', cihaz_devre_disi: 'Cihaz', cihaz_aralik: 'Cihaz ölçüm sıklığı', ayar: 'Yönetici ayarı', sa_yedek_ayar: 'Yedek saklama süresi' };
   var IS = { ekle: 'Eklendi', guncelle: 'Değiştirildi', sil: 'Silindi', geri_al: 'Geri alındı', geri_yukle: 'Yedekten geri yüklendi' };
   var GIZ = { updated_at: 1, server_updated_at: 1, updated_by: 1, created_at: 1, created_by: 1, owner_id: 1, apiary_id: 1, user_id: 1, local_id: 1, key: 1, id: 1 };
   var AD = { devre_disi: 'Devre dışı', name: 'Ad', role: 'Rol', deleted: 'Silindi', mali_gorur: 'Mali verileri görür', gorev_atar: 'Görev atar', duzenler: 'Düzenler', kayit_gorur: 'Kaydı görür', geri_alir: 'Geri alabilir', cihaz_ad: 'Cihaz', kovan_ad: 'Kovan', arilik_ad: 'Arılık', kuralKapali: 'Kapalı kurallar', sensor: 'Sensör eşiği' };

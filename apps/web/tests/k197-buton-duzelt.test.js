@@ -1,6 +1,6 @@
 const test=require('node:test');const assert=require('node:assert');const fs=require('fs');const path=require('path');
 const W=path.join(__dirname,'..');const r=f=>fs.readFileSync(path.join(W,f),'utf8');
-test('k197: version',()=>assert.equal(JSON.parse(r('version.json')).version,'koloni-223'));
+test('k197: version',()=>assert.equal(JSON.parse(r('version.json')).version,'koloni-225'));
 test('k197: stok özet kutuları süzer',()=>{const s=r('stok.html');for(const k of['kalem','azalan','tukenen'])assert.ok(s.includes("href: '#f-"+k+"'"));assert.ok(s.includes('function renderFilter'));assert.ok(!/l: '(Kalem|Azalan|Tükenen)', href: '#'[,\s}]/.test(s));});
 test('k197: petek kamera izni uyarısı',()=>{const s=r('petek-tarama.js');assert.ok(s.includes('Kamera izni verilmedi'));assert.ok(s.includes('await ensureCamera()'));});
 test('k197: bakim-yap QR kovansız da bağlı',()=>{const s=r('bakim-yap.html');assert.ok(s.indexOf("getElementById('byQr')")<s.indexOf("if (!h)"));});

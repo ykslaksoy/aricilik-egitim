@@ -376,6 +376,14 @@ function analyzeVibration(reading, colony, meta = {}, cfg = {}, history = []) {
   return base;
 }
 
+const PilModel = require("../../../web/pil-model.js");
+function pilKalanGun(history = [], reading = null, cfg = {}) {
+  const h = (history || []).concat(reading ? [reading] : [])
+    .map((x) => ({ t: new Date(x?.ts || x?.at || 0).getTime(), p: Number(x?.battery ?? x?.batteryPct) }))
+    .filter((x) => x.t > 0 && Number.isFinite(x.p)).sort((a, b) => a.t - b.t);
+  return PilModel.kalanGun(h, cfg.aralikMs || 3600000, cfg.pil || {});
+}
+
 function analyzeConnectivity(reading, history = [], cfg = {}) {
   const battery = reading?.battery ?? 100;
   const rssi = reading?.loraRssi ?? reading?.rssi ?? -70;
@@ -400,16 +408,9 @@ function analyzeConnectivity(reading, history = [], cfg = {}) {
     cfg.sleepModeModel !== false &&
     (reading?.sleepMode === true || (battery < 35 && (reading?.beeOut ?? 0) < 50));
 
-  let daysLeft =
-    battery > 0
-      ? Math.round(battery * CONNECTIVITY.BATTERY_DAYS_PER_PCT)
-      : null;
-  if (solarChargeW != null && solarChargeW >= 2 && battery < 100) {
-    daysLeft = Math.round((daysLeft || 0) * 1.25 + 2);
-  }
-  if (sleepModeActive && daysLeft != null) {
-    daysLeft = Math.round(daysLeft * 1.15);
-  }
+  /* koloni-225: uygulamayla aynı pil modeli (apps/web/pil-model.js); yetersiz veride null */
+  let daysLeft = battery > 0 ? pilKalanGun(history, reading, cfg) : null;
+  /* güneş/uyku çarpanı yok: eğim gerçek okumalardan geldiği için şarj/uyku etkisi zaten içinde (uygulamayla aynı) */
 
   const uplink =
     reading?.uplink ||
@@ -684,6 +685,7 @@ function analyzeAllSensors(history, reading, colony, weather, meta, cfg = {}, he
 }
 
 module.exports = {
+  pilKalanGun,
   analyzeIrTraffic,
   analyzeWeight,
   analyzeAudio,

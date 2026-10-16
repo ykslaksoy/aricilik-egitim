@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr" class="sa-duz">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-223">
+<link rel="stylesheet" href="sa-early.css?v=koloni-225">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Ayarlar · SüperArı</title>
@@ -82,16 +82,8 @@
 <div id="kalici" hidden>
 <div id="k-pil" style="display:grid;gap:.5rem;">
 <p class="sub" style="margin:0;">Kovan bataryası ve Gateway bataryası cihazları için geçerli.</p>
-          <p class="hint-inline" style="margin:0">Cihaz kartlarında «Düşük pil» rozeti bu eşiğin altında gösterilir (varsayılan %20).</p>
-          <label>Arılık (boş = tüm arılıklar için genel)
-            <select id="battery-low-apiary">
-              <option value="">Genel (tüm arılıklar)</option>
-            </select>
-          </label>
-          <label>Eşik (%)
-            <input type="number" id="battery-low-pct" min="5" max="50" step="1" value="20" inputmode="numeric">
-          </label>
-          <button class="btn secondary" type="button" id="btn-battery-low-save">Eşiği kaydet</button>
+          <p class="hint-inline" style="margin:0">Cihaz kartlarında «Düşük pil» rozeti düşük pil eşiğinde gösterilir.</p>
+          <p class="hint-inline" style="margin:0">Düşük pil eşiği tek yerden, yönetici panelinden ayarlanır; bütün arılıklarda aynıdır.</p>
 </div>
         <div id="ses-box" style="display:grid;gap:.5rem;padding:.7rem .8rem;border:1px solid var(--border,#ead9b3);border-radius:12px;background:#fffdf6;min-width:0;">
           <strong style="font-size:.95rem;">🔊 Ses seçimi (sesli mod)</strong>
@@ -102,14 +94,14 @@
         </div>
 </div>
 <div class="toast" id="toast" role="status">Kaydedildi</div>
-<script src="demo-data.js?v=koloni-223"></script>
-<script src="device-runtime.js?v=koloni-223"></script>
-<script src="yetki.js?v=koloni-223"></script>
-<script src="nav.js?v=koloni-223"></script>
-<script src="bulut.js?v=koloni-223"></script>
-<script src="sensor-polling.js?v=koloni-223"></script>
-<script src="sesle-muayene.js?v=koloni-223"></script>
-<script src="push.js?v=koloni-223"></script>
+<script src="demo-data.js?v=koloni-225"></script>
+<script src="device-runtime.js?v=koloni-225"></script>
+<script src="yetki.js?v=koloni-225"></script>
+<script src="nav.js?v=koloni-225"></script>
+<script src="bulut.js?v=koloni-225"></script>
+<script src="sensor-polling.js?v=koloni-225"></script>
+<script src="sesle-muayene.js?v=koloni-225"></script>
+<script src="push.js?v=koloni-225"></script>
 <script>
 (function () {
   'use strict';
@@ -364,6 +356,6 @@
     (function () { var n = 0, iv = setInterval(function () { n++; var had = (box._opts || []).length; draw(); if (n >= 12 || (had && had === (box._opts || []).length)) clearInterval(iv); }, 250); })();
   })();
 </script>
-<script src="sifre-goz.js?v=koloni-223"></script>
+<script src="sifre-goz.js?v=koloni-225"></script>
 </body>
 </html>

@@ -69,8 +69,8 @@ assert.ok(P.readStore('tarti').length >= 2);
 assert.strictEqual(P.clampBatteryPct(150), 100);
 assert.strictEqual(P.clampBatteryPct(-3), 0);
 assert.strictEqual(P.getBatteryLowPct(), 20);
-P.setBatteryLowPct(15, 'a1');
-assert.strictEqual(P.getBatteryLowPct('a1'), 15);
+assert.strictEqual(P.setBatteryLowPct(15, 'a1'), false);
+assert.strictEqual(P.getBatteryLowPct('a1'), 20, 'tek kaynak: yönetici paneli');
 
 const pilKey = P.storageKey('pil');
 mem[pilKey] = JSON.stringify([
