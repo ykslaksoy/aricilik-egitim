@@ -1,0 +1,27 @@
+/* k194: Kuluçka hedef 34,5 °C (Groh 2004); uyarı ≤33,5 / ≥35 °C 6 sa; kritik 33–36 °C dışı 6 sa (Kleinhenz 2003). */
+const assert=require('assert'),vm=require('vm'),fs=require('fs'),path=require('path');
+const W=path.join(__dirname,'..');
+const ls={getItem:()=>null,setItem(){},removeItem(){},key:()=>null,length:0};
+const w={localStorage:ls,addEventListener(){},removeEventListener(){},dispatchEvent(){},CustomEvent:function(){},Event:function(){},console};w.window=w;w.self=w;vm.createContext(w);
+vm.runInContext(fs.readFileSync(path.join(W,'demo-data.js'),'utf8'),w);const C=w.SuperAriDemo.colony,T=Object.assign({},C.ORS_SENSOR),H=3600000;
+assert.strictEqual(T.kuluckaHedefC,34.5);assert.strictEqual(T.kuluckaUyariAltC,33.5);assert.strictEqual(T.kuluckaUyariUstC,35);assert.strictEqual(T.kuluckaAltC,33);assert.strictEqual(T.kuluckaUstC,36);
+assert.strictEqual(T.kuluckaOynaklikC,2);assert.strictEqual(T.kuluckaAyBas,3);assert.strictEqual(T.kuluckaAySon,8);assert.strictEqual(T.kirecIsiC,30);assert.strictEqual(T.kirecSaat,24);
+['kuluckaHedefC','kuluckaUyariAltC','kuluckaUyariUstC'].forEach(k=>assert.match(C.ORS_SENSOR_ADLAR[k],/Groh/));
+assert.strictEqual(C.ogulSkorMerge({sensor:{kuluckaUyariAltC:35.5,kuluckaUyariUstC:35}}).sensor.kuluckaUyariAltC,33.5);
+assert.strictEqual(C.ogulSkorMerge({sensor:{kuluckaUyariUstC:35.2}}).sensor.kuluckaUyariUstC,35.2);
+const Y=Date.parse('2026-06-10T12:00:00');
+const seri=(v,n)=>Array.from({length:30},(_,i)=>({t:Y-(29-i)*H,tempC:i<30-n?34.5:v,rh:60}));
+const R=(I,t)=>C.saglikHatirlatmalari({isi_nem:I,tarti:[],ir:[],kuluckaSensoru:true},t||T,Y);
+let r=R(seri(35,8));assert.ok(r.kulucka&&!r.kuluckaKritik&&r.kuluckaYon==='yuksek','35 °C uyarı');
+r=R(seri(33.5,8));assert.ok(r.kulucka&&!r.kuluckaKritik&&r.kuluckaYon==='dusuk','33,5 °C uyarı');
+assert.ok(!R(seri(34.9,30)).kulucka);assert.ok(!R(seri(33.6,30)).kulucka);
+r=R(seri(36.5,8));assert.ok(r.kulucka&&r.kuluckaKritik&&r.kuluckaYon==='yuksek');
+r=R(seri(32.5,8));assert.ok(r.kuluckaKritik&&r.kuluckaYon==='dusuk');
+assert.ok(!R(seri(36.5,5)).kulucka,'6 saatten kısa');
+assert.ok(!R(seri(35.2,8),Object.assign({},T,{kuluckaUyariUstC:35.5})).kulucka,'panel eşiği');
+const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');const t=d.match(/id: 'kr-kulucka-'[^\n]*/)[0];
+assert.ok(!/kireç|°c|groh|kleinhenz|hz|db/i.test(t));assert.ok(/priority: shR && shR.kuluckaKritik \? 1 : 3/.test(t));
+assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
+const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261016060000_k194_kulucka_hedef.sql'),'utf8');['34.5','33.5','Groh','Kleinhenz','Uzman tahmini'].forEach(x=>assert.ok(m.includes(x),x));
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-194');
+console.log('k194-kulucka-hedef ok');
