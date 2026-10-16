@@ -299,7 +299,7 @@
     return out;
   }
 
-  /* koloni-218: Pil düşüklüğü kuralı yönetici panelinden kapatılabilir (genel / kullanıcı / arılık) */
+  /* koloni-219: Pil düşüklüğü kuralı yönetici panelinden kapatılabilir (genel / kullanıcı / arılık) */
   function pilAcik(aid) { try { var C = global.SuperAriDemo && global.SuperAriDemo.colony; return !(C && C.kuralAcik) || C.kuralAcik('pil', aid); } catch (e) { return true; } }
 
   function isBatteryLow(device) {
