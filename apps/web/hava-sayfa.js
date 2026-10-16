@@ -22,6 +22,8 @@
   function num(v) { var n = Number(v); return isFinite(n) ? n : null; }
   function r0(v) { var n = num(v); return n == null ? '—' : Math.round(n); }
   function dayLab(iso, i) { var d = new Date(iso + 'T12:00:00'); return i === 0 ? 'Bugün' : GUN[d.getDay()]; }
+  /* k212: şerit için gün + ayın günü (tekrarlayan gün adları ayırt edilsin): «Paz 18» */
+  function dayLabD(iso, i) { var d = new Date(iso + 'T12:00:00'); return i === 0 ? 'Bugün' : GUN[d.getDay()] + ' ' + d.getDate(); }
   function rainy(d) { return (d.mm || 0) >= 1 || (d.pr || 0) >= 60; }
   /* Arı uçuşu: ≥15° max, rüzgar ≤20 km/s, yağış yok/az → uygun; ≥12°, ≤30 km/s, olasılık <70 → kısmen */
   function flight(d) {
@@ -166,8 +168,8 @@
     }).join('');
     var note;
     if (!data) note = { t: 'Tahmin alınamadı — bağlantıyı kontrol edin', b: 'Yenile', h: '#' };
-    else if (okD.length) note = { t: '🐝 Uçuş uygun: ' + okD.slice(0, 4).map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', '), b: 'Uçuş', h: '#ucus' };
-    else if (rainD.length) note = { t: '🌧️ ' + rainD.map(function (x) { return dayLab(x.date, d.indexOf(x)); }).join(', ') + ' yağmur', b: 'İş günü', h: '#isgunu' };
+    else if (okD.length) note = { t: '🐝 Uçuş uygun: ' + okD.slice(0, 4).map(function (x) { return dayLabD(x.date, d.indexOf(x)); }).join(', '), b: 'Uçuş', h: '#ucus' };
+    else if (rainD.length) note = { t: '🌧️ ' + rainD.map(function (x) { return dayLabD(x.date, d.indexOf(x)); }).join(', ') + ' yağmur', b: 'İş günü', h: '#isgunu' };
     else note = { t: 'Önümüzdeki günlerde uçuşa uygun gün yok', b: '10 gün', h: '#10gun' };
     $('bkNoteText').textContent = note.t; $('bkNoteBtn').textContent = note.b; $('bkNote').setAttribute('href', note.h);
   }
