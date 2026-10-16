@@ -4,6 +4,8 @@
   var TB = { apiaries: 'Arılık', hives: 'Kovan', apiary_members: 'Ekip / rol', cihaz_devre_disi: 'Cihaz', ayar: 'Yönetici ayarı' };
   var IS = { ekle: 'Eklendi', guncelle: 'Değiştirildi', sil: 'Silindi', geri_al: 'Geri alındı' };
   var GIZ = { updated_at: 1, server_updated_at: 1, updated_by: 1, created_at: 1, created_by: 1, owner_id: 1, apiary_id: 1, user_id: 1, local_id: 1, key: 1, id: 1 };
+  var AD = { devre_disi: 'Devre dışı', name: 'Ad', role: 'Rol', deleted: 'Silindi', mali_gorur: 'Mali verileri görür', gorev_atar: 'Görev atar', duzenler: 'Düzenler', kayit_gorur: 'Kaydı görür', geri_alir: 'Geri alabilir', cihaz_ad: 'Cihaz', kovan_ad: 'Kovan', arilik_ad: 'Arılık', kuralKapali: 'Kapalı kurallar', sensor: 'Sensör eşiği' };
+  function alanAd(k) { return k.split('.').filter(function (p) { return p !== 'data'; }).map(function (p) { return AD[p] || p; }).join(' › ') || k; }
   var ROL = { owner: 'Sahip', arici: 'Arıcı', bakici: 'Bakıcı' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function tf(iso) { var d = new Date(iso); return isFinite(d) ? d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (TSİ)' : '—'; }
@@ -32,7 +34,7 @@
     return '<li class="dk-li" style="padding:.55rem 0;border-bottom:1px solid #e5e7eb;list-style:none">'
       + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start"><div><b>#' + e.id + ' · ' + esc(TB[e.tablo] || e.tablo) + ' ' + esc(IS[e.islem] || e.islem).toLowerCase() + '</b>' + (ad ? ' · ' + esc(ad) : '')
       + '<br><small>' + esc(tf(e.at)) + ' · ' + esc(e.email || '—') + ' (' + esc(e.rol || '—') + ')</small><br><small>Kapsam: ' + esc(kap) + (e.geri_alinan ? ' · #' + e.geri_alinan + ' geri alındı' : '') + '</small></div><div style="flex:none">' + geri + '</div></div>'
-      + (f.length ? '<ul style="margin:.3rem 0 0;padding-left:1rem;font-size:.85rem">' + f.slice(0, 8).map(function (x) { return '<li>' + esc(x.k) + ': ' + esc(x.a) + ' → <b>' + esc(x.b) + '</b></li>'; }).join('') + (f.length > 8 ? '<li>… ' + (f.length - 8) + ' alan daha</li>' : '') + '</ul>' : '')
+      + (f.length ? '<ul style="margin:.3rem 0 0;padding-left:1rem;font-size:.85rem">' + f.slice(0, 8).map(function (x) { return '<li>' + esc(alanAd(x.k)) + ': ' + esc(x.a) + ' → <b>' + esc(x.b) + '</b></li>'; }).join('') + (f.length > 8 ? '<li>… ' + (f.length - 8) + ' alan daha</li>' : '') + '</ul>' : '')
       + '</li>';
   }
   function liste(rows, opt) { return rows.length ? '<ul style="margin:0;padding:0">' + rows.map(function (e) { return satir(e, opt || {}); }).join('') + '</ul>' : '<p class="mk-vy">Veri yok — henüz kayıtlı değişiklik yok.</p>'; }
