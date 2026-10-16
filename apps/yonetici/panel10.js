@@ -38,10 +38,11 @@
       ['w', 'Genel', 'Günlük kayıp ≥ geçmişin katı ' + UT, 's', 'genelKayipKat'],
       ['w', 'Genel', 'En az günlük kayıp (kg) ' + UT, 's', 'genelKayipMinKg'],
       ['i', 'Nektar', 'Günlük artış en az (kg)', 's', 'nektarKg']] },
-    { t: 'Ses', src: 'Frekans bantları: Kural kaynakları → Ses sınıfları (KİLİTLİ, burada yalnız okunur)', r: [
-      ['a', 'Oğul anı', 'Alt (Hz) ' + KY, 'L', 'ogulAniHzMin'],
-      ['a', 'Oğul anı', 'Üst (Hz) ' + KY, 'L', 'ogulAniHzMax'],
-      ['a', 'Oğul anı', 'Tabana göre artış (dB) ' + KY, 'L', 'ogulAniArtisDb'],
+    { t: 'Ses', src: 'Frekans bantları: Kural kaynakları → Ses sınıfları (KİLİTLİ, burada yalnız okunur) · Oğul anı 500–600 Hz, +6 dB, 2 dk: uzman tahmini — hakemli kaynak yok (Ferrari 2008 bant kaymasını gösterir, dB/süre eşiği vermez); kaynak aranıyor, Yapılacaklar\'da', r: [
+      ['a', 'Oğul anı', 'Alt (Hz) ' + UT, 'L', 'ogulAniHzMin'],
+      ['a', 'Oğul anı', 'Üst (Hz) ' + UT, 'L', 'ogulAniHzMax'],
+      ['a', 'Oğul anı', 'Tabana göre artış (dB) ' + UT, 'L', 'ogulAniArtisDb'],
+      ['a', 'Oğul anı', 'En az süre (dk) ' + UT, 'L', 'ogulAniDk'],
       ['c', 'Piping', 'Alt (Hz)', 'L', 'pipingHzMin'],
       ['c', 'Piping', 'Üst (Hz)', 'L', 'pipingHzMax'],
       ['c', 'Quacking', 'Alt (Hz)', 'L', 'quackHzMin'],
