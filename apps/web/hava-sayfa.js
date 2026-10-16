@@ -194,7 +194,7 @@
     if (!data) return head('Hava', sub) + '<div class="hv-empty">Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.</div>';
     if (name === '10gun') return head('10 günlük tahmin', sub + ' · 🐝 uçuş uygun günler yeşil') + d.map(dayCard).join('');
     if (name === 'ucus') {
-      return head('Arı uçuşu uygunluğu', 'Uygun: en yüksek ≥15°, rüzgar ≤20 km/sa, yağış yok') + d.map(dayCard).join('');
+      return head('Arı uçuşu uygunluğu', (function () { var b = ue().breed; return (b ? b + ' arısına göre' : 'Genel eşiklere göre') + ' · sıcaklık, rüzgar ve yağış'; })()) + d.map(dayCard).join('');
     }
     if (name === 'yagis') return head('Yağış', sub + ' · yağmurlu gün: ≥1 mm veya ≥%60') + d.map(function (x, i) {
       return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.pr || 0)) + '%"></i></span><span class="v" style="flex:0 0 96px;text-align:right">' + (rainy(x) ? '🌧️ ' : '') + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span></div>';
