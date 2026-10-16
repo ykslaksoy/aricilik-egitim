@@ -25,10 +25,11 @@
       ['i', 'Kireç', 'Kesintisiz süre (saat) ' + UT, 's', 'kirecSaat'],
       ['i', 'Dönem', 'İlk ay (1–12) ' + UT, 's', 'kuluckaAyBas'],
       ['i', 'Dönem', 'Son ay (1–12) ' + UT, 's', 'kuluckaAySon']] },
-    { t: 'Nem', src: 'Alt %50: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Üst %75: uzman tahmini (kullanıcı seçimi), kovan için doğrulanmış eşik yok · Kireç %80: Liang 2000, Ying Yong Sheng Tai Xue Bao 11:869, PubMed 11767561 (DOI yok; %80 altında spor çimlenmedi) ve Flores 1996, doi:10.1051/apido:19960401 (destekleyici) · süre uzman tahmini', not: 'Aralık dışında kalırsa uyarı. Alt: «Nem çok düşük, yavru (yumurta) açılmama riski var»; {s:nemNormalUst}–{s:nemKirecUst} %: «Nem normal aralığın üstünde» (risk iddiası yok); {s:nemKirecUst} % üstü: «Nem çok yüksek, kireç hastalığı riski var». Kireç uyarısı sıcaklık kuralıyla ortak: kovan başına 7 günde en çok bir.', r: [
-      ['ok', 'Normal', 'Alt sınır (%) · Doull 1976', 's', 'nemNormalAlt'],
-      ['ok', 'Normal', 'Üst sınır (%) ' + UT, 's', 'nemNormalUst'],
-      ['w', 'Uyarı', '{s:nemNormalAlt}–{s:nemNormalUst} % dışında kesintisiz (saat) ' + UT, 's', 'nemDisiSaat'],
+    { t: 'Nem', src: 'Kritik %55, erken %60, üst %75: uzman tahmini (kullanıcı seçimi); kovan için doğrulanmış eşik yok · İlgili: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Kireç %80: Liang 2000, Ying Yong Sheng Tai Xue Bao 11:869, PubMed 11767561 (DOI yok; %80 altında spor çimlenmedi) ve Flores 1996, doi:10.1051/apido:19960401 (destekleyici) · süre uzman tahmini', not: 'Normal {s:nemNormalAlt}–{s:nemNormalUst} %. {s:nemNormalAlt} % altı erken uyarı: «Nem düşüyor, yavrularda kuruma riski var». {s:nemKritikAlt} % altı kritik: «Nem çok düşük, yavru (yumurta) açılmama riski var». {s:nemNormalUst}–{s:nemKirecUst} %: «Nem normal aralığın üstünde» (risk iddiası yok); {s:nemKirecUst} % üstü: «Nem çok yüksek, kireç hastalığı riski var». Kireç uyarısı sıcaklık kuralıyla ortak: kovan başına 7 günde en çok bir.', r: [
+      ['c', 'Kritik', 'Bunun altı (%) ' + UT, 's', 'nemKritikAlt'],
+      ['w', 'Erken uyarı', 'Normal alt sınır; bunun altı (%) ' + UT, 's', 'nemNormalAlt'],
+      ['i', 'Nötr', 'Normal üst sınır; bunun üstü (%) ' + UT, 's', 'nemNormalUst'],
+      ['w', 'Süre', 'Tüm nem kademeleri kesintisiz (saat) ' + UT, 's', 'nemDisiSaat'],
       ['c', 'Kireç riski', 'Bunun üstü (%) · Liang 2000, Flores 1996', 's', 'nemKirecUst'],
       ['i', 'Kireç', 'Destekleyici nem (%) ' + UT, 's', 'kirecNemYuksek'],
       ['i', 'Skor', 'Oğul skoru Sıkışıklık girdisi (%)', 's', 'nemHigh']] },
