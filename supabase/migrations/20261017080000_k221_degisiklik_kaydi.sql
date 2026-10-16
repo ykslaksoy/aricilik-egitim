@@ -1,4 +1,42 @@
 -- koloni-221: Değişiklik kaydı (kim, rol, ne zaman, önce/sonra, kapsam) + Geri al (yalnız yönetici ve Sahip).
+-- kişi bazlı yetki: «Kaydı görür» ve «Geri alabilir» (varsayılan kapalı; Sahip her ikisine sahip)
+alter table public.apiary_members add column if not exists kayit_gorur boolean;
+alter table public.apiary_members add column if not exists geri_alir boolean;
+create or replace function public.sa_yetki(aid uuid, ad text) returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce((select case when m.role = 'owner' then true
+    when ad = 'mali'  then coalesce(m.mali_gorur, m.role = 'arici')
+    when ad = 'gorev' then coalesce(m.gorev_atar, m.role = 'arici')
+    when ad = 'duzen' then coalesce(m.duzenler, true)
+    when ad = 'kayit' then coalesce(m.kayit_gorur, false) or coalesce(m.geri_alir, false)
+    when ad = 'geri'  then coalesce(m.geri_alir, false)
+    else false end
+  from public.apiary_members m where m.apiary_id = aid and m.user_id = auth.uid()), false);
+$$;
+create or replace function public.sa_uye_yetki(aid uuid, uid uuid, ad text, deger boolean) returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.sa_is_owner(aid) then raise exception 'Yetkileri yalnız Sahip değiştirir'; end if;
+  if uid = auth.uid() then raise exception 'Sahip kendi yetkisini değiştirmez'; end if;
+  if ad = 'mali' then update public.apiary_members set mali_gorur = deger where apiary_id = aid and user_id = uid and role <> 'owner';
+  elsif ad = 'gorev' then update public.apiary_members set gorev_atar = deger where apiary_id = aid and user_id = uid and role <> 'owner';
+  elsif ad = 'duzen' then update public.apiary_members set duzenler = deger where apiary_id = aid and user_id = uid and role <> 'owner';
+  elsif ad = 'kayit' then update public.apiary_members set kayit_gorur = deger, geri_alir = case when deger then geri_alir else false end where apiary_id = aid and user_id = uid and role <> 'owner';
+  elsif ad = 'geri' then update public.apiary_members set geri_alir = deger, kayit_gorur = case when deger then true else kayit_gorur end where apiary_id = aid and user_id = uid and role <> 'owner';
+  else raise exception 'bilinmeyen yetki'; end if;
+end $$;
+drop function if exists public.sa_apiary_team(uuid);
+create function public.sa_apiary_team(aid uuid)
+returns table (user_id uuid, role text, email text, joined_at timestamptz, mali boolean, gorev boolean, duzen boolean, kayit boolean, geri boolean)
+language sql stable security definer set search_path = public as $$
+  select m.user_id, m.role, p.email, m.created_at,
+    m.role = 'owner' or coalesce(m.mali_gorur, m.role = 'arici'), m.role = 'owner' or coalesce(m.gorev_atar, m.role = 'arici'), m.role = 'owner' or coalesce(m.duzenler, true),
+    m.role = 'owner' or coalesce(m.kayit_gorur, false) or coalesce(m.geri_alir, false), m.role = 'owner' or coalesce(m.geri_alir, false)
+  from public.apiary_members m left join public.profiles p on p.id = m.user_id
+  where m.apiary_id = aid and public.sa_is_member(aid)
+  order by (m.role = 'owner') desc, m.created_at;
+$$;
+revoke all on function public.sa_apiary_team(uuid) from public, anon;
+grant execute on function public.sa_apiary_team(uuid) to authenticated;
+
 create table if not exists public.sa_degisiklik (
   id bigserial primary key,
   at timestamptz not null default now(),
@@ -23,7 +61,7 @@ alter table public.sa_degisiklik enable row level security;
 drop policy if exists sa_degisiklik_oku on public.sa_degisiklik;
 create policy sa_degisiklik_oku on public.sa_degisiklik for select to authenticated using (
   public.sa_is_admin() or hesap_id = auth.uid()
-  or (apiary_id is not null and public.sa_yetki(apiary_id, 'duzen')));
+  or (apiary_id is not null and public.sa_yetki(apiary_id, 'kayit')));  -- Sahip + «Kaydı görür» izni verilenler + yönetici
 
 create or replace function public.sa_degisiklik_rol(aid uuid) returns text language sql stable security definer set search_path = public as $$
   select case when public.sa_is_admin() and aid is null then 'Yönetici'
@@ -93,8 +131,8 @@ begin
   select * into e from public.sa_degisiklik where id = p_id;
   if e.id is null then raise exception 'Kayıt bulunamadı'; end if;
   if not (public.sa_is_admin()
-     or (e.tablo <> 'ayar' and (e.hesap_id = auth.uid() or (e.apiary_id is not null and public.sa_is_owner(e.apiary_id))))) then
-    raise exception 'Geri almayı yalnız yönetici veya hesabın Sahibi yapabilir' using errcode = '42501';
+     or (e.tablo <> 'ayar' and (e.hesap_id = auth.uid() or (e.apiary_id is not null and public.sa_yetki(e.apiary_id, 'geri'))))) then
+    raise exception 'Geri almayı yalnız yönetici, hesabın Sahibi veya Sahibin «Geri alabilir» izni verdiği kişi yapabilir' using errcode = '42501';
   end if;
   if e.geri_alan is not null then raise exception 'Bu değişiklik zaten geri alındı'; end if;
   if e.tablo = 'ayar' then

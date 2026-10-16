@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr" class="sa-duz">
+<head>
+<link rel="stylesheet" href="sa-early.css?v=koloni-221">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Değişiklik kaydı · SüperArı</title>
+<link rel="stylesheet" href="panels.css" />
+<style>
+  body { background:#f6efe2; margin:0; font-family:-apple-system,system-ui,sans-serif; color:#2b2116; overflow-anchor:none; }
+  .wrap { max-width:560px; margin:0 auto; padding:56px 14px 110px; }
+  h1 { font-size:1.35rem; margin:0 0 4px; } .sub { color:#7a6650; font-size:.9rem; margin:0 0 12px; }
+  .kart { background:#fff; border:1px solid #ead9b3; border-radius:14px; padding:10px 14px; min-height:60vh; }
+  .fil { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 10px; } .fil select { min-height:40px; width:100%; }
+  .dk-geri { width:auto !important; min-height:34px; padding:4px 12px !important; font-size:.85rem !important; }
+  .dk-et { font-size:.78rem; color:#7a6650; background:#f3ead6; border-radius:8px; padding:2px 8px; white-space:nowrap; }
+  .mk-vy { color:#7a6650; } #stat { min-height:1.3em; font-size:.85rem; color:#5c4a2a; margin:8px 0 0; }
+  .kapat { position:fixed; top:10px; right:12px; z-index:50; width:40px; height:40px; border-radius:50%; border:1px solid #e2cd8c; background:#fff; font-size:1.1rem; }
+</style>
+</head>
+<body>
+<button type="button" class="kapat" id="saBack" aria-label="Kapat" onclick="if (history.length > 1 && document.referrer) { history.back(); } else { location.href = 'ayarlar.html'; }">✕</button>
+<main class="wrap">
+  <h1>Değişiklik kaydı</h1>
+  <p class="sub">Arılık, kovan, ekip ve cihaz değişiklikleri: kim, ne zaman, önce → sonra. «Geri al» yalnızca Sahip ve Sahibin izin verdiği kişilerde görünür.</p>
+  <div class="fil">
+    <select id="fTablo" aria-label="Tür"><option value="">Tümü</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option></select>
+    <select id="fGun" aria-label="Dönem"><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="365">Son 1 yıl</option></select>
+  </div>
+  <div class="kart" id="liste"><p class="mk-vy">Yükleniyor…</p></div>
+  <p id="stat" role="status"></p>
+</main>
+<script src="demo-data.js?v=koloni-221"></script>
+<script src="yetki.js?v=koloni-221"></script>
+<script src="bulut.js?v=koloni-221"></script>
+<script src="degisiklik-kaydi.js?v=koloni-221"></script>
+<script>
+(function () {
+  'use strict';
+  var K = window.SuperAriDegisiklik, B = window.SuperAriBulut, L = document.getElementById('liste'), ST = document.getElementById('stat');
+  var ORNEK = new URLSearchParams(location.search).get('onizleme') === '1', ROWS = [], GERI = false, CL = null;
+  function stat(t) { ST.textContent = t || ''; }
+  function ornek() {
+    var n = Date.now(), H = 3600000;
+    return [
+      { id: 42, at: new Date(n - 1 * H).toISOString(), email: 'yuksel@ornek.com', rol: 'Sahip', tablo: 'cihaz_devre_disi', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', kovan_ad: 'Kovan 12', once: { devre_disi: false, cihaz_ad: 'Sıcaklık/Nem' }, sonra: { devre_disi: true, cihaz_ad: 'Sıcaklık/Nem' } },
+      { id: 41, at: new Date(n - 5 * H).toISOString(), email: 'ali@ornek.com', rol: 'Arıcı', tablo: 'hives', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', kovan_ad: 'Kovan 7', once: { name: 'Kovan 7', data: { cerceve: 8 } }, sonra: { name: 'Kovan 7', data: { cerceve: 10 } } },
+      { id: 40, at: new Date(n - 26 * H).toISOString(), email: 'yuksel@ornek.com', rol: 'Sahip', tablo: 'apiary_members', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', once: { role: 'arici' }, sonra: { role: 'bakici' }, geri_alan: 43 },
+      { id: 39, at: new Date(n - 50 * H).toISOString(), email: 'ali@ornek.com', rol: 'Arıcı', tablo: 'hives', islem: 'sil', arilik_ad: 'Tortum', kovan_ad: 'Kovan 3', once: { name: 'Kovan 3', deleted: false }, sonra: { name: 'Kovan 3', deleted: true } }
+    ];
+  }
+  function ciz() {
+    var t = document.getElementById('fTablo').value, gun = +document.getElementById('fGun').value, sin = Date.now() - gun * 864e5;
+    var R = ROWS.filter(function (e) { return (!t || e.tablo === t) && Date.parse(e.at) >= sin; });
+    L.innerHTML = K.liste(R, { geriAl: GERI });
+  }
+  function yukle() {
+    if (ORNEK) { ROWS = ornek(); GERI = true; ciz(); stat('Önizleme örneği'); return; }
+    if (!B) { L.innerHTML = '<p class="mk-vy">Veri yok — bulut bağlantısı yok.</p>'; return; }
+    B.client().then(function (c) { CL = c; return c.auth.getUser(); }).then(function (u) {
+      if (!u || !u.data || !u.data.user) { L.innerHTML = '<p class="mk-vy">Kaydı görmek için giriş yap.</p><a class="btn ikincil" href="hesap.html">Giriş yap</a>'; return; }
+      var r = window.SuperAriYetki ? SuperAriYetki.rol() : 'owner';
+      return CL.from('sa_degisiklik').select('*').neq('tablo', 'ayar').gte('at', new Date(Date.now() - 365 * 864e5).toISOString()).order('id', { ascending: false }).limit(300).then(function (x) {
+        if (x.error) throw x.error; ROWS = x.data || [];
+        var me = u.data.user.id, aids = {}; ROWS.forEach(function (e) { if (e.apiary_id) aids[e.apiary_id] = 1; });
+        return Promise.all(Object.keys(aids).map(function (a) { return CL.rpc('sa_yetki', { aid: a, ad: 'geri' }).then(function (y) { aids[a] = !y.error && y.data === true; }); })).then(function () {
+          GERI = function (e) { return e.hesap_id === me || (e.apiary_id && aids[e.apiary_id] === true); };
+        if (!ROWS.length && r !== 'owner') { L.innerHTML = '<p class="mk-vy">Değişiklik kaydını görme iznin yok ya da henüz kayıt yok. İzni Sahip Ayarlar › Ekip’ten verir.</p>'; return; }
+        ciz();
+        });
+      });
+    }).catch(function (e) { L.innerHTML = '<p class="mk-vy">Veri yok — yüklenemedi (' + ((e && e.message) || 'bağlantı') + ').</p>'; });
+  }
+  document.addEventListener('change', function (e) { if (e.target.closest('.fil')) ciz(); });
+  L.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-dk-geri]'); if (!b) return;
+    var id = b.getAttribute('data-dk-geri');
+    if (!confirm('#' + id + ' numaralı değişiklik geri alınsın mı? Önceki değer geri yüklenir; geri alma da kayda yazılır.')) return;
+    if (ORNEK) { stat('Önizlemede geri alma yapılmaz.'); return; }
+    b.disabled = true; stat('Geri alınıyor…');
+    K.geriAl(CL, id).then(function (y) { stat('Geri alındı (#' + y + '). Uygulama verisi bir sonraki eşitlemede güncellenir.'); if (B.sync) try { B.sync(); } catch (er) {} yukle(); })
+      .catch(function (er) { b.disabled = false; stat('Geri alınamadı: ' + K.hataMetni(er)); });
+  });
+  yukle();
+})();
+</script>
+</body>
+</html>

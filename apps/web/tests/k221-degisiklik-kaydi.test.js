@@ -1,0 +1,20 @@
+/* koloni-221: değişiklik kaydı — fark/liste, geri al yetkisi, migration RLS ve izinler. */
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const W=path.join(__dirname,'..'),r=f=>fs.readFileSync(path.join(W,f),'utf8');
+require(path.join(W,'degisiklik-kaydi.js'));const K=globalThis.SuperAriDegisiklik;
+const f=K.fark({name:'A',data:{c:8},updated_at:1},{name:'B',data:{c:10},updated_at:2});
+assert.deepStrictEqual(f.map(x=>x.k).sort(),['data.c','name']);
+const e={id:5,at:'2026-10-17T00:00:00Z',email:'a@b',rol:'Sahip',tablo:'hives',islem:'guncelle',arilik_ad:'Tortum',kovan_ad:'Kovan 3',once:{name:'A'},sonra:{name:'B'}};
+assert.ok(/data-dk-geri="5"/.test(K.liste([e],{geriAl:true})));
+assert.ok(!/data-dk-geri/.test(K.liste([e],{geriAl:false})),'izinsiz geri al yok');
+assert.ok(!/data-dk-geri/.test(K.liste([Object.assign({},e,{geri_alan:9})],{geriAl:true})),'geri alınmış');
+assert.ok(/03:00 \(TSİ\)/.test(K.liste([e],{})),'İstanbul saati');
+assert.ok(/Veri yok/.test(K.liste([],{})));
+const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261017080000_k221_degisiklik_kaydi.sql'),'utf8');
+assert.ok(/sa_yetki\(apiary_id, 'kayit'\)/.test(m)&&/sa_yetki\(e\.apiary_id, 'geri'\)/.test(m)&&/coalesce\(m\.kayit_gorur, false\)/.test(m));
+assert.ok(/daha yeni bir değişiklik/.test(m)&&/sa_degisiklik_cihaz/.test(m)&&/sa_degisiklik_ayar/.test(m));
+const a=r('ayarlar.html');assert.ok(a.includes("yt('kayit'")&&a.includes("yt('geri'")&&a.includes('degisiklik-kaydi.html'));
+assert.strictEqual(r('degisiklik-kaydi.js'),r('../yonetici/degisiklik-kaydi.js'));
+assert.ok(r('../yonetici/index.html').includes('panel12.js'));
+assert.equal(JSON.parse(r('version.json')).version,'koloni-221');
+console.log('k221 ok');
