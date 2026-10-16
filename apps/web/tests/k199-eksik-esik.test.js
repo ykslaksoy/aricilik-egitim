@@ -33,8 +33,21 @@ const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');
 assert.ok(/Nem çok düşük, yavru \(yumurta\) açılmama riski var/.test(d)&&/'Nem normal aralığın üstünde'/.test(d));
 assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
 const p=fs.readFileSync(path.join(W,'../yonetici/panel10.js'),'utf8');Object.keys(E).forEach(k=>assert.ok(p.includes("'"+k+"'"),'panel '+k));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-203');
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-204');
 console.log('k199-eksik-esik ok');
 assert.ok(!/büzüşme/.test(fs.readFileSync(path.join(W,'demo-data.js'),'utf8')+p));
 {const d2=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');assert.ok(/'Nem çok yüksek, kireç hastalığı riski var'/.test(d2));assert.ok(/haftalikHatirlatma\('kirec', h\.id, !!\(shR && \(shR\.kirec \|\| nemKr\)\)/.test(d2),'ortak kireç anahtarı');assert.ok(/shR\.nemYon !== 'kirec'/.test(d2),'nem görevinde tekrar yok');}
 {const d3=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');assert.ok(/'Nem düşüyor, yavrularda kuruma riski var'/.test(d3));assert.ok(/priority: shR\.nemYon === 'dusuk' \? 1 : 3/.test(d3));}
+{/* koloni-204: düzenlenen eşikler dinamik + sıra doğrulama */
+const T2=Object.assign({},T,{nemKritikAlt:40,nemNormalAlt:45,nemNormalUst:65,nemKirecUst:70});const R2=S=>C.yeniKurallar(Object.assign({isi_nem:[],ir:[],titresim:[]},S),T2,{},Y);
+assert.strictEqual(R2({isi_nem:nem(39,26)}).nemYon,'dusuk');assert.strictEqual(R2({isi_nem:nem(42,26)}).nemYon,'erken');assert.strictEqual(R2({isi_nem:nem(54,26)}).nemYon,null,'yeni normal');assert.strictEqual(R2({isi_nem:nem(67,26)}).nemYon,'yuksek');assert.strictEqual(R2({isi_nem:nem(72,26)}).nemYon,'kirec');
+const T3=Object.assign({},T,{nemDisiSaat:10});assert.strictEqual(C.yeniKurallar({isi_nem:nem(54,12),ir:[],titresim:[]},T3,{},Y).nemYon,'dusuk','süre düzenlenebilir');
+assert.ok(C.nemSiraGecerli(T));[{nemKritikAlt:60},{nemNormalAlt:80},{nemNormalUst:85},{nemKirecUst:70},{nemKirecUst:101},{nemNormalAlt:55,nemKritikAlt:55}].forEach(x=>assert.ok(!C.nemSiraGecerli(Object.assign({},T,x)),JSON.stringify(x)));
+assert.ok(C.nemSiraGecerli(Object.assign({},T,{nemNormalUst:80,nemKirecUst:80})),'üst = kireç geçerli');
+const m=C.ogulSkorMerge({sensor:{nemKritikAlt:70}}).sensor;assert.strictEqual(m.nemKritikAlt,55);assert.strictEqual(m.nemNormalAlt,60);
+assert.strictEqual(C.ogulSkorMerge({sensor:{nemKritikAlt:40,nemNormalAlt:45}}).sensor.nemKritikAlt,40);
+const pn=fs.readFileSync(path.join(W,'../yonetici/panel10.js'),'utf8'),nemKart=pn.slice(pn.indexOf("{ t: 'Nem'"),pn.indexOf("{ t: 'Ağırlık"));
+assert.ok(/Nem eşikleri sırası hatalı/.test(pn)&&/Nem eşikleri sırası hatalı/.test(fs.readFileSync(path.join(W,'../yonetici/panel.js'),'utf8')));
+const lab=nemKart.replace(/src: '[^']*'/,'').replace(/Doull 1976[^']*?%50[^'·]*/g,'').replace(/Liang 2000[^·']*/g,'').replace(/Flores 1996[^·']*/g,'');assert.ok(!/\b(55|60|75|80|24)\b/.test(lab),'Nem kartında sabit sayı yok');
+const fn=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');const yk=fn.slice(fn.indexOf('function yeniKurallar'),fn.indexOf('function cihazSaglik'));const nl=yk.split('\n').filter(l=>/rh/.test(l)).join('');assert.ok(!/[<>] ?\d/.test(nl),'nem mantığında sabit eşik yok');
+console.log('k204 nem düzenleme ok');}

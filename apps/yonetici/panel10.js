@@ -25,7 +25,7 @@
       ['i', 'Kireç', 'Kesintisiz süre (saat) ' + UT, 's', 'kirecSaat'],
       ['i', 'Dönem', 'İlk ay (1–12) ' + UT, 's', 'kuluckaAyBas'],
       ['i', 'Dönem', 'Son ay (1–12) ' + UT, 's', 'kuluckaAySon']] },
-    { t: 'Nem', src: 'Kritik %55, erken %60, üst %75: uzman tahmini (kullanıcı seçimi); kovan için doğrulanmış eşik yok · İlgili: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Kireç %80: Liang 2000, Ying Yong Sheng Tai Xue Bao 11:869, PubMed 11767561 (DOI yok; %80 altında spor çimlenmedi) ve Flores 1996, doi:10.1051/apido:19960401 (destekleyici) · süre uzman tahmini', not: 'Normal {s:nemNormalAlt}–{s:nemNormalUst} %. {s:nemNormalAlt} % altı erken uyarı: «Nem düşüyor, yavrularda kuruma riski var». {s:nemKritikAlt} % altı kritik: «Nem çok düşük, yavru (yumurta) açılmama riski var». {s:nemNormalUst}–{s:nemKirecUst} %: «Nem normal aralığın üstünde» (risk iddiası yok); {s:nemKirecUst} % üstü: «Nem çok yüksek, kireç hastalığı riski var». Kireç uyarısı sıcaklık kuralıyla ortak: kovan başına 7 günde en çok bir.', r: [
+    { t: 'Nem', src: 'Kritik, erken uyarı ve üst sınır: uzman tahmini (kullanıcı seçimi); kovan için doğrulanmış eşik yok · İlgili: Doull 1976, Apidologie 7:61, doi:10.1051/apido:19760104 (%50 altında yumurta açılmadı) · Kireç %80: Liang 2000, Ying Yong Sheng Tai Xue Bao 11:869, PubMed 11767561 (DOI yok; %80 altında spor çimlenmedi) ve Flores 1996, doi:10.1051/apido:19960401 (destekleyici) · süre uzman tahmini', not: 'Normal {s:nemNormalAlt}–{s:nemNormalUst} %. {s:nemNormalAlt} % altı erken uyarı: «Nem düşüyor, yavrularda kuruma riski var». {s:nemKritikAlt} % altı kritik: «Nem çok düşük, yavru (yumurta) açılmama riski var». {s:nemNormalUst}–{s:nemKirecUst} %: «Nem normal aralığın üstünde» (risk iddiası yok); {s:nemKirecUst} % üstü: «Nem çok yüksek, kireç hastalığı riski var». Kireç uyarısı sıcaklık kuralıyla ortak: kovan başına 7 günde en çok bir.', r: [
       ['c', 'Kritik', 'Bunun altı (%) ' + UT, 's', 'nemKritikAlt'],
       ['w', 'Erken uyarı', 'Normal alt sınır; bunun altı (%) ' + UT, 's', 'nemNormalAlt'],
       ['i', 'Nötr', 'Normal üst sınır; bunun üstü (%) ' + UT, 's', 'nemNormalUst'],
@@ -139,6 +139,7 @@
     var ks = Object.keys(ch); if (!ks.length) { stat('Değişiklik yok.'); return; }
     var s = {}, e2 = null;
     ks.forEach(function (x) { var p = x.split('|'); if (p[0] === 'e') { e2 = e2 || JSON.parse(JSON.stringify(ESK)); setP(e2, p[1], ch[x]); } else s[p[1]] = ch[x]; });
+    if (Object.keys(s).length && C.nemSiraGecerli) { var ns = Object.assign({}, (C.ogulSkor() || {}).sensor, s); if (!C.nemSiraGecerli(ns)) { stat('<b>Nem eşikleri sırası hatalı.</b> Kritik &lt; erken uyarı (normal alt) &lt; normal üst ≤ kireç olmalı ve değerler %0–100 arasında kalmalı. Kaydedilmedi.'); return; } }
     if (!confirm(ks.length + ' eşik tüm kullanıcılar için kaydedilsin mi?\n(Ölçüm kuralları, Cihazlar, Oğul skorları ve Eşikler aynı kayıtları kullanır.)')) { stat('Kaydedilmedi.'); return; }
     stat('Kaydediliyor…');
     B.client().then(function (c) {

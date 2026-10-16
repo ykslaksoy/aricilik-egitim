@@ -3507,6 +3507,8 @@
   };
   function sablonUyari(code, h, nm, type) { var t = KovanBildirimSablonlari[code]; return { id: 'kra-' + code.toLowerCase() + '-' + h.id, code: code, title: t.title + ' (' + nm + ')', body: t.body, action: t.action, type: type, hiveId: h.id, severity: t.severity, auto: true }; }
   var EKIP_BILDIRIM = ['piping', 'quacking', 'ogul_ani', 'ogul_yuksugu', 'ogul_cikmis', 'ors_70', 'isci_otme_artis', 'ALARM_ARILIK_KOSUL_01', 'onerilen_risk', 'batarya_7', 'ani_kayip', 'ors_orta'];
+  /** koloni-204: nem kademe sırası — kritik < erken (normal alt) < normal üst ≤ kireç */
+  function nemSiraGecerli(o) { var k = Number(o.nemKritikAlt), a = Number(o.nemNormalAlt), u = Number(o.nemNormalUst), c = Number(o.nemKirecUst); return [k, a, u, c].every(isFinite) && k >= 0 && c <= 100 && k < a && a < u && u <= c; }
   function ogulSkorDefaults() { return { ekipBildirim: EKIP_BILDIRIM.slice(), donem: {}, piping: pipingDefaults(), sensor: Object.assign({}, ORS_SENSOR), weights: Object.assign({}, ORS_WEIGHTS), saf: Object.assign({}, GENETIK_SAF), melez: Object.assign({}, GENETIK_MELEZ), buckfastIkili: GENETIK_BUCKFAST_IKILI, bilinmeyen: GENETIK_BILINMEYEN }; }
   /** Geçerli ayar = varsayılan + (geçerliyse) yönetici kaydı. Ağırlık toplamı 1 değilse ağırlıklar varsayılan kalır. */
   function ogulSkorMerge(o) {
@@ -3527,6 +3529,8 @@
     if (!(d.sensor.kuluckaAltC <= d.sensor.kuluckaUyariAltC && d.sensor.kuluckaUyariAltC < d.sensor.kuluckaUyariUstC && d.sensor.kuluckaUyariUstC <= d.sensor.kuluckaUstC)) { d.sensor.kuluckaUyariAltC = ORS_SENSOR.kuluckaUyariAltC; d.sensor.kuluckaUyariUstC = ORS_SENSOR.kuluckaUyariUstC; }
     /* k195: acil eşiği kritik alt eşiğin altında olmalı */
     if (!(d.sensor.kuluckaAcilC < d.sensor.kuluckaAltC)) d.sensor.kuluckaAcilC = ORS_SENSOR.kuluckaAcilC;
+    /* koloni-204: nem kademe sırası kritik < normal alt (erken) < normal üst ≤ kireç; bozuksa nem eşikleri varsayılana döner */
+    if (!nemSiraGecerli(d.sensor)) { ['nemKritikAlt', 'nemNormalAlt', 'nemNormalUst', 'nemKirecUst'].forEach(function (k) { d.sensor[k] = ORS_SENSOR[k]; }); }
     if (!(d.sensor.genelNufusKritikOran >= d.sensor.genelNufusUyariOran)) { d.sensor.genelNufusUyariOran = ORS_SENSOR.genelNufusUyariOran; d.sensor.genelNufusKritikOran = ORS_SENSOR.genelNufusKritikOran; }
     /* k161 EK12: ekip bildirimi gönderilecek uyarı kodları (yönetici listesi) */
     if (Array.isArray(o.ekipBildirim)) d.ekipBildirim = o.ekipBildirim.filter(function (k) { return typeof k === 'string' && k.length < 60; }).slice(0, 60);
@@ -6231,7 +6235,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, ogulSkorSet: ogulSkorSet, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

@@ -95,6 +95,7 @@
     if (r.bad.length) { r.bad[0].focus(); stat('<b>Geçersiz değer</b>: puanlar 0–100, ağırlıklar 0–1, eşikler 0 veya üstü olmalı.'); return; }
     var w = r.o.weights, sum = w.genetik + w.sikisiklik + w.mevsim + w.anaYasi;
     if (Math.abs(sum - 1) > 0.001) { stat('<b>Ağırlıkların toplamı 1 olmalı</b> (şu an ' + Math.round(sum * 1000) / 1000 + ').'); return; }
+    if (C.nemSiraGecerli && !C.nemSiraGecerli(Object.assign({}, C.ogulSkor().sensor, r.o.sensor))) { stat('<b>Nem eşikleri sırası hatalı.</b> Kritik &lt; erken uyarı (normal alt) &lt; normal üst ≤ kireç olmalı ve değerler %0–100 arasında kalmalı.'); return; }
     var nChg = document.querySelectorAll('#osForm input.chg').length;
     if (JSON.stringify(C.ogulSkorMerge(r.o)) === base) { stat('Değişiklik yok.'); return; }
     if (!window.confirm('Taslak yayınlansın mı?\n' + nChg + ' alan değişti. Yeni ayar sürümü tüm uygulamalarda sessizce uygulanır (ORS, Sıkışıklık, rota, batarya, Varroa yeniden hesaplanır).')) { stat('Kaydedilmedi.'); return; }
