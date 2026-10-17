@@ -133,6 +133,7 @@
     if (!el) return; var d = global.document, se = d.scrollingElement || d.documentElement, h0 = el.offsetHeight, kayik = se.scrollTop > 0;
     var sc = kapsam();
     el.innerHTML = liste().filter(function (x) { return gorunur(x, sc); }).map(function (x) {
+      if (x.kod === 'ALARM_ARILIK_KOSUL_01' && !x.iyilesti) return kosulKart(x);
       var kr = SABIT[x.kod] < 3;
       return '<div class="kr-kart" role="alert" data-kr="' + esc(x.id) + '" style="border:2px solid ' + (x.iyilesti ? '#3c8d4a' : (kr ? '#c0392b' : '#d68910')) + ';background:' + (x.iyilesti ? '#eef8ef' : (kr ? '#fdecea' : '#fef5e7')) + ';border-radius:12px;padding:10px 12px;margin:0 0 8px;">' +
         '<div style="font-weight:800;">' + esc(x.baslik) + (x.hiveId != null ? ' · Kovan ' + esc(x.hiveId) : '') + '</div><div style="margin:4px 0;">' + esc(x.metin) + '</div>' +
@@ -141,6 +142,21 @@
         '<button type="button" class="btn" data-kr-tamam="' + esc(x.id) + '" style="margin-top:4px;">Tamam</button></div>';
     }).join('');
     var dh = el.offsetHeight - h0; if (dh && kayik) global.scrollBy(0, dh);
+  }
+  /* önizleme: Arılık koşulu kartı — başlıkta arılık adı, her neden tek cümle (sorun + yapılacak), taşınma önerisi tek satır; düğmeler «Taşınmayı planla» (öneri varsa) + «Kapat» */
+  var KOSUL_CUMLE = { su: 'Su kaynağı uzak. Arılığa sulak koy.', flora: 'Çevrede çiçek akımı bitti. Beslemeyi planla.', alan: 'Toplama alanında ilaçlama var. Kovan girişlerini kapat.' };
+  function apAd(id) { try { var a = (global.SuperAriDemo.loadApiaries() || []).filter(function (z) { return String(z.id) === String(id); })[0]; return a ? a.name : ''; } catch (e) { return ''; } }
+  function kosulKart(x) {
+    var N = x.nedenler && x.nedenler.length ? x.nedenler : [];
+    if (!N.length) { var ak = String(x.aksiyon || ''); if (/Sulak/.test(ak)) N.push('su'); if (/Besleme/.test(ak)) N.push('flora'); if (/girişlerini/.test(ak)) N.push('alan'); }
+    var ad = apAd(x.apiaryId), h = x.onay && x.onay.hedef, hedef = h ? (h.ad || ((h.ilce || '') + (h.il ? ' (' + h.il + ')' : ''))) : '';
+    return '<div class="kr-kart kr-kosul" role="alert" data-kr="' + esc(x.id) + '" style="border:2px solid #d68910;background:#fef5e7;border-radius:12px;padding:10px 12px;margin:0 0 8px;">' +
+      '<div style="font-weight:800;">' + esc(ad ? ad + ': koşul değişti' : x.baslik) + '</div>' +
+      '<ul style="margin:4px 0 0;padding-left:18px;">' + N.map(function (k) { return '<li style="margin:2px 0;">' + esc(KOSUL_CUMLE[k] || '') + '</li>'; }).join('') + '</ul>' +
+      (hedef ? '<div style="margin:6px 0 0;">Öneri: <b>' + esc(hedef) + '</b> — taşımadan önce yeri kontrol et.</div>' : '') +
+      '<div style="display:grid;grid-template-columns:' + (hedef ? '1fr 1fr' : '1fr') + ';gap:8px;margin-top:8px;">' +
+      (hedef ? '<button type="button" class="btn secondary" data-kr-onay="' + esc(x.id) + '">Taşınmayı planla</button>' : '') +
+      '<button type="button" class="btn" data-kr-tamam="' + esc(x.id) + '">Kapat</button></div></div>';
   }
   function bagla(el) {
     if (!el || el.__kr) return; el.__kr = 1; try { mevsimTemizle(); } catch (e0) { /* */ } ciz(el); gonder();
