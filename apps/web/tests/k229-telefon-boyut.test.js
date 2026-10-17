@@ -1,0 +1,34 @@
+/* koloni-229: Telefon yedeği boyut tetiklemesi — eşik/aralık uzman tahmini, yönetici değiştirir; aynı gün boyut yedekleri ayrı. */
+const assert=require('assert'),fs=require('fs'),path=require('path');
+const W=path.join(__dirname,'..'),r=f=>fs.readFileSync(path.join(W,f),'utf8');
+const mem={};globalThis.localStorage={getItem:k=>k in mem?mem[k]:null,setItem:(k,v)=>{mem[k]=String(v)},removeItem:k=>{delete mem[k]},key:i=>Object.keys(mem)[i],get length(){return Object.keys(mem).length}};
+let veri={a:'x'};globalThis.SuperAriYedek={collect:()=>({createdAt:new Date().toISOString(),keys:JSON.parse(JSON.stringify(veri))})};
+require(path.join(W,'telefon-yedek.js'));
+const T=globalThis.SuperAriTelefonYedek;
+assert.deepStrictEqual(T.ayar(),{boyutKb:200,aralikDk:30},'varsayılan 200 KB / 30 dk');
+mem['superari.bulut.telYedek']=JSON.stringify({ayar:{boyutKb:50,aralikDk:10}});
+assert.deepStrictEqual(T.ayar(),{boyutKb:50,aralikDk:10},'kayıtlı değere uyar');
+const t0=T.imza({yedek:{keys:{a:'x',b:[1]}},fotolar:[]});
+assert.strictEqual(T.fark(t0,t0),0);
+const t1=T.imza({yedek:{keys:{a:'y'.repeat(5000),b:[1]}},fotolar:[{id:'p',blob:{size:9000}}]});
+assert.ok(T.fark(t0,t1)>=14000,'değişen anahtar + yeni foto sayılır');
+(async()=>{
+  mem['superari.workMode']='live';
+  let s={ayar:{boyutKb:1,aralikDk:30},taban:T.imza({yedek:{keys:{a:'x'}},fotolar:[]})};mem['superari.bulut.telYedek']=JSON.stringify(s);
+  let r1=await T.boyutKontrol();assert.ok(!r1.alindi&&r1.bayt<1024,'eşik altı');
+  veri={a:'z'.repeat(3000)};
+  s=JSON.parse(mem['superari.bulut.telYedek']);s.sonBoyut=new Date().toISOString();mem['superari.bulut.telYedek']=JSON.stringify(s);
+  assert.strictEqual((await T.boyutKontrol()).neden,'aralık','30 dk dolmadan tekrar çalışmaz');
+  s.sonBoyut=new Date(Date.now()-31*6e4).toISOString();mem['superari.bulut.telYedek']=JSON.stringify(s);
+  const r3=await T.boyutKontrol();assert.ok(r3.bayt>=1024&&r3.esik===1024,'eşik aşıldı → yedek denendi');
+  assert.ok(Date.now()-Date.parse(JSON.parse(mem['superari.bulut.telYedek']).sonBoyut)<5000,'aralık sayacı başladı');
+  const src=r('telefon-yedek.js');
+  assert.ok(/t\.tur === 'oncesi' \|\| t\.tur === 'boyut' \? '-'/.test(src),'boyut yedeği dosyası zaman damgalı (üzerine yazmaz)');
+  assert.ok(!/location\.(href|assign|replace)/.test(src),'ekran atlaması yok');
+  const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261017150000_k229_telefon_boyut.sql'),'utf8');
+  assert.ok(/telefon_boyut_kb int not null default 200/.test(m)&&/telefon_aralik_dk int not null default 30/.test(m));
+  assert.ok(/'oncesi', 'boyut'/.test(m)&&/where tur in \('gunluk', 'elle'\)/.test(m),'boyut ayrı satır');
+  const p=r('../yonetici/panel13.js');assert.ok(p.includes('data-y-boyut')&&p.includes('p_boyut_kb')&&p.includes('p_aralik_dk')&&/Uzman tahmini/.test(p));
+  assert.ok(r('yedekler.js').includes("boyut: 'Değişiklik birikince'")&&r('yedekler.js')===r('../yonetici/yedekler.js'));
+  console.log('telefon-boyut ok');
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -6,7 +6,7 @@
   var KIND = { strength: 'Muayene (güç)', brood: 'Muayene (yavru)', disease: 'Tedavi / hastalık', feed: 'Besleme', winter: 'Kışlatma', harvest: 'Hasat', colony_event: 'Koloni kaydı', gorev: 'Görev', tamamlama: 'Tamamlanan görev' };
   var TYPE = { elle_tarti: 'Tartım', gider: 'Gider', satis: 'Satış', gelir: 'Gelir', saglik: 'Sağlık skoru', goc: 'Göç', tasima: 'Taşıma', musteri: 'Müşteri', stok_talep: 'Stok talebi', not: 'Not', tedavi: 'Tedavi', besleme: 'Besleme' };
   var DUR = { eklenecek: 'Geri gelecek', degisecek: 'Değişecek', silinecek: 'Silinecek' };
-  var TUR = { gunluk: 'Günlük', elle: 'Elle alınan', oncesi: 'Geri yükleme öncesi' };
+  var TUR = { gunluk: 'Günlük', elle: 'Elle alınan', oncesi: 'Geri yükleme öncesi', boyut: 'Değişiklik birikince' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function tf(iso) { var d = new Date(iso); return isFinite(d) ? d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (TSİ)' : '—'; }
   function gun(d) { var p = String(d || '').split('-'); return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : String(d || '—'); }

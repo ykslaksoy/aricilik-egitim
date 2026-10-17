@@ -53,7 +53,7 @@
   var mesgul = null, sonOncesi = null;
   function gonder(c, it) {
     return hesap(c).then(function (h) {
-      var b = it.yedek, t = b.telefon, yol = h + '/' + t.cihaz + '/' + t.tarih + '-' + t.tur + (t.tur === 'oncesi' ? '-' + Date.parse(b.createdAt).toString(36) : '') + '.json';
+      var b = it.yedek, t = b.telefon, yol = h + '/' + t.cihaz + '/' + t.tarih + '-' + t.tur + (t.tur === 'oncesi' || t.tur === 'boyut' ? '-' + Date.parse(b.createdAt).toString(36) : '') + '.json';
       var blob = new Blob([JSON.stringify(b)], { type: 'application/json' });
       return fotoYukle(c, h, it.fotolar || []).then(function () { return c.storage.from(KOVA).upload(yol, blob, { upsert: true, contentType: 'application/json' }); }).then(function (r) {
         if (r.error) throw r.error;
@@ -61,7 +61,7 @@
       }).then(function (r) {
         if (r.error) throw r.error;
         if (t.tur === 'oncesi') sonOncesi = b.createdAt;
-        var s = st(); s.sonYukleme = new Date().toISOString(); s.sonHata = null; if (t.tur !== 'oncesi') s.sonGun = t.tarih; stYaz(s);
+        var s = st(); s.sonYukleme = new Date().toISOString(); s.sonHata = null; if (t.tur === 'gunluk' || t.tur === 'elle') s.sonGun = t.tarih; if (t.tur !== 'oncesi') s.taban = it.taban || s.taban; stYaz(s);
         return r.data;
       });
     });
@@ -92,9 +92,10 @@
     tur = tur || 'elle';
     return topla(tur).then(function (x) {
       var fb = 0; x.fotolar.forEach(function (f) { fb += f.blob.size; });
-      var it = { id: new Date().toISOString() + '-' + tur, yedek: x.yedek, fotolar: x.fotolar, fotoBoyut: fb };
+      var it = { id: new Date().toISOString() + '-' + tur, yedek: x.yedek, fotolar: x.fotolar, fotoBoyut: fb, taban: imza(x) };
       return kuyrukEkle(it).catch(function () { return null; }).then(function (ok) {
-        var s = st(); if (tur !== 'oncesi') s.sonAlinan = new Date().toISOString(); stYaz(s);
+        /* bekleyen (kuyruktaki) yedek de sayılır: çevrimdışıyken aynı değişiklik için tekrar tekrar boyut yedeği alınmaz */
+        var s = st(); if (tur !== 'oncesi') { s.sonAlinan = new Date().toISOString(); s.bekleyenTaban = it.taban; } stYaz(s);
         if (ok === null) return B().client().then(function (c) { return gonder(c, it); }).then(function () { return { gonderilen: 1, bekleyen: 0 }; });
         return (mesgul || Promise.resolve()).then(bosalt);
       });
@@ -103,9 +104,64 @@
   /** Günde bir: bugün (TSİ) alınmadıysa günlük yedek; değilse bekleyenleri gönderir. */
   function otomatik() {
     try { if (g.localStorage.getItem('superari.workMode') !== 'live') return Promise.resolve(null); } catch (e) { return Promise.resolve(null); }
-    var s = st(); if (s.sonGun === gunTSI() || s.alinanGun === gunTSI()) return bosalt();
+    izle(); ayarYukle();
+    var s = st(); if (s.sonGun === gunTSI() || s.alinanGun === gunTSI()) return bosalt().then(function (r) { return boyutKontrol().then(function () { return r; }); });
     s.alinanGun = gunTSI(); stYaz(s);
     return al('gunluk').catch(function () { return null; });
+  }
+  /* ---- koloni-229: boyut tetiklemesi ----
+   * Son başarılı yüklemeden (ya da kuyruğa alınmış son yedekten) beri değişen verinin boyutu ESIK_KB'ye ulaşınca 'boyut' yedeği alınır.
+   * En az ARALIK_DK dakika arayla. İki değer uzman tahmini; yönetici panelinden (sa_yedek_ayar) değişir, telefon kayıtlı değere uyar. */
+  var VARS = { boyutKb: 200, aralikDk: 30 };
+  function ayar() { var a = st().ayar || {}; return { boyutKb: +a.boyutKb > 0 ? +a.boyutKb : VARS.boyutKb, aralikDk: +a.aralikDk > 0 ? +a.aralikDk : VARS.aralikDk }; }
+  function ayarYukle() {
+    var b = B(); if (!b || g.navigator.onLine === false) return Promise.resolve(ayar());
+    return b.client().then(function (c) { return c.from('sa_yedek_ayar').select('telefon_boyut_kb,telefon_aralik_dk').eq('id', 1).maybeSingle(); }).then(function (r) {
+      var d = r && r.data; if (d) { var s = st(); s.ayar = { boyutKb: d.telefon_boyut_kb, aralikDk: d.telefon_aralik_dk }; stYaz(s); } return ayar();
+    }).catch(function () { return ayar(); });
+  }
+  function hash(t) { var h = 5381; for (var i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+  /** Yedeğin anahtar başına imzası: { k: { h, n } }, fotoğraflar f:<id> → boyut */
+  function imza(x) {
+    var o = {}, keys = (x.yedek && x.yedek.keys) || {};
+    Object.keys(keys).forEach(function (k) { var t = JSON.stringify(keys[k]) || ''; o[k] = { h: hash(t), n: t.length }; });
+    (x.fotolar || []).forEach(function (f) { o['f:' + f.id] = { h: 'f', n: (f.blob && f.blob.size) || 0 }; });
+    return o;
+  }
+  /** Taban imzaya göre değişen bayt (yeni/değişen anahtarların boyutu + silinen anahtarlar için küçük pay) */
+  function fark(taban, simdi) {
+    taban = taban || {}; var n = 0;
+    Object.keys(simdi).forEach(function (k) { var a = taban[k], b = simdi[k]; if (!a || a.h !== b.h) n += b.n; });
+    Object.keys(taban).forEach(function (k) { if (!simdi[k]) n += 64; });
+    return n;
+  }
+  function suAnImza() {
+    var Y = g.SuperAriYedek; if (!Y) return Promise.resolve(null);
+    var b = Y.collect(); return fotoRows().then(function (rows) { return imza({ yedek: b, fotolar: rows.map(function (r) { return { id: String(r.id), blob: r.blob }; }) }); });
+  }
+  /** Gerekirse boyut yedeği alır. { alindi, bayt, esik, neden } — ekranda gezinme yapmaz, arka planda çalışır. */
+  var bkMesgul = false;
+  function boyutKontrol(simdi) {
+    try { if (g.localStorage.getItem('superari.workMode') !== 'live') return Promise.resolve({ alindi: false, neden: 'demo' }); } catch (e) { return Promise.resolve({ alindi: false }); }
+    if (bkMesgul) return Promise.resolve({ alindi: false, neden: 'meşgul' });
+    var s = st(), a = ayar(), now = simdi || Date.now();
+    var taban = s.bekleyenTaban || s.taban;
+    if (!taban) return Promise.resolve({ alindi: false, neden: 'taban yok' });  /* ilk günlük yedek tabanı kurar */
+    if (s.sonBoyut && now - Date.parse(s.sonBoyut) < a.aralikDk * 6e4) return Promise.resolve({ alindi: false, neden: 'aralık' });
+    bkMesgul = true;
+    return suAnImza().then(function (im) {
+      if (!im) return { alindi: false, neden: 'yedek.js yok' };
+      var n = fark(taban, im), esik = a.boyutKb * 1024;
+      if (n < esik) return { alindi: false, bayt: n, esik: esik };
+      var s2 = st(); s2.sonBoyut = new Date(now).toISOString(); stYaz(s2);
+      return al('boyut').then(function (r) { return { alindi: true, bayt: n, esik: esik, bekleyen: r && r.bekleyen }; }, function (e) { return { alindi: false, deneme: true, bayt: n, esik: esik, hata: (e && e.message) || 'hata' }; });
+    }).catch(function (e) { return { alindi: false, hata: (e && e.message) || 'hata' }; }).then(function (r) { bkMesgul = false; return r; });
+  }
+  var zaman = null;
+  function izle() {
+    if (zaman || !g.setInterval) return;
+    zaman = g.setInterval(function () { boyutKontrol(); }, 6e4);
+    if (g.document && g.document.addEventListener) g.document.addEventListener('visibilitychange', function () { if (g.document.visibilityState === 'hidden') boyutKontrol(); });
   }
   /* ---- liste / indirme / geri yükleme ---- */
   function liste(c, h) { return c.rpc('sa_telefon_yedek_liste', { p_hesap: h || null }).then(function (r) { if (r.error) throw r.error; return r.data || []; }); }
@@ -173,5 +229,7 @@
     return { son: s.sonYukleme || null, sonAlinan: s.sonAlinan || null, hata: s.sonHata || null, uyari: !s.sonYukleme || (Date.now() - Date.parse(s.sonYukleme) > lim), uyariGun: uyariGun || 2 };
   }
   if (g.addEventListener) g.addEventListener('online', function () { setTimeout(function () { bosalt(); }, 3000); });
-  g.SuperAriTelefonYedek = { al: al, otomatik: otomatik, bosalt: bosalt, kuyruk: kuyruk, liste: liste, indir: indir, onizle: onizle, geriYukle: geriYukle, geriAl: geriAl, geriAlId: geriAlId, geriAlKontrol: geriAlKontrol, durum: durum, gunTSI: gunTSI, ozet: ozet, KOVA: KOVA };
+  /* bekleyen yedekler gönderilince taban güncellenir; kuyruk boşaldıysa bekleyenTaban temizlenir */
+  var _bos = bosalt; bosalt = function () { return _bos().then(function (r) { if (r && !r.bekleyen) { var s = st(); if (s.bekleyenTaban) { s.taban = s.bekleyenTaban; delete s.bekleyenTaban; stYaz(s); } } return r; }); };
+  g.SuperAriTelefonYedek = { al: al, otomatik: otomatik, bosalt: bosalt, kuyruk: kuyruk, liste: liste, indir: indir, onizle: onizle, geriYukle: geriYukle, geriAl: geriAl, geriAlId: geriAlId, geriAlKontrol: geriAlKontrol, durum: durum, boyutKontrol: boyutKontrol, ayar: ayar, ayarYukle: ayarYukle, fark: fark, imza: imza, gunTSI: gunTSI, ozet: ozet, KOVA: KOVA };
 })(typeof window !== 'undefined' ? window : globalThis);
