@@ -6415,7 +6415,8 @@
     to.hiveCount = out.filter(function (h) { return String(h.apiaryId) === toId; }).length;
     saveApiaries(aps);
     saveHives(out);
-    var rec = { id: id, kind: 'degistir', date: date, apiaryId: toId, fromApiaryId: fromId, toApiaryId: toId, fromName: from.name, toName: to.name,
+    var refMv = moveRefs(fromId, toId, want, to.name);
+    var rec = { id: id, kind: 'degistir', refLog: refMv.log, date: date, apiaryId: toId, fromApiaryId: fromId, toApiaryId: toId, fromName: from.name, toName: to.name,
       hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
       reason: reason, km: km, note: note, createdAt: new Date().toISOString() };
     if (workMode() === 'demo') rec.demo = true;
@@ -6479,26 +6480,88 @@
     }
     return rec;
   }
-  /** Birleştirme: başka depolardaki arılık bağlarını (görev, hasat, stok, ekipman…) hedefe çevirir. Kovana bağlı kayıtlar kovanla gider. */
-  var MERGE_REF_KEYS = ['superari.gorevler.v1', 'superari.koloniIslem.v1', 'superari.hasat.v2', 'superari.stok.v1', 'superari.tasimalar.v1',
-    'superari.rapor.gelir.live.v1', 'superari.satislar.v1', 'superari.stok.talep.v1', 'superari.ekipman.v1', 'superari.koloniEk.v1',
-    'superari.tartiElle.v1', 'superari.saglikSkor.v1', 'superari.koloniKayit.v1'];
-  function remapApiaryRefs(srcId, tgtId) {
-    var n = 0;
-    function fix(v, depth) {
-      if (!v || typeof v !== 'object' || depth > 3) return v;
-      if (Array.isArray(v)) { for (var i = 0; i < v.length; i++) v[i] = fix(v[i], depth + 1); return v; }
-      if (v.apiaryId != null && String(v.apiaryId) === srcId) { v.apiaryId = tgtId; n++; }
-      for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k) && v[k] && typeof v[k] === 'object') v[k] = fix(v[k], depth + 1);
-      return v;
-    }
-    var keys = {}; MERGE_REF_KEYS.forEach(function (k) { keys[mk(k)] = 1; });
-    try { keys[taskUserKey()] = 1; } catch (e) { /* */ }
-    Object.keys(keys).forEach(function (k) {
-      try { var raw = localStorage.getItem(k); if (!raw) return; var before = n, v = fix(JSON.parse(raw), 0); if (n !== before) localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* */ }
+  /*
+   * Kovan bilgileri kovanla gider: kovan kimliği (id) aynı kalır; muayene, ana arı, hat/genetik, olaylar kovan nesnesinde;
+   * fotoğraflar (IndexedDB) yalnız kovan kimliğine bağlı. Ayrıca apiaryId taşıyan ve kovana bağlı (hiveId / hiveIds) her kayıt
+   * (görev, hasat, tartım, ekipman, cihaz/sensör, gider, rapor kayıtları…) hedef arılığa çevrilir; her değişiklik geri alma için kaydedilir.
+   * hives = null → arılığa bağlı tüm kayıtlar (Birleştir).
+   */
+  var REF_SKIP = /^superari\.(ariliklar|kovanlar|goc|hava|bulut|sezon|stok\.fiyatcache|ors|sensor|sartlar|workMode|ana\.selected|breedMig|hiveType|swarmTendency|queenSeed|devices\.disabled|discovered)|Seed|[Mm]igrated|seeded|orphanPurge/;
+  var REF_DEMO_ONLY = /^superari\.rapor\.(hasat|gelir|muayene|uyari\.gecmis|gorev\.gecmis)\.v1$/;
+  function refKeys() {
+    var out = [], live = workMode() === 'live';
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (!k || k.indexOf('superari.') !== 0 || REF_SKIP.test(k)) continue;
+        var isDemoKey = k.indexOf('.demo.') !== -1 || k === 'superari.devices.demoUser' || REF_DEMO_ONLY.test(k);
+        if (live ? !isDemoKey : isDemoKey) out.push(k);
+      }
+    } catch (e) { /* */ }
+    return out;
+  }
+  function hiveLinked(v, hives) {
+    if (!hives) return true;
+    var h = v.hiveId != null ? v.hiveId : (v.hive_id != null ? v.hive_id : null);
+    if (h != null && hives[Number(h)]) return true;
+    if (Array.isArray(v.hiveIds) && v.hiveIds.length && v.hiveIds.every(function (x) { return hives[Number(x)]; })) return true;
+    return false;
+  }
+  /** dry=true → yalnız sayar. Dönen: { n, log: [{ k, id, path, from, to, fromName, toName }] } */
+  function moveRefs(srcId, tgtId, hives, tgtName, dry) {
+    srcId = String(srcId); tgtId = String(tgtId);
+    var src = null, n = 0, log = [];
+    loadApiaries().forEach(function (a) { if (String(a.id) === srcId) src = a; });
+    var srcName = src ? src.name : '';
+    refKeys().forEach(function (k) {
+      var raw, root; try { raw = localStorage.getItem(k); if (!raw || raw.indexOf(srcId) === -1) return; root = JSON.parse(raw); } catch (e) { return; }
+      var touched = false;
+      (function walk(v, path, depth) {
+        if (!v || typeof v !== 'object' || depth > 4) return;
+        if (!Array.isArray(v) && v.apiaryId != null && String(v.apiaryId) === srcId && hiveLinked(v, hives)) {
+          n++;
+          if (!dry) {
+            var e = { k: k, id: v.id != null ? String(v.id) : null, path: path.slice(), from: srcId, to: tgtId };
+            v.apiaryId = tgtId;
+            if (v.apiaryName != null && String(v.apiaryName) === String(srcName) && tgtName) { e.fromName = v.apiaryName; v.apiaryName = tgtName; e.toName = tgtName; }
+            log.push(e); touched = true;
+          }
+        }
+        for (var key in v) if (Object.prototype.hasOwnProperty.call(v, key) && v[key] && typeof v[key] === 'object') walk(v[key], path.concat([key]), depth + 1);
+      })(root, [], 0);
+      if (touched) { try { localStorage.setItem(k, JSON.stringify(root)); } catch (e2) { /* */ } }
     });
-    try { var G = global.SuperAriGider; if (G && typeof G.repointApiaryIds === 'function') { var m = {}; m[srcId] = tgtId; var t = apiaryById(tgtId); G.repointApiaryIds(m, { id: tgtId, name: t ? t.name : '' }); } } catch (e2) { /* */ }
-    return n;
+    return { n: n, log: log };
+  }
+  function undoRefs(log) {
+    var byKey = {};
+    (log || []).forEach(function (e) { (byKey[e.k] = byKey[e.k] || []).push(e); });
+    Object.keys(byKey).forEach(function (k) {
+      var root; try { root = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return; } if (!root) return;
+      var ids = {}; byKey[k].forEach(function (e) { if (e.id != null) ids[e.id] = e; });
+      (function walk(v, depth) {
+        if (!v || typeof v !== 'object' || depth > 4) return;
+        if (!Array.isArray(v) && v.id != null && ids[String(v.id)] && String(v.apiaryId) === ids[String(v.id)].to) {
+          var e = ids[String(v.id)]; v.apiaryId = e.from; if (e.fromName != null && v.apiaryName === e.toName) v.apiaryName = e.fromName; e.done = 1;
+        }
+        for (var key in v) if (Object.prototype.hasOwnProperty.call(v, key) && v[key] && typeof v[key] === 'object') walk(v[key], depth + 1);
+      })(root, 0);
+      byKey[k].forEach(function (e) {
+        if (e.done || e.id != null && e.done) return;
+        var v = root; for (var i = 0; i < (e.path || []).length && v; i++) v = v[e.path[i]];
+        if (v && typeof v === 'object' && String(v.apiaryId) === e.to) { v.apiaryId = e.from; if (e.fromName != null && v.apiaryName === e.toName) v.apiaryName = e.fromName; }
+      });
+      try { localStorage.setItem(k, JSON.stringify(root)); } catch (e3) { /* */ }
+    });
+  }
+  /** Onay özeti: kovan sayısı + kovanla gidecek ek kayıt sayısı (taşımadan) */
+  function gocPreview(o) {
+    o = o || {};
+    var kind = o.kind || 'degistir', from = String(o.fromApiaryId || ''), ids = (o.hiveIds || []).map(Number);
+    if (kind === 'tasi') return { hives: hivesForApiary(from).length, refs: 0 };
+    if (kind === 'birlestir') return { hives: hivesForApiary(from).length, refs: moveRefs(from, String(o.toApiaryId || ''), null, '', true).n };
+    var set = {}; ids.forEach(function (x) { set[x] = 1; });
+    return { hives: ids.length, refs: moveRefs(from, String(o.toApiaryId || ''), set, '', true).n };
   }
   /**
    * Birleştir: YALNIZ kullanıcı açıkça seçerse. keepId arılığı (konumu kalan) yeni adla devam eder; mergeId arılığının
@@ -6531,10 +6594,10 @@
     });
     saveApiaries(aps);
     saveHives(out);
-    remapApiaryRefs(srcId, keepId);
+    var refMv = moveRefs(srcId, keepId, null, name);
     removeApiary(srcId);
     var rec = { id: id, kind: 'birlestir', date: date, apiaryId: keepId, fromApiaryId: srcId, toApiaryId: keepId, fromName: src.name, toName: name,
-      keepOldName: oldKeepName, source: snap, hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
+      keepOldName: oldKeepName, source: snap, refLog: refMv.log, hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
       reason: 'birlestirme', km: null, note: note, createdAt: new Date().toISOString() };
     if (workMode() === 'demo') rec.demo = true;
     var all = gocRead(); all.push(rec); gocWrite(all);
@@ -6546,7 +6609,7 @@
     return c;
   }
   /**
-   * Göç kaydını siler. opts.revert: geri al — Arılık değiştir: kovanlar eski arılığa döner; Göç (Arılığı Taşı): arılık eski konuma döner;
+   * Göç kaydını siler. opts.revert: geri al — Kovan arılık değiştir: kovanlar eski arılığa döner; Göç (Arılığı Taşı): arılık eski konuma döner;
    * Birleştir: ayrılan arılık geri gelir, kovanları ona döner, kalan arılığın eski adı geri yazılır. Kovan olaylarından bu kayıt silinir.
    */
   function gocRemove(id, opts) {
@@ -6568,6 +6631,7 @@
       cur.forEach(function (x) { x.hiveCount = hs.filter(function (h) { return String(h.apiaryId) === String(x.id); }).length; if (k === 'birlestir' && String(x.id) === String(g.toApiaryId) && g.keepOldName) x.name = g.keepOldName; });
       /* Kovanlar ve arılık aynı anda yazılır (arada okuma yok): örnek arılık yeni kovanlarla yeniden doğmaz. */
       saveHives(hs); saveApiaries(cur);
+      if (g.refLog && g.refLog.length) undoRefs(g.refLog);
       if (restoreSrc) { try { var m = readDeletedSeedIds(); if (m[String(restoreSrc.id)]) { delete m[String(restoreSrc.id)]; localStorage.setItem(mk(DELETED_SEEDS_KEY), JSON.stringify(Object.keys(m))); } } catch (eS) { /* */ } }
       if (k === 'tasi' && g.from && g.from.lat != null) {
         var ap = apiaryById(g.apiaryId);
@@ -6608,7 +6672,7 @@
     for (var i = ms.length - 1; i >= 0; i--) { if (ms[i].date > d && ms[i].fromApiaryId) ap = ms[i].fromApiaryId; else break; }
     return ap;
   }
-  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, movesForHive: gocMovesForHive, apiaryAt: gocApiaryAt, airKm: gocAirKm, add: gocAdd, remove: gocRemove, tasi: gocTasi, birlestir: gocBirlestir, kind: gocKind, locHistory: gocLocHistory };
+  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, movesForHive: gocMovesForHive, apiaryAt: gocApiaryAt, airKm: gocAirKm, add: gocAdd, remove: gocRemove, tasi: gocTasi, birlestir: gocBirlestir, preview: gocPreview, kind: gocKind, locHistory: gocLocHistory };
 
   var colonyOps = {
     GRAFT_TIMELINE: GRAFT_TIMELINE,

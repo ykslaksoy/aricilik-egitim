@@ -27,6 +27,7 @@
   #gkCard .pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
   #gkCard .pair input,#gkCard .pair select{width:100%;min-width:0;box-sizing:border-box;}
   .gk-row button{font:inherit;font-size:12.5px;font-weight:750;min-height:36px;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:10px;padding:0 10px;color:#5c4813;}
+  .gk-map{height:230px;border-radius:14px;overflow:hidden;border:1px solid var(--border,#eadfbe);background:#e8ece8;}
   .gk-cur{font-size:12.5px;color:#2b2f33;margin:2px 0 0;}
   .hist-act{display:flex;flex-direction:column;gap:4px;}
   .hist-act button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:9px;padding:4px 8px;color:#5c4813;}
@@ -47,7 +48,7 @@
     <section class="card-block" id="gkCard">
       <div class="gk-tabs" role="tablist" aria-label="İşlem">
         <button type="button" role="tab" data-mod="tasi" aria-selected="true">Göç (Arılığı Taşı)</button>
-        <button type="button" role="tab" data-mod="degistir" aria-selected="false">Arılık değiştir</button>
+        <button type="button" role="tab" data-mod="degistir" aria-selected="false">Kovan arılık değiştir</button>
         <button type="button" role="tab" data-mod="birlestir" aria-selected="false">Birleştir</button>
       </div>
       <!-- Göç (Arılığı Taşı): arılık tüm kovanlarıyla yeni yere -->
@@ -64,6 +65,8 @@
           <button type="button" id="tGps">📍 Bulunduğum yer</button>
           <select id="tKnown"><option value="">Kayıtlı yerlerden seç</option></select>
         </div>
+        <div class="ymap-host" id="tMapHost"><div id="tMap" class="gk-map" role="application" aria-label="Yeni yeri haritadan seç"></div></div>
+        <p class="gk-cur" id="tMapHint">Haritada yeni yere dokun veya kırmızı iğneyi sürükle. Gri iğne şimdiki yer.</p>
         <div class="pair">
           <label>Enlem
             <input type="text" id="tLat" inputmode="decimal" placeholder="ör. 40.6012" />
@@ -106,7 +109,7 @@
         <button type="submit" class="btn">Arılığı yeni yere taşı</button>
         <p class="form-msg" id="tMsg" aria-live="polite"></p>
       </form>
-      <!-- Arılık değiştir: seçilen kovanlar başka arılığa -->
+      <!-- Kovan arılık değiştir: seçilen kovanlar başka arılığa -->
       <form class="form-grid" id="gocForm" novalidate data-panel="degistir" hidden>
         <p class="gk-info">Seçtiğin kovanlar başka bir arılığa geçer. Kovanın geçmişi, ana arısı ve kayıtları kovanla birlikte gider.</p>
         <label>Nereden
@@ -179,6 +182,10 @@
   <div class="home-indicator"></div>
 </div>
 <script src="bk-kabuk.js?v=koloni-255"></script>
+<script src="admin-notify.js"></script>
+<script src="yandex-config.js"></script>
+<script src="harita-offline.js?v=koloni-255"></script>
+<script src="yandex-map.js"></script>
 <script src="sensor-ham.js?v=koloni-255"></script>
 <script src="demo-data.js?v=koloni-255"></script>
 <script src="sensor-polling.js?v=koloni-255"></script>
@@ -205,7 +212,7 @@
     $('gTo').innerHTML = '<option value="">Hedef arılığı seçin</option>' + list.filter(function (a) { return String(a.id) !== String($('gFrom').value); })
       .map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
     if (to && to !== $('gFrom').value) $('gTo').value = to;
-    if (list.length < 2) msg('Arılık değiştirmek için en az iki arılık gerekir. Önce Arılıklar’dan yeni arılık ekleyin.', true);
+    if (list.length < 2) msg('Kovan arılık değiştirmek için en az iki arılık gerekir. Önce Arılıklar’dan yeni arılık ekleyin.', true);
   }
   function fillHives() {
     var hs = $('gFrom').value ? D.hivesForApiary($('gFrom').value) : [];
@@ -228,7 +235,7 @@
     var ap = apFilter ? aps().filter(function (a) { return String(a.id) === String(apFilter); })[0] : null;
     $('histTitle').textContent = ap ? 'Göç geçmişi · ' + ap.name : 'Göç geçmişi';
     $('histList').innerHTML = list.map(function (g) {
-      var k = G.kind ? G.kind(g) : 'degistir', kl = k === 'tasi' ? 'Göç' : (k === 'birlestir' ? 'Birleştirme' : 'Arılık değiştir');
+      var k = G.kind ? G.kind(g) : 'degistir', kl = k === 'tasi' ? 'Göç' : (k === 'birlestir' ? 'Birleştirme' : 'Kovan arılık değiştir');
       var head = k === 'tasi' ? esc(g.apiaryName || '') + ': ' + esc(g.fromName) + ' → ' + esc(g.toName) : esc(g.fromName) + ' → ' + esc(g.toName);
       return '<div class="row-item"><div class="left"><div class="title">' + esc(fmt(g.date)) + ' · ' + head + '<span class="kind-chip">' + kl + '</span>' + (g.demo ? '<span class="demo-chip">Demo</span>' : '') + '</div>' +
         '<div class="meta">' + (g.hiveIds || []).length + ' kovan' + (k === 'birlestir' ? '' : ' · ' + esc(G.reasonLabel(g.reason))) + (g.km != null ? ' · ' + String(g.km).replace('.', ',') + ' km' : '') +
@@ -251,6 +258,11 @@
   $('gocForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var ids = Array.prototype.map.call($('hvList').querySelectorAll('input:checked'), function (i) { return Number(i.value); });
+    if (ids.length && $('gTo').value) {
+      var pv = G.preview ? G.preview({ kind: 'degistir', fromApiaryId: $('gFrom').value, toApiaryId: $('gTo').value, hiveIds: ids }) : { hives: ids.length, refs: 0 };
+      var toA = apById($('gTo').value);
+      if (!confirm(ids.length + ' kovan · tüm bilgileriyle taşınacak → ' + (toA ? toA.name : '') + '\n\nMuayene, ana arı, hat, tartım, hasat, görev, cihaz, fotoğraf ve notlar kovanla gider' + (pv.refs ? ' (' + pv.refs + ' bağlı kayıt)' : '') + '. Kovan numarası ve geçmişi aynı kalır.\n\nGeçirilsin mi?')) return;
+    }
     try {
       var rec = G.add({ fromApiaryId: $('gFrom').value, toApiaryId: $('gTo').value, date: $('gDate').value, hiveIds: ids,
         reason: $('gReason').value, km: $('gKm').value.trim(), note: $('gNote').value, tasks: $('gTasks').checked });
@@ -273,7 +285,7 @@
     if (!confirm('Yalnız kayıt silinsin mi? Kovanlar ve arılık yerinde kalır. Geri döndürmek için «Geri al»ı kullan.')) return;
     G.remove(b.getAttribute('data-del')); renderHist();
   });
-  /* ── Sekmeler: Göç (Arılığı Taşı) · Arılık değiştir · Birleştir ── */
+  /* ── Sekmeler: Göç (Arılığı Taşı) · Kovan arılık değiştir · Birleştir ── */
   var MODS = ['tasi', 'degistir', 'birlestir'];
   function setMod(m, push) {
     if (MODS.indexOf(m) === -1) m = 'tasi';
@@ -320,9 +332,54 @@
   $('tGps').addEventListener('click', function () {
     if (!navigator.geolocation) { tmsg('Bu cihazda konum alınamıyor. Enlem ve boylamı yaz.', true); return; }
     tmsg('Konum alınıyor…');
-    navigator.geolocation.getCurrentPosition(function (p) { $('tLat').value = p.coords.latitude.toFixed(5); $('tLon').value = p.coords.longitude.toFixed(5); tKmHint(); tmsg('Bulunduğun yer alındı (± ' + Math.round(p.coords.accuracy) + ' m).'); },
+    navigator.geolocation.getCurrentPosition(function (p) { pickAt(p.coords.latitude, p.coords.longitude, true); },
       function () { tmsg('Konum izni verilmedi. Enlem ve boylamı yaz.', true); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
   });
+  /* ── Harita: yeni yeri dokunarak / iğneyi sürükleyerek seç (arılık sayfasındaki Yandex harita bileşeni). Yükseklik sabit 230 px → kayma yok ── */
+  var Y = window.SuperAriYandexMap, tMap = null, tPin = null, tCurPin = null, tMapBusy = false, geoSeq = 0;
+  function num(v) { var n = Number(String(v == null ? '' : v).replace(',', '.')); return String(v == null ? '' : v).trim() !== '' && isFinite(n) ? n : null; }
+  function setPin(la, lo, center) {
+    if (!tMap || !Y) return;
+    tPin = Y.upsertPlacemark(tMap, tPin, la, lo, { draggable: true, preset: 'islands#redDotIcon', title: 'Yeni yer', onDragEnd: function (a, b) { pickAt(a, b, false); } });
+    if (center) { try { tMap.map.setCenter([la, lo], Math.max(tMap.getZoom ? tMap.getZoom() : 12, 12)); } catch (e) { /* */ } }
+  }
+  function showCur() {
+    if (!tMap || !Y) return; var ap = apById($('tAp').value);
+    if (!ap || ap.lat == null) return;
+    tCurPin = Y.upsertPlacemark(tMap, tCurPin, Number(ap.lat), Number(ap.lon), { draggable: false, preset: 'islands#grayDotIcon', title: 'Şimdiki yer' });
+    if (!tPin) { try { tMap.map.setCenter([Number(ap.lat), Number(ap.lon)], 11); } catch (e) { /* */ } }
+  }
+  function pickAt(la, lo, center) {
+    $('tLat').value = Number(la).toFixed(5); $('tLon').value = Number(lo).toFixed(5);
+    setPin(la, lo, center); tKmHint();
+    var my = ++geoSeq;
+    tmsg('Konum alındı. İl/ilçe bulunuyor…');
+    if (!D.reverseGeocodeAdmin) { tmsg('Konum alındı.'); return; }
+    D.reverseGeocodeAdmin(la, lo).then(function (g) {
+      if (my !== geoSeq) return; g = g || {};
+      if (g.il) { $('tIl').value = g.il; $('tIl').dataset.touched = '1'; }
+      if (g.ilce) $('tIlce').value = g.ilce;
+      if (!$('tPlace').value.trim() && (g.place || g.koy || g.label)) $('tPlace').value = String(g.place || g.koy || g.label).slice(0, 80);
+      tmsg('Konum alındı' + (g.il ? ': ' + g.il + (g.ilce ? ' / ' + g.ilce : '') : '. İl/ilçe: Veri yok, elle yazabilirsin') + '. Arılıklar birleşmez.');
+    }).catch(function () { if (my === geoSeq) tmsg('Konum alındı. İl/ilçe bulunamadı, elle yazabilirsin.'); });
+  }
+  function initTMap() {
+    if (tMap || tMapBusy || !Y) return;
+    var el = $('tMap'), OM = window.SuperAriOfflineMap;
+    if (!Y.hasApiKey() && !(OM && OM.shouldUseOffline())) { Y.showKeyRequired(el); return; }
+    tMapBusy = true;
+    var ap = apById($('tAp').value), c = ap && ap.lat != null ? [Number(ap.lat), Number(ap.lon)] : [39.92, 41.27];
+    Y.createMap(el, { center: c, zoom: ap && ap.lat != null ? 11 : 7 }).then(function (ctrl) {
+      tMap = ctrl; tMapBusy = false; showCur();
+      var la = num($('tLat').value), lo = num($('tLon').value); if (la != null && lo != null) setPin(la, lo, true);
+      ctrl.map.events.add('click', function (e) { var k = e.get('coords'); pickAt(k[0], k[1], false); });
+    }).catch(function () { tMapBusy = false; });
+  }
+  function syncPinFromInputs() { var la = num($('tLat').value), lo = num($('tLon').value); if (la != null && lo != null && Math.abs(la) <= 90 && Math.abs(lo) <= 180) setPin(la, lo, true); }
+  ['tLat', 'tLon'].forEach(function (id) { $(id).addEventListener('change', syncPinFromInputs); });
+  $('tKnown').addEventListener('change', syncPinFromInputs);
+  $('tAp').addEventListener('change', function () { if (tCurPin && tMap) { try { tMap.map.geoObjects.remove(tCurPin); } catch (e) { /* */ } tCurPin = null; } showCur(); });
+  window.__gkPinSync = syncPinFromInputs;
   $('tasiForm').addEventListener('submit', function (e) {
     e.preventDefault();
     /* k160: planlanan varış zorunlu · k225: ayrılış boşsa bal sezonu sonu */
@@ -331,7 +388,7 @@
     if (!vA && !confirm('Ayrılış tarihini biliyorsan gir. Boş bırakırsan pil planı bu arılığın bal sezonu sonuna göre yapılır. Boş bırakılsın mı?')) { $('gAyrilis').focus(); return; }
     if (vA && vA <= vV) { tmsg('Ayrılış tarihi varıştan sonra olmalı.', true); return; }
     var ap = apById($('tAp').value);
-    if (ap && !confirm(ap.name + ' bütün kovanlarıyla (' + D.hivesForApiary(ap.id).length + ') ' + ($('tPlace').value.trim() || 'yeni yer') + ' yerine taşınsın mı?')) return;
+    if (ap && !confirm(ap.name + ' → ' + ($('tPlace').value.trim() || 'yeni yer') + '\n\n' + D.hivesForApiary(ap.id).length + ' kovan · tüm bilgileriyle taşınacak (muayene, ana arı, hat, tartım, hasat, görev, cihaz, fotoğraf, not). Arılık başka arılıkla birleşmez.\n\nTaşınsın mı?')) return;
     try {
       var rec = G.tasi({ apiaryId: $('tAp').value, lat: $('tLat').value, lon: $('tLon').value, place: $('tPlace').value, il: $('tIl').value, ilce: $('tIlce').value,
         date: $('tDate').value, km: $('tKm').value.trim(), reason: $('tReason').value, note: $('tNote').value, tasks: $('tTasks').checked });
@@ -359,7 +416,8 @@
     var ka = apById($('bKeep').value), ma = apById($('bMerge').value), nm = $('bName').value.trim();
     if (!ka || !ma) { bmsg('İki arılık seçin.', true); return; }
     if (!nm) { bmsg('Birleşik arılığın adını yaz.', true); $('bName').focus(); return; }
-    if (!confirm(ma.name + ' ile ' + ka.name + ' birleşsin mi?\n\nYeni ad: ' + nm + '\nKovanlar ve kayıtları aktarılır, takip devam eder. Geri almak için Geçmiş’te «Geri al».')) return;
+    var bpv = G.preview ? G.preview({ kind: 'birlestir', fromApiaryId: ma.id, toApiaryId: ka.id }) : { hives: D.hivesForApiary(ma.id).length, refs: 0 };
+    if (!confirm(ma.name + ' → ' + ka.name + ' birleşsin mi?\n\nYeni ad: ' + nm + '\n' + bpv.hives + ' kovan · tüm bilgileriyle taşınacak' + (bpv.refs ? ' (' + bpv.refs + ' bağlı kayıt)' : '') + '. Takip devam eder.\nGeri almak için Geçmiş’te «Geri al».')) return;
     try {
       var rec = G.birlestir({ keepId: ka.id, mergeId: ma.id, name: nm, date: $('bDate').value, note: $('bNote').value });
       bmsg(rec.hiveIds.length + ' kovan aktarıldı. Arılık adı: ' + rec.toName + '.');
@@ -367,9 +425,12 @@
       refreshAll();
     } catch (err) { bmsg(err.message || String(err), true); }
   });
+  function mapIfTasi() { if (!$('tasiForm').hidden) setTimeout(initTMap, 0); }
+  document.querySelector('.gk-tabs').addEventListener('click', mapIfTasi);
   function refreshAll() { fillSelects(); fillHives(); kmHint(); fillTasi(); tKmHint(); fillBir(); renderHist(); renderPlan(); }
   fillTasi(); fillBir();
   setMod(q.get('mod') || 'tasi', false);
+  mapIfTasi();
   /* k160: konaklama planı — arılık başına varış/ayrılış (düzenlenebilir) + nektar değerlendirmesi önerisi (onaylı) */
   function renderPlan() {
     var P2 = window.SuperAriPlan2, el = $('planList'); if (!P2 || !el) return;
@@ -440,7 +501,7 @@
 window.SuperAriQuickTitle = 'Kayıt · Göç';
 window.SuperAriQuickActions = function () { return [
   { ic: '🚚', t: 'Göç (Arılığı Taşı)', d: 'Arılık tüm kovanlarıyla yeni yere', run: function () { location.href = 'goc.html?mod=tasi'; } },
-  { ic: '🔁', t: 'Arılık değiştir', d: 'Seçilen kovanlar başka arılığa', run: function () { location.href = 'goc.html?mod=degistir'; } },
+  { ic: '🔁', t: 'Kovan arılık değiştir', d: 'Seçilen kovanlar başka arılığa', run: function () { location.href = 'goc.html?mod=degistir'; } },
   { ic: '🔗', t: 'Birleştir', d: 'İki arılık tek arılık olur', run: function () { location.href = 'goc.html?mod=birlestir'; } }
 ]; };
 </script>
