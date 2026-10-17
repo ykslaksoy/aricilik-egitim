@@ -143,7 +143,15 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   }
   .sum-val.warn { color: var(--warn); }
-  .sum-tare { margin-top: 4px; font-size: 11px; font-weight: 700; color: #6b5a48; line-height: 1.3; overflow-wrap: anywhere; }
+  .sum-tare { margin-top: 2px; font-size: 10.5px; font-weight: 700; color: #6b5a48; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .sum-card-tap { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .sum-hint { margin-top: auto; font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1.2; }
+  .sum-caret { display: inline-block; transition: transform .15s; }
+  .sum-card-tap[aria-expanded="true"] .sum-caret { transform: rotate(180deg); }
+  .sum-det { grid-column: 1 / -1; background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .sum-det[hidden] { display: none; }
+  .sum-det-line { font-size: 12px; font-weight: 600; color: #6b5a48; line-height: 1.35; overflow-wrap: anywhere; }
+  .sum-det-link { border: 0; background: transparent; padding: 0; color: #2b6cb0; font-size: 12px; font-weight: 600; text-align: left; cursor: pointer; text-decoration: underline; font-family: inherit; }
   .sum-val.bad { color: var(--danger); }
   .sum-badge {
     display: inline-flex; padding: 2px 6px; border-radius: 999px;
@@ -387,6 +395,13 @@
     var t = e.target.closest ? e.target.closest('[data-te-open]') : null; if (!t || !window.SuperAriTarti) return;
     e.preventDefault(); SuperAriTarti.open(t.getAttribute('data-te-open'), { onSaved: function () { window.__teReload = true; } });
   });
+  function kvSumDetToggle(card) {
+    var d = document.getElementById(card.getAttribute('data-sum-det')); if (!d) return;
+    var open = d.hasAttribute('hidden'); if (open) d.removeAttribute('hidden'); else d.setAttribute('hidden', '');
+    card.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  document.addEventListener('click', function (e) { var c = e.target.closest ? e.target.closest('[data-sum-det]') : null; if (c) kvSumDetToggle(c); });
+  document.addEventListener('keydown', function (e) { if (e.key !== 'Enter' && e.key !== ' ') return; var c = e.target.closest ? e.target.closest('[data-sum-det]') : null; if (c) { e.preventDefault(); kvSumDetToggle(c); } });
   document.addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('[data-ba-tare]') : null;
     if (!b || !window.SuperAriBalAgirlik) return;
@@ -914,7 +929,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     var tareNow = TEm && TEm.tare ? (liveKd ? (lastManual && lastManual.tareKg ? { kg: lastManual.tareKg } : null) : TEm.tare(hive.id)) : null;
     var tareTxt = tareNow && tareNow.kg > 0 ? TEm.tareNote(tareNow) : '';
     var weightTxt = liveKd ? (lastManual ? String(TEm.netOf ? TEm.netOf(lastManual) : lastManual.kg).replace('.', ',') + ' kg' : '—') : (Number(hive.weightKg) - (tareNow ? tareNow.kg : 0)).toFixed(1).replace('.', ',') + ' kg';
-    var BAg = window.SuperAriBalAgirlik, netBalHtml = '';
+    var BAg = window.SuperAriBalAgirlik, netBalHtml = '', netShort = '';
     if (BAg) {
       var grossKg = liveKd ? (lastManual ? lastManual.kg : null) : Number(hive.weightKg);
       if (grossKg > 0) {
@@ -922,9 +937,10 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
         if (nh) {
           var th = BAg.getHiveTare(hive.id);
           var typeLbl = BAg.typeDisplayLabel(th.hiveType, hive);
-          netBalHtml = '<div class="sum-tare">' + escapeHtml(typeLbl) + '</div>' +
-            '<div class="sum-tare">Net bal (tahmin): <b>' + escapeHtml(BAg.fmtKg(nh.netKg)) + '</b> · dara ' + escapeHtml(BAg.fmtKg(th.kg)) + ' (' + escapeHtml(th.source) + ')</div>' +
-            '<button type="button" class="sum-tare" data-ba-tare="' + escapeHtml(hive.id) + '" style="border:0;background:transparent;padding:0;color:#2b6cb0;font:inherit;font-weight:700;cursor:pointer;text-align:left;">Kovan boş ağırlığı ayarla</button>';
+          netShort = 'Net bal ~' + BAg.fmtKg(nh.netKg).replace(/(,\d)\d+/, '$1');
+          netBalHtml = '<div class="sum-det-line">' + escapeHtml(typeLbl) + '</div>' +
+            '<div class="sum-det-line">Net bal (tahmin): <b>' + escapeHtml(BAg.fmtKg(nh.netKg)) + '</b> · dara ' + escapeHtml(BAg.fmtKg(th.kg)) + ' (' + escapeHtml(th.source === 'varsayilan' ? 'varsayılan' : th.source) + ')</div>' +
+            '<button type="button" class="sum-det-link" data-ba-tare="' + escapeHtml(hive.id) + '">Kovan boş ağırlığı ayarla</button>';
         }
       }
     }
@@ -1023,12 +1039,12 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
       '</div>' +
 
       '<div class="sum-row">' +
-        '<div class="sum-card">' +
+        '<div class="sum-card sum-card-tap" data-sum-det="kvTartiDet" role="button" tabindex="0" aria-expanded="false" aria-controls="kvTartiDet">' +
           '<div class="sum-top"><span class="sum-ico' + cls(wt) + '">⚖</span><span class="sum-lbl">Tartı</span></div>' +
           '<div class="sum-val' + cls(wt) + '">' + escapeHtml(weightTxt) + '</div>' +
           '<span class="sum-badge' + cls(wt) + '">' + escapeHtml(deltaStr) + '</span>' +
-          (tareTxt ? '<div class="sum-tare">' + escapeHtml(tareTxt) + '</div>' : '') +
-          netBalHtml +
+          (netShort ? '<div class="sum-tare">' + escapeHtml(netShort) + '</div>' : '') +
+          ((tareTxt || netBalHtml) ? '<div class="sum-hint">Detay <span class="sum-caret">▾</span></div>' : '') +
         '</div>' +
         '<div class="sum-card">' +
           '<div class="sum-top"><span class="sum-ico' + cls(ht) + '">♥</span><span class="sum-lbl">Sağlık</span></div>' +
@@ -1042,6 +1058,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
           '<div class="sum-val' + cls(swarmTone) + '">' + escapeHtml(hive.swarmRisk) + '</div>' +
           '<span class="sum-badge' + cls(swarmTone) + '">' + escapeHtml(swBadge) + '</span>' +
         '</div>' +
+        ((tareTxt || netBalHtml) ? '<div class="sum-det" id="kvTartiDet" hidden>' + (tareTxt ? '<div class="sum-det-line">' + escapeHtml(tareTxt.charAt(0).toUpperCase() + tareTxt.slice(1)) + '</div>' : '') + netBalHtml + '</div>' : '') +
       '</div>' + lhBox +
 
       '<div class="sum-row">' +
