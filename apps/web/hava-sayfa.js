@@ -6,7 +6,7 @@
   function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
   (function () { var el = $('statusClock'); if (!el) return; function t() { var n = new Date(); el.textContent = n.getHours() + ':' + (n.getMinutes() < 10 ? '0' : '') + n.getMinutes(); } t(); setInterval(t, 1000); })();
 
-  var LOCK_KEY = 'superari.ana.arilikLock', SEL_KEY = 'superari.ana.selectedApiary', CACHE = 'superari.hava.tahmin.v2.' /* k249: saatlik gündüz verisi + ışınım */;
+  var LOCK_KEY = 'superari.ana.arilikLock', SEL_KEY = 'superari.ana.selectedApiary', CACHE = 'superari.hava.tahmin.v3.' /* k249: saatlik gündüz verisi + ışınım */;
   var GUN = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
   var YON = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
   var aps = [];
@@ -75,7 +75,8 @@
     (dl.time || []).forEach(function (t, i) {
       out.days.push({ date: t, hi: num(dl.temperature_2m_max[i]), lo: num(dl.temperature_2m_min[i]), mm: num((dl.precipitation_sum || [])[i]) || 0,
         pr: num((dl.precipitation_probability_max || [])[i]) || 0, wind: num((dl.wind_speed_10m_max || [])[i]), gust: num((dl.wind_gusts_10m_max || [])[i]),
-        dir: num((dl.wind_direction_10m_dominant || [])[i]), rh: num((dl.relative_humidity_2m_mean || [])[i]), rhMin: num((dl.relative_humidity_2m_min || [])[i]), rhMax: num((dl.relative_humidity_2m_max || [])[i]), code: (dl.weather_code || [])[i] });
+        dir: num((dl.wind_direction_10m_dominant || [])[i]), rh: num((dl.relative_humidity_2m_mean || [])[i]), rhMin: num((dl.relative_humidity_2m_min || [])[i]), rhMax: num((dl.relative_humidity_2m_max || [])[i]), code: (dl.weather_code || [])[i],
+        uv: num((dl.uv_index_max || [])[i]), sun: (function (v) { v = num(v); return v == null ? null : v / 3600; })((dl.sunshine_duration || [])[i]) }); /* UV + güneşlenme süresi (saat) */
     });
     var h = j.hourly || {}, byD = {};
     out.days.forEach(function (x) { byD[x.date] = x; });
@@ -100,7 +101,7 @@
     var key = CACHE + a.id;
     try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return Promise.resolve(fresh(c.d)); } catch (e) { /* ignore */ }
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + a.lat + '&longitude=' + a.lon +
-      '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,relative_humidity_2m_mean,relative_humidity_2m_min,relative_humidity_2m_max,weather_code' +
+      '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,relative_humidity_2m_mean,relative_humidity_2m_min,relative_humidity_2m_max,weather_code,uv_index_max,sunshine_duration' +
       '&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,weather_code,is_day,shortwave_radiation' +
       '&timezone=auto&forecast_days=10';
     return fetch(url).then(function (r) { if (!r.ok) throw new Error('hava_' + r.status); return r.json(); }).then(function (j) {
@@ -224,12 +225,25 @@
   function backBtn() { return '<button type="button" class="sa-back hv-back" data-hv-back>‹ Geri</button>'; }
   function head(t, s) { return '<div class="hv-h">' + esc(t) + '</div>' + (s ? '<div class="hv-sub">' + esc(s) + '</div>' : ''); }
   function dirTxt(deg) { return deg == null ? '' : YON[Math.round(deg / 45) % 8]; }
+  /* koloni-255: gün kartı değerleri — canlı renkli tek renk SVG simge + füme yazı (kullanıcı seçimi A) */
+  var SVP = {
+    mm: '<path fill="currentColor" d="M12 2.8c3.2 4.2 6.2 7.4 6.2 11a6.2 6.2 0 0 1-12.4 0c0-3.6 3-6.8 6.2-11z"/>',
+    pr: '<path fill="currentColor" d="M2.8 12.2a9.2 9.2 0 0 1 18.4 0z"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 12v6.2a2.2 2.2 0 0 0 4.4 0M12 2v1.6"/>',
+    wd: '<path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M3 9h11.5a3 3 0 1 0-3-3M3 15h15.5a3 3 0 1 1-3 3"/>',
+    gu: '<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M3 7.5h9.5a2.5 2.5 0 1 0-2.5-2.5M3 12h15.5a2.5 2.5 0 1 0-2.5-2.5M3 16.5h9a2.5 2.5 0 1 1-2.5 2.5"/>',
+    rh: '<path fill="currentColor" d="M8.2 3.5c2.3 3.1 4.5 5.4 4.5 8.1a4.5 4.5 0 0 1-9 0c0-2.7 2.2-5 4.5-8.1zM16.8 10c1.7 2.3 3.4 4 3.4 6a3.4 3.4 0 0 1-6.8 0c0-2 1.7-3.7 3.4-6z"/>',
+    sun: '<circle cx="12" cy="12" r="4.4" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 2.2v2.4M12 19.4v2.4M2.2 12h2.4M19.4 12h2.4M5.1 5.1l1.7 1.7M17.2 17.2l1.7 1.7M5.1 18.9l1.7-1.7M17.2 6.8l1.7-1.7"/>',
+    uv: '<path fill="currentColor" d="M5.2 18.4a6.8 6.8 0 0 1 13.6 0z"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M2.5 21h19M12 3.5v3.2M4.4 8.6l2.3 2.3M19.6 8.6l-2.3 2.3M1.8 15h2.6M19.6 15h2.6"/>'
+  };
+  function SV(k) { return '<svg class="hv-i i-' + k + '" viewBox="0 0 24 24" aria-hidden="true">' + SVP[k] + '</svg>'; }
   function dayCard(x, i) {
     var f = flight(x);
     return '<div class="hv-card ' + (f === 'no' || f === 'yok' ? '' : f) + '"><div class="hv-d"><b>' + esc(dayLab(x.date, i)) + '</b><span>' + ico(x.code, x.mm) + '</span></div>' +
       '<div class="hv-t">' + r0(x.hi) + '°<span class="lo"> / ' + r0(x.lo) + '°</span></div>' +
       '<div class="hv-fl ' + f + '">' + (f === 'ok' ? '🐝 ' : '') + FL[f] + '</div>' +
-      '<div class="hv-m"><span>💧 ' + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span><span>💨 ' + r0(x.wind) + ' km/sa ' + dirTxt(x.dir) + '</span><span>Nem %' + r0(x.rh) + '</span></div></div>';
+      '<div class="hv-m"><span class="hv-ln">' + SV('mm') + '<span class="hv-v mm">' + (Math.round((x.mm || 0) * 10) / 10) + ' mm</span> · ' + SV('pr') + '<span class="hv-v pr">%' + Math.round(x.pr || 0) + '</span></span></div>' +
+      '<div class="hv-m hv-m2"><span class="hv-ln">' + SV('wd') + '<span class="hv-v wd">' + r0(x.wind) + ' km/sa ' + dirTxt(x.dir) + '</span> · ' + SV('gu') + '<span class="hv-v gu">hamle ' + r0(x.gust) + '</span></span>' +
+        '<span class="hv-ln">' + SV('rh') + '<span class="hv-v rh">Nem %' + r0(x.rh) + '</span> · ' + SV('sun') + '<span class="hv-v sun">' + (x.sun == null ? '—' : String(Math.round(x.sun * 10) / 10).replace('.', ',') + ' sa güneş') + '</span> · ' + SV('uv') + '<span class="hv-v uv">UV ' + (x.uv == null ? '—' : String(Math.round(x.uv * 10) / 10).replace('.', ',')) + '</span></span></div></div>';
   }
   function hrLab(t) { return t.slice(11, 16); }
   function view(name) {
@@ -299,7 +313,7 @@
   function renderTen() {
     var d = data && data.days || [];
     var szH = ap() && seasonStage().kapali ? '<div class="hv-sub">' + esc(seasonStage().t) + ' · toplama yok</div>' : ''; /* k249: yükleme iskeletinde de aynı satır — ekran kaymaz */
-    if (!data && hvLoading) { var sk = ''; for (var si = 0; si < 10; si++) sk += '<div class="hv-card hv-skel" aria-hidden="true" style="height:72px;box-sizing:border-box"></div>'; return '<div class="hv-h">10 günlük tahmin</div>' + szH + sk; }
+    if (!data && hvLoading) { var sk = ''; for (var si = 0; si < 10; si++) sk += '<div class="hv-card hv-skel" aria-hidden="true"></div>'; return '<div class="hv-h">10 günlük tahmin</div>' + szH + sk; }
     if (!data) return '<div class="hv-empty">' + (ap() ? 'Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.' : 'Konumu kayıtlı arılık yok — arılık ekleyince tahmin burada görünür.') + '</div>';
     var fa = feedAlert(d);
     return '<div class="hv-h">10 günlük tahmin</div>' + szH + (fa ? '<div class="hv-warn">🍯 ' + esc(fa) + '</div>' : '') + d.map(dayCard).join('');
