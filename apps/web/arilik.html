@@ -3323,8 +3323,11 @@
         '<a class="action-link" href="' + giderAddHref + '">' +
           'Gider ekle <span aria-hidden="true">›</span>' +
         '</a>' +
-        '<a class="action-link" href="goc.html?from=' + encodeURIComponent(apiary.id) + '">' +
-          'Kovan göçü <span aria-hidden="true">›</span>' +
+        '<a class="action-link" href="goc.html?mod=tasi&amp;from=' + encodeURIComponent(apiary.id) + '">' +
+          'Göç (Arılığı Taşı) <span aria-hidden="true">›</span>' +
+        '</a>' +
+        '<a class="action-link" href="goc.html?mod=degistir&amp;from=' + encodeURIComponent(apiary.id) + '">' +
+          'Kovan arılık değiştir <span aria-hidden="true">›</span>' +
         '</a>' +
       '</div>';
 
@@ -3739,7 +3742,8 @@ window.SuperAriQuickActions = function () {
   return [
     { ic: '🔍', t: 'Muayene / koloni gücü', d: 'Bu arılıktaki kovanlar', run: N.quickType('guc') },
     { ic: '🍬', t: 'Besleme kaydı', d: 'Tüm arılık / seçili kovanlar', run: N.quickType('besleme') },
-    { ic: '🚚', t: 'Göç kaydı', d: 'Kovanları başka arılığa taşı', run: N.go('goc.html' + (id ? '?apiary=' + encodeURIComponent(id) : '')) }
+    { ic: '🚚', t: 'Göç (Arılığı Taşı)', d: 'Arılık tüm kovanlarıyla yeni yere', run: N.go('goc.html?mod=tasi' + (id ? '&apiary=' + encodeURIComponent(id) : '')) },
+    { ic: '🔁', t: 'Kovan arılık değiştir', d: 'Kovanları başka arılığa geçir', run: N.go('goc.html?mod=degistir' + (id ? '&apiary=' + encodeURIComponent(id) : '')) }
   ];
 };
 </script>

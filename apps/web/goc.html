@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-256">
+<link rel="stylesheet" href="sa-early.css?v=koloni-255">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SüperArı · Arılık göçü</title>
+<title>SüperArı · Göç (Arılığı Taşı)</title>
 <link rel="stylesheet" href="rapor-common.css" />
 
 <style>
@@ -16,10 +16,26 @@
   .hv-top button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:9px;padding:4px 8px;color:#5c4813;}
   .chk{display:flex !important;flex-direction:row !important;align-items:flex-start;gap:8px;font-weight:600 !important;}
   .chk input{width:18px !important;height:18px;flex:0 0 auto;margin-top:1px;}
+  .gk-tabs{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:6px;margin:0 0 10px;}
+  .gk-tabs button{font:inherit;font-size:12.5px;font-weight:800;line-height:1.2;height:48px;padding:0 6px;border:1px solid var(--border,#eadfbe);border-radius:12px;background:#fff;color:#5c4813;}
+  .gk-tabs button[aria-selected="true"]{background:#f7b731;border-color:#d99a0b;color:#2b2410;}
+  .gk-info{font-size:12.5px;line-height:1.4;color:#2b2f33;background:#fff9e6;border:1px solid #f0e2b0;border-radius:10px;padding:8px 10px;margin:0 0 10px;}
+  .gk-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;min-width:0;}
+  .gk-row select{width:100%;min-width:0;}
+  [data-panel]{min-width:0;}
+  [data-panel] > *{min-width:0;}
+  #gkCard .pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+  #gkCard .pair input,#gkCard .pair select{width:100%;min-width:0;box-sizing:border-box;}
+  .gk-row button{font:inherit;font-size:12.5px;font-weight:750;min-height:36px;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:10px;padding:0 10px;color:#5c4813;}
+  .gk-map{height:230px;border-radius:14px;overflow:hidden;border:1px solid var(--border,#eadfbe);background:#e8ece8;}
+  .gk-cur{font-size:12.5px;color:#2b2f33;margin:2px 0 0;}
+  .hist-act{display:flex;flex-direction:column;gap:4px;}
+  .hist-act button{font:inherit;font-size:12px;font-weight:750;border:1px solid var(--border,#eadfbe);background:#fff;border-radius:9px;padding:4px 8px;color:#5c4813;}
+  .kind-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#fff3bf;color:#7a5a00;margin-left:4px;}
   .demo-chip{display:inline-block;font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:#e7f5ff;color:#1864ab;margin-left:4px;}
 </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-256" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-256" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-255" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-255" />
 </head>
 <body>
 <div class="phone" id="phone">
@@ -29,9 +45,73 @@
     <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
   </div>
   <div class="screen">
-    <section class="card-block">
-      <h2>Yeni göç kaydı</h2>
-      <form class="form-grid" id="gocForm" novalidate>
+    <section class="card-block" id="gkCard">
+      <div class="gk-tabs" role="tablist" aria-label="İşlem">
+        <button type="button" role="tab" data-mod="tasi" aria-selected="true">Göç (Arılığı Taşı)</button>
+        <button type="button" role="tab" data-mod="degistir" aria-selected="false">Kovan arılık değiştir</button>
+        <button type="button" role="tab" data-mod="birlestir" aria-selected="false">Birleştir</button>
+      </div>
+      <!-- Göç (Arılığı Taşı): arılık tüm kovanlarıyla yeni yere -->
+      <form class="form-grid" id="tasiForm" novalidate data-panel="tasi">
+        <p class="gk-info">Arılık bütün kovanlarıyla yeni yere gider. Adı ve kovanları aynı kalır, yalnız yeri değişir. Aynı yerde başka arılık olsa bile <b>birleşmez</b>.</p>
+        <label>Hangi arılık
+          <select id="tAp"></select>
+        </label>
+        <p class="gk-cur" id="tCur">&nbsp;</p>
+        <label>Yeni yerin adı
+          <input type="text" id="tPlace" maxlength="80" placeholder="ör. Cimil Yaylası" />
+        </label>
+        <div class="gk-row">
+          <button type="button" id="tGps">📍 Bulunduğum yer</button>
+          <select id="tKnown"><option value="">Kayıtlı yerlerden seç</option></select>
+        </div>
+        <div class="ymap-host" id="tMapHost"><div id="tMap" class="gk-map" role="application" aria-label="Yeni yeri haritadan seç"></div></div>
+        <p class="gk-cur" id="tMapHint">Haritada yeni yere dokun veya kırmızı iğneyi sürükle. Gri iğne şimdiki yer.</p>
+        <div class="pair">
+          <label>Enlem
+            <input type="text" id="tLat" inputmode="decimal" placeholder="ör. 40.6012" />
+          </label>
+          <label>Boylam
+            <input type="text" id="tLon" inputmode="decimal" placeholder="ör. 40.1234" />
+          </label>
+        </div>
+        <div class="pair">
+          <label>İl
+            <input type="text" id="tIl" maxlength="40" />
+          </label>
+          <label>İlçe
+            <input type="text" id="tIlce" maxlength="40" />
+          </label>
+        </div>
+        <div class="pair">
+          <label>Tarih
+            <input type="date" id="tDate" required />
+          </label>
+          <label>Mesafe (km)
+            <input type="text" id="tKm" inputmode="decimal" placeholder="otomatik" />
+          </label>
+        </div>
+        <div class="pair">
+          <label>Planlanan varış
+            <input type="date" id="gVaris" required />
+          </label>
+          <label>Planlanan ayrılış
+            <input type="date" id="gAyrilis" />
+          </label>
+        </div>
+        <label>Sebep
+          <select id="tReason"></select>
+        </label>
+        <label>Not
+          <input type="text" id="tNote" maxlength="160" placeholder="ör. Gece yüklendi, kamyon ile" />
+        </label>
+        <label class="chk"><input type="checkbox" id="tTasks" checked /> <span>Göç sonrası kontrol görevleri oluştur (ertesi gün ve 7. gün)</span></label>
+        <button type="submit" class="btn">Arılığı yeni yere taşı</button>
+        <p class="form-msg" id="tMsg" aria-live="polite"></p>
+      </form>
+      <!-- Kovan arılık değiştir: seçilen kovanlar başka arılığa -->
+      <form class="form-grid" id="gocForm" novalidate data-panel="degistir" hidden>
+        <p class="gk-info">Seçtiğin kovanlar başka bir arılığa geçer. Kovanın geçmişi, ana arısı ve kayıtları kovanla birlikte gider.</p>
         <label>Nereden
           <select id="gFrom"></select>
         </label>
@@ -46,14 +126,6 @@
             <input type="text" id="gKm" inputmode="decimal" placeholder="ör. 120" />
           </label>
         </div>
-        <div class="pair">
-          <label>Planlanan varış
-            <input type="date" id="gVaris" required />
-          </label>
-          <label>Planlanan ayrılış
-            <input type="date" id="gAyrilis" />
-          </label>
-        </div>
         <label>Sebep
           <select id="gReason"></select>
         </label>
@@ -62,11 +134,35 @@
           <div class="hv-list" id="hvList" style="margin-top:6px;"></div>
         </div>
         <label>Not
-          <input type="text" id="gNote" maxlength="160" placeholder="ör. Gece yüklendi, kamyon ile" />
+          <input type="text" id="gNote" maxlength="160" placeholder="ör. Bölme sonrası" />
         </label>
-        <label class="chk"><input type="checkbox" id="gTasks" checked /> <span>Göç sonrası kontrol görevleri oluştur (ertesi gün ve 7. gün)</span></label>
-        <button type="submit" class="btn" id="gSave">Göçü kaydet ve kovanları taşı</button>
+        <label class="chk"><input type="checkbox" id="gTasks" checked /> <span>Kontrol görevleri oluştur (ertesi gün ve 7. gün)</span></label>
+        <button type="submit" class="btn" id="gSave">Kovanları diğer arılığa geçir</button>
         <p class="form-msg" id="gMsg" aria-live="polite"></p>
+      </form>
+      <!-- Birleştir: yalnız kullanıcı seçerse -->
+      <form class="form-grid" id="birForm" novalidate data-panel="birlestir" hidden>
+        <p class="gk-info">İki arılık tek arılık olur. Yalnız sen burada onaylarsan birleşir. Kovanların tüm bilgileri ve kayıtları aktarılır, kovanlar izlenmeye devam eder.</p>
+        <label>Kalan arılık (yeri bu olur)
+          <select id="bKeep"></select>
+        </label>
+        <label>Katılacak arılık (listeden kalkar)
+          <select id="bMerge"></select>
+        </label>
+        <label>Birleşik arılığın adı
+          <input type="text" id="bName" maxlength="80" placeholder="ör. Tortum Birleşik Arılık" />
+        </label>
+        <p class="gk-cur" id="bSum">&nbsp;</p>
+        <div class="pair">
+          <label>Tarih
+            <input type="date" id="bDate" required />
+          </label>
+          <label>Not
+            <input type="text" id="bNote" maxlength="160" placeholder="isteğe bağlı" />
+          </label>
+        </div>
+        <button type="submit" class="btn">Birleştir</button>
+        <p class="form-msg" id="bMsg" aria-live="polite"></p>
       </form>
     </section>
     <section class="card-block" id="planCard">
@@ -85,13 +181,17 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-256"></script>
-<script src="sensor-ham.js?v=koloni-256"></script>
-<script src="demo-data.js?v=koloni-256"></script>
-<script src="sensor-polling.js?v=koloni-256"></script>
-<script src="cicek-veri.js?v=koloni-256"></script><script src="cicek.js?v=koloni-256"></script><script src="pil-model.js?v=koloni-256"></script><script src="plan-planlayici.js?v=koloni-256"></script><script src="rota-motoru.js?v=koloni-256"></script><script src="cevre.js?v=koloni-256"></script><script src="saglik-takvimi.js?v=koloni-256"></script>
-<script src="kapsam.js?v=koloni-256"></script>
-  <script src="ks-sayfa.js?v=koloni-256"></script>
+<script src="bk-kabuk.js?v=koloni-255"></script>
+<script src="admin-notify.js"></script>
+<script src="yandex-config.js"></script>
+<script src="harita-offline.js?v=koloni-255"></script>
+<script src="yandex-map.js"></script>
+<script src="sensor-ham.js?v=koloni-255"></script>
+<script src="demo-data.js?v=koloni-255"></script>
+<script src="sensor-polling.js?v=koloni-255"></script>
+<script src="cicek-veri.js?v=koloni-255"></script><script src="cicek.js?v=koloni-255"></script><script src="pil-model.js?v=koloni-255"></script><script src="plan-planlayici.js?v=koloni-255"></script><script src="rota-motoru.js?v=koloni-255"></script><script src="cevre.js?v=koloni-255"></script><script src="saglik-takvimi.js?v=koloni-255"></script>
+<script src="kapsam.js?v=koloni-255"></script>
+  <script src="ks-sayfa.js?v=koloni-255"></script>
   <script>SuperAriKsSayfa.ensureScope({});</script>
   <script>
 (function () {
@@ -112,7 +212,7 @@
     $('gTo').innerHTML = '<option value="">Hedef arılığı seçin</option>' + list.filter(function (a) { return String(a.id) !== String($('gFrom').value); })
       .map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + '</option>'; }).join('');
     if (to && to !== $('gFrom').value) $('gTo').value = to;
-    if (list.length < 2) msg('Göç için en az iki arılık gerekir. Hedef yer için önce Arılıklar’dan yeni arılık ekleyin.', true);
+    if (list.length < 2) msg('Kovan arılık değiştirmek için en az iki arılık gerekir. Önce Arılıklar’dan yeni arılık ekleyin.', true);
   }
   function fillHives() {
     var hs = $('gFrom').value ? D.hivesForApiary($('gFrom').value) : [];
@@ -135,16 +235,18 @@
     var ap = apFilter ? aps().filter(function (a) { return String(a.id) === String(apFilter); })[0] : null;
     $('histTitle').textContent = ap ? 'Göç geçmişi · ' + ap.name : 'Göç geçmişi';
     $('histList').innerHTML = list.map(function (g) {
-      return '<div class="row-item"><div class="left"><div class="title">' + esc(fmt(g.date)) + ' · ' + esc(g.fromName) + ' → ' + esc(g.toName) + (g.demo ? '<span class="demo-chip">Demo</span>' : '') + '</div>' +
-        '<div class="meta">' + (g.hiveIds || []).length + ' kovan · ' + esc(G.reasonLabel(g.reason)) + (g.km != null ? ' · ' + String(g.km).replace('.', ',') + ' km' : '') +
+      var k = G.kind ? G.kind(g) : 'degistir', kl = k === 'tasi' ? 'Göç' : (k === 'birlestir' ? 'Birleştirme' : 'Kovan arılık değiştir');
+      var head = k === 'tasi' ? esc(g.apiaryName || '') + ': ' + esc(g.fromName) + ' → ' + esc(g.toName) : esc(g.fromName) + ' → ' + esc(g.toName);
+      return '<div class="row-item"><div class="left"><div class="title">' + esc(fmt(g.date)) + ' · ' + head + '<span class="kind-chip">' + kl + '</span>' + (g.demo ? '<span class="demo-chip">Demo</span>' : '') + '</div>' +
+        '<div class="meta">' + (g.hiveIds || []).length + ' kovan' + (k === 'birlestir' ? '' : ' · ' + esc(G.reasonLabel(g.reason))) + (g.km != null ? ' · ' + String(g.km).replace('.', ',') + ' km' : '') +
         '<br>' + esc((g.hiveNames || []).join(', ')) + (g.note ? '<br>' + esc(g.note) : '') + '</div></div>' +
-        '<div class="right"><button type="button" class="del" data-del="' + esc(g.id) + '">Sil</button></div></div>';
+        '<div class="right hist-act"><button type="button" data-undo="' + esc(g.id) + '">Geri al</button><button type="button" class="del" data-del="' + esc(g.id) + '">Sil</button></div></div>';
     }).join('') || '<p class="hint" style="margin:0;">Henüz göç kaydı yok.</p>';
     if (ap) $('histList').insertAdjacentHTML('beforeend', '<p class="hint" style="margin:8px 0 0;"><a href="goc.html">Tüm göçleri göster</a></p>');
   }
   $('gReason').innerHTML = G.REASONS.map(function (r) { return '<option value="' + r.key + '">' + esc(r.label) + '</option>'; }).join('');
   $('gDate').value = D.records.todayLocal();
-  $('modeHint').textContent = live() ? 'Canlı mod · göç kayıtları hedef arılık üzerinden buluta eşitlenir. Kovan geçmişine «Göç» olarak yazılır; Bakım listesinde 7 gün «Göç sonrası kontrol» görünür.' : 'Demo mod · kayıtlar örnek veriye yazılır, buluta gitmez.';
+  $('modeHint').textContent = live() ? 'Canlı mod · kayıtlar buluta eşitlenir. Kovan geçmişine «Göç» olarak yazılır; Bakım listesinde 7 gün «Göç sonrası kontrol» görünür. Arılıklar kendiliğinden birleşmez.' : 'Demo mod · kayıtlar örnek veriye yazılır, buluta gitmez.';
   fillSelects(); fillHives(); kmHint(); renderHist();
   $('gFrom').addEventListener('change', function () { fillSelects(); fillHives(); kmHint(); msg(''); });
   $('gTo').addEventListener('change', function () { kmHint(); msg(''); });
@@ -156,26 +258,179 @@
   $('gocForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var ids = Array.prototype.map.call($('hvList').querySelectorAll('input:checked'), function (i) { return Number(i.value); });
-    /* k160: planlanan varış + ayrılış zorunlu */
-    var vV = $('gVaris').value, vA = $('gAyrilis').value;
-    if (!vV) { msg('Planlanan varış tarihini gir.', true); return; }
-    if (!vA && !confirm('Ayrılış tarihini biliyorsan gir. Boş bırakırsan pil planı bu arılığın bal sezonu sonuna göre yapılır. Boş bırakılsın mı?')) { $('gAyrilis').focus(); return; }
-    if (vA && vA <= vV) { msg('Ayrılış tarihi varıştan sonra olmalı.', true); return; }
+    if (ids.length && $('gTo').value) {
+      var pv = G.preview ? G.preview({ kind: 'degistir', fromApiaryId: $('gFrom').value, toApiaryId: $('gTo').value, hiveIds: ids }) : { hives: ids.length, refs: 0 };
+      var toA = apById($('gTo').value);
+      if (!confirm(ids.length + ' kovan · tüm bilgileriyle taşınacak → ' + (toA ? toA.name : '') + '\n\nMuayene, ana arı, hat, tartım, hasat, görev, cihaz, fotoğraf ve notlar kovanla gider' + (pv.refs ? ' (' + pv.refs + ' bağlı kayıt)' : '') + '. Kovan numarası ve geçmişi aynı kalır.\n\nGeçirilsin mi?')) return;
+    }
     try {
       var rec = G.add({ fromApiaryId: $('gFrom').value, toApiaryId: $('gTo').value, date: $('gDate').value, hiveIds: ids,
         reason: $('gReason').value, km: $('gKm').value.trim(), note: $('gNote').value, tasks: $('gTasks').checked });
-      if (window.SuperAriPlan2) SuperAriPlan2.konSet($('gTo').value, { varis: vV, ayrilis: vA || null });
       renderPlan();
-      msg(rec.hiveIds.length + ' kovan ' + rec.toName + ' arılığına taşındı.' + ($('gTasks').checked ? ' Kontrol görevleri eklendi.' : ''));
+      msg(rec.hiveIds.length + ' kovan ' + rec.toName + ' arılığına geçti.' + ($('gTasks').checked ? ' Kontrol görevleri eklendi.' : ''));
       $('gNote').value = ''; $('gKm').value = '';
       fillSelects(); fillHives(); kmHint(); renderHist();
     } catch (err) { msg(err.message || String(err), true); }
   });
   $('histList').addEventListener('click', function (e) {
+    var u = e.target.closest('[data-undo]');
+    if (u) {
+      var gid = u.getAttribute('data-undo'), g = G.list().filter(function (x) { return x.id === gid; })[0]; if (!g) return;
+      var k = G.kind ? G.kind(g) : 'degistir';
+      var t = k === 'tasi' ? 'Geri alınsın mı? Arılık eski yerine (' + g.fromName + ') döner.' : (k === 'birlestir' ? 'Geri alınsın mı? ' + g.fromName + ' arılığı geri gelir, kovanları ona döner.' : 'Geri alınsın mı? Kovanlar ' + g.fromName + ' arılığına döner.');
+      if (!confirm(t)) return;
+      G.remove(gid, { revert: true }); refreshAll(); return;
+    }
     var b = e.target.closest('[data-del]'); if (!b) return;
-    if (!confirm('Göç kaydı silinsin mi? Kovanlar geri taşınmaz; gerekirse ters yönde yeni göç kaydı girin.')) return;
+    if (!confirm('Yalnız kayıt silinsin mi? Kovanlar ve arılık yerinde kalır. Geri döndürmek için «Geri al»ı kullan.')) return;
     G.remove(b.getAttribute('data-del')); renderHist();
   });
+  /* ── Sekmeler: Göç (Arılığı Taşı) · Kovan arılık değiştir · Birleştir ── */
+  var MODS = ['tasi', 'degistir', 'birlestir'];
+  function setMod(m, push) {
+    if (MODS.indexOf(m) === -1) m = 'tasi';
+    document.querySelectorAll('.gk-tabs [data-mod]').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-mod') === m ? 'true' : 'false'); });
+    document.querySelectorAll('[data-panel]').forEach(function (f) { f.hidden = f.getAttribute('data-panel') !== m; });
+    if (push) { try { var u = new URL(location.href); u.searchParams.set('mod', m); history.replaceState(null, '', u); } catch (e) { /* */ } }
+  }
+  document.querySelector('.gk-tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-mod]'); if (b) setMod(b.getAttribute('data-mod'), true); });
+  function apById(id) { return aps().filter(function (a) { return String(a.id) === String(id); })[0] || null; }
+  function coordTxt(v) { return v == null || !isFinite(Number(v)) ? '' : Number(v).toFixed(5); }
+  function tmsg(t, err) { var m = $('tMsg'); m.textContent = t || ''; m.className = 'form-msg' + (err ? ' err' : ''); }
+  function fillTasi() {
+    var list = aps(), cur = $('tAp').value || apFilter || (list[0] && String(list[0].id)) || '';
+    $('tAp').innerHTML = list.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (' + D.hivesForApiary(a.id).length + ' kovan)</option>'; }).join('');
+    if (cur) $('tAp').value = cur;
+    var ap = apById($('tAp').value);
+    $('tCur').textContent = ap ? 'Şimdiki yer: ' + (ap.place && ap.place !== '—' ? ap.place : ap.name) + (ap.lat != null ? ' · ' + coordTxt(ap.lat) + ', ' + coordTxt(ap.lon) : ' · konum yok') : 'Arılık yok';
+    var known = [];
+    list.forEach(function (a) { if (ap && String(a.id) === String(ap.id)) return; if (a.lat != null && a.lon != null) known.push({ l: (a.place && a.place !== '—' ? a.place : a.name) + ' (' + a.name + ' yeri)', lat: a.lat, lon: a.lon, p: a.place && a.place !== '—' ? a.place : a.name, il: a.il, ilce: a.ilce }); });
+    (ap && G.locHistory ? G.locHistory(ap.id) : []).slice().reverse().forEach(function (h) { known.push({ l: (h.place || 'Eski yer') + ' (eski yeri, ' + fmt(h.until) + ')', lat: h.lat, lon: h.lon, p: h.place, il: h.il, ilce: h.ilce }); });
+    window.__gkKnown = known;
+    $('tKnown').innerHTML = '<option value="">Kayıtlı yerlerden seç</option>' + known.map(function (k, i) { return '<option value="' + i + '">' + esc(k.l) + '</option>'; }).join('');
+    if (ap && !$('tIl').dataset.touched) { $('tIl').value = ap.il || ''; $('tIlce').value = ap.ilce || ''; }
+  }
+  function tKmHint() {
+    var ap = apById($('tAp').value), la = Number(String($('tLat').value).replace(',', '.')), lo = Number(String($('tLon').value).replace(',', '.'));
+    if (ap && ap.lat != null && $('tLat').value.trim() && $('tLon').value.trim() && isFinite(la) && isFinite(lo)) {
+      var R = 6371, toR = Math.PI / 180, dLa = (la - ap.lat) * toR, dLo = (lo - ap.lon) * toR;
+      var h = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(ap.lat * toR) * Math.cos(la * toR) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+      $('tKm').placeholder = 'kuş uçuşu ≈ ' + Math.round(2 * R * Math.asin(Math.sqrt(h))) + ' km';
+    } else $('tKm').placeholder = 'otomatik';
+  }
+  $('tReason').innerHTML = G.REASONS.map(function (r) { return '<option value="' + r.key + '">' + esc(r.label) + '</option>'; }).join('');
+  $('tDate').value = D.records.todayLocal(); $('bDate').value = D.records.todayLocal();
+  $('tAp').addEventListener('change', function () { $('tIl').dataset.touched = ''; fillTasi(); tKmHint(); tmsg(''); });
+  ['tIl', 'tIlce'].forEach(function (id) { $(id).addEventListener('input', function () { $('tIl').dataset.touched = '1'; }); });
+  ['tLat', 'tLon'].forEach(function (id) { $(id).addEventListener('input', tKmHint); });
+  $('tKnown').addEventListener('change', function () {
+    var k = (window.__gkKnown || [])[Number(this.value)]; if (this.value === '' || !k) return;
+    $('tLat').value = coordTxt(k.lat); $('tLon').value = coordTxt(k.lon); if (!$('tPlace').value.trim()) $('tPlace').value = k.p || '';
+    if (k.il) { $('tIl').value = k.il; $('tIlce').value = k.ilce || ''; $('tIl').dataset.touched = '1'; }
+    tKmHint(); tmsg('Konum alındı. Arılıklar yine ayrı kalır, birleşmez.');
+  });
+  $('tGps').addEventListener('click', function () {
+    if (!navigator.geolocation) { tmsg('Bu cihazda konum alınamıyor. Enlem ve boylamı yaz.', true); return; }
+    tmsg('Konum alınıyor…');
+    navigator.geolocation.getCurrentPosition(function (p) { pickAt(p.coords.latitude, p.coords.longitude, true); },
+      function () { tmsg('Konum izni verilmedi. Enlem ve boylamı yaz.', true); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
+  /* ── Harita: yeni yeri dokunarak / iğneyi sürükleyerek seç (arılık sayfasındaki Yandex harita bileşeni). Yükseklik sabit 230 px → kayma yok ── */
+  var Y = window.SuperAriYandexMap, tMap = null, tPin = null, tCurPin = null, tMapBusy = false, geoSeq = 0;
+  function num(v) { var n = Number(String(v == null ? '' : v).replace(',', '.')); return String(v == null ? '' : v).trim() !== '' && isFinite(n) ? n : null; }
+  function setPin(la, lo, center) {
+    if (!tMap || !Y) return;
+    tPin = Y.upsertPlacemark(tMap, tPin, la, lo, { draggable: true, preset: 'islands#redDotIcon', title: 'Yeni yer', onDragEnd: function (a, b) { pickAt(a, b, false); } });
+    if (center) { try { tMap.map.setCenter([la, lo], Math.max(tMap.getZoom ? tMap.getZoom() : 12, 12)); } catch (e) { /* */ } }
+  }
+  function showCur() {
+    if (!tMap || !Y) return; var ap = apById($('tAp').value);
+    if (!ap || ap.lat == null) return;
+    tCurPin = Y.upsertPlacemark(tMap, tCurPin, Number(ap.lat), Number(ap.lon), { draggable: false, preset: 'islands#grayDotIcon', title: 'Şimdiki yer' });
+    if (!tPin) { try { tMap.map.setCenter([Number(ap.lat), Number(ap.lon)], 11); } catch (e) { /* */ } }
+  }
+  function pickAt(la, lo, center) {
+    $('tLat').value = Number(la).toFixed(5); $('tLon').value = Number(lo).toFixed(5);
+    setPin(la, lo, center); tKmHint();
+    var my = ++geoSeq;
+    tmsg('Konum alındı. İl/ilçe bulunuyor…');
+    if (!D.reverseGeocodeAdmin) { tmsg('Konum alındı.'); return; }
+    D.reverseGeocodeAdmin(la, lo).then(function (g) {
+      if (my !== geoSeq) return; g = g || {};
+      if (g.il) { $('tIl').value = g.il; $('tIl').dataset.touched = '1'; }
+      if (g.ilce) $('tIlce').value = g.ilce;
+      if (!$('tPlace').value.trim() && (g.place || g.koy || g.label)) $('tPlace').value = String(g.place || g.koy || g.label).slice(0, 80);
+      tmsg('Konum alındı' + (g.il ? ': ' + g.il + (g.ilce ? ' / ' + g.ilce : '') : '. İl/ilçe: Veri yok, elle yazabilirsin') + '. Arılıklar birleşmez.');
+    }).catch(function () { if (my === geoSeq) tmsg('Konum alındı. İl/ilçe bulunamadı, elle yazabilirsin.'); });
+  }
+  function initTMap() {
+    if (tMap || tMapBusy || !Y) return;
+    var el = $('tMap'), OM = window.SuperAriOfflineMap;
+    if (!Y.hasApiKey() && !(OM && OM.shouldUseOffline())) { Y.showKeyRequired(el); return; }
+    tMapBusy = true;
+    var ap = apById($('tAp').value), c = ap && ap.lat != null ? [Number(ap.lat), Number(ap.lon)] : [39.92, 41.27];
+    Y.createMap(el, { center: c, zoom: ap && ap.lat != null ? 11 : 7 }).then(function (ctrl) {
+      tMap = ctrl; tMapBusy = false; showCur();
+      var la = num($('tLat').value), lo = num($('tLon').value); if (la != null && lo != null) setPin(la, lo, true);
+      ctrl.map.events.add('click', function (e) { var k = e.get('coords'); pickAt(k[0], k[1], false); });
+    }).catch(function () { tMapBusy = false; });
+  }
+  function syncPinFromInputs() { var la = num($('tLat').value), lo = num($('tLon').value); if (la != null && lo != null && Math.abs(la) <= 90 && Math.abs(lo) <= 180) setPin(la, lo, true); }
+  ['tLat', 'tLon'].forEach(function (id) { $(id).addEventListener('change', syncPinFromInputs); });
+  $('tKnown').addEventListener('change', syncPinFromInputs);
+  $('tAp').addEventListener('change', function () { if (tCurPin && tMap) { try { tMap.map.geoObjects.remove(tCurPin); } catch (e) { /* */ } tCurPin = null; } showCur(); });
+  window.__gkPinSync = syncPinFromInputs;
+  $('tasiForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    /* k160: planlanan varış zorunlu · k225: ayrılış boşsa bal sezonu sonu */
+    var vV = $('gVaris').value, vA = $('gAyrilis').value;
+    if (!vV) { tmsg('Planlanan varış tarihini gir.', true); return; }
+    if (!vA && !confirm('Ayrılış tarihini biliyorsan gir. Boş bırakırsan pil planı bu arılığın bal sezonu sonuna göre yapılır. Boş bırakılsın mı?')) { $('gAyrilis').focus(); return; }
+    if (vA && vA <= vV) { tmsg('Ayrılış tarihi varıştan sonra olmalı.', true); return; }
+    var ap = apById($('tAp').value);
+    if (ap && !confirm(ap.name + ' → ' + ($('tPlace').value.trim() || 'yeni yer') + '\n\n' + D.hivesForApiary(ap.id).length + ' kovan · tüm bilgileriyle taşınacak (muayene, ana arı, hat, tartım, hasat, görev, cihaz, fotoğraf, not). Arılık başka arılıkla birleşmez.\n\nTaşınsın mı?')) return;
+    try {
+      var rec = G.tasi({ apiaryId: $('tAp').value, lat: $('tLat').value, lon: $('tLon').value, place: $('tPlace').value, il: $('tIl').value, ilce: $('tIlce').value,
+        date: $('tDate').value, km: $('tKm').value.trim(), reason: $('tReason').value, note: $('tNote').value, tasks: $('tTasks').checked });
+      if (window.SuperAriPlan2) SuperAriPlan2.konSet(rec.apiaryId, { varis: vV, ayrilis: vA || null });
+      tmsg(rec.apiaryName + ' ' + rec.toName + ' yerine taşındı (' + rec.hiveIds.length + ' kovan).' + ($('tTasks').checked && rec.hiveIds.length ? ' Kontrol görevleri eklendi.' : ''));
+      ['tPlace', 'tLat', 'tLon', 'tKm', 'tNote'].forEach(function (id) { $(id).value = ''; }); $('tIl').dataset.touched = '';
+      refreshAll();
+    } catch (err) { tmsg(err.message || String(err), true); }
+  });
+  function bmsg(t, err) { var m = $('bMsg'); m.textContent = t || ''; m.className = 'form-msg' + (err ? ' err' : ''); }
+  function fillBir() {
+    var list = aps(), k = $('bKeep').value || apFilter || (list[0] && String(list[0].id)) || '', m = $('bMerge').value;
+    $('bKeep').innerHTML = list.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (' + D.hivesForApiary(a.id).length + ' kovan)</option>'; }).join('');
+    if (k) $('bKeep').value = k;
+    $('bMerge').innerHTML = '<option value="">Arılık seçin</option>' + list.filter(function (a) { return String(a.id) !== String($('bKeep').value); })
+      .map(function (a) { return '<option value="' + esc(a.id) + '">' + esc(a.name) + ' (' + D.hivesForApiary(a.id).length + ' kovan)</option>'; }).join('');
+    if (m && m !== $('bKeep').value) $('bMerge').value = m;
+    var ka = apById($('bKeep').value), ma = apById($('bMerge').value);
+    $('bSum').textContent = ka && ma ? 'Sonuç: ' + (D.hivesForApiary(ka.id).length + D.hivesForApiary(ma.id).length) + ' kovan, yeri ' + (ka.place && ka.place !== '—' ? ka.place : ka.name) + '. ' + ma.name + ' listeden kalkar.' : (list.length < 2 ? 'Birleştirmek için en az iki arılık gerekir.' : 'İki arılık seçin.');
+  }
+  $('bKeep').addEventListener('change', function () { fillBir(); bmsg(''); });
+  $('bMerge').addEventListener('change', function () { fillBir(); bmsg(''); });
+  $('birForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var ka = apById($('bKeep').value), ma = apById($('bMerge').value), nm = $('bName').value.trim();
+    if (!ka || !ma) { bmsg('İki arılık seçin.', true); return; }
+    if (!nm) { bmsg('Birleşik arılığın adını yaz.', true); $('bName').focus(); return; }
+    var bpv = G.preview ? G.preview({ kind: 'birlestir', fromApiaryId: ma.id, toApiaryId: ka.id }) : { hives: D.hivesForApiary(ma.id).length, refs: 0 };
+    if (!confirm(ma.name + ' → ' + ka.name + ' birleşsin mi?\n\nYeni ad: ' + nm + '\n' + bpv.hives + ' kovan · tüm bilgileriyle taşınacak' + (bpv.refs ? ' (' + bpv.refs + ' bağlı kayıt)' : '') + '. Takip devam eder.\nGeri almak için Geçmiş’te «Geri al».')) return;
+    try {
+      var rec = G.birlestir({ keepId: ka.id, mergeId: ma.id, name: nm, date: $('bDate').value, note: $('bNote').value });
+      bmsg(rec.hiveIds.length + ' kovan aktarıldı. Arılık adı: ' + rec.toName + '.');
+      $('bName').value = ''; $('bNote').value = ''; $('bMerge').value = '';
+      refreshAll();
+    } catch (err) { bmsg(err.message || String(err), true); }
+  });
+  function mapIfTasi() { if (!$('tasiForm').hidden) setTimeout(initTMap, 0); }
+  document.querySelector('.gk-tabs').addEventListener('click', mapIfTasi);
+  function refreshAll() { fillSelects(); fillHives(); kmHint(); fillTasi(); tKmHint(); fillBir(); renderHist(); renderPlan(); }
+  fillTasi(); fillBir();
+  setMod(q.get('mod') || 'tasi', false);
+  mapIfTasi();
   /* k160: konaklama planı — arılık başına varış/ayrılış (düzenlenebilir) + nektar değerlendirmesi önerisi (onaylı) */
   function renderPlan() {
     var P2 = window.SuperAriPlan2, el = $('planList'); if (!P2 || !el) return;
@@ -206,14 +461,14 @@
   });
   $('planList').addEventListener('click', function (e) {
     var b = e.target.closest('[data-tp-ok],[data-tp-no],[data-tp-git]'); if (!b) return;
-    if (b.hasAttribute('data-tp-git')) { var f = $('gocForm'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'start' }); return; }
+    if (b.hasAttribute('data-tp-git')) { setMod('tasi', true); var f = $('gkCard'); if (f && f.scrollIntoView) f.scrollIntoView({ block: 'start' }); return; }
     if (b.hasAttribute('data-tp-no')) { b.closest('.tp-card').innerHTML = '<span class="meta">Plan değişmedi.</span>'; return; }
     SuperAriPlan2.tasinmaOnayla(b.getAttribute('data-tp-ok'), b.getAttribute('data-tp-date')); renderPlan();
   });
   window.addEventListener('superari-cevre', renderPlan);
   renderPlan();
-  window.__saGocScope = function (sc) { apFilter = sc === 'all' ? '' : String(sc); if (apFilter) $('gFrom').value = apFilter; fillSelects(); fillHives(); kmHint(); renderHist(); };
-  window.addEventListener('superari-cloud-pulled', function () { fillSelects(); fillHives(); renderHist(); renderPlan(); });
+  window.__saGocScope = function (sc) { apFilter = sc === 'all' ? '' : String(sc); if (apFilter) { $('gFrom').value = apFilter; $('tAp').value = apFilter; $('bKeep').value = apFilter; } refreshAll(); };
+  window.addEventListener('superari-cloud-pulled', refreshAll);
 })();
 </script>
 <script>
@@ -221,8 +476,8 @@
   var D = window.SuperAriDemo, P = window.SuperAriKsSayfa, G = D && D.goc; if (!D || !P || !G) return;
   P.init({
     redraw: function (sc) { if (window.__saGocScope) window.__saGocScope(sc); },
-    title: 'Göç',
-    topEnd: '<a class="ks-end ks-end-chip" href="#gocForm" title="Yeni göç formu" aria-label="Yeni göç formu">Yeni</a>', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="10" width="17" height="12" rx="2" fill="#e8c48e" stroke="#8a6030"/><path d="M20 14h5l4 4v4h-9z" fill="#f7b731" stroke="#b8860b"/><circle cx="9" cy="24" r="2.6" fill="#495057"/><circle cx="24" cy="24" r="2.6" fill="#495057"/></svg>',
+    title: 'Göç (Arılığı Taşı)',
+    topEnd: '<a class="ks-end ks-end-chip" href="#gkCard" title="Yeni göç" aria-label="Yeni göç">Yeni</a>', icon: '<svg class="ks-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="10" width="17" height="12" rx="2" fill="#e8c48e" stroke="#8a6030"/><path d="M20 14h5l4 4v4h-9z" fill="#f7b731" stroke="#b8860b"/><circle cx="9" cy="24" r="2.6" fill="#495057"/><circle cx="24" cy="24" r="2.6" fill="#495057"/></svg>',
     stats: function (hs, scope, sm) {
       var list = scope !== 'all' ? G.forApiary(scope) : G.list(), y = String(D.records.todayLocal()).slice(0, 4);
       var yr = list.filter(function (g) { return String(g.date || '').slice(0, 4) === y; });
@@ -236,7 +491,7 @@
       ];
     },
     note: function (hs, scope) {
-      return { t: '🚚 Yeni göç: nereden, nereye, kovanları seçin', b: 'Forma git', href: '#gocForm', k: 'form' };
+      return { t: '🚚 Göç: arılığı yeni yere taşı · kovanları başka arılığa geçir', b: 'Forma git', href: '#gkCard', k: 'form' };
     }
   });
 })();
@@ -244,9 +499,13 @@
 <script>
 /* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
 window.SuperAriQuickTitle = 'Kayıt · Göç';
-window.SuperAriQuickActions = function () { return [{ ic: '🚚', t: 'Yeni göç kaydı', d: 'Nereden · nereye · kovanlar', run: window.SuperAriNav.focusEl('#gocForm') }]; };
+window.SuperAriQuickActions = function () { return [
+  { ic: '🚚', t: 'Göç (Arılığı Taşı)', d: 'Arılık tüm kovanlarıyla yeni yere', run: function () { location.href = 'goc.html?mod=tasi'; } },
+  { ic: '🔁', t: 'Kovan arılık değiştir', d: 'Seçilen kovanlar başka arılığa', run: function () { location.href = 'goc.html?mod=degistir'; } },
+  { ic: '🔗', t: 'Birleştir', d: 'İki arılık tek arılık olur', run: function () { location.href = 'goc.html?mod=birlestir'; } }
+]; };
 </script>
-<script src="nav.js?v=koloni-256"></script>
-<script src="pwa.js?v=koloni-256"></script>
+<script src="nav.js?v=koloni-255"></script>
+<script src="pwa.js?v=koloni-255"></script>
 </body>
 </html>
