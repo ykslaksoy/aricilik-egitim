@@ -1,4 +1,4 @@
--- ÖNİZLEME (onizleme/hastalik-iyilestirme) — canlıya UYGULANMADI. Yayında uygulanacak.
+-- koloni-264: Hastalık tahmini iyileştirme (onizleme/hastalik-iyilestirme yayını). Canlıya uygulandı.
 -- Doğrulanmış kaynaklar: İhbarı Mecburi Hayvan Hastalıkları ve Bildirimine Dair Yönetmelik Ek-1 (AYÇ, Aethina, Tropilaelaps); HBHC 2026 Tablo 1 (1% / 2%); NBU Managing Varroa (×400/×30/×100, 1000 akar); WOAH Manual 2023 3.2.2; NBU Foulbrood 2017; NBU CBPV; Fries ve ark. 2013.
 update public.kural_kaynaklari set kaynak='İhbarı Mecburi Hayvan Hastalıkları ve Bildirimine Dair Yönetmelik Ek-1 (mevzuat.gov.tr No 14691): AYÇ, Küçük kovan kurdu, Tropilaelaps', durum='kaynaklı', degerler='AYÇ, Küçük kovan kurdu (Aethina), Tropilaelaps', updated_at=now() where id='hastalik_ihbar';
 insert into public.kural_kaynaklari (id,grup,sira,ad,degerler,seviye,aciklama,kaynak,durum) values
