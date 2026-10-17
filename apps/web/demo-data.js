@@ -104,13 +104,22 @@
     return dest;
   }
 
+  /** Göç (Arılığı Taşı): konum geçmişi + kullanıcı taşıdı/yeniden adlandırdı işaretleri korunur (bulut data alanına da gider). */
+  function copyMoveFields(dest, src) {
+    if (!dest || !src) return dest;
+    if (Array.isArray(src.locHistory) && src.locHistory.length) dest.locHistory = src.locHistory.slice(-30);
+    if (src.userMovedAt) dest.userMovedAt = String(src.userMovedAt);
+    if (src.userRenamedAt) dest.userRenamedAt = String(src.userRenamedAt);
+    return dest;
+  }
+
   /** Seed arılıklarında eksik il/ilçe/köy doldur. */
   function migratePlaceAdmin(list) {
     var changed = false;
     var bySeed = {};
     SEED_APIARIES.forEach(function (s) { bySeed[s.id] = s; });
     var out = (list || []).map(function (a) {
-      if (!a) return a;
+      if (!a || a.userMovedAt) return a;
       var seed = bySeed[String(a.id)];
       if (!seed) return a;
       /* Seed arılıklarında il/ilçe/köy kaynağı seed (yerel eksik veya eski değer düzelir). */
@@ -750,6 +759,7 @@
     migrateLegacyWaterToCatalog(dest, src);
     syncWaterConvenienceFromCatalog(dest);
     copyLiveCaches(dest, src);
+    copyMoveFields(dest, src);
     return dest;
   }
 
@@ -1759,7 +1769,7 @@
   function migrateApiaryCoordinates(list) {
     var changed = false;
     var out = (list || []).map(function (a) {
-      if (!a) return a;
+      if (!a || a.userMovedAt) return a;
       var id = String(a.id);
       var isYanik = id === 'a4' || (id !== 'a1' && id !== 'a2' && id !== 'a3' && (looksLikeYanikBalug(a.name) || looksLikeYanikBalug(a.place)));
       var isTortum = id === 'a2' || (id !== 'a1' && id !== 'a4' && id !== 'a3' && (/tortum/i.test(String(a.name || '')) || /tortum/i.test(String(a.place || ''))));
@@ -1835,7 +1845,7 @@
   function migrateApiaryNames(list) {
     var changed = false;
     var out = (list || []).map(function (a) {
-      if (!a) return a;
+      if (!a || a.userMovedAt || a.userRenamedAt) return a;
       /* a1 Kayaköy must not be migrated to Yanıkdağ */
       if (String(a.id) === 'a1') return a;
       var name = String(a.name || '').trim();
@@ -1927,7 +1937,8 @@
     var dups = [];
     (list || []).forEach(function (a) {
       if (!a) return;
-      if (isYanikBalugApiary(a)) dups.push(a);
+      /* Kullanıcının taşıdığı/birleştirdiği arılık asla otomatik birleşmez. */
+      if (isYanikBalugApiary(a) && !a.userMovedAt && !a.userRenamedAt) dups.push(a);
       else keep.push(a);
     });
     var remappedIds = {};
@@ -2018,12 +2029,13 @@
               lon: a.lon != null && a.lon !== '' ? Number(a.lon) : null,
               hiveCount: Math.max(0, Number(a.hiveCount) || 0)
             }, a), a);
-          });
+          }).map(function (m, i) { return copyMoveFields(m, parsed[i]); });
           var liveM = isLiveMode();
           /* Örnek arılık onarımları yalnız Demo’da; Canlı’da kullanıcının listesine örnek arılık eklenmez. */
           var rest = liveM ? { list: mapped, changed: false } : restoreKayakoyA1(mapped);
-          var mig = migrateApiaryNames(rest.list);
-          var coordMig = migrateApiaryCoordinates(mig.list);
+          /* Göç (Arılığı Taşı): örnek ad/konum düzeltmeleri yalnız Demo’da ve kullanıcı taşımadıysa (Canlı’da kullanıcının konumu/adı asla zorlanmaz). */
+          var mig = liveM ? { list: rest.list, changed: false } : migrateApiaryNames(rest.list);
+          var coordMig = liveM ? { list: mig.list, changed: false } : migrateApiaryCoordinates(mig.list);
           var ens = liveM ? { list: coordMig.list, changed: false } : ensureSeedApiariesPresent(coordMig.list);
           var ded = liveM ? { list: ens.list, changed: false } : dedupeYanikBalugApiaries(ens.list);
           var adminMig = migratePlaceAdmin(ded.list);
@@ -5290,6 +5302,8 @@
       if (list[i].id !== key) continue;
       var a = list[i];
       if (patch) {
+        var prevLoc = { lat: a.lat, lon: a.lon, place: a.place, il: a.il, ilce: a.ilce, koy: a.koy };
+        if (patch.name != null && String(patch.name).trim() && String(patch.name).trim() !== a.name && patch._userRename) a.userRenamedAt = new Date().toISOString();
         if (patch.name != null) a.name = String(patch.name).trim() || a.name;
         if (patch.place != null) a.place = String(patch.place).trim() || a.place;
         var prevLat = Number(a.lat);
@@ -5382,10 +5396,23 @@
             }
           }
         });
+        if (coordsTouched) {
+          /* Konum geçmişi: 100 m’den büyük değişiklikte eski yer kaydedilir; kullanıcı taşıdı işareti örnek konum düzeltmesini kapatır. */
+          var pla = Number(prevLoc.lat), plo = Number(prevLoc.lon);
+          if (isFinite(pla) && isFinite(plo) && prevLoc.lat != null && !patch._noHistory && haversineMetres(pla, plo, Number(a.lat), Number(a.lon)) > 100) {
+            var hist = Array.isArray(a.locHistory) ? a.locHistory.slice() : [];
+            var he = { lat: pla, lon: plo, place: prevLoc.place || '', until: todayLocal(), at: new Date().toISOString() };
+            if (prevLoc.il) he.il = prevLoc.il; if (prevLoc.ilce) he.ilce = prevLoc.ilce; if (prevLoc.koy) he.koy = prevLoc.koy;
+            if (patch._gocId) he.gocId = String(patch._gocId);
+            hist.push(he); a.locHistory = hist.slice(-30);
+          }
+          a.userMovedAt = new Date().toISOString();
+        }
         if (coordsTouched && !waterPatched) {
           /* Konum değişti: eski su bağını / mesafeyi yerel katalog + haversine ile yenile. */
           var locSync = resyncWaterForNewCoords(a);
-          a = locSync.apiary;
+          /* il/ilçe/köy yeni kopyada kayboluyordu → korunur (Göç (Arılığı Taşı) yeni il/ilçeyi yazar). */
+          a = copyAdminFields(locSync.apiary, a);
           /* Coords changed → drop stale live analyses (refetch on next paint). */
           clearLiveCaches(a);
         } else {
@@ -6388,7 +6415,7 @@
     to.hiveCount = out.filter(function (h) { return String(h.apiaryId) === toId; }).length;
     saveApiaries(aps);
     saveHives(out);
-    var rec = { id: id, date: date, apiaryId: toId, fromApiaryId: fromId, toApiaryId: toId, fromName: from.name, toName: to.name,
+    var rec = { id: id, kind: 'degistir', date: date, apiaryId: toId, fromApiaryId: fromId, toApiaryId: toId, fromName: from.name, toName: to.name,
       hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
       reason: reason, km: km, note: note, createdAt: new Date().toISOString() };
     if (workMode() === 'demo') rec.demo = true;
@@ -6400,12 +6427,164 @@
     }
     return rec;
   }
-  /** Göç kaydını siler (kovanlar geri taşınmaz). */
-  function gocRemove(id) {
-    var a = gocRead(), n = a.filter(function (g) { return g && g.id !== id; });
-    gocWrite(n);
-    return n.length !== a.length;
+  function gocKind(g) { return g && (g.kind === 'tasi' || g.kind === 'birlestir') ? g.kind : 'degistir'; }
+  function gocPlaceLabel(a) { if (!a) return ''; var p = String(a.place || '').trim(); return p && p !== '—' ? p : String(a.name || ''); }
+  function gocCoord(v) { var n = Number(String(v == null ? '' : v).replace(',', '.')); return String(v == null ? '' : v).trim() !== '' && isFinite(n) ? n : null; }
+  /**
+   * Göç (Arılığı Taşı): arılık tüm kovanlarıyla yeni yere gider. Arılık kimliği/adı aynı kalır; yalnız konum değişir,
+   * eski yer locHistory’e yazılır. Aynı yerde başka arılık olsa bile ASLA birleştirilmez.
+   */
+  function gocTasi(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal(), apId = String(o.apiaryId || '');
+    var ap = apId ? apiaryById(apId) : null;
+    if (!ap) throw new Error('Taşınacak arılığı seçin');
+    var lat = gocCoord(o.lat), lon = gocCoord(o.lon);
+    if (lat == null || lon == null || lat < -90 || lat > 90 || lon < -180 || lon > 180) throw new Error('Yeni yerin konumunu girin (enlem ve boylam)');
+    var place = txt(o.place, 80);
+    if (!place) throw new Error('Yeni yerin adını yazın');
+    var oldLat = ap.lat, oldLon = ap.lon, oldPlace = gocPlaceLabel(ap);
+    if (isFinite(Number(oldLat)) && oldLat != null && haversineMetres(Number(oldLat), Number(oldLon), lat, lon) <= 100) throw new Error('Yeni yer şimdiki yerle aynı (100 m’den yakın)');
+    var reason = pick(o.reason, GOC_REASONS.map(function (r) { return r.key; }), 'diger');
+    var km = numIn(o.km, 0, 5000);
+    if (km == null && isFinite(Number(oldLat)) && oldLat != null) km = Math.round(haversineMetres(Number(oldLat), Number(oldLon), lat, lon) / 1000);
+    var note = txt(o.note, 200), id = opsId('gc');
+    var patch = { lat: lat, lon: lon, place: place, _gocId: id };
+    if (o.il != null) patch.il = txt(o.il, 40);
+    if (o.ilce != null) patch.ilce = txt(o.ilce, 40);
+    if (o.il != null || o.ilce != null) patch.koy = '';
+    var old = { lat: oldLat, lon: oldLon, place: ap.place, il: ap.il || '', ilce: ap.ilce || '', koy: ap.koy || '' };
+    var upd = updateApiary(apId, patch);
+    if (!upd) throw new Error('Arılık bulunamadı');
+    var evText = oldPlace + ' → ' + place + ' (Göç' + (km != null ? ', ' + String(km).replace('.', ',') + ' km' : '') + ')' + (note ? ' · ' + note : '');
+    var hs = loadHives(), moved = [];
+    var out = hs.map(function (h) {
+      if (String(h.apiaryId) !== apId) return h;
+      var c = cloneObj(h);
+      pushEvent(c, { id: id + '-' + h.id, date: date, type: 'goc', text: evText, gocId: id });
+      moved.push(c);
+      return normalizeHive(c);
+    });
+    saveHives(out);
+    var rec = { id: id, kind: 'tasi', date: date, apiaryId: apId, fromApiaryId: apId, toApiaryId: apId, apiaryName: upd.name,
+      fromName: oldPlace, toName: place, from: old, to: { lat: lat, lon: lon, place: place, il: upd.il || '', ilce: upd.ilce || '' },
+      hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
+      reason: reason, km: km, note: note, createdAt: new Date().toISOString() };
+    if (workMode() === 'demo') rec.demo = true;
+    var all = gocRead(); all.push(rec); gocWrite(all);
+    if (o.tasks !== false && moved.length) {
+      var tag = ' [goc:' + id + ']';
+      addUserTask({ title: 'Göç sonrası: uçuş deliklerini açın, su ve dış kontrol — ' + upd.name, apiaryId: apId, due: addDays(date, 1), priority: 1, note: moved.length + ' kovan taşındı' + tag });
+      addUserTask({ title: 'Göç sonrası: ana, yavru ve besin kontrolü — ' + upd.name, apiaryId: apId, due: addDays(date, 7), priority: 2, note: 'Yeni yer: ' + place + tag });
+    }
+    return rec;
   }
+  /** Birleştirme: başka depolardaki arılık bağlarını (görev, hasat, stok, ekipman…) hedefe çevirir. Kovana bağlı kayıtlar kovanla gider. */
+  var MERGE_REF_KEYS = ['superari.gorevler.v1', 'superari.koloniIslem.v1', 'superari.hasat.v2', 'superari.stok.v1', 'superari.tasimalar.v1',
+    'superari.rapor.gelir.live.v1', 'superari.satislar.v1', 'superari.stok.talep.v1', 'superari.ekipman.v1', 'superari.koloniEk.v1',
+    'superari.tartiElle.v1', 'superari.saglikSkor.v1', 'superari.koloniKayit.v1'];
+  function remapApiaryRefs(srcId, tgtId) {
+    var n = 0;
+    function fix(v, depth) {
+      if (!v || typeof v !== 'object' || depth > 3) return v;
+      if (Array.isArray(v)) { for (var i = 0; i < v.length; i++) v[i] = fix(v[i], depth + 1); return v; }
+      if (v.apiaryId != null && String(v.apiaryId) === srcId) { v.apiaryId = tgtId; n++; }
+      for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k) && v[k] && typeof v[k] === 'object') v[k] = fix(v[k], depth + 1);
+      return v;
+    }
+    var keys = {}; MERGE_REF_KEYS.forEach(function (k) { keys[mk(k)] = 1; });
+    try { keys[taskUserKey()] = 1; } catch (e) { /* */ }
+    Object.keys(keys).forEach(function (k) {
+      try { var raw = localStorage.getItem(k); if (!raw) return; var before = n, v = fix(JSON.parse(raw), 0); if (n !== before) localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* */ }
+    });
+    try { var G = global.SuperAriGider; if (G && typeof G.repointApiaryIds === 'function') { var m = {}; m[srcId] = tgtId; var t = apiaryById(tgtId); G.repointApiaryIds(m, { id: tgtId, name: t ? t.name : '' }); } } catch (e2) { /* */ }
+    return n;
+  }
+  /**
+   * Birleştir: YALNIZ kullanıcı açıkça seçerse. keepId arılığı (konumu kalan) yeni adla devam eder; mergeId arılığının
+   * tüm kovanları (geçmiş, ana arı, muayene, olaylar) aktarılır, kovanlar izlenmeye devam eder; mergeId listeden kalkar.
+   */
+  function gocBirlestir(o) {
+    o = o || {};
+    var date = isoDate(o.date) || todayLocal(), keepId = String(o.keepId || ''), srcId = String(o.mergeId || '');
+    if (!keepId || !srcId) throw new Error('Birleştirilecek iki arılığı seçin');
+    if (keepId === srcId) throw new Error('Aynı arılık kendisiyle birleştirilemez');
+    var name = txt(o.name, 80);
+    if (!name) throw new Error('Birleşik arılığın adını yazın');
+    var keep = apiaryById(keepId), src = apiaryById(srcId);
+    if (!keep || !src) throw new Error('Arılık bulunamadı');
+    var oldKeepName = keep.name, snap = cloneObj(src), note = txt(o.note, 200), id = opsId('gc');
+    var evText = src.name + ' → ' + name + ' (Birleştirme)' + (note ? ' · ' + note : '');
+    var hs = loadHives(), moved = [];
+    var out = hs.map(function (h) {
+      if (String(h.apiaryId) !== srcId) return h;
+      var c = cloneObj(h);
+      c.apiaryId = keepId;
+      pushEvent(c, { id: id + '-' + h.id, date: date, type: 'goc', text: evText, gocId: id });
+      moved.push(c);
+      return normalizeHive(c);
+    });
+    var aps = loadApiaries();
+    aps.forEach(function (a) {
+      if (String(a.id) === keepId) { a.hiveCount = out.filter(function (h) { return String(h.apiaryId) === keepId; }).length; a.name = name; a.userRenamedAt = new Date().toISOString(); }
+      if (String(a.id) === srcId) a.hiveCount = 0;
+    });
+    saveApiaries(aps);
+    saveHives(out);
+    remapApiaryRefs(srcId, keepId);
+    removeApiary(srcId);
+    var rec = { id: id, kind: 'birlestir', date: date, apiaryId: keepId, fromApiaryId: srcId, toApiaryId: keepId, fromName: src.name, toName: name,
+      keepOldName: oldKeepName, source: snap, hiveIds: moved.map(function (h) { return h.id; }), hiveNames: moved.map(function (h) { return h.name || ('Kovan ' + h.id); }),
+      reason: 'birlestirme', km: null, note: note, createdAt: new Date().toISOString() };
+    if (workMode() === 'demo') rec.demo = true;
+    var all = gocRead(); all.push(rec); gocWrite(all);
+    return rec;
+  }
+  function stripGocEvents(h, gid) {
+    var c = cloneObj(h);
+    c.colonyEvents = (Array.isArray(c.colonyEvents) ? c.colonyEvents : []).filter(function (e) { return !(e && e.gocId === gid); });
+    return c;
+  }
+  /**
+   * Göç kaydını siler. opts.revert: geri al — Arılık değiştir: kovanlar eski arılığa döner; Göç (Arılığı Taşı): arılık eski konuma döner;
+   * Birleştir: ayrılan arılık geri gelir, kovanları ona döner, kalan arılığın eski adı geri yazılır. Kovan olaylarından bu kayıt silinir.
+   */
+  function gocRemove(id, opts) {
+    var a = gocRead(), g = null;
+    a.forEach(function (x) { if (x && x.id === id) g = x; });
+    if (!g) return false;
+    if (opts && opts.revert) {
+      var k = gocKind(g), ids = {}; (g.hiveIds || []).forEach(function (x) { ids[Number(x)] = 1; });
+      var cur = loadApiaries(), hs0 = loadHives(), restoreSrc = null;
+      if (k === 'birlestir' && g.source && g.source.id && !cur.some(function (x) { return String(x.id) === String(g.source.id); })) restoreSrc = cloneObj(g.source);
+      var fromOk = !!restoreSrc || cur.some(function (x) { return String(x.id) === String(g.fromApiaryId); });
+      var hs = hs0.map(function (h) {
+        if (!ids[Number(h.id)]) return h;
+        var c = stripGocEvents(h, g.id);
+        if (k !== 'tasi' && fromOk && String(c.apiaryId) === String(g.toApiaryId)) c.apiaryId = String(g.fromApiaryId);
+        return normalizeHive(c);
+      });
+      if (restoreSrc) cur.push(restoreSrc);
+      cur.forEach(function (x) { x.hiveCount = hs.filter(function (h) { return String(h.apiaryId) === String(x.id); }).length; if (k === 'birlestir' && String(x.id) === String(g.toApiaryId) && g.keepOldName) x.name = g.keepOldName; });
+      /* Kovanlar ve arılık aynı anda yazılır (arada okuma yok): örnek arılık yeni kovanlarla yeniden doğmaz. */
+      saveHives(hs); saveApiaries(cur);
+      if (restoreSrc) { try { var m = readDeletedSeedIds(); if (m[String(restoreSrc.id)]) { delete m[String(restoreSrc.id)]; localStorage.setItem(mk(DELETED_SEEDS_KEY), JSON.stringify(Object.keys(m))); } } catch (eS) { /* */ } }
+      if (k === 'tasi' && g.from && g.from.lat != null) {
+        var ap = apiaryById(g.apiaryId);
+        if (ap && g.to && Math.abs(Number(ap.lat) - Number(g.to.lat)) < 1e-6 && Math.abs(Number(ap.lon) - Number(g.to.lon)) < 1e-6) {
+          updateApiary(g.apiaryId, { lat: g.from.lat, lon: g.from.lon, place: g.from.place || ap.place, il: g.from.il || '', ilce: g.from.ilce || '', koy: g.from.koy || '', _noHistory: true });
+          var aps2 = loadApiaries();
+          aps2.forEach(function (x) { if (String(x.id) === String(g.apiaryId) && Array.isArray(x.locHistory)) x.locHistory = x.locHistory.filter(function (e) { return e.gocId !== g.id; }); });
+          saveApiaries(aps2);
+        }
+      }
+    }
+    var n = a.filter(function (x) { return x && x.id !== id; });
+    gocWrite(n);
+    return true;
+  }
+  /** Arılığın konum geçmişi (eskiden yeniye) + şimdiki yer */
+  function gocLocHistory(apId) { var ap = apiaryById(apId); return ap && Array.isArray(ap.locHistory) ? ap.locHistory.slice() : []; }
   /** Kovanın taşınma geçmişi (eskiden yeniye): [{ date, fromApiaryId, toApiaryId, fromName, toName, gocId }] — göç kaydı silinse de kovan olayından ad okunur */
   function gocMovesForHive(hiveId) {
     var n = Number(hiveId), out = [], seen = {};
@@ -6429,7 +6608,7 @@
     for (var i = ms.length - 1; i >= 0; i--) { if (ms[i].date > d && ms[i].fromApiaryId) ap = ms[i].fromApiaryId; else break; }
     return ap;
   }
-  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, movesForHive: gocMovesForHive, apiaryAt: gocApiaryAt, airKm: gocAirKm, add: gocAdd, remove: gocRemove };
+  var gocStore = { REASONS: GOC_REASONS, reasonLabel: gocReasonLabel, list: gocList, forApiary: gocForApiary, recentForHive: gocRecentForHive, movesForHive: gocMovesForHive, apiaryAt: gocApiaryAt, airKm: gocAirKm, add: gocAdd, remove: gocRemove, tasi: gocTasi, birlestir: gocBirlestir, kind: gocKind, locHistory: gocLocHistory };
 
   var colonyOps = {
     GRAFT_TIMELINE: GRAFT_TIMELINE,
