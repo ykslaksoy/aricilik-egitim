@@ -15,7 +15,7 @@
 | Hasat / gezginci | Yaylada akış / yağış penceresi |
 | Sağlık | Aşırı sıcak gün + kovan ısısı → gölge görevi |
 
-Kovan içi sensör (DHT22) ≠ dış hava. İkisi birlikte daha doğru.
+Kovan içi sensör (SHT41) ≠ dış hava. İkisi birlikte daha doğru.
 
 ---
 

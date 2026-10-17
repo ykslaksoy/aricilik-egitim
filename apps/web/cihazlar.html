@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-242">
+<link rel="stylesheet" href="sa-early.css?v=koloni-243">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Cihazlar</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<link rel="stylesheet" href="kapsam.css?v=koloni-242" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-242" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-242" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-243" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-243" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-243" />
 <style>
   .mode-switch {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -125,17 +125,17 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bk-kabuk.js?v=koloni-242"></script>
-<script src="sensor-ham.js?v=koloni-242"></script>
-<script src="demo-data.js?v=koloni-242"></script>
-<script src="device-runtime.js?v=koloni-242"></script>
-<script src="cicek-veri.js?v=koloni-242"></script><script src="cicek.js?v=koloni-242"></script><script src="pil-model.js?v=koloni-242"></script><script src="plan-planlayici.js?v=koloni-242"></script><script src="rota-motoru.js?v=koloni-242"></script><script src="cevre.js?v=koloni-242"></script><script src="saglik-takvimi.js?v=koloni-242"></script>
-<script src="sensor-polling.js?v=koloni-242"></script>
-<script src="tarti-bakim-delta.js?v=koloni-242"></script>
-<script src="tarti-elle.js?v=koloni-242"></script>
-<script src="tarti-rotasyon.js?v=koloni-242"></script>
-<script src="kapsam.js?v=koloni-242"></script>
-<script src="ks-sayfa.js?v=koloni-242"></script>
+<script src="bk-kabuk.js?v=koloni-243"></script>
+<script src="sensor-ham.js?v=koloni-243"></script>
+<script src="demo-data.js?v=koloni-243"></script>
+<script src="device-runtime.js?v=koloni-243"></script>
+<script src="cicek-veri.js?v=koloni-243"></script><script src="cicek.js?v=koloni-243"></script><script src="pil-model.js?v=koloni-243"></script><script src="plan-planlayici.js?v=koloni-243"></script><script src="rota-motoru.js?v=koloni-243"></script><script src="cevre.js?v=koloni-243"></script><script src="saglik-takvimi.js?v=koloni-243"></script>
+<script src="sensor-polling.js?v=koloni-243"></script>
+<script src="tarti-bakim-delta.js?v=koloni-243"></script>
+<script src="tarti-elle.js?v=koloni-243"></script>
+<script src="tarti-rotasyon.js?v=koloni-243"></script>
+<script src="kapsam.js?v=koloni-243"></script>
+<script src="ks-sayfa.js?v=koloni-243"></script>
 <script>window.SuperAriKsSayfa && SuperAriKsSayfa.ensureScope({ mode: true });</script>
 <script>
 (function () {
@@ -392,6 +392,8 @@
         var all = allFor(sc), s0 = sum(all), bad = all.filter(function (d) { return d.status === 'arizali'; }), off = all.filter(function (d) { return d.status === 'kopuk'; });
         if (!all.length) return { t: workMode === 'live' ? 'Bu kapsamda bağlı cihaz yok · takılınca otomatik görünür' : 'Bu arılıkta örnek cihaz yok', b: 'Liste', href: '#devList', k: 'bos' };
         if (bad.length) return { t: '⚠ ' + bad.length + ' cihaz arızalı · ' + bad.slice(0, 2).map(function (d) { return (d.hiveName || d.typeLabel) + ' ' + d.typeLabel.toLocaleLowerCase('tr'); }).join(', '), b: 'Göster', href: href(typeOf(bad[0]) ? typeOf(bad[0]).k : ''), k: 'ariza' };
+        var gwU = Dev.gatewayKontrol ? Dev.gatewayKontrol(all) : []; /* k243: arılık başına tek gateway */
+        if (gwU.length) return { t: '⚠ ' + gwU[0].metin + (gwU.length > 1 ? ' · +' + (gwU.length - 1) + ' arılık' : ''), b: 'Göster', href: href('gateway'), k: 'gateway' };
         if (off.length) return { t: '📡 ' + off.length + ' cihaz bağlı değil (kopuk)', b: 'Göster', href: href(typeOf(off[0]) ? typeOf(off[0]).k : ''), k: 'kopuk' };
         return { t: '✓ ' + s0.on + ' cihaz bağlı' + (s0.low ? ' · ' + s0.low + ' düşük pil' : ''), b: 'Liste', href: '#devList', k: 'ok' };
       }
@@ -399,7 +401,7 @@
     /* eski başlık / görünüm seçimi gizli (kapsam kartı yerini aldı) */
     ['modeSwitch', 'workModeBanner'].forEach(function (id) { var e = document.getElementById(id); if (e) { e.hidden = true; e.style.display = 'none'; } });
     var host = document.getElementById('ksScope');
-    if (again) { ['ksTiles', 'okumaListe'].forEach(function (id) { var e = document.getElementById(id); if (e) e.remove(); }); }
+    if (again) { ['ksTiles', 'okumaListe', 'gwUyari'].forEach(function (id) { var e = document.getElementById(id); if (e) e.remove(); }); }
     var grid = document.createElement('div'); grid.className = 'grid ana-hive-grid'; grid.id = 'ksTiles'; grid.setAttribute('aria-label', 'Cihaz türleri');
     grid.innerHTML = TYPES.map(function (t) {
       var l = all.filter(function (d) { var x = typeOf(d); return x && x.k === t.k; }), s0 = sum(l);
@@ -444,6 +446,14 @@
     var sec = document.querySelector('section.card-block'); sec.id = 'devList';
     document.getElementById('listHeading').textContent = (tSel ? tSel.l : 'Tüm cihazlar') + ' · ' + list.length + (list.length > 1 ? ' (önce arızalı / bağlı değil)' : '');
     document.getElementById('summary').textContent = '';
+    /* k243: arılık başına tek gateway — >1 gateway ya da gateway'siz kovan cihazı uyarısı (liste üstünde, sabit) */
+    var gwL = Dev.gatewayKontrol ? Dev.gatewayKontrol(all) : [];
+    if (gwL.length) {
+      var gwH = document.createElement('div'); gwH.id = 'gwUyari'; gwH.setAttribute('role', 'status');
+      gwH.style.cssText = 'margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid #f0c36d;background:#fff6db;color:#5c3d00;font-size:14px;';
+      gwH.innerHTML = '<b>Gateway uyarısı</b> · arılık başına tek gateway (LoRa düğümleri → gateway → 4G)<ul style="margin:6px 0 0;padding-left:18px;">' + gwL.map(function (u) { return '<li>' + esc(u.metin) + '</li>'; }).join('') + '</ul>';
+      var lhG = document.getElementById('listHeading'); lhG.parentNode.insertBefore(gwH, lhG.nextSibling);
+    }
     /* k159: Sıcaklık/Nem düğmesi → son okumalar (sıcaklık ve nem ayrı sütun) */
     if (tSel && (tSel.k === 'isi_nem' || tSel.k === 'dis_isi_nem')) {
       var okL = okList(tSel.k, 30), okH = document.createElement('div'); okH.id = 'okumaListe'; okH.style.cssText = 'margin:0 0 10px;';
@@ -636,6 +646,8 @@ window.SuperAriCihazEkle = function () {
     var m = q('msg');
     if (!aps.length) { m.textContent = 'Önce bir arılık ekleyin (Ayarlar › Arılıklar)'; return; }
     if (needHive() && !q('hive').value) { m.textContent = 'Kovan seçin'; return; }
+    /* k243: arılık başına tek gateway — ikinci gateway'de uyar, tekrar Kaydet ile yine eklenebilir */
+    if (q('tip').value === 'gateway' && !b.__gwOk && (Dv.listDevices() || []).some(function (x) { return x && x.tip === 'gateway' && String(x.apiaryId) === String(q('ap').value) && !x.disabled; })) { b.__gwOk = 1; m.textContent = 'Bu arılıkta zaten bir gateway var — arılık başına tek gateway olmalı. Yine de eklemek için tekrar Kaydet\'e basın.'; return; }
     try {
       Dv.addDevice({ tip: q('tip').value, apiaryId: q('ap').value, hiveId: needHive() ? q('hive').value : null, name: q('name').value, yer: q('tip').value === 'isi_nem' ? q('yer').value : '' });
       b.remove(); location.reload();
@@ -651,8 +663,8 @@ window.SuperAriQuickActions = function () {
   ];
 };
 </script>
-<script src="ses-siniflari.js?v=koloni-242"></script>
-<script src="nav.js?v=koloni-242"></script>
-<script src="pwa.js?v=koloni-242"></script>
+<script src="ses-siniflari.js?v=koloni-243"></script>
+<script src="nav.js?v=koloni-243"></script>
+<script src="pwa.js?v=koloni-243"></script>
 </body>
 </html>

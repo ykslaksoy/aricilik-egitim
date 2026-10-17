@@ -1,7 +1,7 @@
-# Nem (DHT22 — kovan içi)
+# Nem (SHT41 — kovan içi)
 
 **Durum:** calisiyor (demo)  
-**Donanım:** DHT22 · kovan kutusu içi, üst bölge  
+**Donanım:** SHT41 · kovan kutusu içi, üst bölge  
 **Veri:** `humidity` (% RH)  
 **Eşikler:** `packages/shared/constants.js` → `SENSOR.HUM_*`, `HUM.*`  
 **Değerlendirme:** `analyzeHumidity()` · `evaluation.durumlar.nem` · `alertEngine.js`

@@ -29,7 +29,7 @@ KOVAN (NODE)                         MERKEZ                    BULUT
 │ LilyGO T-Weigh      │   LoRa 868   │ T-Beam   │   4G/HTTPS  │ koloni  │
 │ ESP32               │ ───────────► │ + A7670E │ ──────────► │ API     │
 │ 4× HX711 + LoRa     │   küçük JSON │ GATE     │             │ panel   │
-│ + DHT22             │              └──────────┘             └─────────┘
+│ + SHT41             │              └──────────┘             └─────────┘
 │ + IR×2 + ADXL + mic │
 └─────────────────────┘
 
@@ -45,7 +45,7 @@ beepack c kamera (ayrı):
 | sensör | bağlantı | LoRa’ya ne gider |
 |--------|----------|------------------|
 | 4× load cell | HX711 (kartta) | `weightKg` + isteğe `cornerKg[4]` |
-| DHT22 | 1-wire / GPIO | `tempC`, `humidity` |
+| SHT41 | I²C (0x44) | `tempC`, `humidity` |
 | IR ×2 | GPIO kesme | `beeIn`, `beeOut` (15 dk sayaç) |
 | ADXL345 | I2C | `vibration` (tepe / olay sayısı) |
 | mikrofon | ADC / I2S | `audioRms` veya bant özeti — **ham ses değil** |
@@ -95,7 +95,7 @@ Arduino IDE veya PlatformIO ile T-Weigh’e yazılır (ESP32 board).
 ## özet
 
 > **tek kart:** LilyGO **T-Weigh** = tartı + LoRa + ESP32  
-> **ekle:** DHT22, IR×2, ADXL345, mic  
+> **ekle:** SHT41, IR×2, ADXL345, mic  
 > **gönder:** LoRa → GATE → 4G → koloni  
 > **kamera ayrı** (WiFi HUB)  
 > **Arduino Uno ile tüm sistemi kurmak zoruna değil** — T-Weigh doğru seçim

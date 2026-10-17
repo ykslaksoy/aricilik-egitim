@@ -1,7 +1,7 @@
-# Sıcaklık (DHT22 — kovan içi)
+# Sıcaklık (SHT41 — kovan içi)
 
 **Durum:** calisiyor  
-**Donanım:** DHT22 · kovan kutusu içi, üst bölge  
+**Donanım:** SHT41 · kovan kutusu içi, üst bölge  
 **Veri:** `tempC`  
 **Kod:** `analyzeTemperature()` · `colony.temperature`  
 **Durum boyutu:** `evaluation.durumlar.sicaklik`  

@@ -2,12 +2,15 @@
 
 LilyGO T-Weigh · ESP32 · 868 MHz LoRa · 4× HX711
 
+**Donanım kararı (koloni-243, 17.10.2026):** kovan başına 1 T-Weigh düğümü → LoRa EU868 → arılık başına **tek** gateway (T-Beam V1.2 + A7670E) → 4G. Sıcaklık/nem **SHT41** (DHT22 kaldırıldı; DHT22 ±0,5 °C eşek arısı kuralının 0,5 °C ani değişim sınırı için yetersizdi). Giriş sıcaklığı DS18B20. Mikrofon SPH0645 (≥ 32 kHz), ivmeölçer ADXL345 (alternatif ADXL355). Güç 18650 + güneş isteğe bağlı (kapasite: Veri yok). Sürücüler taslak, cihazda test edilecek.
+
 ## sensör okuma
 
 | modül | dosya |
 |-------|--------|
 | 4× tartı | `sensors/loadcells.cpp` |
-| DHT22 | `sensors/dht22.cpp` |
+| SHT41 (kovan içi sıcaklık + nem, I²C 0x44) | `sensors/sht41.cpp` · `sensors/sht41.h` |
+| DS18B20 (giriş sıcaklığı, 1-Wire) | `sensors/ds18b20.cpp` |
 | IR ×2 | `sensors/ir_counter.cpp` |
 | ADXL345 | `sensors/adxl345.cpp` |
 | mikrofon | `sensors/microphone.cpp` |
@@ -20,6 +23,9 @@ LilyGO T-Weigh · ESP32 · 868 MHz LoRa · 4× HX711
 | LoRa | `transport/lora_send.cpp` | GATE takılınca |
 
 ## config (`config.h`)
+
+- `TEMP_HUM_SENSOR_SHT41` / `SHT41_I2C_ADDR` (0x44) — kovan içi sıcaklık + nem
+- `ENTRANCE_TEMP_DS18B20` — 1: giriş DS18B20 (varsayılan), 0: girişte ikinci SHT41 (ayrı I²C hattı)
 
 - `HIVE_ID`
 - `WIFI_SSID` / `WIFI_PASS` (test)

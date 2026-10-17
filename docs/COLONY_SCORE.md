@@ -17,7 +17,7 @@ Uygulama **kesin arı sayısı** vermez; tartı + sıcaklık/nem + giriş/çık�
 | Veri | Kaynak |
 |------|--------|
 | `weightKg` | 4× load cell |
-| `tempC`, `humidity` | DHT22 / BME280 |
+| `tempC`, `humidity` | SHT41 |
 | `beeIn`, `beeOut` | IR kapı sayacı (15 dk periyot) |
 
 ---

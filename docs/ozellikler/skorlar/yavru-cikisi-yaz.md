@@ -67,7 +67,7 @@ tartı = tare + petek + arı kütlesi + bal/polen stokları
 | kg artıyor ama IR düşük | Bal birikiyor, arı zayıf olabilir |
 | IR artıyor + kg artıyor | Sağlıklı yaz büyümesi |
 
-**Kovan içi sıcaklık** (DHT22) yazın genelde 32–36°C — yavru bölgesi ısıtılır; dış hava ile karıştırma.
+**Kovan içi sıcaklık** (SHT41) yazın genelde 32–36°C — yavru bölgesi ısıtılır; dış hava ile karıştırma.
 
 ---
 

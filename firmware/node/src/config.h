@@ -1,5 +1,16 @@
 // hiveId, wifi, api url, interval
 #define HIVE_ID 1
+
+// koloni-243: donanım kararı (17.10.2026) — kovan içi sıcaklık/nem SHT41 (DHT22 kaldırıldı), giriş DS18B20.
+// Düğüm LoRa ile arılığın TEK gateway'ine gönderir (arılık başına 1 gateway; T-Beam V1.2 + A7670E → 4G).
+#define TEMP_HUM_SENSOR_SHT41 1
+#ifndef SHT41_I2C_ADDR
+#define SHT41_I2C_ADDR 0x44           /* SHT41-AD1B varsayılan adres */
+#endif
+#ifndef ENTRANCE_TEMP_DS18B20
+#define ENTRANCE_TEMP_DS18B20 1       /* giriş sıcaklığı: DS18B20 1-Wire (öneri korundu); 0 → girişte ikinci SHT41 (ayrı I²C hattı) */
+#endif
+// Pinler: hardware/wiring/node-pinout.md (T-Weigh pinout PDF işlenince doldurulacak)
 // #define WIFI_SSID "..."
 // #define API_URL "http://192.168.1.10:3847/api/ingest"
 

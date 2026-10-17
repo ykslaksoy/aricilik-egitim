@@ -41,7 +41,7 @@ Taşıma modunda (`transportMode: true`): oğul, arı katmanı, düşük IR **ba
 | 6 saat Δ | ≤ **−3 kg** | oğul `occurred` |
 | 24 saat Δ | ≤ **−4 kg** | oğul `occurred` |
 
-### Sıcaklık (DHT22 — kovan içi)
+### Sıcaklık (SHT41 — kovan içi)
 
 Ayrıntı: `sicaklik.md`
 
@@ -56,7 +56,7 @@ Ayrıntı: `sicaklik.md`
 
 Ayrıntılı neden / öneri: `sicaklik.md` · `analyzeTemperature()`
 
-### Nem (DHT22 — kovan içi)
+### Nem (SHT41 — kovan içi)
 
 Ayrıntı: `nem.md` · `analyzeHumidity()`
 

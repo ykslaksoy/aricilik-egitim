@@ -115,7 +115,7 @@ Aynı API; `hiveId` + opsiyonel `cameraUrl` alanı.
 
 | Bileşen | S paketi | C paketi | Ortak |
 |---------|----------|----------|-------|
-| T-Weigh + load cell + DHT22 + güneş | ✓ | ✓ | NODE aynı |
+| T-Weigh + load cell + SHT41 + güneş | ✓ | ✓ | NODE aynı |
 | T-Beam + A7670E GATE | paylaşımlı | paylaşımlı | 1 GATE tüm arılık |
 | WiFi kamera | — | ✓ | |
 | HUB (AP) | — | ✓ | C kovanları grupla |

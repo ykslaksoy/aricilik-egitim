@@ -3,7 +3,7 @@
 > **Özellik dosya ağacı (Türkçe, her özellik ayrı dosya):**  
 > [`docs/ozellikler/`](ozellikler/README.md) · ağaç: [`ozellikler/AGAC.md`](ozellikler/AGAC.md)
 
-tüm sensörler: **4× tartı · DHT22 · IR×2 · mic · ADXL345 · pil · (c) kamera**  
+tüm sensörler: **4× tartı · SHT41 · IR×2 · mic · ADXL345 · pil · (c) kamera**  
 modlar: **normal · gezginci taşıma · yerleşme · abonelik paketi**
 
 ---
@@ -27,7 +27,7 @@ modlar: **normal · gezginci taşıma · yerleşme · abonelik paketi**
 | sensör | panelde göster | alarm / skor |
 |--------|----------------|--------------|
 | **4× tartı** | kg, günlük salınım, köşe dengesi | oğul (−3kg), devrilme, yağma, hasat trendi |
-| **DHT22** | °C, % nem | sağlık skoru, aşırı sıcak/nem |
+| **SHT41** | °C, % nem | sağlık skoru, aşırı sıcak/nem |
 | **IR ×2** | beeIn, beeOut, net trafik | arı tahmini, öğlen kalibrasyon |
 | **mikrofon** | ses seviyesi / bant özeti (grafik) | oğul/ana AI (v2), aktivite |
 | **ADXL345** | titreşim olayı sayısı | darbe, taşıma sarsıntısı |

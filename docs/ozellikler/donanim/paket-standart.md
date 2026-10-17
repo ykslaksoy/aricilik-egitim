@@ -10,7 +10,7 @@ Kovana takılan **temel donanım seti**.
 
 1. Kovan kartı (T-Weigh) — ölçüm beyni  
 2. Tartı (4× load cell)  
-3. Sıcaklık / nem (DHT22)  
+3. Sıcaklık / nem (SHT41)  
 4. IR sayaç ×2  
 5. Mikrofon  
 6. Titreşim (ADXL345)  

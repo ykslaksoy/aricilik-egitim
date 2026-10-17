@@ -615,6 +615,27 @@
     return markDisabled(isDemo() ? demoList().concat(demoUserList()) : liveList());
   }
 
+  /* koloni-243: arılık başına TEK gateway (kullanıcı kararı 17.10.2026: LoRa düğümleri → arılığın gateway'i → 4G).
+     Bir arılıkta >1 gateway ya da kovan cihazı olup gateway yoksa uyarı listesi döner. Devre dışı cihazlar sayılmaz; kameralar (Wi‑Fi) node sayılmaz. */
+  function gatewayKontrol(list) {
+    var by = {}, order = [];
+    (list || listDevices()).forEach(function (d) {
+      if (!d || d.apiaryId == null || d.apiaryId === '' || d.disabled || isDisabled(d.id)) return;
+      var a = String(d.apiaryId), o = by[a];
+      if (!o) { o = by[a] = { apiaryId: a, apiaryName: d.apiaryName || '', gw: [], node: 0 }; order.push(a); }
+      if (!o.apiaryName && d.apiaryName) o.apiaryName = d.apiaryName;
+      if (d.tip === 'gateway') o.gw.push(d);
+      else if (d.hiveId != null && !isCameraTip(d.tip)) o.node++;
+    });
+    var out = [];
+    order.forEach(function (a) {
+      var o = by[a], ad = o.apiaryName || ('Arılık ' + a);
+      if (o.gw.length > 1) out.push({ tur: 'fazla', apiaryId: a, apiaryName: ad, sayi: o.gw.length, ids: o.gw.map(function (g) { return g.id; }), metin: ad + ': ' + o.gw.length + ' gateway var — arılık başına tek gateway olmalı' });
+      else if (!o.gw.length && o.node) out.push({ tur: 'yok', apiaryId: a, apiaryName: ad, sayi: o.node, metin: ad + ': gateway yok — ' + o.node + ' kovan cihazının verisi buluta gidemez' });
+    });
+    return out;
+  }
+
   function cameraDevices() {
     return listDevices().filter(function (d) { return d && d.kind === 'kamera'; });
   }
@@ -733,6 +754,7 @@
     isApiaryTip: isApiaryTip,
     listDevices: listDevices, isDisabled: isDisabled, setDisabled: setDisabled, okumaKapali: okumaKapali, canToggle: canToggle, ddBulutOku: ddBulutOku, toggleHtml: toggleHtml, disRaw: disRaw,
     cameraDevices: cameraDevices,
+    gatewayKontrol: gatewayKontrol,
     summarize: summarize,
     summarizeCameras: summarizeCameras,
     anaCihazBadge: anaCihazBadge,

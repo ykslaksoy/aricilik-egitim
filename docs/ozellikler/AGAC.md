@@ -54,8 +54,8 @@ docs/ozellikler/
 ├── sensorler/
 │   ├── liste.md                     — Sensör listesi (özet)
 │   ├── tarti.md                     — Tartı (4× load cell)
-│   ├── sicaklik.md                  — Sıcaklık (DHT22, kovan içi)
-│   ├── nem.md                       — Nem (DHT22, kovan içi)
+│   ├── sicaklik.md                  — Sıcaklık (SHT41, kovan içi)
+│   ├── nem.md                       — Nem (SHT41, kovan içi)
 │   ├── ir-sayac.md                  — IR sayaç ×2 (giriş / çıkış)
 │   ├── degerlendirme.md             — eşikler + alertEngine akışı
 │   ├── mikrofon.md                  — Mikrofon

@@ -5,8 +5,8 @@ Hepsi alt alta. Kameralar **opsiyonel** (takılmazsa sistem çalışır).
 ## Kovanda (standart paket — zorunlu yol)
 
 1. Tartı (4× load cell) — `tarti.md`
-2. Sıcaklık (DHT22, kovan içi) — `sicaklik.md`
-3. Nem (DHT22, kovan içi) — `nem.md`
+2. Sıcaklık (SHT41, kovan içi) — `sicaklik.md`
+3. Nem (SHT41, kovan içi) — `nem.md`
 4. IR sayaç ×2 (giriş / çıkış) — `ir-sayac.md`
 5. Mikrofon — `mikrofon.md`
 6. Titreşim (ADXL345) — `titresim.md`
