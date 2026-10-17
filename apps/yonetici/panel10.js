@@ -82,6 +82,35 @@
       ['c', 'Tıslama', 'Pencerede en az ' + UT, 's', 'esekMinSay'],
       ['c', 'Tıslama', 'Pencere (dk) ' + UT, 's', 'esekPencereDk'],
       ['i', 'Mikrofon', 'En düşük örnekleme (Hz)', 's', 'esekMinOrneklemeHz']] },
+    { t: 'Koloni sönmüş olabilir', kk: ['koloniSonuk'], src: 'Meikle W.G., Weiss M., Maes P.W., Fitz W., Snyder L.A., Sheehan T., Mott B.M., Anderson K.E. (2017). Internal hive temperature as a means of monitoring honey bee colony health in a migratory beekeeping operation before and during winter. Apidologie 48:666–680, doi:10.1007/s13592-017-0512-8 · kavram: ölü/sönmüş kolonide iç sıcaklık dış havayı izler', not: 'Eşikler kaynakta yok → uzman tahmini. Sıcaklık tek başına yetmez; IR ya da tartı da doğrulamalı. Kullanıcıya: «Koloni sönmüş olabilir» (sayı yok).', r: [
+      ['c', 'Sıcaklık', 'İç salınım ≥ dış salınımın oranı ' + UT, 's', 'sonukSalinimOran'],
+      ['c', 'Sıcaklık', 'Dış günlük salınım en az (°C) ' + UT, 's', 'sonukDisMinC'],
+      ['c', 'Süre', 'Art arda gün ' + UT, 's', 'sonukGun'],
+      ['c', 'IR', 'Günlük trafik en çok (arı) ' + UT, 's', 'sonukIrGunMax'],
+      ['c', 'Tartı', 'Günlük oynama en çok (kg) ' + UT, 's', 'sonukAgirlikKg']] },
+    { t: 'Yavrusuz / anasız (sıcaklık salınımı)', kk: ['yavrusuzSicak'], src: 'Kleinhenz M., Bujok B., Fuchs S., Tautz J. (2003). J. Insect Physiol. 49:1135 · Groh C., Tautz J., Rössler W. (2004). PNAS 101:4268 (yavru alanı ~34,5 °C sabit) · Meikle W.G. ve ark. (2017). Apidologie 48:666, doi:10.1007/s13592-017-0512-8', not: 'Yalnız sensör kuluçkalıktaysa ve kuluçka döneminde. Anasızlık uyarısıyla tek uyarı (kanıt sayısını artırır); tetiklenince genel «kuluçka oynaklığı» görevi çıkmaz. Kullanıcıya: «Yavru kalmamış olabilir».', r: [
+      ['w', 'Salınım', 'Günlük salınım ≥ (°C) ' + UT, 's', 'yavrusuzSalinimC'],
+      ['w', 'Süre', 'Art arda gün ' + UT, 's', 'yavrusuzGun']] },
+    { t: 'Tarlacı arı kaybı (tartı)', kk: ['tarlaciKayip'], src: 'Meikle W.G., Rector B.G., Mercadier G., Holst N. (2008). Within-day variation in continuous hive weight data as a measure of honey bee colony activity. Apidologie 39:694–707, doi:10.1051/apido:2008055 · Meikle W.G., Holst N. (2014). Apidologie 46:10–22, doi:10.1007/s13592-014-0298-x · Meikle W.G. ve ark. (2018). PLoS One 13(5):e0197589, doi:10.1371/journal.pone.0197589', not: 'Sabah tarlacı çıkışıyla ağırlık düşer (kaynak); eşikler kaynakta yok → uzman tahmini. Yalnız uygun uçuş günleri (Uçuş havası Genel eşikleri), kovanın kendi tabanına göre.', r: [
+      ['w', 'Pencere', 'Başlangıç saati ' + UT, 's', 'tarlaciSaatBas'],
+      ['w', 'Pencere', 'Uzunluk (saat) ' + UT, 's', 'tarlaciPencereSaat'],
+      ['w', 'Taban', 'Önceki uygun gün sayısı ' + UT, 's', 'tarlaciTabanGun'],
+      ['w', 'Taban', 'En az sabah düşüşü (kg) ' + UT, 's', 'tarlaciMinKg'],
+      ['w', 'Düşüş', 'Tabanın bu oranının altı ' + UT, 's', 'tarlaciOran'],
+      ['w', 'Süre', 'Art arda uygun gün ' + UT, 's', 'tarlaciGun']] },
+    { t: 'Eşek arısı: sıcaklık + tıslama + titreşim', kk: ['esekGiris'], src: 'Kovan sensörüyle yayımlanmış çalışma yok → tümü uzman tahmini · bağlam: Ono M., Igarashi T., Ohno E., Sasaki M. (1995). Unusual thermal defence by a honeybee against mass attack by hornets. Nature 377:334–336, doi:10.1038/377334a0 · Käfer H., Stabentheiner A., Kovac H. (2012). J. Insect Physiol. 58:466, doi:10.1016/j.jinsphys.2012.01.015 · Papachristoforou A. ve ark. (2007). Smothered to death: hornets asphyxiated by honeybees. Curr. Biol. 17:R795, doi:10.1016/j.cub.2007.07.033', not: 'Uyarı yalnız üçü aynı pencerede: kısa sürede sıcaklık değişimi (artış ya da düşüş; kovan içi ya da giriş), Ses: Eşek arısı tıslaması ve titreşim artışı. Yeni sensör yok; giriş sıcaklığı yalnız mevcut ısı/nem sensörü girişe (yer: giris) takılıysa ek işarettir → kritik. Mikrofon yetmezse «Veri yok / mikrofon desteklemiyor».', r: [
+      ['c', 'Sıcaklık', 'Değişim ≥ (°C) ' + UT, 's', 'esekSicakDegisimC'],
+      ['c', 'Pencere', 'Üçü aynı pencerede (dk) ' + UT, 's', 'esekEslesDk'],
+      ['c', 'Titreşim', 'Tabanın katı ' + UT, 's', 'esekTitresimKat'],
+      ['c', 'Titreşim', 'Taban penceresi (dk) ' + UT, 's', 'esekTitTabanDk'],
+      ['c', 'Giriş (ek)', 'Giriş sıcaklığı > (°C) · Ono 1995 / Käfer 2012 top sıcaklığı', 's', 'esekGirisYuksekC']] },
+    { t: 'Havalandırma yetersiz (CO₂ sensörsüz)', kk: ['havalandirma'], src: 'Doğrulanmış eşik kaynağı yok → tümü uzman tahmini · bağlam: Human H., Nicolson S.W., Dietemann V. (2006). Do honeybees, Apis mellifera scutellata, regulate humidity in their nest? Naturwissenschaften 93:397–401, doi:10.1007/s00114-006-0117-y', not: 'Kuluçka hem sıcak hem nemli (nem normal üst sınırı üstü) kesintisiz süre ya da soğuk dönemde yüksek nem + büyük iç−dış fark (yoğuşma riski). Yelpazeleme sesi varsa seviye yükselir. Nem «normalin üstünde» görevi bu uyarıya katılır; kireç riski varsa kireç görevi kalır ve bu uyarı çıkmaz.', r: [
+      ['w', 'Süre', 'Kesintisiz (saat) ' + UT, 's', 'havaSaat'],
+      ['w', 'Sıcak', 'Kuluçka sıcaklığı üstü (°C) ' + UT, 's', 'havaSicakC'],
+      ['w', 'Yoğuşma', 'Nem ≥ (%) ' + UT, 's', 'havaYogusmaRh'],
+      ['w', 'Yoğuşma', 'İç−dış fark ≥ (°C) ' + UT, 's', 'havaYogusmaFarkC'],
+      ['w', 'Yoğuşma', 'Soğuk dönem başlangıç ayı ' + UT, 's', 'havaYogusmaAyBas'],
+      ['w', 'Yoğuşma', 'Soğuk dönem bitiş ayı ' + UT, 's', 'havaYogusmaAySon']] },
     { t: 'Uçuş havası (arı cinsi)', kk: ['ucus'], src: 'Irka özgü hakemli uçuş eşiği bulunamadı → tümü uzman tahmini · Genel A. mellifera: Burrill & Dietz 1981, Apidologie 12:319 (9 °C altında uçuş yok); Vicens & Bosch 2000, Environ. Entomol. 29:413 (etkinlik 12–14 °C); rüzgar: Karbassioon ve ark. 2023, Oecologia 201:689, doi:10.1007/s00442-023-05332-x (~9 km/sa üstü azalır); yağmurda uçuş yok: Riessberger & Crailsheim 1997, Apidologie 28:411', not: 'Hava › Uçuşa uygun günler, Bal sezonu ve Nektar listeleri bu değerleri kullanır. Arılığın cinsi kovanlarındaki en sık ırktan alınır. Melez (ör. Kafkas × Karadeniz): ebeveyn gruplarının daha ihtiyatlı değeri (yüksek sıcaklık, düşük rüzgar ve yağış). Tanınmayan ırk (Muğla, Anadolu…): Genel.', r: [
       ['ok', 'Kafkas', 'Uygun: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasUygunC'],
       ['w', 'Kafkas', 'Kısmen: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasKismenC'],
@@ -155,7 +184,7 @@
   function kkSet(id, kapali) { var L = kkList().filter(function (x) { return x !== id; }); if (kapali) L.push(id); if (KSEC === 'g') KK.g = L; else { var p = KSEC.split('|'), m = p[0] === 'u' ? KK.u : KK.a, key = p.slice(1).join('|'); if (L.length) m[key] = L; else delete m[key]; } }
   function kkRow(id) { var kap = kkList().indexOf(id) >= 0, gk = KSEC !== 'g' && KK.g.indexOf(id) >= 0; return '<div class="kk" data-kkr="' + id + '"><span>' + esc(KAD[id] || id) + (gk ? ' <small class="off">(genelde kapalı)</small>' : '') + '</span><label><input type="checkbox" data-kk="' + id + '"' + (kap ? '' : ' checked') + '><span class="' + (kap ? 'off' : '') + '">' + (kap ? 'Kapalı' : 'Açık') + '</span></label></div>'; }
   /* koloni-220: toplu aç/kapa — grup ve tümü, seçili kapsam için */
-  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']]];
+  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']], ['Koloni durumu', ['koloniSonuk', 'yavrusuzSicak', 'tarlaciKayip', 'esekGiris', 'havalandirma']]];
   function kkTum() { return KG.reduce(function (a, g) { return a.concat(g[1]); }, []); }
   function kkGrpRow(i) { var g = KG[i], L = kkList(), ac = g[1].filter(function (x) { return L.indexOf(x) < 0; }).length; return '<div class="kk kkg" data-kkg="' + i + '"><span><b>' + esc(g[0]) + '</b> <small class="' + (ac < g[1].length ? 'off' : '') + '">' + ac + '/' + g[1].length + ' açık</small></span><span class="kkb"><button type="button" class="btn" data-kkga="' + i + '|1">Aç</button><button type="button" class="btn" data-kkga="' + i + '|0">Kapat</button></span></div>'; }
   function kkTop() { return '<div class="kks"><button type="button" class="btn" data-kkall="1">Tümünü aç</button><button type="button" class="btn" data-kkall="0">Tümünü kapat</button></div>' + KG.map(function (_, i) { return kkGrpRow(i); }).join(''); }

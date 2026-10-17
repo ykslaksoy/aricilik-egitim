@@ -33,7 +33,7 @@ const d=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');
 assert.ok(/Nem çok düşük, yavru \(yumurta\) açılmama riski var/.test(d)&&/'Nem normal aralığın üstünde'/.test(d));
 assert.strictEqual(d,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
 const p=fs.readFileSync(path.join(W,'../yonetici/panel10.js'),'utf8');Object.keys(E).forEach(k=>assert.ok(p.includes("'"+k+"'"),'panel '+k));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-229');
+assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-230');
 console.log('k199-eksik-esik ok');
 assert.ok(!/büzüşme/.test(fs.readFileSync(path.join(W,'demo-data.js'),'utf8')+p));
 {const d2=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');assert.ok(/'Nem çok yüksek, kireç hastalığı riski var'/.test(d2));assert.ok(/haftalikHatirlatma\('kirec', h\.id, !!\(shR && \(shR\.kirec \|\| nemKr\)\)/.test(d2),'ortak kireç anahtarı');assert.ok(/shR\.nemYon !== 'kirec'/.test(d2),'nem görevinde tekrar yok');}

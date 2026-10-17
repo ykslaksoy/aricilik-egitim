@@ -18,4 +18,4 @@ assert.equal(T.geriAlKontrol(g,[g]),'');assert.ok(/zaten/.test(T.geriAlKontrol(O
 assert.ok(/daha yeni/.test(T.geriAlKontrol(g,[g,{id:5,hesap_id:'h',telefon_yedek_id:8}])));
 assert.ok(r('degisiklik-kaydi.html').includes('geriAlId(CL, tid)')&&r('yedekler.html').includes('TY.geriAlId(CL, id)'));
 assert.ok(!fs.readdirSync(__dirname).some(f=>/^k224/.test(f)),'k224 testi k226 ile değişti');
-assert.equal(JSON.parse(r('version.json')).version,'koloni-229');});
+assert.equal(JSON.parse(r('version.json')).version,'koloni-230');});

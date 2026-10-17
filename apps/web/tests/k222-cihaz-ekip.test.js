@@ -19,5 +19,5 @@ test('k222: uygulama — buluttan tüm ekip satırları, odak/realtime yenileme,
   const k = r('kritik-alarm.js'); assert.match(k, /cihaz_dd: 4/); assert.match(k, /o\.ekibeGitme \? null/);
   const a = fs.readFileSync(p.join(W, '../../api/push-subscribe.js'), 'utf8'); assert.match(a, /action === 'ekip_cihaz'/); assert.match(a, /x\.uid <> \$2/); assert.match(a, /'eb:' \+ b\.id/);
   const y = fs.readFileSync(p.join(W, '../yonetici/panel11.js'), 'utf8'); assert.match(y, /ekip_cihaz/); assert.match(y, /Ekibe bildirildi/);
-  assert.equal(JSON.parse(r('version.json')).version, 'koloni-229');
+  assert.equal(JSON.parse(r('version.json')).version, 'koloni-230');
 });
