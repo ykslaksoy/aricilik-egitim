@@ -5,7 +5,7 @@ const mem={};globalThis.localStorage={getItem:k=>k in mem?mem[k]:null,setItem:(k
 let veri={a:'x'};globalThis.SuperAriYedek={collect:()=>({createdAt:new Date().toISOString(),keys:JSON.parse(JSON.stringify(veri))})};
 require(path.join(W,'telefon-yedek.js'));
 const T=globalThis.SuperAriTelefonYedek;
-assert.deepStrictEqual(T.ayar(),{boyutKb:200,aralikDk:30},'varsayılan 200 KB / 30 dk');
+assert.deepStrictEqual(T.ayar(),{boyutKb:200,aralikDk:240},'varsayılan 200 KB / 240 dk (k231)');
 mem['superari.bulut.telYedek']=JSON.stringify({ayar:{boyutKb:50,aralikDk:10}});
 assert.deepStrictEqual(T.ayar(),{boyutKb:50,aralikDk:10},'kayıtlı değere uyar');
 const t0=T.imza({yedek:{keys:{a:'x',b:[1]}},fotolar:[]});

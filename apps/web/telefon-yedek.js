@@ -109,10 +109,10 @@
     s.alinanGun = gunTSI(); stYaz(s);
     return al('gunluk').catch(function () { return null; });
   }
-  /* ---- koloni-229: boyut tetiklemesi ----
+  /* ---- koloni-229/231: boyut tetiklemesi ----
    * Son başarılı yüklemeden (ya da kuyruğa alınmış son yedekten) beri değişen verinin boyutu ESIK_KB'ye ulaşınca 'boyut' yedeği alınır.
-   * En az ARALIK_DK dakika arayla. İki değer uzman tahmini; yönetici panelinden (sa_yedek_ayar) değişir, telefon kayıtlı değere uyar. */
-  var VARS = { boyutKb: 200, aralikDk: 30 };
+   * En az ARALIK_DK dakika arayla (varsayılan 240 dk = 4 saat, uzman tahmini; yönetici değiştirir). İki değer sa_yedek_ayar'dan gelir, telefon kayıtlı değere uyar. */
+  var VARS = { boyutKb: 200, aralikDk: 240 };
   function ayar() { var a = st().ayar || {}; return { boyutKb: +a.boyutKb > 0 ? +a.boyutKb : VARS.boyutKb, aralikDk: +a.aralikDk > 0 ? +a.aralikDk : VARS.aralikDk }; }
   function ayarYukle() {
     var b = B(); if (!b || g.navigator.onLine === false) return Promise.resolve(ayar());
