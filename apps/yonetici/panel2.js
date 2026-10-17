@@ -65,6 +65,18 @@
   /* 2) Eşikler */
   var ESIK_DEF = { koloniGucu: { zayifMaxCerceve: 4, ortaMaxCerceve: 7 }, bolmeMinCerceve: 9, uyari: { varroaYuzde: 3, dusukPilYuzde: 20, gunlukKiloDususKg: 1, kovanIciMinC: 10, kovanIciMaxC: 38 } };
   var ESIK_AD = { 'koloniGucu.zayifMaxCerceve': 'Zayıf: en çok dolu çerçeve', 'koloniGucu.ortaMaxCerceve': 'Orta: en çok dolu çerçeve (üstü güçlü)', bolmeMinCerceve: 'Bölme eşiği: en az dolu çerçeve', 'uyari.varroaYuzde': 'Varroa uyarı (%)', 'uyari.dusukPilYuzde': 'Düşük pil (%)', 'uyari.gunlukKiloDususKg': 'Günlük kilo düşüşü (kg)', 'uyari.kovanIciMinC': 'Kovan içi en düşük (°C)', 'uyari.kovanIciMaxC': 'Kovan içi en yüksek (°C)',  };
+  /* Sade açıklamalar — uygulamada gerçekten okunup okunmadığı kodla kontrol edildi (apps/web/esikler.js tüketicileri). */
+  var YOK = ' Şu an uygulama bu değeri okumuyor: kaydedilir ama hiçbir hesabı değiştirmez.';
+  var ESIK_AC = {
+    'koloniGucu.zayifMaxCerceve': 'Arıyla dolu çerçeve sayısı bu sayı veya altındaysa koloni «Zayıf» sayılacak.' + YOK,
+    'koloniGucu.ortaMaxCerceve': 'Dolu çerçeve «Zayıf» sınırının üstünde ve bu sayıya kadarsa «Orta», üstündeyse «Güçlü» sayılacak.' + YOK,
+    bolmeMinCerceve: 'Kovanda en az bu kadar dolu çerçeve varsa bölme yapılabilir denecek.' + YOK,
+    'uyari.varroaYuzde': 'Varroa sayımında bulaşma bu yüzdeyi aşarsa uyarı verilecek.' + YOK + ' Varroa değerlendirmesi «Hastalık tahmini › Varroa sayımı» eşikleriyle yapılıyor.',
+    'uyari.dusukPilYuzde': 'Sensör veya cihazın pili bu yüzdeye ya da altına inince «düşük pil» uyarısı verilir; pil değişim planı da bu sınırı kullanır. Uygulamada kullanılıyor.',
+    'uyari.gunlukKiloDususKg': 'Kovan bir günde bu kadar kg veya daha fazla kaybederse uyarı verilecek (yağma, oğul veya stok tükenmesi olabilir).' + YOK + ' Tartı kayıp uyarıları «Ölçüm kuralları › Ağırlık (tartı)» ayarlarıyla çalışıyor.',
+    'uyari.kovanIciMinC': 'Kovan içi sıcaklık bu derecenin altına düşerse uyarı verilecek.' + YOK,
+    'uyari.kovanIciMaxC': 'Kovan içi sıcaklık bu derecenin üstüne çıkarsa uyarı verilecek.' + YOK
+  };
   var esik = sec('s-esik', 'Eşikler', 'Koloni gücü bantları, bölme eşiği ve uyarı sınırları. Uygulama bu değerleri okur ve cihazda önbelleğe alır (çevrimdışı son değer geçerli).');
   function getP(o, k) { return k.split('.').reduce(function (a, x) { return a && a[x]; }, o); }
   function setP(o, k, v) { var p = k.split('.'), t = o; for (var i = 0; i < p.length - 1; i++) t = t[p[i]] = t[p[i]] || {}; t[p[p.length - 1]] = v; }
@@ -73,7 +85,7 @@
       if (r.error) { esik.innerHTML = empty(migMsg(r.error)); return; }
       var d = JSON.parse(JSON.stringify(ESIK_DEF)); Object.keys(ESIK_AD).forEach(function (k) { var v = r.data && getP(r.data.data, k); if (v != null) setP(d, k, v); });
       esik.innerHTML = '<p class="fe-sub">' + (r.data ? 'Son kayıt ' + esc(dt(r.data.updated_at)) : 'Henüz kayıt yok — varsayılanlar gösteriliyor.') + '</p><form class="os-f" id="esF"><fieldset><legend>Eşikler</legend>' +
-        Object.keys(ESIK_AD).map(function (k) { return '<label><span>' + ESIK_AD[k] + '</span><input name="' + k + '" type="number" step="any" min="0" value="' + getP(d, k) + '"></label>'; }).join('') + '</fieldset></form><div class="os-acts"><button class="btn" id="esS">Kaydet…</button><span id="esM" class="fe-meta"></span></div>';
+        Object.keys(ESIK_AD).map(function (k) { return '<label><span>' + ESIK_AD[k] + '</span><input name="' + k + '" type="number" step="any" min="0" value="' + getP(d, k) + '">' + (ESIK_AC[k] ? '<small class="ay-ac">' + esc(ESIK_AC[k]) + '</small>' : '') + '</label>'; }).join('') + '</fieldset></form><div class="os-acts"><button class="btn" id="esS">Kaydet…</button><span id="esM" class="fe-meta"></span></div>';
     });
   }
   esik.addEventListener('click', function (e) {
