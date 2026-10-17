@@ -94,7 +94,7 @@
 <script>/* Ana uygulamayla aynı adreste açılırsa (superari.vercel.app/apps/yonetici) kullanıcının yerel verisine dokunma */window.SA_YON_AYRI=!/^superari\.vercel\.app$/.test(location.hostname);if(window.SA_YON_AYRI){try{localStorage.setItem('superari.workMode','live');}catch(e){}}</script>
 <script src="agac.js?v=yon-2"></script>
 <script src="bulut.js?v=yon-2"></script>
-<script src="demo-data.js?v=koloni-258"></script>
+<script src="demo-data.js?v=koloni-259"></script>
 <script>
 /* Kapı: Supabase oturumu + sa_is_admin() = true değilse panel yüklenmez. Veri erişimi zaten RLS / RPC (sa_is_admin) ile korunur. */
 (function () {
@@ -119,7 +119,7 @@
           $('who').textContent = (s.user && s.user.email) || 'Yönetici';
           return apiaries(c).then(function () {
             $('gate').hidden = true; $('panel').hidden = false;
-            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-182').then(function(){return load('panel.js?v=koloni-258');}).then(function(){return load('panel2.js?v=koloni-205');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=koloni-205');}).then(function(){return load('panel5.js?v=koloni-182');}).then(function(){return load('panel6.js?v=koloni-182');}).then(function(){return load('panel7.js?v=ot-1');}).then(function(){return load('panel8.js?v=koloni-189');}).then(function(){return load('panel9.js?v=koloni-195');}).then(function(){return load('pil-model.js?v=koloni-242');}).then(function(){return load('panel10.js?v=koloni-258');}).then(function(){return load('panel11.js?v=koloni-222');}).then(function(){return load('degisiklik-kaydi.js?v=koloni-248');}).then(function(){return load('panel12.js?v=koloni-236');}).then(function(){return load('yedekler.js?v=koloni-236');}).then(function(){return load('panel13.js?v=koloni-236');}).then(function(){return load('donanim.js?v=koloni-248');}).then(function(){return load('alan.js?v=koloni-242');}).then(function(){return load('panel14.js?v=koloni-242');}); }
+            if (!started) { started = true; return load('kritik-alarm.js?v=koloni-182').then(function(){return load('panel.js?v=koloni-259');}).then(function(){return load('panel2.js?v=koloni-205');}).then(function(){return load('panel3.js?v=yon-2');}).then(function(){return load('panel4.js?v=koloni-205');}).then(function(){return load('panel5.js?v=koloni-182');}).then(function(){return load('panel6.js?v=koloni-182');}).then(function(){return load('panel7.js?v=ot-1');}).then(function(){return load('panel8.js?v=koloni-189');}).then(function(){return load('panel9.js?v=koloni-195');}).then(function(){return load('pil-model.js?v=koloni-242');}).then(function(){return load('panel10.js?v=koloni-259');}).then(function(){return load('panel11.js?v=koloni-222');}).then(function(){return load('degisiklik-kaydi.js?v=koloni-248');}).then(function(){return load('panel12.js?v=koloni-236');}).then(function(){return load('yedekler.js?v=koloni-236');}).then(function(){return load('panel13.js?v=koloni-236');}).then(function(){return load('donanim.js?v=koloni-248');}).then(function(){return load('alan.js?v=koloni-242');}).then(function(){return load('panel14.js?v=koloni-242');}); }
           }).then(function () { return true; });
         });
       });
