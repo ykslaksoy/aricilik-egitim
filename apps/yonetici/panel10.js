@@ -135,6 +135,36 @@
     { t: 'Titreşim', kk: ['titresim'], src: 'Kaynak yok · uzman tahmini', not: 'Olağandışı hareket: hırsızlık / kapak açıldı alarmı için hazırlık.', r: [
       ['w', 'Olağandışı', '7 gün tabanının katı ' + UT, 's', 'titresimKat'],
       ['w', 'Süre', 'Kesintisiz (dk) ' + UT, 's', 'titresimDk']] },
+    { t: 'Titreşim: Oğul hazırlığı (gece)', kk: ['titOgul'], src: 'Bencsik M., Bencsik J., Baxter M., Lucian A., Romieu J., Millet M. (2011). Identification of the honey bee swarming process by analysing the time course of hive vibrations. Comput. Electron. Agric. 76:44–50, doi:10.1016/j.compag.2011.01.004 (25–800 Hz; oğuldan ~10 gün önce değişim) · Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). The prediction of swarming in honeybee colonies using vibrational spectra. Sci. Rep. 10:9798, doi:10.1038/s41598-020-66115-5 (en güçlü işaret gece 00–05, ~20–24 Hz)', not: 'Not: oğul öncesi 400–500 Hz artışı kaynaklarda yok; işaret gece düşük bantta. Kaynaklar öğrenen model kullanır, sabit eşik vermez → oran ve gece sayısı uzman tahmini. «Ses: Oğul öncesi» ile tek uyarı (hangisi tetiklerse). Kullanıcıya: «Erken Uyarı: Oğul Hazırlığı» (sayı yok). Titreşim sensörü yoksa «Veri yok».', r: [
+      ['i', 'Gece', 'Başlangıç saati · Ramsey 2020', 's', 'titOgulGeceBas'],
+      ['i', 'Gece', 'Bitiş saati · Ramsey 2020', 's', 'titOgulGeceSon'],
+      ['i', 'Bant', 'Alt (Hz) · Ramsey 2020 (~20–24 Hz dahil)', 's', 'titOgulHzMin'],
+      ['i', 'Bant', 'Üst (Hz) · Bencsik 2011', 's', 'titOgulHzMax'],
+      ['i', 'Süre', 'Bakılan gün · Bencsik 2011 (~10)', 's', 'titOgulGun'],
+      ['w', 'Taban', 'Kendi taban (gün) ' + UT, 's', 'titOgulTabanGun'],
+      ['w', 'Artış', 'Tabanın katı ' + UT, 's', 'titOgulArtisOran'],
+      ['w', 'Artış', 'Art arda artan gece ' + UT, 's', 'titOgulArtisGece']] },
+    { t: 'Titreşim: Ana ötmesi', kk: ['titOtme'], src: 'Ramsey M.-T., Bencsik M., Newton M.I. ve ark. (2020). Sci. Rep. 10:9798, doi:10.1038/s41598-020-66115-5 · tooting 200–550 Hz (~400 Hz), quacking ~300–350 Hz; tooting her zaman quacking’den önce', not: 'Tooting sonra quacking → «Bakire ana çıktı, ikincil oğul riski». «Ses: Ana arı ötme sırası» ile tek uyarı. Pencere uzman tahmini.', r: [
+      ['i', 'Tooting', 'Alt (Hz) · Ramsey 2020', 's', 'titTootHzMin'],
+      ['i', 'Tooting', 'Üst (Hz) · Ramsey 2020', 's', 'titTootHzMax'],
+      ['i', 'Quacking', 'Alt (Hz) · Ramsey 2020', 's', 'titQuackHzMin'],
+      ['i', 'Quacking', 'Üst (Hz) · Ramsey 2020', 's', 'titQuackHzMax'],
+      ['w', 'Sıra', 'Tooting→quacking penceresi (saat) ' + UT, 's', 'titOtmeSiraSaat']] },
+    { t: 'Titreşim: Rahatsız edilme / darbe', kk: ['titDarbe'], src: 'Ramsey M., Bencsik M., Newton M.I. (2017). Long-term trends in the honeybee \'whooping signal\' revealed by automated detection. PLoS One 12(2):e0171162, doi:10.1371/journal.pone.0171162 · 200–400 Hz kısa sinyaller (0,05–0,2 sn)', not: 'Kısa sinyaller kendi tabanının çok üstünde ya da tek büyük ivme sıçraması (hırsız/hayvan). «Ses: Rahatsız edilme» ile tek uyarı. Kat, pencere, sayı ve g eşiği uzman tahmini.', r: [
+      ['i', 'Sinyal', 'Alt (Hz) · Ramsey 2017', 's', 'titDarbeHzMin'],
+      ['i', 'Sinyal', 'Üst (Hz) · Ramsey 2017', 's', 'titDarbeHzMax'],
+      ['i', 'Sinyal', 'En kısa (ms) · Ramsey 2017', 's', 'titDarbeMinMs'],
+      ['i', 'Sinyal', 'En uzun (ms) · Ramsey 2017', 's', 'titDarbeMaxMs'],
+      ['w', 'Pencere', 'Süre (dk) ' + UT, 's', 'titDarbePencereDk'],
+      ['w', 'Pencere', 'En az sinyal ' + UT, 's', 'titDarbeMinSay'],
+      ['w', 'Taban', 'Tabanın katı ' + UT, 's', 'titDarbeKat'],
+      ['c', 'Darbe', 'Tek ivme sıçraması ≥ (g) ' + UT, 's', 'titSpikeG']] },
+    { t: 'Titreşim: Kış hareketsizliği', kk: ['titKis'], src: 'Bencsik M. ve ark. (2024). Sci. Rep., doi:10.1038/s41598-024-54107-8 (kışın titreşim sıfıra yakın → koloni kaybı)', not: '«Koloni sönmüş olabilir» ile tek uyarı; yalnız titreşimse kullanıcıya «Koloni ölümü şüphesi». Tüm eşikler uzman tahmini.', r: [
+      ['w', 'Dönem', 'Başlangıç ayı ' + UT, 's', 'titKisAyBas'],
+      ['w', 'Dönem', 'Bitiş ayı ' + UT, 's', 'titKisAySon'],
+      ['w', 'Taban', 'Kendi taban (gün) ' + UT, 's', 'titKisTabanGun'],
+      ['w', 'Süre', 'Kesintisiz (saat) ' + UT, 's', 'titKisSaat'],
+      ['c', 'Düşüş', 'Tabanın bu oranının altı ' + UT, 's', 'titKisOran']] },
     { t: 'IR (giriş sayacı)', kk: ['irOgul','irYagma','irTrafik'], src: 'Oğul: Struye 1994, Apidologie 25:384, doi:10.1051/apido:19940405 (destekleyici) · değerler uzman tahmini', not: 'Giriş/çıkış ayrı sayan sayaç gerekir; yoksa «Veri yok».', r: [
       ['a', 'Oğul', 'Net çıkış en az (arı) ' + UT, 's', 'irOgulNetCikis'],
       ['a', 'Pencere', 'Süre (dk) ' + UT, 's', 'irOgulDk'],
@@ -184,7 +214,7 @@
   function kkSet(id, kapali) { var L = kkList().filter(function (x) { return x !== id; }); if (kapali) L.push(id); if (KSEC === 'g') KK.g = L; else { var p = KSEC.split('|'), m = p[0] === 'u' ? KK.u : KK.a, key = p.slice(1).join('|'); if (L.length) m[key] = L; else delete m[key]; } }
   function kkRow(id) { var kap = kkList().indexOf(id) >= 0, gk = KSEC !== 'g' && KK.g.indexOf(id) >= 0; return '<div class="kk" data-kkr="' + id + '"><span>' + esc(KAD[id] || id) + (gk ? ' <small class="off">(genelde kapalı)</small>' : '') + '</span><label><input type="checkbox" data-kk="' + id + '"' + (kap ? '' : ' checked') + '><span class="' + (kap ? 'off' : '') + '">' + (kap ? 'Kapalı' : 'Açık') + '</span></label></div>'; }
   /* koloni-220: toplu aç/kapa — grup ve tümü, seçili kapsam için */
-  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']], ['Koloni durumu', ['koloniSonuk', 'yavrusuzSicak', 'tarlaciKayip', 'esekGiris', 'havalandirma']]];
+  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim', 'titOgul', 'titOtme', 'titDarbe', 'titKis']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']], ['Koloni durumu', ['koloniSonuk', 'yavrusuzSicak', 'tarlaciKayip', 'esekGiris', 'havalandirma']]];
   function kkTum() { return KG.reduce(function (a, g) { return a.concat(g[1]); }, []); }
   function kkGrpRow(i) { var g = KG[i], L = kkList(), ac = g[1].filter(function (x) { return L.indexOf(x) < 0; }).length; return '<div class="kk kkg" data-kkg="' + i + '"><span><b>' + esc(g[0]) + '</b> <small class="' + (ac < g[1].length ? 'off' : '') + '">' + ac + '/' + g[1].length + ' açık</small></span><span class="kkb"><button type="button" class="btn" data-kkga="' + i + '|1">Aç</button><button type="button" class="btn" data-kkga="' + i + '|0">Kapat</button></span></div>'; }
   function kkTop() { return '<div class="kks"><button type="button" class="btn" data-kkall="1">Tümünü aç</button><button type="button" class="btn" data-kkall="0">Tümünü kapat</button></div>' + KG.map(function (_, i) { return kkGrpRow(i); }).join(''); }
