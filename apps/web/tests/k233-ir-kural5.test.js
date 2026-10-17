@@ -1,4 +1,4 @@
-/* k233: 5 IR giriş sayacı kuralı — ilaçlama, dönmeyen tarlacı, düşük aktivite, sayaç arızası, oğul çıktı; tek kaynak, aç/kapa, sayısız metin, Veri yok. */
+/* k233: 5 IR giriş sayacı kuralı — ilaçlama, dönmeyen tarlacı, düşük aktivite, sayaç arızası, oğul çıktı; tek kaynak, aç/kapa, sayısız metin, Cihaz yok / Veri yok. */
 const assert=require('assert'),vm=require('vm'),fs=require('fs'),path=require('path');
 const W=path.join(__dirname,'..');
 const store={},ls={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]},key:i=>Object.keys(store)[i],get length(){return Object.keys(store).length}};
@@ -42,7 +42,8 @@ assert.ok(/shY\.tarlaciKayip && !shY\.irDonmeyen/.test(src),'tarlacı tek uyarı
 assert.ok(/kra-ses-ogulani-' \+ h\.id, code: 'ALARM_KRITIK_SW_01'/.test(src),'oğul tek uyarı');
 const p=fs.readFileSync(path.join(W,'../yonetici/panel10.js'),'utf8');
 ['10.1051/apido:19940405','10.1126/science.1215039','10.1007/s13592-018-0565-3','10.1111/aab.12727',"'irOgulCikti']]"].forEach(x=>assert.ok(p.includes(x),x));
-assert.ok(fs.readFileSync(path.join(W,'kovan.html'),'utf8').includes('Giriş sayacı: Veri yok'));
+assert.ok(fs.readFileSync(path.join(W,'kovan.html'),'utf8').includes('girisSayacDurum'));
+assert.ok(fs.readFileSync(path.join(W,'kovan.html'),'utf8').includes('Cihaz yok'));
 const m=fs.readFileSync(path.join(W,'../../supabase/migrations/20261017190000_k233_ir_kural5.sql'),'utf8');['ir_ilac','ir_ogul_cikti','uzman tahmini','yapilacaklar'].forEach(x=>assert.ok(m.includes(x),x));
 assert.strictEqual(src,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
 console.log('k233-ir-kural5 ok');

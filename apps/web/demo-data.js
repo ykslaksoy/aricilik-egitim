@@ -3797,7 +3797,7 @@
       (1) koloniSonuk — Meikle ve ark. 2017 (kavram): kovan sıcaklığı düzenlenmez (günlük salınım dış havaya yaklaşır), IR ~0, ağırlık yalnız oynar.
       (2) yavrusuz — Groh 2004 / Kleinhenz 2003 / Meikle 2017: yavru varken kuluçka 34–35 °C sabit; büyük günlük salınım → yavru kalmamış olabilir (anasızlık uyarısıyla tek uyarı).
       (3) tarlaciKayip — Meikle 2008 / 2018, Meikle & Holst 2014: uygun uçuş gününde sabah çıkış düşüşü kovanın kendi tabanına göre kaybolur.
-      (4) esekGiris — giriş sıcaklığı sıçraması (tıslama ile eşleşme derivedItems'ta). Giriş sensörü yoksa «Veri yok».
+      (4) esekGiris — giriş sıcaklığı sıçraması (tıslama ile eşleşme derivedItems'ta). Giriş sensörü yoksa «Cihaz yok».
       (5) havalandirma — CO₂ sensörü olmadan: sıcak+nemli kuluçka ya da soğuk dönemde yoğuşma riski; yelpazeleme sesi destekler. */
   function kuralYeni5(S, T, r, nowMs) {
     var H = 3600000, D = 24 * H, ap = S.apiaryId, ay = new Date(nowMs).getMonth() + 1;
@@ -3927,8 +3927,47 @@
     r.titKis = tb > 0 && y.every(function (x) { return x.v <= tb * T.titKisOran; });
     return r;
   }
-  /* koloni-232: kovanda titreşim verisi yoksa «Veri yok» (kullanıcıya kısa metin) */
-  function titresimDurum(hid) { try { var S = hiveSens(hid, Date.now()); return S && S.titresim && S.titresim.length ? 'Titreşim uyarıları: açık' : 'Titreşim uyarıları: Veri yok'; } catch (e) { return 'Titreşim uyarıları: Veri yok'; } }
+  /* koloni-234: cihaz yok / devre dışı / veri yok ayrımı (kısa metin; frekans yok). Admin «Veri yok» (bilimsel kaynak yok) değişmez. */
+  function hiveCihazTipDurum(hid, tipEs) {
+    var L = [];
+    try {
+      var DV = global.SuperAriDevices;
+      if (DV && DV.listDevices) L = DV.listDevices().filter(function (d) {
+        if (!d || d.hiveId == null || Number(d.hiveId) !== Number(hid)) return false;
+        return typeof tipEs === 'function' ? tipEs(d) : (String(d.tip || d.type) === String(tipEs));
+      });
+    } catch (e) { L = []; }
+    var aktif = L.filter(function (d) { return !d.disabled; });
+    if (aktif.length) return 'aktif';
+    if (L.length) return 'devre_disi';
+    return 'yok';
+  }
+  function sensorCihazMetin(onEk, kod, varMi) {
+    if (kod === 'yok') return onEk + ': Cihaz yok';
+    if (kod === 'devre_disi') return onEk + ': Cihaz devre dışı';
+    return onEk + ': ' + (varMi ? 'açık' : 'Veri yok');
+  }
+  function titresimDurum(hid) {
+    try {
+      var kod = hiveCihazTipDurum(hid, 'titresim');
+      var S = hiveSens(hid, Date.now());
+      return sensorCihazMetin('Titreşim uyarıları', kod, !!(S && S.titresim && S.titresim.length));
+    } catch (e) { return 'Titreşim uyarıları: Cihaz yok'; }
+  }
+  function girisSayacDurum(hid) {
+    try {
+      var kod = hiveCihazTipDurum(hid, 'ir');
+      var S = hiveSens(hid, Date.now());
+      return sensorCihazMetin('Giriş sayacı', kod, !!(S && S.ir && S.ir.length));
+    } catch (e) { return 'Giriş sayacı: Cihaz yok'; }
+  }
+  function girisSicakDurum(hid) {
+    try {
+      var kod = hiveCihazTipDurum(hid, function (d) { return String(d.tip || d.type) === 'isi_nem' && String(d.yer || '') === 'giris'; });
+      var S = hiveSens(hid, Date.now());
+      return sensorCihazMetin('Giriş sıcaklığı', kod, !!(S && S.giris && S.giris.length));
+    } catch (e) { return 'Giriş sıcaklığı: Cihaz yok'; }
+  }
 
   /** koloni-233 (kullanıcı onayı): 5 IR giriş sayacı kuralı. Değerler OGUL_SKOR.sensor (tek kaynak, panelden); kaynaklar yalnız yönetici panelinde; teşhis değil. Devre dışı cihaz okumaları sensList'te zaten elenir.
       (1) irIlac — Struye 1994 (Apidologie 25:384): gündüz giren ani artar, çıkan düşer (normalde görülmez).
@@ -3945,7 +3984,7 @@
     function top(L, a, b, f) { var s = 0, n = 0; L.forEach(function (x) { if (x.t > a && x.t <= b) { s += f(x); n++; } }); return n ? s : null; }
     var IR = (S.ir || []).filter(function (x) { return gir(x) != null && cik(x) != null; }), O = (S.dis || []).filter(function (x) { return num(x.tempC) != null; });
     r.irVeri = IR.length > 0; r.irIlac = false; r.irDonmeyen = false; r.irDusukAktivite = false; r.irSayac = false; r.irSayacNeden = null; r.irOgulCikti = false; r.irOgulTarti = false;
-    if (!IR.length) return r; /* giriş sayacı yok → «Veri yok» (uyarı değil) */
+    if (!IR.length) return r; /* giriş sayacı okuması yok → uyarı yok (metin: Cihaz yok / Veri yok) */
     var son = IR[IR.length - 1].t, g0 = new Date(son); g0.setHours(0, 0, 0, 0); var g0t = g0.getTime();
     var gb = T.gunduzSaatBas != null ? T.gunduzSaatBas : 7, gs = T.gunduzSaatSon != null ? T.gunduzSaatSon : 19;
     function gun(k) { var a = g0t - k * D, b = a + D; return { g: top(IR, a - 1, b - 1, gir), c: top(IR, a - 1, b - 1, cik), a: a, b: b }; }
@@ -4195,7 +4234,7 @@
       if (r.rahatsiz) r.notes.push('Sensör: kovan rahatsız edilmiş olabilir');
     }
     titresimYeni4(S, T, r, son);
-    /* (4) Papachristoforou ve ark. 2008: eşek arısı saldırısında tıslama (baskın ~5,9 kHz, ~0,62 sn). Mikrofon örneklemesi yetmezse «Veri yok / mikrofon desteklemiyor». */
+    /* (4) Papachristoforou ve ark. 2008: eşek arısı saldırısında tıslama (baskın ~5,9 kHz, ~0,62 sn). Mikrofon örneklemesi yetmezse «Mikrofon desteklemiyor»; mikrofon yoksa «Cihaz yok». */
     r.esekArisi = false; r.esekDurum = null;
     if (kuralAcik('sesEsekArisi', aid)) {
       var sr = Number(S.sesOrnekleme);
@@ -4210,7 +4249,12 @@
     }
   }
   /** koloni-227: kullanıcı uygulaması için eşek arısı algılama durumu (sayı yok). */
-  function esekMikDurum(d) { var T = (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR, r = Number(d && (d.ornekleme != null ? d.ornekleme : d.sampleRate)); return isFinite(r) && r >= T.esekMinOrneklemeHz ? 'Eşek arısı algılama: hazır' : 'Eşek arısı algılama: Veri yok / mikrofon desteklemiyor'; }
+  function esekMikDurum(d) {
+    if (!d) return 'Eşek arısı algılama: Cihaz yok';
+    if (d.disabled) return 'Eşek arısı algılama: Cihaz devre dışı';
+    var T = (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR, r = Number(d.ornekleme != null ? d.ornekleme : d.sampleRate);
+    return isFinite(r) && r >= T.esekMinOrneklemeHz ? 'Eşek arısı algılama: hazır' : 'Eşek arısı algılama: Mikrofon desteklemiyor';
+  }
   /** Sensör katkısı: { piping, sikArti, sikTahmin, nektar, notes[] }. T = eşikler. */
   function sensorOrs(S, capFrames, T) {
     var r = { piping: false, sikArti: 0, sikTahmin: null, nektar: false, notes: [] }, H = 3600000;
@@ -6592,7 +6636,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },
