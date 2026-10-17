@@ -395,6 +395,7 @@
       } catch (e) { /* ignore */ }
       /* k157: arılık değişince ekran yerinde kalır (konum + yükseklik korunur) */
       if (global.SuperAriScroll) global.SuperAriScroll.keep(render); else render();
+      try { global.dispatchEvent(new CustomEvent('superari-kapsam', { detail: { scope: scope } })); } catch (eEv) { /* k253: sabit kartlar kapsama göre süzülür */ }
     }
     function step(d) { var l = list(), i = l.indexOf(scope); setScope(l[((i + d) % l.length + l.length) % l.length]); }
     q('[data-ks-prev]').addEventListener('click', function () { step(-1); });

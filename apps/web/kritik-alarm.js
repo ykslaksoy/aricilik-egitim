@@ -61,7 +61,7 @@
     L.forEach(function (x) { if (x.key === k && !x.kapandi) v = x; });
     if (v) { if (v.iyilesti) { v.iyilesti = false; v.metin = o.metin || AD[kod][1]; wj(KEY, L); degisti(); } return v; }
     v = { id: 'kr' + Date.now() + Math.floor(Math.random() * 1000), key: k, kod: kod, tip: kod, sabit: SABIT[kod] != null, hiveId: o.hiveId == null ? null : o.hiveId, apiaryId: o.apiaryId || null,
-      baslik: o.baslik || AD[kod][0], metin: o.metin || AD[kod][1], aksiyon: o.aksiyon || '', onay: o.onay || null, at: new Date().toISOString(), iyilesti: false, kapandi: null };
+      baslik: o.baslik || AD[kod][0], metin: o.metin || AD[kod][1], aksiyon: o.aksiyon || '', onay: o.onay || null, nedenler: o.nedenler || null, at: new Date().toISOString(), iyilesti: false, kapandi: null };
     L.push(v); wj(KEY, L);
     var eb = o.ekibeGitme ? null : ekibeBildir('olustu', v); /* k222: ekipten gelen bildirim geri yayınlanmaz */
     gecmiseYaz({ olay: 'acildi', id: v.id, kod: kod, baslik: v.baslik, metin: v.metin, hiveId: v.hiveId, apiaryId: v.apiaryId, at: v.at, ekibe: !!eb }); degisti(); return v;
@@ -107,11 +107,32 @@
   function orsGozle(hiveId, key, puan, apiaryId) { var M = rj(ORSS, {}), e = M[hiveId] || null; M[hiveId] = key; wj(ORSS, M); if (puan != null && puan < 70) iyilesti('ors_70', String(hiveId)); return orsDegisim(hiveId, e, key, puan, apiaryId); }
   function liste() { return rj(KEY, []).filter(function (x) { return !x.kapandi && x.sabit; }).sort(function (a, b) { return (SABIT[a.kod] - SABIT[b.kod]) || (a.at < b.at ? 1 : -1); }); }
   function tumu() { return rj(KEY, []); }
+  /* k253: kapsam — tek arılık seçiliyken başka arılığın kartı gösterilmez (Tümü'nde hepsi). Arılığı olmayan kart her kapsamda görünür. */
+  function kapsam() { try { var s = global.localStorage.getItem('superari.bakim.scope'); return s && s !== 'all' ? String(s) : null; } catch (e) { return null; } }
+  function gorunur(x, sc) { sc = sc === undefined ? kapsam() : sc; return !sc || x.apiaryId == null || x.apiaryId === '' || String(x.apiaryId) === sc; }
+  /* k253: mevsim kapalı arılıkta eski ALARM_ARILIK_KOSUL_01 kartları (artış durdu → taşınma önerisi, «Besleme planla») olağan durumdu:
+     öneri ve besleme eylemi kaldırılır; geriye eylem kalmazsa kart «Sistem (mevsim dışı)» kaydıyla kapanır. */
+  function mevsimTemizle() {
+    var C = global.SuperAriDemo && global.SuperAriDemo.colony; if (!C || !C.ucusSezon) return 0;
+    var L = rj(KEY, []), n = 0, simdi = new Date().toISOString();
+    L.forEach(function (x) {
+      if (x.kod !== 'ALARM_ARILIK_KOSUL_01' || x.kapandi || !x.apiaryId) return;
+      var s = null; try { s = C.ucusSezon(x.apiaryId); } catch (e) { s = null; } if (!s || s.acik) return;
+      var ch = false;
+      if (x.onay && x.onay.tip === 'tasinma') { x.onay = null; ch = true; }
+      var ak = String(x.aksiyon || '').replace(/\s*Besleme planla\.\s*/g, ' ').trim(); if (ak !== (x.aksiyon || '')) { x.aksiyon = ak; ch = true; }
+      if (x.nedenler) x.nedenler = x.nedenler.filter(function (k) { return k !== 'flora'; });
+      if (ch && !x.aksiyon) { x.kapandi = { kim: 'Sistem (mevsim dışı)', at: simdi }; gecmiseYaz({ olay: 'tamam', id: x.id, kod: x.kod, baslik: x.baslik, kim: x.kapandi.kim, at: simdi, apiaryId: x.apiaryId, ekibe: false }); }
+      if (ch) n++;
+    });
+    if (n) wj(KEY, L); return n;
+  }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   /** Sabit kartları çiz; altındaki içerik yer değiştirmesin diye kaydırma telafisi. */
   function ciz(el) {
     if (!el) return; var d = global.document, se = d.scrollingElement || d.documentElement, h0 = el.offsetHeight, kayik = se.scrollTop > 0;
-    el.innerHTML = liste().map(function (x) {
+    var sc = kapsam();
+    el.innerHTML = liste().filter(function (x) { return gorunur(x, sc); }).map(function (x) {
       var kr = SABIT[x.kod] < 3;
       return '<div class="kr-kart" role="alert" data-kr="' + esc(x.id) + '" style="border:2px solid ' + (x.iyilesti ? '#3c8d4a' : (kr ? '#c0392b' : '#d68910')) + ';background:' + (x.iyilesti ? '#eef8ef' : (kr ? '#fdecea' : '#fef5e7')) + ';border-radius:12px;padding:10px 12px;margin:0 0 8px;">' +
         '<div style="font-weight:800;">' + esc(x.baslik) + (x.hiveId != null ? ' · Kovan ' + esc(x.hiveId) : '') + '</div><div style="margin:4px 0;">' + esc(x.metin) + '</div>' +
@@ -122,14 +143,15 @@
     var dh = el.offsetHeight - h0; if (dh && kayik) global.scrollBy(0, dh);
   }
   function bagla(el) {
-    if (!el || el.__kr) return; el.__kr = 1; ciz(el); gonder();
+    if (!el || el.__kr) return; el.__kr = 1; try { mevsimTemizle(); } catch (e0) { /* */ } ciz(el); gonder();
     el.addEventListener('click', function (e) {
       var t = e.target.closest('[data-kr-tamam]'); if (t) { tamam(t.getAttribute('data-kr-tamam')); return; }
       var o = e.target.closest('[data-kr-onay]'); if (o) { var v = tumu().filter(function (x) { return x.id === o.getAttribute('data-kr-onay'); })[0]; try { global.dispatchEvent(new CustomEvent('superari-tasinma-onay', { detail: v })); } catch (er) { /* */ } }
     });
     global.addEventListener('superari-kritik', function () { ciz(el); });
+    global.addEventListener('superari-kapsam', function () { ciz(el); }); /* k253: arılık değişince yerinde süz */
     global.addEventListener('storage', function (e) { if (e.key === KEY) ciz(el); });
   }
   global.SuperAriKritik = { ac: ac, iyilesti: iyilesti, tamam: tamam, liste: liste, tumu: tumu, gecmis: gecmis, sesten: sesten, orsDegisim: orsDegisim, orsGozle: orsGozle, gecmisEkle: gecmiseYaz, aniKayip: aniKayip,
-    kapatanMetni: kapatanMetni, ekibeGider: ekibeGider, ekipListesi: ekipListesi, ciz: ciz, bagla: bagla, AD: AD, SABIT: SABIT, _kuyruk: function () { return rj(GIDEN, []); } };
+    kapatanMetni: kapatanMetni, ekibeGider: ekibeGider, ekipListesi: ekipListesi, ciz: ciz, bagla: bagla, gorunur: gorunur, mevsimTemizle: mevsimTemizle, AD: AD, SABIT: SABIT, _kuyruk: function () { return rj(GIDEN, []); } };
 })(typeof window !== 'undefined' ? window : globalThis);

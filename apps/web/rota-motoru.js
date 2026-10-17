@@ -26,6 +26,8 @@
   }
   function rakimHazir(ap) { if (!ap) return null; var c = rj(RAKIM, {}); return c[Number(ap.lat).toFixed(4) + ',' + Number(ap.lon).toFixed(4)]; }
 
+  /* k253: arılığın uçuş/toplama mevsimi açık mı (koloni-249 ucusSezon: bölge profili, yönetici elle). null = bilinmiyor. */
+  function sezonAcik(apId) { var d = D(); try { var s = d && d.colony && d.colony.ucusSezon ? d.colony.ucusSezon(apId) : null; return s ? !!s.acik : null; } catch (e) { return null; } }
   function seri(apId) { var p = P2(); return p && p.netArtis ? p.netArtis(apId, 100000) : []; }
   function kayan(s, w) { var o = []; for (var i = w - 1; i < s.length; i++) { var t = 0; for (var j = i - w + 1; j <= i; j++) t += s[j].kg; o.push(t / w); } return o; }
 
@@ -75,12 +77,16 @@
     var b = artisBitti(ap); if (!b) return { durum: 'veri_yok', metin: 'Veri yok' };
     if (!b.bitti) return { durum: 'devam', metin: '' };
     ay = ay || (new Date().getMonth() + 1);
+    /* k253: mevsim kapalıyken (kışlama) artışın durması olağan — taşınma önerilmez. Tek istisna: kayıtlı bir arılıkta tartıyla doğrulanmış süren artış (gerçek güz akımı).
+       Takvim ayı (çiçeklenme takvimi) tek başına güz akımı sayılmaz; harici aday önerilmez. */
+    var kis = sezonAcik(apId) === false;
     var kayitli = all.filter(function (a) { return String(a.id) !== String(apId); }).map(function (a) {
       var x = artisBitti(a), dn = C() ? C().donem({ il: a.il, ilce: a.ilce }, ay) : null;
-      var uygun = x ? !x.bitti : !!(dn && dn.aktif); return uygun ? { ap: a, p: rotaPuan(a.il, a.ilce) } : null;
+      var uygun = kis ? !!(x && x.yontem === 'tarti' && !x.bitti) : (x ? !x.bitti : !!(dn && dn.aktif)); return uygun ? { ap: a, p: rotaPuan(a.il, a.ilce) } : null;
     }).filter(Boolean).sort(function (x, y) { return (y.p.puan == null ? -1 : y.p.puan) - (x.p.puan == null ? -1 : x.p.puan); });
     if (kayitli.length) { var k = kayitli[0]; return { durum: 'kayitli', hedef: { apiaryId: k.ap.id, ad: k.ap.name, il: k.ap.il, ilce: k.ap.ilce }, puan: k.p.puan, puanMetin: k.p.metin,
       metin: ap.name + ': artış durdu. ' + k.ap.name + ' yerini kontrol et, taşınmayı planla.' }; }
+    if (kis) return { durum: 'mevsim_disi', metin: '' };
     var mevcut = {}; all.forEach(function (a) { mevcut[n(a.il) + '|' + n(a.ilce)] = 1; });
     var dis = (C() ? C().adaylar(ay) : []).filter(function (x) { return !mevcut[n(x.il) + '|' + n(x.ilce)]; })
       .map(function (x) { return { x: x, p: rotaPuan(x.il, x.ilce), r: C().bul(x.il, x.ilce) }; })
@@ -132,7 +138,8 @@
     th = th || T(); kosul = kosul || {};
     var su = suRiski(kosul.su_m, th), neden = {};
     if (su.risk != null && su.risk > 0) neden.su = su.risk > 0.999 ? 'cok_uzak' : 'uzak';
-    if (kosul.floraAktif === false) neden.flora = 1;
+    /* k253: mevsim dışında çiçek olmaması olağan — «flora» nedeni (Besleme planla + taşınma önerisi) yalnız mevsim açıkken */
+    if (kosul.floraAktif === false && sezonAcik(apId) !== false) neden.flora = 1;
     if (kosul.alan === false && kosul.ilaclama) neden.alan = 1;
     var veriYok = su.risk == null && kosul.floraAktif == null && kosul.alan == null;
     var all = rj(KOSUL, {}), eski = all[apId] || { acik: {} }, yeniAcik = {}, uyNeden = [];
@@ -151,8 +158,8 @@
       uy = { kod: 'ALARM_ARILIK_KOSUL_01', apiaryId: apId, baslik: 'Arılık koşulları değişti', metin: 'Bu arılığın koşulları değişti. Kontrol et.', aksiyon: aks.join(' '), nedenler: uyNeden,
         onay: oneri ? { soru: oneri.metin + ' Onaylıyor musun?', hedef: oneri.hedef, tip: 'tasinma' } : null };
     }
-    var K = global.SuperAriKritik; if (K) { if (uy) K.ac({ kod: uy.kod, anahtar: apId, apiaryId: apId, aksiyon: uy.aksiyon, onay: uy.onay }); else if (kapanan.length && !Object.keys(yeniAcik).length) K.iyilesti('ALARM_ARILIK_KOSUL_01', apId); }
+    var K = global.SuperAriKritik; if (K) { if (uy) K.ac({ kod: uy.kod, anahtar: apId, apiaryId: apId, aksiyon: uy.aksiyon, onay: uy.onay, nedenler: uy.nedenler }); else if (kapanan.length && !Object.keys(yeniAcik).length) K.iyilesti('ALARM_ARILIK_KOSUL_01', apId); }
     return { durum: 'tamam', acik: Object.keys(yeniAcik), uyari: uy, kapanan: kapanan };
   }
-  global.SuperAriRota = { rakim: rakim, rakimHazir: rakimHazir, esikOgren: esikOgren, rotaPuan: rotaPuan, artisBitti: artisBitti, yonlendir: yonlendir, _kayan: kayan, suRiski: suRiski, toplamaAlaniGuvenli: toplamaAlaniGuvenli, filtreRota: filtreRota, kosulDegerlendir: kosulDegerlendir };
+  global.SuperAriRota = { rakim: rakim, rakimHazir: rakimHazir, esikOgren: esikOgren, rotaPuan: rotaPuan, artisBitti: artisBitti, yonlendir: yonlendir, _kayan: kayan, suRiski: suRiski, toplamaAlaniGuvenli: toplamaAlaniGuvenli, filtreRota: filtreRota, kosulDegerlendir: kosulDegerlendir, sezonAcik: sezonAcik };
 })(typeof window !== 'undefined' ? window : globalThis);
