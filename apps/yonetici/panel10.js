@@ -38,9 +38,17 @@
       ['w', 'Genel', 'Günlük kayıp ≥ geçmişin katı ' + UT, 's', 'genelKayipKat'],
       ['w', 'Genel', 'En az günlük kayıp (kg) ' + UT, 's', 'genelKayipMinKg'],
       ['i', 'Nektar', 'Günlük artış en az (kg)', 's', 'nektarKg']] },
-    { t: 'Okuma sıklığı (varsayılan)', kk: [], src: 'Meikle W.G. ve ark. tartı için 5–15 dk (ör. 2008 Apidologie 39:694; 2014 Apidologie 46:10) · sıcaklık/nem 30 dk uzman tahmini · pil planı bu tabanı kullanır; seyreltme yalnız «Onayla» ile', not: 'Cihaz ölçüm sıklığının varsayılanı. Pil düşükken önerilen seyreltme bu değerlerden başlar; kullanıcı Onayla demeden değişmez. Eşek arısı ±0,5 °C / {s:esekEslesDk} dk için 30 dk taban yetmez → tıslama veya titreşim artınca sıcaklık {s:okumaEsekHizliDk} dk’da bir okunur (uzman tahmini).', r: [
-      ['i', 'Sıcaklık/nem', 'İç + giriş + cihazlı dış (dk) ' + UT, 's', 'okumaIsiNemDk'],
+    { t: 'Okuma sıklığı (varsayılan)', kk: [], cz: 1, src: 'Tartı: Meikle W.G. ve ark. 5–15 dk (ör. 2008 Apidologie 39:694; 2014 Apidologie 46:10) · Titreşim: Ramsey M-T. ve ark. 2020 Sci Rep 10:9798 (sürekli kayıt, 3 dk ortalama spektrum; gece 00–05) · diğerleri uzman tahmini · pil planı bu tabanı kullanır; seyreltme yalnız «Onayla» ile', not: 'Cihaz ölçüm sıklığının varsayılanı. Pil düşükken önerilen seyreltme bu değerlerden başlar; kullanıcı Onayla demeden değişmez. Eşek arısı ±0,5 °C / {s:esekEslesDk} dk için 30 dk taban yetmez → tıslama veya titreşim artınca iç ve giriş sıcaklığı {s:okumaEsekHizliDk} dk’da bir okunur (uzman tahmini). Ses ve titreşimde cihaz sürekli dinler; aralık yalnız ortalama spektrumun kaydedilme sıklığıdır. Piping, tıslama, dur sinyali, ana ötmesi ve darbe olay anında gönderilir, aralığa bağlı değildir. Oğul çıktı (IR) {s:ogulCiktiDk} dk pencereye bakar: giriş sayacı en çok yarısı kadar, gateway en çok o kadar seyrek olmalı.', r: [
+      ['i', 'İç sıcaklık/nem', 'Kovan içi (dk) ' + UT, 's', 'okumaIsiNemDk'],
+      ['i', 'Giriş sıcaklığı', 'Giriş sensörü (dk) ' + UT, 's', 'okumaGirisSicakDk'],
+      ['i', 'Dış hava', 'Cihazlı dış sıcaklık + nem (dk) ' + UT, 's', 'okumaDisHavaDk'],
       ['i', 'Tartı', 'Ağırlık (dk) · Meikle 5–15; seçim 15 ' + UT, 's', 'okumaTartiDk'],
+      ['i', 'Ses', 'Mikrofon ortalama spektrum (dk) ' + UT, 's', 'okumaSesDk'],
+      ['i', 'Titreşim', 'İvmeölçer ortalama spektrum (dk) · Ramsey 2020 (3 dk)', 's', 'okumaTitDk'],
+      ['i', 'Giriş sayacı', 'IR giren / çıkan toplama (dk) ' + UT, 's', 'okumaIrDk'],
+      ['i', 'Pil', 'Pil okuma (dk) ' + UT, 's', 'okumaPilDk'],
+      ['i', 'Kamera', 'Fotoğraf (dk; 1440 = günde 1) ' + UT, 's', 'okumaKameraDk'],
+      ['i', 'Gateway', 'Buluta gönderim (dk) ' + UT, 's', 'okumaGatewayDk'],
       ['i', 'Eşek hızlı', 'Tıslama/titreşim tetiklenince sıcaklık (dk) ' + UT, 's', 'okumaEsekHizliDk']] },
     { t: 'Ses', kk: ['sesOgulAni','sesPiping','sesQuack','sesAnasiz','sesIsciOtme','sesOgulEgilim','sesSaglik','sesVarroa'], src: 'Frekans bantları: Kural kaynakları → Ses sınıfları (KİLİTLİ, burada yalnız okunur) · Oğul anı 500–600 Hz, +6 dB, 2 dk: uzman tahmini — hakemli kaynak bulunamadı (Ferrari 2008 bant kaymasını gösterir, dB/süre eşiği vermez → aşağıdaki «Oğul öncesi» kuralı); Yapılacaklar\'da', r: [
       ['a', 'Oğul anı', 'Alt (Hz) ' + UT, 'L', 'ogulAniHzMin'],
@@ -277,8 +285,21 @@
     else ctl = '<input inputmode="decimal" data-src="' + src + '" data-k="' + esc(k) + '" value="' + esc(fmt(v)) + '">';
     return '<div class="rw"><span class="tr ' + x[0] + '">' + esc(x[1]) + '</span><span>' + lbl(x[2]) + '</span>' + ctl + '<small>' + (src === 'e' ? 'app_esikler · ' : 'ogul_skor_ayar · ') + esc(k) + (src === 'L' ? ' · kilitli' : ' · tek kaynak') + '</small></div>';
   }
+  /* koloni-242: okuma sıklığı kartında kural çözünürlüğü kontrolü (kaydedilmiş + ekrandaki değerlerle) */
+  function czH() {
+    var M = window.SuperAriPilModel; if (!M || !M.kuralGerek || !M.okumaMs) return '';
+    var th = Object.assign({}, C.ORS_SENSOR || {}, SEN || {});
+    var L = [['titresim', null, 'Titreşim'], ['ir', null, 'Giriş sayacı'], ['tarti', null, 'Tartı'], ['gateway', null, 'Gateway']], o = [];
+    L.forEach(function (x) {
+      var g = M.kuralGerek(x[0], th, x[1]); if (!g) return;
+      var ms = M.okumaMs(x[0], th, x[1]); if (!ms) return;
+      g.kurallar.forEach(function (k) { var ok = ms <= k.ms; o.push('<li class="' + (ok ? 'cz-ok' : 'cz-no') + '">' + (ok ? '✓ ' : '✗ ') + esc(x[2]) + ' ' + Math.round(ms / 60000) + ' dk → ' + esc(k.kural) + ': en çok ' + Math.round(k.ms / 60000) + ' dk (' + esc(k.neden) + ')</li>'); });
+    });
+    o.push('<li class="cz-ok">✓ Ses / titreşim olayları (piping, tıslama, dur sinyali, ana ötmesi, darbe): olay anında, aralıktan bağımsız</li>');
+    return '<div class="cz" data-cz><p class="m"><b>Kural çözünürlüğü</b></p><ul class="m" style="margin:.2rem 0 .4rem;padding-left:1.1rem">' + o.join('') + '</ul></div>';
+  }
   function cardH(c) {
-    return '<div class="mc"><h3>' + esc(c.t) + '</h3>' + (c.kk || []).map(kkRow).join('') + c.r.map(rowH).join('') + (c.vy ? VY : '') + (c.not ? '<p class="m">' + lbl(esc(c.not)) + '</p>' : '') +
+    return '<div class="mc"><h3>' + esc(c.t) + '</h3>' + (c.kk || []).map(kkRow).join('') + c.r.map(rowH).join('') + (c.vy ? VY : '') + (c.cz ? czH() : '') + (c.not ? '<p class="m">' + lbl(esc(c.not)) + '</p>' : '') +
       (c.src ? '<p class="m"><b>Kaynak:</b> ' + esc(c.src) + '</p>' : '') + '<p class="m"><b>' + esc(c.son || 'Son uyarılar') + ':</b> Veri yok</p></div>';
   }
   function cihazMevcut() { return '<div class="mc"><h3>Cihaz sağlığı (mevcut)</h3><p class="m">Buluta bildirilmiş cihaz yok. Cihazlar şu an yalnız kullanıcının telefonunda kayıtlı. Ayrıntı: <a href="#s-cih">Cihaz sağlığı</a> · bildirim aboneliği: <a href="#s-bildirim">Bildirim teslimi</a>.</p></div>'; }

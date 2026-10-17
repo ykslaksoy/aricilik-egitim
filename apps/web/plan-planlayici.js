@@ -3,7 +3,7 @@
 (function (global) {
   var KON_KEY = 'superari.konaklama.v1', CMD_KEY = 'superari.gateway.komut.v1', DAY = 86400000;
   var ARALIK = [900000, 1800000, 3600000, 7200000, 14400000];
-  var ARALIK_AD = { 900000: '15 dakikada bir', 1800000: '30 dakikada bir', 3600000: 'saatte bir', 7200000: '2 saatte bir', 14400000: '4 saatte bir' };
+  var ARALIK_AD = { 180000: '3 dakikada bir', 300000: '5 dakikada bir', 600000: '10 dakikada bir', 900000: '15 dakikada bir', 1800000: '30 dakikada bir', 3600000: 'saatte bir', 7200000: '2 saatte bir', 14400000: '4 saatte bir' };
   function D() { return global.SuperAriDemo; }
   function T() { var d = D(), s = d && d.colony && d.colony.ogulSkor ? d.colony.ogulSkor() : null; var base = (d && d.colony && d.colony.ORS_SENSOR) || {}; return Object.assign({}, base, s && s.sensor ? s.sensor : {}); }
   function rj(k, def) { try { var v = JSON.parse(global.localStorage.getItem(k) || 'null'); return v == null ? def : v; } catch (e) { return def; } }
@@ -102,7 +102,11 @@
     if (geri) { r.oneriMs = geri; r.geri = true; r.soru = 'Pil şarj edildi (%' + r.pct + '). Ölçümü yine ' + ARALIK_AD[geri] + ' yapayım mı?'; }
     else if (oneri) {
       var yeter = Math.floor(t.kalanFor(oneri)), tam = yeter >= hedefGun;
-      r.soru = 'Pil %' + r.pct + ', mevcut sıklıkla ' + r.kalanGun + ' gün yeter. ' + neden + '. ' + cap(ARALIK_AD[ms] || 'mevcut sıklık') + ' yerine ' + ARALIK_AD[oneri] + ' ölçersem ' + (isFinite(yeter) ? yeter + ' gün' : 'yeterince') + ' yeter' + (tam ? '' : ' (yine de pili şarj etmen gerekecek)') + '. Onaylıyor musun?';
+      /* koloni-242: seyreltme kural çözünürlüğünü bozuyorsa soruda açıkça söylenir (karar yine kullanıcının, yalnız Onayla) */
+      var Pk = global.SuperAriSensorPolling, boz = [];
+      try { boz = Pk && Pk.kuralCozunurluk && device ? Pk.kuralCozunurluk(device.tip, oneri, device.yer) : []; } catch (eK) { boz = []; }
+      r.kuralUyari = boz.map(function (x) { return x.kural; });
+      r.soru = 'Pil %' + r.pct + ', mevcut sıklıkla ' + r.kalanGun + ' gün yeter. ' + neden + '. ' + cap(ARALIK_AD[ms] || 'mevcut sıklık') + ' yerine ' + ARALIK_AD[oneri] + ' ölçersem ' + (isFinite(yeter) ? yeter + ' gün' : 'yeterince') + ' yeter' + (tam ? '' : ' (yine de pili şarj etmen gerekecek)') + '.' + (boz.length ? ' Bu sıklıkta şu uyarılar çalışmaz: ' + r.kuralUyari.join(', ') + '.' : '') + ' Onaylıyor musun?';
     } else if (kalma != null && r.kalanGun != null && r.kalanGun < kalma) r.not = 'Pil %' + r.pct + ', ' + r.kalanGun + ' gün yeter; en seyrek ölçümle de yetmiyor — pili şarj et veya değiştir.';
     if (!opts.gecmis && device) {
       pilGorevi(device, r, a);

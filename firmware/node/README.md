@@ -27,5 +27,14 @@ LilyGO T-Weigh · ESP32 · 868 MHz LoRa · 4× HX711
 - `INTERVAL_MS` / `WEIGHT_INTERVAL_MS` — 900000 (15 dk, tartı; Meikle 5–15 dk, uzman tahmini)
 - `TEMP_HUM_INTERVAL_MS` — 1800000 (30 dk, sıcaklık+nem; uzman tahmini)
 - Eşek arısı: tıslama veya titreşim artınca sıcaklık `ESEK_BURST_INTERVAL_MS` (~2 dk) ile `esekEslesDk` penceresi boyunca hızlı okunur (uzman tahmini; uygulamayla aynı mantık)
+- `TEMP_HUM_INTERVAL_MS` artık yalnız kovan içi; `ENTRANCE_TEMP_INTERVAL_MS` — 1800000 (giriş sıcaklığı 30 dk; uzman tahmini; eşek burst bunu da hızlandırır)
+- `OUTDOOR_TEMP_HUM_INTERVAL_MS` — 1800000 (dış hava 30 dk; uzman tahmini)
+- `MIC_SPECTRUM_INTERVAL_MS` — 180000 (ses 3 dk ortalama spektrum; uzman tahmini). Mikrofon sürekli dinler.
+- `VIB_SPECTRUM_INTERVAL_MS` — 180000 (titreşim 3 dk ortalama spektrum; Ramsey ve ark. 2020 Sci Rep 10:9798 sürekli kayıt + 3 dk ortalama). Gece 00–05 spektrumu oğul hazırlığı kuralı için şart.
+- `IR_COUNT_INTERVAL_MS` — 300000 (5 dk; giren ve çıkan **ayrı** gönderilir; uzman tahmini; oğul çıktı 10 dk pencereye en az 2 dilim)
+- `BATTERY_INTERVAL_MS` — 14400000 (pil 4 saat; uzman tahmini)
+- `CAMERA_INTERVAL_MS` — 86400000 (kamera günde 1; uzman tahmini)
+- Olay tabanlı (aralıktan bağımsız, olay anında gönder): piping / tooting / quacking, tıslama, dur sinyali, darbe, IR net çıkış (oğul çıktı).
+- Bütün değerler uygulamada Yönetici › Ölçüm kuralları › «Okuma sıklığı» satırlarıyla aynıdır (`ogul_skor_ayar.sensor.okuma*Dk`). Cihaza ayar indirme yolu henüz yok (Yapılacaklar). Düşük pilde seyreltme yalnız kullanıcı «Onayla» deyince gelir.
 
 PlatformIO + Arduino framework önerilir.

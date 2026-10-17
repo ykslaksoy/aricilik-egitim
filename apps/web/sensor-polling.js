@@ -34,22 +34,30 @@
 
   /** Rakip varsayımları: BroodMinder tartı ~1 sa; TH sık; Arnia/bScale günlük/4x günlük ağırlık. */
   /* koloni-236: tartı 15 dk (Meikle 5–15), ısı/nem 30 dk — varsayılanlar ORS_SENSOR.okuma*Dk ile de okunur (uzman tahmini). */
+  /* koloni-242: diğer sensörler de tek kaynaktan (ORS_SENSOR.okuma*Dk, SuperAriPilModel.okumaMs): ses/titreşim 3 dk ortalama spektrum (titreşim Ramsey 2020; ses uzman tahmini),
+     IR 5 dk giren/çıkan, giriş sıcaklığı + dış hava 30 dk, pil 4 sa, kamera 24 sa, gateway 10 dk (uzman tahmini). Aşağıdaki tablo yalnız ayar okunamazsa yedektir. */
   var DEFAULT_INTERVAL_MS = {
     tarti: 900000,
     isi_nem: 1800000,
-    ses: 3600000,
-    titresim: 1800000,
-    ir: 14400000,
-    gateway: 86400000,
+    dis_isi_nem: 1800000,
+    ses: 180000,
+    titresim: 180000,
+    ir: 300000,
+    gateway: 600000,
     kamera_arilik: 86400000,
     kamera_merkez: 86400000,
     kamera_kovan: 86400000,
     role_hub: 86400000
   };
+  var DEMO_SIM_MIN_MS = { ses: 3600000, titresim: 1800000, ir: 14400000 };
+  var MIN_INTERVAL_MS = 60000; /* koloni-242: 1 dk (ses/titreşim 3 dk, IR 5 dk için; eskiden 5 dk) */
   var burstUntil = {}; /* hiveId → bitiş ms — eşek arısı hızlı sıcaklık */
   var burstLast = {};
 
   var INTERVAL_PRESETS = [
+    { ms: 180000, label: '3 dk' }, /* koloni-242: ses / titreşim ortalama spektrum */
+    { ms: 300000, label: '5 dk' }, /* koloni-242: IR giren/çıkan */
+    { ms: 600000, label: '10 dk' }, /* koloni-242: gateway gönderim */
     { ms: 900000, label: '15 dk' },
     { ms: 1800000, label: '30 dk' },
     { ms: 3600000, label: '1 saat' },
@@ -134,24 +142,52 @@
       return Object.assign({}, c.ORS_SENSOR || {}, s && s.sensor ? s.sensor : {});
     } catch (e) { return {}; }
   }
-  function defaultIntervalMs(tip) {
+  /** koloni-242: tip (+ yer 'giris') → varsayılan ms; tek kaynak ORS_SENSOR.okuma*Dk (pil-model.js okumaMs). */
+  function defaultIntervalMs(tip, yer) {
     var t = String(tip || '');
-    var th = sensorTh();
-    if (t === 'tarti' || t === 'isi_nem' || t === 'dis_isi_nem') {
-      var dk = t === 'tarti' ? Number(th.okumaTartiDk) : Number(th.okumaIsiNemDk);
+    var M = global.SuperAriPilModel, th = sensorTh();
+    if (M && typeof M.okumaMs === 'function') {
+      var ms = M.okumaMs(t, th, yer);
+      if (ms != null) { var n = normalizeInterval(ms); if (n) return n; }
+    } else if (t === 'tarti' || t === 'isi_nem' || t === 'dis_isi_nem') {
+      var dk = t === 'tarti' ? Number(th.okumaTartiDk) : Number(t === 'dis_isi_nem' && th.okumaDisHavaDk ? th.okumaDisHavaDk : th.okumaIsiNemDk);
       if (!(isFinite(dk) && dk > 0)) dk = t === 'tarti' ? 15 : 30;
-      var ms = Math.round(dk) * 60000;
-      var n = normalizeInterval(ms);
-      if (n) return n;
-      if (ms >= 300000) return Math.min(86400000, Math.round(ms / 60000) * 60000);
+      var n2 = normalizeInterval(Math.round(dk) * 60000);
+      if (n2) return n2;
     }
     if (DEFAULT_INTERVAL_MS[t] != null) return DEFAULT_INTERVAL_MS[t];
     return 3600000;
   }
+  /** koloni-242: pil okuma aralığı (okumaPilDk, uzman tahmini; yedek 4 saat). */
+  function batteryIntervalMs() {
+    var M = global.SuperAriPilModel;
+    var ms = M && M.okumaMs ? M.okumaMs('pil', sensorTh()) : null;
+    return ms || DEFAULT_BATTERY_INTERVAL_MS;
+  }
+  /** koloni-242: kuralların gerektirdiği en seyrek aralık (ms) — sıklık bundan seyrekse kural çözünürlüğü yetmez.
+   *  Olay tabanlı algılamalar (piping, tıslama, dur sinyali, ana ötmesi, darbe) aralıktan bağımsızdır: cihaz sürekli dinler, olay anında gönderir. */
+  function kuralGerek(tip, yer) {
+    var M = global.SuperAriPilModel;
+    return M && M.kuralGerek ? M.kuralGerek(tip, sensorTh(), yer) : null;
+  }
+  /** ms bu tip için hangi kuralların çözünürlüğünü bozar (boş = sorun yok). */
+  function kuralCozunurluk(tip, ms, yer) {
+    var g = kuralGerek(tip, yer); if (!g) return [];
+    return g.kurallar.filter(function (x) { return Number(ms) > x.ms; });
+  }
+  /** Yönetici/rapor: tüm varsayılanlar + kural kontrolü. */
+  function okumaOzet() {
+    var tips = [['isi_nem', null, 'Kovan içi sıcaklık/nem'], ['isi_nem', 'giris', 'Giriş sıcaklığı'], ['dis_isi_nem', null, 'Dış hava'], ['tarti', null, 'Tartı'], ['ses', null, 'Ses (mikrofon)'], ['titresim', null, 'Titreşim'], ['ir', null, 'Giriş sayacı (IR)'], ['pil', null, 'Pil'], ['kamera_kovan', null, 'Kamera'], ['gateway', null, 'Gateway gönderim']];
+    return tips.map(function (x) {
+      var ms = x[0] === 'pil' ? batteryIntervalMs() : defaultIntervalMs(x[0], x[1]);
+      var bozuk = kuralCozunurluk(x[0], ms, x[1]);
+      return { tip: x[0], yer: x[1], ad: x[2], ms: ms, etiket: intervalLabel(ms), tamam: !bozuk.length, bozuk: bozuk };
+    });
+  }
 
   function normalizeInterval(ms) {
     var n = Number(ms);
-    if (!isFinite(n) || n < 300000) return null;
+    if (!isFinite(n) || n < MIN_INTERVAL_MS) return null;
     var hit = INTERVAL_PRESETS.filter(function (p) { return p.ms === n; })[0];
     return hit ? hit.ms : Math.min(86400000, Math.round(n / 60000) * 60000);
   }
@@ -174,7 +210,7 @@
       var g0 = normalizeInterval(c.defaults[tip]);
       if (g0) return g0;
     }
-    return defaultIntervalMs(tip);
+    return defaultIntervalMs(tip, device.yer);
   }
 
   function setDeviceInterval(deviceId, ms) {
@@ -335,6 +371,8 @@
     var c = getConfig();
     var last = c.lastPoll[String(device.id)] || 0;
     var iv = resolveIntervalMs(device);
+    /* koloni-242: demo simülasyonu telefon deposunu doldurmasın — ses/titreşim/IR demo satırı eski sıklıkta üretilir (gerçek cihaz kendi aralığıyla push eder) */
+    if ((device.source === 'demo' || !isLive()) && DEMO_SIM_MIN_MS[device.tip]) iv = Math.max(iv, DEMO_SIM_MIN_MS[device.tip]);
     return !last || (nowMs - last) >= iv;
   }
 
@@ -363,7 +401,7 @@
     var c = getConfig();
     var last = c.lastPollBattery[String(device.id)] || 0;
     if (piggyback) return true;
-    return !last || (nowMs - last) >= DEFAULT_BATTERY_INTERVAL_MS;
+    return !last || (nowMs - last) >= batteryIntervalMs();
   }
 
   function simulateBattery(device) {
@@ -437,7 +475,8 @@
     if (tip === 'ir') {
       var prev = lastReading('ir', hiveId, device.id);
       var cnt = prev && prev.count != null ? Number(prev.count) : 40 + (Number(hiveId) % 20);
-      return appendReading({ type: 'ir', hiveId: hiveId, deviceId: device.id, at: at, count: cnt + Math.floor(Math.random() * 8), demo: true });
+      var gi = 20 + Math.floor(Math.random() * 10), ci = 20 + Math.floor(Math.random() * 10);
+      return appendReading({ type: 'ir', hiveId: hiveId, deviceId: device.id, at: at, count: cnt + Math.floor(Math.random() * 8), giren: gi, cikan: ci, demo: true });
     }
     return null;
   }
@@ -458,12 +497,15 @@
     if (!Dev || !Dev.listDevices) return null;
     var list = [];
     try { list = Dev.listDevices(); } catch (e) { list = []; }
-    var dv = list.filter(function (d) {
+    /* koloni-242: kovandaki tüm sıcaklık sensörleri (iç + giriş) hızlı okunur */
+    var dvs = list.filter(function (d) {
       return d && (d.tip === 'isi_nem') && d.hiveId != null && Number(d.hiveId) === Number(hiveId)
         && (d.status === 'bagli' || d.status === 'yok' || d.source === 'demo');
-    })[0];
-    if (!dv) return null;
-    return pollDeviceNow(dv, { nowMs: Date.now() });
+    });
+    if (!dvs.length) return null;
+    var r0 = null;
+    dvs.forEach(function (dv) { var r = pollDeviceNow(dv, { nowMs: Date.now() }); if (!r0) r0 = r; });
+    return r0;
   }
   function burstTick(nowMs) {
     nowMs = nowMs != null ? nowMs : Date.now();
@@ -593,8 +635,13 @@
     var base = [3600000, 14400000, 43200000, 86400000];
     if (tip === 'tarti') base.unshift(900000); /* 15 dk varsayılan */
     if (tip === 'isi_nem' || tip === 'dis_isi_nem') { base.unshift(1800000); base.unshift(900000); } /* 30 dk varsayılan; 15 isteğe bağlı */
-    if (tip === 'titresim') base.unshift(1800000);
-    return INTERVAL_PRESETS.filter(function (p) { return base.indexOf(p.ms) >= 0; });
+    if (tip === 'titresim' || tip === 'ses') { base.unshift(1800000); base.unshift(900000); base.unshift(180000); } /* koloni-242: 3 dk ortalama spektrum */
+    if (tip === 'ir') { base.unshift(1800000); base.unshift(900000); base.unshift(300000); } /* koloni-242: 5 dk giren/çıkan */
+    if (tip === 'gateway') { base.unshift(900000); base.unshift(600000); } /* koloni-242: 10 dk gönderim */
+    var out = INTERVAL_PRESETS.filter(function (p) { return base.indexOf(p.ms) >= 0; });
+    var dv = defaultIntervalMs(tip); /* yönetici varsayılanı her zaman seçilebilir */
+    if (!out.some(function (p) { return p.ms === dv; })) { out.push({ ms: dv, label: intervalLabel(dv) }); out.sort(function (a, b) { return a.ms - b.ms; }); }
+    return out;
   }
 
   function selectHtml(device) {
@@ -649,6 +696,11 @@
     selectHtml: selectHtml,
     bindPollSelects: bindPollSelects,
     presetsForTip: presetsForTip,
+    batteryIntervalMs: batteryIntervalMs,
+    kuralGerek: kuralGerek,
+    kuralCozunurluk: kuralCozunurluk,
+    okumaOzet: okumaOzet,
+    MIN_INTERVAL_MS: MIN_INTERVAL_MS,
     scheduleEsekTempBurst: scheduleEsekTempBurst,
     burstUntil: function () { return burstUntil; },
     sensorTh: sensorTh,

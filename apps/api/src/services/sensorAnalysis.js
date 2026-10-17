@@ -381,7 +381,9 @@ function pilKalanGun(history = [], reading = null, cfg = {}) {
   const h = (history || []).concat(reading ? [reading] : [])
     .map((x) => ({ t: new Date(x?.ts || x?.at || 0).getTime(), p: Number(x?.battery ?? x?.batteryPct) }))
     .filter((x) => x.t > 0 && Number.isFinite(x.p)).sort((a, b) => a.t - b.t);
-  return PilModel.kalanGun(h, cfg.aralikMs || 3600000, cfg.pil || {});
+  /* koloni-242: aralık yoksa uygulamayla aynı varsayılan okuma sıklığı (ogul_skor_ayar.sensor okuma*Dk) */
+  const ms = cfg.aralikMs || (cfg.tip ? PilModel.okumaMs(cfg.tip, cfg.sensor || cfg.pil || {}, cfg.yer) : null) || 3600000;
+  return PilModel.kalanGun(h, ms, cfg.pil || {});
 }
 
 function analyzeConnectivity(reading, history = [], cfg = {}) {
