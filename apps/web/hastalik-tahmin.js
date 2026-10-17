@@ -5,6 +5,57 @@
  * Tamamen cihazda çalışır; internet ve ücretli servis gerekmez. Fotoğraflar kayıtla birlikte IndexedDB'de saklanır.
  * Kesin tanı KOYMAZ: kesin tanı yalnız laboratuvar / veteriner hekim / İl-İlçe Tarım ve Orman Müdürlüğü ile konur.
  */
+/* ---- hastalik-ayar.js (apps/yonetici/hastalik-ayar.js ile birebir aynı tutulur; test denetler) ---- */
+/* koloni-260: Hastalık tahmini ayarları — varsayılanlar (tek tanım; apps/web ve apps/yonetici aynı dosya).
+   Yönetici değeri ogul_skor_ayar.data.hastalik içinde tutulur; yoksa bu varsayılanlar kullanılır.
+   Tüm sayılar uzman tahmini (kaynak yok) — kaynaklar yalnız yönetici panelinde gösterilir. */
+(function (global) {
+  'use strict';
+  var DEF = {
+    agirlik: {
+      ayc: { kibrit: 5, kapak: 3, koku: 2, daginik: 1.5 },
+      eyc: { bukuk: 4, koku: 2, daginik: 2, kapak: 0.5 },
+      tulumsu: { tulum: 5, kapak: 1.5, daginik: 1.5 },
+      kirec: { beyazMumya: 5, siyahMumya: 3, daginik: 1 },
+      varroa: { akar: 5, kanat: 2.5, daginik: 1, kapak: 1 },
+      dwv: { kanat: 5, akar: 2 },
+      nosema: { ishal: 5 },
+      mumguvesi: { guve: 5 }
+    },
+    fotoGuclu: 0.5, fotoZayif: 0.35, fotoKotuKat: 0.5,
+    esikDus: 1.5, esikMuhtemel: 3, esikEnMuhtemel: 5, maxAday: 3,
+    aycZorla: true, aycZorlaPuan: 3,
+    kontrolGunAyc: 3, kontrolGunDiger: 7,
+    fotoMinPx: 700, daginikOran: 0.3, daginikGuclu: 0.42,
+    beyazLekeMin: 3, beyazLekeGuclu: 8, akarMin: 5, akarGuclu: 15,
+    ihbar: { ayc: true, eyc: false, tulumsu: false, kirec: false, varroa: false, dwv: false, nosema: false, mumguvesi: false }
+  };
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  /** Yönetici değerini (o) varsayılanların üstüne güvenli biçimde bindirir. */
+  function merge(o) {
+    var r = clone(DEF); if (!o || typeof o !== 'object') return r;
+    Object.keys(DEF).forEach(function (k) {
+      var v = o[k];
+      if (k === 'agirlik' || k === 'ihbar') {
+        if (!v || typeof v !== 'object') return;
+        Object.keys(DEF[k]).forEach(function (d) {
+          if (k === 'ihbar') { if (typeof v[d] === 'boolean') r.ihbar[d] = v[d]; return; }
+          var w = v[d]; if (!w || typeof w !== 'object') return;
+          Object.keys(w).forEach(function (s) { var n = Number(w[s]); if (isFinite(n) && n >= 0) r.agirlik[d][s] = n; });
+        });
+      } else if (typeof DEF[k] === 'boolean') { if (typeof v === 'boolean') r[k] = v; }
+      else { var n = Number(v); if (v !== null && v !== '' && isFinite(n) && n >= 0) r[k] = n; }
+    });
+    return r;
+  }
+  function get() {
+    var D = global.SuperAriDemo, o = null;
+    try { o = (D && D.colony && D.colony.ogulSkor && (D.colony.ogulSkor() || {}).hastalik) || null; } catch (e) { o = null; }
+    return merge(o);
+  }
+  global.SuperAriHastalikAyar = { DEF: DEF, merge: merge, get: get };
+})(typeof window !== 'undefined' ? window : globalThis);
+/* ---- /hastalik-ayar.js ---- */
 (function (global) {
   'use strict';
   var D = global.SuperAriDemo;
@@ -64,16 +115,8 @@
   var SYM_LABEL = {}; SYMPTOMS.forEach(function (s) { SYM_LABEL[s.id] = s.label; });
 
   /* Belirti → hastalık ağırlıkları (iç kullanım; arayüzde gösterilmez). */
-  var W = {
-    ayc: { kibrit: 5, kapak: 3, koku: 2, daginik: 1.5 },
-    eyc: { bukuk: 4, koku: 2, daginik: 2, kapak: 0.5 },
-    tulumsu: { tulum: 5, kapak: 1.5, daginik: 1.5 },
-    kirec: { beyazMumya: 5, siyahMumya: 3, daginik: 1 },
-    varroa: { akar: 5, kanat: 2.5, daginik: 1, kapak: 1 },
-    dwv: { kanat: 5, akar: 2 },
-    nosema: { ishal: 5 },
-    mumguvesi: { guve: 5 }
-  };
+  /* koloni-260: tüm ayarlar yönetici panelinde (ogul_skor_ayar.data.hastalik; hastalik-ayar.js varsayılanları). */
+  function cfg() { var H = global.SuperAriHastalikAyar; if (H) return H.get(); throw new Error('hastalik-ayar.js yüklenmedi'); }
 
   /* ---------------- Hastalık bilgisi ve yapılacaklar ---------------- */
   function varroaMeds() {
@@ -162,7 +205,7 @@
     if (mean > (light ? 238 : 215) || over / n > (light ? 0.6 : 0.25)) issues.push('Çok parlak / patlamış — doğrudan güneşte veya flaşla çekmeyin');
     if (sharp < 35) issues.push('Bulanık — telefonu sabit tutun, ekrana dokunup odaklayın');
     else if (sd < (light ? 6 : 16)) issues.push('Kontrast düşük — ışığı değiştirin');
-    if (natW && Math.max(natW, natH) < 700) issues.push('Çözünürlük düşük — daha büyük fotoğraf kullanın');
+    if (natW && Math.max(natW, natH) < cfg().fotoMinPx) issues.push('Çözünürlük düşük — daha büyük fotoğraf kullanın');
     return { ok: !issues.length, issues: issues, brightness: mean, sharpness: sharp };
   }
   /** İkili maske → bağlı bileşenler (alan, kutu). */
@@ -203,7 +246,7 @@
     for (var yy = Y0; yy <= Y1; yy++) for (var xx = X0; xx <= X1; xx++) { tot++; if (!grid[yy * cols + xx]) holes++; }
     var hr = tot ? holes / tot : 0;
     if (tot < 60) return { ok: false, text: 'Yavru alanı çok küçük; çerçevenin tamamını çekin.' };
-    if (hr >= 0.3) return { ok: true, sym: 'daginik', strong: hr >= 0.42, text: 'Yavru alanında çok sayıda boşluk görünüyor → dağınık yavru olabilir.' };
+    if (hr >= cfg().daginikOran) return { ok: true, sym: 'daginik', strong: hr >= cfg().daginikGuclu, text: 'Yavru alanında çok sayıda boşluk görünüyor → dağınık yavru olabilir.' };
     return { ok: true, sym: null, text: 'Yavru alanı fotoğrafta büyük ölçüde dolu görünüyor.' };
   }
   function whiteMask(img, cx0, cx1, cy0, cy1) {
@@ -224,7 +267,7 @@
   function cueOnuBeyaz(img) {
     var w = img.width, h = img.height, A = w * h, r = whiteMask(img);
     var l = blobs(r.m, w, h, Math.max(12, A * 0.00015), A * 0.006);
-    if (l.length >= 3) return { ok: true, sym: 'beyazMumya', strong: l.length >= 8, count: l.length, text: 'Kovan önünde ' + l.length + ' küçük beyaz leke seçildi → mumyalaşmış larva olabilir (çiçek, taş, kâğıt da karışabilir).' };
+    if (l.length >= cfg().beyazLekeMin) return { ok: true, sym: 'beyazMumya', strong: l.length >= cfg().beyazLekeGuclu, count: l.length, text: 'Kovan önünde ' + l.length + ' küçük beyaz leke seçildi → mumyalaşmış larva olabilir (çiçek, taş, kâğıt da karışabilir).' };
     return { ok: true, sym: null, text: 'Belirgin küçük beyaz leke seçilmedi.' };
   }
   function cueMite(img) {
@@ -238,7 +281,7 @@
     }
     var sc = Math.max(w, h) / 1400, l = blobs(m, w, h, Math.max(4, 8 * sc * sc), 220 * sc * sc);
     var c = l.length;
-    if (c >= 5) return { ok: true, sym: 'akar', strong: c >= 15, count: c, text: '≈ ' + c + ' kırmızı-kahverengi, akar boyutunda nokta seçildi (kaba; kırıntı karışabilir, gözle sayın).' };
+    if (c >= cfg().akarMin) return { ok: true, sym: 'akar', strong: c >= cfg().akarGuclu, count: c, text: '≈ ' + c + ' kırmızı-kahverengi, akar boyutunda nokta seçildi (kaba; kırıntı karışabilir, gözle sayın).' };
     return { ok: true, sym: null, count: c, text: 'Akar benzeri nokta ' + (c ? 'az (' + c + ')' : 'seçilmedi') + '. Küçük akarlar fotoğrafta kaçabilir; gözle kontrol edin.' };
   }
   var CUES = { pattern: cuePattern, gozBeyaz: cueGozBeyaz, onuBeyaz: cueOnuBeyaz, mite: cueMite };
@@ -264,26 +307,27 @@
   /* ---------------- Değerlendirme ---------------- */
   /** checked: {sym:true}, cues: [{sym, strong, poorQuality}] → sıralı liste (en çok 3). */
   function assess(checked, cues) {
-    var ev = {};
+    var A = cfg(), W = A.agirlik, ev = {};
     Object.keys(checked || {}).forEach(function (k) { if (checked[k]) ev[k] = 1; });
     (cues || []).forEach(function (c) {
       if (!c || !c.sym || ev[c.sym] === 1) return;
-      var v = (c.strong ? 0.5 : 0.35) * (c.poor ? 0.5 : 1);
+      var v = (c.strong ? A.fotoGuclu : A.fotoZayif) * (c.poor ? A.fotoKotuKat : 1);
       ev[c.sym] = Math.max(ev[c.sym] || 0, v);
     });
     var list = Object.keys(W).map(function (k) {
       var s = 0, why = [];
       Object.keys(W[k]).forEach(function (sym) { if (ev[sym]) { s += W[k][sym] * ev[sym]; why.push(SYM_LABEL[sym] + (ev[sym] < 1 ? ' (fotoğraf ipucu)' : '')); } });
       return { key: k, score: s, why: why };
-    }).filter(function (x) { return x.score >= 1.5; }).sort(function (a, b) { return b.score - a.score; }).slice(0, 3);
+    }).filter(function (x) { return x.score >= A.esikDus; }).sort(function (a, b) { return b.score - a.score; }).slice(0, Math.max(1, Math.round(A.maxAday)));
     list.forEach(function (x, i) {
-      x.word = x.score >= 5 && i === 0 ? 'En muhtemel' : (x.score >= 3 ? 'Muhtemel' : 'Olası (zayıf belirti)');
-      x.strength = x.score >= 5 ? 'orta' : 'hafif';
+      x.word = x.score >= A.esikEnMuhtemel && i === 0 ? 'En muhtemel' : (x.score >= A.esikMuhtemel ? 'Muhtemel' : 'Olası (zayıf belirti)');
+      x.strength = x.score >= A.esikEnMuhtemel ? 'orta' : 'hafif';
     });
     /* AYÇ: kibrit testi uzaması tek başına bile şüphe demektir; listeden düşmesin. */
-    var aycSusp = !!ev.kibrit && ev.kibrit === 1 || (!!ev.kapak && ev.koku === 1);
-    if (aycSusp && !list.some(function (x) { return x.key === 'ayc'; })) list.push({ key: 'ayc', score: 3, why: [SYM_LABEL.kibrit], word: 'Muhtemel', strength: 'hafif' });
-    return { list: list, aycSuspect: aycSusp || list.some(function (x) { return x.key === 'ayc'; }), evidence: Object.keys(ev).length };
+    var aycSusp = A.aycZorla && (!!ev.kibrit && ev.kibrit === 1 || (!!ev.kapak && ev.koku === 1));
+    if (aycSusp && !list.some(function (x) { return x.key === 'ayc'; })) list.push({ key: 'ayc', score: A.aycZorlaPuan, why: [SYM_LABEL.kibrit], word: 'Muhtemel', strength: 'hafif' });
+    var ihbar = list.filter(function (x) { return A.ihbar[x.key]; }).map(function (x) { return x.key; });
+    return { list: list, aycSuspect: !!A.ihbar.ayc && (aycSusp || list.some(function (x) { return x.key === 'ayc'; })), ihbar: ihbar, evidence: Object.keys(ev).length };
   }
 
   /* ---------------- Kaydetme ---------------- */
@@ -294,7 +338,7 @@
     keys.forEach(function (k) {
       var it = st.result.list.filter(function (x) { return x.key === k; })[0] || { strength: 'hafif' };
       var note = ('Hastalık tahmini (kesin değil) · şüpheli' + (symTxt.length ? ' · Belirtiler: ' + symTxt.join(', ') : '') + (cueTxt.length ? ' · Fotoğraf ipucu: ' + cueTxt.join(', ') : '') + (demo ? ' · Demo' : '')).slice(0, 300);
-      var rec = { date: today(), disease: k, note: note, suspected: true, checkDate: plusDays(k === 'ayc' ? 3 : 7) };
+      var rec = { date: today(), disease: k, note: note, suspected: true, checkDate: plusDays(k === 'ayc' ? cfg().kontrolGunAyc : cfg().kontrolGunDiger) };
       if (k === 'ayc' || k === 'nosema') rec.status = 'suphe';
       else if (k !== 'varroa') rec.severity = it.strength;
       if (demo) rec.demo = true;
@@ -396,6 +440,7 @@
       if (st.done == null && !Object.keys(st.sel).length) { st.sel[res.list[0].key] = true; if (res.aycSuspect) st.sel.ayc = true; }
       var H = '<div class="hz-sec"><h3>Muhtemel hastalıklar</h3>';
       if (res.aycSuspect) H += '<div class="hz-alarm"><b>⚠ Amerikan yavru çürüğü şüphesi.</b> İhbarı zorunludur: İl/İlçe Tarım ve Orman Müdürlüğüne bildirin, numune alın, kovanı kapatın (çerçeve/bal alışverişi yok) ve aletleri dezenfekte edin. İlaç uygulamayın.</div>';
+      (res.ihbar || []).forEach(function (k) { if (k !== 'ayc' && INFO[k]) H += '<div class="hz-alarm"><b>⚠ ' + esc(INFO[k].label) + ' şüphesi.</b> İhbarı zorunludur: İl/İlçe Tarım ve Orman Müdürlüğüne bildirin ve numune alın.</div>'; });
       H += res.list.map(function (x) {
         var inf = INFO[x.key];
         return '<div class="hz-cand"><h4><input type="checkbox" data-hz-sel="' + x.key + '"' + (st.sel[x.key] ? ' checked' : '') + ' aria-label="Kaydet: ' + esc(inf.label) + '"><span>' + esc(x.word) + ': ' + esc(inf.label) + '</span></h4>' +
