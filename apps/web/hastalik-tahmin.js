@@ -6,29 +6,42 @@
  * Kesin tanı KOYMAZ: kesin tanı yalnız laboratuvar / veteriner hekim / İl-İlçe Tarım ve Orman Müdürlüğü ile konur.
  */
 /* ---- hastalik-ayar.js (apps/yonetici/hastalik-ayar.js ile birebir aynı tutulur; test denetler) ---- */
-/* koloni-260: Hastalık tahmini ayarları — varsayılanlar (tek tanım; apps/web ve apps/yonetici aynı dosya).
+/* koloni-260 (+önizleme iyileştirme): Hastalık tahmini ayarları — varsayılanlar (tek tanım; apps/web ve apps/yonetici aynı dosya).
    Yönetici değeri ogul_skor_ayar.data.hastalik içinde tutulur; yoksa bu varsayılanlar kullanılır.
    Tüm sayılar uzman tahmini (kaynak yok) — kaynaklar yalnız yönetici panelinde gösterilir. */
 (function (global) {
   'use strict';
   var DEF = {
     agirlik: {
-      ayc: { kibrit: 5, kapak: 3, koku: 2, daginik: 1.5 },
+      ayc: { kibrit: 5, kapak: 3, koku: 2, daginik: 1.5, dilIzi: 4 },
       eyc: { bukuk: 4, koku: 2, daginik: 2, kapak: 0.5 },
       tulumsu: { tulum: 5, kapak: 1.5, daginik: 1.5 },
       kirec: { beyazMumya: 5, siyahMumya: 3, daginik: 1 },
       varroa: { akar: 5, kanat: 2.5, daginik: 1, kapak: 1 },
       dwv: { kanat: 5, akar: 2 },
       nosema: { ishal: 5 },
-      mumguvesi: { guve: 5 }
+      mumguvesi: { guve: 5 },
+      kkk: { kkkBocek: 6, kkkBal: 3, guve: 1 },
+      tropilaelaps: { tropiAkar: 6, daginik: 1, kapak: 1, kanat: 1 },
+      tasyavru: { tasMumya: 5, beyazMumya: 1 },
+      cbpv: { titreyen: 5, topluOlum: 1 },
+      zehir: { topluOlum: 5, titreyen: 1.5 },
+      aclik: { basGomulu: 5, topluOlum: 1 },
+      anaSorun: { cokYumurta: 5, daginik: 1.5 }
     },
+    mevsimKat: {},
+    gecmisPuan: 1, gecmisGun: 60,
+    varroaEsikDurgun: 1, varroaEsikArtis: 1, varroaEsikTepe: 2, varroaEsikAzalma: 2,
+    varroaAyDurgun: '11,12,1,2', varroaAyArtis: '3,4,5', varroaAyTepe: '6,7,8', varroaAyAzalma: '9,10',
+    tablaKatKis: 400, tablaKatYaz: 30, tablaKatAra: 100, tablaEsikAkar: 1000,
+    varroaTekrarGun: 21, varroaSayimGun: 60,
     fotoGuclu: 0.5, fotoZayif: 0.35, fotoKotuKat: 0.5,
     esikDus: 1.5, esikMuhtemel: 3, esikEnMuhtemel: 5, maxAday: 3,
     aycZorla: true, aycZorlaPuan: 3,
     kontrolGunAyc: 3, kontrolGunDiger: 7,
     fotoMinPx: 700, daginikOran: 0.3, daginikGuclu: 0.42,
     beyazLekeMin: 3, beyazLekeGuclu: 8, akarMin: 5, akarGuclu: 15,
-    ihbar: { ayc: true, eyc: false, tulumsu: false, kirec: false, varroa: false, dwv: false, nosema: false, mumguvesi: false }
+    ihbar: { ayc: true, eyc: false, tulumsu: false, kirec: false, varroa: false, dwv: false, nosema: false, mumguvesi: false, kkk: true, tropilaelaps: true, tasyavru: false, cbpv: false, zehir: false, aclik: false, anaSorun: false }
   };
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   /** Yönetici değerini (o) varsayılanların üstüne güvenli biçimde bindirir. */
@@ -43,7 +56,12 @@
           var w = v[d]; if (!w || typeof w !== 'object') return;
           Object.keys(w).forEach(function (s) { var n = Number(w[s]); if (isFinite(n) && n >= 0) r.agirlik[d][s] = n; });
         });
-      } else if (typeof DEF[k] === 'boolean') { if (typeof v === 'boolean') r[k] = v; }
+      } else if (k === 'mevsimKat') {
+        if (!v || typeof v !== 'object') return;
+        Object.keys(v).forEach(function (d) { var w = v[d]; if (!w || typeof w !== 'object') return; r.mevsimKat[d] = {};
+          ['ilkbahar', 'yaz', 'sonbahar', 'kis'].forEach(function (m) { var n = Number(w[m]); if (isFinite(n) && n >= 0) r.mevsimKat[d][m] = n; }); });
+      } else if (typeof DEF[k] === 'string') { if (typeof v === 'string' && /^\s*\d{1,2}(\s*,\s*\d{1,2})*\s*$/.test(v)) r[k] = v.replace(/\s/g, ''); }
+      else if (typeof DEF[k] === 'boolean') { if (typeof v === 'boolean') r[k] = v; }
       else { var n = Number(v); if (v !== null && v !== '' && isFinite(n) && n >= 0) r[k] = n; }
     });
     return r;
@@ -53,7 +71,15 @@
     try { o = (D && D.colony && D.colony.ogulSkor && (D.colony.ogulSkor() || {}).hastalik) || null; } catch (e) { o = null; }
     return merge(o);
   }
-  global.SuperAriHastalikAyar = { DEF: DEF, merge: merge, get: get };
+  /** Ay (1–12) → Varroa koloni evresi eşiği (%) — HBHC 2026 Tablo 1; ay eşlemesi uzman tahmini. */
+  function varroaEsik(A, ay) {
+    var E = [['Durgun', 'varroaAyDurgun', 'varroaEsikDurgun'], ['Artış', 'varroaAyArtis', 'varroaEsikArtis'], ['Tepe', 'varroaAyTepe', 'varroaEsikTepe'], ['Azalma', 'varroaAyAzalma', 'varroaEsikAzalma']];
+    for (var i = 0; i < E.length; i++) if (String(A[E[i][1]]).split(',').map(Number).indexOf(ay) >= 0) return { evre: E[i][0], esik: A[E[i][2]] };
+    return { evre: 'Tepe', esik: A.varroaEsikTepe };
+  }
+  function tablaKat(A, ay) { return (ay >= 11 || ay <= 2) ? A.tablaKatKis : (ay >= 5 && ay <= 8 ? A.tablaKatYaz : A.tablaKatAra); }
+  function mevsim(ay) { return ay >= 3 && ay <= 5 ? 'ilkbahar' : (ay >= 6 && ay <= 8 ? 'yaz' : (ay >= 9 && ay <= 11 ? 'sonbahar' : 'kis')); }
+  global.SuperAriHastalikAyar = { DEF: DEF, merge: merge, get: get, varroaEsik: varroaEsik, tablaKat: tablaKat, mevsim: mevsim };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* ---- /hastalik-ayar.js ---- */
 (function (global) {
@@ -100,7 +126,7 @@
   /* ---------------- Belirti listesi ---------------- */
   var SYMPTOMS = [
     { id: 'kapak', label: 'Çökmüş / delikli kapak' },
-    { id: 'kibrit', label: 'Kibrit çöpü testinde uzama (2–3 cm ipliklenme)' },
+    { id: 'kibrit', label: 'Kibrit çöpü testinde uzama (1–3 cm ipliklenme)' },
     { id: 'koku', label: 'Kötü koku (tutkal / çürük / ekşi)' },
     { id: 'beyazMumya', label: 'Beyaz mumya (tebeşir gibi sert larva)' },
     { id: 'siyahMumya', label: 'Siyah / gri mumya' },
@@ -110,7 +136,16 @@
     { id: 'ishal', label: 'İshal lekesi (çerçeve, kovan önü)' },
     { id: 'tulum', label: 'Tulum şeklinde larva (başı kalkık, içi sulu)' },
     { id: 'guve', label: 'Ağ / güve tünelleri' },
-    { id: 'akar', label: 'Akar görülmesi (arı üzerinde / tahtada)' }
+    { id: 'akar', label: 'Akar görülmesi (arı üzerinde / tahtada)' },
+    { id: 'dilIzi', label: 'Kurumuş larvadan yukarı uzanan dil izi / göz duvarına sıkı yapışık koyu kabuk' },
+    { id: 'tasMumya', label: 'Taş gibi sert, sarı-yeşil / gri tozlu mumya (taşlaşmış yavru)' },
+    { id: 'titreyen', label: 'Titreyen, uçamayan, tüysüz-parlak (yağlı görünen) arılar' },
+    { id: 'topluOlum', label: 'Kovan önünde ani toplu ölü arı; sırtüstü dönen arılar' },
+    { id: 'basGomulu', label: 'Gözlere başı gömülü ölü arılar, kovanda bal yok' },
+    { id: 'cokYumurta', label: 'Bir gözde birden çok yumurta / işçi gözünde kambur erkek yavru' },
+    { id: 'kkkBocek', label: 'Küçük koyu böcek veya peteklerde tünel açan çok sayıda beyaz böcek larvası' },
+    { id: 'kkkBal', label: 'Rengi değişmiş, mayalanmış, köpüklü bal' },
+    { id: 'tropiAkar', label: 'Petekte hızlı koşan, 1 mm\'ye kadar kırmızı-kahve akar (Varroa\'dan küçük)' }
   ];
   var SYM_LABEL = {}; SYMPTOMS.forEach(function (s) { SYM_LABEL[s.id] = s.label; });
 
@@ -128,19 +163,19 @@
   var NO_MED = 'Uygulamadaki ruhsatlı ilaç listesinde bu hastalık için ürün yok. Antibiyotik veya ruhsatsız ilaç kullanmayın (balda kalıntı bırakır).';
   var INFO = {
     ayc: { label: 'Amerikan yavru çürüğü (AYÇ)', alarm: true,
-      signs: 'Çökmüş, delikli, koyulaşmış kapaklar; kibrit çöpüyle çekilen larva kalıntısı 2–3 cm ipliklenir; tutkal kokusu; dağınık yavru.',
+      signs: 'Çökmüş, delikli, koyulaşmış kapaklar; kibrit çöpüyle çekilen larva kalıntısı 1–3 cm ipliklenir; tutkal kokusu; dağınık yavru.',
       todo: ['İhbarı zorunludur: şüphede de İl/İlçe Tarım ve Orman Müdürlüğüne bildirin.',
         'Numune: şüpheli gözleri içeren yaklaşık 10×10 cm petek parçasını kâğıda sarıp (plastik poşete koymadan) karton kutuyla laboratuvara gönderin.',
         'Kovanı kapatın: yağmayı önlemek için uçuş deliğini daraltın; bu kovandan çerçeve, bal, arı ve malzeme başka kovana vermeyin.',
         'Alet dezenfeksiyonu: körük, maşa, eldiven ve el temizliği; maşayı alevden geçirin, eldiveni değiştirin. Bu kovanı en son muayene edin.',
-        'Arılıktaki diğer kovanları kontrol edin.'],
+        'Arılıktaki diğer kovanları kontrol edin.', 'Laboratuvar: Bornova Veteriner Kontrol Enstitüsü (Erzene Mah. Ankara Cad. No:172/155, Bornova/İzmir · 0232 388 00 10) veya Arıcılık Araştırma Enstitüsü (Ordu-Ulubey Karayolu 12. km, Altınordu/Ordu · 0452 256 23 41); numuneyi İl/İlçe Müdürlüğü aracılığıyla da gönderebilirsiniz.'],
       meds: 'İlaç uygulamayın. ' + NO_MED + ' Resmî karar ve uygulama İl/İlçe Müdürlüğü ile veteriner hekime aittir.',
       tasks: [{ t: 'AYÇ şüphesi — ihbar: İl/İlçe Tarım ve Orman Müdürlüğüne bildir', p: 1, d: 0 },
         { t: 'AYÇ şüphesi — kovanı kapat, uçuş deliğini daralt, çerçeve/bal alışverişi yapma', p: 1, d: 0 },
         { t: 'AYÇ şüphesi — alet ve eldiven dezenfeksiyonu', p: 1, d: 0 }] },
     eyc: { label: 'Avrupa yavru çürüğü (EYÇ)',
       signs: 'Kapanmadan ölen, bükülmüş, sarı-kahverengi larvalar; ekşi koku; dağınık yavru. Kibrit testinde genelde uzama olmaz.',
-      todo: ['AYÇ ile karışabilir: numune alıp laboratuvarda doğrulatın.', 'Koloniyi güçlendirin (yavru arası/besleme); gerekirse ana arıyı değiştirin.',
+      todo: ['AYÇ ile karışabilir: numune alıp laboratuvarda doğrulatın. Laboratuvar: Bornova Veteriner Kontrol Enstitüsü (Erzene Mah. Ankara Cad. No:172/155, Bornova/İzmir · 0232 388 00 10) veya Arıcılık Araştırma Enstitüsü (Ordu-Ulubey Karayolu 12. km, Altınordu/Ordu · 0452 256 23 41); numuneyi İl/İlçe Müdürlüğü aracılığıyla da gönderebilirsiniz.', 'Koloniyi güçlendirin (yavru arası/besleme); gerekirse ana arıyı değiştirin.',
         'Ağır etkilenen çerçeveleri yenileyin; aletleri temizleyin, çerçeve alışverişi yapmayın.'],
       meds: NO_MED,
       tasks: [{ t: 'EYÇ şüphesi — numune alıp doğrulat (AYÇ ayrımı)', p: 1, d: 2 }, { t: 'EYÇ şüphesi — koloniyi güçlendir / ana değişimini değerlendir', p: 2, d: 7 }] },
@@ -167,14 +202,49 @@
       tasks: [{ t: 'Bozuk kanat — akar sayımı yap, varroa mücadelesini planla', p: 1, d: 2 }] },
     nosema: { label: 'Nosema',
       signs: 'Çerçevede, kapakta ve kovan önünde ishal lekeleri; sürünen, uçamayan arılar.',
-      todo: ['Kesin tanı mikroskopla konur: 30–60 yaşlı arıyı numune olarak alın.', 'Eski ve lekeli petekleri yenileyin; kovanı kuru ve havadar tutun.', 'Koloniyi güçlendirin; stres yaratan uygulamalardan kaçının.'],
+      todo: ['Kesin tanı mikroskopla konur: en yaşlı arıları alın — uçuş varken uçuş deliğinden dönen tarlacılar, uçuş yokken yavru alanının kenar çerçevelerinden (yeni çıkan genç arıları almayın). Laboratuvar: Bornova Veteriner Kontrol Enstitüsü (Erzene Mah. Ankara Cad. No:172/155, Bornova/İzmir · 0232 388 00 10) veya Arıcılık Araştırma Enstitüsü (Ordu-Ulubey Karayolu 12. km, Altınordu/Ordu · 0452 256 23 41); numuneyi İl/İlçe Müdürlüğü aracılığıyla da gönderebilirsiniz.', 'Eski ve lekeli petekleri yenileyin; kovanı kuru ve havadar tutun.', 'Koloniyi güçlendirin; stres yaratan uygulamalardan kaçının.'],
       meds: NO_MED,
       tasks: [{ t: 'Nosema şüphesi — arı numunesi al, mikroskopla doğrulat', p: 2, d: 3 }] },
     mumguvesi: { label: 'Mum güvesi',
       signs: 'Peteklerde ağ, tünel ve larva pislikleri; genellikle zayıf kolonide.',
       todo: ['Arının örtemediği fazla çerçeveleri alın, kovanı daraltın.', 'Ağır zarar gören petekleri eritin; boş petekleri serin yerde saklayın.', 'Koloni zayıfsa birleştirmeyi değerlendirin.'],
       meds: 'Kimyasal kullanmayın. ' + NO_MED,
-      tasks: [{ t: 'Mum güvesi — fazla çerçeveleri al, kovanı daralt', p: 2, d: 3 }] }
+      tasks: [{ t: 'Mum güvesi — fazla çerçeveleri al, kovanı daralt', p: 2, d: 3 }] },
+    kkk: { label: 'Küçük kovan kurdu (Aethina tumida)', alarm: true,
+      signs: 'Peteklerde tünel açan beyaz böcek larvaları; mayalanmış, köpüklü, akan bal; küçük koyu böcek. Türkiye\'de görülmedi.',
+      todo: ['İhbarı zorunludur: hemen İl/İlçe Tarım ve Orman Müdürlüğüne bildirin.', 'Kovanı yerinde tutun; arı, çerçeve, bal ve malzeme hareketi yapmayın.', 'Böcek veya larvayı alkole koyup saklayın; resmî veteriner hekimi bekleyin.'],
+      meds: 'Kendiniz ilaç uygulamayın. Resmî karar İl/İlçe Müdürlüğüne aittir.',
+      tasks: [{ t: 'Küçük kovan kurdu şüphesi — ihbar: İl/İlçe Tarım ve Orman Müdürlüğüne bildir', p: 1, d: 0 }, { t: 'Küçük kovan kurdu şüphesi — kovan/malzeme hareketini durdur', p: 1, d: 0 }] },
+    tropilaelaps: { label: 'Tropilaelaps akarı', alarm: true,
+      signs: 'Varroa\'ya benzer zarar: düzensiz yavru, delikli kapaklar, bozuk kanatlı arılar; petekte hızlı koşan küçük kırmızı-kahve akarlar. ',
+      todo: ['İhbarı zorunludur: hemen İl/İlçe Tarım ve Orman Müdürlüğüne bildirin.', 'Kovan hareketini durdurun.', 'Akarları alkolde saklayın; resmî numune için bekleyin.'],
+      meds: 'Kendiniz ilaç uygulamayın. Resmî karar İl/İlçe Müdürlüğüne aittir.',
+      tasks: [{ t: 'Tropilaelaps şüphesi — ihbar: İl/İlçe Tarım ve Orman Müdürlüğüne bildir', p: 1, d: 0 }] },
+    tasyavru: { label: 'Taşlaşmış yavru (Aspergillus)',
+      signs: 'Taş gibi sert, sarı-yeşil veya gri tozlu mumyalar; kireçten daha sert ve renkli.',
+      todo: ['Mantar insanlarda da solunum sorununa yol açabilir: maske ve eldiven kullanın.', 'Etkilenen çerçeveleri yenileyin; kovanı kuru ve havadar tutun.', 'Kireç hastalığından ayırmak için laboratuvarda doğrulatın. Laboratuvar: Bornova Veteriner Kontrol Enstitüsü (Erzene Mah. Ankara Cad. No:172/155, Bornova/İzmir · 0232 388 00 10) veya Arıcılık Araştırma Enstitüsü (Ordu-Ulubey Karayolu 12. km, Altınordu/Ordu · 0452 256 23 41); numuneyi İl/İlçe Müdürlüğü aracılığıyla da gönderebilirsiniz.'],
+      meds: NO_MED,
+      tasks: [{ t: 'Taşlaşmış yavru şüphesi — numune al, çerçeveleri yenile', p: 2, d: 3 }] },
+    cbpv: { label: 'Kronik arı felci virüsü (CBPV)',
+      signs: 'Titreyen, sürünen, uçamayan; tüysüz, parlak veya şişkin arılar; kovan önünde ölü arılar.',
+      todo: ['Virüsün ilacı yoktur. Koloniyi güçlendirin; aşırı kalabalık arılıklardan kaçının.', 'Zehirlenmeyle karışabilir: çevrede ilaçlama olup olmadığını sorun.', 'Laboratuvarda doğrulatabilirsiniz. Laboratuvar: Bornova Veteriner Kontrol Enstitüsü (Erzene Mah. Ankara Cad. No:172/155, Bornova/İzmir · 0232 388 00 10) veya Arıcılık Araştırma Enstitüsü (Ordu-Ulubey Karayolu 12. km, Altınordu/Ordu · 0452 256 23 41); numuneyi İl/İlçe Müdürlüğü aracılığıyla da gönderebilirsiniz.'],
+      meds: 'Virüs için ilaç yok. ' + NO_MED,
+      tasks: [{ t: 'CBPV şüphesi — titreyen arıları izle, gerekirse numune al', p: 2, d: 3 }] },
+    zehir: { label: 'Pestisit zehirlenmesi',
+      signs: 'Kovan önünde ani, toplu ölü arı; sırtüstü dönen, titreyen arılar.',
+      todo: ['Ölü arılardan numune toplayıp serin yerde / dondurucuda saklayın.', 'Çevredeki ilaçlamayı (tarih, ürün) not edin; İl/İlçe Tarım ve Orman Müdürlüğüne bildirin.', 'Gerekirse kovanları geçici olarak taşıyın veya kapatın.'],
+      meds: NO_MED,
+      tasks: [{ t: 'Zehirlenme şüphesi — ölü arı numunesi al, İl/İlçe Müdürlüğüne bildir', p: 1, d: 0 }] },
+    aclik: { label: 'Açlık',
+      signs: 'Gözlere başı gömülü ölü arılar; kovanda bal kalmamış.',
+      todo: ['Hemen besleyin (şurup veya kek); kış ise kek verin.', 'Diğer kovanların stoklarını kontrol edin.'],
+      meds: 'İlaç gerekmez.',
+      tasks: [{ t: 'Açlık şüphesi — hemen besle, stokları kontrol et', p: 1, d: 0 }] },
+    anaSorun: { label: 'Ana sorunu (anasızlık / yalancı ana / erkek yumurtlayan ana)',
+      signs: 'Bir gözde birden çok yumurta, işçi gözlerinde kambur erkek yavru, dağınık yavru.',
+      todo: ['Anayı arayın; yoksa yeni ana veya genç larvalı çerçeve verin.', 'Yalancı ana varsa koloni birleştirmeyi değerlendirin.'],
+      meds: 'İlaç gerekmez.',
+      tasks: [{ t: 'Ana sorunu şüphesi — anayı ara, ana/yavru çerçevesi ver', p: 1, d: 2 }] }
   };
 
   /* ---------------- Görüntü analizi ---------------- */
@@ -306,8 +376,9 @@
 
   /* ---------------- Değerlendirme ---------------- */
   /** checked: {sym:true}, cues: [{sym, strong, poorQuality}] → sıralı liste (en çok 3). */
-  function assess(checked, cues) {
-    var A = cfg(), W = A.agirlik, ev = {};
+  function assess(checked, cues, ctx) {
+    var A = cfg(), W = A.agirlik, ev = {}, HA = global.SuperAriHastalikAyar;
+    ctx = ctx || {}; var mev = ctx.month ? HA.mevsim(ctx.month) : null, gec = ctx.history || {};
     Object.keys(checked || {}).forEach(function (k) { if (checked[k]) ev[k] = 1; });
     (cues || []).forEach(function (c) {
       if (!c || !c.sym || ev[c.sym] === 1) return;
@@ -317,7 +388,9 @@
     var list = Object.keys(W).map(function (k) {
       var s = 0, why = [];
       Object.keys(W[k]).forEach(function (sym) { if (ev[sym]) { s += W[k][sym] * ev[sym]; why.push(SYM_LABEL[sym] + (ev[sym] < 1 ? ' (fotoğraf ipucu)' : '')); } });
-      return { key: k, score: s, why: why };
+      if (s > 0 && mev && A.mevsimKat[k] && A.mevsimKat[k][mev] != null && A.mevsimKat[k][mev] !== 1) { s *= A.mevsimKat[k][mev]; why.push('mevsim katsayısı ×' + A.mevsimKat[k][mev]); }
+      if (s > 0 && gec[k] && A.gecmisPuan) { s += A.gecmisPuan; why.push('son ' + A.gecmisGun + ' günde aynı şüphe kaydı'); }
+      return { key: k, score: Math.round(s * 100) / 100, why: why };
     }).filter(function (x) { return x.score >= A.esikDus; }).sort(function (a, b) { return b.score - a.score; }).slice(0, Math.max(1, Math.round(A.maxAday)));
     list.forEach(function (x, i) {
       x.word = x.score >= A.esikEnMuhtemel && i === 0 ? 'En muhtemel' : (x.score >= A.esikMuhtemel ? 'Muhtemel' : 'Olası (zayıf belirti)');
@@ -328,6 +401,26 @@
     if (aycSusp && !list.some(function (x) { return x.key === 'ayc'; })) list.push({ key: 'ayc', score: A.aycZorlaPuan, why: [SYM_LABEL.kibrit], word: 'Muhtemel', strength: 'hafif' });
     var ihbar = list.filter(function (x) { return A.ihbar[x.key]; }).map(function (x) { return x.key; });
     return { list: list, aycSuspect: !!A.ihbar.ayc && (aycSusp || list.some(function (x) { return x.key === 'ayc'; })), ihbar: ihbar, evidence: Object.keys(ev).length };
+  }
+
+  /* ---------------- Bağlam: mevsim, kovan geçmişi, varroa sayımı ---------------- */
+  function diseaseRecs(h) { try { return (D.records.recordsFor(h.id).disease || []).slice(); } catch (e) { return []; } }
+  function ctxOf(h) {
+    var A = cfg(), since = plusDays(-A.gecmisGun), hist = {};
+    diseaseRecs(h).forEach(function (r) { if (r.date >= since && r.disease && (r.suspected || (r.status && r.status !== 'temiz' && r.status !== 'yok') || (r.severity && r.severity !== 'yok'))) hist[r.disease] = true; });
+    return { month: new Date().getMonth() + 1, history: hist };
+  }
+  /** Son varroa sayımını mevsim eşiğiyle karşılaştırır (HBHC 2026 Tablo 1; akar tahtası NBU Managing Varroa). */
+  function varroaDurum(h) {
+    var A = cfg(), HA = global.SuperAriHastalikAyar, ay = new Date().getMonth() + 1, since = plusDays(-A.varroaSayimGun);
+    var v = diseaseRecs(h).filter(function (r) { return r.disease === 'varroa' && (r.infestation != null || r.count != null) && r.date >= since; }).sort(function (a, b) { return a.date < b.date ? 1 : -1; })[0];
+    if (!v) return { yok: true, text: 'Son ' + A.varroaSayimGun + ' günde varroa sayımı yok. Akar sayımı yapın (≈300 arı, alkol yıkama veya pudra şekeri).' };
+    if (v.method === 'tabla' && v.count != null) {
+      var gun = v.days || 7, gunluk = v.count / gun, tah = Math.round(gunluk * HA.tablaKat(A, ay));
+      return { asim: tah >= A.tablaEsikAkar, text: 'Son akar tahtası sayımı (' + v.date + '): günde ≈' + (Math.round(gunluk * 10) / 10) + ' akar → kolonide tahminen ≈' + tah + ' akar. ' + (tah >= A.tablaEsikAkar ? 'Zarar eşiğini geçmiş olabilir: Bakım yap › Varroa bölümünden mücadele planlayın.' : 'Eşiğin altında görünüyor; düzenli saymaya devam edin.') };
+    }
+    var E = HA.varroaEsik(A, ay), p = v.infestation;
+    return { asim: p >= E.esik, text: 'Son varroa sayımı (' + v.date + '): %' + String(p).replace('.', ',') + ' bulaşma. ' + (p >= E.esik ? 'Bu dönem için eşiğin üstünde: hemen mücadele planlayın.' : 'Bu dönem için eşiğin altında; düzenli saymaya devam edin.') };
   }
 
   /* ---------------- Kaydetme ---------------- */
@@ -342,27 +435,34 @@
       if (k === 'ayc' || k === 'nosema') rec.status = 'suphe';
       else if (k !== 'varroa') rec.severity = it.strength;
       if (demo) rec.demo = true;
-      var s = R.add(h.id, 'disease', rec);
-      if (s) saved.push(s);
+      var known = (R.DISEASES || []).some(function (d) { return d.key === k; });
+      var s = known ? R.add(h.id, 'disease', rec) : null;
+      if (s) saved.push(s); else if (!known) saved.push({ key: k, taskOnly: true });
       var open = []; try { open = D.taskStore.open().map(function (x) { return x.title; }); } catch (e) { open = []; }
       (INFO[k].tasks || []).forEach(function (t) {
         var title = t.t + ' — ' + h.name + (demo ? ' · Demo' : '');
         if (open.indexOf(title) >= 0) return;
         if (D.taskStore.add({ title: title, hiveId: h.id, priority: t.p, due: plusDays(t.d), note: '[hastalik:tahmin]' })) tasks++;
       });
+      /* Takip: kontrol gününde şüpheyi kapat / güncelle; varroa için tedavi sonrası yeniden sayım (HBHC 2026). */
+      var fu = [{ t: 'Kontrol: ' + INFO[k].label + ' şüphesi sürüyor mu? Kaydı güncelle', p: 2, d: rec.checkDate ? (k === 'ayc' ? cfg().kontrolGunAyc : cfg().kontrolGunDiger) : 7 }];
+      if (k === 'varroa' || k === 'dwv') fu.push({ t: 'Varroa: tedaviden sonra yeniden sayım yap (etkinlik)', p: 2, d: cfg().varroaTekrarGun });
+      fu.forEach(function (t) { var title = t.t + ' — ' + h.name + (demo ? ' · Demo' : ''); if (open.indexOf(title) >= 0) return;
+        if (D.taskStore.add({ title: title, hiveId: h.id, priority: t.p, due: plusDays(t.d), note: '[hastalik:takip]' })) tasks++; });
     });
     var files = STEPS.map(function (s) { return st.photos[s.id] && st.photos[s.id].file; }).filter(Boolean);
-    if (!saved.length || !files.length) return Promise.resolve({ saved: saved, tasks: tasks, photos: 0 });
+    var all = saved; saved = saved.filter(function (x) { return !x.taskOnly; });
+    if (!saved.length || !files.length) return Promise.resolve({ saved: all, tasks: tasks, photos: 0 });
     return need('foto.js', 'SuperAriFoto').then(function (F) {
       return files.reduce(function (p, f) { return p.then(function (acc) { return F.compress(f).then(function (c) { acc.push(c); return acc; }, function () { return acc; }); }); }, Promise.resolve([]))
         .then(function (items) {
           return F.attach(saved.map(function (s) { return s.id; }), items).then(function (rows) {
             var n = rows.length;
             saved.forEach(function (s) { try { R.setPhotoCount(h.id, 'disease', s.id, n); } catch (e) { /* ignore */ } });
-            return { saved: saved, tasks: tasks, photos: n };
+            return { saved: all, tasks: tasks, photos: n };
           });
         });
-    }).catch(function () { return { saved: saved, tasks: tasks, photos: 0, photoErr: true }; });
+    }).catch(function () { return { saved: all, tasks: tasks, photos: 0, photoErr: true }; });
   }
 
   /* ---------------- Arayüz ---------------- */
@@ -427,20 +527,21 @@
         SYMPTOMS.map(function (s) {
           return '<label class="hz-sym"><input type="checkbox" data-hz-sym="' + s.id + '"' + (st.checked[s.id] ? ' checked' : '') + '><span>' + esc(s.label) + (sug[s.id] && !st.checked[s.id] ? '<br><span class="hz-sug">🖼 Fotoğraf ipucu</span>' : '') + '</span></label>';
         }).join('') +
-        '<p class="hz-mut">Kibrit çöpü testi: şüpheli kapağı delip kibrit çöpünü larva kalıntısına batırın, yavaşça çekin. 2–3 cm ipliklenme AYÇ şüphesidir; bu durumda çöpü ve eldiveni imha edin.</p>' +
+        '<p class="hz-mut">Kibrit çöpü testi: şüpheli kapağı delip kibrit çöpünü larva kalıntısına batırın, yavaşça çekin. 1–3 cm ipliklenme AYÇ şüphesidir; bu durumda çöpü ve eldiveni imha edin.</p>' +
         '<div class="hz-row"><button type="button" class="hz-btn" data-hz-tab="sonuc">Sonucu göster →</button></div></div>';
     }
     function renderSonuc() {
-      var res = st.result = assess(st.checked, cues());
+      var res = st.result = assess(st.checked, cues(), ctxOf(h)), vd = varroaDurum(h);
+      var VB = '<div class="' + (vd.asim ? 'hz-warn' : 'hz-cue') + '" data-hz-varroa>🕷 ' + esc(vd.text) + '</div>';
       if (!res.list.length) {
-        body.innerHTML = '<div class="hz-sec"><h3>Sonuç</h3><p>' + (res.evidence ? 'İşaretlenen belirtiler belirli bir hastalığa yeterince işaret etmiyor.' : 'Henüz belirti işaretlenmedi ve fotoğraflardan ipucu çıkmadı.') + '</p><p class="hz-mut">Belirtiler sürerse numune alıp laboratuvara gönderin veya veteriner hekime danışın.</p>' +
+        body.innerHTML = '<div class="hz-sec"><h3>Sonuç</h3><p>' + (res.evidence ? 'İşaretlenen belirtiler belirli bir hastalığa yeterince işaret etmiyor.' : 'Henüz belirti işaretlenmedi ve fotoğraflardan ipucu çıkmadı.') + '</p>' + VB + '<p class="hz-mut">Belirtiler sürerse numune alıp laboratuvara gönderin veya veteriner hekime danışın.</p>' +
           '<div class="hz-row"><button type="button" class="hz-btn sec" data-hz-tab="belirti">← Belirtiler</button></div></div>';
         return;
       }
       if (st.done == null && !Object.keys(st.sel).length) { st.sel[res.list[0].key] = true; if (res.aycSuspect) st.sel.ayc = true; }
-      var H = '<div class="hz-sec"><h3>Muhtemel hastalıklar</h3>';
+      var H = '<div class="hz-sec"><h3>Muhtemel hastalıklar</h3>' + VB;
       if (res.aycSuspect) H += '<div class="hz-alarm"><b>⚠ Amerikan yavru çürüğü şüphesi.</b> İhbarı zorunludur: İl/İlçe Tarım ve Orman Müdürlüğüne bildirin, numune alın, kovanı kapatın (çerçeve/bal alışverişi yok) ve aletleri dezenfekte edin. İlaç uygulamayın.</div>';
-      (res.ihbar || []).forEach(function (k) { if (k !== 'ayc' && INFO[k]) H += '<div class="hz-alarm"><b>⚠ ' + esc(INFO[k].label) + ' şüphesi.</b> İhbarı zorunludur: İl/İlçe Tarım ve Orman Müdürlüğüne bildirin ve numune alın.</div>'; });
+      (res.ihbar || []).forEach(function (k) { if (k !== 'ayc' && INFO[k]) H += '<div class="hz-alarm"><b>⚠ ' + esc(INFO[k].label) + ' şüphesi.</b> İhbarı zorunludur: İl/İlçe Tarım ve Orman Müdürlüğüne bildirin; kovan, arı ve malzeme hareketi yapmayın.</div>'; });
       H += res.list.map(function (x) {
         var inf = INFO[x.key];
         return '<div class="hz-cand"><h4><input type="checkbox" data-hz-sel="' + x.key + '"' + (st.sel[x.key] ? ' checked' : '') + ' aria-label="Kaydet: ' + esc(inf.label) + '"><span>' + esc(x.word) + ': ' + esc(inf.label) + '</span></h4>' +
@@ -470,7 +571,7 @@
         if (!keys.length) { global.alert && global.alert('Kaydetmek için en az bir hastalık işaretleyin.'); return; }
         t.disabled = true; t.textContent = 'Kaydediliyor…';
         saveSuspect(h, keys, st).then(function (r) {
-          st.done = r.saved.length ? '✓ Kaydedildi: ' + r.saved.length + ' şüpheli hastalık kaydı' + (r.photos ? ' · ' + r.photos + ' fotoğraf' : '') + (r.tasks ? ' · ' + r.tasks + ' görev' : '') + (r.photoErr ? ' · fotoğraflar kaydedilemedi' : '') + '. Kesin tanı değildir.' : 'Kaydedilemedi.';
+          st.done = r.saved.length ? '✓ Kaydedildi: ' + r.saved.length + ' şüphe (kayıt/görev)' + (r.photos ? ' · ' + r.photos + ' fotoğraf' : '') + (r.tasks ? ' · ' + r.tasks + ' görev' : '') + (r.photoErr ? ' · fotoğraflar kaydedilemedi' : '') + '. Kesin tanı değildir.' : 'Kaydedilemedi.';
           render();
           if (r.saved.length && typeof opts.onSaved === 'function') opts.onSaved(r);
         });

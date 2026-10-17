@@ -184,6 +184,11 @@
     '.sa-qa-all{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;margin-top:10px;border:1px solid #e4e6ea;border-radius:12px;background:#f4f5f7;color:#5c3a1f;font:inherit;font-size:13px;font-weight:700;cursor:pointer;}' +
     '.sa-qa-sub{margin:-4px 0 10px;font-size:12.5px;color:#6b635a;font-weight:600;}' +
     '.sa-qa-hives{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}' +
+    /* koloni-263 önizleme: kovan seçicide arama + QR — sabit yükseklik (süzünce zıplamaz), arama satırı üstte yapışık */
+    '.sa-qa.sa-qa-fix{height:86vh;}.sa-qa-srow{position:sticky;top:-14px;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:8px;margin:0 -14px 4px;padding:8px 14px;background:#fffdf8;}' +
+    '.sa-qa-sin{min-height:52px;width:100%;border-radius:12px;border:1.5px solid #e0c56a;background:#fff;font:inherit;font-size:17px;font-weight:700;color:#3d2616;padding:0 12px;-webkit-appearance:none;appearance:none;}' +
+    '.sa-qa-qr{min-height:52px;border-radius:12px;border:1px solid #e0c56a;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);font:inherit;font-size:16px;font-weight:800;color:#4a2f1a;cursor:pointer;}' +
+    '.sa-qa-none{margin:0 0 6px;font-size:14px;font-weight:700;color:#8a4b00;visibility:hidden;}.sa-qa-hv[hidden]{display:none;}' +
     '.sa-qa-hv{min-height:52px;border-radius:12px;border:1.5px solid #e0c56a;background:#fff;font:inherit;font-size:15px;font-weight:800;color:#3d2616;cursor:pointer;padding:4px;}' +
     '.sa-qa-empty{padding:14px;border-radius:12px;background:#fff;border:1px dashed #d0c4b0;color:#6b635a;font-weight:650;text-align:center;}';
   function qesc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -236,21 +241,57 @@
     if (ap && D && D.apiaryById && !D.apiaryById(ap)) ap = '';
     return ap;
   }
-  /** Kovan seçici (kapsamdaki etkin kovanlar) → cb(hiveId). Tek kovan varsa doğrudan geçer. */
-  function pickHive(title, cb) {
+  /** Kovan seçici (kapsamdaki etkin kovanlar) → cb(hiveId). Tek kovan varsa doğrudan geçer.
+   *  opts.search: kovan no / ad ile anlık süzme + 📷 QR okut (kovan-ara.js openScanner). Sayfa sabit yükseklikte açılır, süzünce zıplamaz. */
+  function pickHive(title, cb, opts) {
+    opts = opts || {};
     ensureData().then(function () {
       var D = global.SuperAriDemo; if (!D) return;
       var ap = scopeApiary(), a = ap && D.apiaryById ? D.apiaryById(ap) : null;
-      var hs = (D.loadHives() || []).filter(function (h) { return h && h.colonyState !== 'sonuk' && h.colonyState !== 'birlestirildi' && (!ap || String(h.apiaryId) === String(ap)); });
+      var act = function (h) { return h && h.colonyState !== 'sonuk' && h.colonyState !== 'birlestirildi'; };
+      var hs = (D.loadHives() || []).filter(function (h) { return act(h) && (!ap || String(h.apiaryId) === String(ap)); });
       var num = function (h) { var m = /(\d+)\s*$/.exec(String(h.name || '')); return m ? Number(m[1]) : 1e9; };
       hs.sort(function (x, y) { return (num(x) - num(y)) || String(x.name).localeCompare(String(y.name), 'tr'); });
-      if (hs.length === 1) { cb(String(hs[0].id)); return; }
-      var html = hs.length ? '<div class="sa-qa-hives">' + hs.map(function (h) { return '<button type="button" class="sa-qa-hv" data-hv="' + qesc(h.id) + '">' + qesc(h.name) + '</button>'; }).join('') + '</div>'
-        : '<p class="sa-qa-empty">Bu kapsamda kovan yok.</p>';
-      sheet(title, 'Kovan seçin · ' + (a ? a.name : 'tüm arılıklar') + ' (' + hs.length + ')', html, function (e) {
+      if (hs.length === 1 && !opts.search) { cb(String(hs[0].id)); return; }
+      var sr = opts.search ? '<div class="sa-qa-srow"><input type="search" class="sa-qa-sin" data-hv-q inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="Kovan no veya ad" aria-label="Kovan ara">' +
+        '<button type="button" class="sa-qa-qr" data-hv-qr aria-label="QR okut">📷 QR</button></div><p class="sa-qa-none" data-hv-none>Eşleşen kovan yok.</p>' : '';
+      var html = sr + (hs.length ? '<div class="sa-qa-hives">' + hs.map(function (h) { var m = /(\d+)\s*$/.exec(String(h.name || '')); return '<button type="button" class="sa-qa-hv" data-hv="' + qesc(h.id) + '" data-hv-no="' + qesc(m ? m[1] : h.id) + '" data-hv-n="' + qesc(String(h.name || '').toLocaleLowerCase('tr')) + '">' + qesc(h.name) + '</button>'; }).join('') + '</div>'
+        : '<p class="sa-qa-empty">Bu kapsamda kovan yok.</p>');
+      var back = sheet(title, 'Kovan seçin · ' + (a ? a.name : 'tüm arılıklar') + ' (' + hs.length + ')', html, function (e) {
         var b = e.target.closest && e.target.closest('[data-hv]');
-        if (b) { closeSheet(); cb(b.getAttribute('data-hv')); }
+        if (b) { closeSheet(); cb(b.getAttribute('data-hv')); return; }
+        if (e.target.closest && e.target.closest('[data-hv-qr]')) qr();
       });
+      if (!opts.search || !back) return;
+      var box = back.querySelector('.sa-qa'); if (box) box.classList.add('sa-qa-fix');
+      var inp = back.querySelector('[data-hv-q]'), none = back.querySelector('[data-hv-none]');
+      function filt() {
+        var q = String(inp.value || '').trim().toLocaleLowerCase('tr'), n = 0, last = null;
+        back.querySelectorAll('[data-hv]').forEach(function (b) {
+          var ok = !q || (/^\d+$/.test(q) ? (b.getAttribute('data-hv-no').indexOf(q) === 0 || b.getAttribute('data-hv').indexOf(q) === 0) : b.getAttribute('data-hv-n').indexOf(q) >= 0);
+          b.hidden = !ok; if (ok) { n++; last = b; }
+        });
+        if (none) none.style.visibility = q && !n ? 'visible' : 'hidden';
+        return { n: n, last: last };
+      }
+      inp.addEventListener('input', filt);
+      inp.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return; e.preventDefault();
+        var q = String(inp.value || '').trim(), r = filt(), ex = null;
+        back.querySelectorAll('[data-hv]').forEach(function (b) { if (!ex && /^\d+$/.test(q) && b.getAttribute('data-hv-no') === q) ex = b; });
+        var pick = ex || (r.n === 1 ? r.last : null);
+        if (pick) { closeSheet(); cb(pick.getAttribute('data-hv')); }
+      });
+      function qr() {
+        var go = function () {
+          var all = (D.loadHives() || []).filter(act);
+          global.SuperAriKovanAra.openScanner(all, { onHive: function (h) { closeSheet(); cb(String(h.id)); } });
+        };
+        if (global.SuperAriKovanAra && global.SuperAriKovanAra.openScanner) { go(); return; }
+        var sc = document.createElement('script'), cur = document.querySelector('script[src*="nav.js"]'), mv = cur && /[?&]v=([^&]+)/.exec(cur.src);
+        sc.src = 'kovan-ara.js' + (mv ? '?v=' + mv[1] : ''); sc.onload = go; sc.onerror = function () { global.alert && global.alert('QR okuyucu yüklenemedi. Sayfayı yenileyip tekrar deneyin.'); };
+        document.head.appendChild(sc);
+      }
     });
   }
   /** Mevcut konu kayıt formu (koloni.js openRecordSheet) — önce kovan seçilir. then(back) form açıldıktan sonra. */

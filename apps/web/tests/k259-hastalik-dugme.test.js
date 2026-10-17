@@ -7,3 +7,7 @@ assert.ok(/data-hz-saglik/.test(sg) && /linear-gradient\(180deg,#fff6df/.test(sg
 assert.ok(/t: 'Hastalık tahmini'/.test(sg), '＋ Kayıt listesinde');
 console.log('k259 ok');
 assert.ok(!/backdrop-filter/.test(require('fs').readFileSync(require('path').join(__dirname,'..','nav.js'),'utf8')), 'kovan seçici bulanık değil');
+/* koloni-263 önizleme: seçicide arama + QR */
+const nv = require('fs').readFileSync(require('path').join(__dirname, '..', 'nav.js'), 'utf8');
+assert.ok(/function pickHive\(title, cb, opts\)/.test(nv) && /data-hv-q/.test(nv) && /data-hv-qr/.test(nv) && /SuperAriKovanAra\.openScanner/.test(nv) && /\.sa-qa\.sa-qa-fix\{height:86vh;\}/.test(nv), 'arama + QR, sabit yükseklik');
+assert.ok(/\}, \{ search: true \}\);/.test(sg), 'Sağlık seçicisi aramalı');
