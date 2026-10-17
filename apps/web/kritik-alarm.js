@@ -143,7 +143,7 @@
     }).join('');
     var dh = el.offsetHeight - h0; if (dh && kayik) global.scrollBy(0, dh);
   }
-  /* önizleme: Arılık koşulu kartı — başlıkta arılık adı, her neden tek cümle (sorun + yapılacak), taşınma önerisi tek satır; düğmeler «Taşınmayı planla» (öneri varsa) + «Kapat» */
+  /* koloni-254: Arılık koşulu kartı — başlıkta arılık adı, her neden tek cümle (sorun + yapılacak), taşınma önerisi tek satır; düğmeler «Taşınmayı planla» (öneri varsa) + «Kapat» */
   var KOSUL_CUMLE = { su: 'Su kaynağı uzak. Arılığa sulak koy.', flora: 'Çevrede çiçek akımı bitti. Beslemeyi planla.', alan: 'Toplama alanında ilaçlama var. Kovan girişlerini kapat.' };
   function apAd(id) { try { var a = (global.SuperAriDemo.loadApiaries() || []).filter(function (z) { return String(z.id) === String(id); })[0]; return a ? a.name : ''; } catch (e) { return ''; } }
   function kosulKart(x) {
