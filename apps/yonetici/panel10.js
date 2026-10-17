@@ -231,6 +231,31 @@
     { t: 'Pil', kk: ['pil'], src: 'Kaynak yok · bütün pil değerleri uzman tahmini (cihaz üreticisine bağlı)', not: 'Aynı değerler Cihazlar → Pil düşüklüğü kartında (tek kaynak). Sıklık yalnız kullanıcı «Onayla» deyince değişir.', r: PIL() },
     /* koloni-247: oğul riski — «Yer darlığı olabilir (bal katı verilmemiş)»: kaynak yok, uzman tahmini (aç/kapa) */
     /* koloni-258: ana memesi yeri «Bilinmiyor» — skoru artırmaz, yalnız «yerine bakın» notu (uzman tahmini, aç/kapa) */
+    /* k259: ana arı yaşı — oğul puanı, ırk başına değişim yaşı ve 3. yaş riski (tek kaynak ogul_skor_ayar.sensor) */
+    { t: 'Ana arı yaşı ve değişim', src: 'Değişim yaşı: T.C. Tarım ve Orman Bak., Arıcılık Araştırma Enstitüsü (2022) «Ana Arı» kitapçığı — «ana arıların iki yılda bir değiştirilmesi gereklidir (Güler, 2017)» (genel öneri, ırka özgü değil) · Anadolu: Akyol E., Yeninar H., Korkmaz A., Çakmak İ. (2008) Ital. J. Anim. Sci. 7:19–25, doi:10.4081/ijas.2008.19 (0/1/2/3 yaş: kışlama %84/88/47/27, yaşama %100/100/60/40) · Kostarelou-Damianidou ve ark. (1995) J. Apic. Res., doi:10.1080/00218839.1995.11100880 (2–3 yılda değişim yeterli) · Oğul puanı yönü: Simpson 1957, J. Agric. Sci. 49:387, doi:10.1017/s0021859600038375; Simpson 1960, J. Agric. Sci. 54:195, doi:10.1017/S002185960002236X · Puanlar ve Anadolu dışı 3. yaş riskleri uzman tahmini (Yapılacaklar).', not: 'Yaş tek başına uyarıyı en çok «orta» yapar. Yüksek yalnız son yavru muayenesinde belirti varsa: erkek yumurtası / kambur yavru, dağınık yavru, sessiz değiştirme memesi, anasızlık. 3. yaş metni: «Ana 3 yaşında: değişim zamanı geçti — ilkbahar–yaz başında değiştirmeyi planlayın.»', r: [
+      ['i', 'Oğul puanı', 'Ana yaşı puanı: bu yılın anası (0–100) ' + UT, 's', 'anaYasPuan0'],
+      ['i', 'Oğul puanı', 'Ana yaşı puanı: 1 yaş (0–100) ' + UT, 's', 'anaYasPuan1'],
+      ['w', 'Oğul puanı', 'Ana yaşı puanı: 2 yaş ve üstü (0–100) ' + UT, 's', 'anaYasPuan2'],
+      ['ok', 'Kafkas', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegKafkas'],
+      ['w', 'Kafkas', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3Kafkas'],
+      ['ok', 'Anadolu', 'Değişim yaşı (yıl) · Akyol 2008 + AAE 2022', 's', 'anaDegAnadolu'],
+      ['w', 'Anadolu', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) · Akyol 2008 (3 yaşta yaşama %40)', 's', 'anaRisk3Anadolu'],
+      ['ok', 'Kafkas × Karadeniz', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegKafkasKaradeniz'],
+      ['w', 'Kafkas × Karadeniz', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3KafkasKaradeniz'],
+      ['ok', 'Karadeniz', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegKaradeniz'],
+      ['w', 'Karadeniz', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3Karadeniz'],
+      ['ok', 'Kafkas × Karniyol', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegKafkasKarniyol'],
+      ['w', 'Kafkas × Karniyol', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3KafkasKarniyol'],
+      ['ok', 'Karniyol × Muğla', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegKarniyolMugla'],
+      ['w', 'Karniyol × Muğla', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3KarniyolMugla'],
+      ['ok', 'Karniyol', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegKarniyol'],
+      ['w', 'Karniyol', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3Karniyol'],
+      ['ok', 'İtalyan', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegItalyan'],
+      ['w', 'İtalyan', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3Italyan'],
+      ['ok', 'Buckfast', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegBuckfast'],
+      ['w', 'Buckfast', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3Buckfast'],
+      ['ok', 'Diğer / bilinmeyen', 'Değişim yaşı (yıl) · AAE 2022 (genel)', 's', 'anaDegVarsayilan'],
+      ['w', 'Diğer / bilinmeyen', '3. yaş riski / rengi (1 düşük-yeşil · 2 orta-sarı · 3 yüksek-kırmızı · 4 çok yüksek-kırmızı) ' + UT + '', 's', 'anaRisk3Varsayilan']] },
     { t: 'Oğul: Ana memesi yeri bilinmiyor (tahmin)', kk: ['ogulMemeYerBilinmiyor'], src: 'Kaynak yok · uzman tahmini (Yapılacaklar: kaynak aranacak). Yer anlamları: Winston 1987; Fell & Morse 1984.', not: 'Uzman tahmini. Muayenede meme var ama yeri «Bilinmiyor» → oğul skoru 100\'e çıkmaz (yalnız alt kenar oğul memesi çıkarır); kullanıcıya «Ana memesi var, yeri bilinmiyor — alt kenardaysa oğul hazırlığıdır, yerine bakın» notu. Kapatılırsa not gösterilmez. Sayısal eşik yok; yalnız aç/kapa.', r: [] },
     { t: 'Oğul: Yer darlığı olabilir (tahmin)', kk: ['ogulYerTahmin'], src: 'Kaynak yok · uzman tahmini (Yapılacaklar: kaynak aranacak)', not: 'Uzman tahmini. Güçlü / Çok güçlü / Bölünmesi Gerekiyor koloni + bal katı verilmemiş + muayenede arılı çerçeve sayısı yok → kullanıcıya «Yer darlığı olabilir (bal katı verilmemiş)». Oğul skorunu değiştirmez. Sayısal eşik yok; yalnız aç/kapa (genel, kullanıcı, arılık). Kat at / Boş çerçeve önerileri güçlü koloni için bu nedenden bağımsız çıkar.', r: [] },
   ];

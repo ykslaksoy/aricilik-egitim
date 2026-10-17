@@ -12,7 +12,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'demo-data.js'), 'utf
 const D = win.SuperAriDemo;
 const C = D.colony;
 
-/* Irk profilleri (kullanıcı kuralı: Buckfast 2 yıl; Anadolu/Kafkas 3; melezler/İtalyan/Karadeniz 2; bilinmeyen 2) */
+/* Irk profilleri (k259 kullanıcı onayı: tüm ırklarda 2 yıl — AAE 2022 genel; Anadolu riski yüksek — Akyol 2008) */
 const prof = (b) => C.queenProfile(b);
 assert.strictEqual(prof('Buckfast').ideal, 2);
 assert.strictEqual(prof('Belfast').label, 'Buckfast');
@@ -23,10 +23,11 @@ assert.strictEqual(prof('Kafkas × Karniyol').risk, 'yuksek');
 assert.strictEqual(prof('İtalyan').risk, 'yuksek');
 assert.strictEqual(prof('Kafkas × Karadeniz').risk, 'orta');
 assert.strictEqual(prof('Karadeniz').risk, 'orta');
-assert.strictEqual(prof('Anadolu').ideal, 3);
-assert.strictEqual(prof('Anadolu').risk, 'dusuk');
-assert.strictEqual(prof('Kafkas').ideal, 3);
-assert.strictEqual(prof('KAFKAS').ideal, 3);
+assert.strictEqual(prof('Anadolu').ideal, 2);
+assert.strictEqual(prof('Anadolu').risk, 'yuksek');
+assert.strictEqual(prof('Kafkas').ideal, 2);
+assert.strictEqual(prof('Kafkas').risk, 'dusuk');
+assert.strictEqual(prof('KAFKAS').ideal, 2);
 assert.strictEqual(prof('').ideal, 2);
 assert.strictEqual(prof('Yerel melez').known, false);
 assert.strictEqual(prof('Muğla').ideal, 2);
@@ -54,12 +55,14 @@ assert.strictEqual(P('İtalyan', 2023, '2026-09-28').tone, 'red');
 assert.strictEqual(P('Kafkas × Karadeniz', 2023, '2026-09-28').tone, 'yellow');
 assert.strictEqual(P('Karadeniz', 2023, '2026-09-28').key, 'gecti');
 p = P('Anadolu', 2023, '2026-09-28');
-assert.strictEqual(p.key, 'zamani'); assert.strictEqual(p.tone, 'green'); assert.strictEqual(p.severity, 'low');
-assert.strictEqual(P('Kafkas', 2024, '2026-09-28').key, 'iyi');
-assert.strictEqual(P('Kafkas', 2024, '2027-03-01').key, 'yaklasiyor');
+assert.strictEqual(p.key, 'gecti'); assert.strictEqual(p.tone, 'red'); assert.strictEqual(p.severity, 'medium');
+assert.strictEqual(p.text, 'Ana 3 yaşında: değişim zamanı geçti — ilkbahar–yaz başında değiştirmeyi planlayın.');
+p = P('Kafkas', 2023, '2026-09-28'); assert.strictEqual(p.key, 'gecti'); assert.strictEqual(p.tone, 'green'); assert.ok(!/güvende|çökme/i.test(p.text));
+assert.strictEqual(P('Kafkas', 2024, '2026-09-28').key, 'zamani');
+assert.strictEqual(P('Kafkas', 2025, '2027-03-01').key, 'yaklasiyor');
 /* 4+ yaş: her ırkta kırmızı, gecikti */
 p = P('Anadolu', 2022, '2026-09-28');
-assert.strictEqual(p.key, 'gecti'); assert.strictEqual(p.tone, 'red'); assert.strictEqual(p.severity, 'high');
+assert.strictEqual(p.key, 'gecti'); assert.strictEqual(p.tone, 'red'); assert.strictEqual(p.severity, 'medium'); /* yaş tek başına en çok orta */
 assert.strictEqual(P('Kafkas × Karadeniz', 2022, '2026-09-28').tone, 'red');
 /* 1 Nisan öncesi: etkin yaş bir eksik */
 assert.strictEqual(P('Kafkas × Karniyol', 2024, '2026-03-15').key, 'yaklasiyor');
@@ -78,5 +81,12 @@ assert.ok(all.some((a) => a.queen === 'bilinmiyor' && /ana yılını girin/.test
 const h = D.loadHives().find((x) => /Karniyol/.test(x.breed || ''));
 C.updateHive(h.id, { queenYear: new Date().getFullYear() - 4 }, 'correct');
 const red = D.alerts.filter((a) => a.type === 'ana' && a.hiveId === h.id);
-assert.strictEqual(red.length, 1); assert.strictEqual(red[0].severity, 'high');
+assert.strictEqual(red.length, 1); assert.strictEqual(red[0].severity, 'medium');
+/* belirti (dağınık yavru) → yüksek */
+D.records.add(h.id, 'brood', { date: D.records.todayLocal(), eggs: true, pattern: 'daginik', queenCell: 'yok' });
+const red2 = D.alerts.filter((a) => a.type === 'ana' && a.hiveId === h.id);
+assert.strictEqual(red2[0].severity, 'high'); assert.ok(/dağınık yavru/.test(red2[0].title), red2[0].title);
+/* yönetici ayarı: değişim yaşı ve puanlar */
+const m = C.ogulSkorMerge({ sensor: { anaDegKafkas: 3, anaRisk3Kafkas: 3, anaYasPuan0: 10 } });
+assert.strictEqual(m.sensor.anaDegKafkas, 3); assert.strictEqual(m.sensor.anaYasPuan0, 10);
 console.log('ana-yas: ok');
