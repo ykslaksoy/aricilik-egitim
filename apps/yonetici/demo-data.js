@@ -2371,7 +2371,7 @@
   var AYC_LABEL = { temiz: 'Temiz', suphe: 'Şüphe', dogrulandi: 'Doğrulandı' };
   var VARROA_METHOD_LABEL = { seker: 'Pudra şekeri', alkol: 'Alkol yıkama', tabla: 'Yapışkan tabla' };
   /* Ana memesi yeri: alt kenar = oğul memesi · petek ortası = sessiz ana değiştirme · acil = genç larvadan (anasız). */
-  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Alt kenar (oğul yüksüğü)', yenileme: 'Petek ortası (sessiz ana değiştirme)', acil: 'Acil (genç larvadan, anasız)' };
+  var QUEEN_CELL_LABEL = { yok: 'Yok', ogul: 'Alt kenar (oğul yüksüğü)', yenileme: 'Petek ortası (sessiz ana değiştirme)', acil: 'Acil (genç larvadan, anasız)', bilinmiyor: 'Yeri bilinmiyor' };
   var CELL_CAP_LABEL = { kapali: 'kapalı', acik: 'açık' };
   var PATTERN_LABEL = { duzenli: 'Düzenli', daginik: 'Dağınık' };
 
@@ -2740,7 +2740,7 @@
     if (kind === 'brood') {
       o.eggs = r.eggs === true;
       o.pattern = pick(r.pattern, ['duzenli', 'daginik'], 'duzenli');
-      o.queenCell = pick(r.queenCell, ['yok', 'ogul', 'yenileme', 'acil'], 'yok');
+      o.queenCell = pick(r.queenCell, ['yok', 'ogul', 'yenileme', 'acil', 'bilinmiyor'], 'yok');
       if (o.queenCell !== 'yok') {
         var cc = intIn(r.cellCount, 1, 60); if (cc) o.cellCount = cc;
         var cp = pick(r.cellCapped, ['kapali', 'acik', ''], ''); if (cp) o.cellCapped = cp;
@@ -3251,6 +3251,7 @@
       merged: hf.colonyState === 'birlestirildi',
       swarmCell: !!(b && b.queenCell === 'ogul'),
       supersedureCell: !!(b && b.queenCell === 'yenileme'),
+      unknownCell: !!(b && b.queenCell === 'bilinmiyor'), /* meme var, yeri bilinmiyor: ORS bypass yok, yalnız «yerine bak» notu */
       emergencyCell: emergencyCell && queenless,
       cellCount: b && b.cellCount ? b.cellCount : null,
       sign: b && b.sign ? b.sign : '', queenSeen: !!(b && b.queenSeen), eggs: b ? b.eggs !== false : null,
@@ -4707,6 +4708,9 @@
         quietCells = true;
         why.splice(1, 0, { key: 'meme', text: 'Sessiz ana değiştirme: petek ortasında ' + nTxt('yüksük') + cd, dir: 'down', group: 'durum' });
       }
+    } else if (st && st.unknownCell) {
+      /* Yer bilinmiyor: oğul yüksüğü sayılmaz (skor 100'e çıkmaz), ama kontrol önerilir. */
+      why.splice(1, 0, { key: 'meme', text: 'Ana memesi var, yeri bilinmiyor (' + nTxt('yüksük') + ') — alt kenardaysa oğul hazırlığıdır, yerine bakın' + cd, dir: 'up', group: 'durum' });
     }
     var capQ = false, capS = false;
     var queenless = !!(st && st.queenless);
