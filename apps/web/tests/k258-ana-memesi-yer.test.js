@@ -10,3 +10,9 @@ assert.ok(/\['yok', 'ogul', 'yenileme', 'acil', 'bilinmiyor'\]/.test(dd) && /unk
 assert.ok(/var anyCell = !!\(st && st\.swarmCell\);/.test(dd), 'yalnız oğul memesi ORS bypass');
 assert.strictEqual(dd, fs.readFileSync(path.join(__dirname, '..', '..', 'yonetici', 'demo-data.js'), 'utf8'), 'yönetici kopyası aynı');
 console.log('k257 ok');
+/* koloni-258: «Bilinmiyor» varsayımı yönetici aç/kapa + Yapılacaklar */
+assert.ok(/kuralAcik\('ogulMemeYerBilinmiyor', h\.apiaryId\)/.test(dd), 'kural aç/kapa');
+const p10b = fs.readFileSync(path.join(__dirname, '..', '..', 'yonetici', 'panel10.js'), 'utf8');
+assert.ok(/kk: \['ogulMemeYerBilinmiyor'\]/.test(p10b), 'yönetici kartı');
+const migb = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '20261018050000_k258_ana_memesi_yer.sql'), 'utf8');
+assert.ok(/yapilacaklar/.test(migb) && /uzman tahmini/.test(migb), 'Yapılacaklar');

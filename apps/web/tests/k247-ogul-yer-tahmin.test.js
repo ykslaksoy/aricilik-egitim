@@ -28,7 +28,7 @@ const src = fs.readFileSync(path.join(root, 'demo-data.js'), 'utf8');
 assert.strictEqual(src, fs.readFileSync(path.join(root, '..', 'yonetici', 'demo-data.js'), 'utf8'));
 assert.strictEqual(fs.readFileSync(path.join(root, 'degisiklik-kaydi.js'), 'utf8'), fs.readFileSync(path.join(root, '..', 'yonetici', 'degisiklik-kaydi.js'), 'utf8'));
 const p10 = fs.readFileSync(path.join(root, '..', 'yonetici', 'panel10.js'), 'utf8');
-assert.ok(/kk: \['ogulYerTahmin'\]/.test(p10) && /Kaynak yok · uzman tahmini/.test(p10) && /\['Oğul riski', \['ogulYerTahmin'\]\]/.test(p10), 'yönetici kartı + grup');
+assert.ok(/kk: \['ogulYerTahmin'\]/.test(p10) && /Kaynak yok · uzman tahmini/.test(p10) && /\['Oğul riski', \['ogulYerTahmin'[,\]]/.test(p10), 'yönetici kartı + grup');
 const mig = fs.readdirSync(path.join(root, '..', '..', 'supabase', 'migrations')).find((f) => /ogul_yer_tahmin\.sql$/.test(f));
 assert.ok(mig, 'migration');
 const m = fs.readFileSync(path.join(root, '..', '..', 'supabase', 'migrations', mig), 'utf8');

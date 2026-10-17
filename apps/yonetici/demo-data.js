@@ -3580,7 +3580,7 @@
   /* koloni-220: aç/kapa yapılabilen uyarı kuralları (yönetici paneli → Ölçüm kuralları / Cihazlar) */
   var KURALLAR = [['kulucka', 'Kuluçka sıcaklığı (uyarı/kritik/oynaklık)'], ['kuluckaAcil', 'Kuluçka ACİL'], ['kirec', 'Kireç hatırlatması'], ['nem', 'Nem kademeleri'], ['agirlik', 'Ağırlık (genel kayıp)'],
     ['sesOgulAni', 'Ses: Oğul anı'], ['sesPiping', 'Ses: Piping'], ['sesQuack', 'Ses: Quacking'], ['sesAnasiz', 'Ses: Anasızlık'], ['sesIsciOtme', 'Ses: İşçi ötmesi'], ['sesOgulEgilim', 'Ses: Oğul eğilimi'], ['sesSaglik', 'Ses: Kovan sağlığı'], ['sesVarroa', 'Ses: Varroa'], ['sesOgulOnce', 'Ses: Oğul öncesi ses + sıcaklık'], ['sesOtmeSira', 'Ses: Ana arı ötme sırası'], ['sesRahatsiz', 'Ses: Rahatsız edilme'], ['sesEsekArisi', 'Ses: Eşek arısı'], ['koloniSonuk', 'Koloni sönmüş olabilir'], ['yavrusuzSicak', 'Yavrusuz / anasız (sıcaklık salınımı)'], ['tarlaciKayip', 'Tarlacı arı kaybı (tartı)'], ['esekGiris', 'Eşek arısı: sıcaklık + tıslama + titreşim'], ['havalandirma', 'Havalandırma yetersiz'],
-    ['titresim', 'Titreşim'], ['titOgul', 'Titreşim: Oğul hazırlığı (gece)'], ['titOtme', 'Titreşim: Ana ötmesi'], ['titDarbe', 'Titreşim: Rahatsız edilme / darbe'], ['titKis', 'Titreşim: Kış hareketsizliği'], ['irOgul', 'IR: Oğul'], ['irYagma', 'IR: Yağma'], ['irTrafik', 'IR: Trafik düşüşü'], ['irIlac', 'IR: İlaçlama şüphesi'], ['irDonmeyen', 'IR: Dönmeyen tarlacı'], ['irDusukAktivite', 'IR: Beklenenden düşük aktivite'], ['irSayac', 'IR: Sayaç arızası'], ['irOgulCikti', 'IR: Oğul çıktı'], ['pil', 'Pil düşüklüğü'], ['cihazSessiz', 'Veri gelmiyor'], ['cihazKopuk', 'Bağlantı koptu'], ['cihazAriza', 'Arızalı'], ['ucus', 'Uçuş havası cinse göre (kapalıysa Genel eşik)'], ['ogulYerTahmin', 'Oğul: Yer darlığı olabilir (bal katı yok, sayım yok — uzman tahmini)']];
+    ['titresim', 'Titreşim'], ['titOgul', 'Titreşim: Oğul hazırlığı (gece)'], ['titOtme', 'Titreşim: Ana ötmesi'], ['titDarbe', 'Titreşim: Rahatsız edilme / darbe'], ['titKis', 'Titreşim: Kış hareketsizliği'], ['irOgul', 'IR: Oğul'], ['irYagma', 'IR: Yağma'], ['irTrafik', 'IR: Trafik düşüşü'], ['irIlac', 'IR: İlaçlama şüphesi'], ['irDonmeyen', 'IR: Dönmeyen tarlacı'], ['irDusukAktivite', 'IR: Beklenenden düşük aktivite'], ['irSayac', 'IR: Sayaç arızası'], ['irOgulCikti', 'IR: Oğul çıktı'], ['pil', 'Pil düşüklüğü'], ['cihazSessiz', 'Veri gelmiyor'], ['cihazKopuk', 'Bağlantı koptu'], ['cihazAriza', 'Arızalı'], ['ucus', 'Uçuş havası cinse göre (kapalıysa Genel eşik)'], ['ogulYerTahmin', 'Oğul: Yer darlığı olabilir (bal katı yok, sayım yok — uzman tahmini)'], ['ogulMemeYerBilinmiyor', 'Oğul: Ana memesi yeri bilinmiyor — «yerine bakın» notu (uzman tahmini)']];
   var KURAL_IDS = KURALLAR.map(function (x) { return x[0]; });
   /* Etkin = genel açık VE o kullanıcı (e-posta) için kapalı değil VE o arılık (ad) için kapalı değil. */
   var KURAL_UEMAIL = '';
@@ -4745,7 +4745,7 @@
         quietCells = true;
         why.splice(1, 0, { key: 'meme', text: 'Sessiz ana değiştirme: petek ortasında ' + nTxt('yüksük') + cd, dir: 'down', group: 'durum' });
       }
-    } else if (st && st.unknownCell) {
+    } else if (st && st.unknownCell && kuralAcik('ogulMemeYerBilinmiyor', h.apiaryId)) {
       /* Yer bilinmiyor: oğul yüksüğü sayılmaz (skor 100'e çıkmaz), ama kontrol önerilir. */
       why.splice(1, 0, { key: 'meme', text: 'Ana memesi var, yeri bilinmiyor (' + nTxt('yüksük') + ') — alt kenardaysa oğul hazırlığıdır, yerine bakın' + cd, dir: 'up', group: 'durum' });
     }
