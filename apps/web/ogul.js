@@ -59,15 +59,16 @@
     var a = D.colony.swarm(h);
     var ap = D.apiaryById ? D.apiaryById(h.apiaryId) : null;
     var icon = { up: '▲', down: '▼', info: '•' };
-    function li(list) { return list.map(function (x) { return '<li><span class="i ' + x.dir + '">' + icon[x.dir] + '</span><span>' + esc(x.text) + '</span></li>'; }).join(''); }
+    /* k244: «Ana arı karakteri» başlığı altında aynı ön ek madde metninde tekrar edilmez */
+    function li(list, strip) { return list.map(function (x) { var t = String(x.text || ''); if (strip && t.indexOf(strip) === 0) t = t.slice(strip.length); return '<li><span class="i ' + x.dir + '">' + icon[x.dir] + '</span><span>' + esc(t) + '</span></li>'; }).join(''); }
     var kar = a.details.filter(function (x) { return x.group === 'karakter'; });
     var html = '<div class="og-sheet" role="dialog" aria-modal="true" aria-label="Oğul riski ayrıntısı">' +
       '<h2>Oğul riski · ' + esc(h.name) + '<button type="button" class="og-x" data-og-close aria-label="Kapat">×</button></h2>' +
       '<div class="muted" style="font-size:13px;color:#6b5a48;">' + esc((ap ? ap.name : '') + (mode() === 'demo' ? ' · Demo' : '')) + '</div>' +
       '<span class="og-lvl" style="background:' + a.color + '">' + esc(a.display || a.level) + (a.key === 'orta' ? ' · izlemede' : '') + '</span>' + ((a.key === 'kritik' || a.key === 'yuksek') ? '<div class="og-foot" style="margin-top:6px;"><a href="bakim-akis.html?id=' + encodeURIComponent(h.id) + '&amp;apiary=' + encodeURIComponent(h.apiaryId) + '"><b>Kritik Uyarı: Kovan Sıkıştı, Oğul Riski!</b> → Hızlı muayene</a></div>' : '') +
       '<div class="og-sec"><h3>Kovan durumu</h3><ul class="og-why">' + li(a.details.filter(function (x) { return x.group !== 'karakter'; })) + '</ul></div>' +
-      (kar.length ? '<div class="og-sec"><h3>Ana arı karakteri</h3><ul class="og-why">' + li(kar) + '</ul>' +
-        '<div class="og-foot" style="margin-top:4px;">Irk, kovanın sıkışıklığı, oğul mevsimi ve ana yaşıyla birlikte oğul riskini belirler.</div></div>' : '') +
+      /* k244: bölüm altındaki «Irk … belirler» notu kaldırıldı — alttaki «Oğul riski tahminidir …» notu aynı bilgiyi veriyor */
+      (kar.length ? '<div class="og-sec"><h3>Ana arı karakteri</h3><ul class="og-why">' + li(kar, 'Ana arı karakteri: ') + '</ul></div>' : '') +
       '<div class="og-sec"><h3>Öneriler</h3>' + a.recs.map(function (r, i) {
         return '<div class="og-rec"><b>' + esc(r.title) + '</b><p>' + esc(r.detail) + '</p><div class="og-acts">' +
           (r.href ? '<a class="pri" href="' + esc(r.href) + '">Bölme ekranını aç</a>' : '') +
