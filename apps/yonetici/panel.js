@@ -53,7 +53,7 @@
         var au = C.autoSwarmWindow(a.id), cp = dn[a.id] && dn[a.id].isCustomPeriod ? dn[a.id] : null;
         return '<div class="os-dn" data-ap="' + esc(a.id) + '" data-custom="' + (cp ? '1' : '0') + '"><b>' + esc(a.name || a.place || a.id) + '</b>' +
           '<small class="fe-meta">Otomatik: ' + esc(au.label) + ' · ' + md(au.from) + ' – ' + md(au.to) + (cp ? ' · <b>elle: ' + md(cp.from) + ' – ' + md(cp.to) + '</b>' : '') + '</small>' +
-          '<span class="os-dr"><input type="date" name="dn-from" value="' + yr + '-' + (cp || au).from + '"> – <input type="date" name="dn-to" value="' + yr + '-' + (cp || au).to + '"> ' +
+          '<span class="os-dr"><span class="rng"><input type="date" name="dn-from" value="' + yr + '-' + (cp || au).from + '"><span class="rng-a">–</span><input type="date" name="dn-to" value="' + yr + '-' + (cp || au).to + '"></span> ' +
           '<button type="button" class="btn secondary" data-dn-reset' + (cp ? '' : ' disabled') + '>Otomatik hesaplamaya dön</button></span></div>';
       }).join('') : '<p class="fe-empty">Arılık yok.</p>') + '</fieldset>';
     /* koloni-249: arılık başına uçuş mevsimi (Hava › uçuş etiketi). Otomatik: bölge profili (Ölçüm kuralları › Uçuş havası › Mevsim). */
@@ -63,7 +63,7 @@
         var au = C.ucusSezon ? C.ucusSezon(a.id, null, true) : null, cp = us[a.id] && us[a.id].from ? us[a.id] : null; if (!au) return '';
         return '<div class="os-us" data-ap="' + esc(a.id) + '" data-custom="' + (cp ? '1' : '0') + '"><b>' + esc(a.name || a.place || a.id) + '</b>' +
           '<small class="fe-meta">' + 'Otomatik: ' + esc(au.profileLabel || '') + ' · ' + md(au.from) + ' – ' + md(au.to) + (cp ? ' · <b>elle: ' + md(cp.from) + ' – ' + md(cp.to) + '</b>' : '') + '</small>' +
-          '<span class="os-dr"><input type="date" name="us-from" value="' + yr + '-' + (cp || au).from + '"> – <input type="date" name="us-to" value="' + yr + '-' + (cp || au).to + '"> ' +
+          '<span class="os-dr"><span class="rng"><input type="date" name="us-from" value="' + yr + '-' + (cp || au).from + '"><span class="rng-a">–</span><input type="date" name="us-to" value="' + yr + '-' + (cp || au).to + '"></span> ' +
           '<button type="button" class="btn secondary" data-us-reset' + (cp ? '' : ' disabled') + '>Otomatik hesaplamaya dön</button></span></div>';
       }).join('') : '<p class="fe-empty">Arılık yok.</p>') + '</fieldset>';
     h += '<fieldset><legend>Bilinmeyen</legend><label><span>Tabloda olmayan melez / ırk</span>' + inp('bilinmeyen', o.bilinmeyen, '1', 100) + '</label></fieldset>';
