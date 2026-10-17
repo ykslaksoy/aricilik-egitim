@@ -1168,6 +1168,8 @@
     if (q.line != null && String(q.line).trim()) o.line = String(q.line).trim().slice(0, 80);
     if (q.motherRef != null && String(q.motherRef).trim()) o.motherRef = String(q.motherRef).trim().slice(0, 120);
     if (q.clipped === true && /^\d{4}-\d{2}-\d{2}$/.test(String(q.clippedAt || ''))) o.clippedAt = String(q.clippedAt);
+    /* k257: Belgeli ana arı (isteğe bağlı): belge no, yetiştirici adı / ili, alım tarihi, işaret numarası, belge fotoğrafı var mı */
+    var ct = normalizeQueenCert(q.cert); if (ct) o.cert = ct;
     o.createdAt = String(q.createdAt || new Date().toISOString());
     if (q.migrated === true) o.migrated = true;
     o.placements = (Array.isArray(q.placements) ? q.placements : []).map(function (p) {
@@ -1180,6 +1182,25 @@
       };
     }).filter(Boolean);
     return o;
+  }
+  function normalizeQueenCert(c) {
+    if (!c || typeof c !== 'object') return null;
+    var o = {}, t = function (v, n) { return v != null && String(v).trim() ? String(v).trim().slice(0, n) : ''; };
+    var no = t(c.no, 60), br = t(c.breeder, 80), city = t(c.city, 40), mk = t(c.markNo, 20), dt = /^\d{4}-\d{2}-\d{2}$/.test(String(c.date || '')) ? String(c.date) : '';
+    if (no) o.no = no; if (br) o.breeder = br; if (city) o.city = city; if (dt) o.date = dt; if (mk) o.markNo = mk;
+    if (c.photo === true) o.photo = true;
+    return Object.keys(o).length ? o : null;
+  }
+  /** Belgeli ana arı özeti: «Belge 123 · Yetiştirici X (Erzurum) · alım 12.05.2026 · işaret no 7» — boşsa ''. */
+  function queenCertText(c) {
+    c = normalizeQueenCert(c); if (!c) return '';
+    var o = [];
+    if (c.no) o.push('Belge ' + c.no);
+    if (c.breeder || c.city) o.push('Yetiştirici ' + (c.breeder || '') + (c.city ? (c.breeder ? ' (' + c.city + ')' : c.city) : ''));
+    if (c.date) o.push('alım ' + c.date.slice(8, 10) + '.' + c.date.slice(5, 7) + '.' + c.date.slice(0, 4));
+    if (c.markNo) o.push('işaret no ' + c.markNo);
+    if (c.photo) o.push('belge fotoğrafı var');
+    return o.join(' · ');
   }
   var QUEEN_ORIGINS = ['satin', 'uretim', 'bolme', 'ogul', 'yenileme', 'acil'];
   var QUEEN_ORIGIN_LABEL = { satin: 'satın alınan ana', uretim: 'ana üretimi (larva transferi)', bolme: 'bölmede yetişen ana', ogul: 'oğul sonrası yetişen ana', yenileme: 'sessiz ana değiştirme', acil: 'acil ana memesinden' };
@@ -1409,6 +1430,10 @@
           if (Object.prototype.hasOwnProperty.call(patch, 'motherRef')) {
             var mr = String(patch.motherRef == null ? '' : patch.motherRef).trim();
             if (mr) q.motherRef = mr.slice(0, 120); else delete q.motherRef;
+          }
+          if (Object.prototype.hasOwnProperty.call(patch, 'queenCert')) {
+            var qc = normalizeQueenCert(patch.queenCert);
+            if (qc) q.cert = qc; else delete q.cert;
           }
           mirrorQueenToHive(copy, q);
         }
@@ -6828,7 +6853,7 @@
         PURE_BREEDS: PURE_BREEDS,
         breedKind: breedKind,
         joinBreed: joinBreed,
-        lineageText: lineageText,
+        lineageText: lineageText, normalizeQueenCert: normalizeQueenCert, queenCertText: queenCertText,
         SWARM_TENDENCIES: SWARM_TENDENCIES,
         CALM_LABELS: CALM_LABELS,
         queenAge: queenAge,

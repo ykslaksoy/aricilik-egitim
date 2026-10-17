@@ -493,7 +493,7 @@
         if (!p || !p.id || p.mode !== 'live') return;
         var u = null;
         (p.recordIds || []).forEach(function (rid) {
-          var k = st.keys['records:' + rid] || st.keys['harvest:' + rid];
+          var k = st.keys['records:' + rid] || st.keys['harvest:' + rid] || (/^belge:/.test(String(rid)) ? st.keys['queens:' + String(rid).slice(6)] : ''); /* k257: belgeli ana arı fotoğrafı */
           if (!u && k && k.indexOf('u:') !== 0) u = k.split(':')[0];
         });
         if (!u) return;
