@@ -646,7 +646,7 @@
         '<b>' + esc(h.name) + '</b> <small style="color:#6b5a48;">' + esc(ap[h.apiaryId] || '') + '</small>' +
         '<span class="l2">' + esc(h.breed ? h.breed + (h.breedEstimated ? ' (tahmini)' : '') : 'Irk bilinmiyor') + (k ? ' · ' + kindL[k] : '') + '</span>' +
         '<span class="l3">' + esc(lin || 'Hat / anne ana girilmedi') + '</span></button>';
-    }).join('') || '<p class="muted">' + (filter ? 'Bu kategoride kovan yok.' : 'Kovan bulunamadı.') + '</p>');
+    }).join('') || '<p class="muted">' + (filter ? 'Veri yok — bu kategoride kovan yok.' : 'Kovan bulunamadı.') + '</p>');
   }
   function openLineage(hiveId, onSaved) {
     lineageCss(); ensureCss();

@@ -1,0 +1,10 @@
+const fs=require('fs'),path=require('path'),assert=require('assert');const r=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+const h=r('kovanlar.html');
+assert.ok(h.includes('data-guc-lv="\' + lv.key'),'güç seviye kutuları düğme');
+assert.ok(h.includes('data-guc-lv="none"'),'Kayıt yok kutusu düğme');
+assert.ok(h.includes('Veri yok — bu seviyede kovan yok.'),'boş süzgeç Veri yok');
+assert.ok(h.includes('data-kol-sub="kis"')&&h.includes("koloniTopEl.addEventListener('click'"),'sekmeler yerinde');
+assert.ok(h.includes('aynı ekrana giden bağlantılar'),'aynı sayfa bağlantısı yeniden yüklemez');
+assert.ok(r('koloni.js').includes('Veri yok — bu kategoride kovan yok.'));
+assert.strictEqual(JSON.parse(r('version.json')).version,'koloni-256');
+console.log('k256 ok');

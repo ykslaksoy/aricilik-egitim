@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-255">
+<link rel="stylesheet" href="sa-early.css?v=koloni-256">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-255" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-255" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-255" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-256" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-256" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-256" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -54,26 +54,26 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-255"></script>
-  <script src="bal-agirlik.js?v=koloni-255"></script>
-  <script src="sensor-ham.js?v=koloni-255"></script>
-<script src="demo-data.js?v=koloni-255"></script>
-  <script src="rapor-store.js?v=koloni-255"></script>
-  <script src="sensor-health.js?v=koloni-255"></script>
-<script src="saglik-canli.js?v=koloni-255"></script>
-  <script src="koloni.js?v=koloni-255"></script>
-  <script src="koloni-ek.js?v=koloni-255"></script>
-  <script src="ilac-katalog.js?v=koloni-255"></script>
-  <script src="bakim-plan.js?v=koloni-255"></script>
-  <script src="irk-tahmin.js?v=koloni-255"></script>
-  <script src="kovan-ara.js?v=koloni-255"></script>
+  <script src="bk-kabuk.js?v=koloni-256"></script>
+  <script src="bal-agirlik.js?v=koloni-256"></script>
+  <script src="sensor-ham.js?v=koloni-256"></script>
+<script src="demo-data.js?v=koloni-256"></script>
+  <script src="rapor-store.js?v=koloni-256"></script>
+  <script src="sensor-health.js?v=koloni-256"></script>
+<script src="saglik-canli.js?v=koloni-256"></script>
+  <script src="koloni.js?v=koloni-256"></script>
+  <script src="koloni-ek.js?v=koloni-256"></script>
+  <script src="ilac-katalog.js?v=koloni-256"></script>
+  <script src="bakim-plan.js?v=koloni-256"></script>
+  <script src="irk-tahmin.js?v=koloni-256"></script>
+  <script src="kovan-ara.js?v=koloni-256"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-255"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-255"></script>
-  <script src="tarti-elle.js?v=koloni-255"></script>
-  <script src="pil-model.js?v=koloni-255"></script><script src="sensor-polling.js?v=koloni-255"></script>
-  <script src="tarti-rotasyon.js?v=koloni-255"></script>
-  <script src="kapsam.js?v=koloni-255"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-256"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-256"></script>
+  <script src="tarti-elle.js?v=koloni-256"></script>
+  <script src="pil-model.js?v=koloni-256"></script><script src="sensor-polling.js?v=koloni-256"></script>
+  <script src="tarti-rotasyon.js?v=koloni-256"></script>
+  <script src="kapsam.js?v=koloni-256"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -815,6 +815,17 @@
         };
         /* k90: Hat ve Genetik sayfası — üstteki 4 sayı kutusu süzgeçtir (?hat=hatsiz|saf|iki|uc) */
         var linFilter = (function (v) { return ['hatsiz', 'saf', 'iki', 'uc'].indexOf(v) >= 0 ? v : ''; })(new URLSearchParams(location.search).get('hat'));
+        /* k256: Güç seviye kutuları süzgeçtir (?guc=<seviye>|none); sekmeler yerinde çizilir (yeniden yükleme / kayma yok) */
+        var gucLv = (topic === 'guc' && !sub) ? (new URLSearchParams(location.search).get('guc') || '') : '', gucLvOf = {};
+        var setQ = function (k, v) { try { var uq = new URL(location.href); if (v) uq.searchParams.set(k, v); else uq.searchParams.delete(k); history.replaceState(null, '', uq.toString()); } catch (e2) { /* ignore */ } };
+        var gucListHtml = function () {
+          if (!(topic === 'guc' && !sub && gucLv)) return K.topicListHtml(listTopic, scopeHives);
+          var fl = scopeHives.filter(function (h) { return gucLvOf[h.id] === gucLv; });
+          var lvRow = gucLv === 'none' ? null : (D.records.STRENGTH_LEVELS || []).filter(function (l) { return l.key === gucLv; })[0];
+          var lbl = gucLv === 'none' ? 'Kayıt yok' : (lvRow ? (lvRow.short || lvRow.label) : gucLv);
+          return '<p class="lin-fnote" style="margin:0 0 10px;font-size:14px;color:#5a3d12;">Süzgeç: <b>' + esc(lbl) + '</b> · ' + fl.length + ' kovan · <button type="button" data-guc-lv="" style="font:inherit;font-weight:750;color:#2b6cb0;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;">Tümünü göster</button></p>' +
+            (fl.length ? K.topicListHtml(listTopic, fl) : '<p class="muted" style="min-height:64px;">Veri yok — bu seviyede kovan yok.</p>');
+        };
         var renderKoloni = function () {
           var fresh = D.loadHives();
           var ids = {};
@@ -832,28 +843,28 @@
           if (recTopic) {
             koloniTopEl.innerHTML = (topic === 'guc' || topic === 'besleme')
               ? '<div class="kol-tabs">' +
-                '<a class="' + (!sub ? 'on' : '') + '" href="' + subHref('') + '">' + (topic === 'guc' ? 'Güç kayıtları' : 'Besleme kayıtları') + '</a>' +
-                (topic === 'besleme' ? '<a class="' + (sub === 'stok' ? 'on' : '') + '" href="' + subHref('stok') + '">Kışlık stok</a>' : '') +
-                '<a class="' + (sub === 'kis' ? 'on' : '') + '" href="' + subHref('kis') + '">Kışlık hazırlık</a></div>'
+                '<a class="' + (!sub ? 'on' : '') + '" href="' + subHref('') + '" data-kol-sub="" aria-pressed="' + !sub + '">' + (topic === 'guc' ? 'Güç kayıtları' : 'Besleme kayıtları') + '</a>' +
+                (topic === 'besleme' ? '<a class="' + (sub === 'stok' ? 'on' : '') + '" href="' + subHref('stok') + '" data-kol-sub="stok" aria-pressed="' + (sub === 'stok') + '">Kışlık stok</a>' : '') +
+                '<a class="' + (sub === 'kis' ? 'on' : '') + '" href="' + subHref('kis') + '" data-kol-sub="kis" aria-pressed="' + (sub === 'kis') + '">Kışlık hazırlık</a></div>'
               : '';
             if (sub === 'stok') { listEl.innerHTML = K.winterStockHtml(scopeHives); return; }
             /* k93: Koloni / Çerçeve Gücü — 7 seviyenin renkli dağılımı (son güç kaydına göre; kaydı olmayan ayrı) */
             if (topic === 'guc' && !sub && D.records && D.records.STRENGTH_LEVELS) {
-              var lvN = {}, noRec = 0;
-              scopeHives.forEach(function (h) { var st0 = null; try { st0 = D.records.status(h.id); } catch (e) { st0 = null; } var i0 = st0 && st0.strengthInfo; if (i0) lvN[i0.key] = (lvN[i0.key] || 0) + 1; else noRec++; });
+              var lvN = {}, noRec = 0; gucLvOf = {};
+              scopeHives.forEach(function (h) { var st0 = null; try { st0 = D.records.status(h.id); } catch (e) { st0 = null; } var i0 = st0 && st0.strengthInfo; gucLvOf[h.id] = i0 ? i0.key : 'none'; if (i0) lvN[i0.key] = (lvN[i0.key] || 0) + 1; else noRec++; });
               koloniTopEl.innerHTML += '<div class="lv-dist" role="list" aria-label="Koloni gücü seviyeleri" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 4px;">' +
                 D.records.STRENGTH_LEVELS.map(function (lv) {
                   var rg = D.records.strengthRange(lv);
-                  return '<div role="listitem" style="border-radius:12px;padding:6px 4px;text-align:center;background:' + lv.bg + ';color:' + lv.color + ';border:1.5px solid ' + lv.color + '33;min-height:64px;display:flex;flex-direction:column;justify-content:center;">' +
+                  return '<button type="button" role="listitem" data-guc-lv="' + lv.key + '" aria-pressed="' + (gucLv === lv.key) + '" style="font:inherit;cursor:pointer;width:100%;border-radius:12px;padding:6px 4px;text-align:center;background:' + lv.bg + ';color:' + lv.color + ';border:' + (gucLv === lv.key ? '2.5px solid ' + lv.color : '1.5px solid ' + lv.color + '33') + ';min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
                     '<b style="font-size:20px;line-height:1.1;">' + (lvN[lv.key] || 0) + '</b><span style="font-size:11.5px;font-weight:800;line-height:1.15;">' + esc(lv.short || lv.label) + '</span>' +
-                    '<small style="font-size:10.5px;font-weight:650;opacity:.85;">' + esc(lv.key === 'bolunmeli' ? 'bölme eşiği' : rg.text) + '</small></div>';
+                    '<small style="font-size:10.5px;font-weight:650;opacity:.85;">' + esc(lv.key === 'bolunmeli' ? 'bölme eşiği' : rg.text) + '</small></button>';
                 }).join('') +
-                '<div role="listitem" style="border-radius:12px;padding:6px 4px;text-align:center;background:#fff;color:#6b5a48;border:1.5px dashed #d9c9a3;min-height:64px;display:flex;flex-direction:column;justify-content:center;"><b style="font-size:20px;line-height:1.1;">' + noRec + '</b><span style="font-size:11.5px;font-weight:800;">Kayıt yok</span></div></div>';
+                '<button type="button" role="listitem" data-guc-lv="none" aria-pressed="' + (gucLv === 'none') + '" style="font:inherit;cursor:pointer;width:100%;border-radius:12px;padding:6px 4px;text-align:center;background:#fff;color:#6b5a48;border:' + (gucLv === 'none' ? '2.5px solid #6b5a48' : '1.5px dashed #d9c9a3') + ';min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;"><b style="font-size:20px;line-height:1.1;">' + noRec + '</b><span style="font-size:11.5px;font-weight:800;">Kayıt yok</span></button></div>';
             }
-            listEl.innerHTML = (topic === 'guc' && !sub ? '<a class="btn" href="bakim-akis.html' + (effectiveMode === 'apiary' && apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '') + '" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:64px;margin:0 0 12px;font-size:1.1rem;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border:1px solid #e0c56a;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);color:#4a2f1a;font-weight:800;text-decoration:none;">🔍 Hızlı muayene başlat</a>' : '') +
+            listEl.innerHTML = (topic === 'guc' && !sub && gucLv ? gucListHtml() : '') + (topic === 'guc' && !sub ? '<a class="btn" href="bakim-akis.html' + (effectiveMode === 'apiary' && apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '') + '" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:64px;margin:0 0 12px;font-size:1.1rem;background:linear-gradient(180deg,#fff6df 0%,#f4e3b0 55%,#ebd9a0 100%);border:1px solid #e0c56a;box-shadow:inset 0 1px 0 rgba(255,255,255,.65);color:#4a2f1a;font-weight:800;text-decoration:none;">🔍 Hızlı muayene başlat</a>' : '') +
               (topic === 'besleme' && !sub && K.winterStockLineHtml ? K.winterStockLineHtml(scopeHives, subHref('stok')) : '') +
               (topic === 'guc' && window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(scopeHives, { apiary: effectiveMode === 'apiary' ? apiaryFilter : '' }) : '') +
-              K.topicListHtml(listTopic, scopeHives);
+              (topic === 'guc' && !sub && gucLv ? '' : gucListHtml());
             return;
           }
           koloniTopEl.innerHTML = (window.SuperAriPlan ? window.SuperAriPlan.winterNoteHtml(scopeHives, { apiary: effectiveMode === 'apiary' ? apiaryFilter : '' }) : '') +
@@ -882,7 +893,7 @@
           renderKoloni();
         };
         if (!recTopic) bindBulk(effectiveMode === 'apiary' ? apiaryFilter : '', renderKoloni);
-        noteEl.textContent = topic === 'irk'
+        var koloniNote = function () { noteEl.textContent = topic === 'irk'
           ? 'Üstteki kutular süzgeçtir (Hatsız = ırk girilmemiş ya da yalnız tahmini). Kovana dokunup Saf Hat, 2\'li Melez (A × B) veya 3\'lü Melez (A × B × C) seçin; damızlık hat / kaynak adı ve anne ana (kayıtlı bir ana veya dış kaynak) yazılabilir. Kayıt kovandaki mevcut ana arıya yazılır; arılık ırkı kovanların çoğunluk ırkıdır.'
           : recTopic
           ? (sub === 'stok'
@@ -896,7 +907,39 @@
             : topic === 'yavru'
               ? 'Anasız işaretlenirse görev ve uyarı otomatik açılır; üşümüş yavru kovanı «zayıf koloni» yapar ve «Birleştir veya çerçeve azalt» görevi önerilir.'
               : 'Her hastalık ayrı kayıttır. İlaç bekleme süresi dolmadan hasat yapmayın; Amerikan yavru çürüğü ihbarı zorunludur. Kayıtlar sağlık puanını ve uyarıları etkiler. Kovanı açınca «🔍 Hastalık tahmini (kesin değil)» ile rehberli fotoğraf ve belirti listesi kullanılabilir.')
-          : 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi.';
+          : 'Irk, ana arı yaşı ve koloni özellikleri burada düzenlenir; kovan detayı, arılıklar, görevler ve raporlar bu kaydı okur. Renk: yılın son hanesi 1/6 beyaz, 2/7 sarı, 3/8 kırmızı, 4/9 yeşil, 5/0 mavi.'; };
+        koloniNote();
+        /* k256: sekme (Güç kayıtları / Kışlık hazırlık / Kışlık stok) ve güç seviye kutuları yerinde çalışır */
+        koloniTopEl.addEventListener('click', function (e) {
+          var sb = e.target.closest ? e.target.closest('[data-kol-sub]') : null;
+          if (sb) {
+            e.preventDefault();
+            var nv = sb.getAttribute('data-kol-sub') || '';
+            if (nv === sub) { if (gucLv) { gucLv = ''; setQ('guc', ''); renderKoloni(); } return; }
+            sub = nv; listTopic = sub === 'kis' ? 'kis' : topic; gucLv = '';
+            setQ('sub', sub); setQ('guc', ''); koloniNote(); renderKoloni(); return;
+          }
+          var lv = e.target.closest ? e.target.closest('[data-guc-lv]') : null;
+          if (lv) { var v = lv.getAttribute('data-guc-lv') || ''; gucLv = v && v !== gucLv ? v : ''; setQ('guc', gucLv); renderKoloni(); }
+        });
+        listEl.addEventListener('click', function (e) {
+          var lv = e.target.closest ? e.target.closest('[data-guc-lv]') : null;
+          if (lv) { gucLv = ''; setQ('guc', ''); renderKoloni(); }
+        });
+        /* k256: aynı ekrana giden bağlantılar (Hat ve Genetik notu, Güç / Güç dağılımı) sayfayı yeniden yüklemez — süzgeç sıfırlanır, bölüme kaydırılır */
+        document.addEventListener('click', function (e) {
+          var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+          if (!a || /^#/.test(a.getAttribute('href') || '') || a.hasAttribute('data-kol-sub')) return;
+          var u; try { u = new URL(a.href, location.href); } catch (e3) { return; }
+          if (u.origin !== location.origin || u.pathname !== location.pathname) return;
+          var norm = function (sp) { var o = []; sp.forEach(function (v, k) { if (k !== 'hat' && k !== 'guc' && k !== 'hiveId' && k !== 'mode') o.push(k + '=' + v); }); return o.sort().join('&'); };
+          if (norm(u.searchParams) !== norm(new URLSearchParams(location.search))) return;
+          e.preventDefault();
+          if (linFilter || gucLv) { linFilter = ''; gucLv = ''; setQ('hat', ''); setQ('guc', ''); renderKoloni(); }
+          var sec = document.getElementById('ksSec');
+          var r0 = sec ? sec.getBoundingClientRect() : null;
+          if (r0 && (r0.top < 0 || r0.top > (window.innerHeight || 800) * 0.6) && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, true);
         listEl.addEventListener('click', function (e) {
           if (e.target.closest && e.target.closest('a')) return;
           var lc = e.target.closest ? e.target.closest('[data-lin-cat]') : null;
@@ -974,7 +1017,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-255"></script>
-<script src="pwa.js?v=koloni-255"></script>
+<script src="nav.js?v=koloni-256"></script>
+<script src="pwa.js?v=koloni-256"></script>
 </body>
 </html>
