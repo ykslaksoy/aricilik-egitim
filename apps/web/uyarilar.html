@@ -42,6 +42,27 @@
     }
     .choice-btn strong { font-size: 15px; font-weight: 800; color: var(--brown, #5c4813); }
     .choice-btn span { font-size: 12px; font-weight: 650; color: var(--muted, #868e96); }
+    /* koloni-256 önizleme: kategori döşemeleri (Oğul sayfasıyla aynı Ana döşemesi) + gruplu uyarılar + sığan düğmeler */
+    #katPanel:empty { display:none; }
+    #katPanel .grid.ana-hive-grid.og-ana .tile { min-height:122px; }
+    .ua-card { display:block; padding:12px 12px 10px; }
+    .ua-head { display:flex; align-items:flex-start; gap:8px; }
+    .ua-head h3 { flex:1 1 auto; min-width:0; margin:0; font-size:15px; line-height:1.3; overflow-wrap:anywhere; }
+    .ua-head .badge { flex:0 0 auto; }
+    .ua-txt { margin:5px 0 0; font-size:13px; line-height:1.4; color:#2b2f33; }
+    .ua-foot { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin-top:8px; }
+    .ua-hv { font-size:13px; color:var(--muted,#6b5a48); flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+    .ua-acts { display:flex; flex-wrap:wrap; gap:6px; flex:0 0 auto; max-width:100%; }
+    .ua-btn { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 12px; border:1px solid #e0c56a; border-radius:11px; background:#fff8e6; color:#5c4813; font-size:13px; font-weight:800; text-decoration:none; white-space:nowrap; box-sizing:border-box; }
+    .ks-glove .ua-btn { min-height:52px; }
+    .ua-grp { border:1px solid #eadfbe; border-radius:16px; background:#fff; padding:10px 12px 4px; margin-bottom:10px; }
+    .ua-grp-h { display:flex; align-items:flex-start; gap:8px; }
+    .ua-grp-h h3 { flex:1 1 auto; min-width:0; margin:0; font-size:15px; line-height:1.3; }
+    .ua-grp-n { font-size:12px; font-weight:800; color:#7a5a00; background:#fff3bf; border-radius:999px; padding:2px 8px; white-space:nowrap; }
+    .ua-it { border-top:1px solid #f0e6c8; padding:8px 0; margin-top:8px; }
+    .ua-it:first-of-type { margin-top:6px; }
+    .ua-it .ua-foot { margin-top:4px; }
+    .ua-it-t { font-size:13.5px; font-weight:750; color:#2b2410; line-height:1.35; overflow-wrap:anywhere; }
     .filter-chips {
       display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
     }
@@ -71,6 +92,7 @@
       <p class="muted" id="summary">Demo uyarı listesi…</p>
       <div id="ogulPanel"></div>
       <div class="filter-chips" id="filterChips" role="group" aria-label="Uyarı filtresi"></div>
+      <div id="katPanel"></div>
       <div class="mode-switch" id="modeSwitch"></div>
       <div class="list" id="alert-list"></div>
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
@@ -173,23 +195,106 @@
         });
       }
 
-      function renderAlertCard(a) {
-        var hive = a.hiveId != null ? D.hiveById(a.hiveId) : null;
-        var hiveName = hive ? hive.name : (a.hiveId != null ? 'Kovan ' + a.hiveId : (a.type === 'ana' ? 'Ana arı' : 'Genel'));
-        var pri = (a.severity === 'critical' || a.severity === 'high') ? 1 : (a.severity === 'medium' ? 2 : 3);
-        return (
-          '<article class="item-card">' +
-            '<div class="row">' +
-              '<h3>' + (a.severity === 'critical' ? '<span class="badge" style="background:#b3001b;color:#fff">Kritik</span> ' : '') + esc(a.title) + (a.demo ? ' <span class="badge cevrimdisi">Demo</span>' : '') + '</h3>' + (a.body ? '<p style="margin:4px 0">' + esc(a.body) + '</p>' : '') + (a.action ? '<p style="margin:4px 0"><b>👉 ' + esc(a.action) + '</b></p>' : '') +
-              '<span class="badge priority-' + pri + '">' + esc(a.type || 'uyarı') + '</span>' +
-            '</div>' +
-            '<div class="meta">' + esc(hiveName) +
-              (a.hiveId != null ? ' · <a href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>' + (a.type === 'ogul' && a.href ? ' · <a href="' + esc(a.href) + '">' + esc(a.hrefLabel || 'Aç') + '</a>' : '') : (a.href ? ' · <a href="' + esc(a.href) + '">' + (a.queen === 'bilinmiyor' ? 'Ana yılını gir' : 'Aç') + '</a>' : '')) +
-              (a.type === 'ana' && a.queen !== 'bilinmiyor' ? '<br><small>🌱 En iyi değişim: ilkbahar – yaz başı</small>' : '') +
-              (a.type === 'ogul' && a.hiveId != null ? ' · <a href="#" data-ogul-open="' + esc(a.hiveId) + '">Ayrıntı ve öneriler</a>' : '') + '</div>' +
-          '</article>'
-        );
+      /* koloni-256: kategoriler — mevcut uyarı türlerinden (type) türetilir; yalnız listede olanlar döşeme olur */
+      var KAT = [
+        { k: 'besleme', l: 'Besleme', svg: '<path d="M12 6.4c2.6 3.2 4 5.4 4 7.3a4 4 0 0 1-8 0c0-1.9 1.4-4.1 4-7.3z"/>' },
+        { k: 'ana', l: 'Ana', svg: '<path d="M6.6 15.8 5.8 9l3.4 2.6L12 7.2l2.8 4.4L18.2 9l-.8 6.8z"/><path d="M6.8 17.6h10.4"/>' },
+        { k: 'saglik', l: 'Sağlık', svg: '<path d="M10.2 6.8h3.6v3.4h3.4v3.6h-3.4v3.4h-3.6v-3.4H6.8v-3.6h3.4z"/>' },
+        { k: 'koloni', l: 'Koloni', svg: '<path d="M7.6 16.4v-3.2M10.5 16.4V11M13.4 16.4V8.6M16.3 16.4V6.8"/>' },
+        { k: 'ogul', l: 'Oğul', svg: '<circle cx="12" cy="9" r="2.4"/><path d="M8 16.6c.6-2.6 2.1-4 4-4s3.4 1.4 4 4"/>' },
+        { k: 'tarti', l: 'Tartı', svg: (window.SuperAriKapsam && SuperAriKapsam.BURN && SuperAriKapsam.BURN.tarti) || '' },
+        { k: 'stok', l: 'Stok', svg: '<path d="M6.6 9.2 12 6.6l5.4 2.6v6L12 17.8l-5.4-2.6z"/><path d="M6.6 9.2 12 11.8l5.4-2.6M12 11.8v6"/>' },
+        { k: 'sensor', l: 'Sensör', svg: '<path d="M5.6 12h2.6l1.6-3.6 2.6 7.2 1.8-4.8 1.2 1.2h2.8"/>' },
+        { k: 'arilik', l: 'Arılık', svg: '<path d="M12 17.6s-4.4-4.2-4.4-7.4a4.4 4.4 0 0 1 8.8 0c0 3.2-4.4 7.4-4.4 7.4z"/><circle cx="12" cy="10.2" r="1.5"/>' },
+        { k: 'diger', l: 'Diğer', svg: '<path d="M7.4 8h9.2M7.4 12h9.2M7.4 16h9.2"/>' }
+      ];
+      var KAT_BY = {}; KAT.forEach(function (c) { KAT_BY[c.k] = c; });
+      function katOf(a) {
+        var t = String(a && a.type || '').toLocaleLowerCase('tr').trim();
+        /* Anasız koloni bir ana sorunudur → Ana */
+        if (t === 'koloni' && /anas[ıi]z/i.test(String(a.title || '') + ' ' + String(a.code || ''))) return 'ana';
+        if (t === 'hastalık' || t === 'hastalik' || t === 'saglik' || t === 'sağlık' || t === 'ilac') return 'saglik';
+        if (t === 'isi' || t === 'nem' || t === 'titresim' || t === 'ir' || t === 'batarya' || t === 'sensor' || t === 'ses') return 'sensor';
+        if (t === 'cevre' || t === 'hava' || t === 'su' || t === 'arilik') return 'arilik';
+        return KAT_BY[t] ? t : 'diger';
       }
+      function sevRank(a) { return a.severity === 'critical' ? 0 : a.severity === 'high' ? 1 : a.severity === 'medium' ? 2 : 3; }
+      function hiveLabel(a) {
+        var hive = a.hiveId != null ? D.hiveById(a.hiveId) : null;
+        return hive ? hive.name : (a.hiveId != null ? 'Kovan ' + a.hiveId : (a.type === 'ana' ? 'Ana arı' : 'Genel'));
+      }
+      function actsHtml(a) {
+        var o = [];
+        if (a.hiveId != null) {
+          o.push('<a class="ua-btn" href="kovanlar.html?id=' + encodeURIComponent(a.hiveId) + '">Kovana git</a>');
+          if (a.type === 'ogul' && a.href) o.push('<a class="ua-btn" href="' + esc(a.href) + '">' + esc(a.hrefLabel || 'Aç') + '</a>');
+          if (a.type === 'ogul') o.push('<a class="ua-btn" href="#" data-ogul-open="' + esc(a.hiveId) + '">Ayrıntı</a>');
+        } else if (a.href) o.push('<a class="ua-btn" href="' + esc(a.href) + '">' + (a.queen === 'bilinmiyor' ? 'Ana yılını gir' : 'Aç') + '</a>');
+        return o.length ? '<span class="ua-acts">' + o.join('') + '</span>' : '';
+      }
+      function txtHtml(a) {
+        return (a.body ? '<p class="ua-txt">' + esc(a.body) + '</p>' : '') + (a.action ? '<p class="ua-txt"><b>👉 ' + esc(a.action) + '</b></p>' : '') +
+          (a.type === 'ana' && a.queen && a.queen !== 'bilinmiyor' ? '<p class="ua-txt"><small>🌱 En iyi değişim: ilkbahar – yaz başı</small></p>' : '');
+      }
+      function badgeHtml(a) {
+        var pri = (a.severity === 'critical' || a.severity === 'high') ? 1 : (a.severity === 'medium' ? 2 : 3);
+        return '<span class="badge priority-' + pri + '">' + esc((KAT_BY[katOf(a)] || {}).l || a.type || 'uyarı') + '</span>';
+      }
+      function chips(a) { return (a.severity === 'critical' ? '<span class="badge" style="background:#b3001b;color:#fff">Kritik</span> ' : ''); }
+      function renderAlertCard(a) {
+        return '<article class="item-card ua-card">' +
+          '<div class="ua-head"><h3>' + chips(a) + esc(a.title) + (a.demo ? ' <span class="badge cevrimdisi">Demo</span>' : '') + '</h3>' + badgeHtml(a) + '</div>' +
+          txtHtml(a) +
+          '<div class="ua-foot"><span class="ua-hv">' + esc(hiveLabel(a)) + '</span>' + actsHtml(a) + '</div>' +
+        '</article>';
+      }
+      /* Aynı tür uyarılar (başlığın « — » öncesi aynı) tek kartta: her kovan kendi satırı + «Kovana git» */
+      function stemOf(a) { var t = String(a.title || ''), i = t.indexOf(' — '); return i > 0 ? t.slice(0, i) : t; }
+      function restOf(a) { var t = String(a.title || ''), i = t.indexOf(' — '); return i > 0 ? t.slice(i + 3) : ''; }
+      function renderGrouped(list) {
+        var map = {}, order = [];
+        list.slice().sort(function (x, y) { return sevRank(x) - sevRank(y); }).forEach(function (a) {
+          var key = katOf(a) + '|' + stemOf(a);
+          if (!map[key]) { map[key] = []; order.push(key); }
+          map[key].push(a);
+        });
+        return order.map(function (key) {
+          var g = map[key];
+          if (g.length === 1 || !restOf(g[0])) return g.map(renderAlertCard).join('');
+          var f = g[0], same = g.every(function (x) { return (x.body || '') === (f.body || '') && (x.action || '') === (f.action || ''); });
+          var crit = g.some(function (x) { return x.severity === 'critical'; }) ? f : null;
+          return '<section class="ua-grp" aria-label="' + esc(stemOf(f)) + '">' +
+            '<div class="ua-grp-h"><h3>' + (crit ? chips(crit) : '') + esc(stemOf(f)) + '</h3><span class="ua-grp-n">' + g.length + ' uyarı</span>' + badgeHtml(f) + '</div>' +
+            (same ? txtHtml(f) : '') +
+            g.map(function (a) {
+              return '<div class="ua-it"><div class="ua-it-t">' + esc(restOf(a)) + (a.demo ? ' <span class="badge cevrimdisi">Demo</span>' : '') + '</div>' + (same ? '' : txtHtml(a)) +
+                '<div class="ua-foot">' + (a.hiveId != null ? '' : '<span class="ua-hv"></span>') + actsHtml(a) + '</div></div>';
+            }).join('') +
+          '</section>';
+        }).join('');
+      }
+      var kat = (params.get('kat') || '').toLowerCase();
+      function katTiles(list) {
+        var KS = window.SuperAriKapsam; if (!KS || !KS.anaModuleTile) return '';
+        var cnt = {}, worst = {};
+        list.forEach(function (a) { var k = katOf(a); cnt[k] = (cnt[k] || 0) + 1; worst[k] = Math.min(worst[k] == null ? 9 : worst[k], sevRank(a)); });
+        function tone(r) { return r <= 1 ? 'red' : r === 2 ? 'orange' : 'yellow'; }
+        var allW = list.reduce(function (m, a) { return Math.min(m, sevRank(a)); }, 9);
+        var h = KS.anaModuleTile({ href: '#', label: 'Tümü', badge: list.length + ' uyarı', tone: list.length ? tone(allW) : 'tan', svg: '<path d="M12 6.4 17.6 16.6H6.4z"/><path d="M12 10.2v3.2M12 15.2v.2"/>', extraClass: !kat ? 'on' : '', dataKey: 'kat-', aria: 'Tümü, ' + list.length + ' uyarı' });
+        KAT.forEach(function (c) {
+          if (!cnt[c.k]) return;
+          h += KS.anaModuleTile({ href: '#', label: c.l, badge: cnt[c.k] + ' uyarı', tone: tone(worst[c.k]), svg: c.svg, extraClass: kat === c.k ? 'on' : '', dataKey: 'kat-' + c.k, aria: c.l + ', ' + cnt[c.k] + ' uyarı' });
+        });
+        return '<div class="grid ana-hive-grid og-ana" data-sa-no-align="1" role="group" aria-label="Uyarı kategorisi">' + h + '</div>';
+      }
+      document.addEventListener('click', function (e) {
+        var t = e.target.closest ? e.target.closest('#katPanel [data-key^="kat-"]') : null; if (!t) return;
+        e.preventDefault();
+        var k = t.getAttribute('data-key').slice(4);
+        kat = (k && kat !== k) ? k : '';
+        try { var u = new URL(location.href); if (kat) u.searchParams.set('kat', kat); else u.searchParams.delete('kat'); history.replaceState(null, '', u); } catch (e2) { /* */ }
+        var y = window.scrollY; drawUyari(); window.scrollTo(0, y);
+      });
 
       document.addEventListener('click', function (e) {
         var t = e.target.closest ? e.target.closest('[data-ogul-open]') : null;
@@ -240,6 +345,7 @@
           '</div>' : '') +
           '<div class="og-season">' + esc(seasonTxt) + '</div>';
         document.getElementById('ogulPanel').innerHTML = ph; document.body.classList.add('sa-tile-select');
+        var kp0 = document.getElementById('katPanel'); if (kp0) kp0.innerHTML = '';
         if (duzey) {
           var want = duzey === 'izleme' ? 'orta' : duzey, mdV = want === 'mevsimdisi';
           var lvObj = LV.filter(function (l) { return l.key === want; })[0];
@@ -341,6 +447,7 @@
         }
         html += '</div>';
         listEl.innerHTML = html;
+        var kp1 = document.getElementById('katPanel'); if (kp1) kp1.innerHTML = '';
         return;
       }
 
@@ -363,7 +470,13 @@
         '<a class="' + (effectiveMode === 'all' ? 'active' : '') + '" href="' + pageHref('mode=all') + '">' + esc(allLabel) + '</a>' +
         '<a class="' + (effectiveMode === 'apiary' ? 'active' : '') + '" href="' + pageHref('') + '">Arılıklar</a>';
 
-      listEl.innerHTML = alerts.map(renderAlertCard).join('') || '<p class="muted">Açık uyarı yok.</p>';
+      var katEl = document.getElementById('katPanel');
+      if (kat && !alerts.some(function (a) { return katOf(a) === kat; })) kat = '';
+      if (view === 'ogul') kat = '';
+      if (katEl) { katEl.innerHTML = view === 'ogul' ? '' : katTiles(alerts); if (view !== 'ogul') document.body.classList.add('sa-tile-select'); }
+      var shown = kat ? alerts.filter(function (a) { return katOf(a) === kat; }) : alerts;
+      if (kat) summaryEl.textContent = shown.length + ' ' + ((KAT_BY[kat] || {}).l || '') + ' uyarısı · ' + (effectiveMode === 'all' ? allLabel : (apName || 'Arılık'));
+      listEl.innerHTML = renderGrouped(shown) || '<p class="muted">Açık uyarı yok.</p>';
       }
       drawUyari();
       window.__saUyariScope = function (sc) { hasMode = true; mode = sc === 'all' ? 'all' : 'apiary'; apiaryFilter = sc === 'all' ? '' : String(sc); drawUyari(); };
