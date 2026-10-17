@@ -6,5 +6,5 @@ assert.ok(h.includes('Veri yok — bu seviyede kovan yok.'),'boş süzgeç Veri 
 assert.ok(h.includes('data-kol-sub="kis"')&&h.includes("koloniTopEl.addEventListener('click'"),'sekmeler yerinde');
 assert.ok(h.includes('aynı ekrana giden bağlantılar'),'aynı sayfa bağlantısı yeniden yüklemez');
 assert.ok(r('koloni.js').includes('Veri yok — bu kategoride kovan yok.'));
-assert.strictEqual(JSON.parse(r('version.json')).version,'koloni-256');
+assert.ok(Number(String(JSON.parse(r('version.json')).version).replace(/^koloni-/, '')) >= 256);
 console.log('k256 ok');

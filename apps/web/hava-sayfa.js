@@ -225,7 +225,7 @@
   function backBtn() { return '<button type="button" class="sa-back hv-back" data-hv-back>‹ Geri</button>'; }
   function head(t, s) { return '<div class="hv-h">' + esc(t) + '</div>' + (s ? '<div class="hv-sub">' + esc(s) + '</div>' : ''); }
   function dirTxt(deg) { return deg == null ? '' : YON[Math.round(deg / 45) % 8]; }
-  /* koloni-256: gün kartı değerleri — canlı renkli tek renk SVG simge + füme yazı (kullanıcı seçimi A) */
+  /* koloni-257: gün kartı değerleri — canlı renkli tek renk SVG simge + füme yazı (kullanıcı seçimi A) */
   var SVP = {
     mm: '<path fill="currentColor" d="M12 2.8c3.2 4.2 6.2 7.4 6.2 11a6.2 6.2 0 0 1-12.4 0c0-3.6 3-6.8 6.2-11z"/>',
     pr: '<path fill="currentColor" d="M2.8 12.2a9.2 9.2 0 0 1 18.4 0z"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 12v6.2a2.2 2.2 0 0 0 4.4 0M12 2v1.6"/>',
