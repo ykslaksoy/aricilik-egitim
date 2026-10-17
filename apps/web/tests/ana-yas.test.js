@@ -12,7 +12,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'demo-data.js'), 'utf
 const D = win.SuperAriDemo;
 const C = D.colony;
 
-/* Irk profilleri (k259 kullanıcı onayı: tüm ırklarda 2 yıl — AAE 2022 genel; Anadolu riski yüksek — Akyol 2008) */
+/* Irk profilleri (k262 kullanıcı onayı: tüm ırklarda 2 yıl — AAE 2022 genel; Anadolu riski yüksek — Akyol 2008) */
 const prof = (b) => C.queenProfile(b);
 assert.strictEqual(prof('Buckfast').ideal, 2);
 assert.strictEqual(prof('Belfast').label, 'Buckfast');

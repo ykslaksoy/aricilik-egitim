@@ -995,7 +995,7 @@
   /* ---------- Ana arı değişim yaşı (ırka göre) ----------
    * ideal: değişim yaşı (yıl). risk: 3. yaşındaki ana için risk düzeyi (kullanıcı tablosu, doğrulanmış).
    * Vade: ana yılı + ideal yılın 1 Nisan'ı (ilkbahar = en iyi değişim dönemi). */
-  /* k259: değişim yaşı tüm ırklarda 2 yıl (AAE 2022 «Ana Arı» kitapçığı, Güler 2017 — genel öneri; Anadolu için Akyol ve ark. 2008, A. m. anatoliaca).
+  /* k262: değişim yaşı tüm ırklarda 2 yıl (AAE 2022 «Ana Arı» kitapçığı, Güler 2017 — genel öneri; Anadolu için Akyol ve ark. 2008, A. m. anatoliaca).
    * 3. yaş riski: Anadolu Akyol 2008 (3 yaşta yaşama %40); diğerleri uzman tahmini. Yönetici panelinden ırk başına değiştirilir (ogul_skor_ayar.sensor anaDeg* / anaRisk3*). */
   var QUEEN_PROFILES = [
     { key: 'buckfast', test: function (b) { return /buckfast|belfast/.test(b); }, label: 'Buckfast', ideal: 2, risk: 'cok-yuksek', note: 'Hibrit; melez gücü nesilde kaybolur' },
@@ -1070,7 +1070,7 @@
       tone = out.effAge >= 4 ? 'red' : (out.effAge === 3 ? QUEEN_RISK[prof.risk].tone : 'yellow');
     }
     out.tone = tone; out.color = QUEEN_TONE_COLOR[tone];
-    /* k259: yaş tek başına en çok «orta»; yüksek yalnız gözlenen belirtiyle (queenSigns, queenAlerts) */
+    /* k262: yaş tek başına en çok «orta»; yüksek yalnız gözlenen belirtiyle (queenSigns, queenAlerts) */
     out.severity = out.key === 'iyi' ? null : (out.key === 'yaklasiyor' ? 'low' : (tone === 'red' || tone === 'yellow' ? 'medium' : 'low'));
     var season = 'İlkbahar ' + out.dueYear;
     if (out.key === 'iyi') {
@@ -1083,7 +1083,7 @@
       var over = out.effAge - prof.ideal;
       out.label = out.key === 'gecti' ? 'Değişim gecikti' : 'Değişim zamanı';
       if (out.key === 'gecti' && out.effAge === 3) {
-        /* k259: 3. yaş — kullanıcı onaylı metin; yaş tek başına acil değildir (belirti yoksa en çok orta) */
+        /* k262: 3. yaş — kullanıcı onaylı metin; yaş tek başına acil değildir (belirti yoksa en çok orta) */
         out.label = 'Değişim zamanı geçti';
         out.text = 'Ana 3 yaşında: değişim zamanı geçti — ilkbahar–yaz başında değiştirmeyi planlayın.';
         out.say = out.text;
@@ -1096,7 +1096,7 @@
     }
     return out;
   }
-  /** k259: son yavru muayenesinde gözlenen ana sorunu belirtileri (erkek yumurtası / kambur yavru, dağınık yavru, sessiz değiştirme memesi, anasızlık). */
+  /** k262: son yavru muayenesinde gözlenen ana sorunu belirtileri (erkek yumurtası / kambur yavru, dağınık yavru, sessiz değiştirme memesi, anasızlık). */
   function queenSigns(h) {
     var st = null; try { seedAll(); st = colonyStatus(h.id); } catch (e) { st = null; }
     var o = []; if (!st) return o;
@@ -1107,7 +1107,7 @@
     return o;
   }
   /** Uyarılar: kırmızı ya da belirtili → kovan başına; sarı/yeşil "zamanı", yaklaşıyor ve bilinmeyen → arılık başına özet.
-   *  k259: yalnız yaş → en çok orta; yüksek yalnız gözlenen belirtiyle. */
+   *  k262: yalnız yaş → en çok orta; yüksek yalnız gözlenen belirtiyle. */
   function queenAlerts(date) {
     var out = [], groups = {};
     var aps = {};
@@ -3507,7 +3507,7 @@
     'kafkas+karadeniz+mugla': '(Kafkas × Karadeniz) × Muğla', 'buckfast+italyan+mugla': '(Buckfast × İtalyan) × Muğla', 'kafkas+karniyol+mugla': '(Kafkas × Karniyol) × Muğla', 'anadolu+kafkas+mugla': '(Kafkas × Anadolu) × Muğla', 'anadolu+kafkas+karniyol': '(Kafkas × Anadolu) × Karniyol', 'anadolu+italyan+karniyol': '(Karniyol × İtalyan) × Anadolu' };
   function num01(v, lo, hi) { v = Number(v); return isFinite(v) && v >= lo && v <= hi ? v : null; }
   /* k131: sensörlü mod eşikleri (yönetici düzenler). Sensör yoksa ORS cihazsız modda (KİLİTLİ) kalır. */
-  var ORS_SENSOR = { /* k259: ana yaşı oğul puanı (uzman tahmini) + ırk başına değişim yaşı / 3. yaş riski (1 düşük · 2 orta · 3 yüksek · 4 çok yüksek) */
+  var ORS_SENSOR = { /* k262: ana yaşı oğul puanı (uzman tahmini) + ırk başına değişim yaşı / 3. yaş riski (1 düşük · 2 orta · 3 yüksek · 4 çok yüksek) */
     anaYasPuan0: 20, anaYasPuan1: 60, anaYasPuan2: 100,
     anaDegBuckfast: 2, anaDegKarniyolMugla: 2, anaDegKafkasKarniyol: 2, anaDegKarniyol: 2, anaDegItalyan: 2, anaDegKafkasKaradeniz: 2, anaDegKaradeniz: 2, anaDegAnadolu: 2, anaDegKafkas: 2, anaDegVarsayilan: 2,
     anaRisk3Buckfast: 4, anaRisk3KarniyolMugla: 3, anaRisk3KafkasKarniyol: 3, anaRisk3Karniyol: 3, anaRisk3Italyan: 3, anaRisk3KafkasKaradeniz: 2, anaRisk3Karadeniz: 2, anaRisk3Anadolu: 3, anaRisk3Kafkas: 1, anaRisk3Varsayilan: 2,
@@ -4815,7 +4815,7 @@
     if (sr) { var ff = (Number(sr.broodFrames) || 0) + (Number(sr.honeyFrames) || 0) + (Number(sr.pollenFrames) || 0); fullF = Math.max(bees || 0, ff) || null; }
     var sik = fullF != null ? Math.min(100, fullF / capTot * 100) : (sr && sr.space === 'dolu' ? 100 : (sr && sr.space === 'dolmak' ? 75 : 50));
     var mev = season.phase === 'zirve' ? 100 : (season.phase === 'kenar' ? 60 : 15); /* k153: zirve 100 · kenar 60 · dışı 15 (nektar akımı → 100 aşağıda) */
-    var TP = (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR; /* k259: ana yaşı puanları yönetici ayarı (uzman tahmini; yön: Simpson 1957/1960, Akyol 2008) */
+    var TP = (OGUL_SKOR && OGUL_SKOR.sensor) || ORS_SENSOR; /* k262: ana yaşı puanları yönetici ayarı (uzman tahmini; yön: Simpson 1957/1960, Akyol 2008) */
     var anaP = age == null ? null : (age <= 0 ? TP.anaYasPuan0 : (age === 1 ? TP.anaYasPuan1 : TP.anaYasPuan2)); /* k153: bilinmiyorsa bileşen çıkarılır */
     if (anaP != null) anaP = Math.max(0, Math.min(100, Number(anaP)));
     /* k150 (Winston 1987; Fell & Morse 1984): yalnız oğul yüksüğü bypass; sessiz değiştirme (1–2 yüksük, ana var) ve boş kupa skoru artırmaz */

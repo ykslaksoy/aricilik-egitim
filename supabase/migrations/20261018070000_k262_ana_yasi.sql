@@ -1,4 +1,4 @@
--- koloni-259 (ÖNİZLEME — canlıya uygulanmadı): ana arı yaşı ayarları.
+-- koloni-262 (canlıya uygulandı): ana arı yaşı ayarları.
 -- Ayar değerleri ogul_skor_ayar.data.sensor içinde (anaYasPuan*, anaDeg*, anaRisk3*); kayıt yoksa koddaki varsayılanlar geçerli → şema değişikliği yok.
 insert into public.yapilacaklar (baslik, aciklama)
 select v.b, v.a from (values
