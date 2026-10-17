@@ -1,0 +1,37 @@
+/* koloni-247: «Yer darlığı olabilir (bal katı verilmemiş)» kaynaksız → uzman tahmini: Kural aç/kapa 'ogulYerTahmin' (ogul_skor_ayar.kuralKapali*), yönetici kartı, migration + Yapılacaklar. */
+const assert = require('assert');
+const path = require('path');
+const fs = require('fs');
+const root = path.join(__dirname, '..');
+const st = {};
+global.window = global; global.self = global;
+global.localStorage = { getItem: (k) => (k in st ? st[k] : null), setItem: (k, v) => { st[k] = String(v); }, removeItem: (k) => { delete st[k]; } };
+global.document = { addEventListener() {}, readyState: 'complete', querySelector() { return null; }, querySelectorAll() { return []; }, createElement() { return { style: {}, setAttribute() {}, appendChild() {} }; }, documentElement: {}, head: { appendChild() {} }, body: null };
+global.location = { search: '', pathname: '/uyarilar.html', href: '' }; global.navigator = {}; global.addEventListener = () => {}; global.dispatchEvent = () => {}; global.fetch = () => Promise.reject(new Error('x'));
+require(path.join(root, 'demo-data.js'));
+const D = global.SuperAriDemo, C = D.colony;
+const h = Object.assign({}, D.hiveById(106), { strength: 'güçlü' });
+const dt = '2027-04-20';
+const YER = 'Yer darlığı olabilir (bal katı verilmemiş)';
+function run() { const a = C.swarm(h, dt); return { yer: a.reasons.includes(YER), kat: a.recs.some((r) => r.title === 'Kat at (bal katı ver)'), cer: a.recs.some((r) => r.title === 'Boş çerçeve / temel petek ver') }; }
+const base = JSON.parse(JSON.stringify(C.ogulSkor()));
+assert.ok((C.KURALLAR || []).some((x) => x[0] === 'ogulYerTahmin'), 'kural kimliği');
+let r = run(); assert.ok(r.yer && r.kat && r.cer, 'varsayılan açık: neden + (güçlü koloni) öneriler');
+C.ogulSkorSet(Object.assign({}, base, { kuralKapali: ['ogulYerTahmin'] }));
+r = run(); assert.ok(!r.yer, 'kural kapalı: neden yok');
+assert.ok(r.kat, 'güçlü koloni önerisi kuraldan bağımsız');
+const sc1 = C.swarm(h, dt).score; C.ogulSkorSet(base); assert.strictEqual(C.swarm(h, dt).score, sc1, 'skor değişmez');
+C.ogulSkorSet(base);
+const ud = fs.readFileSync(path.join(root, 'uyarilar.html'), 'utf8') + fs.readFileSync(path.join(root, 'ogul.js'), 'utf8');
+assert.ok(!/uzman tahmini/.test(ud), 'kullanıcı sayfasında «uzman tahmini» yok');
+const src = fs.readFileSync(path.join(root, 'demo-data.js'), 'utf8');
+assert.strictEqual(src, fs.readFileSync(path.join(root, '..', 'yonetici', 'demo-data.js'), 'utf8'));
+assert.strictEqual(fs.readFileSync(path.join(root, 'degisiklik-kaydi.js'), 'utf8'), fs.readFileSync(path.join(root, '..', 'yonetici', 'degisiklik-kaydi.js'), 'utf8'));
+const p10 = fs.readFileSync(path.join(root, '..', 'yonetici', 'panel10.js'), 'utf8');
+assert.ok(/kk: \['ogulYerTahmin'\]/.test(p10) && /Kaynak yok · uzman tahmini/.test(p10) && /\['Oğul riski', \['ogulYerTahmin'\]\]/.test(p10), 'yönetici kartı + grup');
+const mig = fs.readdirSync(path.join(root, '..', '..', 'supabase', 'migrations')).find((f) => /ogul_yer_tahmin\.sql$/.test(f));
+assert.ok(mig, 'migration');
+const m = fs.readFileSync(path.join(root, '..', '..', 'supabase', 'migrations', mig), 'utf8');
+assert.ok(/ogulYerTahmin/.test(m) && /yapilacaklar/.test(m) && /kural_kaynaklari/.test(m) && /uzman tahmini/.test(m));
+assert.ok(/k === 'kuralKapali'/.test(fs.readFileSync(path.join(root, 'degisiklik-kaydi.js'), 'utf8')), 'değişiklik kaydı kural adı');
+console.log('k247 ok');

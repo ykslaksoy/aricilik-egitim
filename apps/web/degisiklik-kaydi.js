@@ -15,6 +15,8 @@
     if (k === 'role') return ROL[v] || v;
     if ((k === 'aralik_ms' || k === 'onceki_ms') && isFinite(+v) && +v > 0) { var dk = Math.round(+v / 60000); return dk >= 60 && dk % 60 === 0 ? (dk / 60 === 1 ? 'Saatte bir' : dk / 60 + ' saatte bir') : dk + ' dakikada bir'; }
     if ((k === 'oncesi_yedek' || k === 'yedek' || k === 'geri_yukleme') && /^\d+$/.test(String(v))) return '#' + v;
+    /* koloni-247: kapalı kurallar kimlik yerine adla (örn. «Oğul: Yer darlığı olabilir …») */
+    if (k === 'kuralKapali' && Array.isArray(v)) { var KL = {}; try { ((window.SuperAriDemo && window.SuperAriDemo.colony && window.SuperAriDemo.colony.KURALLAR) || []).forEach(function (x) { KL[x[0]] = x[1]; }); } catch (e) {} return v.length ? v.map(function (x) { return KL[x] || x; }).join(', ') : '—'; }
     if (v === true) return 'Evet'; if (v === false) return 'Hayır';
     var s = typeof v === 'object' ? JSON.stringify(v) : String(v); return s.length > 60 ? s.slice(0, 57) + '…' : s;
   }
