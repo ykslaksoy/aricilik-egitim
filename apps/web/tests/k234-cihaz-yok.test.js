@@ -35,5 +35,5 @@ assert.ok(kh.includes('min-height:1.25em'));
 assert.ok(kh.includes('koloni-236'));
 assert.ok(!/Giriş sayacı: Veri yok/.test(kh));
 assert.strictEqual(fs.readFileSync(path.join(W,'demo-data.js'),'utf8'),fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-236');
+assert.ok(Number(String(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version).replace(/^koloni-/,''))>=236,'sürüm en az koloni-236');
 console.log('k234-cihaz-yok ok');

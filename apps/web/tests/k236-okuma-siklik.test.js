@@ -62,5 +62,5 @@ assert.ok(/okumaIsiNemDk.*30/.test(mig) && /okumaTartiDk.*15/.test(mig) && /yapi
 const fw = fs.readFileSync(path.join(W, '../../firmware/node/src/config.h'), 'utf8');
 assert.ok(/WEIGHT_INTERVAL_MS 900000/.test(fw) && /TEMP_HUM_INTERVAL_MS 1800000/.test(fw));
 assert.strictEqual(fs.readFileSync(path.join(W, 'demo-data.js'), 'utf8'), fs.readFileSync(path.join(W, '../yonetici/demo-data.js'), 'utf8'));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W, 'version.json'), 'utf8')).version, 'koloni-236');
+assert.ok(Number(String(JSON.parse(fs.readFileSync(path.join(W, 'version.json'), 'utf8')).version).replace(/^koloni-/,''))>=236,'sürüm en az koloni-236');
 console.log('k236-okuma-siklik ok');

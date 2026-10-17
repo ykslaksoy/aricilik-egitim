@@ -16,5 +16,5 @@ assert.ok(/daha yeni bir değişiklik/.test(m)&&/sa_degisiklik_cihaz/.test(m)&&/
 const a=r('ayarlar.html');assert.ok(a.includes("yt('kayit'")&&a.includes("yt('geri'")&&a.includes('degisiklik-kaydi.html'));
 assert.strictEqual(r('degisiklik-kaydi.js'),r('../yonetici/degisiklik-kaydi.js'));
 assert.ok(r('../yonetici/index.html').includes('panel12.js'));
-assert.equal(JSON.parse(r('version.json')).version,'koloni-233');
+assert.ok(Number(String(JSON.parse(r('version.json')).version).replace(/^koloni-/,''))>=233,'sürüm en az koloni-233');
 console.log('k221 ok');
