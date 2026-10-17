@@ -210,7 +210,7 @@
     var N = window.SuperAriNav; if (!N || !N.pickHive) return;
     N.pickHive('🔍 Hastalık tahmini', function (hid) {
       hzLoad().then(function (Hz) { Hz.open(hid, {}); }).catch(function () { alert('Hastalık tahmini yüklenemedi. Sayfayı yenileyip tekrar deneyin.'); });
-    });
+    }, { search: true });
   }
   window.SuperAriHzSaglik = go;
   document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-hz-saglik]') : null; if (t) { e.preventDefault(); go(); } });
