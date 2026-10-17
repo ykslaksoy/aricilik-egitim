@@ -155,7 +155,7 @@
       ['c', 'Dönüş', 'Pencere (dk) ' + UT, 's', 'ogulDonusDk'],
       ['c', 'Dönüş', 'Dönen oran en çok ' + UT, 's', 'ogulDonusOran'],
       ['c', 'Tartı', 'Doğrulama düşüşü (kg) ' + UT, 's', 'ogulKgDusus']] },
-    { t: 'Uçuş havası (arı cinsi)', kk: ['ucus'], src: 'Irka özgü hakemli uçuş eşiği bulunamadı → tümü uzman tahmini · Genel A. mellifera: Burrill & Dietz 1981, Apidologie 12:319 (9 °C altında uçuş yok); Vicens & Bosch 2000, Environ. Entomol. 29:413 (etkinlik 12–14 °C); rüzgar: Karbassioon ve ark. 2023, Oecologia 201:689, doi:10.1007/s00442-023-05332-x (~9 km/sa üstü azalır); yağmurda uçuş yok: Riessberger & Crailsheim 1997, Apidologie 28:411', not: 'Hava › Uçuşa uygun günler, Bal sezonu ve Nektar listeleri bu değerleri kullanır. Arılığın cinsi kovanlarındaki en sık ırktan alınır. Melez (ör. Kafkas × Karadeniz): ebeveyn gruplarının daha ihtiyatlı değeri (yüksek sıcaklık, düşük rüzgar ve yağış). Tanınmayan ırk (Muğla, Anadolu…): Genel.', r: [
+    { t: 'Uçuş havası (arı cinsi)', kk: ['ucus'], src: 'Irka özgü hakemli uçuş eşiği bulunamadı → tümü uzman tahmini · Genel A. mellifera: Burrill & Dietz 1981, Apidologie 12:319 (9 °C altında uçuş yok); Vicens & Bosch 2000, Environ. Entomol. 29:413 (etkinlik 12–14 °C); rüzgar: Karbassioon ve ark. 2023, Oecologia 201:689, doi:10.1007/s00442-023-05332-x (~9 km/sa üstü azalır); yağmurda uçuş yok: Riessberger & Crailsheim 1997, Apidologie 28:411 · güneş: Vicens & Bosch 2000 (A. mellifera ~300 W/m² ışınımda etkin), Clarke & Robert 2018, Apidologie 49:386, doi:10.1007/s13592-018-0565-3 (sıcaklık + ışınım etkinlik değişiminin %78 kadarı) · temizlik uçuşu: Burrill & Dietz 1981 (9 °C), kışın 9,3 °C üstü uçuş: J. Apiculture 2024, doi:10.17519/apiculture.2024.11.39.4.317 · mevsim: Erzurum (Tortum dahil) çiçeklenme Haziran–Ağustos, Arıcılık Araştırma Enstitüsü 2022 «Türkiye İl-İlçe Ballı ve Polenli Bitkiler ile Çiçeklenme Dönemleri»; Tortum WMO 1991–2020 normali Ekim ort. en yüksek 18,8 °C / en düşük 3,7 °C · bölge mevsim tarihleri bakım takvimi profillerinden (uzman tahmini)', not: 'Gün etiketi saat saat: gündüz (is_day), kuru (yağış 0 ve olasılık <%60) saatlerden en az {s:ucusSaatMin} «uygun saat» (sıcaklık ≥ uygun, rüzgar ≤ uygun, ışınım ≥ {s:ucusIsinimW} W/m²) → Uçuş uygun; en az bir «kısmen» saati → Kısmen. Günlük yağış ≥ eşik → Uygun değil. Mevsim dışında (bölge profili ya da Oğul skorları › Arılık uçuş mevsimi): kuru ve en az bir gündüz saati ≥ {s:ucusTemizlikC} °C → «Temizlik uçuşu olabilir», değilse «Uçuş yok»; toplama sayılmaz. Hava › Uçuşa uygun günler, Bal sezonu ve Nektar listeleri bu değerleri kullanır. Arılığın cinsi kovanlarındaki en sık ırktan alınır. Melez (ör. Kafkas × Karadeniz): ebeveyn gruplarının daha ihtiyatlı değeri (yüksek sıcaklık, düşük rüzgar ve yağış). Tanınmayan ırk (Muğla, Anadolu…): Genel.', r: [
       ['ok', 'Kafkas', 'Uygun: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasUygunC'],
       ['w', 'Kafkas', 'Kısmen: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasKismenC'],
       ['ok', 'Kafkas', 'Uygun: en yüksek rüzgar (km/sa) ' + UT, 's', 'ucusKafkasUygunRuzgar'],
@@ -175,7 +175,18 @@
       ['w', 'Genel', 'Kısmen: en düşük sıcaklık (°C) ' + UT, 's', 'ucusGenelKismenC'],
       ['ok', 'Genel', 'Uygun: en yüksek rüzgar (km/sa) ' + UT, 's', 'ucusGenelUygunRuzgar'],
       ['w', 'Genel', 'Kısmen: en yüksek rüzgar (km/sa) ' + UT, 's', 'ucusGenelKismenRuzgar'],
-      ['c', 'Genel', 'Bu yağış ve üstü uygun değil (mm) ' + UT, 's', 'ucusGenelYagisMm']] },
+      ['c', 'Genel', 'Bu yağış ve üstü uygun değil (mm) ' + UT, 's', 'ucusGenelYagisMm'],
+      ['ok', 'Güneş', 'Uygun saat: en az ışınım (W/m²) · Vicens & Bosch 2000', 's', 'ucusIsinimW'],
+      ['ok', 'Süre', 'Uygun gün: en az uygun gündüz saati ' + UT, 's', 'ucusSaatMin'],
+      ['i', 'Temizlik', 'Mevsim dışı: en düşük sıcaklık (°C) · Burrill & Dietz 1981', 's', 'ucusTemizlikC'],
+      ['i', 'Mevsim', 'Sıcak bölge: başlangıç (AAGG, ör. 201 = 1 Şub) ' + UT, 's', 'ucusSezonSicakBas'],
+      ['i', 'Mevsim', 'Sıcak bölge: bitiş (AAGG) ' + UT, 's', 'ucusSezonSicakSon'],
+      ['i', 'Mevsim', 'Ilıman: başlangıç (AAGG) ' + UT, 's', 'ucusSezonIlimanBas'],
+      ['i', 'Mevsim', 'Ilıman: bitiş (AAGG) ' + UT, 's', 'ucusSezonIlimanSon'],
+      ['i', 'Mevsim', 'Yayla (≈1100–1800 m): başlangıç (AAGG) ' + UT, 's', 'ucusSezonYaylaBas'],
+      ['i', 'Mevsim', 'Yayla: bitiş (AAGG, ör. 920 = 20 Eyl) ' + UT, 's', 'ucusSezonYaylaSon'],
+      ['i', 'Mevsim', 'Yüksek yayla (≥1800 m): başlangıç (AAGG) ' + UT, 's', 'ucusSezonYuksekBas'],
+      ['i', 'Mevsim', 'Yüksek yayla: bitiş (AAGG) ' + UT, 's', 'ucusSezonYuksekSon']] },
     { t: 'Titreşim', kk: ['titresim'], src: 'Kaynak yok · uzman tahmini', not: 'Olağandışı hareket: hırsızlık / kapak açıldı alarmı için hazırlık.', r: [
       ['w', 'Olağandışı', '7 gün tabanının katı ' + UT, 's', 'titresimKat'],
       ['w', 'Süre', 'Kesintisiz (dk) ' + UT, 's', 'titresimDk']] },

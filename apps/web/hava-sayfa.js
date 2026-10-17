@@ -6,7 +6,7 @@
   function live() { try { return localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
   (function () { var el = $('statusClock'); if (!el) return; function t() { var n = new Date(); el.textContent = n.getHours() + ':' + (n.getMinutes() < 10 ? '0' : '') + n.getMinutes(); } t(); setInterval(t, 1000); })();
 
-  var LOCK_KEY = 'superari.ana.arilikLock', SEL_KEY = 'superari.ana.selectedApiary', CACHE = 'superari.hava.tahmin.v1.';
+  var LOCK_KEY = 'superari.ana.arilikLock', SEL_KEY = 'superari.ana.selectedApiary', CACHE = 'superari.hava.tahmin.v2.' /* k249: saatlik gündüz verisi + ışınım */;
   var GUN = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
   var YON = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
   var aps = [];
@@ -27,14 +27,43 @@
   function rainy(d) { return (d.mm || 0) >= 1 || (d.pr || 0) >= 60; }
   /* koloni-217: Arı uçuşu arılığın arı cinsine göre (eşikler yönetici panelinde; uzman tahmini). Yağmurlu gün asla uygun değil. */
   function ue() { var C = D && D.colony, a = aps[idx]; try { return C.ucusEsik(C.apiaryBreed(a && a.id), a && a.id); } catch (e) { return { uygunC: 15, kismenC: 12, uygunRuzgar: 20, kismenRuzgar: 30, yagisMm: 1 }; } }
+  /* koloni-249: ek uçuş ayarları (tek kaynak ogul_skor_ayar.sensor; yönetici › Uçuş havası) */
+  function ek() { var C = D && D.colony, S = {}, O = {}; try { S = (C.ogulSkor() || {}).sensor || {}; O = C.ORS_SENSOR || {}; } catch (e) { /* ignore */ }
+    function v(k, d) { var x = Number(S[k]); if (isFinite(x)) return x; x = Number(O[k]); return isFinite(x) ? x : d; }
+    return { temizlikC: v('ucusTemizlikC', 9), isinimW: v('ucusIsinimW', 300), saatMin: v('ucusSaatMin', 3) }; }
+  /* koloni-249: arılığın uçuş mevsimi (bölge profili / yönetici elle). Mevsim dışında sıcak gün «uçuş uygun» denmez. */
+  function sezon(date) { var C = D && D.colony, a = aps[idx]; try { return C.ucusSezon(a && a.id, date); } catch (e) { return { acik: true }; } }
+  function sezonYazi(S, date) { return S.acik ? '' : (String(date || '').slice(5, 10) < S.from ? 'Mevsim başlamadı' : 'Mevsim kapandı'); }
+  /* Saat ıslak: yağış var ya da olasılık ≥%60 (eski günlük «yağmurlu» ölçütüyle aynı) */
+  function wetH(h) { return (h.mm || 0) > 0 || (h.pr || 0) >= 60; }
+  function dayH(h) { if (h.day != null) return h.day === 1; var hr = Number(String(h.t || '').slice(11, 13)); return hr >= 8 && hr <= 19; }
+  /* Uçuş saati: gündüz, kuru, sıcaklık ve rüzgar eşikte. Uygun saat ayrıca güneş ışınımı ≥ eşik (Vicens & Bosch 2000). */
+  function hourFl(h, E, X) {
+    if (!dayH(h) || wetH(h) || h.temp == null) return 'no';
+    if (h.temp >= E.uygunC && (h.wind || 0) <= E.uygunRuzgar && (h.rad == null || h.rad >= X.isinimW)) return 'ok';
+    if (h.temp >= E.kismenC && (h.wind || 0) <= E.kismenRuzgar) return 'part';
+    return 'no';
+  }
   function flight(d) {
-    var E = ue();
-    if (d.hi == null || rainy(d) || (d.mm || 0) >= E.yagisMm) return 'no';
+    var E = ue(), X = ek(), S = sezon(d.date), hs = d.hs && d.hs.length ? d.hs : null;
+    if (!S.acik) {
+      /* Mevsim dışı: toplama yok. Kuru, rüzgarı eşikte, en az bir gündüz saati ≥ temizlik eşiği → temizlik uçuşu olabilir. */
+      if (d.hi == null || (d.mm || 0) >= E.yagisMm) return 'yok';
+      var c = hs ? hs.some(function (h) { return dayH(h) && !wetH(h) && h.temp != null && h.temp >= X.temizlikC && (h.wind || 0) <= E.kismenRuzgar; })
+        : (!rainy(d) && d.hi >= X.temizlikC && (d.wind || 0) <= E.kismenRuzgar);
+      return c ? 'tmz' : 'yok';
+    }
+    if (d.hi == null || (d.mm || 0) >= E.yagisMm) return 'no';
+    if (hs) { /* günlük en yüksek değil, gündüz saatleri: en az saatMin uygun saat → uygun; en az bir uçuş saati → kısmen */
+      var ok = 0, part = 0; hs.forEach(function (h) { var f = hourFl(h, E, X); if (f === 'ok') ok++; if (f !== 'no') part++; });
+      return ok >= X.saatMin ? 'ok' : (part ? 'part' : 'no');
+    }
+    if (rainy(d)) return 'no';
     if (d.hi >= E.uygunC && (d.wind || 0) <= E.uygunRuzgar && (d.pr || 0) < 50) return 'ok';
     if (d.hi >= E.kismenC && (d.wind || 0) <= E.kismenRuzgar && (d.pr || 0) < 70) return 'part';
     return 'no';
   }
-  var FL = { ok: 'Uçuş uygun', part: 'Kısmen', no: 'Uygun değil' };
+  var FL = { ok: 'Uçuş uygun', part: 'Kısmen', no: 'Uygun değil', tmz: 'Temizlik uçuşu olabilir', yok: 'Uçuş yok' };
   function ico(code, mm) {
     var c = Number(code) || 0;
     if (c >= 95) return '⛈️'; if ((c >= 71 && c <= 77) || c === 85 || c === 86) return '🌨️'; if (c >= 51 || (mm || 0) >= 1) return '🌧️';
@@ -48,26 +77,37 @@
         pr: num((dl.precipitation_probability_max || [])[i]) || 0, wind: num((dl.wind_speed_10m_max || [])[i]), gust: num((dl.wind_gusts_10m_max || [])[i]),
         dir: num((dl.wind_direction_10m_dominant || [])[i]), rh: num((dl.relative_humidity_2m_mean || [])[i]), rhMin: num((dl.relative_humidity_2m_min || [])[i]), rhMax: num((dl.relative_humidity_2m_max || [])[i]), code: (dl.weather_code || [])[i] });
     });
-    var h = j.hourly || {}, now = Date.now();
+    var h = j.hourly || {}, byD = {};
+    out.days.forEach(function (x) { byD[x.date] = x; });
     (h.time || []).forEach(function (t, i) {
-      var ms = new Date(t).getTime(); if (ms < now - 3600e3 || out.hours.length >= 36) return;
-      out.hours.push({ t: t, temp: num(h.temperature_2m[i]), pr: num((h.precipitation_probability || [])[i]) || 0, mm: num((h.precipitation || [])[i]) || 0,
-        wind: num((h.wind_speed_10m || [])[i]), rh: num((h.relative_humidity_2m || [])[i]), code: (h.weather_code || [])[i] });
+      var dy = (h.is_day || [])[i], o = { t: t, temp: num(h.temperature_2m[i]), pr: num((h.precipitation_probability || [])[i]) || 0, mm: num((h.precipitation || [])[i]) || 0,
+        wind: num((h.wind_speed_10m || [])[i]), rh: num((h.relative_humidity_2m || [])[i]), code: (h.weather_code || [])[i], day: dy == null ? null : Number(dy), rad: num((h.shortwave_radiation || [])[i]) };
+      out.hours.push(o);
+      /* k249: günün gündüz saatleri (uçuş değerlendirmesi günlük en yüksek yerine saat saat) */
+      var dd = byD[t.slice(0, 10)]; if (dd && dayH(o)) (dd.hs = dd.hs || []).push({ t: t, temp: o.temp, pr: o.pr, mm: o.mm, wind: o.wind, rad: o.rad, day: o.day });
     });
     return out;
   }
+  /* k249: bayat tahmin (bağlantı yokken eski önbellek) — geçmiş günler atılır, ilk gün gerçekten bugün olsun; saatlik liste şimdiden başlar (36 saat) */
+  function isoToday() { var n = new Date(); return n.getFullYear() + '-' + (n.getMonth() < 9 ? '0' : '') + (n.getMonth() + 1) + '-' + (n.getDate() < 10 ? '0' : '') + n.getDate(); }
+  function fresh(d) {
+    if (!d || !d.days) return null; var t0 = isoToday(), now = Date.now();
+    var days = d.days.filter(function (x) { return x.date >= t0; });
+    var hours = (d.hours || []).filter(function (h) { return new Date(h.t).getTime() >= now - 3600e3; }).slice(0, 36);
+    return days.length ? { days: days, hours: hours } : null;
+  }
   function fetchFc(a) {
     var key = CACHE + a.id;
-    try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return Promise.resolve(c.d); } catch (e) { /* ignore */ }
+    try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c && Date.now() - c.at < 30 * 60e3) return Promise.resolve(fresh(c.d)); } catch (e) { /* ignore */ }
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + a.lat + '&longitude=' + a.lon +
       '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,relative_humidity_2m_mean,relative_humidity_2m_min,relative_humidity_2m_max,weather_code' +
-      '&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,weather_code' +
+      '&hourly=temperature_2m,precipitation_probability,precipitation,wind_speed_10m,relative_humidity_2m,weather_code,is_day,shortwave_radiation' +
       '&timezone=auto&forecast_days=10';
     return fetch(url).then(function (r) { if (!r.ok) throw new Error('hava_' + r.status); return r.json(); }).then(function (j) {
       var d = parse(j); try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), d: d })); } catch (e) { /* ignore */ }
-      return d;
+      return fresh(d);
     }).catch(function () {
-      try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c) return c.d; } catch (e) { /* ignore */ }
+      try { var c = JSON.parse(localStorage.getItem(key) || 'null'); if (c) return fresh(c.d); } catch (e) { /* ignore */ }
       return null;
     });
   }
@@ -104,6 +144,8 @@
   function workDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && (x.wind || 0) <= 15 && (x.hi || 0) >= 15; }); }
   function harvestDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && x.wind != null && x.wind <= 15 && (x.hi || 0) >= 18; }); }
   function seasonStage() {
+    var t0 = isoToday(), S = sezon(t0), sy = sezonYazi(S, t0);
+    if (sy) return { t: sy, n: 'Toplama yok; kovanı açmayın, stoğu dıştan izleyin.', kapali: true }; /* k249: arılığın uçuş mevsimi */
     var m = new Date().getMonth() + 1;
     if (m >= 3 && m <= 5) return { t: 'İlkbahar gelişmesi', n: 'Koloniler büyüyor; erken akım bölgeye göre başlar.' };
     if (m >= 6 && m <= 8) return { t: 'Ana bal akımı', n: 'Çoğu bölgede ana akım dönemi; ballık ve hasat takibi.', hasat: true };
@@ -112,9 +154,9 @@
   }
   function feedAlert(d) {
     var run = 0, best = 0, cold = 0, cbest = 0;
-    d.forEach(function (x) { run = rainy(x) ? run + 1 : 0; best = Math.max(best, run); cold = (x.hi != null && x.hi < 12) ? cold + 1 : 0; cbest = Math.max(cbest, cold); });
+    d.forEach(function (x) { run = rainy(x) ? run + 1 : 0; best = Math.max(best, run); cold = (x.hi != null && x.hi < ue().kismenC) ? cold + 1 : 0; cbest = Math.max(cbest, cold); });
     if (best >= 3) return best + ' gün üst üste yağmur bekleniyor — öncesinde besleme stoklarını kontrol edin';
-    if (cbest >= 3) return cbest + ' gün soğuk (en yüksek <12°) — arı uçamaz, besleme stoklarını kontrol edin';
+    if (cbest >= 3) return cbest + ' gün soğuk — arı az uçar, besleme stoklarını kontrol edin';
     return '';
   }
   function tiles() {
@@ -122,13 +164,13 @@
     var okN = d.filter(function (x) { return flight(x) === 'ok'; }).length, fr = frostDays(d).length, wk = workDays(d);
     return [
       { key: 'saatlik', label: 'Saatlik', href: '#saatlik', badge: h0 ? r0(h0.temp) + '° şimdi' : '—', tone: 'tan' },
-      { key: 'ucus', label: 'Uçuş uygunluğu', href: '#ucus', badge: has ? okN + ' uygun gün' : '—', tone: okN ? 'green' : 'red' },
+      { key: 'ucus', label: 'Uçuş uygunluğu', href: '#ucus', badge: has ? (seasonStage().kapali ? seasonStage().t : okN + ' uygun gün') : '—', tone: seasonStage().kapali ? 'tan' : (okN ? 'green' : 'red') }, /* k249 */
       { key: 'gecmis', label: 'Geçmiş hava', href: 'hava-gecmis.html' + apQ(), badge: '', tone: 'tan' },
       { key: 'rapor', label: 'Sezon raporu', href: 'hava-raporu.html' + apQ(), badge: '', tone: 'tan' },
       { key: 'karsi', label: 'Geçen yılla karşılaştırma', href: '#karsi', badge: '', tone: 'tan' },
       { key: 'nektar', label: 'Nektar akımı', href: '#nektar', badge: has ? 'tahmini' : '—', tone: 'tan' },
       { key: 'don', label: 'Don / fırtına', href: '#don', badge: has ? (fr ? fr + ' gün uyarı' : 'Uyarı yok') : '—', tone: fr ? 'red' : 'green' },
-      { key: 'bal', label: 'Bal sezonu', href: '#bal', badge: has ? (seasonStage().hasat ? (harvestDays(d).length ? harvestDays(d).length + ' hasat günü' : 'Hasat günü yok') : (okN ? okN + ' uçuş günü' : 'Uçuş günü yok')) : '—', tone: (seasonStage().hasat ? harvestDays(d).length : okN) ? 'green' : 'tan' }, /* k215: mevsime duyarlı */
+      { key: 'bal', label: 'Bal sezonu', href: '#bal', badge: has ? (seasonStage().hasat ? (harvestDays(d).length ? harvestDays(d).length + ' hasat günü' : 'Hasat günü yok') : (seasonStage().kapali ? seasonStage().t : (okN ? okN + ' uçuş günü' : 'Uçuş günü yok'))) : '—', tone: (seasonStage().hasat ? harvestDays(d).length : okN) ? 'green' : 'tan' }, /* k215: mevsime duyarlı */
       { key: 'isgunu', label: 'Uygun iş günü', href: '#isgunu', badge: has ? (wk.length ? dayLab(wk[0].date, d.indexOf(wk[0])) : 'Yok') : '—', tone: wk.length ? 'green' : 'tan' }
     ];
   }
@@ -172,6 +214,7 @@
     }).join('');
     var note;
     if (!data) note = { t: 'Tahmin alınamadı — bağlantıyı kontrol edin', b: 'Yenile', h: '#' };
+    else if (seasonStage().kapali) note = (function () { var tm = d.filter(function (x) { return flight(x) === 'tmz'; }); return { t: seasonStage().t + ' · toplama yok' + (tm.length ? ' · temizlik uçuşu olabilir: ' + tm.slice(0, 3).map(function (x) { return dayLabD(x.date, d.indexOf(x)); }).join(', ') : ''), b: '10 gün', h: '#10gun' }; })(); /* k249 */
     else if (okD.length) note = { t: '🐝 Uçuş uygun: ' + okD.slice(0, 4).map(function (x) { return dayLabD(x.date, d.indexOf(x)); }).join(', '), b: 'Uçuş', h: '#ucus' };
     else if (rainD.length) note = { t: '🌧️ ' + rainD.map(function (x) { return dayLabD(x.date, d.indexOf(x)); }).join(', ') + ' yağmur', b: 'İş günü', h: '#isgunu' };
     else note = { t: 'Önümüzdeki günlerde uçuşa uygun gün yok', b: '10 gün', h: '#10gun' };
@@ -183,7 +226,7 @@
   function dirTxt(deg) { return deg == null ? '' : YON[Math.round(deg / 45) % 8]; }
   function dayCard(x, i) {
     var f = flight(x);
-    return '<div class="hv-card ' + (f === 'no' ? '' : f) + '"><div class="hv-d"><b>' + esc(dayLab(x.date, i)) + '</b><span>' + ico(x.code, x.mm) + '</span></div>' +
+    return '<div class="hv-card ' + (f === 'no' || f === 'yok' ? '' : f) + '"><div class="hv-d"><b>' + esc(dayLab(x.date, i)) + '</b><span>' + ico(x.code, x.mm) + '</span></div>' +
       '<div class="hv-t">' + r0(x.hi) + '°<span class="lo"> / ' + r0(x.lo) + '°</span></div>' +
       '<div class="hv-fl ' + f + '">' + (f === 'ok' ? '🐝 ' : '') + FL[f] + '</div>' +
       '<div class="hv-m"><span>💧 ' + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span><span>💨 ' + r0(x.wind) + ' km/sa ' + dirTxt(x.dir) + '</span><span>Nem %' + r0(x.rh) + '</span></div></div>';
@@ -192,9 +235,9 @@
   function view(name) {
     var a = ap(), d = data && data.days || [], hs = data && data.hours || [], sub = a ? a.name : '';
     if (!data) return head('Hava', sub) + '<div class="hv-empty">Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.</div>';
-    if (name === '10gun') return head('10 günlük tahmin', sub + ' · 🐝 uçuş uygun günler yeşil') + d.map(dayCard).join('');
+    if (name === '10gun') return head('10 günlük tahmin', sub + (seasonStage().kapali ? ' · ' + seasonStage().t + ' · toplama yok' : ' · 🐝 uçuş uygun günler yeşil')) + d.map(dayCard).join('');
     if (name === 'ucus') {
-      return head('Arı uçuşu uygunluğu', (function () { var b = ue().breed; return (b ? b + ' arısına göre' : 'Genel eşiklere göre') + ' · sıcaklık, rüzgar ve yağış'; })()) + d.map(dayCard).join('');
+      return head('Arı uçuşu uygunluğu', (function () { var b = ue().breed; return (seasonStage().kapali ? seasonStage().t + ' · toplama yok · ' : '') + (b ? b + ' arısına göre' : 'Genel eşiklere göre') + ' · saat saat sıcaklık, rüzgar, yağış, güneş'; })()) + d.map(dayCard).join('');
     }
     if (name === 'yagis') return head('Yağış', sub + ' · yağmurlu gün: ≥1 mm veya ≥%60') + d.map(function (x, i) {
       return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.pr || 0)) + '%"></i></span><span class="v" style="flex:0 0 96px;text-align:right">' + (rainy(x) ? '🌧️ ' : '') + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span></div>';
@@ -241,12 +284,13 @@
       var okD = d.filter(function (x) { return flight(x) === 'ok'; });
       return head('Nektar akımı / çiçeklenme', sub) +
         '<div class="hv-empty">Bu arılık için çiçeklenme takvimi verisi yok. Aşağıdaki değerlendirme yalnız hava tahminine dayanır (tahmini).</div>' +
+        (seasonStage().kapali ? '<div class="hv-warn">' + esc(seasonStage().t) + ' — nektar/polen toplama beklenmez.</div>' : '') +
         '<div class="' + (okD.length >= 4 ? 'hv-good' : 'hv-warn') + '">' + (seasonStage().hasat ? (okD.length >= 4 ? '🌼 ' + okD.length + ' gün uçuşa ve toplamaya uygun hava — nektar akımı olan bölgede iyi toplama beklenebilir.' : '🌧️ Yalnız ' + okD.length + ' gün toplamaya uygun hava — nektar akımı sınırlı kalabilir.')
           : (okD.length >= 4 ? '🌼 ' + okD.length + ' gün uçuşa uygun hava — bölgede çiçek varsa arılar nektar ve polen getirebilir.' : '🌧️ Yalnız ' + okD.length + ' gün uçuşa uygun hava.')) /* k215 */ + '</div>';
     }
     if (name === 'karsi') return head('Geçen yılla karşılaştırma', sub + ' · aynı 10 gün, geçen yıl') + '<div id="hvKarsi"><div class="hv-empty">Geçen yılın kayıtları yükleniyor…</div></div>';
     if (name === 'saatlik') return head('Saatlik', sub + ' · önümüzdeki 36 saat') + hs.map(function (h) {
-      var hr = Number(h.t.slice(11, 13)), okH = hr >= 8 && hr <= 19 && (h.temp || 0) >= ue().kismenC && (h.wind || 0) <= ue().uygunRuzgar && (h.pr || 0) < 40;
+      var okH = sezon(h.t.slice(0, 10)).acik && hourFl(h, ue(), ek()) !== 'no'; /* k249: günlük kartla aynı saat ölçütü; mevsim dışında 🐝 yok */
       return '<div class="hv-row"><span class="k">' + hrLab(h.t) + '</span><span class="v">' + ico(h.code, h.mm) + ' ' + r0(h.temp) + '° · 💧%' + Math.round(h.pr) + ' · 💨' + r0(h.wind) + ' · Nem %' + r0(h.rh) + '</span>' + (okH ? '<span title="Uçuş uygun">🐝</span>' : '') + '</div>';
     }).join('');
     return '';
@@ -254,10 +298,11 @@
   var hvLoading = !!ap();
   function renderTen() {
     var d = data && data.days || [];
-    if (!data && hvLoading) { var sk = ''; for (var si = 0; si < 10; si++) sk += '<div class="hv-card hv-skel" aria-hidden="true" style="height:72px;box-sizing:border-box"></div>'; return '<div class="hv-h">10 günlük tahmin</div>' + sk; }
+    var szH = ap() && seasonStage().kapali ? '<div class="hv-sub">' + esc(seasonStage().t) + ' · toplama yok</div>' : ''; /* k249: yükleme iskeletinde de aynı satır — ekran kaymaz */
+    if (!data && hvLoading) { var sk = ''; for (var si = 0; si < 10; si++) sk += '<div class="hv-card hv-skel" aria-hidden="true" style="height:72px;box-sizing:border-box"></div>'; return '<div class="hv-h">10 günlük tahmin</div>' + szH + sk; }
     if (!data) return '<div class="hv-empty">' + (ap() ? 'Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.' : 'Konumu kayıtlı arılık yok — arılık ekleyince tahmin burada görünür.') + '</div>';
     var fa = feedAlert(d);
-    return '<div class="hv-h">10 günlük tahmin</div>' + (fa ? '<div class="hv-warn">🍯 ' + esc(fa) + '</div>' : '') + d.map(dayCard).join('');
+    return '<div class="hv-h">10 günlük tahmin</div>' + szH + (fa ? '<div class="hv-warn">🍯 ' + esc(fa) + '</div>' : '') + d.map(dayCard).join('');
   }
   function loadKarsi() {
     var a = ap(), d = data && data.days || [], el = $('hvKarsi');

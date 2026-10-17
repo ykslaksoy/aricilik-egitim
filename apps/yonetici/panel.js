@@ -56,6 +56,16 @@
           '<span class="os-dr"><input type="date" name="dn-from" value="' + yr + '-' + (cp || au).from + '"> – <input type="date" name="dn-to" value="' + yr + '-' + (cp || au).to + '"> ' +
           '<button type="button" class="btn secondary" data-dn-reset' + (cp ? '' : ' disabled') + '>Otomatik hesaplamaya dön</button></span></div>';
       }).join('') : '<p class="fe-empty">Arılık yok.</p>') + '</fieldset>';
+    /* koloni-249: arılık başına uçuş mevsimi (Hava › uçuş etiketi). Otomatik: bölge profili (Ölçüm kuralları › Uçuş havası › Mevsim). */
+    var us = o.ucusSezon || {};
+    h += '<fieldset><legend>Arılık uçuş mevsimi</legend><p class="fe-sub" style="margin:.2rem 0;">Mevsim dışında Hava sayfası sıcak günde «Uçuş uygun» demez; kuru ve yeterince sıcak günde «Temizlik uçuşu olabilir», değilse «Uçuş yok» yazar. Otomatik dönem bölge profilinden (uzman tahmini).</p>' +
+      (aps.length ? aps.map(function (a) {
+        var au = C.ucusSezon ? C.ucusSezon(a.id, null, true) : null, cp = us[a.id] && us[a.id].from ? us[a.id] : null; if (!au) return '';
+        return '<div class="os-us" data-ap="' + esc(a.id) + '" data-custom="' + (cp ? '1' : '0') + '"><b>' + esc(a.name || a.place || a.id) + '</b>' +
+          '<small class="fe-meta">' + 'Otomatik: ' + esc(au.profileLabel || '') + ' · ' + md(au.from) + ' – ' + md(au.to) + (cp ? ' · <b>elle: ' + md(cp.from) + ' – ' + md(cp.to) + '</b>' : '') + '</small>' +
+          '<span class="os-dr"><input type="date" name="us-from" value="' + yr + '-' + (cp || au).from + '"> – <input type="date" name="us-to" value="' + yr + '-' + (cp || au).to + '"> ' +
+          '<button type="button" class="btn secondary" data-us-reset' + (cp ? '' : ' disabled') + '>Otomatik hesaplamaya dön</button></span></div>';
+      }).join('') : '<p class="fe-empty">Arılık yok.</p>') + '</fieldset>';
     h += '<fieldset><legend>Bilinmeyen</legend><label><span>Tabloda olmayan melez / ırk</span>' + inp('bilinmeyen', o.bilinmeyen, '1', 100) + '</label></fieldset>';
     document.getElementById('osForm').innerHTML = h;
   }
@@ -67,6 +77,13 @@
       var f = row.querySelector('[name=dn-from]').value.slice(5), t = row.querySelector('[name=dn-to]').value.slice(5);
       if (!/^\d\d-\d\d$/.test(f) || !/^\d\d-\d\d$/.test(t) || f > t) { bad.push(row.querySelector('[name=dn-from]')); return; }
       o.donem[row.getAttribute('data-ap')] = { from: f, to: t, isCustomPeriod: true };
+    });
+    o.ucusSezon = {};
+    [].forEach.call(document.querySelectorAll('#osForm .os-us'), function (row) {
+      if (row.getAttribute('data-custom') !== '1') return;
+      var f = row.querySelector('[name=us-from]').value.slice(5), t = row.querySelector('[name=us-to]').value.slice(5);
+      if (!/^\d\d-\d\d$/.test(f) || !/^\d\d-\d\d$/.test(t) || f >= t) { bad.push(row.querySelector('[name=us-from]')); return; }
+      o.ucusSezon[row.getAttribute('data-ap')] = { from: f, to: t };
     });
     [].forEach.call(document.querySelectorAll('#osForm input:not([type=date]):not([type=checkbox])'), function (el) {
       var v = Number(String(el.value).replace(',', '.')), n = el.name.split('.'), mx = n[0] === 'w' ? 1 : (n[0] === 'sensor' ? 100000 : (n[0] === 'piping' ? 600 : 100));
@@ -80,8 +97,13 @@
   document.getElementById('osForm').addEventListener('input', function (e) {
     if (e.target.tagName !== 'INPUT') return; e.target.classList.add('chg');
     var row = e.target.closest('.os-dn'); if (row) { row.setAttribute('data-custom', '1'); row.querySelector('[data-dn-reset]').disabled = false; }
+    var ur = e.target.closest('.os-us'); if (ur) { ur.setAttribute('data-custom', '1'); ur.querySelector('[data-us-reset]').disabled = false; }
   });
   document.getElementById('osForm').addEventListener('click', function (e) {
+    var ub = e.target.closest('[data-us-reset]');
+    if (ub) { var ur = ub.closest('.os-us'), y0 = new Date().getFullYear(), au0 = C.ucusSezon(ur.getAttribute('data-ap'), null, true);
+      ur.setAttribute('data-custom', '0'); ur.querySelector('[name=us-from]').value = y0 + '-' + au0.from; ur.querySelector('[name=us-to]').value = y0 + '-' + au0.to;
+      ur.querySelector('[name=us-from]').classList.add('chg'); ub.disabled = true; stat('Otomatik uçuş mevsimine dönüldü — kaydedince geçerli olur.'); return; }
     var b = e.target.closest('[data-dn-reset]'); if (!b) return;
     var row = b.closest('.os-dn'), au = C.autoSwarmWindow(row.getAttribute('data-ap')), yr = new Date().getFullYear();
     row.setAttribute('data-custom', '0'); /* isCustomPeriod false → kayıtta silinir */
