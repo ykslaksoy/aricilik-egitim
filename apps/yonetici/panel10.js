@@ -38,6 +38,10 @@
       ['w', 'Genel', 'Günlük kayıp ≥ geçmişin katı ' + UT, 's', 'genelKayipKat'],
       ['w', 'Genel', 'En az günlük kayıp (kg) ' + UT, 's', 'genelKayipMinKg'],
       ['i', 'Nektar', 'Günlük artış en az (kg)', 's', 'nektarKg']] },
+    { t: 'Okuma sıklığı (varsayılan)', kk: [], src: 'Meikle W.G. ve ark. tartı için 5–15 dk (ör. 2008 Apidologie 39:694; 2014 Apidologie 46:10) · sıcaklık/nem 30 dk uzman tahmini · pil planı bu tabanı kullanır; seyreltme yalnız «Onayla» ile', not: 'Cihaz ölçüm sıklığının varsayılanı. Pil düşükken önerilen seyreltme bu değerlerden başlar; kullanıcı Onayla demeden değişmez. Eşek arısı ±0,5 °C / {s:esekEslesDk} dk için 30 dk taban yetmez → tıslama veya titreşim artınca sıcaklık {s:okumaEsekHizliDk} dk’da bir okunur (uzman tahmini).', r: [
+      ['i', 'Sıcaklık/nem', 'İç + giriş + cihazlı dış (dk) ' + UT, 's', 'okumaIsiNemDk'],
+      ['i', 'Tartı', 'Ağırlık (dk) · Meikle 5–15; seçim 15 ' + UT, 's', 'okumaTartiDk'],
+      ['i', 'Eşek hızlı', 'Tıslama/titreşim tetiklenince sıcaklık (dk) ' + UT, 's', 'okumaEsekHizliDk']] },
     { t: 'Ses', kk: ['sesOgulAni','sesPiping','sesQuack','sesAnasiz','sesIsciOtme','sesOgulEgilim','sesSaglik','sesVarroa'], src: 'Frekans bantları: Kural kaynakları → Ses sınıfları (KİLİTLİ, burada yalnız okunur) · Oğul anı 500–600 Hz, +6 dB, 2 dk: uzman tahmini — hakemli kaynak bulunamadı (Ferrari 2008 bant kaymasını gösterir, dB/süre eşiği vermez → aşağıdaki «Oğul öncesi» kuralı); Yapılacaklar\'da', r: [
       ['a', 'Oğul anı', 'Alt (Hz) ' + UT, 'L', 'ogulAniHzMin'],
       ['a', 'Oğul anı', 'Üst (Hz) ' + UT, 'L', 'ogulAniHzMax'],

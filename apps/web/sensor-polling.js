@@ -33,9 +33,10 @@
   var DEFAULT_BATTERY_INTERVAL_MS = 14400000; /* 4 saat */
 
   /** Rakip varsayımları: BroodMinder tartı ~1 sa; TH sık; Arnia/bScale günlük/4x günlük ağırlık. */
+  /* koloni-236: tartı 15 dk (Meikle 5–15), ısı/nem 30 dk — varsayılanlar ORS_SENSOR.okuma*Dk ile de okunur (uzman tahmini). */
   var DEFAULT_INTERVAL_MS = {
-    tarti: 3600000,
-    isi_nem: 900000,
+    tarti: 900000,
+    isi_nem: 1800000,
     ses: 3600000,
     titresim: 1800000,
     ir: 14400000,
@@ -45,6 +46,8 @@
     kamera_kovan: 86400000,
     role_hub: 86400000
   };
+  var burstUntil = {}; /* hiveId → bitiş ms — eşek arısı hızlı sıcaklık */
+  var burstLast = {};
 
   var INTERVAL_PRESETS = [
     { ms: 900000, label: '15 dk' },
@@ -123,8 +126,25 @@
 
   function storageKey(tip) { return STORAGE_BY_TIP[tip] || null; }
 
+  function sensorTh() {
+    try {
+      var D = global.SuperAriDemo, c = D && D.colony;
+      if (!c) return {};
+      var s = c.ogulSkor ? c.ogulSkor() : null;
+      return Object.assign({}, c.ORS_SENSOR || {}, s && s.sensor ? s.sensor : {});
+    } catch (e) { return {}; }
+  }
   function defaultIntervalMs(tip) {
     var t = String(tip || '');
+    var th = sensorTh();
+    if (t === 'tarti' || t === 'isi_nem' || t === 'dis_isi_nem') {
+      var dk = t === 'tarti' ? Number(th.okumaTartiDk) : Number(th.okumaIsiNemDk);
+      if (!(isFinite(dk) && dk > 0)) dk = t === 'tarti' ? 15 : 30;
+      var ms = Math.round(dk) * 60000;
+      var n = normalizeInterval(ms);
+      if (n) return n;
+      if (ms >= 300000) return Math.min(86400000, Math.round(ms / 60000) * 60000);
+    }
     if (DEFAULT_INTERVAL_MS[t] != null) return DEFAULT_INTERVAL_MS[t];
     return 3600000;
   }
@@ -280,6 +300,13 @@
     if ((tip === 'ses' || tip === 'titresim') && row.sinif && !row.demo) sesOlayGonder(row); /* k146 */
     list = pruneList(list, tip);
     writeStore(tip, list);
+    /* koloni-236: tıslama / titreşim artışı → sıcaklığı eşek penceresi boyunca hızlı oku (uzman tahmini; 30 dk tabanda ±0,5 °C/10 dk yakalanmaz) */
+    try {
+      if (row.hiveId != null && (
+        (tip === 'ses' && (row.sinif === 'tislama' || (row.hz != null && Number(row.hz) >= 4500))) ||
+        (tip === 'titresim' && (row.sinif === 'tislama' || (row.level != null && Number(row.level) >= 2) || (row.g != null && Number(row.g) >= 1.5)))
+      )) scheduleEsekTempBurst(row.hiveId);
+    } catch (eB) { /* ignore */ }
     try {
       global.dispatchEvent(new CustomEvent('superari:sensor-reading', { detail: { tip: tip, row: row } }));
     } catch (e) { /* ignore */ }
@@ -408,6 +435,42 @@
     return null;
   }
 
+
+  function scheduleEsekTempBurst(hiveId) {
+    if (hiveId == null) return;
+    var th = sensorTh();
+    var win = (Number(th.esekEslesDk) || 10) * 60000;
+    var id = String(hiveId);
+    var until = Date.now() + win;
+    burstUntil[id] = Math.max(burstUntil[id] || 0, until);
+    pollIsiNemHive(hiveId);
+    burstLast[id] = Date.now();
+  }
+  function pollIsiNemHive(hiveId) {
+    var Dev = global.SuperAriDevices;
+    if (!Dev || !Dev.listDevices) return null;
+    var list = [];
+    try { list = Dev.listDevices(); } catch (e) { list = []; }
+    var dv = list.filter(function (d) {
+      return d && (d.tip === 'isi_nem') && d.hiveId != null && Number(d.hiveId) === Number(hiveId)
+        && (d.status === 'bagli' || d.status === 'yok' || d.source === 'demo');
+    })[0];
+    if (!dv) return null;
+    return pollDeviceNow(dv, { nowMs: Date.now() });
+  }
+  function burstTick(nowMs) {
+    nowMs = nowMs != null ? nowMs : Date.now();
+    var th = sensorTh();
+    var fast = Math.max(60000, (Number(th.okumaEsekHizliDk) || 2) * 60000);
+    Object.keys(burstUntil).forEach(function (hid) {
+      if (nowMs > burstUntil[hid]) { delete burstUntil[hid]; delete burstLast[hid]; return; }
+      if (!burstLast[hid] || (nowMs - burstLast[hid]) >= fast) {
+        pollIsiNemHive(Number(hid));
+        burstLast[hid] = nowMs;
+      }
+    });
+  }
+
   function pollDevice(device) {
     if (!device) return null;
     var nowMs = Date.now();
@@ -481,6 +544,7 @@
     listBatteryDueDevices().forEach(function (d) {
       if (pollBattery(d, false)) polled += 1;
     });
+    burstTick(Date.now());
     return polled;
   }
 
@@ -520,7 +584,9 @@
 
   function presetsForTip(tip) {
     var base = [3600000, 14400000, 43200000, 86400000];
-    if (tip === 'isi_nem' || tip === 'titresim') base.unshift(tip === 'isi_nem' ? 900000 : 1800000);
+    if (tip === 'tarti') base.unshift(900000); /* 15 dk varsayılan */
+    if (tip === 'isi_nem' || tip === 'dis_isi_nem') { base.unshift(1800000); base.unshift(900000); } /* 30 dk varsayılan; 15 isteğe bağlı */
+    if (tip === 'titresim') base.unshift(1800000);
     return INTERVAL_PRESETS.filter(function (p) { return base.indexOf(p.ms) >= 0; });
   }
 
@@ -575,6 +641,9 @@
     selectHtml: selectHtml,
     bindPollSelects: bindPollSelects,
     presetsForTip: presetsForTip,
+    scheduleEsekTempBurst: scheduleEsekTempBurst,
+    burstUntil: function () { return burstUntil; },
+    sensorTh: sensorTh,
     DEFAULT_BATTERY_INTERVAL_MS: DEFAULT_BATTERY_INTERVAL_MS,
     DEFAULT_BATTERY_LOW_PCT: DEFAULT_BATTERY_LOW_PCT,
     getBatteryLowPct: getBatteryLowPct,

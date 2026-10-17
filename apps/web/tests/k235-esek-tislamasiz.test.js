@@ -39,5 +39,5 @@ assert.ok(!/\d|°C|Requier|Monceau|0,5/.test(line.replace(/ALARM_YUKSEK_ESEK_01/
 const p=fs.readFileSync(path.join(W,'../yonetici/panel10.js'),'utf8');
 ['10.1007/s10340-018-1063-0','10.1371/journal.pone.0066492','esekIrOran','IR yedek','tıslamasız'].forEach(x=>assert.ok(p.includes(x),x));
 assert.ok(fs.readFileSync(path.join(W,'kovan.html'),'utf8').includes('esekYolDurum'));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version,'koloni-235');
+assert.ok(/koloni-23[56]/.test(JSON.parse(fs.readFileSync(path.join(W,'version.json'),'utf8')).version));
 console.log('k235-esek-tislamasiz ok');

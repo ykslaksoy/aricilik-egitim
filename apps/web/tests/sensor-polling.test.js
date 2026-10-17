@@ -37,12 +37,12 @@ const P = globalThis.SuperAriSensorPolling;
 const Dev = globalThis.SuperAriDevices;
 
 assert.strictEqual(P.RETENTION_DAYS, 183);
-assert.strictEqual(P.defaultIntervalMs('tarti'), 3600000);
-assert.strictEqual(P.defaultIntervalMs('isi_nem'), 900000);
+assert.strictEqual(P.defaultIntervalMs('tarti'), 900000);
+assert.strictEqual(P.defaultIntervalMs('isi_nem'), 1800000);
 
 const dev = Dev.listDevices().filter((d) => d.tip === 'tarti' && d.hiveId === 101)[0];
 assert.ok(dev, 'demo tartı');
-assert.strictEqual(P.resolveIntervalMs(dev), 3600000);
+assert.strictEqual(P.resolveIntervalMs(dev), 900000);
 P.setDeviceInterval(dev.id, 14400000);
 assert.strictEqual(P.resolveIntervalMs(dev), 14400000);
 P.setApiaryInterval('a1', 'tarti', 43200000);
