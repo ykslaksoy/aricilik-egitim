@@ -21,6 +21,7 @@ test('k244: mevsim notu ortak başla bir kez', () => {
 });
 
 test('k244: oğul görünümünde Tümü / Sensör kaynaklı süzgeci yok (aynı listeyi veriyordu)', () => {
+  assert.ok(/#filterChips:empty \{ display:none; \}/.test(U), 'boş süzgeç kutusu yer kaplamamalı (koloni-245)');
   assert.ok(/filterChipsEl && view === 'ogul'\) \{[\s\S]{0,200}filterChipsEl\.innerHTML = ''/.test(U));
 });
 
