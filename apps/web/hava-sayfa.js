@@ -242,7 +242,7 @@
       '<div class="hv-t">' + r0(x.hi) + '°<span class="lo"> / ' + r0(x.lo) + '°</span></div>' +
       '<div class="hv-fl ' + f + '">' + (f === 'ok' ? '🐝 ' : '') + FL[f] + '</div>' +
       '<div class="hv-m"><span class="hv-ln">' + SV('mm') + '<span class="hv-v mm">' + (Math.round((x.mm || 0) * 10) / 10) + ' mm</span> · ' + SV('pr') + '<span class="hv-v pr">%' + Math.round(x.pr || 0) + '</span></span></div>' +
-      '<div class="hv-m hv-m2"><span class="hv-ln">' + SV('wd') + '<span class="hv-v wd">' + r0(x.wind) + ' km/sa ' + dirTxt(x.dir) + '</span> · ' + SV('gu') + '<span class="hv-v gu">hamle ' + r0(x.gust) + '</span></span>' +
+      '<div class="hv-m hv-m2"><span class="hv-ln">' + SV('wd') + '<span class="hv-v wd">rüzgar ' + r0(x.wind) + ' km/sa ' + dirTxt(x.dir) + '</span> · ' + SV('gu') + '<span class="hv-v gu">ani rüzgar ' + r0(x.gust) + '</span></span>' +
         '<span class="hv-ln">' + SV('rh') + '<span class="hv-v rh">Nem %' + r0(x.rh) + '</span> · ' + SV('sun') + '<span class="hv-v sun">' + (x.sun == null ? '—' : String(Math.round(x.sun * 10) / 10).replace('.', ',') + ' sa güneş') + '</span> · ' + SV('uv') + '<span class="hv-v uv">UV ' + (x.uv == null ? '—' : String(Math.round(x.uv * 10) / 10).replace('.', ',')) + '</span></span></div></div>';
   }
   function hrLab(t) { return t.slice(11, 16); }
@@ -256,18 +256,18 @@
     if (name === 'yagis') return head('Yağış', sub + ' · yağmurlu gün: ≥1 mm veya ≥%60') + d.map(function (x, i) {
       return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.pr || 0)) + '%"></i></span><span class="v" style="flex:0 0 96px;text-align:right">' + (rainy(x) ? '🌧️ ' : '') + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span></div>';
     }).join('');
-    if (name === 'ruzgar') return head('Rüzgar', sub + ' · günlük en yüksek / hamle') + d.map(function (x, i) {
-      return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="v">💨 ' + r0(x.wind) + ' km/sa · hamle ' + r0(x.gust) + ' km/sa · ' + dirTxt(x.dir) + '</span>' + ((x.wind || 0) > 30 ? '<span class="hv-fl no">Kuvvetli</span>' : '') + '</div>';
+    if (name === 'ruzgar') return head('Rüzgar', sub + ' · günlük en yüksek / ani rüzgar') + d.map(function (x, i) {
+      return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="v">💨 Rüzgar ' + r0(x.wind) + ' km/sa · ani rüzgar ' + r0(x.gust) + ' km/sa · ' + dirTxt(x.dir) + '</span>' + ((x.wind || 0) > 30 ? '<span class="hv-fl no">Kuvvetli</span>' : '') + '</div>';
     }).join('');
     if (name === 'nem') return head('Nem', sub + ' · günlük ortalama bağıl nem') + d.map(function (x, i) {
       return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.rh || 0)) + '%;background:#74c0fc"></i></span><span class="v" style="flex:0 0 48px;text-align:right">%' + r0(x.rh) + '</span></div>';
     }).join('');
     if (name === 'don') {
       var fr = frostDays(d);
-      return head('Don / fırtına uyarıları', sub + ' · don: en düşük ≤2° · fırtına: hamle ≥50 km/sa veya gök gürültülü') +
+      return head('Don / fırtına uyarıları', sub + ' · don: en düşük ≤2° · fırtına: ani rüzgar ≥50 km/sa veya gök gürültülü') +
         (fr.length ? fr.map(function (x) { var i = d.indexOf(x), w = [];
           if (x.lo != null && x.lo <= 2) w.push('❄️ Don riski: en düşük ' + r0(x.lo) + '°');
-          if ((x.gust || 0) >= 50) w.push('💨 Fırtına: hamle ' + r0(x.gust) + ' km/sa');
+          if ((x.gust || 0) >= 50) w.push('💨 Fırtına: ani rüzgar ' + r0(x.gust) + ' km/sa');
           if (Number(x.code) >= 95) w.push('⛈️ Gök gürültülü sağanak');
           return '<div class="hv-warn"><b>' + esc(dayLab(x.date, i)) + '</b> · ' + w.join(' · ') + '</div>'; }).join('') +
           '<div class="hv-sub">Öneri: kovan kapaklarını sabitleyin, girişleri daraltın.</div>'
