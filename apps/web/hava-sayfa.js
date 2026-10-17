@@ -227,7 +227,7 @@
   }
 
   function backBtn() { return '<button type="button" class="sa-back hv-back" data-hv-back>‹ Geri</button>'; }
-  function head(t, s) { return '<div class="hv-h">' + esc(t) + '</div>' + (s ? '<div class="hv-sub">' + esc(s) + '</div>' : ''); }
+  function head(t, s) { return '<div class="hv-h-row">' + backBtn() + '<div class="hv-h">' + esc(t) + '</div></div>' + (s ? '<div class="hv-sub">' + esc(s) + '</div>' : ''); }
   function dirTxt(deg) { return deg == null ? '' : YON[Math.round(deg / 45) % 8]; }
   /* koloni-257: gün kartı değerleri — canlı renkli tek renk SVG simge + füme yazı (kullanıcı seçimi A) */
   var SVP = {
