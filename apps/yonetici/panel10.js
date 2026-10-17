@@ -217,7 +217,7 @@
       ['w', 'Trafik', '7 gün aynı saat ortalamasının oranından az ' + UT, 's', 'irTrafikOran'],
       ['w', 'Süre', 'Üst üste gün ' + UT, 's', 'irTrafikGun'],
       ['i', 'Skor', 'Oğul skoru: tabandan artış oranı', 's', 'irSapmaOran']] },
-    { t: 'Pil', kk: ['pil'], src: 'Kaynak yok · bütün pil değerleri uzman tahmini (cihaz üreticisine bağlı)', not: 'Aynı değerler Cihazlar → Pil düşüklüğü kartında (tek kaynak). Sıklık yalnız kullanıcı «Onayla» deyince değişir.', r: PIL() }
+    { t: 'Pil', kk: ['pil'], src: 'Kaynak yok · bütün pil değerleri uzman tahmini (cihaz üreticisine bağlı)', not: 'Aynı değerler Cihazlar → Pil düşüklüğü kartında (tek kaynak). Sıklık yalnız kullanıcı «Onayla» deyince değişir.', r: PIL() },
     /* koloni-247: oğul riski — «Yer darlığı olabilir (bal katı verilmemiş)»: kaynak yok, uzman tahmini (aç/kapa) */
     { t: 'Oğul: Yer darlığı olabilir (tahmin)', kk: ['ogulYerTahmin'], src: 'Kaynak yok · uzman tahmini (Yapılacaklar: kaynak aranacak)', not: 'Uzman tahmini. Güçlü / Çok güçlü / Bölünmesi Gerekiyor koloni + bal katı verilmemiş + muayenede arılı çerçeve sayısı yok → kullanıcıya «Yer darlığı olabilir (bal katı verilmemiş)». Oğul skorunu değiştirmez. Sayısal eşik yok; yalnız aç/kapa (genel, kullanıcı, arılık). Kat at / Boş çerçeve önerileri güçlü koloni için bu nedenden bağımsız çıkar.', r: [] },
   ];

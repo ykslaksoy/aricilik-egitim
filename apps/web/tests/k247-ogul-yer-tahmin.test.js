@@ -35,3 +35,5 @@ const m = fs.readFileSync(path.join(root, '..', '..', 'supabase', 'migrations', 
 assert.ok(/ogulYerTahmin/.test(m) && /yapilacaklar/.test(m) && /kural_kaynaklari/.test(m) && /uzman tahmini/.test(m));
 assert.ok(/k === 'kuralKapali'/.test(fs.readFileSync(path.join(root, 'degisiklik-kaydi.js'), 'utf8')), 'değişiklik kaydı kural adı');
 console.log('k247 ok');
+/* koloni-248: panel10.js sözdizimi (k247'de Pil kartından sonra virgül eksikti → yönetici Ölçüm kuralları açılmıyordu) */
+require('child_process').execFileSync(process.execPath, ['--check', path.join(root, '..', 'yonetici', 'panel10.js')]);
