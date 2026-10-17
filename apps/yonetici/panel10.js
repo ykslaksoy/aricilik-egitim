@@ -111,6 +111,33 @@
       ['w', 'Yoğuşma', 'İç−dış fark ≥ (°C) ' + UT, 's', 'havaYogusmaFarkC'],
       ['w', 'Yoğuşma', 'Soğuk dönem başlangıç ayı ' + UT, 's', 'havaYogusmaAyBas'],
       ['w', 'Yoğuşma', 'Soğuk dönem bitiş ayı ' + UT, 's', 'havaYogusmaAySon']] },
+    { t: 'IR: İlaçlama şüphesi', kk: ['irIlac'], src: 'Struye M.H., Mortier H.J., Arnold G., Miniggio C., Borneck R. (1994). Microprocessor-controlled monitoring of honeybee flight activity at the hive entrance. Apidologie 25(4):384–395, doi:10.1051/apido:19940405 · gündüz ani giren artışı + çıkan düşüşü; normal koşullarda görülmez', not: 'Kaynak sayısal eşik vermez → eşikler uzman tahmini. Aynı saat dilimi önceki günlerin medyanına göre. Kullanıcıya: «İlaçlama şüphesi» (sayı yok).', r: [
+      ['c', 'Pencere', 'Süre (dk) ' + UT, 's', 'ilacPencereDk'],
+      ['c', 'Taban', 'Önceki gün ' + UT, 's', 'ilacTabanGun'],
+      ['c', 'Taban', 'En az giren (arı) ' + UT, 's', 'ilacMinTaban'],
+      ['c', 'Giren', 'Tabanın katı ≥ ' + UT, 's', 'ilacGirisKat'],
+      ['c', 'Çıkan', 'Tabanın oranı ≤ ' + UT, 's', 'ilacCikisOran']] },
+    { t: 'IR: Dönmeyen tarlacı', kk: ['irDonmeyen'], src: 'Henry M., Béguin M., Requier F., Rollin O., Odoux J.-F., Aupinel P., Aptel J., Tchamitchian S., Decourtye A. (2012). A common pesticide decreases foraging success and survival in honey bees. Science 336:348–350, doi:10.1126/science.1215039 · dönüş oranı (homing)', not: 'Günlük (giren−çıkan)/çıkan, son günlerin ortalaması kovanın kendi taban medyanıyla karşılaştırılır. Eşikler uzman tahmini. Tartı «Tarlacı kaybı» ile tek uyarı (ikisi birlikte → yüksek). Kullanıcıya: «Tarlacı arı kaybı olabilir».', r: [
+      ['w', 'Süre', 'Yumuşatma (gün) ' + UT, 's', 'donmeYumusakGun'],
+      ['w', 'Taban', 'Taban (gün) ' + UT, 's', 'donmeTabanGun'],
+      ['w', 'Düşüş', 'Tabanın altı (oran farkı) ' + UT, 's', 'donmeFark'],
+      ['w', 'Veri', 'Günlük en az çıkış (arı) ' + UT, 's', 'donmeMinCikis']] },
+    { t: 'IR: Beklenenden düşük aktivite', kk: ['irDusukAktivite'], src: 'Clarke D., Robert D. (2018). Predictive modelling of honey bee foraging activity using local weather conditions. Apidologie 49:386–396, doi:10.1007/s13592-018-0565-3 · sıcaklık + güneş ışınımı uçuştaki farkın ~%78\'ini açıklar', not: 'Güneş ışınımı verisi yok → yalnız gündüz ortalama sıcaklık. Kovana özgü doğrusal model, yalnız uçuşa uygun günler (Uçuş havası Genel eşikleri). Eşikler uzman tahmini. «Trafik düşüşü» görevi buna katılır. Kullanıcıya: «Uçuş beklenenden az».', r: [
+      ['w', 'Öğrenme', 'Uygun gün ' + UT, 's', 'aktiviteTabanGun'],
+      ['w', 'Öğrenme', 'En az gün ' + UT, 's', 'aktiviteMinGun'],
+      ['w', 'Süre', 'Art arda uygun gün ' + UT, 's', 'aktiviteGun'],
+      ['w', 'Düşüş', 'Beklenenin oranı altı ' + UT, 's', 'aktiviteOran']] },
+    { t: 'IR: Sayaç arızası', kk: ['irSayac'], src: 'Odemer R. (2021). Approaches, challenges and recent advances in automated bee counting devices: A review. Annals of Applied Biology 180(1):73–89, doi:10.1111/aab.12727 · kanal tıkanması (propolis, çöp)', not: 'Bir kanal sıfır, diğerleri sayıyorsa ya da günlük giren/çıkan dengesizse. Arıza varken diğer IR kuralları çalışmaz. Eşikler uzman tahmini. Kullanıcıya: «Kanal tıkalı olabilir».', r: [
+      ['i', 'Kanal', 'Sıfır süresi (saat) ' + UT, 's', 'sayacSaat'],
+      ['i', 'Kanal', 'Diğer kanallar en az (arı) ' + UT, 's', 'sayacMinDiger'],
+      ['i', 'Denge', 'Giren/çıkan sapma oranı ' + UT, 's', 'sayacDengeOran'],
+      ['i', 'Denge', 'Dengesiz gün ' + UT, 's', 'sayacGun']] },
+    { t: 'IR: Oğul çıktı', kk: ['irOgulCikti'], src: 'Struye M.H. ve ark. (1994). Apidologie 25(4):384–395, doi:10.1051/apido:19940405 · oğulda toplu çıkış, dönüş yok (yalnız tarif, sayı yok)', not: 'Tümü uzman tahmini. Ses «Oğul anı» uyarısıyla tek uyarı; tartı düşüşü varsa kritik. «IR: Oğul» görevi buna katılır. Kullanıcıya: «Oğul çıkmış olabilir».', r: [
+      ['c', 'Pencere', 'Süre (dk) ' + UT, 's', 'ogulCiktiDk'],
+      ['c', 'Çıkış', 'Net çıkış en az (arı) ' + UT, 's', 'ogulCiktiNet'],
+      ['c', 'Dönüş', 'Pencere (dk) ' + UT, 's', 'ogulDonusDk'],
+      ['c', 'Dönüş', 'Dönen oran en çok ' + UT, 's', 'ogulDonusOran'],
+      ['c', 'Tartı', 'Doğrulama düşüşü (kg) ' + UT, 's', 'ogulKgDusus']] },
     { t: 'Uçuş havası (arı cinsi)', kk: ['ucus'], src: 'Irka özgü hakemli uçuş eşiği bulunamadı → tümü uzman tahmini · Genel A. mellifera: Burrill & Dietz 1981, Apidologie 12:319 (9 °C altında uçuş yok); Vicens & Bosch 2000, Environ. Entomol. 29:413 (etkinlik 12–14 °C); rüzgar: Karbassioon ve ark. 2023, Oecologia 201:689, doi:10.1007/s00442-023-05332-x (~9 km/sa üstü azalır); yağmurda uçuş yok: Riessberger & Crailsheim 1997, Apidologie 28:411', not: 'Hava › Uçuşa uygun günler, Bal sezonu ve Nektar listeleri bu değerleri kullanır. Arılığın cinsi kovanlarındaki en sık ırktan alınır. Melez (ör. Kafkas × Karadeniz): ebeveyn gruplarının daha ihtiyatlı değeri (yüksek sıcaklık, düşük rüzgar ve yağış). Tanınmayan ırk (Muğla, Anadolu…): Genel.', r: [
       ['ok', 'Kafkas', 'Uygun: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasUygunC'],
       ['w', 'Kafkas', 'Kısmen: en düşük sıcaklık (°C) ' + UT, 's', 'ucusKafkasKismenC'],
@@ -214,7 +241,7 @@
   function kkSet(id, kapali) { var L = kkList().filter(function (x) { return x !== id; }); if (kapali) L.push(id); if (KSEC === 'g') KK.g = L; else { var p = KSEC.split('|'), m = p[0] === 'u' ? KK.u : KK.a, key = p.slice(1).join('|'); if (L.length) m[key] = L; else delete m[key]; } }
   function kkRow(id) { var kap = kkList().indexOf(id) >= 0, gk = KSEC !== 'g' && KK.g.indexOf(id) >= 0; return '<div class="kk" data-kkr="' + id + '"><span>' + esc(KAD[id] || id) + (gk ? ' <small class="off">(genelde kapalı)</small>' : '') + '</span><label><input type="checkbox" data-kk="' + id + '"' + (kap ? '' : ' checked') + '><span class="' + (kap ? 'off' : '') + '">' + (kap ? 'Kapalı' : 'Açık') + '</span></label></div>'; }
   /* koloni-220: toplu aç/kapa — grup ve tümü, seçili kapsam için */
-  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim', 'titOgul', 'titOtme', 'titDarbe', 'titKis']], ['IR', ['irOgul', 'irYagma', 'irTrafik']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']], ['Koloni durumu', ['koloniSonuk', 'yavrusuzSicak', 'tarlaciKayip', 'esekGiris', 'havalandirma']]];
+  var KG = [['Sıcaklık', ['kulucka', 'kuluckaAcil', 'kirec']], ['Nem', ['nem']], ['Ağırlık', ['agirlik']], ['Ses', ['sesOgulAni', 'sesPiping', 'sesQuack', 'sesAnasiz', 'sesIsciOtme', 'sesOgulEgilim', 'sesSaglik', 'sesVarroa', 'sesOgulOnce', 'sesOtmeSira', 'sesRahatsiz', 'sesEsekArisi']], ['Titreşim', ['titresim', 'titOgul', 'titOtme', 'titDarbe', 'titKis']], ['IR', ['irOgul', 'irYagma', 'irTrafik', 'irIlac', 'irDonmeyen', 'irDusukAktivite', 'irSayac', 'irOgulCikti']], ['Cihazlar', ['pil', 'cihazSessiz', 'cihazKopuk', 'cihazAriza']], ['Uçuş', ['ucus']], ['Koloni durumu', ['koloniSonuk', 'yavrusuzSicak', 'tarlaciKayip', 'esekGiris', 'havalandirma']]];
   function kkTum() { return KG.reduce(function (a, g) { return a.concat(g[1]); }, []); }
   function kkGrpRow(i) { var g = KG[i], L = kkList(), ac = g[1].filter(function (x) { return L.indexOf(x) < 0; }).length; return '<div class="kk kkg" data-kkg="' + i + '"><span><b>' + esc(g[0]) + '</b> <small class="' + (ac < g[1].length ? 'off' : '') + '">' + ac + '/' + g[1].length + ' açık</small></span><span class="kkb"><button type="button" class="btn" data-kkga="' + i + '|1">Aç</button><button type="button" class="btn" data-kkga="' + i + '|0">Kapat</button></span></div>'; }
   function kkTop() { return '<div class="kks"><button type="button" class="btn" data-kkall="1">Tümünü aç</button><button type="button" class="btn" data-kkall="0">Tümünü kapat</button></div>' + KG.map(function (_, i) { return kkGrpRow(i); }).join(''); }
