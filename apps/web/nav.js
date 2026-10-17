@@ -821,7 +821,9 @@
     if (cfg.href) location.href = cfg.href + apQ;
   }
   function alignActRow(row, card) {
-    var t0 = document.querySelector('.phone .screen .tile');
+    /* k252: kart içindeki döşeme ızgaraları (Oğul düzey döşemeleri, data-sa-no-align) Kapsam kartını daraltmaz — kart alttaki kart genişliğinde kalır */
+    var t0 = null, all = document.querySelectorAll('.phone .screen .tile');
+    for (var i = 0; i < all.length; i++) { if (!all[i].closest('[data-sa-no-align]')) { t0 = all[i]; break; } }
     var g = t0 ? t0.parentNode : null, tiles = g ? g.querySelectorAll(':scope > .tile') : [];
     var gap = 8;
     if (tiles.length >= 3 && !card.contains(t0)) {
