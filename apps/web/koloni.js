@@ -609,6 +609,8 @@
       '.lin-cat b{font-size:22px;line-height:1;font-weight:850;}.lin-cat span{font-size:11.5px;font-weight:750;line-height:1.15;color:#6b5a48;}' +
       '.lin-cat.warn b{color:#b35c00;}.lin-cat.on{background:#fff3bf;border:2px solid #c99a1a;}' +
       '.lin-fnote{margin:-2px 0 10px;font-size:14px;color:#5a3d12;}.lin-fnote button{font:inherit;font-weight:750;color:#2b6cb0;background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;}' +
+      '.lin-cert{display:grid;gap:10px;padding:10px;border-radius:12px;border:1px dashed #d9c9a3;background:#fffdf6;}.lin-cert-h{font-size:16px;font-weight:800;color:#4a2f1a;}.lin-cert .kol-sub{margin:0;font-size:13px;}' +
+      '.lin-badge{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#e8f1fb;border:1px solid #9cc0e6;color:#1f4f82;font-size:12.5px;font-weight:800;vertical-align:middle;}' +
       '.lin-card b{font-size:17px;}.lin-card .l2{display:block;margin-top:4px;font-size:15px;font-weight:700;color:#5a3d12;}.lin-card .l3{display:block;margin-top:2px;font-size:13.5px;color:#6b5a48;}';
     document.head.appendChild(st);
   }
@@ -631,6 +633,7 @@
   function lineageListHtml(hives, filter) {
     lineageCss();
     var c = C(); var ap = {}; try { D().loadApiaries().forEach(function (a) { ap[a.id] = a.name; }); } catch (e) { ap = {}; }
+    var qById = {}; try { (c && c.loadQueens ? c.loadQueens() : []).forEach(function (q) { qById[q.id] = q; }); } catch (e) { qById = {}; }
     var kindL = { saf: 'Saf Hat', iki: "2'li Melez", uc: "3'lü Melez" };
     var all = hives || [], list = filter ? all.filter(function (h) { return lineCat(h) === filter; }) : all;
     var cnt = lineCounts(all);
@@ -643,7 +646,7 @@
     return boxes + fnote + (list.map(function (h) {
       var k = c && c.breedKind ? c.breedKind(h.breed) : '', lin = c && c.lineageText ? c.lineageText(h) : '';
       return '<button type="button" class="lin-card" data-lin="' + esc(h.id) + '" aria-label="' + esc(h.name) + ' ırk ve soy düzenle">' +
-        '<b>' + esc(h.name) + '</b> <small style="color:#6b5a48;">' + esc(ap[h.apiaryId] || '') + '</small>' +
+        '<b>' + esc(h.name) + '</b>' + (h.currentQueenId && qById[h.currentQueenId] && qById[h.currentQueenId].cert ? '<span class="lin-badge" title="' + esc(c.queenCertText ? c.queenCertText(qById[h.currentQueenId].cert) : '') + '">📄 Belgeli</span>' : '') + ' <small style="color:#6b5a48;">' + esc(ap[h.apiaryId] || '') + '</small>' +
         '<span class="l2">' + esc(h.breed ? h.breed + (h.breedEstimated ? ' (tahmini)' : '') : 'Irk bilinmiyor') + (k ? ' · ' + kindL[k] : '') + '</span>' +
         '<span class="l3">' + esc(lin || 'Hat / anne ana girilmedi') + '</span></button>';
     }).join('') || '<p class="muted">' + (filter ? 'Veri yok — bu kategoride kovan yok.' : 'Kovan bulunamadı.') + '</p>');
@@ -672,6 +675,7 @@
       var pl = (q.placements || [])[(q.placements || []).length - 1], hv = pl ? byId[pl.hiveId] : null;
       return '<option value="' + esc(q.id) + '"' + (h.queenMotherId === q.id ? ' selected' : '') + '>' + esc((hv ? hv.name : 'Ana') + ' · ' + (q.breed || 'ırk ?') + (q.year ? ' · ' + q.year : '') + ' (' + q.id + ')') + '</option>';
     }).join('');
+    var curQObj = curQ ? queens.filter(function (q) { return q.id === curQ; })[0] || null : null, cert0 = curQObj && curQObj.cert ? curQObj.cert : '';
     var back = document.createElement('div');
     back.className = 'kol-back'; back.id = 'koloniLineage';
     back.innerHTML = '<div class="kol-sheet" role="dialog" aria-modal="true" aria-labelledby="linTitle">' +
@@ -686,10 +690,27 @@
         '<label>Damızlık hat / kaynak adı<input name="line" maxlength="80" value="' + esc(h.breedLine || '') + '" placeholder="ör. Ardahan İstasyonu hattı, yetiştirici adı"></label>' +
         '<label>Anne ana (bu ana kimin kızı)<select name="mother"><option value="">Bilinmiyor / dış kaynak</option>' + mOpts + '</select></label>' +
         '<label id="linRefWrap">Dış kaynak anne ana<input name="motherRef" maxlength="120" value="' + esc(h.queenMotherRef || '') + '" placeholder="ör. Yetiştirici X, 2024 damızlık ana no 12"></label>' +
+        (curQObj ? '<div class="lin-cert" data-cert>' + '<div class="lin-cert-h">📄 Belgeli ana arı (isteğe bağlı)</div>' +
+          '<label>Belge / sertifika no<input name="certNo" maxlength="60" value="' + esc(cert0.no || '') + '" placeholder="ör. TR-25-2026-0142"></label>' +
+          '<label>Yetiştirici adı<input name="certBreeder" maxlength="80" value="' + esc(cert0.breeder || '') + '" placeholder="ör. Ana arı yetiştiricisi / işletme"></label>' +
+          '<label>Yetiştirici ili<input name="certCity" maxlength="40" value="' + esc(cert0.city || '') + '" placeholder="ör. Erzurum"></label>' +
+          '<label>Alım tarihi<input type="date" name="certDate" value="' + esc(cert0.date || '') + '"></label>' +
+          '<label>İşaret numarası (opalit)<input name="certMark" maxlength="20" inputmode="numeric" value="' + esc(cert0.markNo || '') + '" placeholder="ör. 12"></label>' +
+          '<div data-cert-foto></div>' +
+          '<p class="kol-sub">Mevcut ana arıya (' + esc(curQObj.id) + ') yazılır. Saf Hat / Melez sınıfını değiştirmez.</p>' +
+        '</div>' : '') +
       '</form>' +
       '<div class="lin-actions"><button type="button" class="btn secondary" data-lin-x>Vazgeç</button><button type="button" class="btn" data-lin-save>Kaydet</button></div></div>';
     document.body.appendChild(back);
     var f = back.querySelector('form');
+    /* k257: Belge fotoğrafı — kayıt fotoğraflarıyla aynı depo (kayıt kimliği «belge:<ana id>») */
+    var certFoto = null, certRid = curQObj ? 'belge:' + curQObj.id : '', certFotoN = cert0 && cert0.photo ? 1 : 0;
+    var cfHost = back.querySelector('[data-cert-foto]');
+    if (cfHost && global.SuperAriFoto) {
+      certFoto = global.SuperAriFoto.picker(cfHost, { existingRecordId: certRid, kind: 'belge', hiveId: h.id, onCount: function (rid, hid, k, nn) { certFotoN = nn; } });
+      var hd = cfHost.querySelector('.kf-head'); if (hd) hd.textContent = '📷 Belge fotoğrafı (isteğe bağlı)';
+      if (global.SuperAriFoto.listFor) global.SuperAriFoto.listFor(certRid).then(function (l) { certFotoN = l.length; }, function () {});
+    }
     function n() { return kind === 'uc' ? 3 : (kind === 'iki' ? 2 : 1); }
     function val(i) { var s0 = f.elements['r' + i].value; return s0 === '__diger' ? String(f.elements['o' + i].value || '').trim() : s0; }
     function breedStr() { var a = []; for (var i = 0; i < n(); i++) a.push(val(i)); return c.joinBreed(a); }
@@ -721,6 +742,12 @@
       var b = breedStr();
       var patch = { breedLine: f.elements.line.value, motherQueenId: f.elements.mother.value, motherRef: f.elements.motherRef.value };
       if (b) { patch.breed = b; patch.breedEstimated = false; } else patch.breedUnknown = true;
+      if (curQObj && f.elements.certNo) {
+        if (certFoto && certFoto.busy()) { toast('Fotoğraf hazırlanıyor, biraz bekleyin'); return; }
+        var newPh = certFoto ? certFoto.items() : [];
+        patch.queenCert = { no: f.elements.certNo.value, breeder: f.elements.certBreeder.value, city: f.elements.certCity.value, date: f.elements.certDate.value, markNo: f.elements.certMark.value, photo: (certFotoN + newPh.length) > 0 };
+        if (newPh.length) global.SuperAriFoto.attach([certRid], newPh).catch(function () { toast('Belge fotoğrafı saklanamadı'); });
+      }
       var saved = c.updateHive(h.id, patch, 'correct');
       close();
       if (!saved) { toast('Kaydedilemedi'); return; }
