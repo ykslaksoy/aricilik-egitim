@@ -1,4 +1,4 @@
-/* önizleme: Oğul düzey filtreleri Ana sayfa döşemeleri (ana-hive-tiles.css + anaModuleTile), 3×2, sabit yükseklik */
+/* koloni-251: Oğul düzey filtreleri Ana sayfa döşemeleri (ana-hive-tiles.css + anaModuleTile), 3×2, sabit yükseklik */
 const test = require('node:test'); const assert = require('node:assert');
 const U = require('fs').readFileSync(require('path').join(__dirname, '..', 'uyarilar.html'), 'utf8');
 test('Oğul filtreleri Ana döşemesi', () => {
