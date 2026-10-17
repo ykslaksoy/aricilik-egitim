@@ -10,7 +10,7 @@ const O = fs.readFileSync(path.join(W, 'ogul.js'), 'utf8');
 
 test('k244: «Oğul izleme» ayrı düğmesi yok; duzey=izleme Orta’yı açar', () => {
   assert.ok(!/Oğul izleme · '\s*\+\s*cnt/.test(U), 'Oğul izleme sayacı Orta ile aynı — tek düğme kalmalı');
-  assert.ok(/duzey === 'izleme' && l\.key === 'orta'/.test(U));
+  assert.ok(/duzey === 'izleme' && k === 'orta'/.test(U));
   assert.ok(/var want = duzey === 'izleme' \? 'orta' : duzey/.test(U));
 });
 

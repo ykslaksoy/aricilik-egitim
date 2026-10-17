@@ -7,12 +7,11 @@
   <title>Uyarılar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
   <style>
-    .og-lv { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 4px; }
-    .og-lv a { display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border-radius:999px; border:1px solid #d9cbb5; background:#fff; color:#3d2616; text-decoration:none; font-size:13px; font-weight:600; }
-    .og-lv a.active { border-color:#3d2616; box-shadow:inset 0 0 0 1px #3d2616; }
-    .og-lv a.og-md { background:#eef2f6; border-color:#b9c5d3; color:#3b4a5c; }
-    .og-lv a.og-md.active { border-color:#3b4a5c; box-shadow:inset 0 0 0 1px #3b4a5c; }
     .og-dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex:0 0 auto; }
+    /* önizleme: Ana döşemeleri — Mevsim dışı rozeti gri-mavi; seçili döşeme (sa-tile-select .on) ana-hive-tiles.css'ten */
+    .ana-hive-grid.og-ana { margin:6px 0 6px; }
+    #ogulPanel .grid.ana-hive-grid.og-ana .tile { min-height:122px; } /* seçili kenar 2px olunca satır büyümesin (zıplama yok) */
+    .ana-hive-grid .badge.mdblue { background:#e3e9f0; color:#3b4a5c; }
     .og-season { font-size:13px; color:#6b5a48; margin:2px 0 6px; }
     /* k244: oğul görünümünde süzgeç boş — boş kutu yer kaplamasın */
     #filterChips:empty { display:none; }
@@ -60,6 +59,7 @@
   </style>
   <link rel="stylesheet" href="kapsam.css?v=koloni-250" />
   <link rel="stylesheet" href="bk-kabuk.css?v=koloni-250" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-250" />
   <style>/* k89: uzun başlık («Oğul Eğilimi ve Takibi») → arılık seçici alt satıra iner, adı kısalmaz */.ks-card .ks-top{flex-wrap:wrap;row-gap:2px;}.ks-card .ks-sel{max-width:100%;}</style>
 </head>
 <body>
@@ -209,7 +209,6 @@
         var nAlert = (cnt['kritik'] || 0) + (cnt['yuksek'] || 0);
         /* önizleme: «Mevsim dışı» — bölgesi şu an oğul mevsimi dışında olan kovanlar (risk düzeyi değil; Orta'nın solunda, sakin gri-mavi) */
         var MD_COLOR = '#7b8fa6', nMd = rows.filter(function (r) { return r.a.season && r.a.season.phase === 'disi'; }).length;
-        var mdChip = '<a class="og-md' + (duzey === 'mevsimdisi' ? ' active' : '') + '" href="uyarilar.html?view=ogul&duzey=mevsimdisi' + apQ + '"><span class="og-dot" style="background:' + MD_COLOR + '"></span>Mevsim dışı · ' + nMd + '</a>';
         var apQ = apiaryFilter ? '&apiary=' + encodeURIComponent(apiaryFilter) : '';
         /* k244: mevsim notu bölge başına bir kez; «Oğul mevsimi dışı» gibi ortak baş tek sefer yazılır */
         var seasonGrp = {}, seasonOrd = [], seasonSeen = {};
@@ -222,15 +221,25 @@
           seasonGrp[ph0].push(item);
         });
         var seasonTxt = seasonOrd.map(function (k) { return (k ? k + ': ' : '') + seasonGrp[k].join(' · '); }).join(' — ');
-        var ph = '<div class="og-lv" role="group" aria-label="Oğul riski düzeyi">' +
-          '<a class="' + (!duzey ? 'active' : '') + '" href="uyarilar.html?view=ogul' + apQ + '">Uyarılar · ' + nAlert + '</a>' +
-          '</div><div class="og-lv">' +
-          LV.map(function (l) {
-            /* k244: «Oğul izleme» ayrı düğmesi kaldırıldı — Orta ile aynı kovanlar/aynı sayı; duzey=izleme eski bağlantısı Orta'yı açar */
-            return (l.key === 'orta' ? mdChip : '') + '<a class="' + (duzey === l.key || (duzey === 'izleme' && l.key === 'orta') ? 'active' : '') + '" href="uyarilar.html?view=ogul&duzey=' + l.key + apQ + '"><span class="og-dot" style="background:' + l.color + '"></span>' + esc(l.label) + ' · ' + cnt[l.key] + '</a>';
-          }).join('') + '</div>' +
+        /* önizleme: Ana sayfa döşemeleri (ana-hive-tiles.css + SuperAriKapsam.anaModuleTile — Cihazlar/Koloni ile aynı) sabit 3×2:
+           Uyarılar · Mevsim dışı · Düşük / Orta · Yüksek · Kritik; seçili = .on (sa-tile-select: yeşil kenar), yükseklik sabit (min-height) */
+        var KS = window.SuperAriKapsam, base = 'uyarilar.html?view=ogul';
+        var LVK = {}; LV.forEach(function (l) { LVK[l.key] = l; });
+        function bars(n) { var x = [7.6, 10.5, 13.4, 16.3], y = [13.2, 11, 8.6, 6.8], o = ''; for (var i = 0; i < n; i++) o += 'M' + x[i] + ' 16.4V' + y[i]; return '<path d="' + o + '"/>'; }
+        var OG_ICO = { uyari: '<path d="M12 6.4 17.6 16.6H6.4z"/><path d="M12 10.2v3.2M12 15.2v.2"/>', md: null, dusuk: bars(1), orta: bars(2), yuksek: bars(3), kritik: bars(4) };
+        var OG_TONE = { dusuk: 'green', orta: 'yellow', yuksek: 'orange', kritik: 'red' };
+        function ogTile(on, href, label, badge, tone, svg, burn, key) {
+          return KS.anaModuleTile({ href: href, label: label, badge: badge, tone: tone, svg: svg, burn: burn, extraClass: on ? 'on' : '', dataKey: 'og-' + key, aria: label + ', ' + badge });
+        }
+        var ph = ((KS && KS.anaModuleTile) ? '<div class="grid ana-hive-grid og-ana" role="group" aria-label="Oğul riski düzeyi">' +
+          ogTile(!duzey, base + apQ, 'Uyarılar', nAlert + ' uyarı', nAlert ? 'red' : 'tan', OG_ICO.uyari, null, 'uyari') +
+          ogTile(duzey === 'mevsimdisi', base + '&duzey=mevsimdisi' + apQ, 'Mevsim dışı', nMd + ' kovan', 'mdblue', null, 'plan', 'md') +
+          ['dusuk', 'orta', 'yuksek', 'kritik'].map(function (k) { var l = LVK[k] || { label: k };
+            /* k244: duzey=izleme eski bağlantısı Orta'yı açar */
+            return ogTile(duzey === k || (duzey === 'izleme' && k === 'orta'), base + '&duzey=' + k + apQ, l.label, (cnt[k] || 0) + ' kovan', OG_TONE[k], OG_ICO[k], null, k); }).join('') +
+          '</div>' : '') +
           '<div class="og-season">' + esc(seasonTxt) + '</div>';
-        document.getElementById('ogulPanel').innerHTML = ph;
+        document.getElementById('ogulPanel').innerHTML = ph; document.body.classList.add('sa-tile-select');
         if (duzey) {
           var want = duzey === 'izleme' ? 'orta' : duzey, mdV = want === 'mevsimdisi';
           var lvObj = LV.filter(function (l) { return l.key === want; })[0];
