@@ -1,10 +1,11 @@
-/* koloni-221 (k223: tüm eşitlenen tablolar + yedekten geri yükleme): Değişiklik kaydı (public.sa_degisiklik) — liste + Geri al. Uygulama (Ayarlar) ve Yönetici paneli ortak. */
+/* koloni-228: telefon_yedek → «Telefon yedeği», cihaz_aralik → «Okuma sıklığı», alan adları Türkçe; telefon geri yüklemesi kayıttan da geri alınır (data-dk-tgeri).
+   koloni-221 (k223: tüm eşitlenen tablolar + yedekten geri yükleme): Değişiklik kaydı (public.sa_degisiklik) — liste + Geri al. Uygulama (Ayarlar) ve Yönetici paneli ortak. */
 (function (g) {
   'use strict';
-  var TB = { apiaries: 'Arılık', hives: 'Kovan', queens: 'Ana arı', records: 'Kayıt (muayene/tartım/tedavi/besleme/hasat…)', tasks: 'Görev', stock_items: 'Stok', photos: 'Fotoğraf', apiary_members: 'Ekip / rol', cihaz_devre_disi: 'Cihaz', cihaz_aralik: 'Cihaz ölçüm sıklığı', ayar: 'Yönetici ayarı', sa_yedek_ayar: 'Yedek saklama süresi' };
+  var TB = { apiaries: 'Arılık', hives: 'Kovan', queens: 'Ana arı', records: 'Kayıt (muayene/tartım/tedavi/besleme/hasat…)', tasks: 'Görev', stock_items: 'Stok', photos: 'Fotoğraf', apiary_members: 'Ekip / rol', cihaz_devre_disi: 'Cihaz', cihaz_aralik: 'Okuma sıklığı', telefon_yedek: 'Telefon yedeği', sa_geri_yukleme: 'Geri yükleme', ayar: 'Yönetici ayarı', sa_yedek_ayar: 'Yedek saklama süresi' };
   var IS = { ekle: 'Eklendi', guncelle: 'Değiştirildi', sil: 'Silindi', geri_al: 'Geri alındı', geri_yukle: 'Yedekten geri yüklendi' };
-  var GIZ = { updated_at: 1, server_updated_at: 1, updated_by: 1, created_at: 1, created_by: 1, owner_id: 1, apiary_id: 1, user_id: 1, local_id: 1, key: 1, id: 1 };
-  var AD = { devre_disi: 'Devre dışı', name: 'Ad', role: 'Rol', deleted: 'Silindi', mali_gorur: 'Mali verileri görür', gorev_atar: 'Görev atar', duzenler: 'Düzenler', kayit_gorur: 'Kaydı görür', geri_alir: 'Geri alabilir', cihaz_ad: 'Cihaz', kovan_ad: 'Kovan', arilik_ad: 'Arılık', kuralKapali: 'Kapalı kurallar', sensor: 'Sensör eşiği' };
+  var GIZ = { updated_at: 1, server_updated_at: 1, updated_by: 1, created_at: 1, created_by: 1, owner_id: 1, apiary_id: 1, user_id: 1, local_id: 1, key: 1, id: 1, degistiren_id: 1, device_id: 1, hesap_id: 1 };
+  var AD = { devre_disi: 'Devre dışı', name: 'Ad', role: 'Rol', deleted: 'Silindi', mali_gorur: 'Mali verileri görür', gorev_atar: 'Görev atar', duzenler: 'Düzenler', kayit_gorur: 'Kaydı görür', geri_alir: 'Geri alabilir', cihaz_ad: 'Cihaz', kovan_ad: 'Kovan', arilik_ad: 'Arılık', kuralKapali: 'Kapalı kurallar', sensor: 'Sensör eşiği', aralik_ms: 'Okuma sıklığı', onceki_ms: 'Önceki okuma sıklığı', degistiren_email: 'Değiştiren', gunluk_gun: 'Günlük yedek saklama (gün)', aylik_ay: 'Aylık yedek saklama (ay)', telefon_uyari_gun: 'Telefon yedeği uyarısı (gün)', oncesi_yedek: 'Önceki hâlin yedeği', yedek: 'Telefon yedeği', tarih: 'Yedek tarihi', cihaz: 'Telefon', adet: 'Değişiklik sayısı', geri_yukleme: 'Geri yükleme' };
   function alanAd(k) { return k.split('.').filter(function (p) { return p !== 'data'; }).map(function (p) { return AD[p] || p; }).join(' › ') || k; }
   var ROL = { owner: 'Sahip', arici: 'Arıcı', bakici: 'Bakıcı' };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -12,6 +13,8 @@
   function val(v, k) {
     if (v === undefined || v === null || v === '') return '—';
     if (k === 'role') return ROL[v] || v;
+    if ((k === 'aralik_ms' || k === 'onceki_ms') && isFinite(+v) && +v > 0) { var dk = Math.round(+v / 60000); return dk >= 60 && dk % 60 === 0 ? (dk / 60 === 1 ? 'Saatte bir' : dk / 60 + ' saatte bir') : dk + ' dakikada bir'; }
+    if ((k === 'oncesi_yedek' || k === 'yedek' || k === 'geri_yukleme') && /^\d+$/.test(String(v))) return '#' + v;
     if (v === true) return 'Evet'; if (v === false) return 'Hayır';
     var s = typeof v === 'object' ? JSON.stringify(v) : String(v); return s.length > 60 ? s.slice(0, 57) + '…' : s;
   }
@@ -25,12 +28,17 @@
     });
     return out;
   }
+  function telGy(e) { var g2 = e && e.tablo === 'telefon_yedek' && e.sonra && e.sonra.geri_yukleme; return g2 ? String(g2) : ''; }
   function satir(e, opt) {
     var f = e.islem === 'ekle' ? [] : e.islem === 'sil' && !e.sonra ? [] : fark(e.once, e.sonra);
     var kap = [e.arilik_ad, e.kovan_ad].filter(Boolean).join(' › ') || (e.tablo === 'ayar' ? 'Tüm hesaplar' : '—');
-    var ad = (e.sonra || e.once || {}).name || (e.sonra || e.once || {}).cihaz_ad || '';
-    var geri = e.geri_alan ? '<span class="dk-et">Geri alındı (#' + e.geri_alan + ')</span>'
-      : ((typeof opt.geriAl === 'function' ? opt.geriAl(e) : opt.geriAl) && e.islem !== 'geri_al' ? '<button type="button" class="btn dk-geri" data-dk-geri="' + e.id + '">Geri al</button>' : '');
+    var ad = (e.sonra || e.once || {}).name || (e.sonra || e.once || {}).cihaz_ad || (e.tablo === 'telefon_yedek' ? (e.sonra || {}).cihaz || '' : '');
+    var izin = typeof opt.geriAl === 'function' ? opt.geriAl(e) : opt.geriAl, tgy = telGy(e);
+    var geri = e.tablo === 'telefon_yedek'
+      ? (e.islem !== 'geri_yukle' || !tgy ? '' : (opt.telGeriAlindi && opt.telGeriAlindi[tgy]) ? '<span class="dk-et">Geri alındı</span>'
+        : !izin ? '' : opt.telefon ? '<button type="button" class="btn dk-geri" data-dk-tgeri="' + tgy + '">Geri al</button>' : '<span class="dk-et">Telefonda geri alınır</span>')
+      : e.geri_alan ? '<span class="dk-et">Geri alındı (#' + e.geri_alan + ')</span>'
+      : (izin && e.islem !== 'geri_al' ? '<button type="button" class="btn dk-geri" data-dk-geri="' + e.id + '">Geri al</button>' : '');
     return '<li class="dk-li" style="padding:.55rem 0;border-bottom:1px solid #e5e7eb;list-style:none">'
       + '<div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start"><div><b>#' + e.id + ' · ' + esc(TB[e.tablo] || e.tablo) + ' ' + esc(IS[e.islem] || e.islem).toLowerCase() + '</b>' + (ad ? ' · ' + esc(ad) : '')
       + '<br><small>' + esc(tf(e.at)) + ' · ' + esc(e.email || '—') + ' (' + esc(e.rol || '—') + ')</small><br><small>Kapsam: ' + esc(kap) + (e.geri_alinan ? ' · #' + e.geri_alinan + ' geri alındı' : '') + '</small></div><div style="flex:none">' + geri + '</div></div>'
@@ -42,5 +50,5 @@
   function geriAl(client, id) {
     return client.rpc('sa_degisiklik_geri_al', { p_id: Number(id) }).then(function (r) { if (r.error) throw r.error; return r.data; });
   }
-  g.SuperAriDegisiklik = { liste: liste, satir: satir, fark: fark, geriAl: geriAl, hataMetni: hataMetni, TB: TB, IS: IS };
+  g.SuperAriDegisiklik = { liste: liste, satir: satir, fark: fark, geriAl: geriAl, hataMetni: hataMetni, telGy: telGy, TB: TB, IS: IS };
 })(typeof window !== 'undefined' ? window : globalThis);

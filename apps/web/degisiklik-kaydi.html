@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr" class="sa-duz">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-227">
+<link rel="stylesheet" href="sa-early.css?v=koloni-228">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Değişiklik kaydı · SüperArı</title>
@@ -24,21 +24,24 @@
   <h1>Değişiklik kaydı</h1>
   <p class="sub">Arılık, kovan, muayene, tartım, tedavi, besleme, hasat, görev, stok, ana arı, fotoğraf, ekip ve cihaz değişiklikleri: kim, ne zaman, önce → sonra. «Geri al» yalnızca Sahip ve Sahibin izin verdiği kişilerde görünür.</p>
   <div class="fil">
-    <select id="fTablo" aria-label="Tür"><option value="">Tümü</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="queens">Ana arı</option><option value="records">Kayıt (muayene, tartım, tedavi…)</option><option value="tasks">Görev</option><option value="stock_items">Stok</option><option value="photos">Fotoğraf</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option></select>
+    <select id="fTablo" aria-label="Tür"><option value="">Tümü</option><option value="apiaries">Arılık</option><option value="hives">Kovan</option><option value="queens">Ana arı</option><option value="records">Kayıt (muayene, tartım, tedavi…)</option><option value="tasks">Görev</option><option value="stock_items">Stok</option><option value="photos">Fotoğraf</option><option value="apiary_members">Ekip / rol</option><option value="cihaz_devre_disi">Cihaz</option><option value="cihaz_aralik">Okuma sıklığı</option><option value="telefon_yedek">Telefon yedeği</option></select>
     <select id="fGun" aria-label="Dönem"><option value="7">Son 7 gün</option><option value="30" selected>Son 30 gün</option><option value="365">Son 1 yıl</option></select>
   </div>
   <div class="kart" id="liste"><p class="mk-vy">Yükleniyor…</p></div>
   <p id="stat" role="status"></p>
 </main>
-<script src="demo-data.js?v=koloni-227"></script>
-<script src="yetki.js?v=koloni-227"></script>
-<script src="bulut.js?v=koloni-227"></script>
-<script src="degisiklik-kaydi.js?v=koloni-227"></script>
+<script src="demo-data.js?v=koloni-228"></script>
+<script src="yetki.js?v=koloni-228"></script>
+<script src="bulut.js?v=koloni-228"></script>
+<script src="yedek.js?v=koloni-228"></script>
+<script src="foto.js?v=koloni-228"></script>
+<script src="degisiklik-kaydi.js?v=koloni-228"></script>
+<script src="telefon-yedek.js?v=koloni-228"></script>
 <script>
 (function () {
   'use strict';
   var K = window.SuperAriDegisiklik, B = window.SuperAriBulut, L = document.getElementById('liste'), ST = document.getElementById('stat');
-  var ORNEK = new URLSearchParams(location.search).get('onizleme') === '1', ROWS = [], GERI = false, CL = null;
+  var ORNEK = new URLSearchParams(location.search).get('onizleme') === '1', ROWS = [], GERI = false, CL = null, TGA = {};
   function stat(t) { ST.textContent = t || ''; }
   function ornek() {
     var n = Date.now(), H = 3600000;
@@ -46,13 +49,15 @@
       { id: 42, at: new Date(n - 1 * H).toISOString(), email: 'yuksel@ornek.com', rol: 'Sahip', tablo: 'cihaz_devre_disi', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', kovan_ad: 'Kovan 12', once: { devre_disi: false, cihaz_ad: 'Sıcaklık/Nem' }, sonra: { devre_disi: true, cihaz_ad: 'Sıcaklık/Nem' } },
       { id: 41, at: new Date(n - 5 * H).toISOString(), email: 'ali@ornek.com', rol: 'Arıcı', tablo: 'hives', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', kovan_ad: 'Kovan 7', once: { name: 'Kovan 7', data: { cerceve: 8 } }, sonra: { name: 'Kovan 7', data: { cerceve: 10 } } },
       { id: 40, at: new Date(n - 26 * H).toISOString(), email: 'yuksel@ornek.com', rol: 'Sahip', tablo: 'apiary_members', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', once: { role: 'arici' }, sonra: { role: 'bakici' }, geri_alan: 43 },
+      { id: 44, at: new Date(n - .5 * H).toISOString(), email: 'yuksel@ornek.com', rol: 'Sahip', tablo: 'telefon_yedek', islem: 'geri_yukle', once: { oncesi_yedek: 18 }, sonra: { yedek: 15, tarih: '2026-10-16', cihaz: 'iPhone', adet: 4, geri_yukleme: 3 } },
+      { id: 43, at: new Date(n - 3 * H).toISOString(), email: 'ali@ornek.com', rol: 'Arıcı', tablo: 'cihaz_aralik', islem: 'guncelle', arilik_ad: 'Kayaköy Ana Arılık', kovan_ad: 'Kovan 12', once: { aralik_ms: 3600000, cihaz_ad: 'Tartı' }, sonra: { aralik_ms: 14400000, onceki_ms: 3600000, cihaz_ad: 'Tartı' } },
       { id: 39, at: new Date(n - 50 * H).toISOString(), email: 'ali@ornek.com', rol: 'Arıcı', tablo: 'hives', islem: 'sil', arilik_ad: 'Tortum', kovan_ad: 'Kovan 3', once: { name: 'Kovan 3', deleted: false }, sonra: { name: 'Kovan 3', deleted: true } }
     ];
   }
   function ciz() {
     var t = document.getElementById('fTablo').value, gun = +document.getElementById('fGun').value, sin = Date.now() - gun * 864e5;
     var R = ROWS.filter(function (e) { return (!t || e.tablo === t) && Date.parse(e.at) >= sin; });
-    L.innerHTML = K.liste(R, { geriAl: GERI });
+    L.innerHTML = K.liste(R, { geriAl: GERI, telefon: !!window.SuperAriTelefonYedek, telGeriAlindi: TGA });
   }
   function yukle() {
     if (ORNEK) { ROWS = ornek(); GERI = true; ciz(); stat('Önizleme örneği'); return; }
@@ -62,6 +67,8 @@
       var r = window.SuperAriYetki ? SuperAriYetki.rol() : 'owner';
       return CL.from('sa_degisiklik').select('*').neq('tablo', 'ayar').gte('at', new Date(Date.now() - 365 * 864e5).toISOString()).order('id', { ascending: false }).limit(300).then(function (x) {
         if (x.error) throw x.error; ROWS = x.data || [];
+        return CL.from('sa_geri_yukleme').select('id,geri_alindi_at').not('telefon_yedek_id', 'is', null).then(function (g2) { TGA = {}; ((g2 && g2.data) || []).forEach(function (r2) { if (r2.geri_alindi_at) TGA[String(r2.id)] = 1; }); });
+      }).then(function () {
         var me = u.data.user.id, aids = {}; ROWS.forEach(function (e) { if (e.apiary_id) aids[e.apiary_id] = 1; });
         return Promise.all(Object.keys(aids).map(function (a) { return CL.rpc('sa_yetki', { aid: a, ad: 'geri' }).then(function (y) { aids[a] = !y.error && y.data === true; }); })).then(function () {
           GERI = function (e) { return e.hesap_id === me || (e.apiary_id && aids[e.apiary_id] === true); };
@@ -73,6 +80,16 @@
   }
   document.addEventListener('change', function (e) { if (e.target.closest('.fil')) ciz(); });
   L.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-dk-tgeri]');
+    if (t) {
+      var tid = t.getAttribute('data-dk-tgeri');
+      if (!confirm('#' + tid + ' telefon geri yüklemesi geri alınsın mı? Telefon geri yüklemeden önceki hâline döner; bu da kayda yazılır.')) return;
+      if (ORNEK) { stat('Önizlemede geri alma yapılmaz.'); return; }
+      t.disabled = true; stat('Geri alınıyor…');
+      window.SuperAriTelefonYedek.geriAlId(CL, tid).then(function () { stat('Geri alındı: telefon geri yüklemeden önceki hâline döndü.'); yukle(); })
+        .catch(function (er) { t.disabled = false; stat('Geri alınamadı: ' + ((er && er.message) || 'bağlantı')); });
+      return;
+    }
     var b = e.target.closest('[data-dk-geri]'); if (!b) return;
     var id = b.getAttribute('data-dk-geri');
     if (!confirm('#' + id + ' numaralı değişiklik geri alınsın mı? Önceki değer geri yüklenir; geri alma da kayda yazılır.')) return;

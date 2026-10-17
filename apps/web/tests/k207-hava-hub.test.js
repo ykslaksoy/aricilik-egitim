@@ -6,5 +6,5 @@ test('k207: Hava girişleri hub (hava.html) açar',()=>{
   assert.ok(r('nav.js').includes("a.href = 'hava.html'"));
   assert.ok(r('raporlar.html').includes('href="hava.html" aria-label="Hava"'));
   assert.ok(r('bugun.html').includes('href="hava.html"'));
-  assert.equal(JSON.parse(r('version.json')).version,'koloni-227');
+  assert.equal(JSON.parse(r('version.json')).version,'koloni-228');
 });

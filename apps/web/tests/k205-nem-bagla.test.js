@@ -13,5 +13,5 @@ const kv=r('kovan.html');assert.ok(!/humid < 50|humid > 75/.test(kv));assert.ok(
 const y=f=>fs.readFileSync(path.join(W,'../yonetici',f),'utf8');
 assert.ok(!/nemMaxYuzde/.test(y('panel2.js')),'Eşikler: ayrı nem üst sınırı yok');assert.ok(/k === 'nemHigh' \|\| k === 'kirecNemYuksek'\) return ''/.test(y('panel.js')));
 assert.ok(!/'nemHigh'\]|'kirecNemYuksek'\]/.test(y('panel10.js')));assert.ok(/\{s:\(\\w\+\)\\\}/.test(y('panel4.js'))&&/Sağlık kuralları/.test(y('panel4.js')));
-assert.strictEqual(d,y('demo-data.js'));assert.strictEqual(JSON.parse(r('version.json')).version,'koloni-227');
+assert.strictEqual(d,y('demo-data.js'));assert.strictEqual(JSON.parse(r('version.json')).version,'koloni-228');
 console.log('k205-nem-bagla ok');

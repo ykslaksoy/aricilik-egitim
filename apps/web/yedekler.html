@@ -66,10 +66,10 @@
 <script src="demo-data.js?v=koloni-223"></script>
 <script src="yetki.js?v=koloni-223"></script>
 <script src="bulut.js?v=koloni-223"></script>
-<script src="yedek.js?v=koloni-227"></script>
-<script src="foto.js?v=koloni-227"></script>
+<script src="yedek.js?v=koloni-228"></script>
+<script src="foto.js?v=koloni-228"></script>
 <script src="yedekler.js?v=koloni-223"></script>
-<script src="telefon-yedek.js?v=koloni-227"></script>
+<script src="telefon-yedek.js?v=koloni-228"></script>
 <script>
 (function () {
   'use strict';
@@ -198,7 +198,7 @@
     if (!confirm('#' + id + ' telefon geri yüklemesi geri alınsın mı? Telefon geri yüklemeden önceki hâline döner; bu da kayda yazılır.')) return;
     if (ORNEK) { st('tyStat', 'Önizlemede geri alma yapılmaz.'); return; }
     b.disabled = true;
-    Y.yuklemeler(CL, HESAP).then(function (L) { var gy = L.filter(function (x) { return String(x.id) === id; })[0]; return TY.liste(CL, null).then(function (rows) { return TY.geriAl(CL, gy, rows); }); })
+    TY.geriAlId(CL, id)
       .then(function () { st('tyStat', 'Geri alındı: telefon geri yüklemeden önceki hâline döndü.'); listeYukle(); })
       .catch(function (er) { b.disabled = false; st('tyStat', 'Geri alınamadı: ' + ((er && er.message) || 'bağlantı')); });
   });

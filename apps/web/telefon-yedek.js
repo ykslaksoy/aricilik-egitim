@@ -153,11 +153,25 @@
       return c.rpc('sa_telefon_geri_al_kaydet', { p_id: gy.id }).then(function (r) { if (r.error) throw r.error; return u; });
     });
   }
+  /** koloni-228: Geri yükleme kimliğiyle geri al (Yedekler › Geri yüklemeler ve Değişiklik kaydı ortak). Zaten geri alındıysa ya da aynı hesapta daha yeni bir telefon geri yüklemesi varsa nedeniyle reddeder (sonraki kaybolmasın); sunucu izni ayrıca denetler ve kayda yazar. */
+  function geriAlKontrol(gy, tum) {
+    if (!gy || !gy.telefon_yedek_id) return 'Telefon geri yüklemesi bulunamadı.';
+    if (gy.geri_alindi_at) return 'Bu geri yükleme zaten geri alındı.';
+    var yeni = (tum || []).filter(function (x) { return x.telefon_yedek_id && !x.geri_alindi_at && x.hesap_id === gy.hesap_id && +x.id > +gy.id; })[0];
+    return yeni ? 'Bundan sonra daha yeni bir telefon geri yüklemesi var (#' + yeni.id + '); önce onu geri al. Böylece sonraki geri yükleme kaybolmaz.' : '';
+  }
+  function geriAlId(c, id) {
+    return c.from('sa_geri_yukleme').select('*').order('id', { ascending: false }).limit(200).then(function (r) {
+      if (r.error) throw r.error; var tum = r.data || [], gy = tum.filter(function (x) { return String(x.id) === String(id); })[0];
+      var neden = geriAlKontrol(gy, tum); if (neden) throw new Error(neden);
+      return liste(c, null).then(function (rows) { return geriAl(c, gy, rows); });
+    });
+  }
   /** Son yükleme uyarısı (uyarı günü uzman tahmini; yönetici değiştirir) */
   function durum(uyariGun) {
     var s = st(), lim = (uyariGun || 2) * 864e5;
     return { son: s.sonYukleme || null, sonAlinan: s.sonAlinan || null, hata: s.sonHata || null, uyari: !s.sonYukleme || (Date.now() - Date.parse(s.sonYukleme) > lim), uyariGun: uyariGun || 2 };
   }
   if (g.addEventListener) g.addEventListener('online', function () { setTimeout(function () { bosalt(); }, 3000); });
-  g.SuperAriTelefonYedek = { al: al, otomatik: otomatik, bosalt: bosalt, kuyruk: kuyruk, liste: liste, indir: indir, onizle: onizle, geriYukle: geriYukle, geriAl: geriAl, durum: durum, gunTSI: gunTSI, ozet: ozet, KOVA: KOVA };
+  g.SuperAriTelefonYedek = { al: al, otomatik: otomatik, bosalt: bosalt, kuyruk: kuyruk, liste: liste, indir: indir, onizle: onizle, geriYukle: geriYukle, geriAl: geriAl, geriAlId: geriAlId, geriAlKontrol: geriAlKontrol, durum: durum, gunTSI: gunTSI, ozet: ozet, KOVA: KOVA };
 })(typeof window !== 'undefined' ? window : globalThis);
