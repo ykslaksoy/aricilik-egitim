@@ -144,10 +144,14 @@
   function frostDays(d) { return d.filter(function (x) { return (x.lo != null && x.lo <= 2) || (x.gust || 0) >= 50 || Number(x.code) >= 95; }); }
   function workDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && (x.wind || 0) <= 15 && (x.hi || 0) >= 15; }); }
   function harvestDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && x.wind != null && x.wind <= 15 && (x.hi || 0) >= 18; }); }
+  /* koloni-268: sıcak bölge + çam balı illeri (Marchalina hellenica yayılışı: Muğla, Aydın, İzmir, Balıkesir, Çanakkale, Antalya — Günbey, AAE Ordu) Ağu–Kas → mevsim açık nedeni */
+  function camAcik(S, m) { var a = ap() || {}, t = String((a.il || '') + ' ' + (a.name || '') + ' ' + (a.place || '')).toLocaleLowerCase('tr');
+    return S.acik && S.profile === 'sicak' && m >= 8 && m <= 11 && /muğla|mugla|aydın|aydin|izmir|balıkesir|balikesir|çanakkale|canakkale|antalya|fethiye|marmaris|bodrum|kayaköy|kayakoy/.test(t); }
   function seasonStage() {
     var t0 = isoToday(), S = sezon(t0), sy = sezonYazi(S, t0);
     if (sy) return { t: sy, n: 'Toplama yok; kovanı açmayın, stoğu dıştan izleyin.', kapali: true }; /* k249: arılığın uçuş mevsimi */
     var m = new Date().getMonth() + 1;
+    if (camAcik(S, m)) return { t: 'Çam balı mevsimi açık', n: 'Kızılçam salgı (basra) akımı Ağustos–Kasım sürer (MAYBİR; ZMO); uçuş ve toplama olur.', cam: true };
     if (m >= 3 && m <= 5) return { t: 'İlkbahar gelişmesi', n: 'Koloniler büyüyor; erken akım bölgeye göre başlar.' };
     if (m >= 6 && m <= 8) return { t: 'Ana bal akımı', n: 'Çoğu bölgede ana akım dönemi; ballık ve hasat takibi.', hasat: true };
     if (m >= 9 && m <= 10) return { t: 'Sezon sonu / kışlığa hazırlık', n: 'Akım azalır; kışlık stok ve besleme kontrolü.' };
@@ -165,13 +169,13 @@
     var okN = d.filter(function (x) { return flight(x) === 'ok'; }).length, fr = frostDays(d).length, wk = workDays(d);
     return [
       { key: 'saatlik', label: 'Saatlik', href: '#saatlik', badge: h0 ? r0(h0.temp) + '° şimdi' : '—', tone: 'tan' },
-      { key: 'ucus', label: 'Uçuş uygunluğu', href: '#ucus', badge: has ? (seasonStage().kapali ? seasonStage().t : okN + ' uygun gün') : '—', tone: seasonStage().kapali ? 'tan' : (okN ? 'green' : 'red') }, /* k249 */
+      { key: 'ucus', label: 'Uçuş uygunluğu', href: '#ucus', badge: has ? (seasonStage().kapali ? seasonStage().t : okN + ' uygun gün' + (seasonStage().cam ? ' · çam balı' : '')) : '—', tone: seasonStage().kapali ? 'tan' : (okN ? 'green' : 'red') }, /* k249 */
       { key: 'gecmis', label: 'Geçmiş hava', href: 'hava-gecmis.html' + apQ(), badge: '', tone: 'tan' },
       { key: 'rapor', label: 'Sezon raporu', href: 'hava-raporu.html' + apQ(), badge: '', tone: 'tan' },
       { key: 'karsi', label: 'Geçen yılla karşılaştırma', href: '#karsi', badge: '', tone: 'tan' },
       { key: 'nektar', label: 'Nektar akımı', href: '#nektar', badge: has ? 'tahmini' : '—', tone: 'tan' },
       { key: 'don', label: 'Don / fırtına', href: '#don', badge: has ? (fr ? fr + ' gün uyarı' : 'Uyarı yok') : '—', tone: fr ? 'red' : 'green' },
-      { key: 'bal', label: 'Bal sezonu', href: '#bal', badge: has ? (seasonStage().hasat ? (harvestDays(d).length ? harvestDays(d).length + ' hasat günü' : 'Hasat günü yok') : (seasonStage().kapali ? seasonStage().t : (okN ? okN + ' uçuş günü' : 'Uçuş günü yok'))) : '—', tone: (seasonStage().hasat ? harvestDays(d).length : okN) ? 'green' : 'tan' }, /* k215: mevsime duyarlı */
+      { key: 'bal', label: 'Bal sezonu', href: '#bal', badge: has ? (seasonStage().hasat ? (harvestDays(d).length ? harvestDays(d).length + ' hasat günü' : 'Hasat günü yok') : (seasonStage().kapali ? seasonStage().t : (okN ? okN + ' uçuş günü' : 'Uçuş günü yok') + (seasonStage().cam ? ' · Çam balı mevsimi açık' : ''))) : '—', tone: (seasonStage().hasat ? harvestDays(d).length : okN) ? 'green' : 'tan' }, /* k215: mevsime duyarlı */
       { key: 'isgunu', label: 'Uygun iş günü', href: '#isgunu', badge: has ? (wk.length ? dayLab(wk[0].date, d.indexOf(wk[0])) : 'Yok') : '—', tone: wk.length ? 'green' : 'tan' }
     ];
   }
@@ -249,9 +253,9 @@
   function view(name) {
     var a = ap(), d = data && data.days || [], hs = data && data.hours || [], sub = a ? a.name : '';
     if (!data) return head('Hava', sub) + '<div class="hv-empty">Tahmin alınamadı. İnternet bağlantısını kontrol edip tekrar deneyin.</div>';
-    if (name === '10gun') return head('10 günlük tahmin', sub + (seasonStage().kapali ? ' · ' + seasonStage().t + ' · toplama yok' : ' · 🐝 uçuş uygun günler yeşil')) + d.map(dayCard).join('');
+    if (name === '10gun') return head('10 günlük tahmin', sub + (seasonStage().kapali ? ' · ' + seasonStage().t + ' · toplama yok' : (seasonStage().cam ? ' · Çam balı mevsimi açık' : '') + ' · 🐝 uçuş uygun günler yeşil')) + d.map(dayCard).join('');
     if (name === 'ucus') {
-      return head('Arı uçuşu uygunluğu', (function () { var b = ue().breed; return (seasonStage().kapali ? seasonStage().t + ' · toplama yok · ' : '') + (b ? b + ' arısına göre' : 'Genel eşiklere göre') + ' · saat saat sıcaklık, rüzgar, yağış, güneş'; })()) + d.map(dayCard).join('');
+      return head('Arı uçuşu uygunluğu', (function () { var b = ue().breed; return (seasonStage().kapali ? seasonStage().t + ' · toplama yok · ' : (seasonStage().cam ? 'Çam balı mevsimi açık · ' : '')) + (b ? b + ' arısına göre' : 'Genel eşiklere göre') + ' · saat saat sıcaklık, rüzgar, yağış, güneş'; })()) + d.map(dayCard).join('');
     }
     if (name === 'yagis') return head('Yağış', sub + ' · yağmurlu gün: ≥1 mm veya ≥%60') + d.map(function (x, i) {
       return '<div class="hv-row"><span class="k">' + esc(dayLab(x.date, i)) + '</span><span class="hv-bar"><i style="width:' + Math.min(100, Math.round(x.pr || 0)) + '%"></i></span><span class="v" style="flex:0 0 96px;text-align:right">' + (rainy(x) ? '🌧️ ' : '') + (Math.round((x.mm || 0) * 10) / 10) + ' mm · %' + Math.round(x.pr || 0) + '</span></div>';
