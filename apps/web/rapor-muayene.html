@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-245">
+<link rel="stylesheet" href="sa-early.css?v=koloni-246">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Muayene / petek</title>
@@ -47,9 +47,9 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="sensor-ham.js?v=koloni-245"></script>
-<script src="demo-data.js?v=koloni-245"></script>
-<script src="rapor-store.js?v=koloni-245"></script>
+<script src="sensor-ham.js?v=koloni-246"></script>
+<script src="demo-data.js?v=koloni-246"></script>
+<script src="rapor-store.js?v=koloni-246"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
@@ -83,11 +83,14 @@
     if (live) {
       var hv = {}; rows.forEach(function (r) { hv[r.hiveId] = 1; });
       var flagged = rows.filter(function (r) { return r.queenless || r.disease.length || /çok|%([5-9]|\d\d)/.test(r.varroa || ''); }).length;
-      var weak = rows.filter(function (r) { return r.strength === 'Zayıf'; }).length;
+      /* k246: güç etiketi 'Zayıf'/'Güçlü' ile sınırlı değil (Çok zayıf, Birleştirilmeli, Çok güçlü, Bölünmesi Gerekiyor) — ortak tanım */
+      var KRs = (window.SuperAriDemo && window.SuperAriDemo.records) || {};
+      var isW = function (c) { return KRs.isWeakClass ? KRs.isWeakClass(c) : c === 'Zayıf'; }, isS = function (c) { return KRs.isStrongClass ? KRs.isStrongClass(c) : c === 'Güçlü'; };
+      var weak = rows.filter(function (r) { return isW(r.strength); }).length;
       document.getElementById('stats').innerHTML = stat('Muayene', rows.length) + stat('Kovan', Object.keys(hv).length) +
         stat('Bulgulu', flagged) + stat('Zayıf koloni', weak);
       document.getElementById('list').innerHTML = rows.map(function (m) {
-        var cls = m.strength === 'Güçlü' ? 'ok' : (m.strength === 'Zayıf' ? 'bad' : 'warn');
+        var cls = isS(m.strength) ? 'ok' : (isW(m.strength) ? 'bad' : 'warn');
         return '<div class="row-item"><div class="left"><div class="title"><a href="kovan.html?id=' + encodeURIComponent(m.hiveId) + '" style="color:inherit">' + esc(m.hiveName) + '</a></div>' +
           '<div class="meta">' + esc(R.trDate(m.date)) + ' · ' + esc(m.apiaryName || '—') + '<br>' + esc(m.detail) + (m.note ? '<br>Not: ' + esc(m.note) : '') + '</div></div>' +
           (m.strength ? '<div class="right"><span class="badge ' + cls + '">' + esc(m.strength) + '</span></div>' : '') + '</div>';
@@ -125,7 +128,7 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="nav.js?v=koloni-245"></script>
-<script src="pwa.js?v=koloni-245"></script>
+<script src="nav.js?v=koloni-246"></script>
+<script src="pwa.js?v=koloni-246"></script>
 </body>
 </html>

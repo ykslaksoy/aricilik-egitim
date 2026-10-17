@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr"><head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-245"><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="stylesheet" href="sa-early.css?v=koloni-246"><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Yeni şifre · SüperArı</title><link rel="stylesheet" href="panels.css" />
 <style>body{background:#f6efe2;font-family:-apple-system,system-ui,sans-serif;margin:0;color:#2b2116}.k{max-width:420px;margin:70px auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(60,40,10,.1)}
 label{display:block;font-weight:700;margin:12px 0 4px}input{width:100%;box-sizing:border-box;font:inherit;padding:10px;border:1.5px solid #e1d3b5;border-radius:10px}.btn{margin-top:16px;width:100%;font:inherit;font-weight:800;padding:12px;border:0;border-radius:12px;background:#c98a12;color:#fff}#d{margin-top:10px;font-weight:600}</style></head>
@@ -8,7 +8,7 @@ label{display:block;font-weight:700;margin:12px 0 4px}input{width:100%;box-sizin
 <div class="k"><h1 style="font-size:1.3rem;margin:0 0 6px">Yeni şifre belirle</h1><p style="color:#7a6650;margin:0">E-postadaki bağlantıyla geldin. Yeni şifreni iki kez yaz.</p>
 <form id="f"><label>Yeni şifre</label><input type="password" name="y" minlength="8" autocomplete="new-password" required><label>Yeni şifre (tekrar)</label><input type="password" name="y2" minlength="8" autocomplete="new-password" required>
 <button class="btn">Şifreyi kaydet</button><div id="d" role="status"></div></form></div>
-<script src="bulut.js?v=koloni-245"></script>
+<script src="bulut.js?v=koloni-246"></script>
 <script>
 document.getElementById('f').addEventListener('submit', function (e) {
   e.preventDefault(); var f = e.target, d = document.getElementById('d');
@@ -21,5 +21,5 @@ document.getElementById('f').addEventListener('submit', function (e) {
     .then(function () { d.textContent = 'Şifren güncellendi. Giriş sayfasına yönlendiriliyorsun…'; setTimeout(function () { location.href = 'ayarlar.html'; }, 1500); })
     .catch(function (er) { d.textContent = /session|oturum|auth/i.test(String(er && er.message)) ? 'Bağlantının süresi dolmuş. Yeniden «Şifremi unuttum» de.' : 'Kaydedilemedi: ' + (er.message || ''); });
 });
-</script><script src="sifre-goz.js?v=koloni-245"></script>
+</script><script src="sifre-goz.js?v=koloni-246"></script>
 </body></html>

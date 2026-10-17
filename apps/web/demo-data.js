@@ -4606,6 +4606,8 @@
     var s = 0;
     var cls = st && st.strengthClass ? st.strengthClass : null;
     var slv = strengthLevel(cls || h.strength), strength = slv ? slv.key : '';
+    /* k246: «güçlü» karşılaştırmaları gerçek anahtarla — strength 'guclu' / 'cok-guclu' / 'bolunmeli' olur, 'güçlü' hiç eşleşmiyordu. Güçlü = isStrongClass (Bölme ekranıyla aynı tanım). */
+    var guclu = isStrongClass(strength);
     var sr = st && st.strength ? st.strength : null;
     var bees = sr && Number(sr.beeFrames) ? Number(sr.beeFrames) : null;
     var broodF = sr && Number(sr.broodFrames) ? Number(sr.broodFrames) : null;
@@ -4618,7 +4620,9 @@
     else if (strength === 'cok-zayif') { R('guc', 'Koloni çok zayıf' + beeTxt, 'down'); }
     else if (strength === 'birlestir') { R('guc', 'Koloni birleştirilmeli' + beeTxt, 'down'); }
     if (broodF != null && broodF >= 6) { R('yavru', 'Çok yavru (' + broodF + ' çerçeve)', 'up'); }
-    else if (broodF != null && broodF >= 4)
+    /* k246: 4–5 yavrulu çerçeve dalı boştu ve alttaki «var bxs = hiveBoxes(…)» satırını yutuyordu (kutu düzeni / bal katı yalnız 4–5 çerçevede okunuyordu).
+       Bu dal ilk sürümde «s += 5» idi; ORS (k129) skoru aşağıda yeniden hesapladığı için etkisi yoktu — neden eklenmez. Kutu düzeni artık her kovanda okunur. */
+    else if (broodF != null && broodF >= 4) { /* olağan yavru — neden eklenmez */ }
     var bxs = hiveBoxes(h, ctx.plan || (ctx.plan = planState()));
     var hasSuper = !!(bxs && (bxs.kat > 0 || bxs.ballik));
     /* Yer darlığı: arılı çerçeve / kutu kapasitesi (her gövde ve kat 10 çerçeve). */
@@ -4631,7 +4635,7 @@
       var noEmpty = full >= capF - 1;
       if (used >= 0.9 || (used >= 0.8 && noEmpty)) { space = true; severe = true; R('yer', 'Yer darlığı: ' + bees + '/' + capF + ' çerçeve arılı' + (noEmpty ? ', boş çerçeve yok' : ''), 'up'); }
       else if (used >= 0.8 || noEmpty) { space = true; R('yer', noEmpty ? 'Boş çerçeve kalmamış' : 'Kovan dolmak üzere (' + bees + '/' + capF + ' çerçeve arılı)', 'up'); }
-    } else if (strength === 'güçlü' && !hasSuper) { space = true; R('yer', 'Yer darlığı olabilir (bal katı verilmemiş)', 'up'); }
+    } else if (guclu && !hasSuper) { space = true; R('yer', 'Yer darlığı olabilir (bal katı verilmemiş)', 'up'); }
     /* Muayenede gözlenen yer durumu (Kolay muayene): sayıdan bağımsız doğrudan gözlem. */
     if (sr && sr.space === 'dolu' && !severe) { space = true; severe = true; R('yer', 'Muayenede kovan dolu / sıkışık gözlendi', 'up'); }
     else if (sr && sr.space === 'dolmak' && !space) { space = true; R('yer', 'Muayenede kovan dolmak üzere gözlendi', 'up'); }
@@ -4742,18 +4746,18 @@
       A('anasiz', 'Ana arı ver veya kovanı birleştir', 'Anasız koloni oğul vermez ama zayıflar; ana arı ver, yüksük ver ya da kovanı birleştir.');
     } else if (quietCells) {
       A('dokunma', 'Yüksüklere dokunma, izle', 'Petek ortasındaki 1–3 yüksük koloninin anasını sessizce yenilediğini gösterir; yüksüklere dokunma, 3 hafta sonra yumurta kontrol et.');
-      if (inSeason && orsYuksek(lv.key) && (space || strength === 'güçlü')) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
+      if (inSeason && orsYuksek(lv.key) && (space || guclu)) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir.');
     } else if (cell || (inSeason && elevated)) {
       if (cell) A('meme', capped ? 'Yüksükleri bölmede kullan' : 'Yüksükleri kontrol et', capped
         ? 'Kapalı oğul yüksüğü: oğul birkaç gün içinde çıkabilir. Koloniyi böl, yüksüklü çerçeveyi bölmede kullan.'
         : 'Açık oğul yüksüğü: 7 gün sonra tekrar kontrol et. Bölme yap veya yer aç.');
-      if (cell && !(strength === 'güçlü')) A('bolme', 'Bölme yap', 'Oğul yüksüğü olan koloniyi böl; yüksüklü çerçeveyi bölmeye ver.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
-      if (space || strength === 'güçlü') A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir; oğul hazırlığını çoğu zaman durdurur.');
-      if (strength === 'güçlü') A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yap.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
-      if (space || strength === 'güçlü') A('cerceve', 'Boş çerçeve / temel petek ver', 'Kuluçka alanına 1–2 temel petek koy; ana yumurtlayacak yer bulur.');
+      if (cell && !guclu) A('bolme', 'Bölme yap', 'Oğul yüksüğü olan koloniyi böl; yüksüklü çerçeveyi bölmeye ver.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
+      if (space || guclu) A('kat', 'Kat at (bal katı ver)', 'Yer darlığını giderir; oğul hazırlığını çoğu zaman durdurur.');
+      if (guclu) A('bolme', 'Bölme yap', 'Güçlü koloniden yavrulu ve arılı çerçevelerle bölme yap.', { href: 'koloni-islem.html?islem=bolme&apiary=' + encodeURIComponent(h.apiaryId) + '&src=' + encodeURIComponent(id) + '&neden=ogul' });
+      if (space || guclu) A('cerceve', 'Boş çerçeve / temel petek ver', 'Kuluçka alanına 1–2 temel petek koy; ana yumurtlayacak yer bulur.');
       if (!cell) A('meme', 'Yüksükleri kontrol et', '7–10 günde bir çerçeve altlarına ve kenarlarına bak.');
       if (age != null && age >= 2) A('ana', 'Ana arıyı yenile', 'Genç ana oğul eğilimini azaltır.');
-      if (season.profile === 'sicak' || strength === 'güçlü') A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını aç, sıcak saatlerde gölge sağla.');
+      if (season.profile === 'sicak' || guclu) A('hava', 'Havalandırma / gölge sağla', 'Giriş aralığını aç, sıcak saatlerde gölge sağla.');
       /* Kanat kırpma: yalnız çiftleşmiş ve yumurtlayan, henüz kırpılmamış ana. */
       var laying = !(st && st.queenCellSince) && ((st && st.brood && st.brood.eggs === true) || (age != null && age >= 1));
       if (orsYuksek(lv.key) && !clipped && laying) A('kanat', 'Ana arı kanadını kırp (isteğe bağlı)', 'Oğul çıkarsa ana uçamaz, koloni kovana döner. Kırpma tek başına oğulu durdurmaz; yüksük kontrolü, kat atma veya bölme ile birlikte yap.');
