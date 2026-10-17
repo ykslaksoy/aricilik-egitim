@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-265">
+<link rel="stylesheet" href="sa-early.css?v=koloni-266">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Bal / verim</title>
 <link rel="stylesheet" href="rapor-common.css" />
+<style>/* koloni-266: [hidden] .filters label{display:grid} kuralını ezmiyordu → Toplam sekmesinde arılık seçici görünüyordu */[hidden]{display:none!important}</style>
 </head>
 <body>
 <div class="phone" id="phone">
@@ -97,10 +98,10 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bal-agirlik.js?v=koloni-265"></script>
-<script src="sensor-ham.js?v=koloni-265"></script>
-<script src="demo-data.js?v=koloni-265"></script>
-<script src="rapor-store.js?v=koloni-265"></script>
+<script src="bal-agirlik.js?v=koloni-266"></script>
+<script src="sensor-ham.js?v=koloni-266"></script>
+<script src="demo-data.js?v=koloni-266"></script>
+<script src="rapor-store.js?v=koloni-266"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
@@ -123,7 +124,7 @@
   document.getElementById('modeHint').textContent += liveMode
     ? ' Canlı mod: yalnız sizin girdiğiniz hasatlar.'
     : ' Demo mod: örnek hasatlar «Demo» etiketlidir; canlı moda geçince görünmez.';
-  function allHives() { try { return (D && D.hives) || []; } catch (e) { return []; } }
+  function allHives() { try { return ((D && (D.loadHives ? D.loadHives() : D.hives)) || []).filter(function (h) { return h && h.colonyState !== 'sonuk'; }); } catch (e) { return []; } }
   function fillHiveSelect() {
     var cur = fHive.value;
     fHive.innerHTML = '';
@@ -231,22 +232,21 @@
     var aid = selectedApiaryId();
     var s = R.harvestSummary(y, aid || null);
     var hiveCount = 0;
-    if (D && D.hives) {
-      hiveCount = aid
-        ? D.hives.filter(function (h) { return String(h.apiaryId) === String(aid); }).length
-        : D.hives.length;
-    }
+    var hvAll = allHives();
+    hiveCount = aid ? hvAll.filter(function (h) { return String(h.apiaryId) === String(aid); }).length : hvAll.length;
     var perHive = hiveCount ? (s.totalKg / hiveCount) : 0;
     var scopeLabel = aid
       ? (apiaryFilter.options[apiaryFilter.selectedIndex] || {}).textContent || 'Arılık'
       : 'Tüm arılıklar';
     document.getElementById('pageSub').textContent = scopeLabel + ' · ' + y;
     document.getElementById('listTitle').textContent = aid ? 'Arılık kayıtları' : 'Hasat kayıtları';
+    /* koloni-266: kayıt yokken 0 yerine «Veri yok»; çerçeve girilmemişse «—»; ort./kovan yalnız hasadı girilen kovanlardan değil kapsamdaki kovanlardan */
+    var none = !s.rows.length, VY = '<span style="font-size:15px;color:var(--muted)">Veri yok</span>';
     document.getElementById('stats').innerHTML =
-      '<div class="stat"><div class="k">Toplam bal</div><div class="v">' + R.fmtKg(s.totalKg) + '</div></div>' +
-      '<div class="stat"><div class="k">Çerçeve</div><div class="v">' + s.totalFrames + '</div></div>' +
-      '<div class="stat"><div class="k">Hasat kaydı</div><div class="v">' + s.rows.length + '</div></div>' +
-      '<div class="stat"><div class="k">Ort. / kovan</div><div class="v">' + R.fmtKg(perHive) + '</div></div>';
+      '<div class="stat"><div class="k">Toplam bal</div><div class="v">' + (none ? VY : R.fmtKg(s.totalKg)) + '</div></div>' +
+      '<div class="stat"><div class="k">Çerçeve</div><div class="v">' + (none ? VY : (s.totalFrames ? s.totalFrames : '—')) + '</div></div>' +
+      '<div class="stat"><div class="k">Hasat kaydı</div><div class="v">' + (none ? VY : s.rows.length) + '</div></div>' +
+      '<div class="stat"><div class="k">Ort. / kovan</div><div class="v">' + (none || !hiveCount ? VY : R.fmtKg(perHive)) + '</div></div>';
 
     if (view === 'toplam') {
       var maxKg = Math.max.apply(null, s.byApiary.map(function (a) { return a.honeyKg; }).concat([1]));
@@ -257,7 +257,7 @@
           '<div class="meta">' + a.count + ' kayıt · ' + a.frames + ' çerçeve</div>' +
           '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div></div>' +
           '<div class="right">' + R.fmtKg(a.honeyKg) + '</div></button>';
-      }).join('') || '<p class="meta">Bu sezon hasat yok.</p>';
+      }).join('') || '<p class="meta">Veri yok · bu sezon (' + y + ') hasat kaydı girilmemiş.</p>';
       document.getElementById('apiaryList').querySelectorAll('[data-jump]').forEach(function (btn) {
         btn.addEventListener('click', function () {
           apiaryFilter.value = btn.getAttribute('data-jump');
@@ -349,6 +349,10 @@
   });
 
   render();
+  /* koloni-266: ＋ Kayıt › Hasat notu bu sayfada girilince, başka sekmede/cihazdan eşitlenince veya geri tuşuyla dönülünce yeniden çiz */
+  window.addEventListener('superari-records-changed', function () { setTimeout(render, 0); });
+  window.addEventListener('storage', function (e) { if (!e.key || /hasat/.test(e.key)) render(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) render(); });
 })();
 </script>
 <script>
@@ -363,8 +367,8 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="yetki.js?v=koloni-265"></script>
-<script src="nav.js?v=koloni-265"></script>
-<script src="pwa.js?v=koloni-265"></script>
+<script src="yetki.js?v=koloni-266"></script>
+<script src="nav.js?v=koloni-266"></script>
+<script src="pwa.js?v=koloni-266"></script>
 </body>
 </html>

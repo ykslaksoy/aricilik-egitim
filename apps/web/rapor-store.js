@@ -393,8 +393,12 @@
   }
 
   function currentSeasonYear() {
-    return seasonYearOf(new Date().toISOString().slice(0, 10));
+    /* koloni-266: yerel tarih (toISOString UTC'dir; gece yarısı civarı yanlış yıl/ay) */
+    var d = new Date();
+    return seasonYearOf(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
   }
+  /* koloni-266: kayıt listesi net kg (netKg) gösteriyordu, toplamlar girilen honeyKg'yi topluyordu → tek değer */
+  function rowKg(h) { var n = Number(h && h.netKg); return isFinite(n) && n > 0 ? n : (Number(h && h.honeyKg) || 0); }
 
   function filterBySeason(rows, year, dateKey) {
     var y = Number(year) || currentSeasonYear();
@@ -425,11 +429,11 @@
           count: 0
         };
       }
-      byApiary[id].honeyKg += Number(h.honeyKg) || 0;
+      byApiary[id].honeyKg += rowKg(h);
       byApiary[id].frames += Number(h.frames) || 0;
       byApiary[id].count += 1;
       if (h.apiaryName) byApiary[id].apiaryName = h.apiaryName;
-      totalKg += Number(h.honeyKg) || 0;
+      totalKg += rowKg(h);
       totalFrames += Number(h.frames) || 0;
     });
     var list = Object.keys(byApiary).map(function (k) { return byApiary[k]; })
@@ -437,10 +441,10 @@
     /* Kovan bazında (yalnız kovanı belirtilmiş hasatlar); arılık geneli kayıtlar ayrı toplanır. */
     var byHiveMap = {}, apiaryLevelKg = 0, apiaryLevelCount = 0;
     rows.forEach(function (h) {
-      if (h.hiveId == null) { apiaryLevelKg += Number(h.honeyKg) || 0; apiaryLevelCount += 1; return; }
+      if (h.hiveId == null) { apiaryLevelKg += rowKg(h); apiaryLevelCount += 1; return; }
       var k = String(h.hiveId);
       if (!byHiveMap[k]) byHiveMap[k] = { hiveId: h.hiveId, hiveName: h.hiveName || ('Kovan ' + h.hiveId), apiaryId: h.apiaryId, apiaryName: h.apiaryName, honeyKg: 0, frames: 0, count: 0 };
-      byHiveMap[k].honeyKg += Number(h.honeyKg) || 0;
+      byHiveMap[k].honeyKg += rowKg(h);
       byHiveMap[k].frames += Number(h.frames) || 0;
       byHiveMap[k].count += 1;
     });
