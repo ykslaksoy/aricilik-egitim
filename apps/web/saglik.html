@@ -73,6 +73,7 @@
   </div>
   <div class="screen screen-fill">
     <section class="card-block card-fill">
+      <nav class="bk-links" aria-label="Hastalık tahmini" style="margin:0 0 12px;grid-template-columns:1fr;"><a href="#" data-hz-saglik role="button">🔍 Hastalık tahmini <span style="font-weight:600;font-size:13px;opacity:.8;margin-left:6px;">(kesin değil)</span></a></nav>
       <div class="band-grid" id="bandGrid"></div>
       <div id="liveList" style="margin-top:12px;"></div>
     </section>
@@ -195,6 +196,26 @@
 })();
 </script>
 <script>
+/* koloni-259 önizleme: Sağlık › 🔍 Hastalık tahmini — seçili arılık kapsamındaki kovanlardan biri seçilir (nav.js pickHive), sonra rehberli tahmin açılır. */
+(function () {
+  var hzP = null;
+  function hzLoad() {
+    if (window.SuperAriHastalik) return Promise.resolve(window.SuperAriHastalik);
+    if (hzP) return hzP;
+    hzP = new Promise(function (res, rej) { var s = document.createElement('script'); var cur = document.querySelector('script[src*="demo-data.js"]'), mv = cur && /[?&]v=([^&]+)/.exec(cur.src); s.src = 'hastalik-tahmin.js' + (mv ? '?v=' + mv[1] : ''); s.onload = function () { window.SuperAriHastalik ? res(window.SuperAriHastalik) : rej(new Error('hz')); }; s.onerror = function () { hzP = null; rej(new Error('hz')); }; document.head.appendChild(s); });
+    return hzP;
+  }
+  function go() {
+    var N = window.SuperAriNav; if (!N || !N.pickHive) return;
+    N.pickHive('🔍 Hastalık tahmini', function (hid) {
+      hzLoad().then(function (Hz) { Hz.open(hid, {}); }).catch(function () { alert('Hastalık tahmini yüklenemedi. Sayfayı yenileyip tekrar deneyin.'); });
+    });
+  }
+  window.SuperAriHzSaglik = go;
+  document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-hz-saglik]') : null; if (t) { e.preventDefault(); go(); } });
+})();
+</script>
+<script>
 /* k94 · ＋ Kayıt bu sayfanın kayıtlarını açar (nav.js alt sayfası; en altta «Tüm kayıtlar»). */
 window.SuperAriQuickTitle = 'Kayıt · Sağlık';
 window.SuperAriQuickActions = function () {
@@ -202,6 +223,7 @@ window.SuperAriQuickActions = function () {
   return [
     { ic: '🦠', t: 'Hastalık / tedavi kaydı', d: 'Hastalık · ilaç · doz', run: N.rec('hastalik', 'Hastalık / tedavi kaydı') },
     { ic: '🔬', t: 'Varroa sayımı', d: 'Akar sayısı · yöntem', run: N.rec('hastalik', 'Varroa sayımı', function (b) { var c = b && b.querySelector('[name=count]'); if (c) setTimeout(function () { try { c.focus(); } catch (e) { /* ignore */ } }, 300); }) },
+    { ic: '🔍', t: 'Hastalık tahmini', d: 'Fotoğraf · belirti · kesin değil', run: window.SuperAriHzSaglik },
     { ic: '💊', t: 'İlaçlama (çok kovan)', d: 'Seçili kovanlar / tüm arılık', run: N.quickType('ilac') }
   ];
 };
