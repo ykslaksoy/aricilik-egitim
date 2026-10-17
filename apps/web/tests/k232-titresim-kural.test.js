@@ -34,6 +34,6 @@ const src=fs.readFileSync(path.join(W,'demo-data.js'),'utf8');
 assert.ok(src.includes("Bakire ana çıktı, ikincil oğul riski (' + nm"));assert.ok(src.includes("'⚫ Koloni ölümü şüphesi ("));
 const p=fs.readFileSync(path.join(W,'../yonetici/panel10.js'),'utf8');
 ['10.1016/j.compag.2011.01.004','10.1038/s41598-020-66115-5','10.1371/journal.pone.0171162','10.1038/s41598-024-54107-8',"['Titreşim', ['titresim', 'titOgul', 'titOtme', 'titDarbe', 'titKis']]"].forEach(x=>assert.ok(p.includes(x),x));
-assert.ok(!/Hz|Ramsey|Bencsik/.test(fs.readFileSync(path.join(W,'kovan.html'),'utf8').match(/koloni-234[^\n]*\n[^\n]*/)[0].replace(/frekans yok/,'')));
+assert.ok(!/Hz|Ramsey|Bencsik/.test(fs.readFileSync(path.join(W,'kovan.html'),'utf8').match(/koloni-235[^\n]*\n[^\n]*/)[0].replace(/frekans yok/,'')));
 assert.strictEqual(src,fs.readFileSync(path.join(W,'../yonetici/demo-data.js'),'utf8'));
 console.log('k232-titresim-kural ok');

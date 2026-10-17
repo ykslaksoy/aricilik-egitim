@@ -98,12 +98,17 @@
       ['w', 'Taban', 'En az sabah düşüşü (kg) ' + UT, 's', 'tarlaciMinKg'],
       ['w', 'Düşüş', 'Tabanın bu oranının altı ' + UT, 's', 'tarlaciOran'],
       ['w', 'Süre', 'Art arda uygun gün ' + UT, 's', 'tarlaciGun']] },
-    { t: 'Eşek arısı: sıcaklık + tıslama + titreşim', kk: ['esekGiris'], src: 'Kovan sensörüyle yayımlanmış çalışma yok → tümü uzman tahmini · bağlam: Ono M., Igarashi T., Ohno E., Sasaki M. (1995). Unusual thermal defence by a honeybee against mass attack by hornets. Nature 377:334–336, doi:10.1038/377334a0 · Käfer H., Stabentheiner A., Kovac H. (2012). J. Insect Physiol. 58:466, doi:10.1016/j.jinsphys.2012.01.015 · Papachristoforou A. ve ark. (2007). Smothered to death: hornets asphyxiated by honeybees. Curr. Biol. 17:R795, doi:10.1016/j.cub.2007.07.033', not: 'Uyarı yalnız üçü aynı pencerede: kısa sürede sıcaklık değişimi (artış ya da düşüş; kovan içi ya da giriş), Ses: Eşek arısı tıslaması ve titreşim artışı. Yeni sensör yok; giriş sıcaklığı yalnız mevcut ısı/nem sensörü girişe (yer: giris) takılıysa ek işarettir → kritik. Mikrofon yetmezse «Veri yok / mikrofon desteklemiyor».', r: [
+    { t: 'Eşek arısı: sıcaklık + tıslama + titreşim', kk: ['esekGiris'], src: 'Yol A (tıslama): kovan sensörüyle yayımlanmış çalışma yok → uzman tahmini · bağlam Ono 1995 doi:10.1038/377334a0 · Käfer 2012 doi:10.1016/j.jinsphys.2012.01.015 · Papachristoforou 2007 doi:10.1016/j.cub.2007.07.033 · Yol B (tıslamasız IR yedek, uzman tahmini): Requier F. ve ark. (2019). J. Pest Sci. 92:71–83, doi:10.1007/s10340-018-1063-0 (foraging paralysis) · Monceau K. ve ark. (2013). PLoS ONE 8:e66492, doi:10.1371/journal.pone.0066492 · sezon Tem–Eki', not: 'Yol A (tıslama ölçülürse): sıcaklık değişimi + tıslama + titreşim aynı pencerede. Yol B (mikrofon yok / Mikrofon desteklemiyor): sıcaklık + titreşim + IR çıkan düşüşü; yalnız Tem–Eki ve uygun uçuş günü; IR yoksa uyarı yok («tıslama ölçülemiyor, giriş sayacı yok»). Giriş sıcaklığı > eşik → kritik. Kovan sayfasında «Eşek arısı yolu: …» hangi yolun kullanıldığını gösterir. Tıslamasız yol tümü uzman tahmini.', r: [
       ['c', 'Sıcaklık', 'Değişim ≥ (°C) ' + UT, 's', 'esekSicakDegisimC'],
       ['c', 'Pencere', 'Üçü aynı pencerede (dk) ' + UT, 's', 'esekEslesDk'],
       ['c', 'Titreşim', 'Tabanın katı ' + UT, 's', 'esekTitresimKat'],
       ['c', 'Titreşim', 'Taban penceresi (dk) ' + UT, 's', 'esekTitTabanDk'],
-      ['c', 'Giriş (ek)', 'Giriş sıcaklığı > (°C) · Ono 1995 / Käfer 2012 top sıcaklığı', 's', 'esekGirisYuksekC']] },
+      ['c', 'Giriş (ek)', 'Giriş sıcaklığı > (°C) · Ono 1995 / Käfer 2012 top sıcaklığı', 's', 'esekGirisYuksekC'],
+      ['w', 'IR yedek', 'Çıkan ≤ tabanın oranı ' + UT, 's', 'esekIrOran'],
+      ['w', 'IR yedek', 'Çıkan penceresi (dk) ' + UT, 's', 'esekIrPencereDk'],
+      ['w', 'IR yedek', 'Çıkan taban penceresi (dk) ' + UT, 's', 'esekIrTabanDk'],
+      ['w', 'IR yedek', 'Sezon başlangıç ayı ' + UT, 's', 'esekIrAyBas'],
+      ['w', 'IR yedek', 'Sezon bitiş ayı ' + UT, 's', 'esekIrAySon']] },
     { t: 'Havalandırma yetersiz (CO₂ sensörsüz)', kk: ['havalandirma'], src: 'Doğrulanmış eşik kaynağı yok → tümü uzman tahmini · bağlam: Human H., Nicolson S.W., Dietemann V. (2006). Do honeybees, Apis mellifera scutellata, regulate humidity in their nest? Naturwissenschaften 93:397–401, doi:10.1007/s00114-006-0117-y', not: 'Kuluçka hem sıcak hem nemli (nem normal üst sınırı üstü) kesintisiz süre ya da soğuk dönemde yüksek nem + büyük iç−dış fark (yoğuşma riski). Yelpazeleme sesi varsa seviye yükselir. Nem «normalin üstünde» görevi bu uyarıya katılır; kireç riski varsa kireç görevi kalır ve bu uyarı çıkmaz.', r: [
       ['w', 'Süre', 'Kesintisiz (saat) ' + UT, 's', 'havaSaat'],
       ['w', 'Sıcak', 'Kuluçka sıcaklığı üstü (°C) ' + UT, 's', 'havaSicakC'],
