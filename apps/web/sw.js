@@ -223,6 +223,7 @@ const SHELL = [
   "/sartlar.js",
   "/satis-store.js",
   "/satis.html",
+  "/sensor-ham.js",
   "/sensor-health.js",
   "/sensor-polling.js",
   "/sensorler.html",

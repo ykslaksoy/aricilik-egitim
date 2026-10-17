@@ -228,7 +228,13 @@
       ['c', 'Arızalı', 'Sıcaklık eksi şunun altı (°C; 40 = −40) ' + UT, 's', 'arizaAltEksiC'],
       ['c', 'Arızalı', 'Sıcaklık bunun üstü (°C) ' + UT, 's', 'arizaUstC'],
       ['c', 'Arızalı', 'Aynı değer kesintisiz (saat) ' + UT, 's', 'arizaAyniSaat'],
-      ['c', 'Arızalı', 'İki okuma arası sıçrama (°C) ' + UT, 's', 'arizaSicramaC']], son: 'Liste' }
+      ['c', 'Arızalı', 'İki okuma arası sıçrama (°C) ' + UT, 's', 'arizaSicramaC']], son: 'Liste' },
+    /* koloni-241: sensör geçmişi saklama (tek kaynak ogul_skor_ayar.sensor; telefon sensor-ham.js okur) */
+    { t: 'Sensör geçmişi (saklama)', src: 'Kaynak yok · süreler uzman tahmini', not: 'Ham okumalar telefonda IndexedDB’de tutulur; buluta gönderilmemiş okuma silinmez (en çok +60 gün). Ham okumaların hepsi sıkıştırılıp sunucuya (sensor-ham kovası, arılık/gün paketleri) gönderilir ve orada süresiz saklanır — yazılım geliştirme için. Günlük özetler (kovan × gün) sunucuda da süresiz; yeni telefonda geri okunur. Uzun taban isteyen kurallar (titreşim oğul 17 gece, kış 14 gün, IR aktivite 14 gün, dönmeyen tarlacı 10 gün, tarlacı kaybı 9 gün) ham olmayan günlerde özetleri okur; geçmiş kısayken kovan sayfasında «Taban oluşuyor (x/17 gece)» yazar. Arşiv boyutu: Sensör arşivi bölümü.', r: [
+      ['i', 'Telefon', 'Ham okuma saklama (gün) ' + UT, 's', 'hamSaklaGun'],
+      ['i', 'Kurallar', 'Kuralların baktığı ham pencere (gün) ' + UT, 's', 'hiveSensGun'],
+      ['i', 'Telefon', 'Günlük özet saklama (gün) ' + UT, 's', 'ozetSaklaGun'],
+      ['i', 'Sunucu', 'Ham arşiv ve günlük özetler: süresiz', null, '']], son: 'Arşiv' }
   ];
   var css = document.createElement('style');
   css.textContent = '.mk .mc{border:1px solid #ead9b3;border-radius:14px;padding:.6rem;margin-top:.6rem;background:#fff}.mk h3{margin:0 0 .3rem;font-size:1rem}' +

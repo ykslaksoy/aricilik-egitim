@@ -183,7 +183,7 @@
       for (var i = 7; i >= 0; i--) { var t = (7 - i) / 7, wob = Math.sin((Number(hiveId) || 1) * 1.7 + i) * 0.25; o.pts.push({ date: minsAgoAt(i * 1440 + (dv.lastMins || 0)).slice(0, 10), kg: Math.round((w - dl * (1 - t) + (i ? wob : 0)) * 10) / 10 }); }
       o.at = minsAgoAt(dv.lastMins || 0); o.kg = Math.round(w * 10) / 10;
     } else {
-      var all = []; try { all = JSON.parse(localStorage.getItem(SENSOR_KEY) || '[]'); } catch (e) { all = []; }
+      var all = [], Hm = global.SuperAriSensorHam; /* koloni-241: IndexedDB deposu */ if (Hm && Hm.aktif && Hm.aktif()) all = Hm.list('tarti').slice(); else { try { all = JSON.parse(localStorage.getItem(SENSOR_KEY) || '[]'); } catch (e) { all = []; } }
       var mine = (Array.isArray(all) ? all : []).filter(function (x) { return x && Number(x.hiveId) === Number(hiveId) && Number(x.kg) > 0 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(x.at || '')); })
         .sort(function (a, b) { return a.at < b.at ? -1 : 1; });
       if (!mine.length) return o;

@@ -214,9 +214,12 @@
     return Math.ceil((RETENTION_DAYS * MS_DAY) / iv);
   }
 
+  /* koloni-241: IndexedDB deposu varsa (sensor-ham.js) ham okumalar orada; localStorage yalnız yedek yol */
+  function ham() { var H = global.SuperAriSensorHam; return H && H.aktif && H.aktif() ? H : null; }
   function readStore(tip) {
     var key = storageKey(tip);
     if (!key) return [];
+    var Hm = ham(); if (Hm) return Hm.list(tip).slice();
     var arr = readJ(key, []);
     return Array.isArray(arr) ? arr : [];
   }
@@ -224,6 +227,7 @@
   function writeStore(tip, arr) {
     var key = storageKey(tip);
     if (!key) return;
+    if (ham()) return; /* koloni-241: budama sensor-ham.js'te (hamSaklaGun) */
     writeJ(key, arr);
   }
 
@@ -296,10 +300,13 @@
       if (rec.batteryV != null) row.batteryV = Math.round(Number(rec.batteryV) * 100) / 100;
     }
     if (rec.demo) row.demo = true;
-    list.push(row);
+    /* koloni-241: cihaz alanları atılmaz (ham veri yazılım geliştirme için saklanır) */
+    ['giren', 'cikan', 'rms', 'g', 'sr', 'deger', 'enerji', 'kanal', 'yer'].forEach(function (k) { if (rec[k] != null && row[k] == null) row[k] = rec[k]; });
+    if (rec.darbe != null) row.darbe = !!rec.darbe; if (rec.bant != null) row.bant = rec.bant; if (Array.isArray(rec.kanallar)) row.kanallar = rec.kanallar;
     if ((tip === 'ses' || tip === 'titresim') && row.sinif && !row.demo) sesOlayGonder(row); /* k146 */
-    list = pruneList(list, tip);
-    writeStore(tip, list);
+    var Hm = ham();
+    if (Hm) Hm.ekle(tip, row);
+    else { list.push(row); list = pruneList(list, tip); writeStore(tip, list); }
     /* koloni-236: tıslama / titreşim artışı → sıcaklığı eşek penceresi boyunca hızlı oku (uzman tahmini; 30 dk tabanda ±0,5 °C/10 dk yakalanmaz) */
     try {
       if (row.hiveId != null && (
@@ -613,6 +620,7 @@
   }
 
   global.SuperAriSensorPolling = {
+    sesOlayGonder: sesOlayGonder, /* koloni-241: sensorGiris gerçek cihaz olayları */
     CONFIG_KEY: CONFIG_KEY,
     RETENTION_DAYS: RETENTION_DAYS,
     STORAGE_BY_TIP: STORAGE_BY_TIP,

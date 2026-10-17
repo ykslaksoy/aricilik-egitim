@@ -3,7 +3,7 @@
   var D = window.SuperAriDemo, host = document.getElementById('pageNote');
   if (!D || !host) return;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function load(k) { try { var l = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+  function load(k) { var Hm = window.SuperAriSensorHam, tp = /^superari\.sensor\.([a-z_]+)\.v1$/.exec(k); if (Hm && Hm.aktif && Hm.aktif() && tp) return Hm.list(tp[1]).slice(); /* koloni-241 */ try { var l = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
   var from = Date.now() - 72 * 3600e3;
   var ses = load('superari.sensor.ses.v1').concat(load('superari.sensor.titresim.v1')).filter(function (x) { var t = Date.parse(x.at); return isFinite(t) && t >= from; });
   var alerts = []; try { alerts = (D.alerts || []).filter(function (a) { return a && a.type === 'ses'; }); } catch (e) { alerts = []; }

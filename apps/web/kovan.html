@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-240">
+<link rel="stylesheet" href="sa-early.css?v=koloni-241">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>SüperArı · Kovan</title>
@@ -366,19 +366,20 @@
   <div class="home-indicator"></div>
 </div>
 
-<script src="bal-agirlik.js?v=koloni-240"></script>
-<script src="demo-data.js?v=koloni-240"></script>
-<script src="rapor-store.js?v=koloni-240"></script>
-<script src="sensor-health.js?v=koloni-240"></script>
-<script src="saglik-canli.js?v=koloni-240"></script>
-<script src="koloni.js?v=koloni-240"></script>
-<script src="ilac-katalog.js?v=koloni-240"></script>
-<script src="bakim-plan.js?v=koloni-240"></script>
-<script src="ogul.js?v=koloni-240"></script>
-<script src="ogul-verdi.js?v=koloni-240"></script>
-<script src="tarti-muayene-sync.js?v=koloni-240"></script>
-<script src="tarti-bakim-delta.js?v=koloni-240"></script>
-<script src="tarti-elle.js?v=koloni-240"></script>
+<script src="bal-agirlik.js?v=koloni-241"></script>
+<script src="sensor-ham.js?v=koloni-241"></script>
+<script src="demo-data.js?v=koloni-241"></script>
+<script src="rapor-store.js?v=koloni-241"></script>
+<script src="sensor-health.js?v=koloni-241"></script>
+<script src="saglik-canli.js?v=koloni-241"></script>
+<script src="koloni.js?v=koloni-241"></script>
+<script src="ilac-katalog.js?v=koloni-241"></script>
+<script src="bakim-plan.js?v=koloni-241"></script>
+<script src="ogul.js?v=koloni-241"></script>
+<script src="ogul-verdi.js?v=koloni-241"></script>
+<script src="tarti-muayene-sync.js?v=koloni-241"></script>
+<script src="tarti-bakim-delta.js?v=koloni-241"></script>
+<script src="tarti-elle.js?v=koloni-241"></script>
 <script>(function () {
   if (window.SuperAriTarti) SuperAriTarti.ensureCss();
   document.addEventListener('click', function (e) {
@@ -401,7 +402,7 @@
   else if (window.SuperAriKutu) SuperAriKutu.open(t.getAttribute('data-kutu-open'), rl);
 });
 new MutationObserver(function () { if (window.__ovReload && !document.getElementById('ovSheet')) { window.__ovReload = false; location.reload(); } }).observe(document.body, { childList: true });</script>
-<script src="irk-tahmin.js?v=koloni-240"></script>
+<script src="irk-tahmin.js?v=koloni-241"></script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-irk-open]') : null; if (t && window.SuperAriIrk) { e.preventDefault(); SuperAriIrk.open(t.getAttribute('data-irk-open'), { onSaved: function () { setTimeout(function () { location.reload(); }, 1200); } }); } });</script>
 <script>(function () {
   function kmOpen(id) { if (window.SuperAriKoloni && SuperAriKoloni.openKolayMuayene) SuperAriKoloni.openKolayMuayene(id, { onSaved: function () { window.__kmReload = true; } }); }
@@ -412,8 +413,8 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   if (q.get('km') === '1') window.addEventListener('load', function () { setTimeout(function () { kmOpen(q.get('id') || q.get('hiveId')); }, 300); });
 })();</script>
 <script>document.addEventListener('click', function (e) { var t = e.target.closest ? e.target.closest('[data-ogul-open]') : null; if (t && window.SuperAriOgul) { e.preventDefault(); SuperAriOgul.open(t.getAttribute('data-ogul-open'), { hideHiveLink: true }); } });</script>
-<script src="device-runtime.js?v=koloni-240"></script>
-<script src="cicek-veri.js?v=koloni-240"></script><script src="cicek.js?v=koloni-240"></script><script src="pil-model.js?v=koloni-240"></script><script src="plan-planlayici.js?v=koloni-240"></script><script src="rota-motoru.js?v=koloni-240"></script><script src="cevre.js?v=koloni-240"></script><script src="saglik-takvimi.js?v=koloni-240"></script>
+<script src="device-runtime.js?v=koloni-241"></script>
+<script src="cicek-veri.js?v=koloni-241"></script><script src="cicek.js?v=koloni-241"></script><script src="pil-model.js?v=koloni-241"></script><script src="plan-planlayici.js?v=koloni-241"></script><script src="rota-motoru.js?v=koloni-241"></script><script src="cevre.js?v=koloni-241"></script><script src="saglik-takvimi.js?v=koloni-241"></script>
 <script>
 (function () {
   var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
@@ -803,6 +804,19 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
       return '<p class="kd-moved" style="margin:2px 0 0;font-size:12.5px;font-weight:700;color:#7a5418;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3;">' + (i ? 'Önceki: ' : 'Taşındı: ') + escapeHtml(m.fromName || '?') + ' → ' + escapeHtml(m.toName || '?') + ', ' + escapeHtml(f(m.date)) + '</p>';
     }).join('');
   }
+  /* koloni-235/236: cihaz yok / devre dışı / veri yok + eşek arısı yolu + uzun taban durumu (sabit satır, ekran atlamaz; frekans yok) */
+  function sensorDurumSatirlar(hid) {
+    try {
+      var Col = window.SuperAriDemo && window.SuperAriDemo.colony;
+      var stLine = function (txt) { return '<p class="meta sensor-durum" style="margin:6px 0 0;min-height:1.25em;line-height:1.25">' + escapeHtml(txt) + '</p>'; };
+      return stLine(Col && Col.titresimDurum ? Col.titresimDurum(hid) : 'Titreşim uyarıları: Cihaz yok') +
+        stLine(Col && Col.girisSayacDurum ? Col.girisSayacDurum(hid) : 'Giriş sayacı: Cihaz yok') +
+        stLine(Col && Col.girisSicakDurum ? Col.girisSicakDurum(hid) : 'Giriş sıcaklığı: Cihaz yok') +
+        stLine(Col && Col.esekYolDurum ? Col.esekYolDurum(hid) : 'Eşek arısı yolu: tıslama ölçülemiyor, giriş sayacı yok') +
+        /* koloni-240: uzun taban isteyen kurallar — geçmiş kısa iken sessiz kalmak yerine «Taban oluşuyor (x/17 gece)»; satır sayısı yalnız cihazlara bağlı */
+        (Col && Col.tabanDurum ? Col.tabanDurum(hid).map(function (x) { return stLine(x.metin); }).join('') : '');
+    } catch (eTd) { return ''; }
+  }
   function render(hive, apiary) {
     var content = $('content');
     if (!hive) {
@@ -905,17 +919,8 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
     })();
 
     var sensorHtml;
-    /* koloni-236/235: cihaz yok / devre dışı / veri yok + eşek arısı yolu (sabit satır, ekran atlamaz; frekans yok) */
-    var sensorDurumHtml = '';
-    try {
-      var Col = window.SuperAriDemo && window.SuperAriDemo.colony;
-      var stLine = function (txt) { return '<p class="meta sensor-durum" style="margin:6px 0 0;min-height:1.25em;line-height:1.25">' + escapeHtml(txt) + '</p>'; };
-      sensorDurumHtml =
-        stLine(Col && Col.titresimDurum ? Col.titresimDurum(hive.id) : 'Titreşim uyarıları: Cihaz yok') +
-        stLine(Col && Col.girisSayacDurum ? Col.girisSayacDurum(hive.id) : 'Giriş sayacı: Cihaz yok') +
-        stLine(Col && Col.girisSicakDurum ? Col.girisSicakDurum(hive.id) : 'Giriş sıcaklığı: Cihaz yok') +
-        stLine(Col && Col.esekYolDurum ? Col.esekYolDurum(hive.id) : 'Eşek arısı yolu: tıslama ölçülemiyor, giriş sayacı yok');
-    } catch (eTd) { sensorDurumHtml = ''; }
+    /* koloni-236/241: cihaz yok / devre dışı / veri yok + eşek arısı yolu (sabit satır, ekran atlamaz; frekans yok) */
+    var sensorDurumHtml = '<div id="kvSensorDurum" data-hive="' + escapeHtml(hive.id) + '">' + sensorDurumSatirlar(hive.id) + '</div>';
     if (!devices.length) {
       sensorHtml =
         '<div class="sensor-grid" aria-label="Sensörler">' +
@@ -1156,6 +1161,11 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   }
 
   window.addEventListener('resize', function () { drawChart(); }, { passive: true });
+  /* koloni-240: IndexedDB geçmişi yüklenince / özetler geri okununca yalnız sensör durum satırları yerinde güncellenir (satır sayısı aynı → ekran atlamaz) */
+  /* koloni-240: IndexedDB geçmişi yüklenince / özetler geri okununca yalnız sensör durum satırları yerinde güncellenir (satır sayısı aynı → ekran atlamaz) */
+  window.addEventListener('superari:sensor-ham-hazir', function () {
+    var box = document.getElementById('kvSensorDurum'); if (box) box.innerHTML = sensorDurumSatirlar(box.getAttribute('data-hive'));
+  });
 
   var D = window.SuperAriDemo;
   var params = new URLSearchParams(location.search);
@@ -1169,7 +1179,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
-<script src="nav.js?v=koloni-240"></script>
-<script src="pwa.js?v=koloni-240"></script>
+<script src="nav.js?v=koloni-241"></script>
+<script src="pwa.js?v=koloni-241"></script>
 </body>
 </html>

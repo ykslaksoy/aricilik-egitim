@@ -10,7 +10,9 @@
   var SKIP = [/\.demo(\.|$)/i, /demo/i, /seed/i, /^superari\.bulut\./, /^superari\.session\./, /^superari\.account/, /^superari\.push\./, /^superari\.stok\.fiyatsiz\./ /* yöneticiye giden tanı kaydı */,
     /^superari\.hava\./, /^superari\.stok\.fiyatcache/, /^superari\.harita/, /^superari\.waterSources/, /^superari\.discovered/, /^superari\.workMode\.ping/,
     /^superari\.saglikKick/, /^superari\.davet\./, /^superari\.hataLog\./, /^superari\.sartlar\./, /^superari\.bildirimGonderildi/,
-    /Mig(\.|ration)|migrated|orphanPurge|canliTemizlik\.v1$/];
+    /Mig(\.|ration)|migrated|orphanPurge|canliTemizlik\.v1$/,
+    /* koloni-241: ham sensör okumaları telefon yedeğine girmez (sunucuda sensor-ham arşivinde süresiz; boyut yedeği sürekli tetiklenmesin) */
+    /^superari\.sensor\.(tarti|isi_nem|ses|titresim|ir|pil|dis_isi_nem)\.v1$/, /^superari\.sensor\.okumalar(\.kuyruk)?\.v1$/, /^superari\.sensor\.ham\./];
   var LABELS = {
     'superari.ariliklar.v1': 'Arılıklar', 'superari.kovanlar.v1': 'Kovanlar', 'superari.anaArilar.v1': 'Ana arılar',
     'superari.koloniKayit.v1': 'Muayene / bakım kayıtları', 'superari.koloniIslem.v1': 'Koloni işlemleri', 'superari.gorevler.v1': 'Görevler',
