@@ -1400,7 +1400,7 @@
       form = '<label class="full">Muayene tarihi<input type="date" name="date" value="' + esc(today) + '"></label>' +
         '<label>Yumurta görüldü mü<select name="eggs"><option value="1">Evet</option><option value="0">Hayır</option></select></label>' +
         '<label>Yavru düzeni<select name="pattern"><option value="duzenli">Düzenli</option><option value="daginik">Dağınık</option></select></label>' +
-        '<label class="full">Ana memesi (yeri)<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Alt kenar — oğul memesi</option><option value="yenileme">Petek ortası — sessiz ana değiştirme</option><option value="acil">Acil — genç larvadan (anasız)</option></select></label>' +
+        '<label class="full">Ana memesi (yeri)<select name="queenCell"><option value="yok">Yok</option><option value="ogul">Alt kenar — oğul memesi</option><option value="yenileme">Petek ortası — sessiz ana değiştirme</option><option value="acil">Acil — genç larvadan (anasız)</option><option value="bilinmiyor">Bilinmiyor</option></select></label>' +
         '<label>Meme sayısı<input type="number" name="cellCount" min="1" max="60" inputmode="numeric" placeholder="—"></label>' +
         '<label>Kapalı mı açık mı<select name="cellCapped"><option value="">—</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select></label>' +
         '<label class="kr-checkline full"><input type="checkbox" name="queenless"> Anasız</label>' +

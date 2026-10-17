@@ -890,6 +890,7 @@
     '.bo-vlbl{font-size:.9rem;font-weight:800;color:#5c4813}.bo-link{display:flex;align-items:center;justify-content:center;min-height:64px;margin-top:10px;border:2px solid #2b6cb0;border-radius:16px;color:#2b6cb0;font-weight:800;text-decoration:none;font-size:1rem}' +
     '.bo-fa{display:grid;gap:4px;border-radius:14px;padding:.7rem .8rem;margin:.2rem 0 .5rem;border:2px solid #d8c8a8;background:#fffaf0;color:#3d2616;line-height:1.35}.bo-fa small{font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.02em;opacity:.8}.bo-fa b{font-size:1.08rem}.bo-fa span{font-size:.92rem}' +
     '.bo-fa.gerekli{border-color:#e8590c;background:#fff4e6}.bo-fa.faydali{border-color:#1c7ed6;background:#e7f5ff}.bo-fa.gerekmez{border-color:#2f9e44;background:#ebfbee}' +
+    '.bo select:disabled,.bo input:disabled,.bo-vstep button:disabled{opacity:.45;background:#f4efe3;cursor:not-allowed}.bo select.bo-need{border-color:#e8590c!important;background:#fff4e6}' +
     '.bo [hidden]{display:none!important}.bo-stat{margin:0;font-size:.95rem;line-height:1.4;color:#3d2616;background:#fffaf0;border:1px solid #ead9b3;border-radius:12px;padding:.55rem .65rem;overflow-wrap:anywhere}' +
     '.bo-vc{display:grid;gap:14px;margin:4px 0}.bo-vsel{font:inherit;font-size:18px;font-weight:700;min-height:64px;width:100%;padding:0 14px;border:2px solid #d8b75a;border-radius:16px;background:#fff;color:#3d2616}' +
     '.bo-vstep{display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:12px;align-items:stretch}.bo-vstep button{min-height:72px;border-radius:16px;border:2px solid #1c5fa8;background:#fff;font:inherit;font-size:36px;font-weight:900;color:#0d3d73;cursor:pointer;touch-action:manipulation}' +
@@ -932,9 +933,13 @@
     var lastB = null; try { lastB = D.records.status(h.id).brood; } catch (eB) { lastB = null; }
     H.push('<div class="bo-sec"><h3>👑 Ana memesi</h3>' +
       (lastB && lastB.queenCell && lastB.queenCell !== 'yok' ? '<p class="bo-mut">Son kayıt ' + esc(fmt(lastB.date)) + ': ' + esc((lastB.cellCount ? lastB.cellCount + ' ' : '') + (lastB.cellCapped ? D.records.CELL_CAP_LABEL[lastB.cellCapped] + ' · ' : '') + D.records.QUEEN_CELL_LABEL[lastB.queenCell].toLocaleLowerCase('tr')) + '</p>' : '') +
-      '<div class="bo-row"><select data-bo-cell aria-label="Ana memesi yeri"><option value="yok">Meme yok</option><option value="ogul">Alt kenar — oğul memesi</option><option value="yenileme">Petek ortası — sessiz ana değiştirme</option><option value="acil">Acil — genç larvadan (anasız)</option></select></div>' +
-      '<div class="bo-vstep"><button type="button" data-bo-vinc="-1" aria-label="Meme sayısı azalt">−</button><input type="number" inputmode="numeric" min="1" max="60" step="1" placeholder="Sayı" data-bo-celln aria-label="Meme sayısı"><button type="button" data-bo-vinc="1" aria-label="Meme sayısı artır">+</button></div><div class="bo-row">' +
-      '<select data-bo-cellcap aria-label="Kapalı mı açık mı"><option value="">Kapalı/açık —</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select>' +
+      /* Ana memesi yeri (kaynak notu yalnız burada / yönetici): Winston 1987 (The Biology of the Honey Bee) — oğul memeleri çerçeve alt kenarında,
+         sessiz ana değiştirme (supersedure) memeleri petek ortasında, az sayıda; Fell & Morse 1984 (Insectes Sociaux 31) — acil memeler anasız
+         kalınca genç larvalı yatay işçi hücresinden dönüştürülür. Meme yoksa sayı 0 ve kilitli; sayı ≥ 1 ise «Nerede?» zorunlu. */
+      '<div class="bo-row"><select data-bo-cellhas aria-label="Ana memesi var mı"><option value="0">Meme yok</option><option value="1">Meme var</option></select></div>' +
+      '<div class="bo-vstep" data-bo-cellstep><button type="button" data-bo-cinc="-1" aria-label="Meme sayısı azalt">−</button><input type="number" inputmode="numeric" min="0" max="60" step="1" value="0" data-bo-celln aria-label="Meme sayısı"><button type="button" data-bo-cinc="1" aria-label="Meme sayısı artır">+</button></div>' +
+      '<div class="bo-row"><select data-bo-cell aria-label="Meme nerede" disabled><option value="">Nerede? —</option><option value="ogul">Çerçeve alt kenarı (oğul memesi)</option><option value="yenileme">Petek ortası (sessiz ana değişimi)</option><option value="acil">Acil meme (yatay hücreden dönüştürülmüş)</option><option value="bilinmiyor">Bilinmiyor</option></select></div><div class="bo-row">' +
+      '<select data-bo-cellcap aria-label="Kapalı mı açık mı" disabled><option value="">Kapalı/açık —</option><option value="kapali">Kapalı</option><option value="acik">Açık</option></select>' +
       '<select data-bo-eggs aria-label="Yumurta"><option value="1">Yumurta var</option><option value="0">Yumurta yok</option></select></div>' +
       '<button type="button" class="bo-btn bo-big" data-bo-savecell>Muayeneyi kaydet</button></div>');
     /* hastalık tahmini (kesin değil) */
@@ -1045,14 +1050,34 @@
       o.textContent = '→ ' + fmt(d) + (n >= ALTLIK_LEAD ? ' · altlık hatırlatması ' + fmt(addDays(d, -ALTLIK_LEAD)) : ' · 7 günden az: altlık yok, muayenede alkol / pudra şekeri');
     }
     pdate();
+    /* Ana memesi: «Meme yok» → sayı 0 ve kilitli, yer/kapalı-açık kilitli. Sayı ≥ 1 → «Meme var», «Nerede?» zorunlu.
+       Alanlar hep yerinde durur (gizlenmez), form zıplamaz. */
+    function cellSync(src) {
+      var hs = el.querySelector('[data-bo-cellhas]'), cn = el.querySelector('[data-bo-celln]'), wh = el.querySelector('[data-bo-cell]'), cp = el.querySelector('[data-bo-cellcap]');
+      if (!hs || !cn || !wh || !cp) return;
+      var n = Math.max(0, Math.min(60, Math.round(Number(cn.value)) || 0));
+      if (src === 'n') { hs.value = n >= 1 ? '1' : '0'; }
+      else if (src === 'has' && hs.value === '1' && n < 1) { n = 1; }
+      var has = hs.value === '1';
+      if (!has) { n = 0; wh.value = ''; cp.value = ''; }
+      if (src !== 'n' || String(n) !== String(cn.value)) cn.value = String(n);
+      wh.disabled = !has; cp.disabled = !has; cn.disabled = !has; /* «Meme yok»: sayı 0'da kilitli; + ile «Meme var»a geçilir */
+      var dec = el.querySelector('[data-bo-cinc="-1"]'); if (dec) dec.disabled = n <= 0;
+      wh.classList.toggle('bo-need', has && !wh.value);
+    }
+    cellSync('init');
     el.oninput = function (e) {
       if (!e.target.hasAttribute) return;
       if (e.target.hasAttribute('data-bo-count') || e.target.hasAttribute('data-bo-days')) vadv();
       else if (e.target.hasAttribute('data-bo-pdays')) pdate();
+      else if (e.target.hasAttribute('data-bo-celln') && Number(e.target.value) >= 1) cellSync('n');
       else if (e.target.hasAttribute('data-bo-fdkg') && global.SuperAriTarti) global.SuperAriTarti.feeder.setKg(h.id, e.target.value);
     };
     el.onchange = function (e) {
       if (e.target.hasAttribute('data-bo-method')) vadv();
+      else if (e.target.hasAttribute('data-bo-cellhas')) cellSync('has');
+      else if (e.target.hasAttribute('data-bo-cell')) cellSync('where');
+      else if (e.target.hasAttribute('data-bo-celln')) cellSync('n');
       else if (e.target.hasAttribute('data-bo-fdon')) { var TW2 = global.SuperAriTarti; if (TW2) { var kgi = el.querySelector('[data-bo-fdkg]'); if (kgi) TW2.feeder.setKg(h.id, kgi.value); TW2.feeder.setOn(h.id, e.target.checked); } say({ ok: true, msg: e.target.checked ? 'Besleyici takılı: tartıda ' + (kgi ? String(kgi.value).replace('.', ',') : '') + ' kg dara.' : 'Besleyici çıkarıldı; dara kalktı.' }); }
       else if (e.target.hasAttribute('data-bo-super')) { setSuper(h.id, e.target.checked); renderHiveCard(el, hiveId, opts); if (opts.onChange) opts.onChange({}); }
       else if (e.target.hasAttribute('data-bo-prod')) info();
@@ -1068,7 +1093,8 @@
           sc.src = 'hastalik-tahmin.js' + (mv ? '?v=' + mv[1] : ''); sc.onload = go; document.head.appendChild(sc);
         }
       } else if (b.hasAttribute('data-bo-done')) { D.taskStore.complete(b.getAttribute('data-bo-done'), { note: 'Bakım planından' }); say({ ok: true, msg: 'Görev tamamlandı.' }); }
-      else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cell]').value, el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
+      else if (b.hasAttribute('data-bo-savecell')) say(saveCell(h.id, el.querySelector('[data-bo-cellhas]').value === '1' ? el.querySelector('[data-bo-cell]').value : 'yok', el.querySelector('[data-bo-celln]').value, el.querySelector('[data-bo-cellcap]').value, el.querySelector('[data-bo-eggs]').value === '1'));
+      else if (b.hasAttribute('data-bo-cinc')) { var cn = el.querySelector('[data-bo-celln]'); if (cn) { cn.value = String(Math.max(0, Math.min(60, (Math.round(Number(cn.value)) || 0) + Number(b.getAttribute('data-bo-cinc'))))); cellSync('n'); } }
       else if (b.hasAttribute('data-bo-vinc')) {
         var ci = b.parentNode.querySelector('input'); if (!ci) return;
         var stp = Number(ci.step) || 1, mn = ci.min !== '' ? Number(ci.min) : 0, mx = ci.max !== '' ? Number(ci.max) : 5000;
@@ -1119,6 +1145,8 @@
   }
   /** Bakım yap › ana memesi: yavru muayenesi kaydı (yer, sayı, kapalı/açık, tarih = bugün). */
   function saveCell(hiveId, where, n, cap, eggs) {
+    if (where !== 'yok' && !where) return { ok: false, msg: 'Meme nerede? Yerini seçin.' };
+    if (where !== 'yok' && !(Number(n) >= 1)) return { ok: false, msg: 'Meme sayısı en az 1 olmalı.' };
     var last = null; try { last = D.records.status(hiveId).brood; } catch (e) { last = null; }
     var rec = { date: today(), eggs: !!eggs, pattern: last ? last.pattern : 'duzenli', queenCell: where || 'yok',
       cellCount: where && where !== 'yok' ? n : '', cellCapped: where && where !== 'yok' ? cap : '', note: 'Bakım yap' + (mode() === 'demo' ? ' · Demo' : '') };
@@ -1126,7 +1154,7 @@
     var saved = D.records.add(hiveId, 'brood', rec);
     if (!saved) return { ok: false, msg: 'Kaydedilemedi.' };
     var m = where === 'ogul' ? 'Oğul memesi kaydedildi; oğul riski güncellendi.' : where === 'yenileme' ? 'Sessiz ana değiştirme kaydedildi; memelere dokunmayın.' :
-      where === 'acil' ? 'Acil ana memesi kaydedildi; anasız akışı açıldı.' : 'Muayene kaydedildi (meme yok).';
+      where === 'acil' ? 'Acil ana memesi kaydedildi; anasız akışı açıldı.' : where === 'bilinmiyor' ? 'Ana memesi kaydedildi (yeri bilinmiyor); sonraki muayenede yerine bakın.' : 'Muayene kaydedildi (meme yok).';
     return { ok: true, msg: m };
   }
 
