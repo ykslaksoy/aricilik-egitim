@@ -19,7 +19,8 @@ test('aday metni yapıya çevrilir, özgün metin korunur', () => {
   const w = yukle(), T = w.SA_DONANIM_TEST, d = JSON.parse(JSON.stringify(w.SA_DONANIM_TASLAK));
   const once = d.kalemler.map((k) => k.adaylar);
   assert.strictEqual(T.normalize(d), true);
-  assert.strictEqual(JSON.stringify(d.kalemler.map((k) => k.adaylar)), JSON.stringify(once));
+  // koruma-önizleme: «Koruma / dış ortam» kalemi eklenir; diğer kalemlerin özgün metni aynen kalır
+  assert.strictEqual(JSON.stringify(d.kalemler.filter((k) => k.id !== 'koruma').map((k) => k.adaylar)), JSON.stringify(once));
   const k = (id) => d.kalemler.find((x) => x.id === id);
   const isi = k('isi_nem').adaylarListe;
   assert.strictEqual(isi.length, 1); // SHT31-DIS uyumsuz → aday değil

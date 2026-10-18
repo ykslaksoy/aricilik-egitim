@@ -79,9 +79,9 @@ test('maliyet: 1 kovan ve 1 gateway ayrı; arılık = kovan × N + gateway', () 
   T.fiyatKisa(null, { tarih: '16.10.2026', kurlar: { USD: 49.4463, EUR: 55.618 } }); // kuru ayarla
   const h1 = T.hesap(d, 'ana', 1), h10 = T.hesap(d, 'ana', 10);
   // gateway: T-Beam 4410 + A7670E 2034,11 + dış SHT41 5,95 USD
-  assert.ok(Math.abs(h1.gatewayTL - (4410 + 2034.11 + 5.95 * 49.4463)) < 0.01, String(h1.gatewayTL));
+  assert.ok(Math.abs(h1.gatewayTL - h1.gatewayKorumaTL - (4410 + 2034.11 + 5.95 * 49.4463)) < 0.01, String(h1.gatewayTL));
   // kovan: T-Weigh 20,88 USD + SHT41 5,95 USD + DS18B20 76,49 + SPH0645 415,80 + ADXL345 155,38
-  assert.ok(Math.abs(h1.kovanTL - ((20.88 + 5.95) * 49.4463 + 76.49 + 415.8 + 155.38)) < 0.01, String(h1.kovanTL));
+  assert.ok(Math.abs(h1.kovanTL - h1.kovanKorumaTL - ((20.88 + 5.95) * 49.4463 + 76.49 + 415.8 + 155.38)) < 0.01, String(h1.kovanTL));
   assert.ok(Math.abs(h10.tot - (h1.kovanTL * 10 + h1.gatewayTL)) < 0.01);
   assert.ok(h1.kovanEksik > 0); // yük hücresi, pil, kutu: Veri yok
 });
