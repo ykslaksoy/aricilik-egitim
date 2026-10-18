@@ -27,3 +27,7 @@ test('k286: kullanıcı sayfalarında Bilgi arşivi yok', () => {
     assert.ok(!/bilgi_klasorleri|bilgi_kayitlari|panel17\.js/.test(fs.readFileSync(path.join(dir, f), 'utf8')), f);
   });
 });
+test('k287: ek kayıtlar (morfometri, Yeninar 2009, üçlü melez uzman tahmini)', () => {
+  const m = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20261019001000_k287_bilgi_arsivi_ek.sql'), 'utf8');
+  ['irk-morfo', 'melez-yeninar', 'goc-kkm', '10.3923/javaa.2009.995.999', "'uzman tahmini'"].forEach((x) => assert.ok(m.includes(x), x));
+});
