@@ -1,5 +1,7 @@
 # beepack — 1 Adet Alışveriş Listesi (NET)
 
+> **18.10.2026 güncellemesi (koloni-243 kararı):** DHT22 → **Sensirion SHT41** (I²C 0x44, ±0,2 °C / ±1,8 %RH tipik — [SHT4x datasheet V7.3](https://sensirion.com/media/documents/33FD6951/6A7C10A0/HT_DS_Datasheet_SHT4x_V7.3.pdf)). SHT41 Türkiye mağazası TL fiyatı: **Veri yok** (Robotistan, Direnc.net'te bulunamadı, 18.10.2026). Başvuru: 5,95 USD — [Adafruit #5776](https://www.adafruit.com/product/5776) (18.10.2026, kartta I²C pull-up var) ≈ 294,21 ₺ (TCMB döviz satış 16.10.2026, 1 USD = 49,4463 ₺). Aşağıdaki eski toplamlar DHT22 (114 ₺) ile hesaplanmıştı; güncel toplam: Yönetici → Donanım → Satın alma listesi.
+
 **Ne alıyorsun:** 1 akıllı kovan (tartı + sıcaklık + nem) + 1 merkez cihaz (telefona veri gönderen)  
 **Toplam:** **~9.500 ₺** (kargo dahil değil, kargo ~300–500 ₺ ekstra)
 
@@ -24,8 +26,8 @@
 | 1 | LilyGO T-Weigh 868 MHz (kovan beyni: tartı+LoRa) | 1 | 900 | 900 | LilyGO | lilygo.cc → T-Weigh **868** |
 | 2 | T-U2T programlayıcı (karta yazılım yüklemek için) | 1 | 806 | 806 | F1Depo | f1depo.com → T-U2T USB |
 | 3 | 50 kg tartı sensörü (load cell) | **4** | 44 | **176** | Robiz | robiz.net → loadcell 50kg |
-| 4 | DHT22 sıcaklık nem sensörü | 1 | 114 | 114 | Robo90 | robo90.com → DHT22 |
-| 5 | 4,7k direnç (DHT22 için, paket) | 1 | 6 | 6 | Robiz | robiz.net |
+| 4 | SHT41 sıcaklık nem sensörü (Sensirion) | 1 | Veri yok | Veri yok | Adafruit | adafruit.com/product/5776 (5,95 USD ≈ 294 ₺) |
+| 5 | 4,7k direnç (paket; SHT41 kartında gerekmez) | 1 | 6 | 6 | Robiz | robiz.net |
 | 6 | Güneş paneli 6V 150mA (kovan üstü, küçük) | 1 | 175 | 175 | Robotistan | 6V 150mA panel |
 | 7 | CN3065 pil şarj kartı (güneş → pil) | 1 | 86 | 86 | Robiz | robiz.net → CN3065 |
 | 8 | 1S BMS pil koruma kartı (kovan pili) | 1 | 17 | 17 | Robiz | robiz.net → 1S 3A BMS |
@@ -75,7 +77,7 @@
 - 1× USB kablo  
 
 ### 5) Robo90 (1 ürün — 114 ₺)
-- 1× DHT22  
+- 1× SHT41  
 
 ### 6) Direnc.net (2 ürün — 4.842 ₺, kargo bedava)
 - 1× T-Beam  
@@ -95,7 +97,7 @@
 | T-Weigh kart | **1** |
 | T-U2T programlayıcı | **1** |
 | Tartı sensörü (load cell) | **4** |
-| Sıcaklık/nem sensörü (DHT22) | **1** |
+| Sıcaklık/nem sensörü (SHT41) | **1** |
 | Güneş paneli küçük (kovan) | **1** |
 | Güneş paneli büyük (merkez) | **1** |
 | 18650 pil | **3** (1 kovan + 2 merkez) |

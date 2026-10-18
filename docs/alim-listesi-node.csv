@@ -2,8 +2,8 @@ SatirNo;Paket;Bolum;Urun;Adet;BirimFiyatTL;ToplamTL;StokKodu;Tedarikci;URL;Not
 N01;NODE;MCU;LilyGO T-Weigh 868 MHz (4x HX711 LoRa anten dahil);1;900;900;H522;LilyGO;https://lilygo.cc/products/t-weigh;915 MHz almayin
 N02;NODE;Programlama;T-U2T USB-TTL programlayici CH9102;1;806.40;806.40;D64;F1Depo;https://www.f1depo.com/urun/t-u2t-usb;Zorunlu firmware icin
 N03;NODE;Tarti;50 kg load cell yarim kopru 34x34mm;4;43.68;174.72;Loadcell 50kg;Robiz;https://robiz.net/loadcell50kg;4 kose tam kopru ~200kg
-N04;NODE;Sensor;DHT22 AM2302 sicaklik nem;1;114;114;R000919;Robo90;https://www.robo90.com/dht22-sicaklik-ve-nem-algilama-sensoru;BME280 alternatifi
-N05;NODE;Sensor;4.7k ohm direnc DHT22 pull-up;1;6;6;;Robiz;https://robiz.net;10 adet paket yeter
+N04;NODE;Sensor;Sensirion SHT41 sicaklik nem (I2C 0x44);1;Veri yok;Veri yok;5776;Adafruit;https://www.adafruit.com/product/5776;TL magaza fiyati Veri yok (18.10.2026) - 5.95 USD = ~294.21 TL (TCMB 16.10.2026 1 USD=49.4463)
+N05;NODE;Sensor;4.7k ohm direnc (SHT41 kartinda pull-up var - DS18B20 1-Wire icin);1;6;6;;Robiz;https://robiz.net;10 adet paket yeter
 N06;NODE;Gunes;6V 150mA gunes paneli 105x66mm;1;174.87;174.87;;Robotistan;https://www.robotistan.com/6-v-125ma-gunes-pili-solar-panel;~0.9W
 N07;NODE;Gunes;CN3065 1S Li-ion gunes sarj modulu;1;86.40;86.40;CN3065;Robiz;https://robiz.net/cn3065;Micro USB ile de sarj
 N08;NODE;Pil;1S 3A BMS koruma karti;1;17.28;17.28;1S 3A BMS;Robiz;https://robiz.net/battery;Sarj etmez sadece korur

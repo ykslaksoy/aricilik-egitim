@@ -1,5 +1,7 @@
 # beepack — 1 Prototip Alım Listesi (özet)
 
+> **18.10.2026 güncellemesi (koloni-243 kararı):** DHT22 → **Sensirion SHT41** (I²C 0x44, ±0,2 °C / ±1,8 %RH tipik — [SHT4x datasheet V7.3](https://sensirion.com/media/documents/33FD6951/6A7C10A0/HT_DS_Datasheet_SHT4x_V7.3.pdf)). SHT41 Türkiye mağazası TL fiyatı: **Veri yok** (Robotistan, Direnc.net'te bulunamadı, 18.10.2026). Başvuru: 5,95 USD — [Adafruit #5776](https://www.adafruit.com/product/5776) (18.10.2026, kartta I²C pull-up var) ≈ 294,21 ₺ (TCMB döviz satış 16.10.2026, 1 USD = 49,4463 ₺). Aşağıdaki eski toplamlar DHT22 (114 ₺) ile hesaplanmıştı; güncel toplam: Yönetici → Donanım → Satın alma listesi.
+
 **Amaç:** 1 kovan NODE + 1 GATE merkez istasyonu (Yanıkdağ / Tortum saha testi)  
 **Tarih:** 31 Ağustos 2026  
 **Not:** Fiyatlar KDV dahil, stok anlık durumuna göre değişebilir. Kargo ayrı.
@@ -51,9 +53,9 @@
 | # | Parça | Adet | Birim (KDV dahil) | Toplam | Nereden | Link |
 |---|-------|------|-------------------|--------|---------|------|
 | 4a | **BME280** (sıcaklık + nem + basınç, I2C) — tercih | 1 | 316,80 ₺ | 316,80 ₺ | Robiz | [robiz.net — BME280](https://robiz.net/index.php?route=product/search&search=BME280) ⚠️ **Stok dışı** |
-| 4b | **DHT22 (AM2302)** — alternatif | 1 | 114,00 ₺ | 114,00 ₺ | Robo90 | [robo90.com/dht22](https://www.robo90.com/dht22-sicaklik-ve-nem-algilama-sensoru) |
+| 4b | **Sensirion SHT41** (I²C 0x44) — seçilen | 1 | Veri yok (TL) · 5,95 USD ≈ 294,21 ₺ | Veri yok | Adafruit #5776 | [adafruit.com/product/5776](https://www.adafruit.com/product/5776) |
 
-**Öneri:** BME280 gelene kadar DHT22 ile başlayın; firmware'de ikisi de desteklenebilir.
+**Karar (17.10.2026):** SHT41 seçildi (DHT22 ±0,5 °C, eşek arısı 0,5 °C sınırı için yetersiz). Firmware: `firmware/node/src/sensors/sht41.cpp` (taslak, test edilmedi).
 
 ---
 
@@ -88,7 +90,7 @@
 |------|---------------------|
 | A1 Kart + programlayıcı | ~1.706 ₺ |
 | A2 Load cell ×4 | ~175 ₺ |
-| A3 Sensör (DHT22) | ~114 ₺ |
+| A3 Sensör (SHT41) | Veri yok (TL) · ≈294 ₺ (5,95 USD) |
 | A4 Güneş + pil | ~491 ₺ |
 | A5 Kutu + kablo | ~221 ₺ |
 | **NODE toplam** | **~2.707 ₺** (+ kargo, T-Weigh ithalat) |
@@ -156,7 +158,7 @@ Hafta 1 — Yazılım + kart
 
 Hafta 1–2 — Sensör + tartı
   └─ Robiz: load cell ×4, CN3065, BMS, kutu, kablo
-  └─ Robo90: DHT22
+  └─ Adafruit: SHT41 (TL mağaza: Veri yok)
   └─ Robotistan: güneş paneli + 18650
 
 Hafta 2–3 — Platform
@@ -203,7 +205,7 @@ Hafta 4+ — Saha
 - [ ] T-Weigh 868 MHz sipariş (LilyGO / OpenELAB)
 - [ ] T-U2T — F1Depo
 - [ ] 4× 50 kg load cell — Robiz
-- [ ] DHT22 veya BME280 — Robo90 / Robiz
+- [ ] SHT41 (Sensirion) — TL mağaza: Veri yok · Adafruit #5776
 - [ ] CN3065 + 1S BMS + 18650 + güneş paneli — Robiz + Robotistan
 - [ ] IP65 kutu 83×58×33 — Robiz
 - [ ] T-Beam + A7670E — Direnc.net

@@ -1,5 +1,7 @@
 # beepack — malzeme listesi + maliyet
 
+> **18.10.2026 güncellemesi (koloni-243 kararı):** DHT22 → **Sensirion SHT41** (I²C 0x44, ±0,2 °C / ±1,8 %RH tipik — [SHT4x datasheet V7.3](https://sensirion.com/media/documents/33FD6951/6A7C10A0/HT_DS_Datasheet_SHT4x_V7.3.pdf)). SHT41 Türkiye mağazası TL fiyatı: **Veri yok** (Robotistan, Direnc.net'te bulunamadı, 18.10.2026). Başvuru: 5,95 USD — [Adafruit #5776](https://www.adafruit.com/product/5776) (18.10.2026, kartta I²C pull-up var) ≈ 294,21 ₺ (TCMB döviz satış 16.10.2026, 1 USD = 49,4463 ₺). Aşağıdaki eski toplamlar DHT22 (114 ₺) ile hesaplanmıştı; güncel toplam: Yönetici → Donanım → Satın alma listesi.
+
 **plan:** aşama 1 NODE (WiFi test) → çalışınca aşama 2 GATE.  
 **ana plan:** **`ALIM_PLANI.md`**
 
@@ -16,7 +18,7 @@ fiyatlar yaklaşık KDV dahil (2026).
 | 1 | LilyGO T-Weigh 868 MHz | 1 | 900 | **900** | lilygo.cc / OpenELAB / Mauser |
 | 2 | T-U2T programlayıcı | 1 | 806 | **806** | f1depo.com |
 | 3 | 50 kg load cell | 4 | 44 | **176** | robiz.net |
-| 4 | DHT22 sıcaklık/nem | 1 | 114 | **114** | robo90.com |
+| 4 | SHT41 sıcaklık/nem | 1 | Veri yok | **Veri yok** | adafruit.com/product/5776 (5,95 USD) |
 | 5 | IR sensör modülü | 2 | 50 | **100** | robotistan.com |
 | 6 | mikrofon / ses sensörü | 1 | 45 | **45** | robotistan.com |
 | 7 | ADXL345 titreşim | 1 | 150 | **150** | robotistan.com |
@@ -47,7 +49,7 @@ fiyatlar yaklaşık KDV dahil (2026).
 | LilyGO / OpenELAB | T-Weigh | 900 |
 | F1Depo | T-U2T | 806 |
 | Robiz | load cell×4 + CN3065 + BMS + kutu + direnç + jumper×2 | 486 |
-| Robo90 | DHT22 | 114 |
+| Adafruit | SHT41 | Veri yok (5,95 USD) |
 | Robotistan | güneş + pil + yuva + USB + IR×2 + mic + ADXL345 | 724 |
 | Yerel | platform | 380 |
 | kargo | | 350 |

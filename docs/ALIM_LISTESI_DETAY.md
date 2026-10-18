@@ -1,5 +1,7 @@
 # beepack — 1 Adet Prototip Detaylı Alım Listesi
 
+> **18.10.2026 güncellemesi (koloni-243 kararı):** DHT22 → **Sensirion SHT41** (I²C 0x44, ±0,2 °C / ±1,8 %RH tipik — [SHT4x datasheet V7.3](https://sensirion.com/media/documents/33FD6951/6A7C10A0/HT_DS_Datasheet_SHT4x_V7.3.pdf)). SHT41 Türkiye mağazası TL fiyatı: **Veri yok** (Robotistan, Direnc.net'te bulunamadı, 18.10.2026). Başvuru: 5,95 USD — [Adafruit #5776](https://www.adafruit.com/product/5776) (18.10.2026, kartta I²C pull-up var) ≈ 294,21 ₺ (TCMB döviz satış 16.10.2026, 1 USD = 49,4463 ₺). Aşağıdaki eski toplamlar DHT22 (114 ₺) ile hesaplanmıştı; güncel toplam: Yönetici → Donanım → Satın alma listesi.
+
 **Kapsam:** 1 kovan **NODE** + 1 **GATE** merkez istasyonu (tam saha testi)  
 **Tarih:** 31 Ağustos 2026  
 **Para birimi:** TL, **KDV dahil** (aksi belirtilmedikçe)
@@ -60,7 +62,7 @@ T-Weigh’te USB çipi yok; **bu olmadan firmware yüklenemez**. GATE (T-Beam) i
 | C7 | 2S 5A BMS | GATE pil koruma (2×18650 seri) | 1 | 43,20 ₺ | **43,20 ₺** | [robiz.net/2s5abms](https://robiz.net/2s5abms) |
 | C8 | 18650 2’li yuva | GATE pil yuvası (kapaklı) | 1 | 52,80 ₺ | **52,80 ₺** | [robiz.net — 18650 2x yuva](https://robiz.net/index.php?route=product/search&search=18650+yuvas%C4%B1) |
 | C9 | 150×100×50 kutu | GATE elektronik kutusu (iç mekân / silikonla dış) | 1 | 86,40 ₺ | [robiz.net/plastics](https://robiz.net/plastics) |
-| C10 | 1/4W 4,7 kΩ direnç | DHT22 pull-up (10 adet paket yeter) | 1 | ~6 ₺ | [robiz.net — direnç](https://robiz.net/index.php?route=product/search&search=4.7k) |
+| C10 | 1/4W 4,7 kΩ direnç | SHT41 için gerekmez (kartta pull-up var); DS18B20 1-Wire için (10 adet paket yeter) | 1 | ~6 ₺ | [robiz.net — direnç](https://robiz.net/index.php?route=product/search&search=4.7k) |
 | C11 | M3×12 vida + somun seti | Kutu + PCB montaj | 1 set | ~35 ₺ | Robiz / hırdavat |
 
 **Robiz alt toplam:** **~616 ₺** (C11 hariç ~581 ₺)
@@ -83,13 +85,13 @@ T-Weigh’te USB çipi yok; **bu olmadan firmware yüklenemez**. GATE (T-Beam) i
 
 ---
 
-### Sepet E — Robo90 · 114 ₺ + ~40 ₺ kargo
+### Sepet E — SHT41 · TL fiyat: Veri yok
 
 | Satır | Kod | Ürün | Adet | Fiyat | Link |
 |-------|-----|------|------|-------|------|
-| E1 | R000919 | **DHT22 (AM2302)** sıcaklık + nem | 1 | **114,00 ₺** | [robo90.com/dht22](https://www.robo90.com/dht22-sicaklik-ve-nem-algilama-sensoru) |
+| E1 | 5776 | **Sensirion SHT41** sıcaklık + nem (I²C 0x44) | 1 | **Veri yok** (TL) · 5,95 USD ≈ 294,21 ₺ | [adafruit.com/product/5776](https://www.adafruit.com/product/5776) |
 
-**Not:** Robiz BME280 (316,80 ₺) stok dışı. BME280 gelince I2C ile değiştirilir; DHT22 tek pin (GPIO).
+**Not:** Karar 17.10.2026: SHT41 (I²C). DHT22 kaldırıldı (±0,5 °C, eşek arısı 0,5 °C sınırı için yetersiz).
 
 ---
 
@@ -150,8 +152,8 @@ Aylık ~50–100 MB yeterli (15 dk’da bir JSON paketi).
 | 001 | MCU | LilyGO T-Weigh 868 MHz | 1 | ~900 ₺ | LilyGO |
 | 002 | Prog | T-U2T programlayıcı | 1 | 806,40 ₺ | F1Depo |
 | 003 | Tartı | 50 kg load cell | 4 | 174,72 ₺ | Robiz C1 |
-| 004 | Sensör | DHT22 sıcaklık/nem | 1 | 114,00 ₺ | Robo90 |
-| 005 | Sensör | 4,7 kΩ pull-up direnç | 1 | ~6 ₺ | Robiz C10 |
+| 004 | Sensör | SHT41 sıcaklık/nem | 1 | Veri yok | Adafruit #5776 |
+| 005 | Sensör | 4,7 kΩ pull-up direnç (SHT41 için gerekmez) | 1 | ~6 ₺ | Robiz C10 |
 | 006 | Güneş | 6V 150 mA panel | 1 | 174,87 ₺ | Robotistan D1 |
 | 007 | Şarj | CN3065 modül | 1 | 86,40 ₺ | Robiz C2 |
 | 008 | Koruma | 1S 3A BMS | 1 | 17,28 ₺ | Robiz C3 |
@@ -215,14 +217,16 @@ Her hücrede **3 kablo** (Robiz yarı köprü):
 **Montaj:** 4 hücre platform köşelerine; zemin sabit, üst plaka kovan ağırlığını taşır.  
 **Kapasite:** 4×50 kg yarı köprü → tam köprüde **~200 kg**.
 
-### 5.2 DHT22 → T-Weigh (GPIO)
+### 5.2 SHT41 → T-Weigh (I²C)
 
-| DHT22 pini | Bağlantı |
-|------------|----------|
-| VCC (1) | 3,3 V (T-Weigh) |
-| DATA (2) | GPIO (ör. IO4) + **4,7 kΩ** pull-up → 3,3 V |
-| NC (3) | Boş |
-| GND (4) | GND |
+| SHT41 kartı pini | Bağlantı |
+|------------------|----------|
+| VIN | 3,3 V (T-Weigh) — SHT4x besleme 1,08–3,6 V |
+| GND | GND |
+| SCL | T-Weigh I²C SCL (pin: Veri yok — T-Weigh pinout işlenince) |
+| SDA | T-Weigh I²C SDA (pin: Veri yok) |
+
+Adafruit #5776 kartında I²C pull-up var; adres 0x44 (`SHT41_I2C_ADDR`).
 
 Sensör **kovan içine** (ısı/nem), kablo PG7 pabuççudan kutuya girer.
 
@@ -281,7 +285,7 @@ Veri yolu: **NODE (LoRa)** → **GATE (T-Beam alır)** → **A7670E (HTTPS POST)
 | 2 | Mock API’ye WiFi POST (`npm run dev`) | Laptop |
 | 3 | 1 load cell + bilinen ağırlık kalibrasyon | 003, 022 |
 | 4 | 4 load cell tam montaj | 018–020 |
-| 5 | DHT22 okuma testi | 004, 005 |
+| 5 | SHT41 okuma testi (sht41.cpp, test edilmedi) | 004 |
 | 6 | CN3065 + panel + pil 24 saat test | 006–010 |
 | 7 | T-Beam + A7670E birleştir, SIM aktivasyon | 101–102, 108 |
 | 8 | LoRa paket alımı → 4G POST | 101–102 |
@@ -294,7 +298,7 @@ Veri yolu: **NODE (LoRa)** → **GATE (T-Beam alır)** → **A7670E (HTTPS POST)
 | Parça | Durum | Alternatif |
 |-------|-------|------------|
 | T-Weigh 868 | TR’de nadir | OpenELAB, Mauser (PT), LilyGO resmi |
-| BME280 | Robiz stok dışı | DHT22 (E1) veya SHT30 Robotistan ~380 ₺ |
+| BME280 | Robiz stok dışı | SHT41 (E1, seçilen) |
 | 83×58 IP65 | Dar; T-Weigh sığar | Biraz büyük kutu için 100×80×29 Robiz (~97 ₺, IP değil) |
 | GATE kutusu | 150×100×50 IP değil | Dış saha için silikon + gölgelik; üretimde IP65 büyük kutu |
 | T-Beam vs custom | T-Beam pahalı | ESP32 + SX1262 shield (~1.200 ₺) — zaman kaybettirir |
@@ -319,7 +323,7 @@ Veri yolu: **NODE (LoRa)** → **GATE (T-Beam alır)** → **A7670E (HTTPS POST)
 □ D3  18650 ×1 (NODE)
 □ D4  18650 ×2 (GATE)
 □ D5  Tekli pil yuvası (NODE)
-□ E1  DHT22
+□ E1  SHT41
 □ F1  T-Beam V1.2
 □ F2  A7670E 4G
 □ G1  SIM kart
