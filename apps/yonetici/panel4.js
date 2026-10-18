@@ -1,4 +1,4 @@
-/* k150: Yönetici · Kural kaynakları — ağaç: Ses sınıfları (KİLİTLİ) · Oğul skoru · Muayene kuralları. Tıklayınca detay. */
+/* k150: Yönetici · Kural kaynakları — ağaç: Ses sınıfları (KİLİTLİ) · Oğul skoru · Muayene kuralları · Arılık konumu (k285). Tıklayınca detay. */
 (function () {
   'use strict';
   var B = window.SuperAriBulut, host = document.getElementById('panel'); if (!B || !host) return;
@@ -21,6 +21,6 @@
     if (rs[1].error) { bd.innerHTML = '<p class="fe-empty">Veritabanı güncellemesi gerekli (supabase/migrations/20261014233000_kural_kaynaklari.sql) veya yetki yok.</p>'; return; }
     var ses = (rs[0].data || []).map(function (x) { return { ad: x.ad_tr + (x.ad_en ? ' (' + x.ad_en + ')' : ''), degerler: (x.hz_min != null ? x.hz_min + '–' + x.hz_max + ' Hz · ' : 'Hz: Veri yok · ') + (x.yapi || ''), seviye: x.seviye, aciklama: x.anlam, kaynak: x.kaynak || 'Doğrulanmış hakemli kaynak bulunamadı', durum: x.durum || (x.kaynak_zayif ? 'kaynak zayıf · KİLİTLİ' : 'teyitli · KİLİTLİ') }; });
     var K = rs[1].data || [], by = function (g) { return K.filter(function (x) { return x.grup === g; }); };
-    bd.innerHTML = group('Ses sınıfları (KİLİTLİ protokol)', ses) + group('Oğul skoru bileşenleri', by('oğul skoru')) + group('Sağlık kuralları', by('sağlık')) + group('Muayene kuralları', by('muayene'));
+    bd.innerHTML = group('Ses sınıfları (KİLİTLİ protokol)', ses) + group('Oğul skoru bileşenleri', by('oğul skoru')) + group('Sağlık kuralları', by('sağlık')) + group('Muayene kuralları', by('muayene')) + group('Arılık konumu (foraj seçimi)', by('arılık konumu'));
   }).catch(function () { bd.innerHTML = '<p class="fe-empty">Bağlantı yok.</p>'; });
 })();
