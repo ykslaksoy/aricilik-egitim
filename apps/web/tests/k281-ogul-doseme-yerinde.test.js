@@ -9,3 +9,6 @@ test('k281: #ogulPanel döşemeleri tıklamayı yakalar, yerinde çizer', () => 
   assert.match(blk, /history\.replaceState/);
   assert.match(blk, /var y = window\.scrollY; drawUyari\(\); window\.scrollTo\(0, y\)/);
 });
+test('k282: Mevsim dışı listesinde nokta da gri-mavi (Orta sarısı değil)', () => {
+  assert.match(U, /og-dot" style="background:' \+ \(r\.b === 'mevsimdisi' \? MD_COLOR : r\.a\.color\)/);
+});
