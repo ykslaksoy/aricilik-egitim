@@ -17,6 +17,95 @@
     return demo ? String(k).replace(/\.v(\d+)$/, '.demo.v$1') : k;
   }
   function isLiveMode() { return mk('x.v1') === 'x.v1'; }
+
+  /*
+   * koloni-280: tek seferlik kovan numarası göçü — Cimil kovanları en küçük numaralar (1..n), Yanıkdağ ardından (n+1..).
+   * Bulut (Supabase) satırları sunucuda aynı eşlemeyle taşındı; burada cihazdaki tüm depolar (kovan no ile anahtarlı
+   * görev / uyarı / tartı / sensör / not / fotoğraf / ses kayıtları, bulut eşitleme anahtarları) aynı eşlemeye çevrilir.
+   */
+  var RENUM_KEY = 'superari.kovanNoGoc.k280';
+  var RENUM_REF = ['hiveId', 'fromHiveId', 'toHiveId', 'otherHiveId', 'mergedInto', 'splitFrom', 'sourceHiveId', 'targetHiveId'];
+  function renumBuildMap(aps, hives) {
+    if (!Array.isArray(aps) || !Array.isArray(hives)) return null;
+    function apOf(re) { for (var i = 0; i < aps.length; i++) if (aps[i] && re.test(String(aps[i].name || '') + ' ' + String(aps[i].place || ''))) return String(aps[i].id); return null; }
+    var order = [apOf(/cimil/i), apOf(/yan[ıi]kda/i)].filter(Boolean);
+    if (!order.length) return null;
+    var map = {}, next = 1, moving = {}, n = 0;
+    order.forEach(function (ap) {
+      hives.filter(function (h) { return h && String(h.apiaryId) === ap && isFinite(Number(h.id)); })
+        .map(function (h) { return Number(h.id); }).sort(function (a, b) { return a - b; })
+        .forEach(function (id) { moving[id] = 1; if (id !== next) { map[id] = next; n++; } next++; });
+    });
+    if (!n) return null;
+    for (var i = 0; i < hives.length; i++) {
+      var id = hives[i] && Number(hives[i].id);
+      if (!moving[id] && id >= 1 && id < next) return null; /* çakışma: dokunma */
+    }
+    return map;
+  }
+  function renumValue(v, map) {
+    if (typeof v === 'number') return map[v] != null ? map[v] : v;
+    if (typeof v === 'string' && /^\d+$/.test(v) && map[Number(v)] != null) return String(map[Number(v)]);
+    return v;
+  }
+  function renumDeep(o, map, inHives) {
+    if (Array.isArray(o)) return o.map(function (x) { return renumDeep(x, map, inHives); });
+    if (typeof o === 'string') {
+      var m = /^hk:([0-9a-f-]{36}):(\d+)$/.exec(o);
+      if (m && map[Number(m[2])] != null) return 'hk:' + m[1] + ':' + map[Number(m[2])];
+      return o;
+    }
+    if (!o || typeof o !== 'object') return o;
+    var r = {};
+    Object.keys(o).forEach(function (k) {
+      var v = o[k], nk = (/^\d+$/.test(k) && map[Number(k)] != null) ? String(map[Number(k)]) : k;
+      if (RENUM_REF.indexOf(k) >= 0 || (inHives && k === 'id')) r[nk] = renumValue(v, map);
+      else if (k === 'hiveIds' && Array.isArray(v)) r[nk] = v.map(function (x) { return renumValue(x, map); });
+      else if (inHives && k === 'name' && typeof v === 'string') { var nm = /^Kovan (\d+)$/.exec(v); r[nk] = nm && map[Number(nm[1])] != null ? 'Kovan ' + map[Number(nm[1])] : v; }
+      else r[nk] = renumDeep(v, map, false);
+    });
+    return r;
+  }
+  function renumberHivesK279(ls) {
+    ls = ls || (typeof localStorage !== 'undefined' ? localStorage : null);
+    if (!ls) return null;
+    try { if (ls.getItem(RENUM_KEY) === '1') return null; } catch (e0) { return null; }
+    var done = {};
+    ['', '.demo'].forEach(function (sfx) {
+      var aps, hives;
+      try { aps = JSON.parse(ls.getItem('superari.ariliklar' + sfx + '.v1') || 'null'); hives = JSON.parse(ls.getItem('superari.kovanlar' + sfx + '.v1') || 'null'); } catch (e1) { return; }
+      var map = renumBuildMap(aps, hives);
+      if (!map) return;
+      done[sfx || 'live'] = map;
+      var keys = [];
+      for (var i = 0; i < ls.length; i++) { var k = ls.key(i); if (k && k.indexOf('superari.') === 0 && k !== RENUM_KEY) keys.push(k); }
+      keys.forEach(function (k) {
+        var isDemo = k.indexOf('.demo') >= 0;
+        if (sfx ? !isDemo : isDemo) return;
+        var raw = ls.getItem(k), j;
+        if (!raw || (raw[0] !== '{' && raw[0] !== '[')) return;
+        try { j = JSON.parse(raw); } catch (e2) { return; }
+        if (k === 'superari.bulut.state.v1') {
+          /* yalnız yerel kovan no → bulut anahtarı eşlemesi; snap/queue eski anahtarlarıyla kalır (silme işareti eski satıra gider) */
+          if (!j || !j.keys) return;
+          var nkeys = {};
+          Object.keys(j.keys).forEach(function (kk) {
+            var hm = /^hives:(\d+)$/.exec(kk);
+            if (hm && map[Number(hm[1])] != null) { var nn = map[Number(hm[1])]; nkeys['hives:' + nn] = String(j.keys[kk]).replace(/:\d+$/, ':' + nn); }
+            else if (!nkeys[kk]) nkeys[kk] = j.keys[kk];
+          });
+          j.keys = nkeys;
+          try { ls.setItem(k, JSON.stringify(j)); } catch (eS) { /* */ }
+          return;
+        }
+        var out = JSON.stringify(renumDeep(j, map, k === 'superari.kovanlar' + sfx + '.v1'));
+        if (out !== raw) { try { ls.setItem(k, out); } catch (e3) { /* yer yok */ } }
+      });
+    });
+    try { ls.setItem(RENUM_KEY, '1'); } catch (e4) { /* */ }
+    return done;
+  }
+  try { renumberHivesK279(); } catch (eRen) { /* göç başarısızsa veri bozulmaz */ }
   var WATER_CATALOG_KEY = 'superari.waterSources.catalog.v1';
 
   /* Arılık: short `place` for Ana weather cycle; full `name` for panel lists. */
@@ -1740,6 +1829,9 @@
     if (apiaryId === 'a1') return 100;
     if (apiaryId === 'a2') return 200;
     if (apiaryId === 'a3') return 300;
+    /* koloni-280: Cimil en küçük numaralar (1–25), Yanıkdağ ardından (26–45) */
+    if (apiaryId === 'a5') return 0;
+    if (apiaryId === 'a4') return 25;
     var n = 0;
     var s = String(apiaryId);
     for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) % 7000;
@@ -7120,6 +7212,8 @@
       get STORAGE_KEY() { return mk(STORAGE_KEY); },
       get HIVES_KEY() { return mk(HIVES_KEY); },
       SEED_APIARIES: SEED_APIARIES,
+      renumberHivesK279: renumberHivesK279,
+      renumBuildMap: renumBuildMap,
       get apiaries() { return loadApiaries(); },
       get hives() { return loadHives(); },
       /* Statik demo + koloni kayıtlarından türetilen otomatik uyarı/görevler. */
