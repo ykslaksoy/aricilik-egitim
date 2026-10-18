@@ -17,7 +17,7 @@ test('k286: 7 klasör, her kayıtta kaynak veya uzman tahmini', () => {
 });
 test('k286: panel17 yükleme zincirinde ve arama içerir', () => {
   const idx = fs.readFileSync(path.join(root, 'apps', 'yonetici', 'index.html'), 'utf8');
-  assert.ok(idx.includes("ld('panel17.js?v=koloni-286')"));
+  assert.ok(idx.includes("ld('panel17.js?v=koloni-288')"));
   const p = fs.readFileSync(path.join(root, 'apps', 'yonetici', 'panel17.js'), 'utf8');
   assert.ok(p.includes("from('bilgi_klasorleri')") && p.includes('data-ba-q'));
 });
