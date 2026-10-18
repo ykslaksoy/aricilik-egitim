@@ -152,7 +152,7 @@
     var t0 = isoToday(), S = sezon(t0), sy = sezonYazi(S, t0);
     if (sy) return { t: sy, n: 'Toplama yok; kovanı açmayın, stoğu dıştan izleyin.', kapali: true }; /* k249: arılığın uçuş mevsimi */
     var m = new Date().getMonth() + 1;
-    if (camAcik(S, m)) return { t: 'Çam balı mevsimi açık', n: 'Kızılçam salgı (basra) akımı Ağustos–Kasım sürer (MAYBİR; ZMO); uçuş ve toplama olur.', cam: true };
+    if (camAcik(S, m)) return { t: 'Çam balı mevsimi açık', n: 'Kızılçam salgı (basra) akımı Ağustos–Kasım sürer; uçuş ve toplama olur.', cam: true };
     if (m >= 3 && m <= 5) return { t: 'İlkbahar gelişmesi', n: 'Koloniler büyüyor; erken akım bölgeye göre başlar.' };
     if (m >= 6 && m <= 8) return { t: 'Ana bal akımı', n: 'Çoğu bölgede ana akım dönemi; ballık ve hasat takibi.', hasat: true };
     if (m >= 9 && m <= 10) return { t: 'Sezon sonu / kışlığa hazırlık', n: 'Akım azalır; kışlık stok ve besleme kontrolü.' };
