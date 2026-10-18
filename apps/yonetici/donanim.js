@@ -58,16 +58,18 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
   var ALT = {
     isi_nem: sht4x(''),
     dis_isi_nem: sht4x(' Gateway\'de sürücü kodu henüz yok.'),
+    ses: [
+      { ad: 'TDK INMP441', fark: 'I²S, 24 bit; SNR 61 dB(A) (SPH0645: 65 dB(A)); düz frekans yanıtı 60 Hz–15 kHz. Üretici durumu: NRND (yeni tasarım için önerilmiyor).', uyum: 'SPH0645 gibi I²S mikrofon; aynı ESP32 I²S okuma koduyla çalışması uzman tahmini — mikrofon sürücüsü (microphone.cpp) henüz yazılmadığı için doğrulanamadı.', durum: 'uzman', kaynak: 'https://product.tdk.com/en/search/sw_piezo/mic/mems-mic/info?part_no=INMP441', fiyat: { tutar: 145.29, para: 'TL', tarih: '2026-10-18', magaza: 'Direnc.net', url: 'https://www.direnc.net/inmp441-mems-i2s-cok-yonlu-mikrofon-modulu', not: 'Modül, KDV dahil' } }
+    ],
     giris_sicak: [
       { ad: 'Analog Devices MAX31820', fark: '±0,5 °C yalnız +10…+45 °C (tüm aralık ±2 °C); besleme 3,0–3,7 V; TO-92 gövde — hazır su geçirmez prob değil.', uyum: 'Aile kodu 0x28 (DS18B20 ile aynı); DallasTemperature destekler («also MAX31820»); üretici: «Software Compatible with the DS1822 and DS18B20».', durum: 'uyumlu', kaynak: 'https://www.analog.com/en/products/max31820.html', fiyat: { tutar: 1.87, para: 'USD', tarih: '2026-10-18', magaza: 'analog.com (1 000 adet liste fiyatı)', url: 'https://www.analog.com/en/products/max31820.html', not: 'Çıplak çip' } },
-      { ad: 'Analog Devices DS18S20', fark: 'Sabit 9 bit çözünürlük (0,5 °C adım); ±0,5 °C (−10…+85 °C); TO-92/SO gövde.', uyum: 'DallasTemperature destekler (aile kodu 0x10, «9 bit only»). Okuma kodu henüz yazılmadığı için 9 bitin etkisi uzman tahmini.', durum: 'uyumlu', kaynak: LIB_DT, fiyat: { tutar: 3.81, para: 'USD', tarih: '2026-10-18', magaza: 'analog.com (1 000 adet liste fiyatı)', url: 'https://www.analog.com/en/products/ds18s20.html', not: 'Çıplak çip' } },
-      { ad: 'Analog Devices DS1822', fark: 'Daha az doğru: ±2 °C (−10…+85 °C); 44 °C eşiği için zayıf.', uyum: 'DallasTemperature destekler (aile kodu 0x22); üretici: DS18B20 ile yazılım uyumlu.', durum: 'uyumlu', kaynak: 'https://www.analog.com/en/products/ds1822.html', fiyat: { tutar: 3.02, para: 'USD', tarih: '2026-10-18', magaza: 'analog.com (1 000 adet liste fiyatı)', url: 'https://www.analog.com/en/products/ds1822.html', not: 'Çıplak çip' } }
+      { ad: 'Analog Devices DS18S20', fark: 'Sabit 9 bit çözünürlük (0,5 °C adım); ±0,5 °C (−10…+85 °C); TO-92/SO gövde.', uyum: 'DallasTemperature destekler (aile kodu 0x10, «9 bit only»). Okuma kodu henüz yazılmadığı için 9 bitin etkisi uzman tahmini.', durum: 'uyumlu', kaynak: LIB_DT, fiyat: { tutar: 3.81, para: 'USD', tarih: '2026-10-18', magaza: 'analog.com (1 000 adet liste fiyatı)', url: 'https://www.analog.com/en/products/ds18s20.html', not: 'Çıplak çip' } }
     ]
   };
   function swDurum(ad) {
     ad = String(ad || '');
     if (/SHT4[0-5]/i.test(ad)) return { d: 'taslak', t: 'Sürücü taslağı var (sht41.cpp), test edilmedi' };
-    if (/DS18B20|DS18S20|DS1822|MAX31820/i.test(ad)) return { d: 'kut', t: 'Kütüphane tanımlı, kod yok — yapılacak' };
+    if (/DS18B20|DS18S20|MAX31820/i.test(ad)) return { d: 'kut', t: 'Kütüphane tanımlı, kod yok — yapılacak' };
     if (/kalkan|18650|güneş|kutu|yük hücresi/i.test(ad)) return { d: 'yok0', t: 'Yazılım gerekmez' };
     return { d: 'yok', t: 'Yazılım desteği yok, yapılacak' };
   }
@@ -95,8 +97,14 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
     return { liste: L, not: notlar.join(' · ') };
   }
   function adayAd(c) { return (c.parcalar || []).map(function (p) { return p.ad; }).join(' + ') || 'Adsız aday'; }
-  /* Uyumsuz parçalar (bugünkü firmware değişmeden çalışmaz) aday/alternatif olarak gösterilmez. */
-  var UYUMSUZ = [/SHT3\d/i];
+  /* Aday/alternatif yalnız AYNI yazılımla çalışıp AYNI işi görürse gösterilir (kullanıcı kuralı 18.10.2026).
+     SHT31-DIS: farklı komut seti · DS1822: ±2 °C, 44 °C giriş eşiği için zayıf · ADXL355: ayrı sürücü gerekir · ESP32-S3 + ayrı LoRa + HX711: yazılımı yok. */
+  var UYUMSUZ = [/SHT3\d/i, /DS1822/i, /ADXL355/i, /ESP32-S3|ayrı LoRa/i];
+  /* Yazılım uyumu doğrulanmamış (uzman tahmini) parçalar. */
+  var UZMAN = [/INMP441/i];
+  function uzmanMu(ad) { return UZMAN.some(function (r) { return r.test(String(ad || '')); }); }
+  var YEDEK_NOT = 'Taslak – yalnız aynı yazılımla çalışan adaylardan; kullanıcı onayı bekliyor';
+  var YEDEK_FW = 'DUZEN=2 (firmware/node/src/duzen.h) — ana düzenle aynı sürücüler; mikrofon INMP441 (yazılım uyumu uzman tahmini)';
   function uyumsuzMu(ad) { return UYUMSUZ.some(function (r) { return r.test(String(ad || '')); }); }
   function normalize(d) {
     var yeni = false;
@@ -104,11 +112,13 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
     d.kalemler.forEach(function (k) {
       if (!Array.isArray(k.adaylarListe)) { var r = cozumle(k); k.adaylarListe = r.liste; if (r.not) k.adayNot = r.not; yeni = true; }
       if (!Array.isArray(k.alternatifler)) { k.alternatifler = JSON.parse(JSON.stringify(ALT[k.id] || [])); yeni = true; }
+      (ALT[k.id] || []).forEach(function (a0) { if (!k.alternatifler.some(function (a) { return a.ad === a0.ad; })) { k.alternatifler.push(JSON.parse(JSON.stringify(a0))); yeni = true; } });
+      k.alternatifler.forEach(function (a) { if (uzmanMu(a.ad) && a.durum !== 'uzman') { a.durum = 'uzman'; yeni = true; } });
       var n1 = k.alternatifler.length; k.alternatifler = k.alternatifler.filter(function (a) { return a.durum !== 'uyumsuz' && !uyumsuzMu(a.ad); }); if (k.alternatifler.length !== n1) yeni = true;
       var n2 = k.adaylarListe.length; k.adaylarListe = k.adaylarListe.filter(function (c) { return c.secili || !(c.parcalar || []).some(function (p) { return uyumsuzMu(p.ad); }); }); if (k.adaylarListe.length !== n2) yeni = true;
     });
     if (!Array.isArray(d.duzenler)) {
-      var ana = { id: 'ana', ad: 'Ana düzen', not: 'Seçilen parçalar', firmware: 'DUZEN=1 (firmware/node/src/duzen.h)', secim: {} }, yed = { id: 'yedek', ad: 'Yedek düzen', not: 'Taslak – mevcut «alternatif» adaylardan; kullanıcı onayı bekliyor', firmware: 'DUZEN=2 (sürücüler yok → derleme #error ile durur)', secim: {} };
+      var ana = { id: 'ana', ad: 'Ana düzen', not: 'Seçilen parçalar', firmware: 'DUZEN=1 (firmware/node/src/duzen.h)', secim: {} }, yed = { id: 'yedek', ad: 'Yedek düzen', not: YEDEK_NOT, firmware: YEDEK_FW, secim: {} };
       d.kalemler.forEach(function (k) { var s = k.adaylarListe.filter(function (c) { return c.secili; })[0], a = k.adaylarListe.filter(function (c) { return !c.secili; })[0]; if (s) ana.secim[k.id] = s.id; if (a || s) yed.secim[k.id] = (a || s).id; });
       d.duzenler = [ana, yed]; yeni = true;
     }
@@ -120,6 +130,7 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
         if (s0) z.secim[k.id] = s0.id; else delete z.secim[k.id]; yeni = true;
       });
     });
+    d.duzenler.forEach(function (z) { if (z.id === 'yedek' && /#error|sürücüler yok/.test(String(z.firmware || ''))) { z.firmware = YEDEK_FW; yeni = true; } if (z.id === 'yedek' && /mevcut «alternatif» adaylardan/.test(String(z.not || ''))) { z.not = YEDEK_NOT; yeni = true; } });
     d.arilikDuzen = d.arilikDuzen || {};
     return yeni;
   }
@@ -146,7 +157,13 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
     return 'Fiyat: ' + fiyatKisa(f) + '<br><small>' + esc(f.magaza || '—') + ' · ' + trTarih(f.tarih) + (f.url ? ' · <a href="' + esc(f.url) + '" target="_blank" rel="noopener">bağlantı</a>' : '') + (f.not ? ' · ' + esc(f.not) : '') + (f.para && f.para !== 'TL' && KUR ? ' · kur TCMB ' + esc(KUR.tarih || '') : '') + '</small>';
   }
   function miktarMetin(m) { if (!m) return 'Adet: Veri yok'; if (m.dahil) return 'Ayrıca alınmaz (' + esc(m.dahil) + ')'; if (m.yok) return esc(m.yok); return (m.k ? m.k + ' / kovan' : '') + (m.k && m.a ? ' + ' : '') + (m.a ? m.a + ' / arılık' : '') + (m.ut ? ' <span class="dn-b ut">uzman tahmini</span>' : ''); }
-  function swRozet(ad) { var s = swDurum(ad); return '<span class="dn-b sw-' + s.d + '">' + esc(s.t) + '</span>'; }
+  function swRozet(ad) { var s = swDurum(ad); return '<span class="dn-b sw-' + s.d + '">' + esc(s.t) + '</span>' + (uzmanMu(ad) ? ' <span class="dn-b u-uzman">yazılım uyumu: uzman tahmini</span>' : ''); }
+  /* Özgün fiyat metnindeki her USD/EUR tutarının yanına TL karşılığı (TCMB). */
+  function metinTL(t) {
+    var o = [], re = /(\d+(?:[.,]\d+)?)\s*(USD|EUR)/g, m;
+    while ((m = re.exec(String(t || '')))) { var n = +m[1].replace(',', '.'), r = KUR && KUR.kurlar && KUR.kurlar[m[2]]; o.push(m[1] + ' ' + m[2] + ' ≈ ' + (r ? tl(n * r) : 'kur: Veri yok')); }
+    return o.length ? '<small class="dn-fw" style="display:block">' + esc(o.join(' · ')) + (KUR && KUR.tarih ? ' · kur TCMB ' + esc(KUR.tarih) : '') + '</small>' : '';
+  }
 
   var s = document.createElement('section'); s.className = 'card fe'; s.id = 's-donanim';
   s.innerHTML = '<h2>Donanım</h2><p class="fe-sub">Uygulamanın kurallarına göre çıkarılmış donanım listesi. Durum: <b data-dn-durum>—</b>. Özellikler üretici sayfası / datasheet\'ten; doğrulanamayan «Veri yok». Her kayıt yeni sürüm olur ve değişiklik kaydına yazılır.</p>'
@@ -173,7 +190,7 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
   var ORNEK = new URLSearchParams(location.search).get('demo') === '1' || !B, CL = null, D = null, SUR = [], ACIK = {}, ALIM = { duzen: 'ana', kovan: '' };
   function stat(t) { q('data-dn-stat').textContent = t || ''; }
   function tf(iso) { var d = new Date(iso); return isFinite(d) ? d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (TSİ)' : '—'; }
-  function alan(grp, i, f) { return '<label>' + esc(f[1]) + '</label><textarea data-dn-f="' + grp + '|' + i + '|' + f[0] + '">' + esc((D[grp][i] || {})[f[0]]) + '</textarea>'; }
+  function alan(grp, i, f) { var v = (D[grp][i] || {})[f[0]]; return '<label>' + esc(f[1]) + '</label><div><textarea data-dn-f="' + grp + '|' + i + '|' + f[0] + '">' + esc(v) + '</textarea>' + (f[0] === 'fiyat' ? metinTL(v) : '') + '</div>'; }
   function aday(k, id) { return (k.adaylarListe || []).filter(function (c) { return c.id === id; })[0] || null; }
   function secili(k) { return (k.adaylarListe || []).filter(function (c) { return c.secili; })[0] || null; }
   function duzen(id) { return (D.duzenler || []).filter(function (z) { return z.id === id; })[0] || D.duzenler[0]; }
@@ -238,15 +255,17 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
     return o;
   }
   function hesap(z, kovan) {
-    var tot = 0, eksik = [], L = satirlar(z).map(function (r) {
+    var tot = 0, eksik = [], kv = 0, gw = 0, kvE = 0, gwE = 0, L = satirlar(z).map(function (r) {
       var m = r.p.miktar || {}, adet = null;
       if (!m.dahil && !m.yok) adet = (m.k || 0) * (kovan || 0) + (m.a || 0);
       var bt = birimTL(r.p.fiyat), top = adet != null && bt != null ? adet * bt : null;
       var o = { r: r, adet: adet, bt: bt, top: top };
       if (!m.dahil) { if (top != null) tot += top; else eksik.push(o); }
+      /* 1 kovan = kovan başına parçalar; 1 gateway = arılık başına parçalar (gateway, 4G, dış sensör, kalkan). */
+      if (!m.dahil && !m.yok) { if (m.k) { if (bt != null) kv += m.k * bt; else kvE++; } if (m.a) { if (bt != null) gw += m.a * bt; else gwE++; } }
       return o;
     });
-    return { L: L, tot: tot, eksik: eksik };
+    return { L: L, tot: tot, eksik: eksik, kovanTL: kv, gatewayTL: gw, kovanEksik: kvE, gatewayEksik: gwE };
   }
   function eksikBildir(list) {
     if (ORNEK || !CL || !list.length) return;
@@ -260,16 +279,20 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
     var Z = D.duzenler || [], z = duzen(ALIM.duzen), A = ariliklar(), kov = ALIM.kovan === '' ? 1 : Math.max(0, +ALIM.kovan || 0);
     var kur = KUR && KUR.kurlar ? '<div class="dn-kur">Kur: TCMB döviz satış, bülten ' + esc(KUR.tarih || '—') + ' · 1 USD = ' + (KUR.kurlar.USD ? KUR.kurlar.USD.toLocaleString('tr-TR', { minimumFractionDigits: 4 }) : 'Veri yok') + ' TL · 1 EUR = ' + (KUR.kurlar.EUR ? KUR.kurlar.EUR.toLocaleString('tr-TR', { minimumFractionDigits: 4 }) : 'Veri yok') + ' TL · sayfa açılışında güncellenir</div>' : '<div class="dn-kur">Kur: <span class="dn-vy">Veri yok</span> (TCMB okunamadı) — USD/EUR fiyatlar TL\'ye çevrilemedi</div>';
     var H = hesap(z, kov);
-    var h = kur + '<div class="dn-h4">Toplam maliyet (TL) — arılık ve düzen bazında</div>';
+    var h = kur + '<div class="dn-h4">Birim maliyet (TL) — ' + esc(z.ad) + '</div>';
+    var B1 = hesap(z, 1), ek = function (n) { return n ? '<small class="dn-vy">+ ' + n + ' parça Veri yok</small>' : ''; };
+    h += '<div class="dn-r"><div class="ra">1 kovan<small>kovan başına parçalar (kart, sensörler, tartı, kutu)</small></div><div class="rt">' + tl(B1.kovanTL) + ek(B1.kovanEksik) + '</div></div>'
+      + '<div class="dn-r"><div class="ra">1 gateway<small>arılık başına parçalar (gateway, 4G, dış ısı/nem, kalkan)</small></div><div class="rt">' + tl(B1.gatewayTL) + ek(B1.gatewayEksik) + '</div></div>';
+    h += '<div class="dn-h4">Arılık toplamı (TL) = 1 kovan × kovan sayısı + 1 gateway</div>';
     var genel = 0, dz = {};
-    var satir = A.length ? A.map(function (a) { return { ad: a.name || a.ad || a.id, z: duzen(D.arilikDuzen[a.id] || 'ana'), kov: isFinite(+a.hiveCount) ? +a.hiveCount : null }; }) : [{ ad: 'Hesap (1 arılık)', z: z, kov: kov }];
+    var satir = A.length ? A.map(function (a) { return { ad: a.name || a.ad || a.id, z: duzen(D.arilikDuzen[a.id] || 'ana'), kov: isFinite(+a.hiveCount) ? +a.hiveCount : null }; }) : [{ ad: 'Hesap (örnek arılık)', z: z, kov: kov }];
     h += satir.map(function (r) {
       if (r.kov == null) return '<div class="dn-r"><div class="ra">' + esc(r.ad) + '<small>' + esc(r.z.ad) + ' · kovan sayısı: Veri yok</small></div><div class="rt"><span class="dn-vy">Veri yok</span></div></div>';
-      var x = hesap(r.z, r.kov); genel += x.tot; dz[r.z.ad] = (dz[r.z.ad] || 0) + x.tot;
-      return '<div class="dn-r"><div class="ra">' + esc(r.ad) + '<small>' + esc(r.z.ad) + ' · ' + r.kov + ' kovan</small></div><div class="rt">' + tl(x.tot) + (x.eksik.length ? '<small class="dn-vy">+ ' + x.eksik.length + ' parça Veri yok</small>' : '') + '</div></div>';
+      var x = hesap(r.z, r.kov), b = hesap(r.z, 1), tt = b.kovanTL * r.kov + b.gatewayTL; genel += tt; dz[r.z.ad] = (dz[r.z.ad] || 0) + tt;
+      return '<div class="dn-r"><div class="ra">' + esc(r.ad) + '<small>' + esc(r.z.ad) + ' · ' + r.kov + ' kovan × ' + tl(b.kovanTL) + ' + 1 gateway ' + tl(b.gatewayTL) + '</small></div><div class="rt">' + tl(tt) + ek(x.eksik.length) + '</div></div>';
     }).join('') + Object.keys(dz).map(function (n) { return '<div class="dn-r"><div class="ra">' + esc(n) + ' toplamı</div><div class="rt">' + tl(dz[n]) + '</div></div>'; }).join('')
       + '<div class="dn-r top"><div class="ra">Genel toplam<small>yalnız fiyatı bilinen parçalar</small></div><div class="rt">' + tl(genel) + '</div></div>';
-    h += '<div class="dn-h4">Parça listesi</div><div class="dn-form"><div class="dn-2"><label>Düzen<select data-dn-alim="duzen">' + Z.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === z.id ? ' selected' : '') + '>' + esc(x.ad) + '</option>'; }).join('') + '</select></label><label>Kovan sayısı (1 arılık)<input type="number" min="0" inputmode="numeric" data-dn-alim="kovan" value="' + esc(ALIM.kovan === '' ? 1 : ALIM.kovan) + '"></label></div></div>'
+    h += '<div class="dn-h4">Parça listesi</div><div class="dn-form"><div class="dn-2"><label>Düzen<select data-dn-alim="duzen">' + Z.map(function (x) { return '<option value="' + esc(x.id) + '"' + (x.id === z.id ? ' selected' : '') + '>' + esc(x.ad) + '</option>'; }).join('') + '</select></label><label>Kovan sayısı (örnek arılık, 1 gateway)<input type="number" min="0" inputmode="numeric" data-dn-alim="kovan" value="' + esc(ALIM.kovan === '' ? 1 : ALIM.kovan) + '"></label></div></div>'
       + H.L.map(function (x) {
         var p = x.r.p, m = p.miktar || {}, f = p.fiyat;
         var alt = esc(x.r.k.ad) + (f && f.magaza ? ' · ' + esc(f.magaza) + ' ' + trTarih(f.tarih) : '');
@@ -347,6 +370,6 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
       CL.from('sa_donanim_surum').select('surum,data').eq('id', vid).maybeSingle().then(function (r) { if (r.error || !r.data) throw r.error || new Error('Sürüm bulunamadı'); kaydet(r.data.data, 'Sürüm ' + r.data.surum + '\'e dönüldü'); }).catch(function (er) { stat('Geri yüklenemedi: ' + ((er && er.message) || '')); });
     }
   });
-  window.SA_DONANIM_TEST = { cozumle: cozumle, normalize: normalize, hesap: function (d, zid, kov) { D = d; return hesap(duzen(zid), kov); }, swDurum: swDurum };
+  window.SA_DONANIM_TEST = { cozumle: cozumle, normalize: normalize, metinTL: function (t, k) { KUR = k; return metinTL(t); }, fiyatKisa: function (f, k) { KUR = k; return fiyatKisa(f); }, hesap: function (d, zid, kov) { D = d; return hesap(duzen(zid), kov); }, swDurum: swDurum };
   load(); kurYukle();
 })();

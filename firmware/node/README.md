@@ -2,7 +2,7 @@
 
 LilyGO T-Weigh · ESP32 · 868 MHz LoRa · 4× HX711
 
-**Donanım kararı (koloni-243, 17.10.2026):** kovan başına 1 T-Weigh düğümü → LoRa EU868 → arılık başına **tek** gateway (T-Beam V1.2 + A7670E) → 4G. Sıcaklık/nem **SHT41** (DHT22 kaldırıldı; DHT22 ±0,5 °C eşek arısı kuralının 0,5 °C ani değişim sınırı için yetersizdi). Giriş sıcaklığı DS18B20. Mikrofon SPH0645 (≥ 32 kHz), ivmeölçer ADXL345 (alternatif ADXL355). Güç 18650 + güneş isteğe bağlı (kapasite: Veri yok). Sürücüler taslak, cihazda test edilecek.
+**Donanım kararı (koloni-243, 17.10.2026):** kovan başına 1 T-Weigh düğümü → LoRa EU868 → arılık başına **tek** gateway (T-Beam V1.2 + A7670E) → 4G. Sıcaklık/nem **SHT41** (DHT22 kaldırıldı; DHT22 ±0,5 °C eşek arısı kuralının 0,5 °C ani değişim sınırı için yetersizdi). Giriş sıcaklığı DS18B20. Mikrofon SPH0645 (≥ 32 kHz), ivmeölçer ADXL345. Güç 18650 + güneş isteğe bağlı (kapasite: Veri yok). Sürücüler taslak, cihazda test edilecek.
 
 ## sensör okuma
 
