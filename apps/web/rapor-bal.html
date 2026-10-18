@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-271">
+<link rel="stylesheet" href="sa-early.css?v=koloni-272">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Bal / verim</title>
 <link rel="stylesheet" href="rapor-common.css" />
-<style>/* koloni-266: [hidden] .filters label{display:grid} kuralını ezmiyordu → Toplam sekmesinde arılık seçici görünüyordu */[hidden]{display:none!important}</style>
+<style>/* koloni-272: [hidden] .filters label{display:grid} kuralını ezmiyordu → Toplam sekmesinde arılık seçici görünüyordu */[hidden]{display:none!important}
+.bo-row{padding:9px 0;border-top:1px solid #f0f1f3}.bo-row:first-child{border-top:0}.bo-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.bo-name{font-weight:800;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bo-pct{font-size:11px;font-weight:800;color:#8a5a00;white-space:nowrap}.bo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:5px}.bo-c{background:#faf7ef;border-radius:9px;padding:6px 7px;min-width:0}.bo-c .k{font-size:10px;font-weight:700;color:var(--muted)}.bo-c .v{font-size:14px;font-weight:800;white-space:nowrap}.bo-c .s{font-size:9.5px;line-height:1.25;color:var(--muted);min-height:2.5em;overflow-wrap:anywhere}.bo-note{font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.35}.bo-row.bo-total{background:#fff8df;border-radius:10px;padding:9px 8px;border-top:0;margin-top:6px}.bo-vy{color:var(--muted);font-size:12px;font-weight:700}</style>
 </head>
 <body>
 <div class="phone" id="phone">
@@ -43,6 +44,12 @@
     </div>
 
     <div class="stats" id="stats"></div>
+
+    <section class="card-block" id="balOzetBlock">
+      <h2>Bal özeti · hedef · kovanda · hasat</h2>
+      <div id="balOzet" style="min-height:120px"></div>
+      <p class="bo-note">Hedef: tahmini sezon hedefi (kesin değil). Kovanda: son tartımdan net bal tahmini. Hasat: girilen hasat kayıtları.</p>
+    </section>
 
     <section class="card-block" id="byApiaryBlock">
       <h2>Arılık bazlı hasat</h2>
@@ -98,10 +105,12 @@
   </nav>
   <div class="home-indicator"></div>
 </div>
-<script src="bal-agirlik.js?v=koloni-271"></script>
-<script src="sensor-ham.js?v=koloni-271"></script>
-<script src="demo-data.js?v=koloni-271"></script>
-<script src="rapor-store.js?v=koloni-271"></script>
+<script src="bal-agirlik.js?v=koloni-272"></script>
+<script src="sensor-ham.js?v=koloni-272"></script>
+<script src="demo-data.js?v=koloni-272"></script>
+<script src="rapor-store.js?v=koloni-272"></script>
+<script src="tarti-elle.js?v=koloni-272"></script>
+<script src="bal-hedef.js?v=koloni-272"></script>
 <script>
 (function () {
   var R = window.SuperAriRapor;
@@ -178,7 +187,11 @@
     }
   }
   fillApiarySelects();
+  /* koloni-272: kovan sayfasından ?apiary=…&hive=… ile gelince arılık görünümü + formda kovan seçili */
+  var qp = new URLSearchParams(location.search), qAp = qp.get('apiary'), qHive = qp.get('hive');
+  if (qAp && apiaries.some(function (a) { return String(a.id) === String(qAp); })) { apiaryFilter.value = qAp; fApiary.value = qAp; }
   fillHiveSelect();
+  if (qHive) { fHive.value = qHive; if (fHive.value !== qHive) fHive.value = ''; }
   fApiary.addEventListener('change', fillHiveSelect);
 
   function refreshHarvestEstimate() {
@@ -227,6 +240,47 @@
       .replace(/"/g, '&quot;');
   }
 
+  /* koloni-272 (önizleme): arılık başına Hedef (uzman tahmini) · Kovanda şimdi (tartıdan) · Hasat edilen + genel toplam */
+  function kgTxt(n) { return n == null ? '<span class="bo-vy">Veri yok</span>' : R.fmtKg(n); }
+  function renderBalOzet(y, aid, s) { var TEb = window.SuperAriTarti; if (TEb && TEb.batch && !renderBalOzet._in) { renderBalOzet._in = 1; try { var self = this, args = arguments; return TEb.batch(function () { return renderBalOzet.apply(self, args); }); } finally { renderBalOzet._in = 0; } }
+    var host = document.getElementById('balOzet');
+    var BH = window.SuperAriBalHedef, BA = window.SuperAriBalAgirlik;
+    var aps = apiaries.filter(function (a) { return a && a.id && (!aid || String(a.id) === String(aid)); });
+    if (!aps.length) { host.innerHTML = '<p class="meta">Veri yok · önce arılık ekleyin.</p>'; return; }
+    var hvAll = allHives(), hasatBy = {};
+    s.byApiary.forEach(function (a) { hasatBy[String(a.apiaryId)] = a.honeyKg; });
+    var T = { hedef: 0, hedefN: 0, kovanda: 0, w: 0, n: 0, hasat: 0, hasatAny: false, sample: 0 };
+    function cell(k, v, sub) { return '<div class="bo-c"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + (sub || '&nbsp;') + '</div></div>'; }
+    function pctTxt(hasat, hedef) { return hedef > 0 && hasat != null ? 'Hasat, hedefin %' + Math.round(hasat / hedef * 100) + '’i' : '&nbsp;'; }
+    var rows = aps.map(function (a) {
+      var hd = BH ? BH.arilikHedef(a) : null;
+      var hs = hvAll.filter(function (h) { return String(h.apiaryId) === String(a.id); });
+      var sc = BA && BA.scopeHoneyNow ? BA.scopeHoneyNow(hs) : { weighed: 0, n: hs.length, totalKg: 0, sample: 0 };
+      var hasat = hasatBy.hasOwnProperty(String(a.id)) ? hasatBy[String(a.id)] : null;
+      if (hd && hd.n) { T.hedef += hd.totalKg; T.hedefN += hd.n; }
+      T.kovanda += sc.weighed ? sc.totalKg : 0; T.w += sc.weighed; T.n += sc.n; T.sample += sc.sample;
+      if (hasat != null) { T.hasat += hasat; T.hasatAny = true; }
+      var hedefV = hd && hd.n ? hd.totalKg : null;
+      return '<div class="bo-row"><div class="bo-head"><span class="bo-name">' + escapeHtml(a.name || a.place || a.id) + '</span><span class="bo-pct">' + pctTxt(hasat, hedefV) + '</span></div>' +
+        '<div class="bo-grid">' +
+        cell('Hedef', kgTxt(hedefV), hd && hd.n ? 'uzman tahmini · ' + hd.n + ' kovan' : 'kovan yok') +
+        cell('Kovanda şimdi', kgTxt(sc.weighed ? sc.totalKg : null), sc.n ? sc.weighed + '/' + sc.n + ' tartılı' + (sc.sample ? ' · örnek' : '') : 'kovan yok') +
+        cell('Hasat edilen', kgTxt(hasat), y + ' sezonu') +
+        '</div></div>';
+    });
+    var total = '';
+    if (!aid && aps.length > 1) {
+      var hT = T.hedefN ? Math.round(T.hedef) : null;
+      total = '<div class="bo-row bo-total"><div class="bo-head"><span class="bo-name">Genel toplam · ' + aps.length + ' arılık</span><span class="bo-pct">' + pctTxt(T.hasatAny ? T.hasat : null, hT) + '</span></div>' +
+        '<div class="bo-grid">' +
+        cell('Hedef', kgTxt(hT), T.hedefN ? 'uzman tahmini · ' + T.hedefN + ' kovan' : '') +
+        cell('Kovanda şimdi', kgTxt(T.w ? Math.round(T.kovanda * 10) / 10 : null), T.n ? T.w + '/' + T.n + ' tartılı' + (T.sample ? ' · örnek' : '') : '') +
+        cell('Hasat edilen', kgTxt(T.hasatAny ? T.hasat : null), y + ' sezonu') +
+        '</div></div>';
+    }
+    host.innerHTML = total + rows.join('');
+  }
+
   function render() {
     var y = Number(sel.value) || cur;
     var aid = selectedApiaryId();
@@ -240,13 +294,15 @@
       : 'Tüm arılıklar';
     document.getElementById('pageSub').textContent = scopeLabel + ' · ' + y;
     document.getElementById('listTitle').textContent = aid ? 'Arılık kayıtları' : 'Hasat kayıtları';
-    /* koloni-266: kayıt yokken 0 yerine «Veri yok»; çerçeve girilmemişse «—»; ort./kovan yalnız hasadı girilen kovanlardan değil kapsamdaki kovanlardan */
+    /* koloni-272: kayıt yokken 0 yerine «Veri yok»; çerçeve girilmemişse «—»; ort./kovan yalnız hasadı girilen kovanlardan değil kapsamdaki kovanlardan */
     var none = !s.rows.length, VY = '<span style="font-size:15px;color:var(--muted)">Veri yok</span>';
     document.getElementById('stats').innerHTML =
       '<div class="stat"><div class="k">Toplam bal</div><div class="v">' + (none ? VY : R.fmtKg(s.totalKg)) + '</div></div>' +
       '<div class="stat"><div class="k">Çerçeve</div><div class="v">' + (none ? VY : (s.totalFrames ? s.totalFrames : '—')) + '</div></div>' +
       '<div class="stat"><div class="k">Hasat kaydı</div><div class="v">' + (none ? VY : s.rows.length) + '</div></div>' +
       '<div class="stat"><div class="k">Ort. / kovan</div><div class="v">' + (none || !hiveCount ? VY : R.fmtKg(perHive)) + '</div></div>';
+
+    renderBalOzet(y, aid, s);
 
     if (view === 'toplam') {
       var maxKg = Math.max.apply(null, s.byApiary.map(function (a) { return a.honeyKg; }).concat([1]));
@@ -348,8 +404,8 @@
     }
   });
 
-  render();
-  /* koloni-266: ＋ Kayıt › Hasat notu bu sayfada girilince, başka sekmede/cihazdan eşitlenince veya geri tuşuyla dönülünce yeniden çiz */
+  if (qAp && apiaryFilter.value === qAp) setView('arilik'); else render();
+  /* koloni-272: ＋ Kayıt › Hasat notu bu sayfada girilince, başka sekmede/cihazdan eşitlenince veya geri tuşuyla dönülünce yeniden çiz */
   window.addEventListener('superari-records-changed', function () { setTimeout(render, 0); });
   window.addEventListener('storage', function (e) { if (!e.key || /hasat/.test(e.key)) render(); });
   window.addEventListener('pageshow', function (e) { if (e.persisted) render(); });
@@ -367,8 +423,8 @@
   setInterval(tick, 30000);
 })();
 </script>
-<script src="yetki.js?v=koloni-271"></script>
-<script src="nav.js?v=koloni-271"></script>
-<script src="pwa.js?v=koloni-271"></script>
+<script src="yetki.js?v=koloni-272"></script>
+<script src="nav.js?v=koloni-272"></script>
+<script src="pwa.js?v=koloni-272"></script>
 </body>
 </html>

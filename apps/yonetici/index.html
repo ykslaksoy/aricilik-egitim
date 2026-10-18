@@ -142,5 +142,13 @@
   check();
 })();
 </script>
+<script>/* koloni-272 (önizleme): Bal hedefi bölümü — yükleme zincirine dokunmadan, panel açıldıktan ve diğer bölümler yüklendikten sonra eklenir */
+(function () {
+  var done = false;
+  function ld(src) { return new Promise(function (ok) { var s = document.createElement('script'); s.src = src; s.onload = s.onerror = ok; document.body.appendChild(s); }); }
+  function go() { if (done) return; var p = document.getElementById('panel'); if (!p || p.hidden || !window.SuperAriDemo) return; if (!document.getElementById('s-hastalik-tahmin')) return; done = true; ld('bal-hedef.js?v=koloni-272').then(function () { return ld('panel16.js?v=koloni-272'); }); }
+  var t = setInterval(function () { go(); if (done) clearInterval(t); }, 500);
+})();
+</script>
 </body>
 </html>

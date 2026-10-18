@@ -128,6 +128,7 @@ const SHELL = [
   "/esikler.js",
   "/favicon.ico",
   "/fiyat-live.js",
+  "/bal-hedef.js",
   "/forage-analysis.js",
   "/forage-yield-estimate.js",
   "/form-uyari.js",
