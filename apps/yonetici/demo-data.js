@@ -2688,14 +2688,43 @@
   /** Melez özelliği (arayüz için kısa metin; formül yok): { ozet, kanit, src } veya null. */
   /* k289: yönlü Muğla × Kafkas melezleri — kullanıcıya yalnız sade özellik (kaynak ve rakamlar yalnız yönetici panelinde: Akyol 1998; Akyol & Kaftanoğlu 2001). */
   var CROSS_YON = [
-    { ad: 'Muğla ana × Kafkas baba', ana: /mu[ğg]la ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'yüksek bal verimi · daha hırçın · F1 melez: ana arıyı her yıl yenileyin' },
-    { ad: 'Kafkas ana × Muğla baba', ana: /kafkas ana/, baba: /mu[ğg]la (?:baba|erkek)/, ozet: 'denemede bal verimi düşük kaldı' },
+    { id: 'mugla_kafkas', ad: 'Muğla ana × Kafkas baba', ana: /mu[ğg]la ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'yüksek bal verimi · daha hırçın · F1 melez: ana arıyı her yıl yenileyin' },
+    { id: 'kafkas_mugla', ad: 'Kafkas ana × Muğla baba', ana: /kafkas ana/, baba: /mu[ğg]la (?:baba|erkek)/, ozet: 'denemede bal verimi düşük kaldı' },
     /* k290: tescilli Efe (Ege) ana hattı × Kafkas erkek — kaynak/rakam yalnız yönetici; verim denemesi yok */
-    { ad: 'Efe ana × Kafkas baba', ana: /efe ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'tescilli Efe ana hattı · F1 melez: ana arıyı her yıl yenileyin · bal verimi: Veri yok' }
+    { id: 'efe_kafkas', ad: 'Efe ana × Kafkas baba', ana: /efe ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'tescilli Efe ana hattı · F1 melez: ana arıyı her yıl yenileyin · bal verimi: Veri yok' }
   ];
+  /* koloni-291: yönlü ikili melez — genetik puan / «Melez özelliği» yönetici › Arı genetikleri (ogul_skor_ayar.data.melezYon); kilitli tablo değişmez */
+  function melezYonVarsayilanGenetik(id) {
+    if (id === 'efe_kafkas') return GENETIK_MELEZ['anadolu+kafkas'];
+    if (id === 'mugla_kafkas' || id === 'kafkas_mugla') return GENETIK_MELEZ['kafkas+mugla'];
+    return null;
+  }
+  function melezYonDefaults() {
+    var items = {}; CROSS_YON.forEach(function (y) { items[y.id] = { ozet: y.ozet }; }); return { items: items };
+  }
+  function melezYonMerge(raw) {
+    var d = melezYonDefaults(); if (!raw || typeof raw !== 'object' || !raw.items || typeof raw.items !== 'object') return d;
+    CROSS_YON.forEach(function (y) {
+      var s = raw.items[y.id]; if (!s || typeof s !== 'object') return;
+      var it = d.items[y.id];
+      if (typeof s.ozet === 'string' && s.ozet.trim()) it.ozet = s.ozet.trim().slice(0, 500);
+      var g = Number(s.genetik); if (s.genetik !== '' && s.genetik != null && isFinite(g) && g >= 0 && g <= 100) it.genetik = g;
+      if (typeof s.kaynak === 'string') it.kaynak = s.kaynak.trim().slice(0, 12000);
+      if (typeof s.not === 'string') it.not = s.not.trim().slice(0, 12000);
+    });
+    return d;
+  }
+  function melezYonCfg() { return melezYonMerge((OGUL_SKOR && OGUL_SKOR.melezYon) || null); }
+  function melezYonGenetikOverride(breed) {
+    var y = crossYon(breed); if (!y) return null;
+    var g = melezYonCfg().items[y.id].genetik; return g == null ? null : g;
+  }
   function crossYon(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
-    return CROSS_YON.filter(function (x) { return x.ana.test(b) && x.baba.test(b); })[0] || null;
+    var y = CROSS_YON.filter(function (x) { return x.ana.test(b) && x.baba.test(b); })[0] || null;
+    if (!y) return null;
+    var oz = melezYonCfg().items[y.id].ozet || y.ozet;
+    return { id: y.id, ad: y.ad, ana: y.ana, baba: y.baba, ozet: oz };
   }
   function crossInfo(breed) {
     var y = crossYon(breed); if (y) return { ozet: y.ozet, kanit: '', src: '', yon: true, ad: y.ad };
@@ -3807,7 +3836,7 @@
     var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
     var u = num01(o.bilinmeyen, 0, 100); if (u != null) d.bilinmeyen = u;
     /* koloni-273: ayrı modüllerin ayarları (hastalik-ayar.js, bal-hedef.js kendi merge’üyle doğrular) birleştirmede düşmesin — önceden ogulSkor().hastalik hep boştu */
-    ['hastalik', 'balHedef'].forEach(function (k) { var v = o[k]; if (v && typeof v === 'object' && !Array.isArray(v)) { try { d[k] = JSON.parse(JSON.stringify(v)); } catch (eK) { /* yoksay */ } } });
+    ['hastalik', 'balHedef', 'melezYon'].forEach(function (k) { var v = o[k]; if (v && typeof v === 'object' && !Array.isArray(v)) { try { d[k] = k === 'melezYon' ? melezYonMerge(v) : JSON.parse(JSON.stringify(v)); } catch (eK) { /* yoksay */ } } });
     return d;
   }
   var OGUL_SKOR = ogulSkorDefaults();
@@ -4778,9 +4807,15 @@
     if (!found.length) return { g: OGUL_SKOR.bilinmeyen, known: false, hybrid: false, label: b ? 'ırk tabloda yok' : 'ırk bilinmiyor' };
     if (found.length === 1) return { key: found[0], g: OGUL_SKOR.saf[found[0]], known: true, hybrid: false, label: 'saf hat' };
     var key = found.slice().sort().join('+');
-    if (OGUL_SKOR.melez[key] != null) return { key: key, g: OGUL_SKOR.melez[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
+    if (OGUL_SKOR.melez[key] != null) {
+      var g0 = OGUL_SKOR.melez[key], go = melezYonGenetikOverride(breed);
+      return { key: key, g: go != null ? go : g0, known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez', yonOverride: go != null };
+    }
     /* k290: kilitli tabloya anahtar eklenmez — Efe (Ege/Anadolu ekotipi) × Kafkas, Anadolu × Kafkas basamağını kullanır (uzman tahmini; yönetici › Kural kaynakları) */
-    if (GENETIK_TAKMA[key] && /efe ana/.test(b) && OGUL_SKOR.melez[GENETIK_TAKMA[key]] != null) return { key: key, g: OGUL_SKOR.melez[GENETIK_TAKMA[key]], known: true, hybrid: true, takma: GENETIK_TAKMA[key], label: 'ikili melez' };
+    if (GENETIK_TAKMA[key] && /efe ana/.test(b) && OGUL_SKOR.melez[GENETIK_TAKMA[key]] != null) {
+      var gt = OGUL_SKOR.melez[GENETIK_TAKMA[key]], go2 = melezYonGenetikOverride(breed);
+      return { key: key, g: go2 != null ? go2 : gt, known: true, hybrid: true, takma: GENETIK_TAKMA[key], label: 'ikili melez', yonOverride: go2 != null };
+    }
     if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: OGUL_SKOR.buckfastIkili, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
     reportHybridMissing(key, found.join(' × '));
     /* k160: kilitli tabloda puanı olmayan melez → Genetik «Veri yok»: bileşen ORS'tan düşer, ağırlığı orantılı dağıtılır (puan uydurulmaz) */
@@ -7322,7 +7357,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, genelAgirlikKaybi: genelAgirlikKaybi, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, esekYolDurum: esekYolDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, gunlukOzetHesapla: gunlukOzetHesapla, tabanDurum: tabanDurum, hiveSens: hiveSens, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusSezon: ucusSezon, camBaliBolge: camBaliBolge, mdNum: mdNum, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, genelAgirlikKaybi: genelAgirlikKaybi, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, esekYolDurum: esekYolDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, CROSS_YON: CROSS_YON, melezYonDefaults: melezYonDefaults, melezYonMerge: melezYonMerge, melezYonVarsayilanGenetik: melezYonVarsayilanGenetik, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, gunlukOzetHesapla: gunlukOzetHesapla, tabanDurum: tabanDurum, hiveSens: hiveSens, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusSezon: ucusSezon, camBaliBolge: camBaliBolge, mdNum: mdNum, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },
