@@ -1767,6 +1767,7 @@
   /** Demo ana arı yılları + özellikler — tek seferlik, yalnız eksik alanları doldurur. */
   function seedQueenTraits(hives) {
     var changed = false;
+    if (workMode() !== 'demo') return { list: hives || [], changed: false }; /* k283: Canlı'da örnek veri yok */
     var years = [2025, 2024, 2026, 2025, 2026, 2024, 2025, 2026, 2025, 2024, 2026, null];
     var out = (hives || []).map(function (h) {
       if (!h || !isFinite(h.id)) return h;
@@ -2434,7 +2435,9 @@
     var QUEEN_SEED_KEY = mk('superari.queenSeed.v1');
     var done = false;
     try { done = localStorage.getItem(QUEEN_SEED_KEY) === '1'; } catch (eQ) {}
-    if (!done) {
+    /* k283: örnek ana yılı / sakinlik / oğul eğilimi / işaret YALNIZ Demo'da. Canlı'da (ör. yeni tarayıcıda buluttan gelen
+       Tekman kovanları) eksik ana verisi uydurulmaz → arayüz «—» / «Ana yaşı bilinmiyor» gösterir. Mevcut kayıtlara dokunulmaz. */
+    if (!done && workMode() === 'demo') {
       try { localStorage.setItem(QUEEN_SEED_KEY, '1'); } catch (eQ2) {}
       var seeded = seedQueenTraits(list);
       if (seeded.changed) {
