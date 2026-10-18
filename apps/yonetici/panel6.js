@@ -38,14 +38,14 @@
   yukle();
 })();
 
-/* k171: ırk/melez ayrıntı kartları (Efe + 3 melez) — kaynak, gerekçe ve rakamlar YALNIZ yönetici panelinde; uygulamada yalnız puan. */
+/* k171: ırk/melez ayrıntı kartları (Efe + 3 melez; k289: + Muğla × Kafkas iki yön) — kaynak, gerekçe ve rakamlar YALNIZ yönetici panelinde; uygulamada yalnız puan. */
 (function () {
   var L = document.getElementById('ipList'), D = window.SuperAriDemo; if (!L) return;
   var C = (D && D.colony) || {}, S = C.GENETIK_SAF || {}, M = C.GENETIK_MELEZ || {};
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function lnk(k) { return esc(k).replace(/(https:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
   var RG = 'https://www.resmigazete.gov.tr/eskiler/2019/05/20190516-14-1.pdf', TG = 'https://www.tarimorman.gov.tr/TAGEM/Haber/478/Gokceada-Ve-Efe-Arisi-Ekotipleri-Tescil-Edildi',
-    YU = 'https://dergipark.org.tr/tr/pub/anadolu/article/1782244', UL = 'https://dergipark.org.tr/tr/download/article-file/143543';
+    YU = 'https://dergipark.org.tr/tr/pub/anadolu/article/1782244', UL = 'https://dergipark.org.tr/tr/download/article-file/143543', AK = 'https://tezara.org/theses/77039', AH = 'https://hdl.handle.net/11480/5761';
   var K = [
     { ad: 'Efe arısı (saf ekotip)', puan: S.efe, olcek: '2–3 (2,5)', etiket: 'uzman tahmini', eb: null,
       gerekce: 'Kaynakta sayısal oğul puanı yok; «oğul eğilimi düşük / çok düşük» → Buckfast (15) ile Karadeniz (35) arası, orta değer 25. Anadolu (75) uygulanmadı: oğul eğilimi seleksiyonla azaltıldı.',
@@ -55,6 +55,15 @@
     { ad: 'Kafkas × Muğla', puan: M['kafkas+mugla'], olcek: '3', etiket: 'kaynağa dayalı tahmin', eb: ['Kafkas', S.kafkas, 'Muğla', S.mugla],
       gerekce: 'Melezin oğul eğilimi ebeveynler arasında; Kafkas analı melez Kafkas düzeyinde. Ölçek 3 (35) iki ucun ortası; uygulama ana/erkek yönünü ayırmaz.',
       kaynak: ['Uludağ Arıcılık Dergisi 5(4), 2005 — ' + UL + ' · oğul eğilimi: Kafkas %10 · Muğla %30 · Kafkas ana × Muğla erkek %10 · Muğla ana × Kafkas erkek %20 · ana arı yüksüğü (ort.): Kafkas 6,50 ± 3,5 · Muğla 9,40 ± 2,5 · Kafkas ana × Muğla erkek 7,50 ± 1,5 · Muğla ana × Kafkas erkek 10,80 ± 2,4 · genotipler arası fark önemsiz (P>0,05)'] },
+    /* k289: yönlü Muğla × Kafkas melezleri — Genetik puanı kilitli Kafkas × Muğla basamağı (35) yeniden kullanıldı (yönlü puan: uzman tahmini) */
+    { ad: 'Muğla ana × Kafkas baba (2’li melez)', puan: M['kafkas+mugla'], olcek: '3', etiket: 'uzman tahmini', eb: ['Kafkas', S.kafkas, 'Muğla', S.mugla],
+      gerekce: 'Genetik puanı: kilitli tablodaki Kafkas × Muğla basamağı (35) yeniden kullanıldı; yöne özel oğul puanı yok → uzman tahmini. Uygulamada sade özellik: yüksek bal verimi · daha hırçın · F1, ana her yıl yenilenmeli. Rota / bölge performansı (ör. Antalya → Tekman → Muğla): uzman tahmini.',
+      kaynak: ['Akyol E. 1998, doktora tezi (Çukurova Üniv.), gezginci arıcılık — ' + AK + ' · bal verimi 1996: 16,15 kg · 1997: 65,00 kg / koloni (en yüksek) · karşılaştırma: saf Muğla 53,9 kg · saf Kafkas 33,0 kg (1997) · kışlama farkı önemsiz · denemedeki en hırçın grup',
+        'Akyol E. & Kaftanoğlu O. 2001 (karşılıklı melezler, gezginci, Çukurova) — ' + AH] },
+    { ad: 'Kafkas ana × Muğla baba (2’li melez)', puan: M['kafkas+mugla'], olcek: '3', etiket: 'uzman tahmini', eb: ['Kafkas', S.kafkas, 'Muğla', S.mugla],
+      gerekce: 'Genetik puanı: kilitli tablodaki Kafkas × Muğla basamağı (35) yeniden kullanıldı; yöne özel oğul puanı yok → uzman tahmini. Uygulamada sade özellik: denemede bal verimi düşük kaldı. Rota / bölge performansı: uzman tahmini.',
+      kaynak: ['Akyol E. 1998, doktora tezi (Çukurova Üniv.), gezginci arıcılık — ' + AK + ' · bal verimi 1996: 9,55 kg · 1997: 32,25 kg / koloni · karşılaştırma: saf Muğla 53,9 kg · saf Kafkas 33,0 kg (1997) · kışlama farkı önemsiz',
+        'Akyol E. & Kaftanoğlu O. 2001 (karşılıklı melezler, gezginci, Çukurova) — ' + AH] },
     { ad: 'Karadeniz × Muğla', puan: M['karadeniz+mugla'], olcek: '4', etiket: 'uzman tahmini', eksik: true, eb: ['Karadeniz', S.karadeniz, 'Muğla', S.mugla],
       gerekce: 'Karadeniz kodda Kafkas ekotipi; Kafkas × Muğla bulgusu (melez ebeveynler arası) Karadeniz tabanına (35) uygulandı; tablo örüntüsü ortalamanın bir üst basamağı → 55.', kaynak: [] },
     { ad: 'Karadeniz × Anadolu', puan: M['anadolu+karadeniz'], olcek: '4–5 (4,5)', etiket: 'uzman tahmini', eksik: true, eb: ['Karadeniz', S.karadeniz, 'Anadolu', S.anadolu],

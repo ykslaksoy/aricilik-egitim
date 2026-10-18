@@ -1,0 +1,11 @@
+-- koloni-289: Muğla × Kafkas iki yönü ayrı ırk seçeneği (Muğla ana × Kafkas baba · Kafkas ana × Muğla baba). Eski yönsüz «Kafkas × Muğla» kalır.
+-- Kilitli genetik puan tablosu değişmez: yönlü kayıtlar kafkas+mugla = 35 basamağını kullanır (uzman tahmini). Kaynak ve rakamlar yalnız yönetici panelinde.
+-- Mevcut kovanlar otomatik taşınmaz (yön bilinmiyor). Canlı DB'de 18.10.2026 itibarıyla «Kafkas × Muğla» kovan/ana sayısı: 0.
+insert into public.kural_kaynaklari (id, grup, sira, ad, degerler, seviye, aciklama, kaynak, durum) values
+ ('melez_mugla_ana_kafkas_baba','oğul skoru',18,'Melez: Muğla ana × Kafkas baba','Genetik: 35 (Kafkas × Muğla basamağı) · Oğul ölçeği: 3','—','Bal verimi (gezginci, Çukurova): 1996 16,15 kg · 1997 65,00 kg / koloni (en yüksek); saf Muğla 53,9 kg · saf Kafkas 33,0 kg. Kışlama farkı önemsiz. Denemedeki en hırçın grup. Genetik puanı ve rota/bölge performansı uzman tahmini.','Akyol 1998 tez — https://tezara.org/theses/77039 · Akyol & Kaftanoğlu 2001 — https://hdl.handle.net/11480/5761','uzman tahmini'),
+ ('melez_kafkas_ana_mugla_baba','oğul skoru',19,'Melez: Kafkas ana × Muğla baba','Genetik: 35 (Kafkas × Muğla basamağı) · Oğul ölçeği: 3','—','Bal verimi (gezginci, Çukurova): 1996 9,55 kg · 1997 32,25 kg / koloni; saf Muğla 53,9 kg · saf Kafkas 33,0 kg. Kışlama farkı önemsiz. Genetik puanı ve rota/bölge performansı uzman tahmini.','Akyol 1998 tez — https://tezara.org/theses/77039 · Akyol & Kaftanoğlu 2001 — https://hdl.handle.net/11480/5761','uzman tahmini')
+on conflict (id) do update set degerler=excluded.degerler, aciklama=excluded.aciklama, kaynak=excluded.kaynak, durum=excluded.durum, updated_at=now();
+insert into public.yapilacaklar (baslik, aciklama)
+select v.b, v.a from (values
+ ('Yönlü Muğla × Kafkas melezlerinin Genetik puanı uzman tahmini (35)','«Muğla ana × Kafkas baba» ve «Kafkas ana × Muğla baba» kilitli tablodaki Kafkas × Muğla basamağını (35) kullanıyor; yöne özel oğul verisi aranmalı (Uludağ Arıcılık Dergisi 2005: oğul Kafkas ana × Muğla erkek %10, Muğla ana × Kafkas erkek %20). Eski yönsüz «Kafkas × Muğla» kayıtları (canlıda 0) yön bilinmediği için taşınmadı. Rota/bölge verimi uzman tahmini.')
+) as v(b,a) where not exists (select 1 from public.yapilacaklar y where y.baslik = v.b);

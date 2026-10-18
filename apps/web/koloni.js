@@ -435,6 +435,8 @@
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
           '<p class="full kol-sub" id="kolIrkHint" style="margin:-.2rem 0 0;"' + (!curBreed || h.breedEstimated ? '' : ' hidden') + '>' + (h.breedEstimated ? 'Irk tahminidir. ' : 'Irk bilinmiyor. ') +
             '<a href="#" id="kolIrkTahmin" style="color:#2b6cb0;text-decoration:underline;font-weight:700;">Irk tahmini (kesin değil)</a></p>' +
+          (function () { var y = d.records && d.records.crossYon ? d.records.crossYon(curBreed) : null; /* k289: yönlü melez sade özellik; yer sabit (gizlenince boşluk kalmaz, kaydırma korunur) */
+            return '<p class="full kol-sub" id="kolIrkMelez" style="margin:-.2rem 0 0;"' + (y ? '' : ' hidden') + '>' + (y ? 'Melez özelliği: ' + esc(y.ozet) : '') + '</p>'; })() +
           '<button type="button" class="full kol-lin-btn" id="kolLineage">🧬 Hat ve Genetik — melez, damızlık hat, anne ana</button>' +
           '<label class="full" id="kolOtherWrap"' + (isOther ? '' : ' hidden') + '>Irk adı<input name="breedOther" maxlength="60" value="' + esc(isOther ? curBreed : '') + '" placeholder="ör. Yerel melez"></label>' +
           '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
@@ -501,6 +503,8 @@
     form.breed.addEventListener('change', function () {
       otherWrap.hidden = form.breed.value !== 'Diğer';
       var ih = back.querySelector('#kolIrkHint'); if (ih) ih.hidden = !!form.breed.value && !(h.breedEstimated && form.breed.value === curBreed);
+      var im = back.querySelector('#kolIrkMelez'), y = im && d.records && d.records.crossYon ? d.records.crossYon(form.breed.value) : null;
+      if (im) { im.textContent = y ? 'Melez özelliği: ' + y.ozet : ''; im.hidden = !y; }
     });
     if (BAg && form.hiveType) {
       var customWrap = back.querySelector('#kolCustomTypeWrap');
@@ -659,7 +663,7 @@
       var hit = c.PURE_BREEDS.filter(function (p) { return p.toLocaleLowerCase('tr') === x || p.toLocaleLowerCase('tr').split(' (')[0] === x; })[0];
       return hit || (x ? x.charAt(0).toLocaleUpperCase('tr') + x.slice(1) : '');
     });
-    var kind = parts.length >= 3 ? 'uc' : (parts.length === 2 ? 'iki' : 'saf');
+    var kind = parts.length >= 3 ? 'uc' : (parts.length === 2 ? 'iki' : 'saf'); var kind0 = kind;
     var queens = []; try { queens = c.loadQueens ? c.loadQueens() : []; } catch (e) { queens = []; }
     var hives = d.loadHives(), byId = {}; hives.forEach(function (x) { byId[x.id] = x; });
     var majority = ''; try { majority = c.apiaryMajorityBreed ? c.apiaryMajorityBreed(h.apiaryId, h.id) : ''; } catch (e) { majority = ''; }
@@ -726,7 +730,7 @@
       var b = breedStr(), miss = missing(), ci = !miss.length && n() > 1 && d.records && d.records.crossInfo ? d.records.crossInfo(b) : null;
       var pv = back.querySelector('#linPrev');
       pv.textContent = miss.length ? 'Eksik: ' + miss.join(', ') + ' ırkı seçin' : 'Kayıt: ' + (b || 'Irk bilinmiyor');
-      if (ci) { var sm = document.createElement('small'); sm.className = 'lin-ci'; sm.textContent = 'Melez özelliği: ' + ci.ozet + ' · kanıt: ' + ci.kanit + (ci.src ? ' (' + ci.src + ')' : ''); pv.appendChild(sm); }
+      if (ci) { var sm = document.createElement('small'); sm.className = 'lin-ci'; sm.textContent = 'Melez özelliği: ' + ci.ozet + (ci.kanit ? ' · kanıt: ' + ci.kanit + (ci.src ? ' (' + ci.src + ')' : '') : ''); pv.appendChild(sm); }
     }
     function missing() { var m = []; if (n() === 1) return m; for (var i = 0; i < n(); i++) if (!val(i)) m.push((i + 1) + '.'); return m; }
     back.addEventListener('click', function (e) {
@@ -740,6 +744,8 @@
     function save() {
       if (missing().length) { toast('Melez için tüm ırkları seçin'); return; }
       var b = breedStr();
+      /* k289: yönlü kayıt («Muğla ana × Kafkas baba») ırklar değişmeden kaydedilirse aynen kalır */
+      if (b && h.breed && b !== h.breed && kind === kind0 && b === c.joinBreed(parts)) b = h.breed;
       var patch = { breedLine: f.elements.line.value, motherQueenId: f.elements.mother.value, motherRef: f.elements.motherRef.value };
       if (b) { patch.breed = b; patch.breedEstimated = false; } else patch.breedUnknown = true;
       if (curQObj && f.elements.certNo) {

@@ -919,7 +919,7 @@
   /* k127: seçici grupları — Saf / İkili melez / Üçlü melez ((ana hattı) × erkek arı). */
   var COLONY_BREED_GROUPS = [
     { key: 'saf', label: 'Saf', items: ['Kafkas', 'Karadeniz', 'Karniyol', 'Muğla', 'Efe arısı', 'Anadolu', 'İtalyan', 'Buckfast'] },
-    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Anadolu × Karniyol', 'Anadolu × Muğla', 'İtalyan × Karniyol', 'Buckfast × İtalyan', 'Kafkas × Muğla', 'Karadeniz × Muğla', 'Karadeniz × Anadolu'] }, /* k160: son üçü yeni — kilitli genetik tabloda puanı yok */
+    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Anadolu × Karniyol', 'Anadolu × Muğla', 'İtalyan × Karniyol', 'Buckfast × İtalyan', 'Kafkas × Muğla', 'Muğla ana × Kafkas baba', 'Kafkas ana × Muğla baba', 'Karadeniz × Muğla', 'Karadeniz × Anadolu'] }, /* k160: son üçü yeni — kilitli genetik tabloda puanı yok · k289: Muğla × Kafkas iki yönü ayrı (eski yönsüz «Kafkas × Muğla» kalır; Genetik puanı kilitli kafkas+mugla = 35) */
     { key: 'uc', label: 'Üçlü melez', items: ['(Kafkas × Karniyol) × Muğla', '(Kafkas × Karadeniz) × Muğla', '(Kafkas × Anadolu) × Muğla', '(Kafkas × Anadolu) × Karniyol', '(Karniyol × İtalyan) × Anadolu', '(Buckfast × İtalyan) × Muğla'] }
   ];
   var COLONY_BREED_OPTIONS = COLONY_BREED_GROUPS.reduce(function (a, g) { return a.concat(g.items); }, []).concat(['Diğer']);
@@ -2657,7 +2657,8 @@
   function liteHives() { var m = envMemoFresh(); if (m) return Object.keys(m.hives).map(function (k) { return m.hives[k]; }); return loadHives(); }
   function breedEnv1(b) { return COLONY_ENV.BREEDS.filter(function (x) { return x.test(b); })[0]; }
   /** Melez yazımını bileşenlere ayırır: «Kafkas × Karadeniz × Muğla» → ['kafkas','karadeniz','muğla'] (×, x, *, + ayırıcı). */
-  function breedParts(b) { return String(b || '').toLocaleLowerCase('tr').replace(/[()]/g, ' ').split(/\s*(?:×|✕|\*|\+|\sx\s)\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  /* k289: yönlü melez yazımı («Muğla ana × Kafkas baba») → ana / baba / erkek eki ırk adından düşülür (bileşen: muğla, kafkas). */
+  function breedParts(b) { return String(b || '').toLocaleLowerCase('tr').replace(/[()]/g, ' ').split(/\s*(?:×|✕|\*|\+|\sx\s)\s*/).map(function (x) { return x.trim().replace(/\s+(?:ana|baba|erkek)$/, ''); }).filter(Boolean); }
   function crossOf(ga, gb) {
     return COLONY_ENV.CROSS.filter(function (c) { return (c.g[0] === ga && c.g[1] === gb) || (c.g[0] === gb && c.g[1] === ga); })[0] || null;
   }
@@ -2685,7 +2686,17 @@
       cross: cs[0] || null, kanit: cs.length ? (cs.some(function (c) { return c.kanit === 'orta'; }) ? 'orta' : 'zayıf') : 'yok', winterAdjKg: 0, test: function () { return false; } };
   }
   /** Melez özelliği (arayüz için kısa metin; formül yok): { ozet, kanit, src } veya null. */
+  /* k289: yönlü Muğla × Kafkas melezleri — kullanıcıya yalnız sade özellik (kaynak ve rakamlar yalnız yönetici panelinde: Akyol 1998; Akyol & Kaftanoğlu 2001). */
+  var CROSS_YON = [
+    { ad: 'Muğla ana × Kafkas baba', ana: /mu[ğg]la ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'yüksek bal verimi · daha hırçın · F1 melez: ana arıyı her yıl yenileyin' },
+    { ad: 'Kafkas ana × Muğla baba', ana: /kafkas ana/, baba: /mu[ğg]la (?:baba|erkek)/, ozet: 'denemede bal verimi düşük kaldı' }
+  ];
+  function crossYon(breed) {
+    var b = String(breed || '').toLocaleLowerCase('tr');
+    return CROSS_YON.filter(function (x) { return x.ana.test(b) && x.baba.test(b); })[0] || null;
+  }
   function crossInfo(breed) {
+    var y = crossYon(breed); if (y) return { ozet: y.ozet, kanit: '', src: '', yon: true, ad: y.ad };
     var e = breedEnv({ breed: breed }); if (!e || (e.key !== 'melez2' && e.key !== 'melez3')) return null;
     return e.cross ? { ozet: e.cross.ozet, kanit: e.kanit, src: e.cross.src } : { ozet: 'karşılaştırmalı deneme bulunamadı', kanit: 'yok', src: '' };
   }
@@ -5394,6 +5405,7 @@
     splitCheck: splitCheck,
     splitWindow: splitWindow,
     crossInfo: crossInfo,
+    crossYon: crossYon,
     strengthTag: strengthTag,
     STRENGTH_LEVELS: STRENGTH_LEVELS,
     COLONY_ENV: COLONY_ENV,
