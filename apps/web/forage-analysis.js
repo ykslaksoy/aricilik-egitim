@@ -1,6 +1,5 @@
 (function (global) {
   var SRC = 'https://cdn.jsdelivr.net/gh/ykslaksoy/aricilik-egitim@fdfc110de39ce5da3be453bb99f3021e67de643a/apps/web/forage-analysis.js';
-  var BASE_KG = 13.8;
   var stub = global.SuperAriForage || {};
   global.SuperAriForage = stub;
   var waiters = [];
@@ -118,30 +117,7 @@
     if (maj) return maj;
     return normBreed(a && a.breed) || 'Kafkas';
   }
-  /** Irk → bal verimi çarpanı + sisli bölgede uçuş kaybı hassasiyeti. */
-  function breedYieldFactor(key, fog, share) {
-    var breedF = 1, flyF = 1;
-    if (/Karadeniz/.test(key)) { breedF = 1.22; flyF = 1 - share * 0.18; }
-    else if (/Kafkas × Karniyol/.test(key)) { breedF = 1.2; flyF = 1 - share * 0.3; }
-    else if (/Kafkas/.test(key)) { breedF = fog ? 1.08 : 0.97; flyF = 1 - share * 0.25; }
-    else if (/Muğla/.test(key)) { breedF = fog ? 0.95 : 1.05; flyF = 1 - share; }
-    else if (/Karniyol/.test(key)) { breedF = fog ? 1 : 1.08; flyF = 1 - share; }
-    return breedF * flyF;
-  }
-  function liveProduct(a) {
-    var fog = /yanık|yanik|cimil|rize/.test(String((a && a.name || '') + (a && a.place || '')).toLocaleLowerCase('tr'));
-    var share = fog ? 45 / 153 : 0;
-    var mix = breedMix(a);
-    var f;
-    if (mix.length) {
-      var total = 0, sum = 0;
-      mix.forEach(function (m) { total += m.count; sum += m.count * breedYieldFactor(m.breed, fog, share); });
-      f = sum / total;
-    } else {
-      f = breedYieldFactor(placeBreed(a), fog, share);
-    }
-    return Math.round(f * 1.06 * 1000) / 1000;
-  }
+  /* koloni-267: bal hedefi katsayıları bal-hedef.js’e taşındı (yönetici › Bal hedefi). */
   /*
    * Kışlama: uzak analiz puanı Karniyol tabanlıdır. Irk farkı (kovan sayısına göre ağırlıklı):
    * Karadeniz soğuk + nemde çok iyi, Kafkas iyi, Karniyol iyi (taban), Muğla ılık Ege'ye uyumlu —
@@ -201,14 +177,17 @@
   stub.placeBreed = placeBreed;
   stub.winterScoreFor = winterScoreFor;
   function yieldCard(escapeHtml) {
-    var a = currentApiary();
-    var n = (a && a.hiveCount) || 20;
-    var mid = Math.round(BASE_KG * liveProduct(a) * 10) / 10;
+    /* koloni-267: hedef yönetici ayarından (bal-hedef.js · ogul_skor_ayar.data.balHedef, uzman tahmini); toplam = aktif kovan sayısı × kovan başı (elle girilen kovan sayısı değil) */
+    var a = currentApiary(), BH = global.SuperAriBalHedef;
+    var r = BH && a && a.id ? BH.arilikHedef(a) : null;
+    if (!r) return '';
+    var mid = r.perHiveKg;
     var body = '<div class="forage-grid">' +
-      rowHtml({ k: 'Kovan başı', v: mid + ' kg', note: 'hedef' }, escapeHtml) +
-      rowHtml({ k: 'Toplam', v: Math.round(mid * n) + ' kg · ' + n + ' kovan', note: 'hedef' }, escapeHtml) +
-      rowHtml({ k: 'İrk', v: placeBreed(a), note: 'koloni' }, escapeHtml) + '</div>';
-    return infoBar('yieldBar', 'Bal', mid + ' kg/<br>kovan', Math.max(8, Math.min(100, Math.round((mid / 25) * 100))), 'btnYieldHint') +
+      rowHtml({ k: 'Kovan başı', v: String(mid).replace('.', ',') + ' kg', note: 'hedef' }, escapeHtml) +
+      rowHtml({ k: 'Toplam', v: r.n ? (Math.round(r.totalKg) + ' kg · ' + r.n + ' kovan') : 'Veri yok · kovan yok', note: 'hedef' }, escapeHtml) +
+      rowHtml({ k: 'Irk', v: r.breedLabel, note: 'koloni' }, escapeHtml) + '</div>' +
+      '<p class="forage-sub" style="margin:6px 0 0">Tahmini hedef, kesin değil. Hasat ve kovandaki bal: Raporlar › Bal / verim.</p>';
+    return infoBar('yieldBar', 'Bal', String(mid).replace('.', ',') + ' kg/<br>kovan', Math.max(8, Math.min(100, Math.round((mid / 25) * 100))), 'btnYieldHint') +
       card('saYieldCard', 'Bal hedefi', '', '<div class="sa-yield-detail">' + body + '</div>', '');
   }
   function splitRender(analysis, escapeHtml) {

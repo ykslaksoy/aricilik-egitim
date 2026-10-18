@@ -3884,6 +3884,22 @@
       Kireç: kuluçka döneminde (kirecAyBas–Son) kuluçka ısısı kesintisiz kirecSaat saat < kirecIsiC (okumalar arası ≤ 2 saat). Nem yalnız destekleyici.
       Genel (ağırlık): kış–ilkbahar son 24 saat kaybı ≥ genelKayipMinKg ve önceki günlerin ortanca kaybının ≥ genelKayipKat katı.
       Nüfus: IR düşüşü ≥ genelNufusUyariOran → uyarı; ≥ genelNufusKritikOran → kritik (uzman tahmini). */
+  /** koloni-267: Genel kontrol (ağırlık) — kış–ilkbahar (genelAyBas–Son) son 24 saat kaybı ≥ genelKayipMinKg ve önceki günlerin ortanca kaybının ≥ genelKayipKat katı.
+      Tek tanım: saglikHatirlatmalari ve Tartı sayfası «Ani düşüş» döşemesi aynı fonksiyonu kullanır (yönetici › Ölçüm kuralları › Ağırlık (tartı)). Yan etkisiz. */
+  function genelAgirlikKaybi(S, T, nowMs) {
+    var H = 3600000, D = 24 * H, ay = new Date(nowMs).getMonth() + 1;
+    if (!ayIcinde(ay, T.genelAyBas, T.genelAySon)) return false;
+    function md(a) { a = a.filter(function (v) { return v != null && isFinite(v); }).sort(function (p, q) { return p - q; }); return a.length ? a[Math.floor(a.length / 2)] : null; }
+    var W = (S.tarti || []).filter(function (x) { return isFinite(Number(x.kg)); });
+    function kgAt(t) { var b = null; W.forEach(function (x) { if (x.t <= t) b = x; }); return b && t - b.t <= 3 * H ? Number(b.kg) : null; }
+    if (W.length <= 1) return false;
+    var son = W[W.length - 1].t;
+    var gunluk = []; for (var i = 0; i < 7; i++) { var y = i === 0 ? Number(W[W.length - 1].kg) : kgAt(son - i * D), o = kgAt(son - (i + 1) * D); gunluk.push(y != null && o != null ? o - y : null); }
+    var bugun = gunluk[0], gecmis = gunluk.slice(1).filter(function (v) { return v != null; });
+    if (!(bugun != null && gecmis.length >= 3)) return false;
+    var m = Math.max(0.05, md(gecmis));
+    return bugun >= T.genelKayipMinKg && bugun >= m * T.genelKayipKat && kuralAcik('agirlik', S.apiaryId);
+  }
   function saglikHatirlatmalari(S, T, nowMs) {
     var H = 3600000, D = 24 * H, ay = new Date(nowMs).getMonth() + 1, r = { kirec: false, kirecNem: false, genel: false, genelNeden: null, genelNufusUyari: false, genelNufusKritik: false };
     function md(a) { a = a.filter(function (v) { return v != null && isFinite(v); }).sort(function (p, q) { return p - q; }); return a.length ? a[Math.floor(a.length / 2)] : null; }
@@ -3917,14 +3933,7 @@
     kuralYeni5(S, T, r, nowMs);
     kuralIr5(S, T, r, nowMs);
     if (ayIcinde(ay, T.genelAyBas, T.genelAySon)) {
-      var W = (S.tarti || []).filter(function (x) { return isFinite(Number(x.kg)); });
-      function kgAt(t) { var b = null; W.forEach(function (x) { if (x.t <= t) b = x; }); return b && t - b.t <= 3 * H ? Number(b.kg) : null; }
-      if (W.length > 1) {
-        var son = W[W.length - 1].t;
-        var gunluk = []; for (var i = 0; i < 7; i++) { var y = i === 0 ? Number(W[W.length - 1].kg) : kgAt(son - i * D), o = kgAt(son - (i + 1) * D); gunluk.push(y != null && o != null ? o - y : null); }
-        var bugun = gunluk[0], gecmis = gunluk.slice(1).filter(function (v) { return v != null; });
-        if (bugun != null && gecmis.length >= 3) { var m = Math.max(0.05, md(gecmis)); if (bugun >= T.genelKayipMinKg && bugun >= m * T.genelKayipKat) { if (kuralAcik('agirlik', S.apiaryId)) { r.genel = true; r.genelNeden = 'agirlik'; } } }
-      }
+      if (genelAgirlikKaybi(S, T, nowMs)) { r.genel = true; r.genelNeden = 'agirlik'; }
       var Ir = (S.ir || []).filter(function (x) { return isFinite(Number(x.count)); });
       if (Ir.length) {
         var sn = Ir[Ir.length - 1].t, yeni = md(Ir.filter(function (x) { return x.t > sn - D; }).map(function (x) { return Number(x.count); })), eski = md(Ir.filter(function (x) { return x.t <= sn - D; }).map(function (x) { return Number(x.count); }));
@@ -7179,7 +7188,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, esekYolDurum: esekYolDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, gunlukOzetHesapla: gunlukOzetHesapla, tabanDurum: tabanDurum, hiveSens: hiveSens, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusSezon: ucusSezon, camBaliBolge: camBaliBolge, mdNum: mdNum, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, genelAgirlikKaybi: genelAgirlikKaybi, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, esekYolDurum: esekYolDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, gunlukOzetHesapla: gunlukOzetHesapla, tabanDurum: tabanDurum, hiveSens: hiveSens, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusSezon: ucusSezon, camBaliBolge: camBaliBolge, mdNum: mdNum, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },

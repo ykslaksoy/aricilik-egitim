@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-273">
+<link rel="stylesheet" href="sa-early.css?v=koloni-274">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-273" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-273" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-273" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-274" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-274" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-274" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -34,11 +34,13 @@
     .choice-btn strong { font-size: 15px; font-weight: 800; color: var(--brown, #5c4813); }
     .choice-btn span { font-size: 12px; font-weight: 650; color: var(--muted, #868e96); }
   </style>
+<style>/* koloni-272: Tartı kategori döşemeleri — sabit yükseklik (ekran zıplamaz) */#tartiCats .tile .tc-sub{font-size:10px;line-height:1.15;min-height:2.3em;color:#6b5a40;margin-top:1px}#tartiCats .tile.tc-empty{opacity:.72}#ksTiles .tile .tile-sub{font-size:10.5px;color:#7a4f00;font-weight:800;min-height:1.2em}</style>
 </head>
 <body>
   <main class="wrap">
 
     <section id="ksScope" hidden></section>
+    <div class="grid ana-hive-grid" id="tartiCats" hidden aria-label="Tartı kategorileri" style="margin:10px 0 4px"></div>
     <div class="ks-tools" id="ksTools" hidden></div>
     <div class="ks-sec" id="ksSec" hidden><h3>Kovanlar</h3><small id="ksCount"></small></div>
     <div class="grid ana-hive-grid" id="ksTiles" hidden aria-label="Kovanlar (önce sorunlu)"></div>
@@ -54,27 +56,30 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-273"></script>
-  <script src="bal-agirlik.js?v=koloni-273"></script>
-  <script src="sensor-ham.js?v=koloni-273"></script>
-<script src="demo-data.js?v=koloni-273"></script>
-  <script src="rapor-store.js?v=koloni-273"></script>
-  <script src="sensor-health.js?v=koloni-273"></script>
-<script src="saglik-canli.js?v=koloni-273"></script>
-  <script src="foto.js?v=koloni-273"></script>
-  <script src="koloni.js?v=koloni-273"></script>
-  <script src="koloni-ek.js?v=koloni-273"></script>
-  <script src="ilac-katalog.js?v=koloni-273"></script>
-  <script src="bakim-plan.js?v=koloni-273"></script>
-  <script src="irk-tahmin.js?v=koloni-273"></script>
-  <script src="kovan-ara.js?v=koloni-273"></script>
+  <script src="bk-kabuk.js?v=koloni-274"></script>
+  <script src="bal-agirlik.js?v=koloni-274"></script>
+  <script src="sensor-ham.js?v=koloni-274"></script>
+<script src="demo-data.js?v=koloni-274"></script>
+  <script src="rapor-store.js?v=koloni-274"></script>
+  <script src="sensor-health.js?v=koloni-274"></script>
+<script src="saglik-canli.js?v=koloni-274"></script>
+  <script src="foto.js?v=koloni-274"></script>
+  <script src="koloni.js?v=koloni-274"></script>
+  <script src="koloni-ek.js?v=koloni-274"></script>
+  <script src="ilac-katalog.js?v=koloni-274"></script>
+  <script src="bakim-plan.js?v=koloni-274"></script>
+  <script src="irk-tahmin.js?v=koloni-274"></script>
+  <script src="kovan-ara.js?v=koloni-274"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-273"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-273"></script>
-  <script src="tarti-elle.js?v=koloni-273"></script>
-  <script src="pil-model.js?v=koloni-273"></script><script src="sensor-polling.js?v=koloni-273"></script>
-  <script src="tarti-rotasyon.js?v=koloni-273"></script>
-  <script src="kapsam.js?v=koloni-273"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-274"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-274"></script>
+  <script src="tarti-elle.js?v=koloni-274"></script>
+  <script src="kritik-alarm.js?v=koloni-274"></script>
+  <script src="bal-hedef.js?v=koloni-274"></script>
+  <script src="tarti-dosemeler.js?v=koloni-274"></script>
+  <script src="pil-model.js?v=koloni-274"></script><script src="sensor-polling.js?v=koloni-274"></script>
+  <script src="tarti-rotasyon.js?v=koloni-274"></script>
+  <script src="kapsam.js?v=koloni-274"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -472,8 +477,12 @@
         var tsum = function (hs) {
           /* k155: tek kaynak — yalnız gerçek tartım kayıtları (TE.latest); kovan kartı weightKg tahmini ortalamaya girmez */
           var out = { n: hs.length, wk: 0, none: 0, never: 0, stale: 0, last: '', lastRec: null }, d7 = D.records ? D.records.addDays(D.records.todayLocal(), -7) : '', d14 = D.records ? D.records.addDays(D.records.todayLocal(), -14) : '';
+          /* koloni-272: Demo'da kovan kartıyla aynı veri — tartım kaydı olmayan kovanın örnek ağırlığı «örnek · bugün» sayılır (canlıda yalnız gerçek kayıt) */
+          var liveS = window.SuperAriLiveHealth && SuperAriLiveHealth.isLive(), todayS = D.records ? D.records.todayLocal() : '';
           hs.forEach(function (h) {
             var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
+            var smp = !l && !liveS && Number(h.weightKg) > 0 ? Number(h.weightKg) : null;
+            if (smp != null) { at = todayS; out.sample = (out.sample || 0) + 1; out.kgS = (out.kgS || 0) + smp; out.kgN = (out.kgN || 0) + 1; }
             if (at && at >= d7) out.wk++;
             if (!at) out.never++; else if (at < d14) out.stale++;
             if (!at || at < d14) out.none++;
@@ -486,8 +495,8 @@
           return out;
         };
         function tartiAgo(lastRec) { var a = KV.fmtAgo(String(lastRec.at).slice(0, 10), D.records.todayLocal()); return /gün$/.test(a) ? a + ' önce' : a.toLocaleLowerCase('tr'); }
-        function tartiLastStatVal(lastRec) {
-          if (!lastRec || !(Number(lastRec.kg) > 0)) return '—';
+        function tartiLastStatVal(lastRec, sample) {
+          if (!lastRec || !(Number(lastRec.kg) > 0)) return sample ? 'örnek' : '—';
           return tartiAgo(lastRec);
         }
         var ICON_TARTI = '<svg class="weather-icon" viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="22" width="22" height="5" rx="1.5" fill="#cfd8e3" stroke="#9aa8b8"/><rect x="9" y="9" width="14" height="12" rx="1.5" fill="#e8c48e" stroke="#8a6030"/><rect x="8" y="6" width="16" height="3.5" rx="1" fill="#f7b731" stroke="#b8860b" stroke-width=".8"/><text x="16" y="26.4" font-size="4.6" text-anchor="middle" font-weight="800" fill="#2c241c">kg</text></svg>';
@@ -508,7 +517,7 @@
                 { k: 'muayene', v: t.wk, l: '7 günde', href: '#' },
                 { k: 'uyari', v: t.n ? t.none : '—', l: 'Tartısız', href: '#', tone: t.none ? 'hot' : '' },
                 { k: 'bal', v: t.avg != null ? String(t.avg).replace('.', ',') : '—', l: t.avg != null && t.stale + t.never ? 'Ort. kg (son tartım)' : 'Ort. kg', href: '#', tone: 'gold', svg: "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M7 9h10l2.5 11h-15z\" fill=\"#f4d27a\" stroke=\"#b8860b\" stroke-width=\"1.4\" stroke-linejoin=\"round\"/><circle cx=\"12\" cy=\"6\" r=\"2.6\" fill=\"none\" stroke=\"#b8860b\" stroke-width=\"1.6\"/><text x=\"12\" y=\"18\" font-size=\"6\" text-anchor=\"middle\" font-weight=\"800\" fill=\"#5a3d10\">kg</text></svg>" },
-                { k: 'saat', v: tartiLastStatVal(t.lastRec), l: 'Son tartım', href: '#son-tartim' }
+                { k: 'saat', v: tartiLastStatVal(t.lastRec, t.sample), l: 'Son tartım', href: '#son-tartim' }
               ];
             }
             var cs = D.colony ? D.colony.summary(hs) : { requeen: 0, breeds: [] }, weak = 0, ql = 0;
@@ -634,7 +643,7 @@
             TE.open(hiveId, o);
           }
           /* k160: arılık değişince sayfa yeniden yüklenmez — yerinde çizilir (iPhone'da boş ekran + kayma yok) */
-          function drawTarti() {
+          function drawTarti() { var TEb = window.SuperAriTarti; if (TEb && TEb.batch && !drawTarti._in) { drawTarti._in = 1; try { var self = this, args = arguments; return TEb.batch(function () { return drawTarti.apply(self, args); }); } finally { drawTarti._in = 0; } }
           var hsT = D.loadHives().filter(function (h) { return !apiaryFilter || String(h.apiaryId) === String(apiaryFilter); });
           var liveT = window.SuperAriLiveHealth && SuperAriLiveHealth.isLive();
           /* k94: üstteki büyük «⚖ Elle tartım gir» düğmesi kaldırıldı (bakim.html'de yok) — aynı form Kapsam notundaki «Tart» ve ＋ Kayıt › Tartım kaydı ile açılır */
@@ -646,19 +655,37 @@
           secV.hidden = false; secV.querySelector('h3').textContent = 'Kovanlar · ağırlık';
           document.getElementById('ksCount').textContent = hsT.length + ' kovan · önce tartısız' + (KV.live() ? '' : ' · Demo');
           var d14T = D.records.addDays(D.records.todayLocal(), -14);
+          /* koloni-272: kategori döşemeleri (sayfaya girmeden sayı) — dokununca liste süzülür, tekrar dokununca Tümü */
+          var TD = window.SuperAriTartiDoseme, catEl = document.getElementById('tartiCats');
+          var actT = hsT.filter(function (h) { return h.colonyState !== 'sonuk'; });
+          var RT = TD ? TD.compute(actT) : null;
+          if (RT && catEl) {
+            if (tartiCat && !TD.tiles(RT).some(function (t) { return t.key === tartiCat && !t.empty; })) tartiCat = '';
+            catEl.hidden = false;
+            catEl.innerHTML = TD.tiles(RT).map(function (t) {
+              return KV.anaModuleTile({ href: '#', label: t.label, badge: t.badge, tone: t.tone, svg: t.icon, dataKey: t.key, extraClass: 'tc-tile' + (tartiCat === t.key ? ' on' : '') + (t.empty ? ' tc-empty' : ''), aria: t.aria + (tartiCat === t.key ? ', seçili — tekrar dokun: Tümü' : '') }).replace('<div class="badge', '<div class="tile-sub tc-sub">' + KV.esc(t.sub) + '</div><div class="badge');
+            }).join('');
+            var scopeHostC = document.getElementById('ksScope');
+            if (scopeHostC && catEl.previousElementSibling !== scopeHostC) scopeHostC.parentNode.insertBefore(catEl, scopeHostC.nextSibling);
+          }
+          if (tartiCat && RT) hsT = hsT.filter(function (h) { var p = RT.per[String(h.id)]; return p && p.cats[tartiCat]; });
           var infT = hsT.map(function (h) {
             var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
             var kg = l ? String(l.kg).replace('.', ',') + ' kg' : 'Tartı yok' /* k155: tek kaynak */;
+            /* koloni-272: demo'da kovan kartıyla aynı örnek ağırlık (malzeme darası düşülmüş) */
+            if (!l && !liveT && Number(h.weightKg) > 0) { var tz = TE && TE.tare ? TE.tare(h.id) : null; kg = (Number(h.weightKg) - (tz ? tz.kg : 0)).toFixed(1).replace('.', ',') + ' kg'; at = D.records.todayLocal(); }
             var sub = l ? (l.source === 'otomatik' ? 'Cihaz · ' : 'Elle · ') + KV.fmtAgo(at, D.records.todayLocal()) : (liveT ? 'elle tartım girilmedi' : 'örnek · ' + (h.deltaKg > 0 ? '+' : '') + h.deltaKg.toFixed(1).replace('.', ',') + ' kg');
             var dv = TE && TE.scaleDevice ? TE.scaleDevice(h.id) : null;
             if (dv) sub = '📡 ' + sub;
-            return { h: h, kg: kg, sub: sub, old: !at || at < d14T };
+            var pT = RT ? RT.per[String(h.id)] : null;
+            return { h: h, kg: kg, sub: sub, old: !at || at < d14T, bal: TD && pT ? TD.hiveBadge(pT) : null };
           }).sort(function (a, b) { return (b.old - a.old) || (Number(KV.hiveNum(a.h)) - Number(KV.hiveNum(b.h))); });
           tilesV.hidden = false;
           tilesV.setAttribute('aria-label', 'Kovanlar (önce tartısız)');
           var apQTile = apiaryFilter ? '?apiary=' + encodeURIComponent(apiaryFilter) : '';
           tilesV.innerHTML = infT.map(function (x) {
             var badgeTone = x.kg === 'Tartı yok' ? 'tan' : (x.old && liveT ? 'orange' : 'green');
+            var balSub = x.bal ? '🍯 ' + x.bal : 'bal: veri yok';
             var hasScale = hiveHasScale(x.h.id);
             var actLabel = hasScale ? 'Tart' : 'Elle tart';
             var actAria = hasScale ? (x.h.name + ', tartı cihazından tart') : (x.h.name + ', elle tartım gir');
@@ -668,13 +695,27 @@
               label: x.h.name,
               badge: x.kg,
               tone: badgeTone,
+              sub: balSub,
               num: KV.hiveNum(x.h),
               dataTeHive: x.h.id,
               acts: acts,
-              aria: x.h.name + ', ' + x.kg + ', ' + x.sub
+              aria: x.h.name + ', ' + x.kg + ', ' + balSub + ', ' + x.sub
             });
-          }).join('') || '<p class="ks-empty">Bu kapsamda kovan yok.</p>';
+          }).join('') || '<p class="ks-empty">' + (tartiCat ? 'Bu kategoride kovan yok.' : 'Bu kapsamda kovan yok.') + '</p>';
+          if (tartiCat && TD) document.getElementById('ksCount').textContent = hsT.length + ' kovan · ' + TD.LABEL[tartiCat] + (KV.live() ? '' : ' · Demo');
           }
+          var tartiCat = '';
+          (function () {
+            var ce = document.getElementById('tartiCats'); if (!ce) return;
+            ce.addEventListener('click', function (e) {
+              var t = e.target.closest ? e.target.closest('[data-key]') : null; if (!t) return;
+              e.preventDefault();
+              if (t.classList.contains('tc-empty')) return;
+              var k = t.getAttribute('data-key');
+              tartiCat = tartiCat === k ? '' : k;
+              if (window.SuperAriScroll && SuperAriScroll.keep) SuperAriScroll.keep(drawTarti); else drawTarti();
+            });
+          })();
           drawTarti();
           window.__saDrawTarti = drawTarti;
           /* kovan kutucuğu veya «Tart» / «Elle tart» → tartım */
@@ -1018,7 +1059,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-273"></script>
-<script src="pwa.js?v=koloni-273"></script>
+<script src="nav.js?v=koloni-274"></script>
+<script src="pwa.js?v=koloni-274"></script>
 </body>
 </html>

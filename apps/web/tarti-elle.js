@@ -48,11 +48,22 @@
   function dOf(v) { return String(v || '').slice(0, 10); }
   function dayDiff(a, b) { var pa = a.split('-'), pb = b.split('-'); return Math.round((new Date(+pb[0], pb[1] - 1, +pb[2]) - new Date(+pa[0], pa[1] - 1, +pa[2])) / 86400000); }
   /** at (YYYY-MM-DD[THH:MM]) anında kovandaki malzeme darası: { kg, items:[{ label, kg }] }. opts.noFeed: besleme kalemleri hariç. */
+  /* koloni-267: taskStore.all() pahalı (~90 ms); Tartı sayfası 100+ kovanın darasını art arda hesaplar → 2 sn kısa önbellek (kayıt değişince silinir) */
+  var taskMemo = { at: 0, list: null };
+  /* koloni-267: Tartı sayfası çizimi sırasında görev listesi (taskStore.all, kovan başına ~90 ms) bir kez okunur. Önbellek yalnız batch() içinde; dışarıda her çağrı taze okur (eski davranış). */
+  var memoDepth = 0;
+  function allTasksMemo(D) {
+    if (memoDepth > 0 && taskMemo.list) return taskMemo.list;
+    var l = []; try { l = D.taskStore.all() || []; } catch (e) { l = []; }
+    if (memoDepth > 0) taskMemo = { at: Date.now(), list: l };
+    return l;
+  }
+  function batch(fn) { memoDepth++; try { return fn(); } finally { memoDepth--; if (!memoDepth) taskMemo.list = null; } }
   function tare(hiveId, at, opts) {
     var D = global.SuperAriDemo, day = dOf(at) || dOf(nowLocal()), items = [], o = opts || {};
     if (!D || !D.records) return { kg: 0, items: items };
     var rec = null; try { rec = D.records.recordsFor(hiveId); } catch (e) { rec = null; }
-    var tasks = []; try { tasks = D.taskStore.all().filter(function (t) { return String(t.hiveId) === String(hiveId); }); } catch (e) { tasks = []; }
+    var tasks = allTasksMemo(D).filter(function (t) { return String(t.hiveId) === String(hiveId); });
     function doneAfter(re, from) {
       return tasks.filter(function (t) { return t.done && t.doneAt && re.test(String(t.title || '') + ' ' + String(t.note || '')) && dOf(t.doneAt) >= from; })
         .map(function (t) { return dOf(t.doneAt); }).sort()[0] || null;
@@ -462,5 +473,5 @@
     if (!TS || !TS.hints) return { kat: false, besleme: false, katSrc: [], beslemeSrc: [], chips: [] };
     return TS.hints(hiveId, Object.assign({ list: list }, opts || {}));
   }
-  global.SuperAriTarti = { MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, removeRaw: removeRaw, revertRevizeRow: revertRevizeRow, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, openScopeRecent: openScopeRecent, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
+  global.SuperAriTarti = { batch: batch, MATERIAL: MATERIAL, feeder: feeder, FEED_KEY_LIVE: FEED_KEY_LIVE, tare: tare, tareNote: tareNote, netOf: netOf, KEY_LIVE: KEY_LIVE, KEY_DEMO: KEY_DEMO, all: all, list: list, latest: latest, add: add, remove: remove, removeRaw: removeRaw, revertRevizeRow: revertRevizeRow, series: series, rowHtml: rowHtml, fmtAt: fmtAt, flagText: flagText, muayeneHints: muayeneHints, ensureCss: ensureCss, open: open, openScopeRecent: openScopeRecent, close: close, autoReading: autoReading, scaleDevice: scaleDevice, SENSOR_KEY: SENSOR_KEY };
 })(window);

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-273">
+<link rel="stylesheet" href="sa-early.css?v=koloni-274">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SüperArı · Arılıklar</title>
@@ -398,20 +398,20 @@
 </div>
 <script src="admin-notify.js"></script>
 <script src="yandex-config.js"></script>
-<script src="harita-offline.js?v=koloni-273"></script>
+<script src="harita-offline.js?v=koloni-274"></script>
 <script src="yandex-map.js"></script>
-<script src="konum-onay.js?v=koloni-273"></script>
-<script src="sensor-ham.js?v=koloni-273"></script>
-<script src="demo-data.js?v=koloni-273"></script>
-<script src="rapor-store.js?v=koloni-273"></script>
-<script src="koloni.js?v=koloni-273"></script>
-<script src="forage-analysis.js?v=koloni-273"></script>
+<script src="konum-onay.js?v=koloni-274"></script>
+<script src="sensor-ham.js?v=koloni-274"></script>
+<script src="demo-data.js?v=koloni-274"></script>
+<script src="rapor-store.js?v=koloni-274"></script>
+<script src="koloni.js?v=koloni-274"></script>
+<script src="bal-hedef.js?v=koloni-274"></script>
+<script src="forage-analysis.js?v=koloni-274"></script>
 <script src="forage-yield-estimate.js?v=breed-plan-2"></script>
 <script>
 (function () {
   var D = window.SuperAriDemo;
   var F = window.SuperAriForage;
-  var FY = window.SuperAriForageYield;
   if (!D) return;
 
   var DEFAULT_CENTER = [39.92, 41.27]; /* Erzurum / Kayaköy bölgesi */
@@ -512,23 +512,6 @@
     });
   }
 
-  function appendYieldEstimate(host, analysis) {
-    if (!FY || !host || !analysis) return;
-    try {
-      var hc = form && form.elements.hiveCount ? Number(form.elements.hiveCount.value) : 0;
-      var built = FY.buildFromAnalysis(analysis, {
-        apiary: null,
-        apiaryId: '',
-        n: isFinite(hc) ? hc : 0,
-        hives: [],
-        forageOpts: forageOptsFromForm(),
-        Hprev: null,
-        escapeHtml: escapeHtml
-      });
-      if (built && built.html) host.insertAdjacentHTML('beforeend', built.html);
-    } catch (e) { /* yield block optional */ }
-  }
-
   function scheduleAnalyze(lat, lon) {
     if (!F || !forageHost) return;
     if (analyzeTimer) clearTimeout(analyzeTimer);
@@ -539,7 +522,6 @@
         .then(function (a) {
           forageHost.innerHTML = F.renderPanelHtml(a, escapeHtml);
           bindForageTipClicks(forageHost);
-          appendYieldEstimate(forageHost, a);
         })
         .catch(function () {
           forageHost.innerHTML =
@@ -1124,7 +1106,7 @@ window.SuperAriQuickActions = function () {
   return [{ ic: '📍', t: 'Arılık ekle', d: 'Ad · konum · kovan sayısı', run: function () { var b = document.getElementById('fabAdd'); if (b) b.click(); } }];
 };
 </script>
-<script src="nav.js?v=koloni-273"></script>
-<script src="pwa.js?v=koloni-273"></script>
+<script src="nav.js?v=koloni-274"></script>
+<script src="pwa.js?v=koloni-274"></script>
 </body>
 </html>

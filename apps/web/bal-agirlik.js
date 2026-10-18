@@ -374,6 +374,42 @@
     };
   }
 
+  /* koloni-267: kovandaki bal (tahmin) — TEK kaynak. Kovan sayfası Tartı kartı ve Tartı sayfası aynı fonksiyonu kullanır.
+   * Canlı: son tartım kaydı (elle / cihaz, SuperAriTarti.latest); Demo: kovanın örnek ağırlığı (weightKg).
+   * Net bal = brüt − boş kovan − kovandaki malzeme (− arı kitlesi, ayarlıysa). */
+  function isLiveMode() { try { return global.localStorage.getItem('superari.workMode') === 'live'; } catch (e) { return false; } }
+  function hiveHoneyNow(h, opts) {
+    var o = opts || {};
+    if (!h) return null;
+    var live = o.live != null ? !!o.live : isLiveMode();
+    var T = global.SuperAriTarti, gross = null, at = null, src = 'ornek';
+    if (live) {
+      var l = T && T.latest ? T.latest(h.id) : null;
+      if (!l || !(Number(l.kg) > 0)) return { none: true, live: true };
+      gross = Number(l.kg); at = l.at || null; src = l.source === 'otomatik' ? 'cihaz' : 'elle';
+    } else {
+      gross = Number(h.weightKg);
+      if (!(gross > 0)) return { none: true, live: false };
+    }
+    var nh = netHoneyFromScale(gross, h.id, { at: at });
+    if (!nh) return { none: true, live: live };
+    return { netKg: nh.netKg, grossKg: gross, at: at, source: src, live: live, detail: nh };
+  }
+  /** Kapsam toplamı: { totalKg, weighed, n, lastAt, sample } — tartımı olmayan kovan toplama girmez. */
+  function scopeHoneyNow(hives, opts) { var TEb = global.SuperAriTarti; if (TEb && TEb.batch && !scopeHoneyNow._in) { scopeHoneyNow._in = 1; try { var self = this, args = arguments; return TEb.batch(function () { return scopeHoneyNow.apply(self, args); }); } finally { scopeHoneyNow._in = 0; } }
+    var out = { totalKg: 0, weighed: 0, n: 0, lastAt: '', sample: 0 };
+    (hives || []).forEach(function (h) {
+      out.n++;
+      var r = hiveHoneyNow(h, opts);
+      if (!r || r.none) return;
+      out.weighed++; out.totalKg += r.netKg;
+      if (r.source === 'ornek') out.sample++;
+      if (r.at && String(r.at) > out.lastAt) out.lastAt = String(r.at);
+    });
+    out.totalKg = round2(out.totalKg);
+    return out;
+  }
+
   function estimateHarvestKg(hiveId, honeyFrames, partial) {
     var h = hiveById(hiveId);
     var fw = frameWeightsForHive(h, h ? h.apiaryId : null);
@@ -556,6 +592,8 @@
   }
 
   global.SuperAriBalAgirlik = {
+    hiveHoneyNow: hiveHoneyNow,
+    scopeHoneyNow: scopeHoneyNow,
     KEY: KEY,
     DEFAULTS: DEFAULTS,
     DEFAULT_HIVE_TYPE: DEFAULT_HIVE_TYPE,
