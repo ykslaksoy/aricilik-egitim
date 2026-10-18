@@ -146,6 +146,7 @@
   function harvestDays(d) { return d.filter(function (x) { return (x.mm || 0) < 0.5 && (x.pr || 0) < 30 && x.wind != null && x.wind <= 15 && (x.hi || 0) >= 18; }); }
   /* koloni-268: sıcak bölge + çam balı illeri (Marchalina hellenica yayılışı: Muğla, Aydın, İzmir, Balıkesir, Çanakkale, Antalya — Günbey, AAE Ordu) Ağu–Kas → mevsim açık nedeni */
   function camAcik(S, m) { var a = ap() || {}, t = String((a.il || '') + ' ' + (a.name || '') + ' ' + (a.place || '')).toLocaleLowerCase('tr');
+    if (S.cam != null) return S.acik && S.cam && m >= 8 && m <= 11; /* koloni-270: tek kaynak ucusSezon (mevsim sonu: Çam balı bölgesi ayarı) */
     return S.acik && S.profile === 'sicak' && m >= 8 && m <= 11 && /muğla|mugla|aydın|aydin|izmir|balıkesir|balikesir|çanakkale|canakkale|antalya|fethiye|marmaris|bodrum|kayaköy|kayakoy/.test(t); }
   function seasonStage() {
     var t0 = isoToday(), S = sezon(t0), sy = sezonYazi(S, t0);
