@@ -1,5 +1,7 @@
 # beepack — Sadece NODE (1 kovan, GATE’siz)
 
+> **18.10.2026 güncellemesi (koloni-243 kararı):** DHT22 → **Sensirion SHT41** (I²C 0x44, ±0,2 °C / ±1,8 %RH tipik — [SHT4x datasheet V7.3](https://sensirion.com/media/documents/33FD6951/6A7C10A0/HT_DS_Datasheet_SHT4x_V7.3.pdf)). SHT41 Türkiye mağazası TL fiyatı: **Veri yok** (Robotistan, Direnc.net'te bulunamadı, 18.10.2026). Başvuru: 5,95 USD — [Adafruit #5776](https://www.adafruit.com/product/5776) (18.10.2026, kartta I²C pull-up var) ≈ 294,21 ₺ (TCMB döviz satış 16.10.2026, 1 USD = 49,4463 ₺). Aşağıdaki eski toplamlar DHT22 (114 ₺) ile hesaplanmıştı; güncel toplam: Yönetici → Donanım → Satın alma listesi.
+
 **Amaç:** 1 kovan tartı + sıcaklık/nem; **USB / WiFi** ile laptop veya `hive-demo` API’ye veri  
 **GATE yok:** LoRa saha testi ve Tortum uzaktan izleme **sonraki aşama**  
 **Tarih:** 31 Ağustos 2026 · Fiyatlar KDV dahil (kargo hariç)
@@ -24,7 +26,7 @@
 | Evet (NODE ile) | Hayır (GATE olmadan) |
 |-----------------|----------------------|
 | 4 load cell tartı, kalibrasyon | Tortum’dan canlı izleme |
-| DHT22 sıcaklık/nem | LoRa menzil testi |
+| SHT41 sıcaklık/nem | LoRa menzil testi |
 | WiFi → `POST /api/ingest` | 4G / SIM |
 | USB ile firmware geliştirme | Arılık dışından panel (internet yoksa) |
 | Güneş + pil saha beslemesi | 116 km uzaktan veri |
@@ -57,7 +59,7 @@
 | 83×58×33 | IP65 kutu | 1 | 100,80 ₺ | [robiz.net/83x58x33waterproofbox](https://robiz.net/83x58x33waterproofbox) |
 | Dupont F-F | 40×20 cm | 1 | 49,68 ₺ | [robiz.net/20cmdupontff40](https://robiz.net/20cmdupontff40) |
 | Dupont M-F | 40×20 cm | 1 | 49,68 ₺ | [robiz.net](https://robiz.net/index.php?route=product/search&search=dupont+erkek+di%C5%9Fi) |
-| 4,7kΩ | Direnç (DHT22) | 1 | ~6 ₺ | Robiz |
+| 4,7kΩ | Direnç (SHT41 kartında gerekmez; DS18B20 1-Wire için) | 1 | ~6 ₺ | Robiz |
 
 ### 4 — Robotistan · ~429 ₺
 
@@ -72,7 +74,7 @@
 
 | Kod | Ürün | Adet | Fiyat | Link |
 |-----|------|------|-------|------|
-| R000919 | DHT22 (AM2302) | 1 | 114,00 ₺ | [robo90.com/dht22](https://www.robo90.com/dht22-sicaklik-ve-nem-algilama-sensoru) |
+| 5776 | Sensirion SHT41 (Adafruit kartı) | 1 | Veri yok (TL) · 5,95 USD ≈ 294,21 ₺ | [adafruit.com/product/5776](https://www.adafruit.com/product/5776) |
 
 ### 6 — Yerel · ~380 ₺
 
@@ -93,7 +95,7 @@
 | N01 | T-Weigh 868 MHz | 1 | 900 | LilyGO |
 | N02 | T-U2T | 1 | 806 | F1Depo |
 | N03 | Load cell 50 kg | 4 | 175 | Robiz |
-| N04 | DHT22 | 1 | 114 | Robo90 |
+| N04 | SHT41 | 1 | Veri yok | Adafruit |
 | N05 | 4,7 kΩ direnç | 1 | 6 | Robiz |
 | N06 | Güneş 6V 150 mA | 1 | 175 | Robotistan |
 | N07 | CN3065 | 1 | 86 | Robiz |
