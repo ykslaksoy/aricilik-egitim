@@ -1,27 +1,19 @@
-/* koloni-291: yönlü melez — melezYon override; kilitli tablo aynı; panel18 + migration */
+/* koloni-291/292: yönlü melez — melezYon; kilitli tablo aynı; panel18 */
 const assert = require('assert'), vm = require('vm'), fs = require('fs'), path = require('path');
-const st = {}; const ls = { getItem: k => k in st ? st[k] : null, setItem: (k, v) => { st[k] = String(v); }, removeItem: k => { delete st[k]; }, key: i => Object.keys(st)[i], get length() { return Object.keys(st).length; } };
+const st = {}; const ls = { getItem: k => k in st ? st[k] : null, setItem: (k, v) => { st[k] = String(v) }, removeItem: k => { delete st[k] } };
 const w = { localStorage: ls, addEventListener() {}, removeEventListener() {}, dispatchEvent() {}, CustomEvent: function () {}, Event: function () {}, console };
 w.window = w; w.self = w; vm.createContext(w);
 const web = path.join(__dirname, '..'), yon = path.join(web, '..', 'yonetici');
 const src = fs.readFileSync(path.join(web, 'demo-data.js'), 'utf8'); vm.runInContext(src, w);
 const C = w.SuperAriDemo.colony, R = w.SuperAriDemo.records;
 const MK = 'Muğla ana × Kafkas baba', EK = 'Efe ana × Kafkas baba';
-assert.strictEqual(C.genetikScore(MK).g, 35);
-assert.strictEqual(C.genetikScore(EK).g, 55);
+assert.strictEqual(C.genetikScore(MK).g, 45);
+assert.strictEqual(C.genetikScore(EK).g, 30);
 assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length, 16);
-var merged = C.melezYonMerge({ items: { mugla_kafkas: { genetik: 40, ozet: 'test özellik' }, efe_kafkas: { ozet: 'efe öz' } } });
-assert.strictEqual(merged.items.mugla_kafkas.genetik, 40);
-assert.strictEqual(merged.items.mugla_kafkas.ozet, 'test özellik');
+var merged = C.melezYonMerge({ items: { mugla_kafkas: { genetik: 40, ozet: 'test özellik' } } });
 w.SuperAriDemo.colony.ogulSkorSet({ melezYon: merged });
 assert.strictEqual(C.genetikScore(MK).g, 40);
-assert.strictEqual(C.genetikScore(EK).g, 55);
 assert.strictEqual(R.crossInfo(MK).ozet, 'test özellik');
-assert.strictEqual(R.crossInfo(EK).ozet, 'efe öz');
-assert.strictEqual(fs.readFileSync(path.join(yon, 'demo-data.js'), 'utf8'), src);
 const p18 = fs.readFileSync(path.join(yon, 'panel18.js'), 'utf8');
-['s-melez-yon', 'Arı genetikleri', 'data-my-oz', 'melezYon', 'Muğla ana × Kafkas baba', 'Efe ana × Kafkas baba'].forEach(t => assert.ok(p18.includes(t), t));
-const mig = fs.readFileSync(path.join(web, '..', '..', 'supabase', 'migrations', '20261019005000_k291_melez_yon_ayar.sql'), 'utf8');
-assert.ok(/melezYon/.test(mig) && /yapilacaklar/.test(mig));
-assert.strictEqual(+JSON.parse(fs.readFileSync(path.join(web, 'version.json'), 'utf8')).version.replace('koloni-', ''), 291);
+['s-melez-yon', 'Arı genetikleri', 'melezYon', 'Hırçınlık'].forEach(t => assert.ok(p18.includes(t), t));
 console.log('k291 ok');

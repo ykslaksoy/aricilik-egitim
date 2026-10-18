@@ -1,0 +1,26 @@
+/* koloni-292: yönlü genetik 45/30/30, hırçınlık, kilitli tablo aynı */
+const assert = require('assert'), vm = require('vm'), fs = require('fs'), path = require('path');
+const st = {}; const ls = { getItem: k => k in st ? st[k] : null, setItem: (k, v) => { st[k] = String(v) }, removeItem: k => { delete st[k] } };
+const w = { localStorage: ls, addEventListener() {}, removeEventListener() {}, dispatchEvent() {}, CustomEvent: function () {}, Event: function () {}, console };
+w.window = w; w.self = w; vm.createContext(w);
+const web = path.join(__dirname, '..'), yon = path.join(web, '..', 'yonetici');
+const src = fs.readFileSync(path.join(web, 'demo-data.js'), 'utf8'); vm.runInContext(src, w);
+const C = w.SuperAriDemo.colony, R = w.SuperAriDemo.records;
+const MK = 'Muğla ana × Kafkas baba', KM = 'Kafkas ana × Muğla baba', EK = 'Efe ana × Kafkas baba';
+assert.strictEqual(C.genetikScore(MK).g, 45);
+assert.strictEqual(C.genetikScore(KM).g, 30);
+assert.strictEqual(C.genetikScore(EK).g, 30);
+assert.strictEqual(C.genetikScore('Kafkas × Muğla').g, 35);
+assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length, 16);
+assert.strictEqual(R.hircinlikKisa('Kafkas'), 'Sakin');
+assert.strictEqual(R.hircinlikKisa(MK), 'Çok hırçın');
+assert.strictEqual(R.hircinlikKisa('Efe arısı'), 'Orta');
+assert.strictEqual(R.hircinlikKisa(EK), 'Veri yok');
+assert.ok(/Hırçınlık: Çok hırçın/.test(R.irkBilgiSatir(MK)));
+assert.ok(!/3,73|dergipark|162695/.test(fs.readFileSync(path.join(web, 'koloni.js'), 'utf8')));
+const p18 = fs.readFileSync(path.join(yon, 'panel18.js'), 'utf8');
+assert.ok(/data-my-h|Hırçınlık eşikleri|Genetik puan/.test(p18));
+assert.ok(src.includes('143543'));
+assert.strictEqual(fs.readFileSync(path.join(yon, 'demo-data.js'), 'utf8'), src);
+assert.strictEqual(+JSON.parse(fs.readFileSync(path.join(web, 'version.json'), 'utf8')).version.replace('koloni-', ''), 292);
+console.log('k292 ok');

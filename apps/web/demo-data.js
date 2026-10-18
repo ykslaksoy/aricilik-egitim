@@ -2693,14 +2693,25 @@
     /* k290: tescilli Efe (Ege) ana hattı × Kafkas erkek — kaynak/rakam yalnız yönetici; verim denemesi yok */
     { id: 'efe_kafkas', ad: 'Efe ana × Kafkas baba', ana: /efe ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'tescilli Efe ana hattı · F1 melez: ana arıyı her yıl yenileyin · bal verimi: Veri yok' }
   ];
-  /* koloni-291: yönlü ikili melez — genetik puan / «Melez özelliği» yönetici › Arı genetikleri (ogul_skor_ayar.data.melezYon); kilitli tablo değişmez */
-  function melezYonVarsayilanGenetik(id) {
-    if (id === 'efe_kafkas') return GENETIK_MELEZ['anadolu+kafkas'];
-    if (id === 'mugla_kafkas' || id === 'kafkas_mugla') return GENETIK_MELEZ['kafkas+mugla'];
-    return null;
-  }
+  /* koloni-291/292: yönlü ikili melez — genetik puan / «Melez özelliği» / hırçınlık yönetici › Arı genetikleri (ogul_skor_ayar); kilitli GENETIK_MELEZ değişmez (yönsüz Kafkas×Muğla = 35 kalır). */
+  var MELEZ_YON_GENETIK = { mugla_kafkas: 45, kafkas_mugla: 30, efe_kafkas: 30 };
+  var OGUL_YON_KAYNAK = 'Oğul eğilimi: Akyol, Özkök, Öztürk, Bayram 2005, Uludağ Arıcılık Dergisi 5(4) — https://dergipark.org.tr/tr/download/article-file/143543 · Kafkas %10, Muğla %30, Kafkas ana × Muğla baba %10, Muğla ana × Kafkas baba %20, P>0,05.';
+  var HIRCINLIK_KAYNAK = '60 sn içinde bilyeye sokma (sting): Akyol, Yeninar, Kaftanoğlu, Özkök 2003 — https://dergipark.org.tr/en/pub/uluaricilik/article/162695';
+  var HIRCINLIK_IRK = {
+    kafkas: { ad: 'Kafkas', v: 3.73, src: HIRCINLIK_KAYNAK },
+    mugla: { ad: 'Muğla', v: 15, src: HIRCINLIK_KAYNAK },
+    kafkas_mugla: { ad: 'Kafkas ana × Muğla baba', v: 7.73, src: HIRCINLIK_KAYNAK },
+    mugla_kafkas: { ad: 'Muğla ana × Kafkas baba', v: 19.9, src: HIRCINLIK_KAYNAK },
+    efe: { ad: 'Efe arısı', seviye: 'Orta', src: 'Resmî Gazete 16.05.2019 EK-1 — https://www.resmigazete.gov.tr/eskiler/2019/05/20190516-14-1.pdf · «Orta derecede uysaldır»' },
+    efe_kafkas: { ad: 'Efe ana × Kafkas baba', veriYok: true }
+  };
+  function melezYonVarsayilanGenetik(id) { return MELEZ_YON_GENETIK[id] != null ? MELEZ_YON_GENETIK[id] : null; }
   function melezYonDefaults() {
-    var items = {}; CROSS_YON.forEach(function (y) { items[y.id] = { ozet: y.ozet }; }); return { items: items };
+    var items = {};
+    CROSS_YON.forEach(function (y) {
+      items[y.id] = { ozet: y.ozet, genetik: MELEZ_YON_GENETIK[y.id], kaynak: OGUL_YON_KAYNAK };
+    });
+    return { items: items };
   }
   function melezYonMerge(raw) {
     var d = melezYonDefaults(); if (!raw || typeof raw !== 'object' || !raw.items || typeof raw.items !== 'object') return d;
@@ -2711,13 +2722,67 @@
       var g = Number(s.genetik); if (s.genetik !== '' && s.genetik != null && isFinite(g) && g >= 0 && g <= 100) it.genetik = g;
       if (typeof s.kaynak === 'string') it.kaynak = s.kaynak.trim().slice(0, 12000);
       if (typeof s.not === 'string') it.not = s.not.trim().slice(0, 12000);
+      var hv = Number(s.hircinlik); if (s.hircinlik !== '' && s.hircinlik != null && isFinite(hv) && hv >= 0) it.hircinlik = hv;
     });
     return d;
   }
   function melezYonCfg() { return melezYonMerge((OGUL_SKOR && OGUL_SKOR.melezYon) || null); }
-  function melezYonGenetikOverride(breed) {
+  function melezYonEffectiveGenetik(breed) {
     var y = crossYon(breed); if (!y) return null;
     var g = melezYonCfg().items[y.id].genetik; return g == null ? null : g;
+  }
+  function hircinlikDefaults() {
+    var irk = {}; Object.keys(HIRCINLIK_IRK).forEach(function (k) {
+      var x = HIRCINLIK_IRK[k]; irk[k] = x.veriYok ? { veriYok: true } : (x.seviye ? { seviye: x.seviye, src: x.src } : { v: x.v, src: x.src });
+    });
+    return { esik: { orta: 6, hircin: 11, cok: 18 }, irk: irk };
+  }
+  function hircinlikMerge(raw) {
+    var d = hircinlikDefaults(); if (!raw || typeof raw !== 'object') return d;
+    var e = raw.esik || {};
+    ['orta', 'hircin', 'cok'].forEach(function (k) { var v = Number(e[k]); if (isFinite(v) && v > 0) d.esik[k] = v; });
+    var ri = raw.irk || {};
+    Object.keys(ri).slice(0, 40).forEach(function (k) {
+      if (!HIRCINLIK_IRK[k]) return;
+      var s = ri[k]; if (!s || typeof s !== 'object') return;
+      if (s.veriYok === true) { d.irk[k] = { veriYok: true }; return; }
+      if (typeof s.seviye === 'string' && s.seviye) { d.irk[k] = { seviye: s.seviye.slice(0, 24), src: typeof s.src === 'string' ? s.src.slice(0, 12000) : d.irk[k].src }; return; }
+      var v = Number(s.v); if (isFinite(v) && v >= 0) d.irk[k] = { v: v, src: typeof s.src === 'string' ? s.src.slice(0, 12000) : (d.irk[k] && d.irk[k].src) };
+    });
+    return d;
+  }
+  function hircinlikCfg() { return hircinlikMerge((OGUL_SKOR && OGUL_SKOR.hircinlik) || null); }
+  function hircinlikKey(breed) {
+    var y = crossYon(breed); if (y) return y.id;
+    var b = String(breed || '').toLocaleLowerCase('tr');
+    if (/×|✕/.test(b)) return null;
+    if (/(^|[^a-zçğıöşü])efe([^a-zçğıöşü]|$)/.test(b)) return 'efe';
+    if (/(^|[^a-zçğıöşü])kafkas([^a-zçğıöşü]|$)/.test(b)) return 'kafkas';
+    if (/(^|[^a-zçğıöşü])mu[ğg]la([^a-zçğıöşü]|$)/.test(b)) return 'mugla';
+    return null;
+  }
+  function irkBilgiSatir(breed) {
+    var p = [], y = crossYon(breed);
+    if (y) p.push('Melez özelliği: ' + y.ozet);
+    else { var ci = crossInfo(breed); if (ci && ci.ozet) p.push('Melez özelliği: ' + ci.ozet); }
+    if (hircinlikKey(breed)) { var h = hircinlikKisa(breed); if (h) p.push('Hırçınlık: ' + h); }
+    return p.join(' · ');
+  }
+  function hircinlikSeviyeFromV(v, esik) {
+    v = Number(v); if (!isFinite(v)) return 'Veri yok';
+    if (v < esik.orta) return 'Sakin';
+    if (v < esik.hircin) return 'Orta';
+    if (v < esik.cok) return 'Hırçın';
+    return 'Çok hırçın';
+  }
+  /** Kullanıcı sayfası: kısa etiket veya null (gösterilmez). */
+  function hircinlikKisa(breed) {
+    var k = hircinlikKey(breed); if (!k || !HIRCINLIK_IRK[k]) return null;
+    var cfg = hircinlikCfg(), row = cfg.irk[k] || {};
+    if (row.veriYok) return 'Veri yok';
+    if (row.seviye) return row.seviye;
+    if (row.v != null) return hircinlikSeviyeFromV(row.v, cfg.esik);
+    return 'Veri yok';
   }
   function crossYon(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
@@ -3836,7 +3901,14 @@
     var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
     var u = num01(o.bilinmeyen, 0, 100); if (u != null) d.bilinmeyen = u;
     /* koloni-273: ayrı modüllerin ayarları (hastalik-ayar.js, bal-hedef.js kendi merge’üyle doğrular) birleştirmede düşmesin — önceden ogulSkor().hastalik hep boştu */
-    ['hastalik', 'balHedef', 'melezYon'].forEach(function (k) { var v = o[k]; if (v && typeof v === 'object' && !Array.isArray(v)) { try { d[k] = k === 'melezYon' ? melezYonMerge(v) : JSON.parse(JSON.stringify(v)); } catch (eK) { /* yoksay */ } } });
+    ['hastalik', 'balHedef', 'melezYon', 'hircinlik'].forEach(function (k) {
+      var v = o[k]; if (!v || typeof v !== 'object' || Array.isArray(v)) return;
+      try {
+        if (k === 'melezYon') d[k] = melezYonMerge(v);
+        else if (k === 'hircinlik') d[k] = hircinlikMerge(v);
+        else d[k] = JSON.parse(JSON.stringify(v));
+      } catch (eK) { /* yoksay */ }
+    });
     return d;
   }
   var OGUL_SKOR = ogulSkorDefaults();
@@ -4807,14 +4879,12 @@
     if (!found.length) return { g: OGUL_SKOR.bilinmeyen, known: false, hybrid: false, label: b ? 'ırk tabloda yok' : 'ırk bilinmiyor' };
     if (found.length === 1) return { key: found[0], g: OGUL_SKOR.saf[found[0]], known: true, hybrid: false, label: 'saf hat' };
     var key = found.slice().sort().join('+');
-    if (OGUL_SKOR.melez[key] != null) {
-      var g0 = OGUL_SKOR.melez[key], go = melezYonGenetikOverride(breed);
-      return { key: key, g: go != null ? go : g0, known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez', yonOverride: go != null };
-    }
-    /* k290: kilitli tabloya anahtar eklenmez — Efe (Ege/Anadolu ekotipi) × Kafkas, Anadolu × Kafkas basamağını kullanır (uzman tahmini; yönetici › Kural kaynakları) */
+    var yonG = melezYonEffectiveGenetik(breed);
+    if (yonG != null) return { key: key, g: yonG, known: true, hybrid: true, label: 'ikili melez', yon: true };
+    if (OGUL_SKOR.melez[key] != null) return { key: key, g: OGUL_SKOR.melez[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
+    /* k290: yönsüz Efe×Kafkas — Veri yok; yönlü «Efe ana × Kafkas baba» yukarıda melezYon ile */
     if (GENETIK_TAKMA[key] && /efe ana/.test(b) && OGUL_SKOR.melez[GENETIK_TAKMA[key]] != null) {
-      var gt = OGUL_SKOR.melez[GENETIK_TAKMA[key]], go2 = melezYonGenetikOverride(breed);
-      return { key: key, g: go2 != null ? go2 : gt, known: true, hybrid: true, takma: GENETIK_TAKMA[key], label: 'ikili melez', yonOverride: go2 != null };
+      return { key: key, g: OGUL_SKOR.melez[GENETIK_TAKMA[key]], known: true, hybrid: true, takma: GENETIK_TAKMA[key], label: 'ikili melez' };
     }
     if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: OGUL_SKOR.buckfastIkili, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
     reportHybridMissing(key, found.join(' × '));
@@ -5447,6 +5517,12 @@
     splitWindow: splitWindow,
     crossInfo: crossInfo,
     crossYon: crossYon,
+    hircinlikKisa: hircinlikKisa,
+    irkBilgiSatir: irkBilgiSatir,
+    hircinlikCfg: hircinlikCfg,
+    hircinlikMerge: hircinlikMerge,
+    hircinlikDefaults: hircinlikDefaults,
+    HIRCINLIK_IRK: HIRCINLIK_IRK,
     strengthTag: strengthTag,
     STRENGTH_LEVELS: STRENGTH_LEVELS,
     COLONY_ENV: COLONY_ENV,
@@ -7357,7 +7433,7 @@
         get QUEENS_KEY() { return mk(QUEENS_KEY); },
         currentYear: currentYear,
         todayLocal: todayLocal,
-        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, genelAgirlikKaybi: genelAgirlikKaybi, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, esekYolDurum: esekYolDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, CROSS_YON: CROSS_YON, melezYonDefaults: melezYonDefaults, melezYonMerge: melezYonMerge, melezYonVarsayilanGenetik: melezYonVarsayilanGenetik, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, gunlukOzetHesapla: gunlukOzetHesapla, tabanDurum: tabanDurum, hiveSens: hiveSens, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusSezon: ucusSezon, camBaliBolge: camBaliBolge, mdNum: mdNum, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
+        SWARM_LEVELS: SWARM_LEVELS, KovanBildirimSablonlari: KovanBildirimSablonlari, varroaHatirlatma: varroaHatirlatma, haftalikHatirlatma: haftalikHatirlatma, saglikHatirlatmalari: saglikHatirlatmalari, genelAgirlikKaybi: genelAgirlikKaybi, KURALLAR: KURALLAR, esekMikDurum: esekMikDurum, esekYolDurum: esekYolDurum, kuralYeni5: kuralYeni5, kuralIr5: kuralIr5, titresimYeni4: titresimYeni4, titresimKis: titresimKis, titresimDurum: titresimDurum, girisSayacDurum: girisSayacDurum, girisSicakDurum: girisSicakDurum, hiveCihazTipDurum: hiveCihazTipDurum, sensorCihazMetin: sensorCihazMetin, kuralAcik: kuralAcik, kuralKullaniciAyarla: kuralKullaniciAyarla, yeniKurallar: yeniKurallar, cihazSaglik: cihazSaglik, GENETIK_SAF: GENETIK_SAF, GENETIK_MELEZ: GENETIK_MELEZ, IRK_PUANSIZ: IRK_PUANSIZ, irkPuansiz: irkPuansiz, genetikScore: genetikScore, CROSS_YON: CROSS_YON, melezYonDefaults: melezYonDefaults, melezYonMerge: melezYonMerge, melezYonVarsayilanGenetik: melezYonVarsayilanGenetik, melezYonCfg: melezYonCfg, hircinlikMerge: hircinlikMerge, hircinlikDefaults: hircinlikDefaults, HIRCINLIK_IRK: HIRCINLIK_IRK, orsCompute: orsCompute, sensorOkumalar: sensorOkumalar, okumaGonder: okumaGonder, gunlukOzetHesapla: gunlukOzetHesapla, tabanDurum: tabanDurum, hiveSens: hiveSens, ORS_WEIGHTS: ORS_WEIGHTS, GENETIK_ADLAR: GENETIK_ADLAR, ogulSkor: function () { return OGUL_SKOR; }, ogulSkorDefaults: ogulSkorDefaults, ORS_SENSOR: ORS_SENSOR, autoSwarmWindow: function (apId) { var k = seasonProfileKey(apId), w = SWARM_WINDOWS[k]; return { profile: k, label: PROFILE_SHORT[k], from: w.from, to: w.to }; }, customPeriod: customPeriod, ORS_SENSOR_ADLAR: ORS_SENSOR_ADLAR, sensorOrs: sensorOrs, sensorGiris: sensorGiris, sikisiklikOnbellek: function (id) { return SIK_CACHE[Number(id)] || null; }, SES_SINIFLARI: SES_SINIFLARI, ogulSkorMerge: ogulSkorMerge, nemSiraGecerli: nemSiraGecerli, nemDurum: function (rh, T) { return nemDurum(rh, T); }, ogulSkorSet: ogulSkorSet, ucusEsik: ucusEsik, ucusSezon: ucusSezon, camBaliBolge: camBaliBolge, mdNum: mdNum, ucusGruplari: ucusGruplari, apiaryBreed: apiaryBreed, ogulSkorSync: ogulSkorSync,
         swarm: function (h, c) { return swarmAssess(h, c ? (typeof c === 'string' ? { date: c } : c) : null); },
         swarmLevelOf: swarmLevelOf,
         boxes: function (h) { return hiveBoxes(h); },
