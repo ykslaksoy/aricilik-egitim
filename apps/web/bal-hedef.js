@@ -75,5 +75,13 @@
     var top = Object.keys(mix).sort(function (a, b) { return mix[b] - mix[a]; })[0] || irkKey(apBreed);
     return { perHiveKg: per, totalKg: Math.round(per * hs.length), n: hs.length, fog: fog, breedLabel: top };
   }
-  global.SuperAriBalHedef = { DEF: DEF, IRK_SIRA: IRK_SIRA, merge: merge, get: get, irkKey: irkKey, irkKat: irkKat, sisli: sisli, arilikHedef: arilikHedef, aktifKovanlar: aktifKovanlar };
+  /** koloni-274: arılığın bal (uçuş) sezonu bugün açık mı — tek tanım demo-data.js › colony.ucusSezon
+      (bölge profili, sıcak bölge çam balı illerinde ucusSezonCamSon, yönetici › arılık başına elle dönem).
+      Sezonu kapanmış arılıkta kovandaki bal hasat edilmez → «Kovanda kalan (kış stoğu)». Hesaplanamazsa açık sayılır. */
+  function hasatSezonu(apiaryId, date) {
+    var D = global.SuperAriDemo, C = D && D.colony;
+    if (!C || !C.ucusSezon) return { acik: true, bilinmiyor: true };
+    try { var s = C.ucusSezon(apiaryId, date); return { acik: !!(s && s.acik), window: s && s.window, to: s && s.to, custom: !!(s && s.custom) }; } catch (e) { return { acik: true, bilinmiyor: true }; }
+  }
+  global.SuperAriBalHedef = { DEF: DEF, IRK_SIRA: IRK_SIRA, merge: merge, get: get, irkKey: irkKey, irkKat: irkKat, sisli: sisli, arilikHedef: arilikHedef, aktifKovanlar: aktifKovanlar, hasatSezonu: hasatSezonu };
 })(typeof window !== 'undefined' ? window : globalThis);

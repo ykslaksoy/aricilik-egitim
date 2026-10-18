@@ -7,7 +7,7 @@
 <title>SüperArı · Bal / verim</title>
 <link rel="stylesheet" href="rapor-common.css" />
 <style>/* koloni-272: [hidden] .filters label{display:grid} kuralını ezmiyordu → Toplam sekmesinde arılık seçici görünüyordu */[hidden]{display:none!important}
-.bo-row{padding:9px 0;border-top:1px solid #f0f1f3}.bo-row:first-child{border-top:0}.bo-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.bo-name{font-weight:800;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bo-pct{font-size:11px;font-weight:800;color:#8a5a00;white-space:nowrap}.bo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:5px}.bo-c{background:#faf7ef;border-radius:9px;padding:6px 7px;min-width:0}.bo-c .k{font-size:10px;font-weight:700;color:var(--muted)}.bo-c .v{font-size:14px;font-weight:800;white-space:nowrap}.bo-c .s{font-size:9.5px;line-height:1.25;color:var(--muted);min-height:2.5em;overflow-wrap:anywhere}.bo-note{font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.35}.bo-row.bo-total{background:#fff8df;border-radius:10px;padding:9px 8px;border-top:0;margin-top:6px}.bo-vy{color:var(--muted);font-size:12px;font-weight:700}</style>
+.bo-row{padding:9px 0;border-top:1px solid #f0f1f3}.bo-row:first-child{border-top:0}.bo-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.bo-name{font-weight:800;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bo-pct{font-size:11px;font-weight:800;color:#8a5a00;white-space:nowrap}.bo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:5px}.bo-c{background:#faf7ef;border-radius:9px;padding:6px 7px;min-width:0}.bo-c .k{font-size:10px;font-weight:700;color:var(--muted)}.bo-c .v{font-size:14px;font-weight:800;white-space:nowrap}.bo-c .s{font-size:9.5px;line-height:1.25;color:var(--muted);min-height:2.5em;overflow-wrap:anywhere}.bo-note{font-size:11px;color:var(--muted);margin:6px 0 0;line-height:1.35}.bo-row.bo-total{background:#fff8df;border-radius:10px;padding:9px 8px;border-top:0;margin-top:6px}.bo-vy{color:var(--muted);font-size:12px;font-weight:700}.bo-grid.bo-grid2{grid-template-columns:repeat(2,1fr)}.bo-c.bo-kis{background:#eef4fb}</style>
 </head>
 <body>
 <div class="phone" id="phone">
@@ -48,7 +48,7 @@
     <section class="card-block" id="balOzetBlock">
       <h2>Bal özeti · hedef · kovanda · hasat</h2>
       <div id="balOzet" style="min-height:120px"></div>
-      <p class="bo-note">Hedef: tahmini sezon hedefi (kesin değil). Kovanda: son tartımdan net bal tahmini. Hasat: girilen hasat kayıtları.</p>
+      <p class="bo-note">Hedef: tahmini sezon hedefi (kesin değil). Kovanda şimdi: sezonu açık arılıkta son tartımdan net bal tahmini. Kovanda kalan (kış stoğu): sezonu kapanmış arılıkta kovanda bırakılan bal; hasat edilmez. Hasat: girilen hasat kayıtları.</p>
     </section>
 
     <section class="card-block" id="byApiaryBlock">
@@ -240,7 +240,9 @@
       .replace(/"/g, '&quot;');
   }
 
-  /* koloni-272 (önizleme): arılık başına Hedef (uzman tahmini) · Kovanda şimdi (tartıdan) · Hasat edilen + genel toplam */
+  /* koloni-272 (önizleme): arılık başına Hedef (uzman tahmini) · Kovanda şimdi (tartıdan) · Hasat edilen + genel toplam
+     koloni-274: sezonu kapanmış arılıkta (bal-hedef.js › hasatSezonu = colony.ucusSezon) kovandaki bal hasat edilmez →
+     «Kovanda kalan (kış stoğu)»; genel toplamda sezondaki (hasat edilebilir) bal ile kış stoğu ayrı. Hedef % = hasat / hedef. */
   function kgTxt(n) { return n == null ? '<span class="bo-vy">Veri yok</span>' : R.fmtKg(n); }
   function renderBalOzet(y, aid, s) { var TEb = window.SuperAriTarti; if (TEb && TEb.batch && !renderBalOzet._in) { renderBalOzet._in = 1; try { var self = this, args = arguments; return TEb.batch(function () { return renderBalOzet.apply(self, args); }); } finally { renderBalOzet._in = 0; } }
     var host = document.getElementById('balOzet');
@@ -249,33 +251,41 @@
     if (!aps.length) { host.innerHTML = '<p class="meta">Veri yok · önce arılık ekleyin.</p>'; return; }
     var hvAll = allHives(), hasatBy = {};
     s.byApiary.forEach(function (a) { hasatBy[String(a.apiaryId)] = a.honeyKg; });
-    var T = { hedef: 0, hedefN: 0, kovanda: 0, w: 0, n: 0, hasat: 0, hasatAny: false, sample: 0 };
-    function cell(k, v, sub) { return '<div class="bo-c"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + (sub || '&nbsp;') + '</div></div>'; }
+    var T = { hedef: 0, hedefN: 0, hasat: 0, hasatAny: false, sample: 0,
+      sz: { kg: 0, w: 0, n: 0, ap: 0 }, ks: { kg: 0, w: 0, n: 0, ap: 0 } };
+    function cell(k, v, sub, cls) { return '<div class="bo-c' + (cls ? ' ' + cls : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + (sub || '&nbsp;') + '</div></div>'; }
     function pctTxt(hasat, hedef) { return hedef > 0 && hasat != null ? 'Hasat, hedefin %' + Math.round(hasat / hedef * 100) + '’i' : '&nbsp;'; }
+    function tartiTxt(sc) { return sc.weighed + '/' + sc.n + ' tartılı' + (sc.sample ? ' · örnek' : ''); }
     var rows = aps.map(function (a) {
       var hd = BH ? BH.arilikHedef(a) : null;
       var hs = hvAll.filter(function (h) { return String(h.apiaryId) === String(a.id); });
       var sc = BA && BA.scopeHoneyNow ? BA.scopeHoneyNow(hs) : { weighed: 0, n: hs.length, totalKg: 0, sample: 0 };
       var hasat = hasatBy.hasOwnProperty(String(a.id)) ? hasatBy[String(a.id)] : null;
+      var sez = BH && BH.hasatSezonu ? BH.hasatSezonu(a.id) : { acik: true }, acik = !!sez.acik, G = acik ? T.sz : T.ks;
       if (hd && hd.n) { T.hedef += hd.totalKg; T.hedefN += hd.n; }
-      T.kovanda += sc.weighed ? sc.totalKg : 0; T.w += sc.weighed; T.n += sc.n; T.sample += sc.sample;
+      G.kg += sc.weighed ? sc.totalKg : 0; G.w += sc.weighed; G.n += sc.n; G.ap++; T.sample += sc.sample;
       if (hasat != null) { T.hasat += hasat; T.hasatAny = true; }
       var hedefV = hd && hd.n ? hd.totalKg : null;
-      return '<div class="bo-row"><div class="bo-head"><span class="bo-name">' + escapeHtml(a.name || a.place || a.id) + '</span><span class="bo-pct">' + pctTxt(hasat, hedefV) + '</span></div>' +
+      var kov = acik
+        ? cell('Kovanda şimdi', kgTxt(sc.weighed ? sc.totalKg : null), sc.n ? 'sezonda · ' + tartiTxt(sc) : 'kovan yok')
+        : cell('Kovanda kalan (kış stoğu)', kgTxt(sc.weighed ? sc.totalKg : null), sc.n ? 'hasat edilmez · ' + tartiTxt(sc) : 'kovan yok', 'bo-kis');
+      return '<div class="bo-row" data-sezon="' + (acik ? 'acik' : 'kapali') + '" data-ap="' + escapeHtml(String(a.id)) + '"><div class="bo-head"><span class="bo-name">' + escapeHtml(a.name || a.place || a.id) + '</span><span class="bo-pct">' + pctTxt(hasat, hedefV) + '</span></div>' +
         '<div class="bo-grid">' +
         cell('Hedef', kgTxt(hedefV), hd && hd.n ? 'uzman tahmini · ' + hd.n + ' kovan' : 'kovan yok') +
-        cell('Kovanda şimdi', kgTxt(sc.weighed ? sc.totalKg : null), sc.n ? sc.weighed + '/' + sc.n + ' tartılı' + (sc.sample ? ' · örnek' : '') : 'kovan yok') +
+        kov +
         cell('Hasat edilen', kgTxt(hasat), y + ' sezonu') +
         '</div></div>';
     });
     var total = '';
     if (!aid && aps.length > 1) {
       var hT = T.hedefN ? Math.round(T.hedef) : null;
-      total = '<div class="bo-row bo-total"><div class="bo-head"><span class="bo-name">Genel toplam · ' + aps.length + ' arılık</span><span class="bo-pct">' + pctTxt(T.hasatAny ? T.hasat : null, hT) + '</span></div>' +
-        '<div class="bo-grid">' +
+      var r1 = function (n) { return Math.round(n * 10) / 10; };
+      total = '<div class="bo-row bo-total" data-total="1"><div class="bo-head"><span class="bo-name">Genel toplam · ' + aps.length + ' arılık</span><span class="bo-pct">' + pctTxt(T.hasatAny ? T.hasat : null, hT) + '</span></div>' +
+        '<div class="bo-grid bo-grid2">' +
         cell('Hedef', kgTxt(hT), T.hedefN ? 'uzman tahmini · ' + T.hedefN + ' kovan' : '') +
-        cell('Kovanda şimdi', kgTxt(T.w ? Math.round(T.kovanda * 10) / 10 : null), T.n ? T.w + '/' + T.n + ' tartılı' + (T.sample ? ' · örnek' : '') : '') +
         cell('Hasat edilen', kgTxt(T.hasatAny ? T.hasat : null), y + ' sezonu') +
+        cell('Kovanda şimdi (sezonda)', T.sz.ap ? kgTxt(T.sz.w ? r1(T.sz.kg) : null) : '<span class="bo-vy">Sezonda arılık yok</span>', T.sz.ap ? T.sz.ap + ' arılık · ' + T.sz.w + '/' + T.sz.n + ' tartılı' : '&nbsp;') +
+        cell('Kovanda kalan (kış stoğu)', T.ks.ap ? kgTxt(T.ks.w ? r1(T.ks.kg) : null) : '<span class="bo-vy">—</span>', T.ks.ap ? T.ks.ap + ' arılık · sezon kapandı · hasat edilmez' : 'sezonu kapanan arılık yok', 'bo-kis') +
         '</div></div>';
     }
     host.innerHTML = total + rows.join('');

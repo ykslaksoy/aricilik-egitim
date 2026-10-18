@@ -4,7 +4,9 @@
    - Hedef: bal-hedef.js › arilikHedef (yönetici › Bal hedefi; uzman tahmini).
    - Nektar akımı: son nektarGun günde ortalama günlük artış ≥ ORS_SENSOR.nektarKg (yönetici › Ölçüm kuralları › Ağırlık (tartı) › Nektar).
    - Ani düşüş: uyarılarla birebir — SuperAriKritik.aniKayip (aniKayipKg / aniKayipSaat) ya da colony.genelAgirlikKaybi (genelKayipKat / genelKayipMinKg); yalnız cihaz tartı okumaları.
-   - Kış stoğu / Hasada hazır: bal-hedef.js kisStokKg (NBU Fact 19) ve hasatFazlaKg (uzman tahmini); ilaç bekleme süresindeki kovan hasada hazır sayılmaz. */
+   - Kış stoğu / Hasada hazır: bal-hedef.js kisStokKg (NBU Fact 19) ve hasatFazlaKg (uzman tahmini); ilaç bekleme süresindeki kovan hasada hazır sayılmaz.
+   - koloni-274: bal sezonu (bal-hedef.js › hasatSezonu = colony.ucusSezon; çam balı 30 Kas, arılık başına elle dönem) kapanmış arılıklarda kovandaki bal
+     hasat edilmez (kış stoğu): «Bal (tahmin)» rozeti yalnız sezonda olan arılıklar; Hedef ve Hasada hazır yalnız sezondaki kovanlar. */
 (function (global) {
   'use strict';
   var KEYS = ['bal', 'hedef', 'nektar', 'ani', 'kis', 'hasat'];
@@ -28,7 +30,8 @@
     try { live = global.localStorage.getItem('superari.workMode') === 'live'; } catch (e) { live = false; }
     var T = {}; try { T = Object.assign({}, (C && C.ORS_SENSOR) || {}, ((C && C.ogulSkor && C.ogulSkor()) || {}).sensor || {}); } catch (e) { T = {}; }
     var nektarKg = Number(T.nektarKg) > 0 ? Number(T.nektarKg) : 1;
-    var now = Date.now(), today = todayLocal(), apHedef = {}, wdBy = {};
+    var now = Date.now(), today = todayLocal(), apHedef = {}, wdBy = {}, szBy = {};
+    function sezonAcik(apId) { if (!szBy.hasOwnProperty(apId)) { var z = BH && BH.hasatSezonu ? BH.hasatSezonu(apId) : { acik: true }; szBy[apId] = !!(z && z.acik); } return szBy[apId]; }
     function hedefOf(apId) {
       if (apHedef.hasOwnProperty(apId)) return apHedef[apId];
       var ap = null; try { ap = D.apiaryById ? D.apiaryById(apId) : null; } catch (e) { ap = null; }
@@ -39,20 +42,22 @@
       var l = []; try { l = (D.records && D.records.withdrawalConflicts) ? D.records.withdrawalConflicts(apId, today) : []; } catch (e) { l = []; }
       var m = {}; l.forEach(function (c) { m[String(c.hiveId)] = c; }); wdBy[apId] = m; return m;
     }
-    var out = { per: {}, sum: { bal: 0, w: 0, n: 0, lastAt: '', sample: 0, hedefKg: 0, hedefW: 0, hedefte: 0, nektar: 0, nektarData: 0, ani: 0, aniData: 0, kis: 0, hasat: 0, wd: 0 }, live: live, A: A, nektarKg: nektarKg };
+    var out = { per: {}, sum: { bal: 0, w: 0, n: 0, lastAt: '', sample: 0, balSz: 0, wSz: 0, nSz: 0, balKs: 0, wKs: 0, nKs: 0, hedefKg: 0, hedefW: 0, hedefte: 0, nektar: 0, nektarData: 0, ani: 0, aniData: 0, kis: 0, hasat: 0, wd: 0 }, live: live, A: A, nektarKg: nektarKg };
     var S = out.sum;
     (hives || []).forEach(function (h) {
       var p = { cats: {} }; out.per[String(h.id)] = p; S.n++;
+      var acik = sezonAcik(String(h.apiaryId)); p.sezon = acik; if (acik) S.nSz++; else S.nKs++;
       var hn = BA && BA.hiveHoneyNow ? BA.hiveHoneyNow(h, { live: live }) : null;
       if (hn && !hn.none) {
         p.netKg = hn.netKg; p.source = hn.source; S.w++; S.bal += hn.netKg; p.cats.bal = true;
         if (hn.source === 'ornek') S.sample++;
+        if (acik) { S.balSz += hn.netKg; S.wSz++; } else { S.balKs += hn.netKg; S.wKs++; p.kisStogu = true; }
         if (hn.at && String(hn.at) > S.lastAt) S.lastAt = String(hn.at);
         var hd = hedefOf(String(h.apiaryId));
-        if (hd && hd.perHiveKg > 0) { S.hedefKg += hd.perHiveKg; S.hedefW += hn.netKg; p.hedefKg = hd.perHiveKg; if (hn.netKg >= hd.perHiveKg) { p.cats.hedef = true; S.hedefte++; } }
+        if (acik && hd && hd.perHiveKg > 0) { S.hedefKg += hd.perHiveKg; S.hedefW += hn.netKg; p.hedefKg = hd.perHiveKg; if (hn.netKg >= hd.perHiveKg) { p.cats.hedef = true; S.hedefte++; } }
         if (A) {
           if (hn.netKg < A.kisStokKg) { p.cats.kis = true; S.kis++; }
-          else if (hn.netKg >= A.kisStokKg + A.hasatFazlaKg) {
+          else if (acik && hn.netKg >= A.kisStokKg + A.hasatFazlaKg) {
             if (withdrawal(String(h.apiaryId))[String(h.id)]) { p.wd = true; S.wd++; }
             else { p.cats.hasat = true; S.hasat++; }
           }
@@ -81,7 +86,7 @@
         }
       } catch (eA) { /* yoksay */ }
     });
-    S.bal = Math.round(S.bal * 10) / 10;
+    S.bal = Math.round(S.bal * 10) / 10; S.balSz = Math.round(S.balSz * 10) / 10; S.balKs = Math.round(S.balKs * 10) / 10;
     return out;
   }
   function agoTxt(at) {
@@ -94,17 +99,21 @@
   function tiles(r) {
     var S = r.sum, A = r.A || {}, VY = 'Veri yok';
     var o = {};
-    o.bal = S.w ? { badge: '~' + kgInt(S.bal), tone: 'yellow', sub: S.w + '/' + S.n + ' kovan tartılı' + (S.sample ? ' · örnek' : (S.lastAt ? ' · son tartım ' + agoTxt(S.lastAt) : '')) } : { badge: VY, tone: 'gray', sub: S.n ? '0/' + S.n + ' kovan tartılı' : 'kovan yok', empty: true };
-    o.hedef = S.hedefKg > 0 ? { badge: '%' + Math.round(S.hedefW / S.hedefKg * 100), tone: 'yellow', sub: S.hedefte + ' kovan hedefte' } : { badge: VY, tone: 'gray', sub: 'tartı / hedef yok', empty: true };
+    var ornek = S.sample ? ' · örnek' : (S.lastAt ? ' · son tartım ' + agoTxt(S.lastAt) : '');
+    if (S.nSz) o.bal = S.wSz ? { badge: '~' + kgInt(S.balSz), tone: 'yellow', sub: 'sezondaki arılıklar', aria2: S.wSz + '/' + S.nSz + ' kovan tartılı' + ornek } : { badge: VY, tone: 'gray', sub: 'sezondaki: 0/' + S.nSz + ' tartılı', empty: true };
+    else if (S.nKs) o.bal = S.wKs ? { badge: '~' + kgInt(S.balKs), tone: 'tan', sub: 'kış stoğu · sezon kapandı', aria2: S.wKs + '/' + S.nKs + ' kovan tartılı' } : { badge: VY, tone: 'gray', sub: 'sezon kapandı · 0/' + S.nKs + ' tartılı', empty: true };
+    else o.bal = { badge: VY, tone: 'gray', sub: 'kovan yok', empty: true };
+    var kapali = !S.nSz && S.nKs;
+    o.hedef = S.hedefKg > 0 ? { badge: '%' + Math.round(S.hedefW / S.hedefKg * 100), tone: 'yellow', sub: S.hedefte + ' kovan hedefte' } : (kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'sezonda arılık yok', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı / hedef yok', empty: true });
     o.nektar = S.nektarData ? { badge: S.nektar + ' kovan', tone: S.nektar ? 'green' : 'gray', sub: 'günde ≥' + num1(r.nektarKg) + ' kg artış' } : { badge: VY, tone: 'gray', sub: 'tartım az', empty: true };
     o.ani = S.aniData ? { badge: S.ani ? S.ani + ' kovan' : '✓', tone: S.ani ? 'red' : 'green', sub: S.ani ? 'yağma / oğul şüphesi' : 'düşüş yok' } : { badge: VY, tone: 'gray', sub: 'tartı cihazı yok', empty: true };
     o.kis = S.w ? { badge: S.kis ? S.kis + ' kovan' : '✓', tone: S.kis ? 'orange' : 'green', sub: S.kis ? num1(A.kisStokKg) + ' kg altı' : 'yeterli' } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
-    o.hasat = S.w ? { badge: S.hasat + ' kovan', tone: S.hasat ? 'green' : 'gray', sub: S.wd ? S.wd + ' ilaç beklemede' : 'net ≥' + num1((A.kisStokKg || 0) + (A.hasatFazlaKg || 0)) + ' kg' } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
-    return KEYS.map(function (k) { var t = o[k]; t.key = k; t.label = LABEL[k]; t.icon = ICON[k]; t.aria = LABEL[k] + ', ' + t.badge + ', ' + t.sub; return t; });
+    o.hasat = kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'kış stoğu hasat edilmez', empty: true } : S.wSz ? { badge: S.hasat + ' kovan', tone: S.hasat ? 'green' : 'gray', sub: S.wd ? S.wd + ' ilaç beklemede' : 'net ≥' + num1((A.kisStokKg || 0) + (A.hasatFazlaKg || 0)) + ' kg' } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
+    return KEYS.map(function (k) { var t = o[k]; t.key = k; t.label = LABEL[k]; t.icon = ICON[k]; t.aria = LABEL[k] + ', ' + t.badge + ', ' + t.sub + (t.aria2 ? ', ' + t.aria2 : ''); return t; });
   }
   function hiveBadge(p) {
     if (!p || p.netKg == null) return null;
-    return '~' + num1(p.netKg) + ' kg bal';
+    return '~' + num1(p.netKg) + (p.kisStogu ? ' kg kış stoğu' : ' kg bal');
   }
   global.SuperAriTartiDoseme = { KEYS: KEYS, LABEL: LABEL, compute: compute, tiles: tiles, hiveBadge: hiveBadge, agoTxt: agoTxt };
 })(typeof window !== 'undefined' ? window : globalThis);
