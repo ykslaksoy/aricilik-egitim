@@ -43,7 +43,7 @@
       var l = []; try { l = (D.records && D.records.withdrawalConflicts) ? D.records.withdrawalConflicts(apId, today) : []; } catch (e) { l = []; }
       var m = {}; l.forEach(function (c) { m[String(c.hiveId)] = c; }); wdBy[apId] = m; return m;
     }
-    var out = { per: {}, sum: { bal: 0, w: 0, n: 0, lastAt: '', sample: 0, balSz: 0, wSz: 0, nSz: 0, balKs: 0, wKs: 0, nKs: 0, nBil: 0, wBil: 0, tartili: 0, hedefKg: 0, hedefW: 0, hedefte: 0, nektar: 0, nektarData: 0, ani: 0, aniData: 0, kis: 0, hasat: 0, wd: 0 }, live: live, A: A, nektarKg: nektarKg };
+    var out = { per: {}, sum: { bal: 0, w: 0, n: 0, lastAt: '', sample: 0, balSz: 0, wSz: 0, nSz: 0, balKs: 0, wKs: 0, nKs: 0, nBil: 0, wBil: 0, tartili: 0, hedefKg: 0, hedefW: 0, hedefN: 0, hedefte: 0, nektar: 0, nektarData: 0, ani: 0, aniData: 0, kis: 0, hasat: 0, wd: 0 }, live: live, A: A, nektarKg: nektarKg };
     var S = out.sum;
     (hives || []).forEach(function (h) {
       var p = { cats: {} }; out.per[String(h.id)] = p; S.n++;
@@ -57,7 +57,7 @@
         if (acik === null) S.wBil++; else if (acik) { S.balSz += hn.netKg; S.wSz++; } else { S.balKs += hn.netKg; S.wKs++; p.kisStogu = true; }
         if (hn.at && String(hn.at) > S.lastAt) S.lastAt = String(hn.at);
         var hd = hedefOf(String(h.apiaryId));
-        if (acik && hd && hd.perHiveKg > 0) { S.hedefKg += hd.perHiveKg; S.hedefW += hn.netKg; p.hedefKg = hd.perHiveKg; if (hn.netKg >= hd.perHiveKg) { p.cats.hedef = true; S.hedefte++; } }
+        if (acik && hd && hd.perHiveKg > 0) { S.hedefKg += hd.perHiveKg; S.hedefW += hn.netKg; S.hedefN++; p.hedefKg = hd.perHiveKg; if (hn.netKg >= hd.perHiveKg) { p.cats.hedef = true; S.hedefte++; } }
         if (A) {
           if (hn.netKg < A.kisStokKg) { p.cats.kis = true; S.kis++; }
           else if (acik && hn.netKg >= A.kisStokKg + A.hasatFazlaKg) {
@@ -105,23 +105,33 @@
     var ornek = S.sample ? ' · örnek' : (S.lastAt ? ' · son tartım ' + agoTxt(S.lastAt) : '');
     /* koloni-277: eşikler (kg, günde artış) kullanıcıya gösterilmez — yalnız yönetici panelinde */
     var tartiliTxt = function (w, n) { return w + '/' + n + ' tartılı'; };
-    if (S.nSz) o.bal = S.wSz ? { badge: '~' + kgInt(S.balSz), tone: 'yellow', sub: 'sezondaki arılıklar', aria2: S.wSz + '/' + S.nSz + ' kovan tartılı' + ornek } : { badge: VY, tone: 'gray', sub: 'sezonda · ' + tartiliTxt(0, S.nSz), empty: true };
-    else if (S.nKs) o.bal = S.wKs ? { badge: '~' + kgInt(S.balKs), tone: 'tan', sub: 'kış stoğu · sezon kapandı', aria2: S.wKs + '/' + S.nKs + ' kovan tartılı' } : { badge: VY, tone: 'gray', sub: 'sezon kapandı · ' + tartiliTxt(0, S.nKs), empty: true };
+    /* koloni-278: Bal ve Hedef kapsamı gösterir («X/N kovan tartılı»); tartılı pay yönetici › Bal hedefi › kapsamAzYuzde altındaysa «az tartım»
+       (eşik uzman tahmini, kullanıcıya gösterilmez). Tek tartılı kovanın balı arılığın balı gibi görünmesin. */
+    var azYuzde = Number(A.kapsamAzYuzde) >= 0 ? Number(A.kapsamAzYuzde) : 50;
+    var az = function (w, n) { return n > 0 && w * 100 < n * azYuzde; };
+    var karisik = (S.nSz && (S.nKs || S.nBil)) ? 'sezonda ' : '';
+    var kapsamTxt = function (w, n, onek) { return (onek || '') + w + '/' + n + ' kovan tartılı' + (az(w, n) ? ' · az\u00a0tartım' : ''); };
+    if (S.nSz) o.bal = S.wSz ? { badge: '~' + kgInt(S.balSz), tone: az(S.wSz, S.nSz) ? 'tan' : 'yellow', sub: kapsamTxt(S.wSz, S.nSz, karisik), az: az(S.wSz, S.nSz), aria2: 'sezondaki arılıklar, ' + S.wSz + ' tartılı kovanın toplamı' + ornek } : { badge: VY, tone: 'gray', sub: 'sezonda · ' + tartiliTxt(0, S.nSz), empty: true };
+    else if (S.nKs) o.bal = S.wKs ? { badge: '~' + kgInt(S.balKs), tone: 'tan', sub: 'kış stoğu · ' + S.wKs + '/' + S.nKs + ' tartılı', az: az(S.wKs, S.nKs), aria2: 'sezon kapandı, ' + S.wKs + ' tartılı kovanın toplamı' + ornek } : { badge: VY, tone: 'gray', sub: 'sezon kapandı · ' + tartiliTxt(0, S.nKs), empty: true };
     else if (S.nBil) o.bal = { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true };
     else o.bal = { badge: VY, tone: 'gray', sub: 'kovan yok', empty: true };
     var kapali = !S.nSz && !S.nBil && S.nKs, bilinmez = !S.nSz && S.nBil;
-    o.hedef = S.hedefKg > 0 ? { badge: '%' + Math.round(S.hedefW / S.hedefKg * 100), tone: 'yellow', sub: S.hedefte + ' kovan hedefte' } : (kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'bu arılıkta sezon bitti', empty: true } : bilinmez ? { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı / hedef yok', empty: true });
+    /* koloni-278: Hedef % = tartılı (sezondaki) kovanların net balı ÷ yalnız o kovanların hedefi; alt yazıda kapsam X/N kovan */
+    o.hedef = S.hedefKg > 0 ? { badge: '%' + Math.round(S.hedefW / S.hedefKg * 100), tone: az(S.hedefN, S.nSz) ? 'tan' : 'yellow', sub: S.hedefN + '/' + S.nSz + ' kovan · ' + (az(S.hedefN, S.nSz) ? 'az\u00a0tartım' : S.hedefte + '\u00a0hedefte'), az: az(S.hedefN, S.nSz), aria2: S.hedefte + ' kovan hedefte, yalnız tartılı kovanların hedefi' } : (kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'bu arılıkta sezon bitti', empty: true } : bilinmez ? { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı / hedef yok', empty: true });
     o.nektar = S.nektarData ? { badge: S.nektar + ' kovan', tone: S.nektar ? 'green' : 'gray', sub: S.nektar ? 'ağırlık artıyor' : 'akım yok' } : { badge: VY, tone: 'gray', sub: 'tartım az', empty: true };
-    o.ani = S.aniData ? { badge: S.ani ? S.ani + ' kovan' : '✓', tone: S.ani ? 'red' : 'green', sub: S.ani ? 'yağma / oğul şüphesi' : 'düşüş yok' } : { badge: VY, tone: 'gray', sub: 'tartı cihazı yok', empty: true };
-    o.kis = S.w ? { badge: S.kis ? S.kis + ' kovan' : '✓', tone: S.kis ? 'orange' : 'green', sub: S.kis ? 'stok yetersiz' : 'yeterli' } : { badge: VY, tone: 'gray', sub: 'elle / cihaz tartım yok', empty: true };
+    o.ani = S.aniData ? { badge: S.ani + ' kovan', tone: S.ani ? 'red' : 'gray', sub: S.ani ? 'yağma / oğul şüphesi' : 'düşüş yok' } : { badge: VY, tone: 'gray', sub: 'tartı cihazı yok', empty: true };
+    /* koloni-278: Kış stoğu da diğer döşemeler gibi sayı gösterir (önceden «✓», iPhone'da ＋ düğmesinin altında kalıyordu) */
+    o.kis = S.w ? { badge: S.kis + ' kovan', tone: S.kis ? 'orange' : 'gray', sub: 'stok yetersiz', aria2: S.kis ? '' : 'tüm tartılı kovanlarda stok yeterli' } : { badge: VY, tone: 'gray', sub: 'elle / cihaz tartım yok', empty: true };
     o.hasat = kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'kış stoğu hasat edilmez', empty: true } : S.wSz ? { badge: S.hasat + ' kovan', tone: S.hasat ? 'green' : 'gray', sub: S.wd ? S.wd + ' ilaç beklemede' : 'hasat edilebilir' } : bilinmez ? { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
     return KEYS.map(function (k) { var t = o[k]; t.key = k; t.label = LABEL[k]; t.icon = ICON[k]; t.aria = LABEL[k] + ', ' + t.badge + ', ' + t.sub + (t.aria2 ? ', ' + t.aria2 : ''); return t; });
   }
+  /** koloni-278: Bal seçiliyken kovan kutucuğu rozeti net bal (brüt değil) */
+  function hiveNetBadge(p) { return p && p.netKg != null ? '~' + num1(p.netKg) + ' kg' : null; }
   function hiveBadge(p) {
     if (!p || p.netKg == null) return null;
     return '~' + num1(p.netKg) + (p.kisStogu ? ' kg kış stoğu' : ' kg bal');
   }
   /** koloni-277: Tartı sayfası başlığı ile döşemeler aynı tartım kaynağı (elle + cihaz; demoda örnek ağırlık) */
   function weighedCount(r) { return r && r.sum ? r.sum.tartili : 0; }
-  global.SuperAriTartiDoseme = { weighedCount: weighedCount, KEYS: KEYS, LABEL: LABEL, compute: compute, tiles: tiles, hiveBadge: hiveBadge, agoTxt: agoTxt };
+  global.SuperAriTartiDoseme = { weighedCount: weighedCount, hiveNetBadge: hiveNetBadge, KEYS: KEYS, LABEL: LABEL, compute: compute, tiles: tiles, hiveBadge: hiveBadge, agoTxt: agoTxt };
 })(typeof window !== 'undefined' ? window : globalThis);

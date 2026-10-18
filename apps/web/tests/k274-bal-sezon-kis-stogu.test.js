@@ -34,7 +34,8 @@ test('k274: Tartı döşemeleri — Bal (tahmin) yalnız sezondaki arılıklar; 
   assert.strictEqual(S.nSz, nA1); assert.strictEqual(S.wKs, nKs);
   assert.strictEqual(S.balSz, Math.round(nA1 * 30 * 10) / 10);
   const t = {}; TD.tiles(RT).forEach(x => { t[x.key] = x; });
-  assert.match(t.bal.sub, /sezondaki arılıklar/); assert.match(t.bal.aria, /tartılı/);
+  /* koloni-278: alt yazı kapsam («sezonda X/N kovan tartılı»), «sezondaki arılıklar» ekran okuyucu metninde */
+  assert.match(t.bal.sub, /^sezonda \d+\/\d+ kovan tartılı/); assert.match(t.bal.aria, /sezondaki arılıklar/); assert.match(t.bal.aria, /tartılı/);
   assert.strictEqual(t.bal.badge, '~' + (nA1 * 30).toLocaleString('tr-TR') + ' kg');
   const kis = hs.find(h => String(h.apiaryId) === 'a2');
   assert.strictEqual(RT.per[String(kis.id)].kisStogu, true);

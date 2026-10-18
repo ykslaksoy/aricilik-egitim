@@ -1,4 +1,5 @@
-/* koloni-267 (önizleme): Yönetici · Bal hedefi ve Tartı döşemeleri. Tek kaynak: ogul_skor_ayar.data.balHedef (sa_ayar_yayinla).
+/* koloni-278: «az tartım» kapsam eşiği (kapsamAzYuzde) + Hedef % açıklaması.
+   koloni-267 (önizleme): Yönetici · Bal hedefi ve Tartı döşemeleri. Tek kaynak: ogul_skor_ayar.data.balHedef (sa_ayar_yayinla).
    Varsayılanlar bal-hedef.js (uygulamadaki apps/web/bal-hedef.js ile birebir). Kaynaklar yalnız burada gösterilir.
    Ani düşüş ve Nektar akımı eşikleri burada değil: Ölçüm kuralları › Ağırlık (tartı) (uyarılarla aynı kural). */
 (function () {
@@ -11,7 +12,7 @@
   var NBU = 'NBU Fact Sheet 19 «Preparing honey bee colonies for winter» — sonbaharda koloni başına ≈20 kg bal (Doeke, Frazier, Grozinger 2015, Curr Opin Insect Sci 10) — https://www.nationalbeeunit.com/assets/PDFs/3_Resources_for_beekeepers/Fact_Sheets/Fact_19_Preparing_your_hives_for_winter.pdf';
   var GENEL = [
     ['Sezon bal hedefi (kovan başı)', [['baseKg', 'Taban hedef (kg / kovan)'], ['genelKat', 'Genel katsayı'], ['sisKelime', 'Sisli bölge: arılık adında geçen kelimeler (virgülle)', 's'], ['sisPay', 'Sisli bölgede uçuşa kapalı gün payı (0–1)']]],
-    ['Tartı döşemeleri', [['kisStokKg', 'Kış stoğu: net bal bunun altıysa «yetersiz» (kg)', 0, NBU], ['hasatFazlaKg', 'Hasada hazır: net bal ≥ kış stoğu + bu kadar (kg)'], ['nektarGun', 'Nektar akımı: son kaç günün tartımı (gün)']]]
+    ['Tartı döşemeleri', [['kisStokKg', 'Kış stoğu: net bal bunun altıysa «yetersiz» (kg)', 0, NBU], ['hasatFazlaKg', 'Hasada hazır: net bal ≥ kış stoğu + bu kadar (kg)'], ['nektarGun', 'Nektar akımı: son kaç günün tartımı (gün)'], ['kapsamAzYuzde', 'Bal (tahmin) / Hedef: tartılı kovan payı bunun altındaysa «az tartım» notu (%) — eşik kullanıcıya gösterilmez']]]
   ];
   if (!document.getElementById('bh-css')) { var st = document.createElement('style'); st.id = 'bh-css'; st.textContent = '#s-bal-hedef .bh-v{width:1%}#s-bal-hedef small.bh-def{display:block!important;font-size:.72rem;color:var(--muted,#8a7358);margin-top:.15rem;max-width:7.5rem;overflow-wrap:anywhere;white-space:normal}#s-bal-hedef td small{overflow-wrap:anywhere;word-break:break-word;white-space:normal!important}#s-bal-hedef table{table-layout:fixed}#s-bal-hedef .bh-v{width:8rem}#s-bal-hedef .tbl td{vertical-align:middle}'; document.head.appendChild(st); }
   var cur = BH.get(), acik = {};
@@ -25,7 +26,10 @@
   function paint() {
     var H = '<h2>Bal hedefi ve Tartı döşemeleri</h2><p class="fe-sub">Arılık sayfasındaki «Bal hedefi» ve Raporlar › Bal / verim «Hedef» sütunu: kovan başı = taban × ırk katsayısı × sis uçuş katı × genel katsayı; arılık toplamı = kovan başı × <b>aktif kovan sayısı</b>. ' +
       'Tartı sayfası döşemeleri (Kış stoğu, Hasada hazır, Nektar akımı) da buradan. <b>Ani düşüş</b> ve <b>Nektar akımı</b> günlük eşikleri: Ölçüm kuralları › Ağırlık (tartı) (uyarılarla aynı). ' +
-      '<b>Kaynak:</b> kış stoğu dışındaki tüm sayılar ' + UT + ' (Yapılacaklar’da).</p>';
+      '<b>Bal (tahmin)</b> döşemesi yalnız tartılı (elle / cihaz) kovanların net balını toplar (net = brüt − boş kovan − malzeme) ve kapsamı «X/N kovan tartılı» yazar; tartısız kovan toplama girmez. ' +
+      '<b>Hedef %</b> = tartılı sezondaki kovanların net balı ÷ <b>yalnız o kovanların</b> kovan başı hedefi toplamı (tartısız kovanın hedefi paydaya girmez); alt yazı «X/N kovan». ' +
+      'Tartılı pay «az tartım» eşiğinin altındaysa her iki döşemede «az tartım» notu çıkar. ' +
+      '<b>Kaynak:</b> kış stoğu dışındaki tüm sayılar (az tartım eşiği dahil) ' + UT + ' (Yapılacaklar’da).</p>';
     GENEL.forEach(function (g, gi) {
       var t = '<table class="tbl" style="width:100%;font-size:.85rem"><tbody>';
       g[1].forEach(function (r) { var d = BH.DEF[r[0]]; t += '<tr><td>' + esc(r[1]) + ' ' + (r[3] ? '<br><small>Kaynak: ' + esc(r[3]) + '</small>' : UT) + '</td><td class="bh-v">' + inp(r[0], cur[r[0]], r[2]) + '<small class="bh-def">varsayılan ' + esc(String(d)) + '</small></td></tr>'; });

@@ -16,14 +16,16 @@
     },
     sisKelime: 'yanık,yanik,cimil,rize', sisPay: 0.294,
     /* Tartı döşemeleri */
-    kisStokKg: 20, hasatFazlaKg: 10, nektarGun: 7
+    kisStokKg: 20, hasatFazlaKg: 10, nektarGun: 7,
+    /* koloni-278: Bal (tahmin) / Hedef döşemesi: tartılı kovan payı bu yüzdenin altındaysa «az tartım» (uzman tahmini; kullanıcıya gösterilmez) */
+    kapsamAzYuzde: 50
   };
   var IRK_SIRA = ['Karadeniz', 'Kafkas × Karniyol', 'Kafkas', 'Muğla', 'Karniyol', 'Diğer'];
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function num(v, min, max) { var n = Number(v); return v !== null && v !== '' && isFinite(n) && n >= min && n <= max ? n : null; }
   function merge(o) {
     var r = clone(DEF); if (!o || typeof o !== 'object') return r;
-    [['baseKg', 0, 200], ['genelKat', 0, 5], ['sisPay', 0, 1], ['kisStokKg', 0, 200], ['hasatFazlaKg', 0, 200], ['nektarGun', 1, 60]].forEach(function (x) { var n = num(o[x[0]], x[1], x[2]); if (n != null) r[x[0]] = n; });
+    [['baseKg', 0, 200], ['genelKat', 0, 5], ['sisPay', 0, 1], ['kisStokKg', 0, 200], ['hasatFazlaKg', 0, 200], ['nektarGun', 1, 60], ['kapsamAzYuzde', 0, 100]].forEach(function (x) { var n = num(o[x[0]], x[1], x[2]); if (n != null) r[x[0]] = n; });
     if (typeof o.sisKelime === 'string') r.sisKelime = o.sisKelime.slice(0, 200);
     if (o.irk && typeof o.irk === 'object') Object.keys(DEF.irk).forEach(function (k) {
       var v = o.irk[k]; if (!v || typeof v !== 'object') return;
