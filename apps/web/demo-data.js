@@ -919,7 +919,7 @@
   /* k127: seçici grupları — Saf / İkili melez / Üçlü melez ((ana hattı) × erkek arı). */
   var COLONY_BREED_GROUPS = [
     { key: 'saf', label: 'Saf', items: ['Kafkas', 'Karadeniz', 'Karniyol', 'Muğla', 'Efe arısı', 'Anadolu', 'İtalyan', 'Buckfast'] },
-    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Anadolu × Karniyol', 'Anadolu × Muğla', 'İtalyan × Karniyol', 'Buckfast × İtalyan', 'Kafkas × Muğla', 'Muğla ana × Kafkas baba', 'Kafkas ana × Muğla baba', 'Karadeniz × Muğla', 'Karadeniz × Anadolu'] }, /* k160: son üçü yeni — kilitli genetik tabloda puanı yok · k289: Muğla × Kafkas iki yönü ayrı (eski yönsüz «Kafkas × Muğla» kalır; Genetik puanı kilitli kafkas+mugla = 35) */
+    { key: 'iki', label: 'İkili melez', items: ['Kafkas × Karadeniz', 'Kafkas × Karniyol', 'Karniyol × Kafkas', 'Kafkas × Anadolu', 'Karniyol × Muğla', 'Anadolu × Karniyol', 'Anadolu × Muğla', 'İtalyan × Karniyol', 'Buckfast × İtalyan', 'Kafkas × Muğla', 'Muğla ana × Kafkas baba', 'Kafkas ana × Muğla baba', 'Efe ana × Kafkas baba', 'Karadeniz × Muğla', 'Karadeniz × Anadolu'] }, /* k160: son üçü yeni — kilitli genetik tabloda puanı yok · k289: Muğla × Kafkas iki yönü ayrı (eski yönsüz «Kafkas × Muğla» kalır; Genetik puanı kilitli kafkas+mugla = 35) · k290: «Efe ana × Kafkas baba» (Genetik: kilitli anadolu+kafkas = 55 yeniden kullanılır, uzman tahmini) */
     { key: 'uc', label: 'Üçlü melez', items: ['(Kafkas × Karniyol) × Muğla', '(Kafkas × Karadeniz) × Muğla', '(Kafkas × Anadolu) × Muğla', '(Kafkas × Anadolu) × Karniyol', '(Karniyol × İtalyan) × Anadolu', '(Buckfast × İtalyan) × Muğla'] }
   ];
   var COLONY_BREED_OPTIONS = COLONY_BREED_GROUPS.reduce(function (a, g) { return a.concat(g.items); }, []).concat(['Diğer']);
@@ -2689,7 +2689,9 @@
   /* k289: yönlü Muğla × Kafkas melezleri — kullanıcıya yalnız sade özellik (kaynak ve rakamlar yalnız yönetici panelinde: Akyol 1998; Akyol & Kaftanoğlu 2001). */
   var CROSS_YON = [
     { ad: 'Muğla ana × Kafkas baba', ana: /mu[ğg]la ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'yüksek bal verimi · daha hırçın · F1 melez: ana arıyı her yıl yenileyin' },
-    { ad: 'Kafkas ana × Muğla baba', ana: /kafkas ana/, baba: /mu[ğg]la (?:baba|erkek)/, ozet: 'denemede bal verimi düşük kaldı' }
+    { ad: 'Kafkas ana × Muğla baba', ana: /kafkas ana/, baba: /mu[ğg]la (?:baba|erkek)/, ozet: 'denemede bal verimi düşük kaldı' },
+    /* k290: tescilli Efe (Ege) ana hattı × Kafkas erkek — kaynak/rakam yalnız yönetici; verim denemesi yok */
+    { ad: 'Efe ana × Kafkas baba', ana: /efe ana/, baba: /kafkas (?:baba|erkek)/, ozet: 'tescilli Efe ana hattı · F1 melez: ana arıyı her yıl yenileyin · bal verimi: Veri yok' }
   ];
   function crossYon(breed) {
     var b = String(breed || '').toLocaleLowerCase('tr');
@@ -3614,6 +3616,8 @@
     'kafkas+karadeniz+mugla': 55, 'buckfast+italyan+mugla': 55, 'kafkas+karniyol+mugla': 75, 'anadolu+kafkas+mugla': 75, 'anadolu+kafkas+karniyol': 90, 'anadolu+italyan+karniyol': 90
   };
   var GENETIK_BUCKFAST_IKILI = 45, GENETIK_BILINMEYEN = 55;
+  /* k290: kilitli tablo dışı takma ad (puan uydurulmaz, en yakın kilitli basamak): efe+kafkas → anadolu+kafkas, yalnız yönlü «Efe ana × Kafkas baba» kaydında (yönsüz «Efe arısı × Kafkas» k168 gereği Veri yok kalır; uzman tahmini) */
+  var GENETIK_TAKMA = { 'efe+kafkas': 'anadolu+kafkas' };
   /* k168: tescilli ama sayısal puanı yayımlanmamış ırk/ekotipler — puan uydurulmaz, Genetik «Veri yok» (ağırlık dağıtılır). Kaynak yalnız yönetici panelinde. */
   var IRK_PUANSIZ = [
     { key: 'efe', m: ['efe'], ad: 'Efe arısı', genetik: 25, olcek: '2–3', durum: 'uzman tahmini', dil: '6,05 ± 0,21 mm (Resmî Gazete 16.05.2019 sa. 30776 EK-1)', tur: 'Apis mellifera anatoliaca — Ege/Batı Anadolu ekotipi (eski adı Batı Ege arısı)',
@@ -4775,6 +4779,8 @@
     if (found.length === 1) return { key: found[0], g: OGUL_SKOR.saf[found[0]], known: true, hybrid: false, label: 'saf hat' };
     var key = found.slice().sort().join('+');
     if (OGUL_SKOR.melez[key] != null) return { key: key, g: OGUL_SKOR.melez[key], known: true, hybrid: true, label: found.length > 2 ? 'üçlü melez' : 'ikili melez' };
+    /* k290: kilitli tabloya anahtar eklenmez — Efe (Ege/Anadolu ekotipi) × Kafkas, Anadolu × Kafkas basamağını kullanır (uzman tahmini; yönetici › Kural kaynakları) */
+    if (GENETIK_TAKMA[key] && /efe ana/.test(b) && OGUL_SKOR.melez[GENETIK_TAKMA[key]] != null) return { key: key, g: OGUL_SKOR.melez[GENETIK_TAKMA[key]], known: true, hybrid: true, takma: GENETIK_TAKMA[key], label: 'ikili melez' };
     if (found.length === 2 && found.indexOf('buckfast') >= 0) return { g: OGUL_SKOR.buckfastIkili, known: true, hybrid: true, label: 'Buckfast melezi (nesle göre değişir)' };
     reportHybridMissing(key, found.join(' × '));
     /* k160: kilitli tabloda puanı olmayan melez → Genetik «Veri yok»: bileşen ORS'tan düşer, ağırlığı orantılı dağıtılır (puan uydurulmaz) */

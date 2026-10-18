@@ -64,6 +64,12 @@
       gerekce: 'Genetik puanı: kilitli tablodaki Kafkas × Muğla basamağı (35) yeniden kullanıldı; yöne özel oğul puanı yok → uzman tahmini. Uygulamada sade özellik: denemede bal verimi düşük kaldı. Rota / bölge performansı: uzman tahmini.',
       kaynak: ['Akyol E. 1998, doktora tezi (Çukurova Üniv.), gezginci arıcılık — ' + AK + ' · bal verimi 1996: 9,55 kg · 1997: 32,25 kg / koloni · karşılaştırma: saf Muğla 53,9 kg · saf Kafkas 33,0 kg (1997) · kışlama farkı önemsiz',
         'Akyol E. & Kaftanoğlu O. 2001 (karşılıklı melezler, gezginci, Çukurova) — ' + AH] },
+    /* k290: Efe ana × Kafkas baba — kilitli tabloya anahtar eklenmez; Genetik = Anadolu × Kafkas basamağı (55), uzman tahmini */
+    { ad: 'Efe ana × Kafkas baba (2’li melez)', puan: M['anadolu+kafkas'], olcek: '—', etiket: 'uzman tahmini', eb: ['Efe', S.efe, 'Kafkas', S.kafkas],
+      gerekce: 'Genetik puanı: kilitli tablodaki Anadolu × Kafkas basamağı (55) yeniden kullanıldı (Efe = tescilli Ege/Anadolu ekotipi hattı); bu melezle oğul/verim denemesi yok → Veri yok. Uygulamada sade özellik: tescilli Efe ana hattı · F1, ana her yıl yenilenmeli · bal verimi Veri yok. Antalya → Tekman → Muğla tahmini 30–50 kg (olası 35–45): uzman tahmini. Şampiyon yine Muğla ana × Kafkas baba.',
+      kaynak: ['Efe tescili: Resmî Gazete 16.05.2019 — https://www.resmigazete.gov.tr/eskiler/2019/05/20190516-14.htm · ırk tebliği 14.10.2020 — https://www.resmigazete.gov.tr/eskiler/2020/10/20201014-3-1.pdf',
+        'Ege Tarımsal Araştırma Enst. (İzmir) — koloni indeksi %20, bal verimi %25 artış — https://arastirma.tarimorman.gov.tr/etae/Sayfalar/GormeEngellilerDetay.aspx?Liste=Haber&OgeId=240',
+        'Gençer & Karacaoğlu 2003 (Aydın): Ege × Kafkas 21,81 kg · Kafkas × Ege 20,17 kg · saf Kafkas 23,00 kg (fark önemsiz) — https://dergipark.org.tr/en/download/article-file/204927'] },
     { ad: 'Karadeniz × Muğla', puan: M['karadeniz+mugla'], olcek: '4', etiket: 'uzman tahmini', eksik: true, eb: ['Karadeniz', S.karadeniz, 'Muğla', S.mugla],
       gerekce: 'Karadeniz kodda Kafkas ekotipi; Kafkas × Muğla bulgusu (melez ebeveynler arası) Karadeniz tabanına (35) uygulandı; tablo örüntüsü ortalamanın bir üst basamağı → 55.', kaynak: [] },
     { ad: 'Karadeniz × Anadolu', puan: M['anadolu+karadeniz'], olcek: '4–5 (4,5)', etiket: 'uzman tahmini', eksik: true, eb: ['Karadeniz', S.karadeniz, 'Anadolu', S.anadolu],

@@ -30,5 +30,5 @@ const mig=fs.readFileSync(path.join(web,'..','..','supabase','migrations','20261
 assert.ok(/yapilacaklar/.test(mig)&&/uzman tahmini/.test(mig)&&!/update public\.hives/i.test(mig),'Yapılacaklar var, kovan taşıma yok');
 /* koloni editöründe sade özellik satırı */
 const kj=fs.readFileSync(path.join(web,'koloni.js'),'utf8');assert.ok(kj.includes('kolIrkMelez')&&kj.includes('crossYon'));
-assert.strictEqual(JSON.parse(fs.readFileSync(path.join(web,'version.json'),'utf8')).version,'koloni-289');
+assert.strictEqual(+JSON.parse(fs.readFileSync(path.join(web,'version.json'),'utf8')).version.replace('koloni-','')>=289,true);
 console.log('k289 ok');
