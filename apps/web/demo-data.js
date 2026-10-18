@@ -3677,6 +3677,8 @@
     ['kuralKapaliKullanici', 'kuralKapaliArilik'].forEach(function (f) { var m = o[f]; if (!m || typeof m !== 'object' || Array.isArray(m)) return; Object.keys(m).slice(0, 2000).forEach(function (key) { var nk = kuralAnahtar(key), L = Array.isArray(m[key]) ? m[key].filter(function (x, i, a) { return KURAL_IDS.indexOf(x) >= 0 && a.indexOf(x) === i; }) : []; if (nk && L.length) d[f][nk] = L; }); });
     var b = num01(o.buckfastIkili, 0, 100); if (b != null) d.buckfastIkili = b;
     var u = num01(o.bilinmeyen, 0, 100); if (u != null) d.bilinmeyen = u;
+    /* koloni-273: ayrı modüllerin ayarları (hastalik-ayar.js, bal-hedef.js kendi merge’üyle doğrular) birleştirmede düşmesin — önceden ogulSkor().hastalik hep boştu */
+    ['hastalik', 'balHedef'].forEach(function (k) { var v = o[k]; if (v && typeof v === 'object' && !Array.isArray(v)) { try { d[k] = JSON.parse(JSON.stringify(v)); } catch (eK) { /* yoksay */ } } });
     return d;
   }
   var OGUL_SKOR = ogulSkorDefaults();
