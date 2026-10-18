@@ -78,10 +78,20 @@
   /** koloni-274: arılığın bal (uçuş) sezonu bugün açık mı — tek tanım demo-data.js › colony.ucusSezon
       (bölge profili, sıcak bölge çam balı illerinde ucusSezonCamSon, yönetici › arılık başına elle dönem).
       Sezonu kapanmış arılıkta kovandaki bal hasat edilmez → «Kovanda kalan (kış stoğu)». Hesaplanamazsa açık sayılır. */
+  function bolgeBilinir(apiaryId) {
+    var D = global.SuperAriDemo, a = null; try { a = D && D.apiaryById ? D.apiaryById(apiaryId) : null; } catch (e) { a = null; }
+    if (!a) return false;
+    if (String(a.il || '').trim()) return true;
+    if (Number(a.altitude || a.elevation || a.rakim) > 0) return true;
+    try { if (D.isSeedApiaryId && D.isSeedApiaryId(a.id)) return true; } catch (e2) { /* */ }
+    try { var k = global.localStorage.getItem('superari.workMode') === 'live' ? 'superari.bakimPlan.v1' : 'superari.bakimPlan.demo.v1', st = JSON.parse(global.localStorage.getItem(k) || '{}'); if (st && st.profiles && st.profiles[a.id]) return true; } catch (e3) { /* */ }
+    return false;
+  }
   function hasatSezonu(apiaryId, date) {
     var D = global.SuperAriDemo, C = D && D.colony;
     if (!C || !C.ucusSezon) return { acik: true, bilinmiyor: true };
-    try { var s = C.ucusSezon(apiaryId, date); return { acik: !!(s && s.acik), window: s && s.window, to: s && s.to, custom: !!(s && s.custom) }; } catch (e) { return { acik: true, bilinmiyor: true }; }
+    /* koloni-277: il, rakım, bölge seçimi ve elle dönem yoksa bölge bilinmiyor (varsayılan «ılıman» ile «Sezon kapandı» denmez) */
+    try { var s = C.ucusSezon(apiaryId, date); if (s && !s.custom && !bolgeBilinir(apiaryId)) return { acik: false, bilinmiyor: true }; return { acik: !!(s && s.acik), window: s && s.window, to: s && s.to, custom: !!(s && s.custom) }; } catch (e) { return { acik: true, bilinmiyor: true }; }
   }
-  global.SuperAriBalHedef = { DEF: DEF, IRK_SIRA: IRK_SIRA, merge: merge, get: get, irkKey: irkKey, irkKat: irkKat, sisli: sisli, arilikHedef: arilikHedef, aktifKovanlar: aktifKovanlar, hasatSezonu: hasatSezonu };
+  global.SuperAriBalHedef = { DEF: DEF, IRK_SIRA: IRK_SIRA, merge: merge, get: get, irkKey: irkKey, irkKat: irkKat, sisli: sisli, arilikHedef: arilikHedef, aktifKovanlar: aktifKovanlar, hasatSezonu: hasatSezonu, bolgeBilinir: bolgeBilinir };
 })(typeof window !== 'undefined' ? window : globalThis);

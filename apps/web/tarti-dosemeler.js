@@ -31,7 +31,8 @@
     var T = {}; try { T = Object.assign({}, (C && C.ORS_SENSOR) || {}, ((C && C.ogulSkor && C.ogulSkor()) || {}).sensor || {}); } catch (e) { T = {}; }
     var nektarKg = Number(T.nektarKg) > 0 ? Number(T.nektarKg) : 1;
     var now = Date.now(), today = todayLocal(), apHedef = {}, wdBy = {}, szBy = {};
-    function sezonAcik(apId) { if (!szBy.hasOwnProperty(apId)) { var z = BH && BH.hasatSezonu ? BH.hasatSezonu(apId) : { acik: true }; szBy[apId] = !!(z && z.acik); } return szBy[apId]; }
+    /* koloni-277: bölgesi bilinmeyen arılık (il / rakım / elle dönem yok) «Sezon kapandı» sayılmaz → null (Veri yok) */
+    function sezonAcik(apId) { if (!szBy.hasOwnProperty(apId)) { var z = BH && BH.hasatSezonu ? BH.hasatSezonu(apId) : { acik: true }; szBy[apId] = z && z.bilinmiyor ? null : !!(z && z.acik); } return szBy[apId]; }
     function hedefOf(apId) {
       if (apHedef.hasOwnProperty(apId)) return apHedef[apId];
       var ap = null; try { ap = D.apiaryById ? D.apiaryById(apId) : null; } catch (e) { ap = null; }
@@ -42,16 +43,18 @@
       var l = []; try { l = (D.records && D.records.withdrawalConflicts) ? D.records.withdrawalConflicts(apId, today) : []; } catch (e) { l = []; }
       var m = {}; l.forEach(function (c) { m[String(c.hiveId)] = c; }); wdBy[apId] = m; return m;
     }
-    var out = { per: {}, sum: { bal: 0, w: 0, n: 0, lastAt: '', sample: 0, balSz: 0, wSz: 0, nSz: 0, balKs: 0, wKs: 0, nKs: 0, hedefKg: 0, hedefW: 0, hedefte: 0, nektar: 0, nektarData: 0, ani: 0, aniData: 0, kis: 0, hasat: 0, wd: 0 }, live: live, A: A, nektarKg: nektarKg };
+    var out = { per: {}, sum: { bal: 0, w: 0, n: 0, lastAt: '', sample: 0, balSz: 0, wSz: 0, nSz: 0, balKs: 0, wKs: 0, nKs: 0, nBil: 0, wBil: 0, tartili: 0, hedefKg: 0, hedefW: 0, hedefte: 0, nektar: 0, nektarData: 0, ani: 0, aniData: 0, kis: 0, hasat: 0, wd: 0 }, live: live, A: A, nektarKg: nektarKg };
     var S = out.sum;
     (hives || []).forEach(function (h) {
       var p = { cats: {} }; out.per[String(h.id)] = p; S.n++;
-      var acik = sezonAcik(String(h.apiaryId)); p.sezon = acik; if (acik) S.nSz++; else S.nKs++;
+      var acik = sezonAcik(String(h.apiaryId)); p.sezon = acik; if (acik === null) S.nBil++; else if (acik) S.nSz++; else S.nKs++;
+      /* koloni-277: tartılı = elle / cihaz tartım kaydı (canlı) ya da örnek ağırlık (demo) — kovan listesiyle aynı kaynak */
+      var lw = TE && TE.latest ? TE.latest(h.id) : null; if ((lw && Number(lw.kg) > 0) || (!live && Number(h.weightKg) > 0)) S.tartili++;
       var hn = BA && BA.hiveHoneyNow ? BA.hiveHoneyNow(h, { live: live }) : null;
       if (hn && !hn.none) {
         p.netKg = hn.netKg; p.source = hn.source; S.w++; S.bal += hn.netKg; p.cats.bal = true;
         if (hn.source === 'ornek') S.sample++;
-        if (acik) { S.balSz += hn.netKg; S.wSz++; } else { S.balKs += hn.netKg; S.wKs++; p.kisStogu = true; }
+        if (acik === null) S.wBil++; else if (acik) { S.balSz += hn.netKg; S.wSz++; } else { S.balKs += hn.netKg; S.wKs++; p.kisStogu = true; }
         if (hn.at && String(hn.at) > S.lastAt) S.lastAt = String(hn.at);
         var hd = hedefOf(String(h.apiaryId));
         if (acik && hd && hd.perHiveKg > 0) { S.hedefKg += hd.perHiveKg; S.hedefW += hn.netKg; p.hedefKg = hd.perHiveKg; if (hn.netKg >= hd.perHiveKg) { p.cats.hedef = true; S.hedefte++; } }
@@ -100,20 +103,25 @@
     var S = r.sum, A = r.A || {}, VY = 'Veri yok';
     var o = {};
     var ornek = S.sample ? ' · örnek' : (S.lastAt ? ' · son tartım ' + agoTxt(S.lastAt) : '');
-    if (S.nSz) o.bal = S.wSz ? { badge: '~' + kgInt(S.balSz), tone: 'yellow', sub: 'sezondaki arılıklar', aria2: S.wSz + '/' + S.nSz + ' kovan tartılı' + ornek } : { badge: VY, tone: 'gray', sub: 'sezondaki: 0/' + S.nSz + ' tartılı', empty: true };
-    else if (S.nKs) o.bal = S.wKs ? { badge: '~' + kgInt(S.balKs), tone: 'tan', sub: 'kış stoğu · sezon kapandı', aria2: S.wKs + '/' + S.nKs + ' kovan tartılı' } : { badge: VY, tone: 'gray', sub: 'sezon kapandı · 0/' + S.nKs + ' tartılı', empty: true };
+    /* koloni-277: eşikler (kg, günde artış) kullanıcıya gösterilmez — yalnız yönetici panelinde */
+    var tartiliTxt = function (w, n) { return w + '/' + n + ' tartılı'; };
+    if (S.nSz) o.bal = S.wSz ? { badge: '~' + kgInt(S.balSz), tone: 'yellow', sub: 'sezondaki arılıklar', aria2: S.wSz + '/' + S.nSz + ' kovan tartılı' + ornek } : { badge: VY, tone: 'gray', sub: 'sezonda · ' + tartiliTxt(0, S.nSz), empty: true };
+    else if (S.nKs) o.bal = S.wKs ? { badge: '~' + kgInt(S.balKs), tone: 'tan', sub: 'kış stoğu · sezon kapandı', aria2: S.wKs + '/' + S.nKs + ' kovan tartılı' } : { badge: VY, tone: 'gray', sub: 'sezon kapandı · ' + tartiliTxt(0, S.nKs), empty: true };
+    else if (S.nBil) o.bal = { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true };
     else o.bal = { badge: VY, tone: 'gray', sub: 'kovan yok', empty: true };
-    var kapali = !S.nSz && S.nKs;
-    o.hedef = S.hedefKg > 0 ? { badge: '%' + Math.round(S.hedefW / S.hedefKg * 100), tone: 'yellow', sub: S.hedefte + ' kovan hedefte' } : (kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'sezonda arılık yok', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı / hedef yok', empty: true });
-    o.nektar = S.nektarData ? { badge: S.nektar + ' kovan', tone: S.nektar ? 'green' : 'gray', sub: 'günde ≥' + num1(r.nektarKg) + ' kg artış' } : { badge: VY, tone: 'gray', sub: 'tartım az', empty: true };
+    var kapali = !S.nSz && !S.nBil && S.nKs, bilinmez = !S.nSz && S.nBil;
+    o.hedef = S.hedefKg > 0 ? { badge: '%' + Math.round(S.hedefW / S.hedefKg * 100), tone: 'yellow', sub: S.hedefte + ' kovan hedefte' } : (kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'bu arılıkta sezon bitti', empty: true } : bilinmez ? { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı / hedef yok', empty: true });
+    o.nektar = S.nektarData ? { badge: S.nektar + ' kovan', tone: S.nektar ? 'green' : 'gray', sub: S.nektar ? 'ağırlık artıyor' : 'akım yok' } : { badge: VY, tone: 'gray', sub: 'tartım az', empty: true };
     o.ani = S.aniData ? { badge: S.ani ? S.ani + ' kovan' : '✓', tone: S.ani ? 'red' : 'green', sub: S.ani ? 'yağma / oğul şüphesi' : 'düşüş yok' } : { badge: VY, tone: 'gray', sub: 'tartı cihazı yok', empty: true };
-    o.kis = S.w ? { badge: S.kis ? S.kis + ' kovan' : '✓', tone: S.kis ? 'orange' : 'green', sub: S.kis ? num1(A.kisStokKg) + ' kg altı' : 'yeterli' } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
-    o.hasat = kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'kış stoğu hasat edilmez', empty: true } : S.wSz ? { badge: S.hasat + ' kovan', tone: S.hasat ? 'green' : 'gray', sub: S.wd ? S.wd + ' ilaç beklemede' : 'net ≥' + num1((A.kisStokKg || 0) + (A.hasatFazlaKg || 0)) + ' kg' } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
+    o.kis = S.w ? { badge: S.kis ? S.kis + ' kovan' : '✓', tone: S.kis ? 'orange' : 'green', sub: S.kis ? 'stok yetersiz' : 'yeterli' } : { badge: VY, tone: 'gray', sub: 'elle / cihaz tartım yok', empty: true };
+    o.hasat = kapali ? { badge: 'Sezon kapandı', tone: 'gray', sub: 'kış stoğu hasat edilmez', empty: true } : S.wSz ? { badge: S.hasat + ' kovan', tone: S.hasat ? 'green' : 'gray', sub: S.wd ? S.wd + ' ilaç beklemede' : 'hasat edilebilir' } : bilinmez ? { badge: VY, tone: 'gray', sub: 'bölge bilinmiyor', empty: true } : { badge: VY, tone: 'gray', sub: 'tartı yok', empty: true };
     return KEYS.map(function (k) { var t = o[k]; t.key = k; t.label = LABEL[k]; t.icon = ICON[k]; t.aria = LABEL[k] + ', ' + t.badge + ', ' + t.sub + (t.aria2 ? ', ' + t.aria2 : ''); return t; });
   }
   function hiveBadge(p) {
     if (!p || p.netKg == null) return null;
     return '~' + num1(p.netKg) + (p.kisStogu ? ' kg kış stoğu' : ' kg bal');
   }
-  global.SuperAriTartiDoseme = { KEYS: KEYS, LABEL: LABEL, compute: compute, tiles: tiles, hiveBadge: hiveBadge, agoTxt: agoTxt };
+  /** koloni-277: Tartı sayfası başlığı ile döşemeler aynı tartım kaynağı (elle + cihaz; demoda örnek ağırlık) */
+  function weighedCount(r) { return r && r.sum ? r.sum.tartili : 0; }
+  global.SuperAriTartiDoseme = { weighedCount: weighedCount, KEYS: KEYS, LABEL: LABEL, compute: compute, tiles: tiles, hiveBadge: hiveBadge, agoTxt: agoTxt };
 })(typeof window !== 'undefined' ? window : globalThis);

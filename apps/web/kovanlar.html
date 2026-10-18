@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-276">
+<link rel="stylesheet" href="sa-early.css?v=koloni-277">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kovanlar · SüperArı</title>
   <link rel="stylesheet" href="panels.css" />
-  <link rel="stylesheet" href="kapsam.css?v=koloni-276" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-276" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-276" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-277" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-277" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-277" />
   <style>
     .mode-switch {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
@@ -56,30 +56,30 @@
       <div class="note" id="pageNote">Statik demo. Canlı API bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-276"></script>
-  <script src="bal-agirlik.js?v=koloni-276"></script>
-  <script src="sensor-ham.js?v=koloni-276"></script>
-<script src="demo-data.js?v=koloni-276"></script>
-  <script src="rapor-store.js?v=koloni-276"></script>
-  <script src="sensor-health.js?v=koloni-276"></script>
-<script src="saglik-canli.js?v=koloni-276"></script>
-  <script src="foto.js?v=koloni-276"></script>
-  <script src="koloni.js?v=koloni-276"></script>
-  <script src="koloni-ek.js?v=koloni-276"></script>
-  <script src="ilac-katalog.js?v=koloni-276"></script>
-  <script src="bakim-plan.js?v=koloni-276"></script>
-  <script src="irk-tahmin.js?v=koloni-276"></script>
-  <script src="kovan-ara.js?v=koloni-276"></script>
+  <script src="bk-kabuk.js?v=koloni-277"></script>
+  <script src="bal-agirlik.js?v=koloni-277"></script>
+  <script src="sensor-ham.js?v=koloni-277"></script>
+<script src="demo-data.js?v=koloni-277"></script>
+  <script src="rapor-store.js?v=koloni-277"></script>
+  <script src="sensor-health.js?v=koloni-277"></script>
+<script src="saglik-canli.js?v=koloni-277"></script>
+  <script src="foto.js?v=koloni-277"></script>
+  <script src="koloni.js?v=koloni-277"></script>
+  <script src="koloni-ek.js?v=koloni-277"></script>
+  <script src="ilac-katalog.js?v=koloni-277"></script>
+  <script src="bakim-plan.js?v=koloni-277"></script>
+  <script src="irk-tahmin.js?v=koloni-277"></script>
+  <script src="kovan-ara.js?v=koloni-277"></script>
   <script src="device-runtime.js"></script>
-  <script src="tarti-muayene-sync.js?v=koloni-276"></script>
-  <script src="tarti-bakim-delta.js?v=koloni-276"></script>
-  <script src="tarti-elle.js?v=koloni-276"></script>
-  <script src="kritik-alarm.js?v=koloni-276"></script>
-  <script src="bal-hedef.js?v=koloni-276"></script>
-  <script src="tarti-dosemeler.js?v=koloni-276"></script>
-  <script src="pil-model.js?v=koloni-276"></script><script src="sensor-polling.js?v=koloni-276"></script>
-  <script src="tarti-rotasyon.js?v=koloni-276"></script>
-  <script src="kapsam.js?v=koloni-276"></script>
+  <script src="tarti-muayene-sync.js?v=koloni-277"></script>
+  <script src="tarti-bakim-delta.js?v=koloni-277"></script>
+  <script src="tarti-elle.js?v=koloni-277"></script>
+  <script src="kritik-alarm.js?v=koloni-277"></script>
+  <script src="bal-hedef.js?v=koloni-277"></script>
+  <script src="tarti-dosemeler.js?v=koloni-277"></script>
+  <script src="pil-model.js?v=koloni-277"></script><script src="sensor-polling.js?v=koloni-277"></script>
+  <script src="tarti-rotasyon.js?v=koloni-277"></script>
+  <script src="kapsam.js?v=koloni-277"></script>
   <script>
     (function () {
       var D = window.SuperAriDemo;
@@ -653,14 +653,13 @@
           tEl.hidden = !recT.length;
           tEl.innerHTML = recT.length ? '<div class="ks-sec" style="margin-top:4px;"><h3>Son tartımlar</h3><small>' + recT.length + '</small></div>' + recT.map(function (x) { return TE.rowHtml(x, { showHive: true }); }).join('') : '';
           secV.hidden = false; secV.querySelector('h3').textContent = 'Kovanlar · ağırlık';
-          document.getElementById('ksCount').textContent = hsT.length + ' kovan · önce tartısız' + (KV.live() ? '' : ' · Demo');
           var d14T = D.records.addDays(D.records.todayLocal(), -14);
           /* koloni-272: kategori döşemeleri (sayfaya girmeden sayı) — dokununca liste süzülür, tekrar dokununca Tümü */
           var TD = window.SuperAriTartiDoseme, catEl = document.getElementById('tartiCats');
           var actT = hsT.filter(function (h) { return h.colonyState !== 'sonuk'; });
           var RT = TD ? TD.compute(actT) : null;
           if (RT && catEl) {
-            if (tartiCat && !TD.tiles(RT).some(function (t) { return t.key === tartiCat && !t.empty; })) tartiCat = '';
+            /* koloni-277: «Veri yok» döşemesi de dokununca seçilir (iPhone'da tepki yok sanılıyordu); eşleşen kovan yoksa kısa not */
             catEl.hidden = false;
             catEl.innerHTML = TD.tiles(RT).map(function (t) {
               return KV.anaModuleTile({ href: '#', label: t.label, badge: t.badge, tone: t.tone, svg: t.icon, dataKey: t.key, extraClass: 'tc-tile' + (tartiCat === t.key ? ' on' : '') + (t.empty ? ' tc-empty' : ''), aria: t.aria + (tartiCat === t.key ? ', seçili — tekrar dokun: Tümü' : '') }).replace('<div class="badge', '<div class="tile-sub tc-sub">' + KV.esc(t.sub) + '</div><div class="badge');
@@ -668,6 +667,8 @@
             var scopeHostC = document.getElementById('ksScope');
             if (scopeHostC && catEl.previousElementSibling !== scopeHostC) scopeHostC.parentNode.insertBefore(catEl, scopeHostC.nextSibling);
           }
+          var nAllT = hsT.length, nTartiliT = TD && RT ? TD.weighedCount(RT) : 0;
+          document.getElementById('ksCount').textContent = nAllT + ' kovan · ' + (nTartiliT ? nTartiliT + ' tartılı' : 'tartım yok') + (KV.live() ? '' : ' · Demo');
           if (tartiCat && RT) hsT = hsT.filter(function (h) { var p = RT.per[String(h.id)]; return p && p.cats[tartiCat]; });
           var infT = hsT.map(function (h) {
             var l = TE ? TE.latest(h.id) : null, at = l ? String(l.at).slice(0, 10) : '';
@@ -701,8 +702,8 @@
               acts: acts,
               aria: x.h.name + ', ' + x.kg + ', ' + balSub + ', ' + x.sub
             });
-          }).join('') || '<p class="ks-empty">' + (tartiCat ? 'Bu kategoride kovan yok.' : 'Bu kapsamda kovan yok.') + '</p>';
-          if (tartiCat && TD) document.getElementById('ksCount').textContent = hsT.length + ' kovan · ' + TD.LABEL[tartiCat] + (KV.live() ? '' : ' · Demo');
+          }).join('') || '<p class="ks-empty tc-none" role="status" style="grid-column:1/-1;margin:6px 0;min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center">' + (tartiCat ? 'Bu durumda kovan yok. Tümü için tekrar dokun.' : 'Bu kapsamda kovan yok.') + '</p>';
+          if (tartiCat && TD) document.getElementById('ksCount').textContent = hsT.length + '/' + nAllT + ' kovan · ' + TD.LABEL[tartiCat] + (KV.live() ? '' : ' · Demo');
           }
           var tartiCat = '';
           (function () {
@@ -710,7 +711,6 @@
             ce.addEventListener('click', function (e) {
               var t = e.target.closest ? e.target.closest('[data-key]') : null; if (!t) return;
               e.preventDefault();
-              if (t.classList.contains('tc-empty')) return;
               var k = t.getAttribute('data-key');
               tartiCat = tartiCat === k ? '' : k;
               if (window.SuperAriScroll && SuperAriScroll.keep) SuperAriScroll.keep(drawTarti); else drawTarti();
@@ -1059,7 +1059,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-276"></script>
-<script src="pwa.js?v=koloni-276"></script>
+<script src="nav.js?v=koloni-277"></script>
+<script src="pwa.js?v=koloni-277"></script>
 </body>
 </html>
