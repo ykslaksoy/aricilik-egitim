@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<link rel="stylesheet" href="sa-early.css?v=koloni-283">
+<link rel="stylesheet" href="sa-early.css?v=koloni-284">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Uyarılar · SüperArı</title>
@@ -79,9 +79,9 @@
       border-color: #e0c56a; color: var(--brown, #5c4813);
     }
   </style>
-  <link rel="stylesheet" href="kapsam.css?v=koloni-283" />
-  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-283" />
-  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-283" />
+  <link rel="stylesheet" href="kapsam.css?v=koloni-284" />
+  <link rel="stylesheet" href="bk-kabuk.css?v=koloni-284" />
+  <link rel="stylesheet" href="ana-hive-tiles.css?v=koloni-284" />
   <style>/* k89: uzun başlık («Oğul Eğilimi ve Takibi») → arılık seçici alt satıra iner, adı kısalmaz */.ks-card .ks-top{flex-wrap:wrap;row-gap:2px;}.ks-card .ks-sel{max-width:100%;}</style>
 </head>
 <body>
@@ -99,12 +99,12 @@
       <div class="note" id="pageNote">Statik demo uyarılar. Canlı veriler bağlandığında burada listelenir.</div>
     </section>
   </main>
-  <script src="bk-kabuk.js?v=koloni-283"></script>
-  <script src="sensor-ham.js?v=koloni-283"></script>
-<script src="demo-data.js?v=koloni-283"></script>
-  <script src="ogul.js?v=koloni-283"></script>
-  <script src="kapsam.js?v=koloni-283"></script>
-  <script src="ks-sayfa.js?v=koloni-283"></script>
+  <script src="bk-kabuk.js?v=koloni-284"></script>
+  <script src="sensor-ham.js?v=koloni-284"></script>
+<script src="demo-data.js?v=koloni-284"></script>
+  <script src="ogul.js?v=koloni-284"></script>
+  <script src="kapsam.js?v=koloni-284"></script>
+  <script src="ks-sayfa.js?v=koloni-284"></script>
   <script>SuperAriKsSayfa.ensureScope({ mode: true });</script>
   <script>
     (function () {
@@ -339,7 +339,7 @@
         /* k244: mevsim notu bölge başına bir kez; «Oğul mevsimi dışı» gibi ortak baş tek sefer yazılır */
         var seasonGrp = {}, seasonOrd = [], seasonSeen = {};
         rows.forEach(function (r) {
-          var se = r.a.season || {}, ph0 = se.bilinmiyor ? 'Oğul mevsimi' : se.phase === 'disi' ? 'Oğul mevsimi dışı' : (se.phase === 'zirve' ? 'Oğul mevsimi' : 'Oğul mevsimine yakın');
+          var se = r.a.season || {}, ph0 = se.bilinmiyor ? 'Oğul mevsimi' : se.phase === 'disi' ? 'Oğul dönemi değil' : (se.phase === 'zirve' ? 'Oğul mevsimi' : 'Oğul mevsimine yakın');
           var item = se.bilinmiyor ? 'Veri yok (bölge bilinmiyor)' : se.profileLabel ? se.profileLabel + (se.window ? ' (' + se.window + ')' : '') : '';
           if (!item) { item = r.a.seasonNote; ph0 = ''; }
           if (seasonSeen[ph0 + '|' + item]) return; seasonSeen[ph0 + '|' + item] = 1;
@@ -348,7 +348,7 @@
         });
         var seasonTxt = seasonOrd.map(function (k) { return (k ? k + ': ' : '') + seasonGrp[k].join(' · '); }).join(' — ');
         /* koloni-254: Ana sayfa döşemeleri (ana-hive-tiles.css + SuperAriKapsam.anaModuleTile — Cihazlar/Koloni ile aynı) sabit 3×2:
-           Uyarılar · Mevsim dışı · Düşük / Orta · Yüksek · Kritik; seçili = .on (sa-tile-select: yeşil kenar), yükseklik sabit (min-height) */
+           Uyarılar · Oğul dönemi değil (koloni-284) · Düşük / Orta · Yüksek · Kritik; seçili = .on (sa-tile-select: yeşil kenar), yükseklik sabit (min-height) */
         var KS = window.SuperAriKapsam, base = 'uyarilar.html?view=ogul';
         var LVK = {}; LV.forEach(function (l) { LVK[l.key] = l; });
         function bars(n) { var x = [7.6, 10.5, 13.4, 16.3], y = [13.2, 11, 8.6, 6.8], o = ''; for (var i = 0; i < n; i++) o += 'M' + x[i] + ' 16.4V' + y[i]; return '<path d="' + o + '"/>'; }
@@ -359,7 +359,7 @@
         }
         var ph = ((KS && KS.anaModuleTile) ? '<div class="grid ana-hive-grid og-ana" data-sa-no-align="1" role="group" aria-label="Oğul riski düzeyi">' +
           ogTile(!duzey, base + apQ, 'Uyarılar', nAlert + ' uyarı', nAlert ? 'red' : 'tan', OG_ICO.uyari, null, 'uyari') +
-          ogTile(duzey === 'mevsimdisi', base + '&duzey=mevsimdisi' + apQ, 'Mevsim dışı', nMd + ' kovan', 'mdblue', null, 'plan', 'md') +
+          ogTile(duzey === 'mevsimdisi', base + '&duzey=mevsimdisi' + apQ, 'Oğul dönemi değil', nMd + ' kovan', 'mdblue', null, 'plan', 'md') +
           ['dusuk', 'orta', 'yuksek', 'kritik'].map(function (k) { var l = LVK[k] || { label: k };
             /* k244: duzey=izleme eski bağlantısı Orta'yı açar */
             return ogTile(duzey === k || (duzey === 'izleme' && k === 'orta'), base + '&duzey=' + k + apQ, l.label, (cnt[k] || 0) + ' kovan', OG_TONE[k], OG_ICO[k], null, k); }).join('') +
@@ -372,18 +372,18 @@
           var lvObj = LV.filter(function (l) { return l.key === want; })[0];
           var sel = rows.filter(function (r) { return r.b === want; }).sort(function (x, y) { return y.a.score - x.a.score || x.h.id - y.h.id; });
           var izl = want === 'orta';
-          titleEl.textContent = mdV ? 'Oğul mevsimi dışı' : izl ? 'Oğul riski: Orta (izleme)' : 'Oğul riski: ' + (lvObj ? lvObj.label : '');
+          titleEl.textContent = mdV ? 'Oğul dönemi değil' : izl ? 'Oğul riski: Orta (izleme)' : 'Oğul riski: ' + (lvObj ? lvObj.label : '');
           subEl.textContent = 'Oğul';
           summaryEl.textContent = sel.length + ' kovan' + (izl ? ' izlemede (orta risk)' : '');
           if (filterChipsEl) filterChipsEl.innerHTML = '';
           modeSwitchEl.innerHTML = '';
-          noteEl.textContent = mdV ? 'Bölgesi şu an oğul mevsimi dışında olan kovanlar. Bu kovanlar Düşük / Orta düzeyinde ayrıca sayılmaz; oğul yüksüğü görülürse Kritik\'e geçer.' : izl
+          noteEl.textContent = mdV ? 'Bölgesi şu an oğul döneminde olmayan kovanlar. Bu kovanlar Düşük / Orta düzeyinde ayrıca sayılmaz; oğul yüksüğü görülürse Kritik\'e geçer.' : izl
             ? 'Orta riskli kovanlar izlemededir. Oğul mevsiminde Bakım planına 7–10 günde bir «Oğul izleme» görevi eklenir; mevsim dışında görev açılmaz.'
             : 'Son muayenede oğul yüksüğü görüldüyse risk Kritik sayılır.';
           var apN = {}; (D.loadApiaries ? D.loadApiaries() : []).forEach(function (a) { apN[a.id] = a.name || a.place; });
           listEl.innerHTML = sel.map(function (r) {
             return '<a class="og-row" href="kovan.html?id=' + encodeURIComponent(r.h.id) + '" data-ogul-open="' + esc(r.h.id) + '"><b><span class="og-dot" style="background:' + (r.b === 'mevsimdisi' ? MD_COLOR : r.a.color) + '"></span>' + esc(r.h.name) +
-              (r.b === 'mevsimdisi' ? '<span class="og-pill" style="background:' + MD_COLOR + '">Mevsim dışı</span></b>' : '<span class="og-pill" style="background:' + r.a.color + '">' + esc(r.a.display || r.a.level) + '</span></b>') +
+              (r.b === 'mevsimdisi' ? '<span class="og-pill" style="background:' + MD_COLOR + '">Oğul dönemi değil</span></b>' : '<span class="og-pill" style="background:' + r.a.color + '">' + esc(r.a.display || r.a.level) + '</span></b>') +
               /* k244: ırk «Ana arı karakteri: …» nedeninde zaten yazıyorsa arılık satırında tekrar edilmez */
               '<small>' + esc((apN[r.h.apiaryId] || '') + (r.a.breed && !r.a.reasons.some(function (t) { return t.indexOf('Ana arı karakteri:') === 0; }) ? ' · ' + r.a.breed : '')) + '</small>' +
               '<small>' + esc(r.a.seasonNote + (r.a.reasons.length ? ' — ' + r.a.reasons.join(', ') : '')) + '</small></a>';
@@ -551,7 +551,7 @@
   };
 })();
 </script>
-<script src="nav.js?v=koloni-283"></script><script src="kritik-alarm.js?v=koloni-283"></script><script>window.SuperAriKritik&&SuperAriKritik.bagla(document.getElementById("saKritik"));</script>
-<script src="pwa.js?v=koloni-283"></script>
+<script src="nav.js?v=koloni-284"></script><script src="kritik-alarm.js?v=koloni-284"></script><script>window.SuperAriKritik&&SuperAriKritik.bagla(document.getElementById("saKritik"));</script>
+<script src="pwa.js?v=koloni-284"></script>
 </body>
 </html>

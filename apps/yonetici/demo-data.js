@@ -4829,7 +4829,7 @@
     function R(key, text, dir, group) { why.push({ key: key, text: text, dir: dir || 'info', group: group || 'durum' }); }
     R('mevsim', season.bilinmiyor ? 'Oğul mevsimi: Veri yok (arılığın bölgesi bilinmiyor)' : inSeason
       ? (season.phase === 'zirve' ? 'Oğul mevsimi (' + season.profileLabel + ', ' + season.window + ')' : 'Oğul mevsimine yakın (' + season.profileLabel + ', ' + season.window + ')')
-      : 'Oğul mevsimi dışı (' + season.profileLabel + '; mevsim ' + season.window + ')', inSeason ? 'up' : 'down');
+      : 'Oğul dönemi değil (' + season.profileLabel + '; oğul dönemi ' + season.window + ')', inSeason ? 'up' : 'down');
     /* --- Kovan durumu (asıl belirleyici) --- */
     var s = 0;
     var cls = st && st.strengthClass ? st.strengthClass : null;
@@ -5002,7 +5002,7 @@
     } else {
       if (manyCells) A('meme', 'Yüksükleri kontrol et', 'Yüksüklerin yerine bak: alt kenardaysa oğul, petek ortasındaysa sessiz ana değiştirmedir.');
       if (age != null && age >= 3) A('ana', 'Ana arıyı yenile', 'Yaşlı ana gelecek mevsim oğul riskini artırır.');
-      A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol et.' : 'Oğul mevsimi dışında; olağan bakımla devam et.');
+      A('izle', 'Bir şey yapma, izlemeye devam', inSeason ? 'Risk düşük; olağan muayenelerde kontrol et.' : 'Oğul dönemi değil; olağan bakımla devam et.');
     }
     var seasonNote = why[0].text;
     return { score: s, piping: sesPiping, hucre: hucreVar || (anyCell && !sesPiping), sensorlu: sensorlu, display: lv.label + ' ' + Math.round(s) + (sensorlu ? ' · sensörlü' : ''), ors: ors, genetik: gen, level: lv.label, key: lv.key, tone: lv.tone, color: lv.color, breed: breed,
