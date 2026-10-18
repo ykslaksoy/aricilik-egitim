@@ -52,8 +52,7 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
       { ad: 'Sensirion SHT45-AD1B', fark: 'Daha doğru: ±0,1 °C ve ±1,0 %RH tipik (SHT41: ±0,2 °C, ±1,8 %RH).', uyum: u, durum: 'uyumlu', kaynak: DS_SHT4X, fiyat: null },
       { ad: 'Sensirion SHT43-ADCB', fark: 'ISO 17025 3 noktalı kalibrasyon sertifikası; uzun dönem sıcaklık kayması <0,01 °C/yıl (SHT41 <0,03). Tipik sıcaklık doğruluğu verilmiyor, yalnız maksimum eğrisi.', uyum: u, durum: 'uyumlu', kaynak: DS_SHT4X, fiyat: null },
       { ad: 'Sensirion SHT40-AD1B', fark: 'Tipik doğruluk SHT41 ile aynı (±0,2 °C, ±1,8 %RH); maksimum sapma eğrisi daha geniş. BD1B (0x45) / CD1B (0x46) sürümleri de var.', uyum: u + ' 0x45/0x46 sürümünde yalnız SHT41_I2C_ADDR derleme ayarı değişir.', durum: 'uyumlu', kaynak: DS_SHT4X, fiyat: null },
-      { ad: 'Sensirion SHT40-AD1F', fark: 'SHT40 + polyimid koruyucu membran. Kovandaki toz/propolise karşı yararı uzman tahmini.', uyum: u, durum: 'uyumlu', kaynak: DS_SHT4X, fiyat: null },
-      { ad: 'Sensirion SHT31-DIS', fark: '±0,2 °C tipik, eski seri.', uyum: 'UYUMSUZ: komutlar 16 bit (ölçüm 0x2400, sıfırlama 0x30A2); sht41.cpp tek bayt 0xFD gönderir. Adres aynı (0x44) olsa da firmware değişmeden çalışmaz.', durum: 'uyumsuz', kaynak: DS_SHT3X, fiyat: FIY[1][1] }
+      { ad: 'Sensirion SHT40-AD1F', fark: 'SHT40 + polyimid koruyucu membran. Kovandaki toz/propolise karşı yararı uzman tahmini.', uyum: u, durum: 'uyumlu', kaynak: DS_SHT4X, fiyat: null }
     ];
   }
   var ALT = {
@@ -96,18 +95,31 @@ window.SA_DONANIM_TASLAK = {"surum_notu": "Kullanıcı kararları 17.10.2026: ö
     return { liste: L, not: notlar.join(' · ') };
   }
   function adayAd(c) { return (c.parcalar || []).map(function (p) { return p.ad; }).join(' + ') || 'Adsız aday'; }
+  /* Uyumsuz parçalar (bugünkü firmware değişmeden çalışmaz) aday/alternatif olarak gösterilmez. */
+  var UYUMSUZ = [/SHT3\d/i];
+  function uyumsuzMu(ad) { return UYUMSUZ.some(function (r) { return r.test(String(ad || '')); }); }
   function normalize(d) {
     var yeni = false;
     d.kalemler = d.kalemler || []; d.kararlar = d.kararlar || []; d.verilenKararlar = d.verilenKararlar || [];
     d.kalemler.forEach(function (k) {
       if (!Array.isArray(k.adaylarListe)) { var r = cozumle(k); k.adaylarListe = r.liste; if (r.not) k.adayNot = r.not; yeni = true; }
       if (!Array.isArray(k.alternatifler)) { k.alternatifler = JSON.parse(JSON.stringify(ALT[k.id] || [])); yeni = true; }
+      var n1 = k.alternatifler.length; k.alternatifler = k.alternatifler.filter(function (a) { return a.durum !== 'uyumsuz' && !uyumsuzMu(a.ad); }); if (k.alternatifler.length !== n1) yeni = true;
+      var n2 = k.adaylarListe.length; k.adaylarListe = k.adaylarListe.filter(function (c) { return c.secili || !(c.parcalar || []).some(function (p) { return uyumsuzMu(p.ad); }); }); if (k.adaylarListe.length !== n2) yeni = true;
     });
     if (!Array.isArray(d.duzenler)) {
       var ana = { id: 'ana', ad: 'Ana düzen', not: 'Seçilen parçalar', firmware: 'DUZEN=1 (firmware/node/src/duzen.h)', secim: {} }, yed = { id: 'yedek', ad: 'Yedek düzen', not: 'Taslak – mevcut «alternatif» adaylardan; kullanıcı onayı bekliyor', firmware: 'DUZEN=2 (sürücüler yok → derleme #error ile durur)', secim: {} };
       d.kalemler.forEach(function (k) { var s = k.adaylarListe.filter(function (c) { return c.secili; })[0], a = k.adaylarListe.filter(function (c) { return !c.secili; })[0]; if (s) ana.secim[k.id] = s.id; if (a || s) yed.secim[k.id] = (a || s).id; });
       d.duzenler = [ana, yed]; yeni = true;
     }
+    /* Düzende silinmiş (uyumsuz) aday kaldıysa: seçilen uyumlu adaya dön; o da yoksa boş → «Veri yok». */
+    d.duzenler.forEach(function (z) {
+      d.kalemler.forEach(function (k) {
+        var id = z.secim && z.secim[k.id]; if (!id || k.adaylarListe.some(function (c) { return c.id === id; })) return;
+        var s0 = k.adaylarListe.filter(function (c) { return c.secili; })[0];
+        if (s0) z.secim[k.id] = s0.id; else delete z.secim[k.id]; yeni = true;
+      });
+    });
     d.arilikDuzen = d.arilikDuzen || {};
     return yeni;
   }

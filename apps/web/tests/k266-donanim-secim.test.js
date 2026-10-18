@@ -22,19 +22,19 @@ test('aday metni yapıya çevrilir, özgün metin korunur', () => {
   assert.strictEqual(JSON.stringify(d.kalemler.map((k) => k.adaylar)), JSON.stringify(once));
   const k = (id) => d.kalemler.find((x) => x.id === id);
   const isi = k('isi_nem').adaylarListe;
-  assert.strictEqual(isi.length, 2);
+  assert.strictEqual(isi.length, 1); // SHT31-DIS uyumsuz → aday değil
   assert.strictEqual(isi[0].secili, true); assert.strictEqual(isi[0].parcalar[0].ad, 'Sensirion SHT41');
   assert.match(isi[0].parcalar[0].ozellik, /0x44/);
-  assert.strictEqual(isi[1].secili, false); assert.strictEqual(isi[1].parcalar[0].ad, 'SHT31-DIS');
   const gw = k('gateway').adaylarListe[0].parcalar.map((p) => p.ad);
   assert.strictEqual(JSON.stringify(gw), JSON.stringify(['LilyGO T-Beam V1.2', 'SIMCom A7670E']));
   assert.strictEqual(k('kamera').adaylarListe.length, 0);
   assert.strictEqual(d.duzenler.map((z) => z.id).join(','), 'ana,yedek');
-  assert.strictEqual(d.duzenler[1].secim.isi_nem, isi[1].id);
-  // alternatifler: SHT31 uyumsuz, SHT4x uyumlu
+  assert.strictEqual(d.duzenler[1].secim.isi_nem, isi[0].id); // yedek: uyumlu seçilene döner
+  // alternatifler: yalnız uyumlu (SHT31 yok)
   const alt = k('isi_nem').alternatifler;
   assert.ok(alt.find((a) => /SHT45/.test(a.ad)).durum === 'uyumlu');
-  assert.ok(alt.find((a) => /SHT31/.test(a.ad)).durum === 'uyumsuz');
+  assert.ok(!alt.some((a) => /SHT31/.test(a.ad) || a.durum === 'uyumsuz'));
+  for (const kk of d.kalemler) assert.ok(!(kk.alternatifler || []).some((a) => a.durum === 'uyumsuz'));
 });
 
 test('satın alma: fiyatsız parça toplama girmez, dahil parça sayılmaz', () => {
@@ -62,4 +62,17 @@ test('TCMB today.xml ayrıştırma', () => {
   const o = ayikla(xml);
   assert.strictEqual(o.tarih, '16.10.2026');
   assert.strictEqual(o.kurlar.USD, 49.4463); assert.strictEqual(o.kurlar.EUR, 55.618);
+});
+
+test('kayıtlı veride uyumsuz aday/alternatif temizlenir, yedek düzen düzelir', () => {
+  const w = yukle(), T = w.SA_DONANIM_TEST, d = JSON.parse(JSON.stringify(w.SA_DONANIM_TASLAK));
+  T.normalize(d);
+  const k = d.kalemler.find((x) => x.id === 'isi_nem');
+  k.adaylarListe.push({ id: 'isi_nem-sht31', secili: false, parcalar: [{ ad: 'SHT31-DIS' }] });
+  k.alternatifler.push({ ad: 'Sensirion SHT31-DIS', durum: 'uyumsuz' });
+  d.duzenler[1].secim.isi_nem = 'isi_nem-sht31';
+  assert.strictEqual(T.normalize(d), true);
+  assert.ok(!k.adaylarListe.some((c) => /SHT31/.test(c.parcalar[0].ad)));
+  assert.ok(!k.alternatifler.some((a) => a.durum === 'uyumsuz'));
+  assert.strictEqual(d.duzenler[1].secim.isi_nem, k.adaylarListe[0].id);
 });
