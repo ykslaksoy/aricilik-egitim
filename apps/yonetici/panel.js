@@ -49,6 +49,12 @@
     var aps = []; try { aps = (D.loadApiaries ? D.loadApiaries() : []) || []; } catch (e) { aps = []; }
     var yr = new Date().getFullYear(), dn = o.donem || {};
     h += '<fieldset><legend>Arılık oğul dönemleri</legend><p class="fe-sub" style="margin:.2rem 0;">Otomatik dönem bölge profilinden (rakım / il) hesaplanır. Tarih aralığı seçilirse ORS Mevsim bu dönemi kullanır (her yıl aynı gün/ay).</p>' +
+      /* koloni-279: oğul sayfası döşemeleri ayrık; sonbahar oğul penceresi araştırması (kaynaklar yalnız burada) */
+      '<p class="fe-sub" style="margin:.2rem 0;"><b>Otomatik pencereler uzman tahmini</b> (sıcak 15 Mar–10 May · ılıman 20 Nis–31 May · yayla 25 May–30 Haz · yüksek yayla 5 Haz–5 Tem; hazırlık/kuyruk kenarları dahil). ' +
+      'Oğul sayfasında mevsim dışındaki kovan yalnız «Mevsim dışı» döşemesinde sayılır, Düşük / Orta\'da ayrıca sayılmaz; Yüksek / Kritik (oğul yüksüğü, Ana Arılar Ötmesi) mevsim dışında da kendi düzeyinde kalır. Bölgesi bilinmeyen arılıkta mevsim «Veri yok».<br>' +
+      '<b>Sonbahar / çam balı:</b> çam balı dönemi (Muğla, 15 Ağu–30 Kas) bal akımıdır, oğul mevsimi değildir; doğrulanmış sonbahar doğal oğul penceresi bulunamadı → Muğla / Ege için «mevsim dışı» korunur. ' +
+      'Kaynaklar: TÜRKPATENT coğrafi işaret «Muğla Çam Balı» (Muğla İli Arı Yetiştiricileri Birliği: üretim 15 Ağu–30 Kas, sağımlar Eyl/Eki/Kas); Muğla İl Tarım ve Orman Müdürlüğü Tarım Takvimi (bölgede oğul üretimi Mayıs\'tan itibaren); ' +
+      'Akdeniz arısında oğul ilkbaharda: Tiemann &amp; Brückner 1993 (Apidologie 24:4, Sicilya), Catania Üniv. / CREA 2014–15 (Sicilya, Mart–Nisan); geç yaz oğulu için veri yok (Oliver, Scientific Beekeeping, «no supporting data»).</p>' +
       (aps.length ? aps.map(function (a) {
         var au = C.autoSwarmWindow(a.id), cp = dn[a.id] && dn[a.id].isCustomPeriod ? dn[a.id] : null;
         return '<div class="os-dn" data-ap="' + esc(a.id) + '" data-custom="' + (cp ? '1' : '0') + '"><b>' + esc(a.name || a.place || a.id) + '</b>' +

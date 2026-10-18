@@ -3394,12 +3394,31 @@
   function mdLabel(md) { var p = md.split('-'); return Number(p[1]) + ' ' + AY_KISA[Number(p[0]) - 1]; }
   /* k132: arılık başına elle oğul dönemi (yönetici; OGUL_SKOR.donem[apId] = { from, to: 'AA-GG', isCustomPeriod: true }). */
   function customPeriod(apId) { var d = OGUL_SKOR && OGUL_SKOR.donem && OGUL_SKOR.donem[String(apId)]; return d && d.isCustomPeriod ? d : null; }
+  /* koloni-279: bölge bilinir mi (il, rakım, örnek arılık, bölge seçimi) — bal-hedef.js bolgeBilinir ile aynı tanım; bilinmiyorsa oğul mevsimi «Veri yok» */
+  function swarmRegionKnown(apId, ctx) {
+    var st = ctx ? (ctx.plan || (ctx.plan = planState())) : planState();
+    if (st.profiles && st.profiles[apId]) return true;
+    var aps = ctx ? (ctx.aps || (ctx.aps = loadApiaries())) : loadApiaries(), a = null;
+    for (var i = 0; i < aps.length; i++) if (aps[i].id === String(apId)) { a = aps[i]; break; }
+    if (!a) return false;
+    if (String(a.il || '').trim()) return true;
+    if (Number(a.altitude || a.elevation || a.rakim) > 0) return true;
+    try { if (isSeedApiaryId(a.id)) return true; } catch (e) { /* */ }
+    return false;
+  }
+  /* koloni-279: Oğul sayfası döşemeleri ayrık — mevsim dışındaki kovan yalnız «Mevsim dışı»nda sayılır (Düşük / Orta'da ayrıca sayılmaz);
+     Yüksek / Kritik (oğul yüksüğü, Ana Arılar Ötmesi) mevsim dışında da kendi düzeyinde kalır. Sonbahar (çam balı) için doğrulanmış doğal oğul penceresi yok (kaynaklar yalnız yönetici). */
+  function swarmBucket(a) {
+    if (!a) return '';
+    if (a.season && a.season.phase === 'disi' && !a.season.bilinmiyor && !orsYuksek(a.key)) return 'mevsimdisi';
+    return a.key;
+  }
   function swarmSeason(apId, date, ctx) {
     var key = seasonProfileKey(apId, ctx), w = SWARM_WINDOWS[key], cp = customPeriod(apId);
     if (cp) w = { pre: cp.from, from: cp.from, to: cp.to, post: cp.to };
     var md = String(date || todayLocal()).slice(5, 10);
     var phase = (md >= w.from && md <= w.to) ? 'zirve' : ((md >= w.pre && md < w.from) || (md > w.to && md <= w.post) ? 'kenar' : 'disi');
-    return { profile: key, profileLabel: cp ? 'elle dönem' : PROFILE_SHORT[key], custom: !!cp, phase: phase, window: mdLabel(w.from) + '–' + mdLabel(w.to),
+    return { profile: key, profileLabel: cp ? 'elle dönem' : PROFILE_SHORT[key], custom: !!cp, bilinmiyor: !cp && !swarmRegionKnown(apId, ctx), phase: phase, window: mdLabel(w.from) + '–' + mdLabel(w.to),
       factor: phase === 'zirve' ? 1 : (phase === 'kenar' ? 0.6 : 0.15) };
   }
   /* Irk etkisi (oğul eğilimi): melez türü ayrı değerlendirilir. */
@@ -4713,7 +4732,7 @@
     var bf = breedSwarmFactor(breed);
     var why = []; /* { key, text, dir: up | down | info, group: durum | karakter } */
     function R(key, text, dir, group) { why.push({ key: key, text: text, dir: dir || 'info', group: group || 'durum' }); }
-    R('mevsim', inSeason
+    R('mevsim', season.bilinmiyor ? 'Oğul mevsimi: Veri yok (arılığın bölgesi bilinmiyor)' : inSeason
       ? (season.phase === 'zirve' ? 'Oğul mevsimi (' + season.profileLabel + ', ' + season.window + ')' : 'Oğul mevsimine yakın (' + season.profileLabel + ', ' + season.window + ')')
       : 'Oğul mevsimi dışı (' + season.profileLabel + '; mevsim ' + season.window + ')', inSeason ? 'up' : 'down');
     /* --- Kovan durumu (asıl belirleyici) --- */
@@ -7198,7 +7217,7 @@
         boxLabel: boxLabel,
         recordSwarm: function (o) { return recordSwarm(o); },
         swarmEvents: swarmEvents,
-        swarmSeason: function (apId, date) { return swarmSeason(apId, date); },
+        swarmSeason: function (apId, date) { return swarmSeason(apId, date); }, swarmBucket: swarmBucket,
         autoSeasonProfile: autoSeasonProfile
       },
       harvests: harvestStore,

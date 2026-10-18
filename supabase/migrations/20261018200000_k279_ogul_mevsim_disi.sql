@@ -1,0 +1,10 @@
+-- koloni-279: Oğul sayfası döşemeleri ayrık — mevsim dışındaki kovan yalnız «Mevsim dışı»nda sayılır (Düşük / Orta'da ayrıca sayılmaz); Yüksek / Kritik kendi düzeyinde kalır.
+-- Sonbahar (çam balı) için doğrulanmış doğal oğul penceresi yok → Muğla / Ege «mevsim dışı» korunur. Otomatik oğul pencereleri kaynaksız → uzman tahmini (yalnız yönetici).
+insert into public.kural_kaynaklari (id,grup,sira,ad,degerler,seviye,aciklama,kaynak,durum) values
+('ogul_mevsim_pencere','oğul skoru',5,'Oğul mevsimi: bölge pencereleri','Sıcak 15 Mar–10 May · Ilıman 20 Nis–31 May · Yayla 25 May–30 Haz · Yüksek yayla 5 Haz–5 Tem (hazırlık / kuyruk kenarları dahil)','bilgi','Oğul sayfası «Mevsim dışı» döşemesi ve ORS Mevsim bileşeni. Mevsim dışındaki Düşük / Orta kovan yalnız «Mevsim dışı»nda sayılır; Yüksek / Kritik kendi düzeyinde. Bölge bilinmiyorsa «Veri yok». Arılık başına elle dönem: Yönetici › Oğul skoru › Arılık oğul dönemleri.','Kaynak yok','uzman tahmini'),
+('ogul_sonbahar_cam','oğul skoru',6,'Oğul mevsimi: sonbahar / çam balı','Çam balı dönemi (15 Ağu–30 Kas) oğul mevsimi sayılmaz','bilgi','Çam balı bal akımıdır; Akdeniz arısında oğul ilkbaharda. Sonbahar doğal oğul penceresi için doğrulanmış veri bulunamadı.','TÜRKPATENT coğrafi işaret «Muğla Çam Balı» (Muğla İli Arı Yetiştiricileri Birliği); Muğla İl Tarım ve Orman Müdürlüğü Tarım Takvimi (oğul üretimi Mayıs''tan); Tiemann & Brückner 1993 Apidologie 24(4) (Sicilya, ilkbahar); Catania Üniv. / CREA 2014–15 (Sicilya, Mart–Nisan)','kaynaklı')
+on conflict (id) do update set degerler=excluded.degerler, seviye=excluded.seviye, aciklama=excluded.aciklama, kaynak=excluded.kaynak, durum=excluded.durum, updated_at=now();
+insert into public.yapilacaklar (baslik, aciklama)
+select v.b, v.a from (values
+ ('Oğul mevsimi pencereleri kaynaksız (uzman tahmini)','Sıcak 15 Mar–10 May · ılıman 20 Nis–31 May · yayla 25 May–30 Haz · yüksek yayla 5 Haz–5 Tem. Türkiye bölge verisiyle (AAE / üniversite oğul gözlemleri) doğrulanmalı. Yönetici › Oğul skoru › Arılık oğul dönemleri.')
+) as v(b,a) where not exists (select 1 from public.yapilacaklar y where y.baslik = v.b);
