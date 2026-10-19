@@ -1,8 +1,9 @@
-/* koloni-293 · Özellik kullanım takibi — hafif olay (özellik, zaman, user_id). İçerik / PII yok. Çevrimdışı kuyruk. */
+/* koloni-293/295 · Özellik kullanım takibi — hafif olay (özellik, zaman, user_id, arılık/dönem). İçerik / PII yok. Çevrimdışı kuyruk. */
 (function (global) {
   'use strict';
   if (global.SuperAriKullanim) return;
   var KUYRUK = 'superari.ozellikKullanim.kuyruk.v1';
+  var SEL_ARILIK = 'superari.ana.selectedApiary';
   var MAX_KUYRUK = 200;
   var FLUSH_MS = 8000;
   var flushTimer = null;
@@ -19,6 +20,100 @@
   function takipAcik() {
     var O = global.SuperAriOzellik;
     return O && typeof O.acik === 'function' ? O.acik('kullanim_takip') : true;
+  }
+
+  function seasonOfDate(date) {
+    var m = /^(\d{4})-(\d{2})/.exec(String(date || '').slice(0, 10));
+    if (!m) return new Date().getFullYear();
+    var y = Number(m[1]);
+    return Number(m[2]) <= 2 ? y - 1 : y;
+  }
+
+  function placeLabel(ap) {
+    if (!ap) return '';
+    var p = String(ap.place || '').trim();
+    return p && p !== '—' ? p : String(ap.name || '');
+  }
+
+  function apiaryById(D, id) {
+    var apId = String(id || '');
+    if (!apId || !D || !D.apiaries) return null;
+    var aps = D.apiaries;
+    for (var i = 0; i < aps.length; i++) if (String(aps[i].id) === apId) return aps[i];
+    return null;
+  }
+
+  function selectedApiaryId() {
+    try {
+      var raw = global.localStorage.getItem(SEL_ARILIK);
+      if (!raw) return null;
+      if (raw.charAt(0) === '{') {
+        var o = JSON.parse(raw);
+        if (o && o.id != null) return String(o.id);
+      }
+      if (/^[a-zA-Z0-9_-]+$/.test(raw)) return raw;
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function gocAffectsApiary(g, apId) {
+    if (!g || !apId) return false;
+    apId = String(apId);
+    if (g.kind === 'tasi' && String(g.apiaryId) === apId) return true;
+    if (String(g.fromApiaryId) === apId || String(g.toApiaryId) === apId) return true;
+    return false;
+  }
+
+  /** Olay anındaki arılık ve sezon dönemi (göç / kışlatma kayıtlarından). */
+  function donemBaglam(ts) {
+    var iso = ts || new Date().toISOString();
+    var d = iso.slice(0, 10);
+    var sezonYili = seasonOfDate(d);
+    var apId = selectedApiaryId();
+    var D = global.SuperAriDemo;
+    var ap = apId ? apiaryById(D, apId) : null;
+    var arilikAd = ap ? String(ap.name || '') : null;
+    var belirsiz = { arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili, donem_tipi: 'belirsiz', donem_sira: null, donem_etiket: 'Belirsiz' };
+    if (!apId || !D || !D.goc || typeof D.goc.list !== 'function' || !ap) return belirsiz;
+
+    var list = D.goc.list().filter(function (g) {
+      return g && g.date && seasonOfDate(g.date) === sezonYili && g.date <= d && gocAffectsApiary(g, apId);
+    }).sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+
+    var kislak = null;
+    for (var k = list.length - 1; k >= 0; k--) {
+      if (list[k].reason === 'kislak') { kislak = list[k]; break; }
+    }
+    if (kislak) {
+      var afterK = list.some(function (g) {
+        return g.date > kislak.date && g.date <= d && g.kind === 'tasi' && String(g.apiaryId) === apId && g.reason !== 'kislak';
+      });
+      if (!afterK) {
+        return {
+          arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili,
+          donem_tipi: 'kislatma', donem_sira: null,
+          donem_etiket: 'Kışlatma — ' + (arilikAd || 'Veri yok')
+        };
+      }
+    }
+
+    var tasi = list.filter(function (g) {
+      return g.kind === 'tasi' && String(g.apiaryId) === apId && g.reason !== 'kislak';
+    });
+    var idx = 1 + tasi.length;
+    var yerAd = placeLabel(ap);
+    if (tasi.length) {
+      var last = tasi[tasi.length - 1];
+      yerAd = last.toName || (last.to && last.to.place) || yerAd;
+    } else if (typeof D.goc.locHistory === 'function') {
+      var hist = D.goc.locHistory(apId);
+      if (hist.length && hist[0].place) yerAd = String(hist[0].place);
+    }
+    return {
+      arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili,
+      donem_tipi: 'konum', donem_sira: idx,
+      donem_etiket: 'Konum ' + idx + ' — ' + (yerAd || arilikAd || 'Veri yok')
+    };
   }
 
   function sayfaOzellik() {
@@ -46,8 +141,19 @@
 
   function kuyruga(ozellik, ts) {
     if (!ozellik || !takipAcik()) return;
+    var when = ts || new Date().toISOString();
+    var ctx = donemBaglam(when);
     var q = okuKuyruk();
-    q.push({ ozellik: ozellik, olusturma: ts || new Date().toISOString() });
+    q.push({
+      ozellik: ozellik,
+      olusturma: when,
+      arilik_id: ctx.arilik_id,
+      arilik_ad: ctx.arilik_ad,
+      sezon_yili: ctx.sezon_yili,
+      donem_tipi: ctx.donem_tipi,
+      donem_sira: ctx.donem_sira,
+      donem_etiket: ctx.donem_etiket
+    });
     yazKuyruk(q);
     planFlush();
   }
@@ -69,7 +175,17 @@
         var us = u && u.data && u.data.user;
         if (!us || !us.id) { flushing = false; return; }
         var batch = q.slice(0, 40).map(function (x) {
-          return { user_id: us.id, ozellik: x.ozellik, olusturma: x.olusturma };
+          return {
+            user_id: us.id,
+            ozellik: x.ozellik,
+            olusturma: x.olusturma,
+            arilik_id: x.arilik_id,
+            arilik_ad: x.arilik_ad,
+            sezon_yili: x.sezon_yili,
+            donem_tipi: x.donem_tipi,
+            donem_sira: x.donem_sira,
+            donem_etiket: x.donem_etiket
+          };
         });
         return c.from('ozellik_kullanim_olay').insert(batch).then(function (r) {
           if (r.error) return;
@@ -113,5 +229,5 @@
   if (global.document.readyState === 'loading') global.document.addEventListener('DOMContentLoaded', boot);
   else global.setTimeout(boot, 0);
 
-  global.SuperAriKullanim = { log: kuyruga, flush: flush, sayfaOzellik: sayfaOzellik };
+  global.SuperAriKullanim = { log: kuyruga, flush: flush, sayfaOzellik: sayfaOzellik, donemBaglam: donemBaglam, seasonOfDate: seasonOfDate };
 })(typeof window !== 'undefined' ? window : globalThis);

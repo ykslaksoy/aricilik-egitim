@@ -39,7 +39,7 @@ test('k293: ozellik-kullanim.js sayfa eşlemesi ve kuyruk', () => {
 
 test('k293: yönetici panel18 ve pwa zinciri', () => {
   assert.match(fs.readFileSync(p.join(R, 'apps/yonetici/panel18.js'), 'utf8'), /Özellik kullanımı/);
-  assert.match(fs.readFileSync(p.join(R, 'apps/yonetici/index.html'), 'utf8'), /panel18\.js\?v=koloni-294/);
+  assert.match(fs.readFileSync(p.join(R, 'apps/yonetici/index.html'), 'utf8'), /panel18\.js\?v=koloni-295/);
   assert.match(fs.readFileSync(p.join(R, 'apps/web/pwa.js'), 'utf8'), /ozellik-kullanim\.js/);
   assert.match(fs.readFileSync(p.join(R, 'apps/web/ozellik.js'), 'utf8'), /kullanim_takip: true/);
 });

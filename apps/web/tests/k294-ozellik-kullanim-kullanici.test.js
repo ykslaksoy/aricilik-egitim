@@ -14,5 +14,5 @@ test('k294: kullanıcı RPC + olay tablosu select revoke', () => {
   const j = fs.readFileSync(p.join(R, 'apps/yonetici/panel18.js'), 'utf8');
   assert.match(j, /Kullanıcı bazında/);
   assert.match(j, /sa_ozellik_kullanim_kullanici_detay/);
-  assert.match(fs.readFileSync(p.join(R, 'apps/yonetici/index.html'), 'utf8'), /panel18\.js\?v=koloni-294/);
+  assert.match(fs.readFileSync(p.join(R, 'apps/yonetici/index.html'), 'utf8'), /panel18\.js\?v=koloni-295/);
 });

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo · Özellik kullanımı</title>
+  <link rel="stylesheet" href="../apps/yonetici/panels.css" />
+  <style>
+    body { margin: 0; background: #f4efe4; }
+    main { max-width: 920px; margin: 0 auto; padding: 1rem; }
+    .fe h2 { margin: 0 0 .25rem; }
+    .fe-sub { color: #5b4a33; font-size: .88rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th, td { padding: .35rem .4rem; }
+    th { text-align: right; font-size: .75rem; }
+    td:first-child, th:first-child { text-align: left; }
+    tfoot tr { border-top: 2px solid #ccc; background: #faf8f3; font-weight: 700; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="card fe" id="s-kullanim">
+    <h2>Özellik kullanımı</h2>
+    <p class="fe-sub">Özellik açılışları (yalnız sayım). Sütunlar: toplam, son 7 gün, son 30 gün.</p>
+    <details open>
+      <summary style="font-weight:700">Özellik bazında (3)</summary>
+      <div style="border-top:1px solid #eee;padding:.55rem 0">
+        <b>Muayene</b>
+        <div style="font-size:.82rem;margin-top:.35rem">Toplam: <b>412</b> · 7 gün: <b>28</b> · 30 gün: <b>96</b></div>
+      </div>
+      <div style="border-top:1px solid #eee;padding:.55rem 0">
+        <b>Kovanlar</b>
+        <div style="font-size:.82rem;margin-top:.35rem">Toplam: <b>318</b> · 7 gün: <b>22</b> · 30 gün: <b>71</b></div>
+      </div>
+    </details>
+    <details open style="margin-top:.75rem;border-top:1px solid #eee;padding-top:.65rem">
+      <summary style="font-weight:700">Sezon raporu</summary>
+      <p class="fe-sub">2026 sezonu · Tüm kullanıcılar</p>
+      <div style="overflow:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Arılık / dönem</th>
+              <th>Muayene</th>
+              <th>Kovanlar</th>
+              <th>Tartı</th>
+              <th>Raporlar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Kayaköy Ana Arılık</b><br><span style="color:#555">Konum 1 — Tortum yaylası</span></td>
+              <td>34</td><td>28</td><td>12</td><td>5</td>
+            </tr>
+            <tr>
+              <td><b>Kayaköy Ana Arılık</b><br><span style="color:#555">Konum 2 — Palandöken</span></td>
+              <td>41</td><td>36</td><td>18</td><td>8</td>
+            </tr>
+            <tr>
+              <td><b>Kayaköy Ana Arılık</b><br><span style="color:#555">Kışlatma — Kayaköy Ana Arılık</span></td>
+              <td>19</td><td>15</td><td>4</td><td>11</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Sezon toplamı</td>
+              <td>94</td><td>79</td><td>34</td><td>24</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </details>
+  </section>
+</main>
+</body>
+</html>
