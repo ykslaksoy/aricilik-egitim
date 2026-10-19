@@ -102,7 +102,7 @@
 <script>/* Ana uygulamayla aynı adreste açılırsa (superari.vercel.app/apps/yonetici) kullanıcının yerel verisine dokunma */window.SA_YON_AYRI=!/^superari\.vercel\.app$/.test(location.hostname);if(window.SA_YON_AYRI){try{localStorage.setItem('superari.workMode','live');}catch(e){}}</script>
 <script src="agac.js?v=yon-2"></script>
 <script src="bulut.js?v=yon-2"></script>
-<script src="demo-data.js?v=koloni-290"></script>
+<script src="demo-data.js?v=koloni-293"></script>
 <script>
 /* Kapı: Supabase oturumu + sa_is_admin() = true değilse panel yüklenmez. Veri erişimi zaten RLS / RPC (sa_is_admin) ile korunur. */
 (function () {
@@ -146,7 +146,7 @@
 (function () {
   var done = false;
   function ld(src) { return new Promise(function (ok) { var s = document.createElement('script'); s.src = src; s.onload = s.onerror = ok; document.body.appendChild(s); }); }
-  function go() { if (done) return; var p = document.getElementById('panel'); if (!p || p.hidden || !window.SuperAriDemo) return; if (!document.getElementById('s-hastalik-tahmin')) return; done = true; ld('bal-hedef.js?v=koloni-283').then(function () { return ld('panel16.js?v=koloni-283'); }).then(function () { return ld('panel17.js?v=koloni-288'); }); }
+  function go() { if (done) return; var p = document.getElementById('panel'); if (!p || p.hidden || !window.SuperAriDemo) return; if (!document.getElementById('s-hastalik-tahmin')) return; done = true; ld('bal-hedef.js?v=koloni-283').then(function () { return ld('panel16.js?v=koloni-283'); }).then(function () { return ld('panel17.js?v=koloni-288'); }).then(function () { return ld('panel18.js?v=koloni-293'); }); }
   var t = setInterval(function () { go(); if (done) clearInterval(t); }, 500);
 })();
 </script>

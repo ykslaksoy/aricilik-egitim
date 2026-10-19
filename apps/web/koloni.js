@@ -435,8 +435,8 @@
           '<label class="full">Irk<select name="breed">' + breedSel + '</select></label>' +
           '<p class="full kol-sub" id="kolIrkHint" style="margin:-.2rem 0 0;"' + (!curBreed || h.breedEstimated ? '' : ' hidden') + '>' + (h.breedEstimated ? 'Irk tahminidir. ' : 'Irk bilinmiyor. ') +
             '<a href="#" id="kolIrkTahmin" style="color:#2b6cb0;text-decoration:underline;font-weight:700;">Irk tahmini (kesin değil)</a></p>' +
-          (function () { var y = d.records && d.records.crossYon ? d.records.crossYon(curBreed) : null; /* k289: yönlü melez sade özellik; yer sabit (gizlenince boşluk kalmaz, kaydırma korunur) */
-            return '<p class="full kol-sub" id="kolIrkMelez" style="margin:-.2rem 0 0;"' + (y ? '' : ' hidden') + '>' + (y ? 'Melez özelliği: ' + esc(y.ozet) : '') + '</p>'; })() +
+          (function () { var ln = d.records && d.records.irkBilgiSatir ? d.records.irkBilgiSatir(curBreed) : ''; /* k289/k292: melez özelliği + hırçınlık (rakam/kaynak yok) */
+            return '<p class="full kol-sub" id="kolIrkMelez" style="margin:-.2rem 0 0;"' + (ln ? '' : ' hidden') + '>' + esc(ln) + '</p>'; })() +
           '<button type="button" class="full kol-lin-btn" id="kolLineage">🧬 Hat ve Genetik — melez, damızlık hat, anne ana</button>' +
           '<label class="full" id="kolOtherWrap"' + (isOther ? '' : ' hidden') + '>Irk adı<input name="breedOther" maxlength="60" value="' + esc(isOther ? curBreed : '') + '" placeholder="ör. Yerel melez"></label>' +
           '<label class="full"><span id="kolYearLbl">Ana arı doğum yılı</span><select name="queenYear">' + yearSel + '</select></label>' +
@@ -503,8 +503,8 @@
     form.breed.addEventListener('change', function () {
       otherWrap.hidden = form.breed.value !== 'Diğer';
       var ih = back.querySelector('#kolIrkHint'); if (ih) ih.hidden = !!form.breed.value && !(h.breedEstimated && form.breed.value === curBreed);
-      var im = back.querySelector('#kolIrkMelez'), y = im && d.records && d.records.crossYon ? d.records.crossYon(form.breed.value) : null;
-      if (im) { im.textContent = y ? 'Melez özelliği: ' + y.ozet : ''; im.hidden = !y; }
+      var im = back.querySelector('#kolIrkMelez'), ln = im && d.records && d.records.irkBilgiSatir ? d.records.irkBilgiSatir(form.breed.value) : '';
+      if (im) { im.textContent = ln; im.hidden = !ln; }
     });
     if (BAg && form.hiveType) {
       var customWrap = back.querySelector('#kolCustomTypeWrap');
@@ -730,7 +730,12 @@
       var b = breedStr(), miss = missing(), ci = !miss.length && n() > 1 && d.records && d.records.crossInfo ? d.records.crossInfo(b) : null;
       var pv = back.querySelector('#linPrev');
       pv.textContent = miss.length ? 'Eksik: ' + miss.join(', ') + ' ırkı seçin' : 'Kayıt: ' + (b || 'Irk bilinmiyor');
-      if (ci) { var sm = document.createElement('small'); sm.className = 'lin-ci'; sm.textContent = 'Melez özelliği: ' + ci.ozet + (ci.kanit ? ' · kanıt: ' + ci.kanit + (ci.src ? ' (' + ci.src + ')' : '') : ''); pv.appendChild(sm); }
+      if (ci) {
+        var sm = document.createElement('small'); sm.className = 'lin-ci';
+        var extra = d.records && d.records.irkBilgiSatir ? d.records.irkBilgiSatir(b) : ('Melez özelliği: ' + ci.ozet);
+        sm.textContent = extra + (ci.kanit ? ' · kanıt: ' + ci.kanit + (ci.src ? ' (' + ci.src + ')' : '') : '');
+        pv.appendChild(sm);
+      }
     }
     function missing() { var m = []; if (n() === 1) return m; for (var i = 0; i < n(); i++) if (!val(i)) m.push((i + 1) + '.'); return m; }
     back.addEventListener('click', function (e) {
