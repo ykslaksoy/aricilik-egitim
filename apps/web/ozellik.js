@@ -5,8 +5,8 @@
   'use strict';
   if (global.SuperAriOzellik) return;
   var KEY = 'superari.ozellik.v1', doc = global.document;
-  var VARSAYILAN = { stok: true, qr_etiket: true, foto_analiz: true, bildirim: true };
-  var AD = { stok: 'Stok', qr_etiket: 'iPhone QR etiket', foto_analiz: 'Çerçeve Fotoğraf Analizi', bildirim: 'Bildirimler' };
+  var VARSAYILAN = { stok: true, qr_etiket: true, foto_analiz: true, bildirim: true, paylasim_baglanti: false, kullanim_takip: true };
+  var AD = { stok: 'Stok', qr_etiket: 'iPhone QR etiket', foto_analiz: 'Çerçeve Fotoğraf Analizi', bildirim: 'Bildirimler', paylasim_baglanti: 'Paylaşım bağlantısı (paneli herkese açma)', kullanim_takip: 'Özellik kullanım takibi' };
   var KURAL = [ // [anahtar, url testi]
     ['stok', function (u) { return /(^|\/)stok\.html$/.test(u.pathname); }],
     ['qr_etiket', function (u) { return /(^|\/)qr-etiket\.html$/.test(u.pathname); }],

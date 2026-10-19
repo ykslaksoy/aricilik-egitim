@@ -339,6 +339,11 @@
   (function () {
     if (global.SuperAriOzellik) return;
     var s = doc.createElement('script'); s.src = 'ozellik.js?v=' + encodeURIComponent(VERSION);
+    s.onload = function () {
+      if (global.SuperAriKullanim) return;
+      var k = doc.createElement('script'); k.src = 'ozellik-kullanim.js?v=' + encodeURIComponent(VERSION);
+      (doc.head || doc.documentElement).appendChild(k);
+    };
     (doc.head || doc.documentElement).appendChild(s);
   })();
 

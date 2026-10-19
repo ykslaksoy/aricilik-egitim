@@ -10,7 +10,8 @@ const MK='Muğla ana × Kafkas baba',KM='Kafkas ana × Muğla baba';
 assert.ok(iki.includes(MK)&&iki.includes(KM),'iki yön ikili melez listesinde');
 assert.ok(iki.includes('Kafkas × Muğla'),'eski yönsüz kayıt kalır');
 assert.strictEqual(iki.indexOf(MK),iki.indexOf('Kafkas × Muğla')+1);
-assert.strictEqual(C.genetikScore(MK).g,35);assert.strictEqual(C.genetikScore(KM).g,35);assert.strictEqual(C.genetikScore('Kafkas × Muğla').g,35);
+/* koloni-292: yönlüler varsayılan melezYon puanı (45/30); yönsüz kilitli tablo 35 */
+assert.strictEqual(C.genetikScore(MK).g,45);assert.strictEqual(C.genetikScore(KM).g,30);assert.strictEqual(C.genetikScore('Kafkas × Muğla').g,35);
 assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length,16,'kilitli tabloya anahtar eklenmez');
 assert.strictEqual(C.breedKind(MK),'iki');assert.strictEqual(C.breedKind(KM),'iki');
 assert.deepStrictEqual(Array.from(R.breedParts(MK)),['muğla','kafkas']);assert.deepStrictEqual(Array.from(R.breedParts(KM)),['kafkas','muğla']);
@@ -29,6 +30,6 @@ assert.strictEqual(fs.readFileSync(path.join(web,'..','yonetici','demo-data.js')
 const mig=fs.readFileSync(path.join(web,'..','..','supabase','migrations','20261019003000_k289_melez_yon.sql'),'utf8');
 assert.ok(/yapilacaklar/.test(mig)&&/uzman tahmini/.test(mig)&&!/update public\.hives/i.test(mig),'Yapılacaklar var, kovan taşıma yok');
 /* koloni editöründe sade özellik satırı */
-const kj=fs.readFileSync(path.join(web,'koloni.js'),'utf8');assert.ok(kj.includes('kolIrkMelez')&&kj.includes('crossYon'));
+const kj=fs.readFileSync(path.join(web,'koloni.js'),'utf8');assert.ok(kj.includes('kolIrkMelez')&&kj.includes('irkBilgiSatir'));
 assert.strictEqual(+JSON.parse(fs.readFileSync(path.join(web,'version.json'),'utf8')).version.replace('koloni-','')>=289,true);
 console.log('k289 ok');

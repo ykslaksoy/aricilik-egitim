@@ -6,7 +6,9 @@ const web=path.join(__dirname,'..'),src=fs.readFileSync(path.join(web,'demo-data
 const C=w.SuperAriDemo.colony,R=w.SuperAriDemo.records,EK='Efe ana × Kafkas baba';
 const iki=C.BREED_GROUPS.filter(g=>g.key==='iki')[0].items,saf=C.BREED_GROUPS.filter(g=>g.key==='saf')[0].items;
 assert.ok(iki.includes(EK)&&saf.includes('Efe arısı'));
-assert.strictEqual(C.genetikScore(EK).g,55);assert.strictEqual(C.genetikScore('Efe arısı').g,25);
+/* koloni-292: yönlü Efe ana×Kafkas varsayılan melezYon 30; kilitli takma 55 yalnız tablo referansı */
+assert.strictEqual(C.genetikScore(EK).g,30);assert.strictEqual(C.genetikScore('Efe arısı').g,25);
+assert.strictEqual(C.GENETIK_MELEZ['anadolu+kafkas'],55,'kilitli tablo değişmez');
 assert.strictEqual(Object.keys(C.GENETIK_MELEZ).length,16);
 assert.deepStrictEqual(Array.from(R.breedParts(EK)),['efe','kafkas']);
 const y=R.crossInfo(EK);assert.ok(y.yon&&/Veri yok/.test(y.ozet)&&!/\d{2}|kg|%/.test(y.ozet));

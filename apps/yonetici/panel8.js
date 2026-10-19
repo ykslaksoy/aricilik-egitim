@@ -32,9 +32,11 @@
     }).catch(function (err) { msg.textContent = 'Olmadı: ' + ((err && err.message) || 'bağlantı yok'); }).then(function () { b.disabled = false; });
   });
   var bd = f.querySelector('.bd');
+  var HAZIR_DEGIL = { paylasim_baglanti: true };
+  var ROZET_HAZIR_DEGIL = '<span class="fe-badge" style="display:inline-block;margin-left:.35rem;padding:1px 7px;border-radius:8px;font-size:.72rem;font-weight:700;background:#fde68a;color:#78350f;vertical-align:middle">hazır değil</span>';
   function ciz(R) {
     bd.innerHTML = R.length ? R.map(function (x) {
-      return '<label style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-top:1px solid #eee;padding:.5rem 0;min-height:44px"><span><b>' + esc(x.ad) + '</b><br><small style="color:#777">' + esc(x.aciklama || '') + '</small></span>' +
+      return '<label style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;border-top:1px solid #eee;padding:.5rem 0;min-height:44px"><span><b>' + esc(x.ad) + '</b>' + (HAZIR_DEGIL[x.anahtar] ? ROZET_HAZIR_DEGIL : '') + '<br><small style="color:#777">' + esc(x.aciklama || '') + '</small></span>' +
         '<input type="checkbox" role="switch" data-k="' + esc(x.anahtar) + '"' + (x.acik ? ' checked' : '') + ' style="width:44px;height:26px;flex:none"></label>';
     }).join('') : '<p class="fe-empty">Kayıt yok.</p>';
   }

@@ -188,6 +188,7 @@ const SHELL = [
   "/ogul.js",
   "/onay.html",
   "/ozellik.js",
+  "/ozellik-kullanim.js",
   "/pages/alerts.js",
   "/pages/calibrate.js",
   "/pages/dashboard.js",
