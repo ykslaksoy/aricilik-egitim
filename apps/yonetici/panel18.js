@@ -110,11 +110,23 @@
       '</div><div id="kullanim-sezon-tbl">Yükleniyor…</div></details>';
   }
 
+  function konumAdi(r) {
+    var k = r && r.konum_ad != null ? String(r.konum_ad).trim() : '';
+    return k || 'Adsız konum';
+  }
+
+  function donemGoster(r) {
+    var kn = konumAdi(r);
+    if (r.donem_tipi === 'konum' && r.donem_sira) return 'Konum ' + r.donem_sira + ' · ' + kn;
+    if (r.donem_tipi === 'kislatma') return 'Kışlatma · ' + kn;
+    return r.donem_etiket || 'Belirsiz';
+  }
+
   function donemSortKey(r) {
     var t = r.donem_tipi || '';
-    if (t === 'konum') return '0-' + String(r.donem_sira == null ? 0 : r.donem_sira).padStart(3, '0') + '-' + r.donem_etiket;
-    if (t === 'kislatma') return '1-' + r.donem_etiket;
-    return '2-' + r.donem_etiket;
+    if (t === 'konum') return '0-' + String(r.donem_sira == null ? 0 : r.donem_sira).padStart(3, '0') + '-' + konumAdi(r);
+    if (t === 'kislatma') return '1-' + konumAdi(r);
+    return '2-' + donemGoster(r);
   }
 
   function cizSezonTablo(rows) {
@@ -131,8 +143,13 @@
     });
     var groups = {};
     rows.forEach(function (r) {
-      var gk = (r.arilik_ad || 'Belirsiz') + '|' + (r.donem_etiket || 'Belirsiz');
-      if (!groups[gk]) groups[gk] = { arilik_ad: r.arilik_ad, donem_etiket: r.donem_etiket, donem_tipi: r.donem_tipi, donem_sira: r.donem_sira, cells: {}, sort: donemSortKey(r) };
+      var gk = (r.arilik_ad || 'Belirsiz') + '|' + (r.donem_tipi || '') + '|' + String(r.donem_sira == null ? '' : r.donem_sira) + '|' + konumAdi(r);
+      if (!groups[gk]) {
+        groups[gk] = {
+          arilik_ad: r.arilik_ad, donem_satir: donemGoster(r),
+          donem_tipi: r.donem_tipi, donem_sira: r.donem_sira, cells: {}, sort: donemSortKey(r)
+        };
+      }
       groups[gk].cells[r.ozellik] = (groups[gk].cells[r.ozellik] || 0) + Number(r.adet || 0);
     });
     var gkeys = Object.keys(groups).sort(function (a, b) {
@@ -151,7 +168,7 @@
         totals[f] += v;
         return '<td style="text-align:right;padding:.35rem .4rem;font-size:.8rem">' + (v ? esc(String(v)) : '·') + '</td>';
       }).join('');
-      return '<tr><td style="padding:.35rem .4rem;font-size:.8rem;vertical-align:top"><b>' + esc(g.arilik_ad) + '</b><br><span style="color:#555">' + esc(g.donem_etiket) + '</span></td>' + tds + '</tr>';
+      return '<tr><td style="padding:.35rem .4rem;font-size:.8rem;vertical-align:top"><b>' + esc(g.arilik_ad) + '</b><br><span style="color:#555">' + esc(g.donem_satir) + '</span></td>' + tds + '</tr>';
     }).join('');
     var foot = featOrder.map(function (f) {
       return '<td style="text-align:right;padding:.4rem;font-weight:700">' + esc(String(totals[f])) + '</td>';

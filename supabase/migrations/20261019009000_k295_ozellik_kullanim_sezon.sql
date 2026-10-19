@@ -6,9 +6,10 @@ alter table public.ozellik_kullanim_olay
   add column if not exists sezon_yili int,
   add column if not exists donem_tipi text not null default 'belirsiz',
   add column if not exists donem_sira int,
-  add column if not exists donem_etiket text not null default 'Belirsiz';
+  add column if not exists donem_etiket text not null default 'Belirsiz',
+  add column if not exists konum_ad text not null default 'Adsız konum';
 
-create index if not exists ozellik_kullanim_olay_sezon on public.ozellik_kullanim_olay (sezon_yili, arilik_id, donem_etiket);
+create index if not exists ozellik_kullanim_olay_sezon on public.ozellik_kullanim_olay (sezon_yili, arilik_id, donem_etiket, konum_ad);
 
 create or replace function public.sa_ozellik_kullanim_sezon_yili(ts timestamptz)
 returns int
@@ -183,6 +184,8 @@ begin
 end;
 $$;
 
+drop function if exists public.sa_ozellik_kullanim_sezon(int, uuid);
+
 create or replace function public.sa_ozellik_kullanim_sezon(p_yil int, p_user_id uuid default null)
 returns table (
   arilik_id text,
@@ -190,6 +193,7 @@ returns table (
   donem_tipi text,
   donem_sira int,
   donem_etiket text,
+  konum_ad text,
   ozellik text,
   ozellik_ad text,
   ozellik_sira int,
@@ -213,6 +217,7 @@ begin
     coalesce(nullif(trim(o.donem_tipi), ''), 'belirsiz') as donem_tipi,
     o.donem_sira,
     coalesce(nullif(trim(o.donem_etiket), ''), 'Belirsiz') as donem_etiket,
+    coalesce(nullif(trim(o.konum_ad), ''), 'Adsız konum') as konum_ad,
     t.ozellik,
     t.ad as ozellik_ad,
     t.sira as ozellik_sira,
@@ -227,6 +232,7 @@ begin
     coalesce(nullif(trim(o.donem_tipi), ''), 'belirsiz'),
     o.donem_sira,
     coalesce(nullif(trim(o.donem_etiket), ''), 'Belirsiz'),
+    coalesce(nullif(trim(o.konum_ad), ''), 'Adsız konum'),
     t.ozellik, t.ad, t.sira
   order by
     2 asc,

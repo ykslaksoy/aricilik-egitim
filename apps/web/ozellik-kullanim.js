@@ -29,10 +29,53 @@
     return Number(m[2]) <= 2 ? y - 1 : y;
   }
 
+  var ADSIZ_KONUM = 'Adsız konum';
+
   function placeLabel(ap) {
     if (!ap) return '';
     var p = String(ap.place || '').trim();
     return p && p !== '—' ? p : String(ap.name || '');
+  }
+
+  function normalizeKonumAd(s) {
+    var t = String(s == null ? '' : s).trim();
+    return t && t !== '—' ? t : ADSIZ_KONUM;
+  }
+
+  function gocKayitYeri(g, taraf) {
+    if (!g) return '';
+    if (taraf === 'from') return g.fromName || (g.from && g.from.place) || '';
+    return g.toName || (g.to && g.to.place) || '';
+  }
+
+  function donemEtiketKisa(tipi, sira) {
+    if (tipi === 'konum' && sira) return 'Konum ' + sira;
+    if (tipi === 'kislatma') return 'Kışlatma';
+    return 'Belirsiz';
+  }
+
+  function konumAdiArilikte(ap, apId, d, D) {
+    var cur = placeLabel(ap);
+    if (!D || !D.goc || typeof D.goc.locHistory !== 'function') return normalizeKonumAd(cur);
+    var hist = D.goc.locHistory(apId);
+    if (!hist.length) return normalizeKonumAd(cur);
+    var found = cur;
+    for (var i = hist.length - 1; i >= 0; i--) {
+      var h = hist[i];
+      if (h && h.until && String(h.until) > d && h.place) { found = h.place; break; }
+    }
+    return normalizeKonumAd(found);
+  }
+
+  function konumAdiKonumda(apId, ap, list, tasi, d, D) {
+    if (tasi.length) return normalizeKonumAd(gocKayitYeri(tasi[tasi.length - 1], 'to'));
+    var tumTasi = list.filter(function (g) {
+      return g.kind === 'tasi' && String(g.apiaryId) === apId && g.reason !== 'kislak';
+    });
+    for (var i = 0; i < tumTasi.length; i++) {
+      if (tumTasi[i].date > d) return normalizeKonumAd(gocKayitYeri(tumTasi[i], 'from') || placeLabel(ap));
+    }
+    return konumAdiArilikte(ap, apId, d, D);
   }
 
   function apiaryById(D, id) {
@@ -73,7 +116,10 @@
     var D = global.SuperAriDemo;
     var ap = apId ? apiaryById(D, apId) : null;
     var arilikAd = ap ? String(ap.name || '') : null;
-    var belirsiz = { arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili, donem_tipi: 'belirsiz', donem_sira: null, donem_etiket: 'Belirsiz' };
+    var belirsiz = {
+      arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili,
+      donem_tipi: 'belirsiz', donem_sira: null, donem_etiket: 'Belirsiz', konum_ad: ADSIZ_KONUM
+    };
     if (!apId || !D || !D.goc || typeof D.goc.list !== 'function' || !ap) return belirsiz;
 
     var list = D.goc.list().filter(function (g) {
@@ -89,10 +135,12 @@
         return g.date > kislak.date && g.date <= d && g.kind === 'tasi' && String(g.apiaryId) === apId && g.reason !== 'kislak';
       });
       if (!afterK) {
+        var kisYer = normalizeKonumAd(gocKayitYeri(kislak, 'to') || gocKayitYeri(kislak, 'from') || placeLabel(ap));
         return {
           arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili,
           donem_tipi: 'kislatma', donem_sira: null,
-          donem_etiket: 'Kışlatma — ' + (arilikAd || 'Veri yok')
+          donem_etiket: donemEtiketKisa('kislatma', null),
+          konum_ad: kisYer
         };
       }
     }
@@ -101,18 +149,12 @@
       return g.kind === 'tasi' && String(g.apiaryId) === apId && g.reason !== 'kislak';
     });
     var idx = 1 + tasi.length;
-    var yerAd = placeLabel(ap);
-    if (tasi.length) {
-      var last = tasi[tasi.length - 1];
-      yerAd = last.toName || (last.to && last.to.place) || yerAd;
-    } else if (typeof D.goc.locHistory === 'function') {
-      var hist = D.goc.locHistory(apId);
-      if (hist.length && hist[0].place) yerAd = String(hist[0].place);
-    }
+    var yerAd = konumAdiKonumda(apId, ap, list, tasi, d, D);
     return {
       arilik_id: apId, arilik_ad: arilikAd, sezon_yili: sezonYili,
       donem_tipi: 'konum', donem_sira: idx,
-      donem_etiket: 'Konum ' + idx + ' — ' + (yerAd || arilikAd || 'Veri yok')
+      donem_etiket: donemEtiketKisa('konum', idx),
+      konum_ad: yerAd
     };
   }
 
@@ -152,7 +194,8 @@
       sezon_yili: ctx.sezon_yili,
       donem_tipi: ctx.donem_tipi,
       donem_sira: ctx.donem_sira,
-      donem_etiket: ctx.donem_etiket
+      donem_etiket: ctx.donem_etiket,
+      konum_ad: ctx.konum_ad
     });
     yazKuyruk(q);
     planFlush();
@@ -184,7 +227,8 @@
             sezon_yili: x.sezon_yili,
             donem_tipi: x.donem_tipi,
             donem_sira: x.donem_sira,
-            donem_etiket: x.donem_etiket
+            donem_etiket: x.donem_etiket,
+            konum_ad: x.konum_ad
           };
         });
         return c.from('ozellik_kullanim_olay').insert(batch).then(function (r) {
