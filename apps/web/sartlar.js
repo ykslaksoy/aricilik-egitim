@@ -6,7 +6,7 @@
  */
 (function (global) {
   var doc = global.document;
-  var VERSION = '2026-09-28';
+  var VERSION = '2026-10-20';
   var KEY = 'superari.sartlar.onay.v1';
   var waiters = [];
   function get() { try { var o = JSON.parse(global.localStorage.getItem(KEY) || 'null'); return o && o.version ? o : null; } catch (e) { return null; } }
