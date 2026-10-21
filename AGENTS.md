@@ -1,8 +1,12 @@
 # Agent instructions (all work in this repo)
 
-Default model for Agent and Cloud Agent work: **Composer 2.5** (`composer-2.5`).
+## Genel model kuralı
 
-- Do **not** use Composer 2.5 Fast, Auto, or premium models unless the user explicitly asks.
-- When spawning subagents/workers, use `composer-2.5`.
+Tüm otomatik ve yardımcı çalışmalar — **Cursor Agent**, **Cloud Agent**, **subagent / worker**, Grok bot veya başka kanaldan gelen delegasyonlar dahil — varsayılan olarak **Composer 2.5** (`composer-2.5`) ile yapılır.
 
-See also `.cursor/rules/composer-model.mdc`.
+- **Kullan:** `composer-2.5` (Composer 2.5, Fast değil).
+- **Kullanma:** Composer 2.5 **Fast**, Auto / Auto Intelligence, Max Mode ve kullanıcı açıkça istemedikçe premium modeller (Claude Opus/Sonnet, GPT high/thinking, vb.).
+- Alt görev veya worker başlatırken model alanına `composer-2.5` yaz.
+- Rutin kod, HTML, CSS, fix ve ürün istekleri bu modelde kalsın; mimari veya model değişikliği yalnızca kullanıcı net istediğinde.
+
+Detay ve gerekçe: `.cursor/rules/composer-model.mdc`.

@@ -1,10 +1,34 @@
 ---
-description: Kota tasarrufu — agent modeli Composer 2.5
+description: Genel kural — tüm agent işleri Composer 2.5 (Fast yok)
 alwaysApply: true
 ---
 
-Agent, Cloud Agent ve delegasyon worker’ları için varsayılan model **Composer 2.5** (`composer-2.5`).
+# Model: Composer 2.5 (genel kural)
 
-- **Kullanma:** Composer 2.5 Fast, Auto (veya Auto Intelligence), Claude Opus/Sonnet, GPT high/thinking, Max Mode.
-- **Cloud worker:** `model: composer-2.5` ile başlat.
-- Rutin kod/HTML/CSS/fix işleri bu modelde kalsın; zor mimari için kullanıcı açıkça başka model istemedikçe değiştirme.
+Bu depoda ve bu projeye bağlı tüm agent oturumları için **zorunlu varsayılan** model **Composer 2.5** (`composer-2.5`)dır.
+
+## Kapsam
+
+- Cursor Agent (yerel ve bulut)
+- Cloud Agent / background agent
+- Subagent, Task worker, delegasyon worker
+- Grok bot veya dış kanaldan gelen “bunu yap” talepleri — **aynı kural**; Fast’e düşürme
+
+## Yap
+
+- Her yeni agent/worker: `composer-2.5`
+- Kota ve tutarlılık için rutin geliştirme, düzeltme, test, deploy hazırlığı bu modelde
+
+## Yapma (kullanıcı açıkça yazmadıkça)
+
+- **Composer 2.5 Fast** (`composer-2.5-fast`)
+- Auto, Auto Intelligence, Max Mode
+- Claude Opus/Sonnet, GPT high/thinking ve benzeri premium modeller
+
+## İstisna
+
+Kullanıcı mesajında model adını **açıkça** belirtirse (ör. “Fast kullan”, “Opus ile”) o istek için belirtilen model kullanılabilir; aksi halde **Composer 2.5**.
+
+## Cloud worker
+
+Worker başlatırken: `model: composer-2.5`.
