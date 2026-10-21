@@ -1,4 +1,4 @@
-/* koloni-297: Yönetici › Rakip arşivi — ekran görüntüleri (yalnız yönetici). */
+/* koloni-298: Yönetici › Rakip arşivi — özet kartlar (görseller şartlar gereği yok). */
 (function () {
   'use strict';
   var host = document.getElementById('panel');
@@ -30,20 +30,20 @@
     return s.charAt(0).toLocaleUpperCase('tr') + s.slice(1);
   }
   var APPS = [
-    { id: 'beep', ad: 'BEEP', platform: 'Web', ucret: 'Ücretsiz, açık kaynak', hesap: 'kayitli', eksik: ['Kontrol listesi şablonları', 'İşbirliği grubu', 'Araştırma projeleri', 'Uyarı kuralı kopyalama'] },
+    { id: 'beep', ad: 'BEEP', platform: 'Web', ucret: 'Ücretsiz, açık kaynak', hesap: 'kayitli', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Kontrol listesi şablonları', 'İşbirliği grubu', 'Araştırma projeleri', 'Uyarı kuralı kopyalama'] },
     { id: '3bee', ad: '3Bee', platform: 'Web', ucret: 'Ücretsiz; Hive-Tech donanım ayrı satılır', hesap: 'kayitli', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Kovan karşılaştırma', 'Sezon özeti', 'Galeri', 'Dışa aktarma', 'Ses yoğunluğu grafiği'] },
-    { id: 'apiarybook', ad: 'Apiary Book', platform: 'Web', ucret: 'Ücretsiz BASIC; PRO 6,66 €/ay', hesap: 'kayitli', eksik: ['Varroa sayımı', 'İlaçlama / veteriner kaydı', 'Ana arı yetiştirme', 'Etiketler', 'Stok', 'Olay raporu (zehirlenme, Asya eşek arısı vb. 15 kategori)'] },
+    { id: 'apiarybook', ad: 'Apiary Book', platform: 'Web', ucret: 'Ücretsiz BASIC; PRO 6,66 €/ay', hesap: 'kayitli', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Varroa sayımı', 'İlaçlama / veteriner kaydı', 'Ana arı yetiştirme', 'Etiketler', 'Stok', 'Olay raporu (zehirlenme, Asya eşek arısı vb. 15 kategori)'] },
     { id: 'hivetracks', ad: 'HiveTracks', platform: 'Web + mobil', ucret: 'Mobil ücretsiz; web Pro 6,99 $/ay (30 gün deneme)', hesap: 'kayitli', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı). app.hivetracks.com 2026-10-21: erişilebilir (HTTP 200); görseller şartlar gereği yok.', eksik: ['Sezon trendi', 'Arılıklar arası karşılaştırma', 'Verim raporu', 'Çok kullanıcı', 'Dışa aktarma (Pro)'] },
-    { id: 'mybroodminder', ad: 'MyBroodMinder', platform: 'Web + mobil', ucret: 'Ücretsiz (≤5 kovan); Premium 50–200 $/yıl', hesap: 'kayitli', eksik: ['Paylaşım bağlantısı', 'Özel panel', 'Tarlacı / nektar endeksi', 'Çiftleşme uçuşu saatleri', 'Cihaz geçmişi'] },
-    { id: 'beehero', ad: 'BeeHero', platform: 'Mobil + web panel', ucret: 'Donanım satışı; açık kayıt yok', hesap: 'yok', eksik: ['Koloni gücü sensör tahmini', 'Tozlaşma paneli', 'Öncelik listesi', 'Arılık haritası'] },
-    { id: 'beewise', ad: 'Beewise', platform: 'Web / mobil', ucret: 'BeeHome donanım müşterisi', hesap: 'yok', eksik: ['Robotik kovan uzaktan kontrol', 'Kamera çerçeve analizi', 'Otomatik besleme / ilaçlama'] },
-    { id: 'nectar', ad: 'Nectar', platform: 'Web + mobil', ucret: 'RFID + aylık abonelik', hesap: 'yok', eksik: ['Tozlaşma lojistiği (göç)', 'Whiteboard / harita', 'Ana arı hattı analizi', 'Kayıp / sigorta raporu'] },
-    { id: 'arnia', ad: 'Arnia', platform: '—', ucret: 'Kapanmış (2022)', hesap: 'yok', eksik: ['Canlı ürün yok (arşiv görseli)'] },
-    { id: 'apisprotect', ad: 'ApisProtect', platform: '—', ucret: 'Kapanıyor', hesap: 'yok', eksik: ['Canlı ürün yok (arşiv görseli)'] },
+    { id: 'mybroodminder', ad: 'MyBroodMinder', platform: 'Web + mobil', ucret: 'Ücretsiz (≤5 kovan); Premium 50–200 $/yıl', hesap: 'kayitli', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Paylaşım bağlantısı', 'Özel panel', 'Tarlacı / nektar endeksi', 'Çiftleşme uçuşu saatleri', 'Cihaz geçmişi'] },
+    { id: 'beehero', ad: 'BeeHero', platform: 'Mobil + web panel', ucret: 'Donanım satışı; açık kayıt yok', hesap: 'yok', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Koloni gücü sensör tahmini', 'Tozlaşma paneli', 'Öncelik listesi', 'Arılık haritası'] },
+    { id: 'beewise', ad: 'Beewise', platform: 'Web / mobil', ucret: 'BeeHome donanım müşterisi', hesap: 'yok', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Robotik kovan uzaktan kontrol', 'Kamera çerçeve analizi', 'Otomatik besleme / ilaçlama'] },
+    { id: 'nectar', ad: 'Nectar', platform: 'Web + mobil', ucret: 'RFID + aylık abonelik', hesap: 'yok', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Tozlaşma lojistiği (göç)', 'Whiteboard / harita', 'Ana arı hattı analizi', 'Kayıp / sigorta raporu'] },
+    { id: 'arnia', ad: 'Arnia', platform: '—', ucret: 'Kapanmış (2022)', hesap: 'yok', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Canlı ürün yok'] },
+    { id: 'apisprotect', ad: 'ApisProtect', platform: '—', ucret: 'Kapanıyor', hesap: 'yok', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı).', eksik: ['Canlı ürün yok'] },
     { id: 'hivekeeper', ad: 'HiveKeeper', platform: 'Web', ucret: 'Ücretsiz (5 kovan) + Pro deneme', hesap: 'yok', eksik: ['Sesli kontrol', 'AI sohbet', 'Asya eşek arısı tanıma', 'Nektar takvimi'] },
     { id: 'pasika', ad: 'Pasika', platform: 'Mobil', ucret: 'Ücretsiz (10 kovan)', hesap: 'yok', eksik: ['AI çerçeve analizi', 'Bal verimi tahmini', 'NFC etiket'] },
     { id: 'kovaniq', ad: 'Kovan IQ', platform: 'Mobil', ucret: 'Sınırlı ücretsiz + Premium', hesap: 'yok', eksik: ['Bakanlık plaka yönetimi', 'Tartım takibi', 'Çevrimdışı kayıt'] },
-    { id: 'kovania', ad: 'Kovania', platform: 'Mobil (Android)', ucret: 'Ücretsiz indirme', hesap: 'yok', eksik: ['Beepedia rehberi (166 rehber)', '81 il flora verisi', 'QR / çevrimdışı kayıt', 'Sesli not'] },
+    { id: 'kovania', ad: 'Kovania', platform: 'Mobil (Android)', ucret: 'Ücretsiz indirme', hesap: 'yok', arsivMetin: 'Görsel arşivde tutulmuyor (kullanım şartları: tutulmamalı). Mağaza bağlantısı aşağıda.', eksik: ['Beepedia rehberi (166 rehber)', '81 il flora verisi', 'QR / çevrimdışı kayıt', 'Sesli not'] },
     { id: 'kovan-defteri', ad: 'Kovan Defteri', platform: 'Mobil (Android)', ucret: 'Bilinmiyor', hesap: 'yok', eksik: ['Temel kovan defteri'] },
     { id: 'beescanning', ad: 'BeeScanning', platform: 'Mobil', ucret: '14 gün deneme, sonra abonelik', hesap: 'yok', eksik: ['Fotoğraftan varroa tespiti'] },
     { id: 'beeplus', ad: 'BeePlus', platform: 'iOS', ucret: 'Tek seferlik satın alma', hesap: 'yok', eksik: ['Gelir-gider', 'Harita / yayılım alanı'] },
@@ -84,7 +84,7 @@
       '</button>';
   }
   function paintList() {
-    var H = '<h2>Rakip arşivi</h2><p class="fe-sub">21 rakip uygulama özeti ve ekran görüntüleri. Şifre veya kart bilgisi saklanmaz; kayıtlı hesaplarda yalnızca yönetici e-postası gösterilir.</p><div class="rk-cards">';
+    var H = '<h2>Rakip arşivi</h2><p class="fe-sub">21 rakip uygulama özeti. Rakip arayüz ekran görüntüleri kullanım şartları gereği gösterilmez. Şifre veya kart bilgisi saklanmaz; kayıtlı hesaplarda yalnızca yönetici e-postası gösterilir.</p><div class="rk-cards">';
     APPS.forEach(function (a) {
       var imgs = imgMap[a.id] || [];
       H += cardHtml(a, imgs.length);
@@ -125,7 +125,7 @@
     var h2 = el.querySelector(':scope > h2');
     if (h2) h2.textContent = 'Rakip arşivi';
     var sub = el.querySelector(':scope > .fe-sub');
-    if (sub) sub.textContent = '21 rakip uygulama özeti ve ekran görüntüleri. Şifre veya kart bilgisi saklanmaz; kayıtlı hesaplarda yalnızca yönetici e-postası gösterilir.';
+    if (sub) sub.textContent = '21 rakip uygulama özeti. Rakip arayüz ekran görüntüleri kullanım şartları gereği gösterilmez. Şifre veya kart bilgisi saklanmaz; kayıtlı hesaplarda yalnızca yönetici e-postası gösterilir.';
   }
   function openLb(id, idx) {
     var imgs = imgMap[id] || [];
@@ -186,7 +186,7 @@
     paintList();
   }
   paintList();
-  fetch('rakip-manifest.json?v=koloni-297').then(function (r) { return r.json(); }).then(mergeManifest).catch(function () {
+  fetch('rakip-manifest.json?v=koloni-298').then(function (r) { return r.json(); }).then(mergeManifest).catch(function () {
     mergeManifest({ apps: [] });
   });
 })();

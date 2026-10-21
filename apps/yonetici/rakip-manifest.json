@@ -2,198 +2,42 @@
   "apps": [
     {
       "slug": "apiarybook",
-      "images": [
-        "rakip/apiarybook/01-apiaries.jpg",
-        "rakip/apiarybook/02-dashboard.jpg",
-        "rakip/apiarybook/05-labels.jpg",
-        "rakip/apiarybook/23-reports.jpg",
-        "rakip/apiarybook/26-add-apiary.jpg",
-        "rakip/apiarybook/27-add-label.jpg",
-        "rakip/apiarybook/28-add-report.jpg",
-        "rakip/apiarybook/30-hive-detail.jpg",
-        "rakip/apiarybook/31-hives.jpg",
-        "rakip/apiarybook/32-hives-add-form.jpg",
-        "rakip/apiarybook/33-queens.jpg",
-        "rakip/apiarybook/34-todo-list.jpg",
-        "rakip/apiarybook/35-todo-list-add-form.jpg",
-        "rakip/apiarybook/36-notes.jpg",
-        "rakip/apiarybook/37-notes-add-form.jpg",
-        "rakip/apiarybook/38-feedings.jpg",
-        "rakip/apiarybook/39-feedings-add-form.jpg",
-        "rakip/apiarybook/40-treatments.jpg",
-        "rakip/apiarybook/41-treatments-add-form.jpg",
-        "rakip/apiarybook/42-varroa-mites.jpg",
-        "rakip/apiarybook/43-varroa-mites-add-form.jpg",
-        "rakip/apiarybook/44-hive-weight.jpg",
-        "rakip/apiarybook/45-hive-weight-add-form.jpg",
-        "rakip/apiarybook/46-harvests.jpg",
-        "rakip/apiarybook/47-harvests-add-form.jpg",
-        "rakip/apiarybook/48-bee-families-report.jpg",
-        "rakip/apiarybook/49-bee-families-report-add-form.jpg",
-        "rakip/apiarybook/50-colonies-movements.jpg",
-        "rakip/apiarybook/51-colonies-movements-add-form.jpg",
-        "rakip/apiarybook/52-veterinary-checks.jpg",
-        "rakip/apiarybook/53-veterinary-checks-add-form.jpg",
-        "rakip/apiarybook/54-inventory.jpg",
-        "rakip/apiarybook/55-inventory-add-form.jpg",
-        "rakip/apiarybook/56-financial.jpg",
-        "rakip/apiarybook/57-financial-add-form.jpg",
-        "rakip/apiarybook/58-timeline.jpg",
-        "rakip/apiarybook/59-rediscover.jpg",
-        "rakip/apiarybook/60-assistant.jpg",
-        "rakip/apiarybook/61-rearing.jpg",
-        "rakip/apiarybook/62-events.jpg",
-        "rakip/apiarybook/63-events-add-form.jpg",
-        "rakip/apiarybook/64-floral-calendar.jpg",
-        "rakip/apiarybook/65-floral-calendar-add-form.jpg",
-        "rakip/apiarybook/66-weather.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "apisprotect",
-      "images": [
-        "rakip/apisprotect/apisprotect-1.jpg",
-        "rakip/apisprotect/apisprotect-dashboard-full.jpg",
-        "rakip/apisprotect/apisprotect-detail-1.jpg",
-        "rakip/apisprotect/apisprotect-detail-2.jpg",
-        "rakip/apisprotect/apisprotect-detail-3.jpg",
-        "rakip/apisprotect/apisprotect-detail-4.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "arnia",
-      "images": [
-        "rakip/arnia/arnia-1.jpg",
-        "rakip/arnia/arnia-2.jpg",
-        "rakip/arnia/arnia-3.jpg",
-        "rakip/arnia/arnia-4.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "beehero",
-      "images": [
-        "rakip/beehero/beehero-1.jpg",
-        "rakip/beehero/beehero-2.jpg",
-        "rakip/beehero/beehero-3.jpg",
-        "rakip/beehero/beehero-4.jpg",
-        "rakip/beehero/beehero-5.jpg",
-        "rakip/beehero/beehero-6.jpg",
-        "rakip/beehero/beehero-7.jpg",
-        "rakip/beehero/beehero-8.jpg",
-        "rakip/beehero/beehero-9.jpg",
-        "rakip/beehero/beehero-10.jpg",
-        "rakip/beehero/beehero-11.jpg",
-        "rakip/beehero/beehero-12.jpg",
-        "rakip/beehero/beehero-13.jpg",
-        "rakip/beehero/beehero-14.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "beep",
-      "images": [
-        "rakip/beep/01-login.jpg",
-        "rakip/beep/02-hives-ana-sayfa.jpg",
-        "rakip/beep/03-ekle-menusu.jpg",
-        "rakip/beep/04-yan-menu.jpg",
-        "rakip/beep/05-inspections-diary.jpg",
-        "rakip/beep/06-data-measurements.jpg",
-        "rakip/beep/07-profile-ayarlar.jpg",
-        "rakip/beep/08-devices.jpg",
-        "rakip/beep/09-alert-rules.jpg",
-        "rakip/beep/10-data-export.jpg",
-        "rakip/beep/11-checklist-templates.jpg",
-        "rakip/beep/12-hive-tags.jpg",
-        "rakip/beep/13-research.jpg",
-        "rakip/beep/14-new.jpg",
-        "rakip/beep/15-form-new-inspection.jpg",
-        "rakip/beep/16-form-new-hive.jpg",
-        "rakip/beep/17-form-new-apiary.jpg",
-        "rakip/beep/18-form-new-collaboration-group.jpg",
-        "rakip/beep/19-form-add-own-device.jpg",
-        "rakip/beep/20-form-add-alert-rule.jpg",
-        "rakip/beep/21-form-new-hive-tag.jpg",
-        "rakip/beep/beep_dashboard_masaustu_mobil.jpg",
-        "rakip/beep/beep_web_dashboard_arilik_ozet.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "beewise",
-      "images": [
-        "rakip/beewise/beewise-1.jpg",
-        "rakip/beewise/beewise-2.jpg",
-        "rakip/beewise/beewise-3.jpg",
-        "rakip/beewise/beewise-4.jpg",
-        "rakip/beewise/beewise-5.jpg",
-        "rakip/beewise/beewise-6.jpg",
-        "rakip/beewise/beewise-11.jpg",
-        "rakip/beewise/beewise-12.jpg",
-        "rakip/beewise/beewise-13.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "kovania",
-      "images": [
-        "rakip/kovania/01-bugun.jpg",
-        "rakip/kovania/02-kovanlar.jpg",
-        "rakip/kovania/03-isler.jpg",
-        "rakip/kovania/04-hava.jpg",
-        "rakip/kovania/05-beepedia.jpg",
-        "rakip/kovania/06-hasat.jpg",
-        "rakip/kovania/07-stok.jpg"
-      ],
+      "images": [],
       "kaynak": "https://play.google.com/store/apps/details?id=ai.kovania.mobile&hl=tr"
     },
     {
       "slug": "mybroodminder",
-      "images": [
-        "rakip/mybroodminder/01-home-hives-tab.jpg",
-        "rakip/mybroodminder/02-home-apiaries-tab.jpg",
-        "rakip/mybroodminder/03-new-features-popup.jpg",
-        "rakip/mybroodminder/04-new-features-tour-1-home.jpg",
-        "rakip/mybroodminder/05-new-features-tour-2-view-hive.jpg",
-        "rakip/mybroodminder/06-new-features-tour-3-multiselect.jpg",
-        "rakip/mybroodminder/07-new-features-tour-4-apiary.jpg",
-        "rakip/mybroodminder/08-new-menu.jpg",
-        "rakip/mybroodminder/09-new-apiary-form.jpg",
-        "rakip/mybroodminder/10-new-hive-form.jpg",
-        "rakip/mybroodminder/11-new-device-form.jpg",
-        "rakip/mybroodminder/12-new-custom-dashboard-form.jpg",
-        "rakip/mybroodminder/13-new-apiary-note-form.jpg",
-        "rakip/mybroodminder/14-new-hive-note-form.jpg",
-        "rakip/mybroodminder/15-configure.jpg",
-        "rakip/mybroodminder/16-configure-apiaries.jpg",
-        "rakip/mybroodminder/17-configure-hives.jpg",
-        "rakip/mybroodminder/18-configure-devices.jpg",
-        "rakip/mybroodminder/19-configure-hubs-locked.jpg",
-        "rakip/mybroodminder/20-configure-third-party-locked.jpg",
-        "rakip/mybroodminder/21-configure-public-links.jpg",
-        "rakip/mybroodminder/22-configure-dashboards.jpg",
-        "rakip/mybroodminder/23-configure-alerts-locked.jpg",
-        "rakip/mybroodminder/24-documentation.jpg",
-        "rakip/mybroodminder/25-membership-options.jpg",
-        "rakip/mybroodminder/26-video-user-guides.jpg",
-        "rakip/mybroodminder/27-beecounted-external.jpg",
-        "rakip/mybroodminder/28-my-account-settings.jpg",
-        "rakip/mybroodminder/broodminder-1.jpg",
-        "rakip/mybroodminder/broodminder-2.jpg",
-        "rakip/mybroodminder/broodminder-3.jpg",
-        "rakip/mybroodminder/broodminder-4.jpg",
-        "rakip/mybroodminder/broodminder-5.jpg",
-        "rakip/mybroodminder/broodminder-6.jpg",
-        "rakip/mybroodminder/broodminder-7.jpg",
-        "rakip/mybroodminder/broodminder-8.jpg",
-        "rakip/mybroodminder/broodminder-9.jpg"
-      ]
+      "images": []
     },
     {
       "slug": "nectar",
-      "images": [
-        "rakip/nectar/nectar_arilik_kovan_tablosu.jpg",
-        "rakip/nectar/nectar_kovan_detay_modal.jpg",
-        "rakip/nectar/nectar_mobil_harita.jpg",
-        "rakip/nectar/nectar_whiteboard_harita.jpg"
-      ]
+      "images": []
     }
   ],
-  "generated": "2026-10-21T00:30:31.988Z"
+  "generated": "2026-10-21T16:10:00.000Z",
+  "note": "Görseller kaldırıldı: rakip ürün arayüzü ekran görüntüleri kullanım şartları / telif riski."
 }

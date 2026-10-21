@@ -146,7 +146,7 @@
 (function () {
   var done = false;
   function ld(src) { return new Promise(function (ok) { var s = document.createElement('script'); s.src = src; s.onload = s.onerror = ok; document.body.appendChild(s); }); }
-  function go() { if (done) return; var p = document.getElementById('panel'); if (!p || p.hidden || !window.SuperAriDemo) return; if (!document.getElementById('s-hastalik-tahmin')) return; done = true; ld('bal-hedef.js?v=koloni-283').then(function () { return ld('panel16.js?v=koloni-283'); }).then(function () { return ld('panel17.js?v=koloni-288'); }).then(function () { return ld('panel18.js?v=koloni-296'); }).then(function () { return ld('panel19.js?v=koloni-297'); }); }
+  function go() { if (done) return; var p = document.getElementById('panel'); if (!p || p.hidden || !window.SuperAriDemo) return; if (!document.getElementById('s-hastalik-tahmin')) return; done = true; ld('bal-hedef.js?v=koloni-283').then(function () { return ld('panel16.js?v=koloni-283'); }).then(function () { return ld('panel17.js?v=koloni-288'); }).then(function () { return ld('panel18.js?v=koloni-296'); }).then(function () { return ld('panel19.js?v=koloni-298'); }); }
   var t = setInterval(function () { go(); if (done) clearInterval(t); }, 500);
 })();
 </script>
