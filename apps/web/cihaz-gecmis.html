@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<link rel="stylesheet" href="sa-early.css?v=koloni-299">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SüperArı · Cihaz geçmişi</title>
+<link rel="stylesheet" href="rapor-common.css" />
+<link rel="stylesheet" href="kapsam.css?v=koloni-299" />
+<link rel="stylesheet" href="bk-kabuk.css?v=koloni-299" />
+<style>
+  .cg-filtre { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; align-items: center; }
+  .cg-filtre select, .cg-filtre input { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--card-border); background: #fff; max-width: 100%; }
+  .cg-note { font-size: 12px; font-weight: 650; color: var(--muted); line-height: 1.4; margin: 0 0 10px; }
+  .cg-note a { color: var(--brown); font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="phone-notch"></div>
+  <div class="status-bar">
+    <div data-bk-clock aria-live="polite">9:41</div>
+    <div class="status-icons"><span>●●●●</span><span>Wi‑Fi</span><span>▮</span></div>
+  </div>
+  <div class="screen">
+    <section class="card-block">
+      <h2>Cihaz geçmişi</h2>
+      <p class="cg-note">Hangi cihazın ne zaman hangi kovanda ve arılıkta olduğu — <b>atama</b>, <b>taşıma</b> ve <b>söküm</b>. Ham sensör okuma arşivi (<a href="cihazlar.html">Cihazlar › sensör</a>) ve saklama süreleri kartından farklıdır; salt okunur özet.</p>
+      <div class="cg-filtre" id="filtre">
+        <select id="fTur" aria-label="Olay türü"><option value="">Tüm olaylar</option><option value="atama">Atama</option><option value="tasima">Taşıma</option><option value="sokum">Söküm</option></select>
+        <select id="fAp" aria-label="Arılık"><option value="">Tüm arılıklar</option></select>
+        <select id="fHive" aria-label="Kovan"><option value="">Tüm kovanlar</option></select>
+      </div>
+      <div id="timeline">Yükleniyor…</div>
+      <p class="hint" style="margin-top:12px"><a href="cihazlar.html">← Cihazlar</a></p>
+    </section>
+  </div>
+  <div class="home-indicator"></div>
+</div>
+<script src="bk-kabuk.js?v=koloni-299"></script>
+<script src="demo-data.js?v=koloni-299"></script>
+<script src="device-runtime.js?v=koloni-299"></script>
+<script src="cihaz-gecmis.js?v=koloni-299"></script>
+<script>
+(function () {
+  var CG = window.SuperAriCihazGecmis;
+  var D = window.SuperAriDemo;
+  var Dev = window.SuperAriDevices;
+  var params = new URLSearchParams(location.search);
+  var apQ = params.get('apiary') || '';
+  var hiveQ = params.get('hive') || '';
+  var devQ = params.get('device') || '';
+
+  function paint() {
+    if (!CG) { document.getElementById('timeline').textContent = 'Modül yüklenemedi.'; return; }
+    var tur = document.getElementById('fTur').value;
+    var ap = document.getElementById('fAp').value || apQ || '';
+    var hive = document.getElementById('fHive').value || hiveQ || '';
+    document.getElementById('timeline').innerHTML = CG.timelineHtml({
+      apiaryId: ap || null,
+      hiveId: hive || null,
+      deviceId: devQ || null,
+      limit: 100
+    });
+    if (tur) {
+      [].forEach.call(document.querySelectorAll('[data-cg-list] .cg-item'), function (el) {
+        var t = el.querySelector('.cg-top span');
+        if (!t) return;
+        var show = { atama: 'Atama', tasima: 'Taşıma', sokum: 'Söküm' }[tur];
+        el.style.display = t.textContent.indexOf(show) === 0 ? '' : 'none';
+      });
+    }
+  }
+
+  function fillSelects() {
+    var apSel = document.getElementById('fAp');
+    var hvSel = document.getElementById('fHive');
+    var aps = {};
+    if (D && D.loadApiaries) D.loadApiaries().forEach(function (a) { aps[a.id] = a.name; });
+    (Dev && Dev.listDevices ? Dev.listDevices() : []).forEach(function (d) {
+      if (d.apiaryId) aps[d.apiaryId] = d.apiaryName || aps[d.apiaryId] || d.apiaryId;
+    });
+    Object.keys(aps).sort().forEach(function (id) {
+      var o = document.createElement('option'); o.value = id; o.textContent = aps[id]; if (id === apQ) o.selected = true; apSel.appendChild(o);
+    });
+    function hivesFor(ap) {
+      var out = [];
+      if (D && D.hivesForApiary && ap) out = D.hivesForApiary(ap);
+      else if (!ap && D && D.loadHives) out = D.loadHives();
+      return out;
+    }
+    function refillHives() {
+      hvSel.innerHTML = '<option value="">Tüm kovanlar</option>';
+      hivesFor(apSel.value).forEach(function (h) {
+        var o = document.createElement('option'); o.value = h.id; o.textContent = h.name || ('Kovan ' + h.id);
+        if (String(h.id) === String(hiveQ)) o.selected = true;
+        hvSel.appendChild(o);
+      });
+    }
+    apSel.addEventListener('change', function () { refillHives(); paint(); });
+    refillHives();
+  }
+
+  document.getElementById('fTur').addEventListener('change', paint);
+  document.getElementById('fHive').addEventListener('change', paint);
+  fillSelects();
+  paint();
+})();
+</script>
+</body>
+</html>

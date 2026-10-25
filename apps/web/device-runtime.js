@@ -486,10 +486,45 @@
     var l = readJsonArray(key); l.push(row);
     if (!writeJsonArray(key, l)) throw new Error('Kaydedilemedi (depolama dolu/kapalı)');
     try { global.dispatchEvent(new CustomEvent('superari-devices-changed')); } catch (e) { /* ignore */ }
+    try {
+      var CG = global.SuperAriCihazGecmis;
+      if (CG && CG.kaydet) {
+        var nm = { arilikAd: null, kovanAd: null };
+        var DD = global.SuperAriDemo;
+        if (DD) {
+          if (row.apiaryId && DD.apiaryById) { var ap = DD.apiaryById(row.apiaryId); if (ap) nm.arilikAd = ap.name; }
+          if (row.hiveId != null && DD.hiveById) { var hv = DD.hiveById(row.hiveId); if (hv) nm.kovanAd = hv.name || ('Kovan ' + row.hiveId); }
+        }
+        CG.kaydet({ tur: 'atama', deviceId: row.id, tip: row.tip, cihazAd: row.name || tipLabel(row.tip), apiaryId: row.apiaryId, arilikAd: nm.arilikAd, kovanId: row.hiveId, kovanAd: nm.kovanAd, at: row.addedAt, kaynak: row.manual ? 'elle' : 'uygulama' });
+      }
+    } catch (eCg) { /* ignore */ }
     return row;
   }
   function removeUserDevice(id) {
+    var snap = null;
+    try {
+      [DEVICES_KEY, DEMO_USER_KEY].forEach(function (k) {
+        readJsonArray(k).forEach(function (d) { if (d && String(d.id) === String(id)) snap = d; });
+      });
+    } catch (eSnap) { /* ignore */ }
     [DEVICES_KEY, DEMO_USER_KEY].forEach(function (k) { var l = readJsonArray(k); var n = l.filter(function (d) { return d && d.id !== id; }); if (n.length !== l.length) writeJsonArray(k, n); });
+    if (snap) {
+      try {
+        var CG2 = global.SuperAriCihazGecmis;
+        if (CG2 && CG2.kaydet) {
+          CG2.kaydet({
+            tur: 'sokum',
+            deviceId: snap.id,
+            tip: snap.tip,
+            cihazAd: snap.name || tipLabel(snap.tip),
+            apiaryId: snap.apiaryId,
+            kovanId: snap.hiveId,
+            at: new Date().toISOString(),
+            kaynak: 'elle'
+          });
+        }
+      } catch (eRm) { /* ignore */ }
+    }
   }
   function demoUserList() {
     return readJsonArray(DEMO_USER_KEY).map(function (d) { var n = normalizeLive(d, 'user'); if (n) { n.status = STATUS.yok; n.demo = true; } return n; }).filter(Boolean);
