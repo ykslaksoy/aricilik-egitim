@@ -148,6 +148,7 @@ const SHELL = [
   "/hava-kayit.js",
   "/hava-raporu.html",
   "/hava-sayfa.js",
+  "/ciftlesme-ucus.js",
   "/hava.html",
   "/hesap.html",
   "/icons/apple-touch-icon.png",
