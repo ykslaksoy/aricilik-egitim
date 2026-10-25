@@ -3741,6 +3741,8 @@
     kiloHizli: 1.5, kiloPlato: 0.3, ariYuksekOran: 0.8, kiloArti: 15,
     ariTrendOran: 0.9, ariTrendArti: 15, ariCerceve: 2500, ariZirveOran: 0.9,
     nektarKg: 1,
+    /* koloni-299: günlük tarlacı / nektar endeksi (önizleme; uzman tahmini) */
+    endeksIrTam: 600, endeksNektarTamKg: 1.5, endeksIrTabanGun: 7, endeksHavaCarpan: 0.35, endeksAgirlikTar: 50, endeksAgirlikNektar: 50,
     /* k146: Vakvaklama (Quacking) + Anasızlık Uğultusu (Queenless Roar) + yanlış alarm filtresi */
     quackHzMin: 200, quackHzMax: 350, quackHeceMinMs: 100, quackHeceMaxMs: 200, quackHeceSay: 3, quackPencereDk: 30,
     anasizHzMin: 300, anasizHzMax: 400, anasizDk: 10, anasizArtisDb: 6,
@@ -3785,6 +3787,7 @@
     kiloHizli: 'Hızlı kilo artışı (kg/gün)', kiloPlato: 'Plato: günlük değişim en çok (kg)', ariYuksekOran: 'Plato için arı sayısı / kapasite', kiloArti: '→ Sıkışıklık artışı',
     ariTrendOran: 'Arı sayısı kapasiteye yakın (oran)', ariTrendArti: '→ Sıkışıklık artışı', ariCerceve: 'Çerçeve başına arı (kapasite hesabı)', ariZirveOran: 'Sert kilo artışı + arı yoğunluğu zirve (oran) → Sıkışıklık 100',
     nektarKg: 'Canlı nektar akımı: günlük artış en az (kg)',
+    endeksIrTam: 'Günlük endeks: tarlacı tam puan günlük çıkış (arı) (uzman tahmini)', endeksNektarTamKg: 'Günlük endeks: nektar tam puan günlük net artış (kg) (uzman tahmini)', endeksIrTabanGun: 'Günlük endeks: giriş sayacı taban gün (uzman tahmini)', endeksHavaCarpan: 'Günlük endeks: uçuş uygun değilse çarpan 0–1 (uzman tahmini)', endeksAgirlikTar: 'Günlük endeks: birleşik ağırlık tarlacı (%) (uzman tahmini)', endeksAgirlikNektar: 'Günlük endeks: birleşik ağırlık nektar (%) (uzman tahmini)',
     quackHzMin: 'Vakvaklama (Quacking) alt frekans (Hz)', quackHzMax: 'Vakvaklama (Quacking) üst frekans (Hz)', quackHeceMinMs: 'Vakvaklama (Quacking) hecesi en kısa (ms)', quackHeceMaxMs: 'Vakvaklama (Quacking) hecesi en uzun (ms)', quackHeceSay: 'Peş peşe en az hece', quackPencereDk: 'Ana Arılar Ötmesi (Piping) + Vakvaklama (Quacking) birlikte penceresi (dk) → Yüksek',
     anasizHzMin: 'Anasızlık Uğultusu (Queenless Roar) alt frekans (Hz)', anasizHzMax: 'Anasızlık Uğultusu (Queenless Roar) üst frekans (Hz)', anasizDk: 'Anasızlık Uğultusu (Queenless Roar) kesintisiz süre (dk)', anasizArtisDb: 'Kovan taban seviyesine göre artış (dB, göreli)',
     darbeMaxMs: 'Darbe filtresi: bundan kısa sesler Ana Arılar Ötmesi (Piping) / Anasızlık Uğultusu (Queenless Roar) sayılmaz (ms)',
