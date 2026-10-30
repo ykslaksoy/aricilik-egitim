@@ -39,7 +39,7 @@ function boot(mode) {
   return { w, store, CG: w.SuperAriCihazGecmis, Dv: w.SuperAriDevices, D: w.SuperAriDemo };
 }
 
-const m = fs.readFileSync(path.join(R, 'supabase/migrations/20261025120000_k299_cihaz_gecmis.sql'), 'utf8');
+const m = fs.readFileSync(path.join(R, 'supabase/migrations/20261025120100_k299_cihaz_gecmis.sql'), 'utf8');
 assert.match(m, /create table if not exists public\.cihaz_gecmis/);
 assert.match(m, /sa_admin_cihaz_gecmis/);
 assert.match(m, /sa_cihaz_gecmis_yaz/);

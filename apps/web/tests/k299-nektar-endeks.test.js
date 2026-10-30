@@ -8,7 +8,7 @@ const R = path.join(__dirname, '../../..');
 const W = path.join(R, 'apps/web');
 
 test('k299: migration kural + yapılacaklar güncelleme', () => {
-  const m = fs.readFileSync(path.join(R, 'supabase/migrations/20261025120000_k299_nektar_endeks.sql'), 'utf8');
+  const m = fs.readFileSync(path.join(R, 'supabase/migrations/20261025120200_k299_nektar_endeks.sql'), 'utf8');
   assert.match(m, /endeks_tar_tam/);
   assert.match(m, /Günlük endeks \(önizleme\)/);
   assert.match(m, /uzman tahmini/);
