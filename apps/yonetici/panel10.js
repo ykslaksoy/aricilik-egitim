@@ -188,6 +188,16 @@
       ['i', 'Mevsim', 'Yayla: bitiş (AAGG, ör. 920 = 20 Eyl) ' + UT, 's', 'ucusSezonYaylaSon'],
       ['i', 'Mevsim', 'Yüksek yayla (≥1800 m): başlangıç (AAGG) ' + UT, 's', 'ucusSezonYuksekBas'],
       ['i', 'Mevsim', 'Yüksek yayla: bitiş (AAGG) ' + UT, 's', 'ucusSezonYuksekSon']] },
+    { t: 'Çiftleşme uçuşu (bakire ana)', kk: [], src: 'Woyke J. (1963). Über die Paarungsflüge der Bienenköniginnen. Apidologie 4:265–283 (uçuş sıcaklığı) · Riessberger & Crailsheim 1997, Apidologie 28:411 (yağmurda uçuş yok) · Vicens & Bosch 2000, Environ. Entomol. 29:413 (ışınım) · öğle penceresi: arıcılık rehberleri, saat eşikleri uzman tahmini', not: 'Ana arı yetiştirme / çiftleşme kutusu bağlamı; Hava › «Uçuş uygunluğu» toplama uçuşu için ayrıdır. Gün içi {s:ciftlesmeSaatBas}:00–{s:ciftlesmeSaatSon}:00 arası saatler değerlendirilir; en az {s:ciftlesmeSaatMin} uygun saat → «Çiftleşme uygun». Koloni › Larva takvimi kartında gösterilir (tahmini).', r: [
+      ['ok', 'Sıcaklık', 'Uygun saat: en az (°C) ' + UT, 's', 'ciftlesmeUygunC'],
+      ['w', 'Sıcaklık', 'Kısmen uygun saat: en az (°C) ' + UT, 's', 'ciftlesmeKismenC'],
+      ['ok', 'Rüzgar', 'Uygun saat: en yüksek (km/sa) ' + UT, 's', 'ciftlesmeUygunRuzgar'],
+      ['w', 'Rüzgar', 'Kısmen uygun saat: en yüksek (km/sa) ' + UT, 's', 'ciftlesmeKismenRuzgar'],
+      ['c', 'Yağış', 'Günlük yağış bu ve üstü uygun değil (mm) ' + UT, 's', 'ciftlesmeYagisMm'],
+      ['ok', 'Güneş', 'Uygun saat: en az ışınım (W/m²) · Vicens & Bosch 2000', 's', 'ciftlesmeIsinimW'],
+      ['i', 'Pencere', 'Gün içi başlangıç saati (0–23) ' + UT, 's', 'ciftlesmeSaatBas'],
+      ['i', 'Pencere', 'Gün içi bitiş saati (0–23) ' + UT, 's', 'ciftlesmeSaatSon'],
+      ['ok', 'Süre', '«Uygun gün»: pencerede en az uygun saat ' + UT, 's', 'ciftlesmeSaatMin']] },
     { t: 'Titreşim', kk: ['titresim'], src: 'Kaynak yok · uzman tahmini', not: 'Olağandışı hareket: hırsızlık / kapak açıldı alarmı için hazırlık.', r: [
       ['w', 'Olağandışı', '7 gün tabanının katı ' + UT, 's', 'titresimKat'],
       ['w', 'Süre', 'Kesintisiz (dk) ' + UT, 's', 'titresimDk']] },

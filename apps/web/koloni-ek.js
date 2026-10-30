@@ -176,7 +176,8 @@
     '.ke-met{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:14px;}.ke-met span:nth-child(odd){color:#6b5a48;font-weight:700;}.ke-met span:nth-child(even){font-weight:800;text-align:right;}.ke-met .na{color:#9a8b78;font-weight:700;}' +
     '.ke-seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}.ke-seg a{display:flex;align-items:center;justify-content:center;min-height:64px;border-radius:12px;border:1px solid #d8c7aa;background:#fff;font-weight:800;color:#3d2616;text-decoration:none;}.ke-seg a.on{background:#fff3bf;border-color:#e0c56a;}' +
     '.ks-glove .kf-btn{min-height:64px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;}' +
-    '.ke-msg{margin:0;font-weight:800;font-size:14px;}.ke-msg.ok{color:#2b8a3e;}.ke-msg.err{color:#c92a2a;}';
+    '.ke-msg{margin:0;font-weight:800;font-size:14px;}.ke-msg.ok{color:#2b8a3e;}.ke-msg.err{color:#c92a2a;}' +
+    '.ke-cu-grid{display:grid;gap:8px;}.ke-cu-day{border:1px solid #eadfcd;border-radius:12px;padding:8px 10px;background:#fffdf9;}.ke-cu-day.ok{border-color:#8ce99a;background:#ebfbee;}.ke-cu-day.part{border-color:#ffe066;background:#fff9db;}.ke-cu-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;font-size:14px;}.ke-cu-fl{font-weight:800;font-size:13px;}.ke-cu-meta{font-size:12px;color:#6b5a48;margin-top:4px;}.ke-cu-hours{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}.ke-cu-h{font-size:11px;font-weight:800;padding:2px 6px;border-radius:6px;background:#f1f3f5;color:#495057;}.ke-cu-h.ok{background:#d3f9d8;color:#2b8a3e;}.ke-cu-h.part{background:#fff3bf;color:#e67700;}';
   function ensureCss() { if (document.getElementById('keCss')) return; var s = document.createElement('style'); s.id = 'keCss'; s.textContent = CSS; document.head.appendChild(s); }
   function hiveOpts(ap, sel, extraFirst) {
     return (extraFirst || '') + activeHives(ap).map(function (h) { return '<option value="' + h.id + '"' + (String(sel) === String(h.id) ? ' selected' : '') + '>' + esc(h.name + (ap === 'all' ? ' · ' + apName(h.apiaryId) : '')) + '</option>'; }).join('');
@@ -193,7 +194,8 @@
 
   function renderLarva(root, ap, rerender) {
     var bs = batchesIn(ap), up = larvaUpcoming(ap, -3, 10);
-    var html = '<section class="ke-card" id="keCrit"><h2>Kritik günler (3 gün önce → 10 gün sonra)</h2>' +
+    var html = '<section class="ke-card" id="keCiftlesme"><h2>Çiftleşme uçuşu saat penceresi</h2><p class="ke-mut">Bakire ana çiftleşmesi için hava tahmini (genel uçuş havasından ayrı eşikler).</p><div class="ke-cu-body"><p class="ke-mut">Tahmin yükleniyor…</p></div></section>' +
+      '<section class="ke-card" id="keCrit"><h2>Kritik günler (3 gün önce → 10 gün sonra)</h2>' +
       (up.length ? '<div class="ke-tl">' + up.map(function (s) { return stepRow(s).replace('</span></div>', ' <small>· ' + esc(hiveName(s.batch.sourceHiveId)) + '</small></span></div>'); }).join('') + '</div>'
         : '<p class="ke-empty">' + (bs.length ? 'Bu aralıkta adım yok.' : 'Etkin larva transferi yok. Aşağıdan ilk aşılamayı kaydedin; takvim ve görevler otomatik oluşur.') + '</p>') + '</section>';
     html += '<section class="ke-card"><h2>Etkin partiler (' + bs.length + ')</h2>' + (bs.length ? bs.map(function (b) {
@@ -208,6 +210,7 @@
       '<p class="ke-mut">Takvim 1 günlük larvaya göredir: 0. gün aşılama · 5. gün hücreler kapanır · 10. gün çiftleşme kutusuna taşı · 11–12. gün ana çıkışı · 16–20. gün uçuş kontrolü · 21–28. gün yumurtlama kontrolü. Tarihli adımlar Görevler’e otomatik eklenir.</p>' +
       '<button type="submit" class="ke-btn ok">Larva transferini kaydet</button><p class="ke-msg" hidden></p></form></section>';
     root.innerHTML = html;
+    if (global.SuperAriCiftlesmeUcus && global.SuperAriCiftlesmeUcus.mountLarva) global.SuperAriCiftlesmeUcus.mountLarva(root, ap);
     var f = root.querySelector('#keForm form');
     f.addEventListener('submit', function (e) {
       e.preventDefault();
