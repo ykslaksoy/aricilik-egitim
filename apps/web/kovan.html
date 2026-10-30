@@ -74,6 +74,13 @@
     box-shadow: 0 1px 3px rgba(0,0,0,.04);
   }
   .back-btn svg { width: 18px; height: 18px; }
+  .share-btn {
+    flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
+    display: none; place-items: center;
+    background: #fff; border: 1px solid var(--card-border);
+    color: #5c4813; font-size: 15px; line-height: 1;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04); cursor: pointer;
+  }
   .kd-titles { flex: 1; min-width: 0; text-align: center; }
   .kd-titles h1 {
     font-size: 17px; font-weight: 800; color: var(--text);
@@ -1027,6 +1034,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
           '<p>' + escapeHtml(place) + '</p>' + movedHtml(hive) +
           (K && K.colorBadgeHtml ? '<div style="margin-top:4px;" aria-label="Ana arı rengi">' + K.colorBadgeHtml(hive.queenYear) + '</div>' : '') +
         '</div>' +
+        '<button type="button" class="share-btn" id="kdShareBtn" aria-label="Paylaşım bağlantısı" title="Paylaşım bağlantısı">🔗</button>' +
         '<span class="ok-pill' + cls(ok.cls) + '">' + escapeHtml(ok.label) + '</span>' +
       '</header>' +
       /* k89: sönük kovan (koloni kaybı kaydı) — geçmiş korunur, etkin sayımlara girmez */
@@ -1198,6 +1206,16 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
         bindChartControls();
       });
     }
+    var sh = document.getElementById('kdShareBtn');
+    if (sh) {
+      if (window.SuperAriPaylasim && window.SuperAriPaylasim.ozellikAcik()) {
+        sh.style.display = 'grid';
+        sh.onclick = function () { window.SuperAriPaylasim.ac(hive.id); };
+      } else {
+        sh.style.display = 'none';
+        sh.onclick = null;
+      }
+    }
   }
 
   window.addEventListener('resize', function () { drawChart(); }, { passive: true });
@@ -1219,6 +1237,7 @@ new MutationObserver(function () { if (window.__ovReload && !document.getElement
   render(hive, apiary);
 })();
 </script>
+<script src="paylasim-baglanti.js?v=koloni-297"></script>
 <script src="nav.js?v=koloni-285"></script>
 <script src="pwa.js?v=koloni-285"></script>
 </body>

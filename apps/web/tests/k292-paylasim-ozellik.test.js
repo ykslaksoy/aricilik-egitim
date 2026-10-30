@@ -13,8 +13,7 @@ test('k292: paylasim_baglanti bayrağı migration + panel rozeti + ozellik varsa
   assert.match(m, /Yönetici paneli:/);
   const j = fs.readFileSync(p.join(R, 'apps/yonetici/panel8.js'), 'utf8');
   assert.match(j, /HAZIR_DEGIL/);
-  assert.match(j, /paylasim_baglanti/);
-  assert.match(j, /hazır değil/);
+  assert.ok(!/paylasim_baglanti:\s*true/.test(j), 'paylasim artık hazır değil rozeti taşımıyor');
   assert.match(fs.readFileSync(p.join(R, 'apps/yonetici/index.html'), 'utf8'), /panel8\.js\?v=koloni-292/);
   const store = {};
   const ls = { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v; } };

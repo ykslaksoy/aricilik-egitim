@@ -195,6 +195,8 @@ const SHELL = [
   "/pages/dashboard.js",
   "/pages/hive-detail.js",
   "/pages/transport.js",
+  "/paylasim-baglanti.js",
+  "/paylasim.html",
   "/panels.css",
   "/panels.js",
   "/petek-tarama.css",
