@@ -38,6 +38,13 @@
       ['w', 'Genel', 'Günlük kayıp ≥ geçmişin katı ' + UT, 's', 'genelKayipKat'],
       ['w', 'Genel', 'En az günlük kayıp (kg) ' + UT, 's', 'genelKayipMinKg'],
       ['i', 'Nektar', 'Günlük artış en az (kg)', 's', 'nektarKg']] },
+    { t: 'Günlük endeks (önizleme)', kk: ['endeks'], src: 'Kaynak yok · tümü uzman tahmini', not: 'Arılık özet kartı ve günlük tarlacı / nektar akışı endeksi (0–100). Tartı «Nektar akımı» döşemesi ve oğul skoru nektar bayrağından ayrı; hava sayfası «Nektar akımı» hava tahmini değil.', r: [
+      ['i', 'Tarlacı', 'Tam puan günlük çıkış (arı) ' + UT, 's', 'endeksIrTam'],
+      ['i', 'Nektar', 'Tam puan günlük net artış (kg) ' + UT, 's', 'endeksNektarTamKg'],
+      ['i', 'Taban', 'Giriş sayacı taban (gün) ' + UT, 's', 'endeksIrTabanGun'],
+      ['i', 'Hava', 'Uçuş uygun değilse çarpan (0–1) ' + UT, 's', 'endeksHavaCarpan'],
+      ['i', 'Birleşik', 'Ağırlık tarlacı (%) ' + UT, 's', 'endeksAgirlikTar'],
+      ['i', 'Birleşik', 'Ağırlık nektar (%) ' + UT, 's', 'endeksAgirlikNektar']] },
     { t: 'Okuma sıklığı (varsayılan)', kk: [], cz: 1, src: 'Tartı: Meikle W.G. ve ark. 5–15 dk (ör. 2008 Apidologie 39:694; 2014 Apidologie 46:10) · Titreşim: Ramsey M-T. ve ark. 2020 Sci Rep 10:9798 (sürekli kayıt, 3 dk ortalama spektrum; gece 00–05) · diğerleri uzman tahmini · pil planı bu tabanı kullanır; seyreltme yalnız «Onayla» ile', not: 'Cihaz ölçüm sıklığının varsayılanı. Pil düşükken önerilen seyreltme bu değerlerden başlar; kullanıcı Onayla demeden değişmez. Eşek arısı ±0,5 °C / {s:esekEslesDk} dk için 30 dk taban yetmez → tıslama veya titreşim artınca iç ve giriş sıcaklığı {s:okumaEsekHizliDk} dk’da bir okunur (uzman tahmini). Ses ve titreşimde cihaz sürekli dinler; aralık yalnız ortalama spektrumun kaydedilme sıklığıdır. Piping, tıslama, dur sinyali, ana ötmesi ve darbe olay anında gönderilir, aralığa bağlı değildir. Oğul çıktı (IR) {s:ogulCiktiDk} dk pencereye bakar: giriş sayacı en çok yarısı kadar, gateway en çok o kadar seyrek olmalı.', r: [
       ['i', 'İç sıcaklık/nem', 'Kovan içi (dk) ' + UT, 's', 'okumaIsiNemDk'],
       ['i', 'Giriş sıcaklığı', 'Giriş sensörü (dk) ' + UT, 's', 'okumaGirisSicakDk'],

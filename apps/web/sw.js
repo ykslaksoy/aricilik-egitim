@@ -168,6 +168,7 @@ const SHELL = [
   "/koloni-ek.js",
   "/koloni-islem.html",
   "/koloni.js",
+  "/nektar-endeks.js",
   "/konum-onay.js",
   "/kovan-ara.js",
   "/kovan-strateji.js",

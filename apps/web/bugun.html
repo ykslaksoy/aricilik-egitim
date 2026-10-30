@@ -40,6 +40,16 @@
     .bg-grp-body{padding:0 8px 8px;}
     h2.bk-h{margin:0;font-size:1.05rem;display:flex;align-items:center;gap:.4rem;}
     h2.bk-h small{font-size:.78rem;color:var(--muted);font-weight:700;}
+    .nektar-endeks-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:.75rem .8rem;}
+    .nektar-endeks-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.35rem;}
+    .nektar-endeks-card h2{font-size:.95rem;margin:0;font-weight:800;}
+    .nektar-endeks-gun{font-size:.72rem;color:var(--muted);font-weight:700;}
+    .nektar-endeks-sub{font-size:.76rem;color:var(--muted);margin:0 0 .55rem;line-height:1.35;}
+    .nektar-endeks-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;}
+    .nektar-endeks-stat{padding:.45rem .35rem;border-radius:10px;background:#faf9f6;border:1px solid var(--border);text-align:center;}
+    .nektar-endeks-stat .k{font-size:.68rem;font-weight:700;color:var(--muted);}
+    .nektar-endeks-stat .v{font-size:1.15rem;font-weight:800;color:#5c4813;margin-top:.15rem;}
+    .nektar-endeks-meta{font-size:.7rem;color:var(--muted);margin:.45rem 0 0;line-height:1.35;}
   </style>
   <link rel="stylesheet" href="kapsam.css?v=koloni-285" />
   <link rel="stylesheet" href="bk-kabuk.css?v=koloni-285" />
@@ -52,6 +62,10 @@
         <select id="bgApiary" aria-label="Arılık seçimi"></select>
       </label>
       <div id="bgWx"><p class="bk-empty">Hava durumu yükleniyor…</p></div>
+    </section>
+
+    <section class="card stack bg-nektar" id="bgNektarWrap" hidden style="margin-top:1rem;">
+      <div id="bgNektar"></div>
     </section>
 
     <section class="card stack" style="margin-top:1rem;">
@@ -79,6 +93,7 @@
   <script src="task-group.js?v=koloni-285"></script>
   <script src="rapor-store.js?v=koloni-285"></script>
   <script src="hava-kayit.js"></script>
+  <script src="nektar-endeks.js?v=koloni-299"></script>
   <script src="koloni.js?v=koloni-296"></script>
   <script src="kapsam.js?v=koloni-285"></script>
   <script src="ks-sayfa.js?v=koloni-285"></script>
@@ -120,6 +135,11 @@
     function loadWx() {
       /* k94: tüm arılıklarda açıklama şeridi yok — hava kartı yalnız bir arılık seçiliyken görünür */
       var wxTop = document.querySelector('.bg-top'); if (wxTop) wxTop.hidden = !!allMode;
+      var nektarWrap = document.getElementById('bgNektarWrap'), nektarEl = document.getElementById('bgNektar');
+      if (nektarWrap) nektarWrap.hidden = !!allMode;
+      if (!allMode && nektarEl && window.SuperAriNektarEndeks) {
+        nektarEl.innerHTML = window.SuperAriNektarEndeks.cardHtml(window.SuperAriNektarEndeks.apiarySummary(apiaryId), { compact: true });
+      }
       if (allMode) return;
       var a = D.apiaryById(apiaryId);
       if (!a || !isFinite(Number(a.lat)) || !isFinite(Number(a.lon)) || (!a.lat && !a.lon)) { paintWx(null, null, 'Bu arılığın konumu yok; hava durumu gösterilemiyor.'); return; }
