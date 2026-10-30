@@ -1371,12 +1371,18 @@
     }
     if (detailMapReady) {
       detailMapReady.then(afterMap).catch(function () {
-        alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
+        alert('Harita yüklenemedi. Bağlantıyı kontrol edip tekrar deneyin.');
       });
       return true;
     }
-    alert('Harita henüz hazır değil. Biraz bekleyip tekrar Uygula’ya basın.');
-    return false;
+    var waitN = 0;
+    (function waitMap() {
+      if (detailMapCtrl) { afterMap(); return; }
+      if (detailMapReady) { detailMapReady.then(afterMap).catch(function () { alert('Harita yüklenemedi. Bağlantıyı kontrol edip tekrar deneyin.'); }); return; }
+      if (++waitN > 40) { alert('Harita yüklenemedi. Bağlantıyı kontrol edip tekrar deneyin.'); return; }
+      setTimeout(waitMap, 250);
+    })();
+    return true;
   }
 
   function openCoordPasteSheet() {
