@@ -116,6 +116,8 @@ const SHELL = [
   "/cicek-veri.js",
   "/cicek.js",
   "/cihazlar.html",
+  "/cihaz-gecmis.html",
+  "/cihaz-gecmis.js",
   "/components/hive-row.js",
   "/components/score-badge.js",
   "/components/sensor-chart.js",

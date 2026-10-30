@@ -6866,6 +6866,14 @@
           n++;
           if (!dry) {
             var e = { k: k, id: v.id != null ? String(v.id) : null, path: path.slice(), from: srcId, to: tgtId };
+            if (k.indexOf('devices') !== -1 && v.tip && v.id && global.SuperAriCihazGecmis && global.SuperAriCihazGecmis.onDeviceMoved) {
+              try {
+                global.SuperAriCihazGecmis.onDeviceMoved(
+                  { id: v.id, tip: v.tip, name: v.name, hiveId: v.hiveId, hiveName: v.hiveName, apiaryName: v.apiaryName },
+                  srcId, tgtId, { fromName: srcName, toName: tgtName || v.apiaryName }
+                );
+              } catch (eCg) { /* ignore */ }
+            }
             v.apiaryId = tgtId;
             if (v.apiaryName != null && String(v.apiaryName) === String(srcName) && tgtName) { e.fromName = v.apiaryName; v.apiaryName = tgtName; e.toName = tgtName; }
             log.push(e); touched = true;
