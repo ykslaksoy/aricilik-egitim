@@ -38,6 +38,13 @@
       ['w', 'Genel', 'Günlük kayıp ≥ geçmişin katı ' + UT, 's', 'genelKayipKat'],
       ['w', 'Genel', 'En az günlük kayıp (kg) ' + UT, 's', 'genelKayipMinKg'],
       ['i', 'Nektar', 'Günlük artış en az (kg)', 's', 'nektarKg']] },
+    { t: 'Günlük endeks (önizleme)', kk: ['endeks'], src: 'Kaynak yok · tümü uzman tahmini', not: 'Arılık özet kartı ve günlük tarlacı / nektar akışı endeksi (0–100). Tartı «Nektar akımı» döşemesi ve oğul skoru nektar bayrağından ayrı; hava sayfası «Nektar akımı» hava tahmini değil.', r: [
+      ['i', 'Tarlacı', 'Tam puan günlük çıkış (arı) ' + UT, 's', 'endeksIrTam'],
+      ['i', 'Nektar', 'Tam puan günlük net artış (kg) ' + UT, 's', 'endeksNektarTamKg'],
+      ['i', 'Taban', 'Giriş sayacı taban (gün) ' + UT, 's', 'endeksIrTabanGun'],
+      ['i', 'Hava', 'Uçuş uygun değilse çarpan (0–1) ' + UT, 's', 'endeksHavaCarpan'],
+      ['i', 'Birleşik', 'Ağırlık tarlacı (%) ' + UT, 's', 'endeksAgirlikTar'],
+      ['i', 'Birleşik', 'Ağırlık nektar (%) ' + UT, 's', 'endeksAgirlikNektar']] },
     { t: 'Okuma sıklığı (varsayılan)', kk: [], cz: 1, src: 'Tartı: Meikle W.G. ve ark. 5–15 dk (ör. 2008 Apidologie 39:694; 2014 Apidologie 46:10) · Titreşim: Ramsey M-T. ve ark. 2020 Sci Rep 10:9798 (sürekli kayıt, 3 dk ortalama spektrum; gece 00–05) · diğerleri uzman tahmini · pil planı bu tabanı kullanır; seyreltme yalnız «Onayla» ile', not: 'Cihaz ölçüm sıklığının varsayılanı. Pil düşükken önerilen seyreltme bu değerlerden başlar; kullanıcı Onayla demeden değişmez. Eşek arısı ±0,5 °C / {s:esekEslesDk} dk için 30 dk taban yetmez → tıslama veya titreşim artınca iç ve giriş sıcaklığı {s:okumaEsekHizliDk} dk’da bir okunur (uzman tahmini). Ses ve titreşimde cihaz sürekli dinler; aralık yalnız ortalama spektrumun kaydedilme sıklığıdır. Piping, tıslama, dur sinyali, ana ötmesi ve darbe olay anında gönderilir, aralığa bağlı değildir. Oğul çıktı (IR) {s:ogulCiktiDk} dk pencereye bakar: giriş sayacı en çok yarısı kadar, gateway en çok o kadar seyrek olmalı.', r: [
       ['i', 'İç sıcaklık/nem', 'Kovan içi (dk) ' + UT, 's', 'okumaIsiNemDk'],
       ['i', 'Giriş sıcaklığı', 'Giriş sensörü (dk) ' + UT, 's', 'okumaGirisSicakDk'],
@@ -188,6 +195,16 @@
       ['i', 'Mevsim', 'Yayla: bitiş (AAGG, ör. 920 = 20 Eyl) ' + UT, 's', 'ucusSezonYaylaSon'],
       ['i', 'Mevsim', 'Yüksek yayla (≥1800 m): başlangıç (AAGG) ' + UT, 's', 'ucusSezonYuksekBas'],
       ['i', 'Mevsim', 'Yüksek yayla: bitiş (AAGG) ' + UT, 's', 'ucusSezonYuksekSon']] },
+    { t: 'Çiftleşme uçuşu (bakire ana)', kk: [], src: 'Woyke J. (1963). Über die Paarungsflüge der Bienenköniginnen. Apidologie 4:265–283 (uçuş sıcaklığı) · Riessberger & Crailsheim 1997, Apidologie 28:411 (yağmurda uçuş yok) · Vicens & Bosch 2000, Environ. Entomol. 29:413 (ışınım) · öğle penceresi: arıcılık rehberleri, saat eşikleri uzman tahmini', not: 'Ana arı yetiştirme / çiftleşme kutusu bağlamı; Hava › «Uçuş uygunluğu» toplama uçuşu için ayrıdır. Gün içi {s:ciftlesmeSaatBas}:00–{s:ciftlesmeSaatSon}:00 arası saatler değerlendirilir; en az {s:ciftlesmeSaatMin} uygun saat → «Çiftleşme uygun». Koloni › Larva takvimi kartında gösterilir (tahmini).', r: [
+      ['ok', 'Sıcaklık', 'Uygun saat: en az (°C) ' + UT, 's', 'ciftlesmeUygunC'],
+      ['w', 'Sıcaklık', 'Kısmen uygun saat: en az (°C) ' + UT, 's', 'ciftlesmeKismenC'],
+      ['ok', 'Rüzgar', 'Uygun saat: en yüksek (km/sa) ' + UT, 's', 'ciftlesmeUygunRuzgar'],
+      ['w', 'Rüzgar', 'Kısmen uygun saat: en yüksek (km/sa) ' + UT, 's', 'ciftlesmeKismenRuzgar'],
+      ['c', 'Yağış', 'Günlük yağış bu ve üstü uygun değil (mm) ' + UT, 's', 'ciftlesmeYagisMm'],
+      ['ok', 'Güneş', 'Uygun saat: en az ışınım (W/m²) · Vicens & Bosch 2000', 's', 'ciftlesmeIsinimW'],
+      ['i', 'Pencere', 'Gün içi başlangıç saati (0–23) ' + UT, 's', 'ciftlesmeSaatBas'],
+      ['i', 'Pencere', 'Gün içi bitiş saati (0–23) ' + UT, 's', 'ciftlesmeSaatSon'],
+      ['ok', 'Süre', '«Uygun gün»: pencerede en az uygun saat ' + UT, 's', 'ciftlesmeSaatMin']] },
     { t: 'Titreşim', kk: ['titresim'], src: 'Kaynak yok · uzman tahmini', not: 'Olağandışı hareket: hırsızlık / kapak açıldı alarmı için hazırlık.', r: [
       ['w', 'Olağandışı', '7 gün tabanının katı ' + UT, 's', 'titresimKat'],
       ['w', 'Süre', 'Kesintisiz (dk) ' + UT, 's', 'titresimDk']] },

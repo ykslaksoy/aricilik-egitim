@@ -69,7 +69,7 @@
     });
     /* 3) bölüm kartı → 📁 (başlık özet olur) */
     [].slice.call(root.querySelectorAll('section.card:not(.tr-sec-done), section.fe:not(.tr-sec-done)')).forEach(function (s) {
-      if (s.id === 'gate' || s.classList.contains('grid-3')) return;
+      if (s.id === 'gate' || s.classList.contains('grid-3') || s.classList.contains('yon-home')) return;
       var h = s.querySelector(':scope > h2'); if (!h) return;
       s.classList.add('tr-sec-done');
       var d = mk('tr-sec', '📁 ' + esc(txt(h)), (s.id || h.id || txt(h)) + '|sec'), body = d.querySelector('.tr-body');

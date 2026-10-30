@@ -32,7 +32,7 @@
     }).catch(function (err) { msg.textContent = 'Olmadı: ' + ((err && err.message) || 'bağlantı yok'); }).then(function () { b.disabled = false; });
   });
   var bd = f.querySelector('.bd');
-  var HAZIR_DEGIL = { paylasim_baglanti: true };
+  var HAZIR_DEGIL = {};
   var ROZET_HAZIR_DEGIL = '<span class="fe-badge" style="display:inline-block;margin-left:.35rem;padding:1px 7px;border-radius:8px;font-size:.72rem;font-weight:700;background:#fde68a;color:#78350f;vertical-align:middle">hazır değil</span>';
   function ciz(R) {
     bd.innerHTML = R.length ? R.map(function (x) {
